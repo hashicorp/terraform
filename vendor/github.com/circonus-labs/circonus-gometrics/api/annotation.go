@@ -17,14 +17,14 @@ import (
 // Annotation defines a annotation
 type Annotation struct {
 	CID            string   `json:"_cid,omitempty"`
-	Created        int      `json:"_created,omitempty"`
-	LastModified   int      `json:"_last_modified,omitempty"`
+	Created        uint     `json:"_created,omitempty"`
+	LastModified   uint     `json:"_last_modified,omitempty"`
 	LastModifiedBy string   `json:"_last_modified_by,omitempty"`
 	Category       string   `json:"category"`
 	Description    string   `json:"description"`
 	RelatedMetrics []string `json:"rel_metrics"`
-	Start          int      `json:"start"`
-	Stop           int      `json:"stop"`
+	Start          uint     `json:"start"`
+	Stop           uint     `json:"stop"`
 	Title          string   `json:"title"`
 }
 

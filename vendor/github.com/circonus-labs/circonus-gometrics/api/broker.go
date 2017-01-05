@@ -18,14 +18,14 @@ import (
 type BrokerDetail struct {
 	CN           string   `json:"cn"`
 	ExternalHost string   `json:"external_host"`
-	ExternalPort int      `json:"external_port"`
+	ExternalPort uint16   `json:"external_port"`
 	IP           string   `json:"ipaddress"`
-	MinVer       int      `json:"minimum_version_required"`
+	MinVer       uint     `json:"minimum_version_required"`
 	Modules      []string `json:"modules"`
-	Port         int      `json:"port"`
-	Skew         string   `json:"skew"`
+	Port         uint16   `json:"port"`
+	Skew         string   `json:"skew"` // doc: floating point number, api object: string
 	Status       string   `json:"status"`
-	Version      int      `json:"version"`
+	Version      uint     `json:"version"`
 }
 
 // Broker definition
@@ -92,19 +92,6 @@ func (a *API) FetchBrokers() (*[]Broker, error) {
 
 	return &response, nil
 }
-
-// // FetchBrokersByTag return list of brokers with a specific tag
-// func (a *API) FetchBrokersByTag(searchTags TagType) (*[]Broker, error) {
-// 	if len(searchTags) == 0 {
-// 		return a.FetchBrokers()
-// 	}
-//
-// 	filter := map[string]string{
-// 		"f__tags_has": strings.Replace(strings.Join(searchTags, ","), ",", "&f__tags_has=", -1),
-// 	}
-//
-// 	return a.SearchBrokers(nil, &filter)
-// }
 
 // SearchBrokers returns list of annotations matching a search query and/or filter
 //    - a search query (see: https://login.circonus.com/resources/api#searching)

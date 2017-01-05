@@ -17,18 +17,18 @@ import (
 // RulesetGroupRule defines a rulesetGroup rule
 type RulesetGroupRule struct {
 	Criteria          string `json:"criteria"`
-	Severity          int    `json:"severity"`
+	Severity          uint   `json:"severity"`
 	Value             string `json:"value"`
-	WindowingDuration int    `json:"windowing_duration,omitempty"`
+	WindowingDuration uint   `json:"windowing_duration,omitempty"`
 	WindowingFunction string `json:"windowing_function,omitempty"`
-	Wait              int    `json:"wait,omitempty"`
+	Wait              uint   `json:"wait,omitempty"`
 }
 
 // RulesetGroupFormula defines a formula for raising alerts
 type RulesetGroupFormula struct {
 	Expression    string `json:"expression"`
-	RaiseSeverity int    `json:"raise_severity"`
-	Wait          int    `json:"wait"`
+	RaiseSeverity uint   `json:"raise_severity"`
+	Wait          uint   `json:"wait"`
 }
 
 // RulesetGroupCondition defines conditions for raising alerts
@@ -40,7 +40,7 @@ type RulesetGroupCondition struct {
 // RulesetGroup defines a ruleset group
 type RulesetGroup struct {
 	CID               string                  `json:"_cid,omitempty"`
-	ContactGroups     map[int][]string        `json:"contact_groups"`
+	ContactGroups     map[uint8][]string      `json:"contact_groups"`
 	Formulas          []RulesetGroupFormula   `json:"formulas"`
 	Name              string                  `json:"name"`
 	RulesetConditions []RulesetGroupCondition `json:"rule_set_conditions"`

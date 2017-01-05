@@ -15,7 +15,7 @@ import (
 	"regexp"
 )
 
-// CheckDetails is an arbitrary json structure, we would only care about submission_url
+// CheckDetails is an arbitrary json structure, contents are undocumented
 type CheckDetails struct {
 	SubmissionURL string `json:"submission_url"`
 }
@@ -116,25 +116,3 @@ func (a *API) SearchChecks(searchCriteria *SearchQueryType, filterCriteria *Sear
 
 	return &checks, nil
 }
-
-// // CheckFilterSearch returns a list of checks matching a filter (filtering allows looking for
-// // things within sub-elements e.g. details)
-// func (a *API) CheckFilterSearch(filter SearchFilterType) ([]Check, error) {
-// 	if filter == "" {
-// 		return nil, errors.New("[ERROR] invalid filter supplied (blank)")
-// 	}
-//
-// 	filterURL := fmt.Sprintf("/check?%s", string(filter))
-//
-// 	result, err := a.Get(filterURL)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	var checks []Check
-// 	if err := json.Unmarshal(result, &checks); err != nil {
-// 		return nil, err
-// 	}
-//
-// 	return checks, nil
-// }

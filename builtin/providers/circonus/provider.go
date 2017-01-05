@@ -11,9 +11,35 @@ import (
 )
 
 const (
-	apiURLAttr = "api_url"
-	keyAttr    = "key"
+	apiURLAttr                           = "api_url"
+	defaultCirconus404ErrorString        = "API response code 404:"
+	defaultCirconusAggregationWindow     = "300s"
+	defaultCirconusAlertMinEscalateAfter = "300s"
+	defaultCirconusCheckPeriodMax        = "300s"
+	defaultCirconusCheckPeriodMin        = "30s"
+	defaultCirconusHTTPFormat            = "json"
+	defaultCirconusHTTPMethod            = "POST"
+	defaultCirconusSlackUsername         = "Circonus"
+	defaultCirconusTimeoutMax            = "300s"
+	defaultCirconusTimeoutMin            = "0s"
+	keyAttr                              = "key"
+	maxSeverity                          = 5
+	minSeverity                          = 1
+	numSeverityLevels                    = 5
+
+	apiAccountPrefix      = "/account"
+	apiContactGroupPrefix = "/contact_group"
+	apiUserPrefix         = "/user"
 )
+
+// Constants that want to be a constant but can't in Go
+var (
+	validContactHTTPFormats = []string{"json", "params"}
+	validContactHTTPMethods = []string{"GET", "POST"}
+)
+
+type CheckType string
+type ContactMethods string
 
 // Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
@@ -40,7 +66,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"circonus_check": resourceCheckBundle(),
+			"circonus_check":         resourceCheckBundle(),
+			"circonus_contact_group": resourceContactGroup(),
 		},
 
 		ConfigureFunc: providerConfigure,

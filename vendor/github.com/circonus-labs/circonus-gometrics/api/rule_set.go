@@ -17,27 +17,27 @@ import (
 // RulesetRule defines a ruleset rule
 type RulesetRule struct {
 	Criteria          string `json:"criteria"`
-	Severity          int    `json:"severity"`
+	Severity          uint   `json:"severity"`
 	Value             string `json:"value"`
-	WindowingDuration int    `json:"windowing_duration,omitempty"`
+	WindowingDuration uint   `json:"windowing_duration,omitempty"`
 	WindowingFunction string `json:"windowing_function,omitempty"`
-	Wait              int    `json:"wait,omitempty"`
+	Wait              uint   `json:"wait,omitempty"`
 }
 
 // Ruleset defines a ruleset
 type Ruleset struct {
-	CID           string           `json:"_cid,omitempty"`
-	CheckCID      string           `json:"check"`
-	ContactGroups map[int][]string `json:"contact_groups"`
-	Derive        string           `json:"derive,omitempty"`
-	Link          string           `json:"link"`
-	MetricName    string           `json:"metric_name"`
-	MetricTags    []string         `json:"metric_tags"`
-	MetricType    string           `json:"metric_type"`
-	Notes         string           `json:"notes"`
-	Parent        string           `json:"parent,omitempty"`
-	Rules         []RulesetRule    `json:"rules"`
-	Tags          []string         `json:"tags"`
+	CID           string             `json:"_cid,omitempty"`
+	CheckCID      string             `json:"check"`
+	ContactGroups map[uint8][]string `json:"contact_groups"`
+	Derive        string             `json:"derive,omitempty"`
+	Link          string             `json:"link"`
+	MetricName    string             `json:"metric_name"`
+	MetricTags    []string           `json:"metric_tags"`
+	MetricType    string             `json:"metric_type"`
+	Notes         string             `json:"notes"`
+	Parent        string             `json:"parent,omitempty"`
+	Rules         []RulesetRule      `json:"rules"`
+	Tags          []string           `json:"tags"`
 }
 
 const (

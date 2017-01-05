@@ -16,11 +16,11 @@ import (
 
 // ContactGroupAlertFormats define alert formats
 type ContactGroupAlertFormats struct {
-	LongMessage  string `json:"long_message"`
-	LongSubject  string `json:"long_subject"`
-	LongSummary  string `json:"long_summary"`
-	ShortMessage string `json:"short_message"`
-	ShortSummary string `json:"short_summary"`
+	LongMessage  *string `json:"long_message"`
+	LongSubject  *string `json:"long_subject"`
+	LongSummary  *string `json:"long_summary"`
+	ShortMessage *string `json:"short_message"`
+	ShortSummary *string `json:"short_summary"`
 }
 
 // ContactGroupContactsExternal external contacts
@@ -44,28 +44,41 @@ type ContactGroupContacts struct {
 
 // ContactGroupEscalation defines escalations for severity levels
 type ContactGroupEscalation struct {
-	After           int    `json:"after"`
+	After           uint   `json:"after"`
 	ContactGroupCID string `json:"contact_group"`
 }
 
 // ContactGroup defines a contactGroup
 type ContactGroup struct {
-	CID               string                     `json:"_cid,omitempty"`
-	LastModified      int                        `json:"_last_modified,omitempty"`
-	LastModfiedBy     string                     `json:"_last_modified_by,omitempty"`
-	AggregationWindow int                        `json:"aggregation_window"`
-	AlertFormats      []ContactGroupAlertFormats `json:"alert_formats"`
-	Contacts          ContactGroupContacts       `json:"contacts"`
-	Escalations       []ContactGroupEscalation   `json:"escalations"`
-	Name              string                     `json:"name"`
-	Reminders         []int                      `json:"reminders"`
-	Tags              []string                   `json:"tags"`
+	CID               string                    `json:"_cid,omitempty"`
+	LastModified      uint                      `json:"_last_modified,omitempty"`
+	LastModifiedBy    string                    `json:"_last_modified_by,omitempty"`
+	AggregationWindow uint                      `json:"aggregation_window,omitempty"`
+	AlertFormats      ContactGroupAlertFormats  `json:"alert_formats,omitempty"`
+	Contacts          ContactGroupContacts      `json:"contacts,omitempty"`
+	Escalations       []*ContactGroupEscalation `json:"escalations,omitempty"`
+	Name              string                    `json:"name,omitempty"`
+	Reminders         []uint                    `json:"reminders,omitempty"`
+	Tags              []string                  `json:"tags,omitempty"`
 }
 
 const (
 	baseContactGroupPath = "/contact_group"
 	contactGroupCIDRegex = "^" + baseContactGroupPath + "/[0-9]+$"
+	numSeverityLevels    = 5
 )
+
+// NewContactGroup returns a ContactGroup
+func (a *API) NewContactGroup() *ContactGroup {
+	return &ContactGroup{
+		Escalations: make([]*ContactGroupEscalation, numSeverityLevels),
+		Reminders:   make([]uint, numSeverityLevels),
+		Contacts: ContactGroupContacts{
+			External: []ContactGroupContactsExternal{},
+			Users:    []ContactGroupContactsUser{},
+		},
+	}
+}
 
 // FetchContactGroup retrieves a contact group definition
 func (a *API) FetchContactGroup(cid CIDType) (*ContactGroup, error) {
@@ -197,10 +210,10 @@ func (a *API) DeleteContactGroupByCID(cid CIDType) (bool, error) {
 	return true, nil
 }
 
-// ContactGroupSearch returns list of contact groups matching a search query and/or filter
+// SearchContactGroups returns list of contact groups matching a search query and/or filter
 //    - a search query (see: https://login.circonus.com/resources/api#searching)
 //    - a filter (see: https://login.circonus.com/resources/api#filtering)
-func (a *API) ContactGroupSearch(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]ContactGroup, error) {
+func (a *API) SearchContactGroups(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]ContactGroup, error) {
 	q := url.Values{}
 
 	if searchCriteria != nil && *searchCriteria != "" {
