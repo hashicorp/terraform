@@ -1,7 +1,7 @@
 ---
 layout: "cloudfoundry"
 page_title: "Cloud Foundry: cf_quota"
-sidebar_current: "docs-cloudfoundry-resource-asg"
+sidebar_current: "docs-cloudfoundry-resource-quota"
 description: |-
   Provides a Cloud Foundry Quota resource.
 ---
