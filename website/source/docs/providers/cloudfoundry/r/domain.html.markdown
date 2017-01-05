@@ -1,7 +1,7 @@
 ---
 layout: "cloudfoundry"
 page_title: "Cloud Foundry: cf_domain"
-sidebar_current: "docs-cloudfoundry-resource-asg"
+sidebar_current: "docs-cloudfoundry-resource-domain"
 description: |-
   Provides a Cloud Foundry Domain resource.
 ---
