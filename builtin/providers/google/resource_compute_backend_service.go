@@ -392,7 +392,15 @@ func resourceGoogleComputeBackendServiceBackendHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 
-	buf.WriteString(fmt.Sprintf("%s-", m["group"].(string)))
+	if m["group"].(string) != "" {
+		buf.WriteString(fmt.Sprintf("%s-", m["group"].(string)))
+	}
+
+	if v, ok := m["groups"]; ok {
+		for _, group := range v.([]interface{}) {
+			buf.WriteString(fmt.Sprintf("%s-", group.(string)))
+		}
+	}
 
 	if v, ok := m["balancing_mode"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
