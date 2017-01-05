@@ -1,7 +1,7 @@
 ---
 layout: "cloudfoundry"
 page_title: "Cloud Foundry: cf_default_asg"
-sidebar_current: "docs-cloudfoundry-resource-asg"
+sidebar_current: "docs-cloudfoundry-resource-default-asg"
 description: |-
   Provides a Cloud Foundry Default Appliction Security Group resource.
 ---
