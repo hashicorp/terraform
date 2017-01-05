@@ -126,10 +126,6 @@ func structPointer_StringSlice(p structPointer, f field) *[]string {
 }
 
 // ExtMap returns the address of an extension map field in the struct.
-func structPointer_Extensions(p structPointer, f field) *XXX_InternalExtensions {
-	return (*XXX_InternalExtensions)(unsafe.Pointer(uintptr(p) + uintptr(f)))
-}
-
 func structPointer_ExtMap(p structPointer, f field) *map[int32]Extension {
 	return (*map[int32]Extension)(unsafe.Pointer(uintptr(p) + uintptr(f)))
 }
