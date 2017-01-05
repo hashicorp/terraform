@@ -1,29 +1,29 @@
 ---
 layout: "google"
-page_title: "Google: google_compute_instance_group_manager"
-sidebar_current: "docs-google-compute-instance-group-manager"
+page_title: "Google: google_compute_region_instance_group_manager"
+sidebar_current: "docs-google-compute-region-instance-group-manager"
 description: |-
-  Manages an Instance Group within GCE.
+  Manages a Regional Instance Group within GCE.
 ---
 
-# google\_compute\_instance\_group\_manager
+# google\_compute\_region\_instance\_group\_manager
 
 The Google Compute Engine Instance Group Manager API creates and manages pools
 of homogeneous Compute Engine virtual machine instances from a common instance
 template. For more information, see [the official documentation](https://cloud.google.com/compute/docs/instance-groups/manager)
-and [API](https://cloud.google.com/compute/docs/instance-groups/manager/v1beta2/instanceGroupManagers)
+and [API](https://cloud.google.com/compute/docs/instance-groups/manager/v1/instanceGroupManagers)
 
 ## Example Usage
 
 ```js
-resource "google_compute_instance_group_manager" "foobar" {
+resource "google_compute_region_instance_group_manager" "foobar" {
   name        = "terraform-test"
   description = "Terraform test instance group manager"
 
   base_instance_name = "foobar"
   instance_template  = "${google_compute_instance_template.foobar.self_link}"
   update_strategy    = "NONE"
-  zone               = "us-central1-a"
+  region             = "us-central1"
 
   target_pools = ["${google_compute_target_pool.foobar.self_link}"]
   target_size  = 2
@@ -54,8 +54,7 @@ The following arguments are supported:
     [RFC1035](https://www.ietf.org/rfc/rfc1035.txt). Supported characters
     include lowercase letters, numbers, and hyphens.
 
-* `zone` - (Required) The zone that instances in this group should be created
-    in.
+* `region` - (Required) The region that all instances will be created within.
 
 - - -
 
