@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/codedeploy"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceAwsCodeDeployDeploymentConfig() *schema.Resource {
@@ -31,8 +31,8 @@ func resourceAwsCodeDeployDeploymentConfig() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:         schema.TypeString,
+							Required:     true,
 							ValidateFunc: validateMinimumHealtyHostsType,
 						},
 
@@ -45,21 +45,19 @@ func resourceAwsCodeDeployDeploymentConfig() *schema.Resource {
 			},
 
 			"deployment_config_id": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 		},
 	}
 }
 
-
-
 func resourceAwsCodeDeployDeploymentConfigCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codedeployconn
 
 	input := &codedeploy.CreateDeploymentConfigInput{
 		DeploymentConfigName: aws.String(d.Get("deployment_config_name").(string)),
-		MinimumHealthyHosts: expandAwsCodeDeployConfigMinimumHealthHosts(d),
+		MinimumHealthyHosts:  expandAwsCodeDeployConfigMinimumHealthHosts(d),
 	}
 
 	_, err := conn.CreateDeploymentConfig(input)
@@ -71,7 +69,6 @@ func resourceAwsCodeDeployDeploymentConfigCreate(d *schema.ResourceData, meta in
 
 	return resourceAwsCodeDeployDeploymentConfigRead(d, meta)
 }
-
 
 func resourceAwsCodeDeployDeploymentConfigRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codedeployconn
@@ -97,7 +94,7 @@ func resourceAwsCodeDeployDeploymentConfigRead(d *schema.ResourceData, meta inte
 	}
 
 	if err := d.Set("minimum_healthy_hosts", flattenAwsCodeDeployConfigMinimumHealthHosts(resp.DeploymentConfigInfo.MinimumHealthyHosts)); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting CodeDeploy DeploymentConfig MinimumHealthyHosts error: %#v", err)
+		return err
 	}
 	d.Set("deployment_config_id", resp.DeploymentConfigInfo.DeploymentConfigId)
 	d.Set("deployment_config_name", resp.DeploymentConfigInfo.DeploymentConfigName)
@@ -125,21 +122,24 @@ func expandAwsCodeDeployConfigMinimumHealthHosts(d *schema.ResourceData) *codede
 	host := hosts[0].(map[string]interface{})
 
 	minimumHealthyHost := codedeploy.MinimumHealthyHosts{
-		Type: aws.String(host["type"].(string)),
+		Type:  aws.String(host["type"].(string)),
 		Value: aws.Int64(int64(host["value"].(int))),
 	}
-
 
 	return &minimumHealthyHost
 }
 
-func flattenAwsCodeDeployConfigMinimumHealthHosts(hosts *codedeploy.MinimumHealthyHosts) []interface{} {
-	result := make(map[string]interface{})
+func flattenAwsCodeDeployConfigMinimumHealthHosts(hosts *codedeploy.MinimumHealthyHosts) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0)
 
-	result["type"] = *hosts.Type
-	result["key"] = *hosts.Value
+	item := make(map[string]interface{})
 
-	return []interface{}{result}
+	item["type"] = *hosts.Type
+	item["value"] = *hosts.Value
+
+	result = append(result, item)
+
+	return result
 }
 
 func validateMinimumHealtyHostsType(v interface{}, k string) (ws []string, errors []error) {
