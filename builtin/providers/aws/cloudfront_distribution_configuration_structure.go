@@ -441,7 +441,8 @@ func flattenLambdaFunctionAssociation(lfa *cloudfront.LambdaFunctionAssociation)
 func lambdaFunctionAssociationHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(m["event_type"].(string))
+	buf.WriteString(fmt.Sprintf("%s-", m["event_type"].(string)))
+	buf.WriteString(fmt.Sprintf("%s", m["lambda_arn"].(string)))
 	return hashcode.String(buf.String())
 }
 
