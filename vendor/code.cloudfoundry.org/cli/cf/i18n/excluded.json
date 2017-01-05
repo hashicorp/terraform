@@ -1,0 +1,41 @@
+{
+ "excludedStrings" : [
+   "",
+   " ",
+   "\n",
+   "\t",
+   "\n\t",
+   "extract_strings",
+   "excluded.json",
+   "i18n4go",
+   ".en.json",
+   ".extracted.json",
+   "recursive:",
+   ".json",
+   ".po",
+   ", column: ",
+   ", line: ",
+   ", offset: ",
+   "msgid ",
+   "msgstr ",
+   "# filename: ",
+   ".",
+   "\\",
+   "help",
+   ".go",
+   "",
+   "/",
+   "false",
+   "true",
+
+   "allow-paid-service-plans"
+ ],
+ "excludedRegexps" : [
+   "^\\d+$",
+   "^[-%]?\\w$",
+   "^\\w$",
+   "^json:",
+   "^\\w*[-]?quota[-]?\\w*$",
+   "^\\w+-paid-service-plans$"
+ ]
+}
