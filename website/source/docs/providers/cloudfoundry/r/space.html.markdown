@@ -12,7 +12,7 @@ Provides a Cloud Foundry resource for managing Cloud Foundry [spaces](https://do
 
 ## Example Usage
 
-The following is an Space created within the referenced Org. All refeenced users must have been added as a member to the owning Org.
+The following is a Space created within the referenced Org. All refeenced users must have been added as a member to the owning Org.
 
 ```
 resource "cf_space" "s1" {
