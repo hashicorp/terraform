@@ -1,6 +1,38 @@
 package circonus
 
-import "github.com/hashicorp/terraform/helper/schema"
+import (
+	"fmt"
+	"regexp"
+	"strconv"
+	"time"
+
+	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/schema"
+)
+
+func failoverGroupIDToCID(groupID int) string {
+	if groupID == 0 {
+		return ""
+	}
+
+	return fmt.Sprintf("%s/%d", apiContactGroupPrefix, groupID)
+}
+
+func failoverGroupCIDToID(cid api.CIDType) (int, error) {
+	re := regexp.MustCompile("^" + apiContactGroupPrefix + "/([0-9]+)$")
+	matches := re.FindStringSubmatch(string(*cid))
+	if matches == nil || len(matches) < 2 {
+		return -1, fmt.Errorf("Did not find a valid contact_group ID in the CID %q", string(*cid))
+	}
+
+	contactGroupID, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return -1, errwrap.Wrapf(fmt.Sprintf("invalid contact_group ID: unable to find an ID in %q: {{error}}", string(*cid)), err)
+	}
+
+	return contactGroupID, nil
+}
 
 // flattenList returns a list of all string values to a []*string.
 func flattenList(l []interface{}) []*string {
@@ -17,4 +49,32 @@ func flattenList(l []interface{}) []*string {
 // flattenSet flattens the values in a schema.Set and returns a []*string
 func flattenSet(s *schema.Set) []*string {
 	return flattenList(s.List())
+}
+
+func normalizeTimeDurationStringToSeconds(v interface{}) string {
+	switch v.(type) {
+	case string:
+		d, err := time.ParseDuration(v.(string))
+		if err != nil {
+			return fmt.Sprintf("<unable to normalize time duration %s: %v>", v.(string), err)
+		}
+
+		return fmt.Sprintf("%ds", int(d.Seconds()))
+	default:
+		return fmt.Sprintf("<unable to normalize duration on %#v>", v)
+	}
+}
+
+func suppressEquivalentTimeDurations(k, old, new string, d *schema.ResourceData) bool {
+	d1, err := time.ParseDuration(old)
+	if err != nil {
+		return false
+	}
+
+	d2, err := time.ParseDuration(new)
+	if err != nil {
+		return false
+	}
+
+	return d1 == d2
 }

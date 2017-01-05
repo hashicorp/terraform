@@ -2,13 +2,17 @@ package circonus
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/hashicorp/errwrap"
 )
 
 var knownCheckTypes map[CheckType]struct{}
+var knownContactMethods map[ContactMethods]struct{}
 
 const (
 	// Misc package constants
@@ -16,7 +20,15 @@ const (
 	defaultNumHTTPHeaders = 3
 )
 
+const (
+	accountCIDRegex      = "^" + apiAccountPrefix + "/([0-9]+|current)$"
+	contactGroupCIDRegex = `^` + apiContactGroupPrefix + `/[0-9]+$`
+	userCIDRegex         = "^" + apiUserPrefix + "/([0-9]+|current)$"
+)
+
 var defaultCheckTypeConfigSize map[CheckType]int
+var userContactMethods map[string]struct{}
+var externalContactMethods map[string]struct{}
 
 func init() {
 	// The values come from manually tallying up various options per check
@@ -45,56 +57,23 @@ func init() {
 	for _, k := range checkTypes {
 		knownCheckTypes[CheckType(k)] = struct{}{}
 	}
-}
 
-func validateAuthMethod(v interface{}, key string) (warnings []string, errors []error) {
-	validAuthMethod := regexp.MustCompile(`^(?:Basic|Digest|Auto)$`)
+	userMethods := []string{"email", "sms", "xmpp"}
+	externalMethods := []string{"slack"}
 
-	if !validAuthMethod.MatchString(v.(string)) {
-		errors = append(errors, fmt.Errorf(`Invalid %s specified (%q).  Valid parameters are: "Basic", "Digest", and "Auto"`, checkConfigAuthUserAttr, v.(string)))
+	knownContactMethods = make(map[ContactMethods]struct{}, len(externalContactMethods)+len(userContactMethods))
+
+	externalContactMethods = make(map[string]struct{}, len(externalMethods))
+	for _, k := range externalMethods {
+		knownContactMethods[ContactMethods(k)] = struct{}{}
+		externalContactMethods[k] = struct{}{}
 	}
 
-	return warnings, errors
-}
-
-func validateAuthPassword(v interface{}, key string) (warnings []string, errors []error) {
-	validAuthPassword := regexp.MustCompile(`^.*`)
-
-	if !validAuthPassword.MatchString(v.(string)) {
-		errors = append(errors, fmt.Errorf("Invalid %s specified (%q)", checkConfigAuthPasswordAttr, "<redacted>"))
+	userContactMethods = make(map[string]struct{}, len(userMethods))
+	for _, k := range userMethods {
+		knownContactMethods[ContactMethods(k)] = struct{}{}
+		userContactMethods[k] = struct{}{}
 	}
-
-	return warnings, errors
-}
-
-func validateAuthUser(v interface{}, key string) (warnings []string, errors []error) {
-	validAuthUser := regexp.MustCompile(`[^:]*`)
-
-	if !validAuthUser.MatchString(v.(string)) {
-		errors = append(errors, fmt.Errorf("Invalid %s specified (%q)", checkConfigAuthUserAttr, v.(string)))
-	}
-
-	return warnings, errors
-}
-
-func validateCAChain(v interface{}, key string) (warnings []string, errors []error) {
-	validCAChain := regexp.MustCompile(`.+`)
-
-	if !validCAChain.MatchString(v.(string)) {
-		errors = append(errors, fmt.Errorf("Invalid %s specified (%q)", checkConfigCAChainAttr, v.(string)))
-	}
-
-	return warnings, errors
-}
-
-func validateCertificateFile(v interface{}, key string) (warnings []string, errors []error) {
-	validCertificateFile := regexp.MustCompile(`.+`)
-
-	if !validCertificateFile.MatchString(v.(string)) {
-		errors = append(errors, fmt.Errorf("Invalid %s specified (%q)", checkConfigCertificateFileAttr, v.(string)))
-	}
-
-	return warnings, errors
 }
 
 func validateCheck(cb *api.CheckBundle) error {
@@ -113,14 +92,94 @@ func validateCheckType(v interface{}, key string) (warnings []string, errors []e
 	return warnings, errors
 }
 
-func validateCiphers(v interface{}, key string) (warnings []string, errors []error) {
-	validCiphers := regexp.MustCompile(`.+`)
-
-	if !validCiphers.MatchString(v.(string)) {
-		errors = append(errors, fmt.Errorf("Invalid %s specified (%q)", checkConfigCiphersAttr, v.(string)))
+func validateContactMethod(v interface{}, key string) (warnings []string, errors []error) {
+	if _, ok := knownContactMethods[ContactMethods(v.(string))]; !ok {
+		warnings = append(warnings, fmt.Sprintf("Possibly unsupported contact method: %s", v.(string)))
 	}
 
 	return warnings, errors
+}
+
+func validateContactGroup(cg *api.ContactGroup) error {
+	for i := range cg.Reminders {
+		if cg.Reminders[i] != 0 && cg.AggregationWindow > cg.Reminders[i] {
+			return fmt.Errorf("severity %d reminder (%ds) is shorter than the aggregation window (%ds)", i+1, cg.Reminders[i], cg.AggregationWindow)
+		}
+	}
+
+	return nil
+}
+
+func validateContactGroupCID(attrName string) func(v interface{}, key string) (warnings []string, errors []error) {
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		validContactGroupCID := regexp.MustCompile(contactGroupCIDRegex)
+
+		if !validContactGroupCID.MatchString(v.(string)) {
+			errors = append(errors, fmt.Errorf("Invalid %s specified (%q)", attrName, v.(string)))
+		}
+
+		return warnings, errors
+	}
+}
+
+func validateDurationMin(attrName, minDuration string) func(v interface{}, key string) (warnings []string, errors []error) {
+	var min time.Duration
+	{
+		var err error
+		min, err = time.ParseDuration(minDuration)
+		if err != nil {
+			panic(fmt.Sprintf("Invalid time +%q: %v", minDuration, err))
+		}
+	}
+
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		d, err := time.ParseDuration(v.(string))
+		switch {
+		case err != nil:
+			errors = append(errors, errwrap.Wrapf(fmt.Sprintf("Invalid %s specified (%q): {{err}}", attrName, v.(string)), err))
+		case d < min:
+			errors = append(errors, fmt.Errorf("Invalid %s specified (%q): minimum value must be %s", attrName, v.(string), min))
+		}
+
+		return warnings, errors
+	}
+}
+
+func validateDurationMax(attrName, maxDuration string) func(v interface{}, key string) (warnings []string, errors []error) {
+	var max time.Duration
+	{
+		var err error
+		max, err = time.ParseDuration(maxDuration)
+		if err != nil {
+			panic(fmt.Sprintf("Invalid time +%q: %v", maxDuration, err))
+		}
+	}
+
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		d, err := time.ParseDuration(v.(string))
+		switch {
+		case err != nil:
+			errors = append(errors, errwrap.Wrapf(fmt.Sprintf("Invalid %s specified (%q): {{err}}", attrName, v.(string)), err))
+		case d > max:
+			errors = append(errors, fmt.Errorf("Invalid %s specified (%q): maximum value must be less than or equal to %s", attrName, v.(string), max))
+		}
+
+		return warnings, errors
+	}
+}
+
+// validateFuncs takes a list of functions and runs them in serial until either
+// a warning or error is returned from the first validation function argument.
+func validateFuncs(fns ...func(v interface{}, key string) (warnings []string, errors []error)) func(v interface{}, key string) (warnings []string, errors []error) {
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		for _, fn := range fns {
+			warnings, errors = fn(v, key)
+			if len(warnings) > 0 || len(errors) > 0 {
+				break
+			}
+		}
+		return warnings, errors
+	}
 }
 
 func validateHTTPHeaders(v interface{}, key string) (warnings []string, errors []error) {
@@ -153,36 +212,24 @@ func validateHTTPVersion(v interface{}, key string) (warnings []string, errors [
 	return warnings, errors
 }
 
-func validateKeyFile(v interface{}, key string) (warnings []string, errors []error) {
-	validKeyFile := regexp.MustCompile(`.+`)
+func validateIntMin(attrName string, min int) func(v interface{}, key string) (warnings []string, errors []error) {
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		if v.(int) < min {
+			errors = append(errors, fmt.Errorf("Invalid %s specified (%d): minimum value must be %s", attrName, v.(int), min))
+		}
 
-	if !validKeyFile.MatchString(v.(string)) {
-		errors = append(errors, fmt.Errorf("Invalid %s specified (%q)", checkConfigKeyFileAttr, v.(string)))
+		return warnings, errors
 	}
-
-	return warnings, errors
 }
 
-func validateMethod(v interface{}, key string) (warnings []string, errors []error) {
-	validMethod := regexp.MustCompile(`\S+`)
+func validateIntMax(attrName string, max int) func(v interface{}, key string) (warnings []string, errors []error) {
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		if v.(int) > max {
+			errors = append(errors, fmt.Errorf("Invalid %s specified (%d): maximum value must be %s", attrName, v.(int), max))
+		}
 
-	if !validMethod.MatchString(v.(string)) {
-		errors = append(errors, fmt.Errorf("Invalid %s specified (%q)", checkConfigMethodAttr, v.(string)))
+		return warnings, errors
 	}
-
-	return warnings, errors
-}
-
-func validateMetricLimit(v interface{}, key string) (warnings []string, errors []error) {
-	limit := v.(int)
-	switch {
-	case limit < -1:
-		errors = append(errors, fmt.Errorf("%s can not be less than -1 (%d)", checkMetricLimitAttr, limit))
-	case limit == 0, limit >= 1:
-		// no op
-	}
-
-	return warnings, errors
 }
 
 func validateMetricType(v interface{}, key string) (warnings []string, errors []error) {
@@ -196,38 +243,16 @@ func validateMetricType(v interface{}, key string) (warnings []string, errors []
 	return warnings, errors
 }
 
-func validatePeriod(v interface{}, key string) (warnings []string, errors []error) {
-	const (
-		minPeriod = 30
-		maxPeriod = 300
-	)
+func validateRegexp(attrName, reString string) func(v interface{}, key string) (warnings []string, errors []error) {
+	re := regexp.MustCompile(reString)
 
-	switch period := v.(int); {
-	case period < minPeriod:
-		errors = append(errors, fmt.Errorf("%s can not be less than %d seconds (%d)", checkPeriodAttr, minPeriod, period))
-	case period > maxPeriod:
-		errors = append(errors, fmt.Errorf("%s can not be more than %d seconds (%d)", checkPeriodAttr, maxPeriod, period))
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		if !re.MatchString(v.(string)) {
+			errors = append(errors, fmt.Errorf("Invalid %s specified (%q): regexp failed", attrName, v.(string)))
+		}
+
+		return warnings, errors
 	}
-
-	return warnings, errors
-}
-
-func validateReadLimit(v interface{}, key string) (warnings []string, errors []error) {
-	limit := v.(int)
-	if limit <= 0 {
-		errors = append(errors, fmt.Errorf("%s can not be less than 0 (%d)", checkConfigReadLimitAttr, limit))
-	}
-
-	return warnings, errors
-}
-
-func validateRedirectLimit(v interface{}, key string) (warnings []string, errors []error) {
-	redirect := v.(int)
-	if redirect < 0 {
-		errors = append(errors, fmt.Errorf("%s can not be less than 0 (%d)", checkConfigRedirectsAttr, redirect))
-	}
-
-	return warnings, errors
 }
 
 func validateTag(v interface{}, key string) (warnings []string, errors []error) {
@@ -250,19 +275,50 @@ func validateTags(v interface{}) error {
 	return nil
 }
 
-func validateTimeout(v interface{}, key string) (warnings []string, errors []error) {
-	const (
-		checkTimeoutMin float64 = 0.0
-		checkTimeoutMax float64 = 300.0
-	)
+func validateUserCID(attrName string) func(v interface{}, key string) (warnings []string, errors []error) {
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		valid := regexp.MustCompile(userCIDRegex)
 
-	timeout := v.(float64)
-	switch {
-	case timeout < checkTimeoutMin:
-		errors = append(errors, fmt.Errorf("%s can not be less than %f (%f)", checkTimeoutAttr, checkTimeoutMin, timeout))
-	case timeout > checkTimeoutMax:
-		errors = append(errors, fmt.Errorf("%s can not be more than %f (%f)", checkTimeoutAttr, checkTimeoutMax, timeout))
+		if !valid.MatchString(v.(string)) {
+			errors = append(errors, fmt.Errorf("Invalid %s specified (%q)", attrName, v.(string)))
+		}
+
+		return warnings, errors
 	}
+}
 
-	return warnings, errors
+func validateHTTPURL(attrName string) func(v interface{}, key string) (warnings []string, errors []error) {
+
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		url, err := url.Parse(v.(string))
+		switch {
+		case err != nil:
+			errors = append(errors, errwrap.Wrapf(fmt.Sprintf("Invalid %s specified (%q): {{err}}", attrName, v.(string)), err))
+		case url.Host == "":
+			errors = append(errors, fmt.Errorf("Invalid %s specified: host can not be empty", attrName))
+		case !(url.Scheme == "http" || url.Scheme == "https"):
+			errors = append(errors, fmt.Errorf("Invalid %s specified: scheme unsupported (only support http and https)", attrName))
+		}
+
+		return warnings, errors
+	}
+}
+
+func validateStringIn(attrName string, valid []string) func(v interface{}, key string) (warnings []string, errors []error) {
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		s := v.(string)
+		var found bool
+		for i := range valid {
+			if s == valid[i] {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			errors = append(errors, fmt.Errorf("Invalid %s specified: %q not found in list %v", attrName, valid))
+		}
+
+		return warnings, errors
+	}
 }

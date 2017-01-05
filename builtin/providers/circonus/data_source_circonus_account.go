@@ -52,10 +52,13 @@ func dataSourceCirconusAccount() *schema.Resource {
 				Computed: true,
 			},
 			accountCIDAttr: &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{accountCurrentAttr},
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				// ConflictsWith: []string{accountCurrentAttr},
+				ValidateFunc: validateFuncs(
+					validateRegexp(accountCIDAttr, accountCIDRegex),
+				),
 			},
 			accountCityAttr: &schema.Schema{
 				Type:     schema.TypeString,
@@ -75,10 +78,10 @@ func dataSourceCirconusAccount() *schema.Resource {
 				Computed: true,
 			},
 			accountCurrentAttr: &schema.Schema{
-				Type:          schema.TypeBool,
-				Optional:      true,
-				Computed:      true,
-				ConflictsWith: []string{accountCIDAttr},
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+				// ConflictsWith: []string{accountCIDAttr},
 			},
 			accountDescriptionAttr: &schema.Schema{
 				Type:     schema.TypeString,

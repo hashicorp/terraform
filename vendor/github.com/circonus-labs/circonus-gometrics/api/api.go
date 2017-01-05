@@ -38,6 +38,9 @@ type TokenAppType string
 // CIDType Circonus object cid
 type CIDType *string
 
+// IDType Circonus object id
+type IDType int
+
 // URLType submission url type
 type URLType string
 

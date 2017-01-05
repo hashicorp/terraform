@@ -39,7 +39,7 @@ func TestAccCirconusCheckBundle_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.0.tags.1384943139", "source:circonus"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.0.type", "numeric"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "name", "Terraform test: api.circonus.com metric usage check"),
-					resource.TestCheckResourceAttr("circonus_check.usage_check", "period", "60"),
+					resource.TestCheckResourceAttr("circonus_check.usage_check", "period", "60s"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.#", "2"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.1384943139", "source:circonus"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.4159623090", "creator:terraform"),
@@ -119,7 +119,7 @@ resource "circonus_check" "usage_check" {
   name = "Terraform test: api.circonus.com metric usage check"
   type = "json"
   target = "api.circonus.com"
-  period = 60
+  period = "60s"
   brokers = [
     "/broker/1",
   ]
