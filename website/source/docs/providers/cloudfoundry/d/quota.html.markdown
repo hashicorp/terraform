@@ -12,7 +12,7 @@ Gets information on a Cloud Foundry quota.
 
 ## Example Usage
 
-The following example looksup a quota named 'myquota' within the Org identified by the id of an Org resource defined elsewhere in the Terraform configuration. 
+The following example looks up a quota named 'myquota' within the Org identified by the id of an Org resource defined elsewhere in the Terraform configuration. 
 
 ```
 data "cf_quota" "q" {
