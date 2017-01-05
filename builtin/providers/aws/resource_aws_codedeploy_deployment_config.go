@@ -17,7 +17,7 @@ func resourceAwsCodeDeployDeploymentConfig() *schema.Resource {
 		Delete: resourceAwsCodeDeployDeploymentConfigDelete,
 
 		Schema: map[string]*schema.Schema{
-			"deployment_group_name": {
+			"deployment_config_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -33,6 +33,7 @@ func resourceAwsCodeDeployDeploymentConfig() *schema.Resource {
 						"type": {
 							Type:     schema.TypeString,
 							Required: true,
+							ValidateFunc: validateMinimumHealtyHostsType,
 						},
 
 						"value": {
@@ -42,24 +43,31 @@ func resourceAwsCodeDeployDeploymentConfig() *schema.Resource {
 					},
 				},
 			},
+
+			"deployment_config_id": {
+				Type: schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
+
+
 
 func resourceAwsCodeDeployDeploymentConfigCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codedeployconn
 
 	input := &codedeploy.CreateDeploymentConfigInput{
-		DeploymentConfigName: aws.String(d.Get("deployment_group_name").(string)),
+		DeploymentConfigName: aws.String(d.Get("deployment_config_name").(string)),
 		MinimumHealthyHosts: expandAwsCodeDeployConfigMinimumHealthHosts(d),
 	}
 
-	resp, err := conn.CreateDeploymentConfig(input)
+	_, err := conn.CreateDeploymentConfig(input)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(*resp.DeploymentConfigId)
+	d.SetId(d.Get("deployment_config_name").(string))
 
 	return resourceAwsCodeDeployDeploymentConfigRead(d, meta)
 }
@@ -69,7 +77,7 @@ func resourceAwsCodeDeployDeploymentConfigRead(d *schema.ResourceData, meta inte
 	conn := meta.(*AWSClient).codedeployconn
 
 	input := &codedeploy.GetDeploymentConfigInput{
-		DeploymentConfigName: aws.String(d.Get("deployment_group_name").(string)),
+		DeploymentConfigName: aws.String(d.Id()),
 	}
 
 	resp, err := conn.GetDeploymentConfig(input)
@@ -88,10 +96,11 @@ func resourceAwsCodeDeployDeploymentConfigRead(d *schema.ResourceData, meta inte
 		return fmt.Errorf("[ERROR] Cannot find DeploymentConfig %q", d.Id())
 	}
 
-	if err := d.Set("storage_data_disk", flattenAwsCodeDeployConfigMinimumHealthHosts(resp.DeploymentConfigInfo.MinimumHealthyHosts)); err != nil {
+	if err := d.Set("minimum_healthy_hosts", flattenAwsCodeDeployConfigMinimumHealthHosts(resp.DeploymentConfigInfo.MinimumHealthyHosts)); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting CodeDeploy DeploymentConfig MinimumHealthyHosts error: %#v", err)
 	}
-	d.Set("deployment_group_name", resp.DeploymentConfigInfo.DeploymentConfigName)
+	d.Set("deployment_config_id", resp.DeploymentConfigInfo.DeploymentConfigId)
+	d.Set("deployment_config_name", resp.DeploymentConfigInfo.DeploymentConfigName)
 
 	return nil
 }
@@ -131,4 +140,13 @@ func flattenAwsCodeDeployConfigMinimumHealthHosts(hosts *codedeploy.MinimumHealt
 	result["key"] = *hosts.Value
 
 	return []interface{}{result}
+}
+
+func validateMinimumHealtyHostsType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != "FLEET_PERCENT" && value != "HOST_COUNT" {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of \"FLEET_PERCENT\" or \"HOST_COUNT\"", k))
+	}
+	return
 }
