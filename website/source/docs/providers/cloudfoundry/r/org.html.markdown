@@ -12,7 +12,7 @@ Provides a Cloud Foundry resource for managing Cloud Foundry [organizations](htt
 
 ## Example Usage
 
-The following example creates an org with 2 members in addition to users assigned with managers and auditors roles. It is important to define all the members of the org so that Org managers can assign space roles. Each member ID is referenced from resources defined elsewhere in the same Terraform configuration
+The following example creates an org with two members in addition to users assigned with managers and auditors roles. It is important to define all the members of the org so that Org managers can assign space roles. Each member ID is referenced from resources defined elsewhere in the same Terraform configuration
 
 ```
 resource "cf_org" "o1" {
@@ -28,7 +28,7 @@ resource "cf_org" "o1" {
     ]
     auditors = [ 
         "${cf_user.auditor1.id}",
-		    "${cf_user.auditor2.id}" 
+		"${cf_user.auditor2.id}" 
     ]
 
     quota = "${cf_quota.runaway.id}"
