@@ -2270,6 +2270,12 @@
 			"revision": "983d3a5fab1bf04d1b412465d2d9f8430e2e917e"
 		},
 		{
+			"checksumSHA1": "NafzbPC+BbUJP0KzBUExM3HKsgw=",
+			"path": "github.com/samber/go-clevercloud-api/clever",
+			"revision": "582c01c490dd10bed3cf437c17cf24646c51461c",
+			"revisionTime": "2016-12-02T01:20:20Z"
+		},
+		{
 			"path": "github.com/satori/go.uuid",
 			"revision": "d41af8bb6a7704f00bc3b7cba9355ae6a5a80048"
 		},
