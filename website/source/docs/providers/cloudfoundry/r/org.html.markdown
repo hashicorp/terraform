@@ -1,7 +1,7 @@
 ---
 layout: "cloudfoundry"
 page_title: "Cloud Foundry: cf_org"
-sidebar_current: "docs-cloudfoundry-resource-asg"
+sidebar_current: "docs-cloudfoundry-resource-org"
 description: |-
   Provides a Cloud Foundry Org resource.
 ---
