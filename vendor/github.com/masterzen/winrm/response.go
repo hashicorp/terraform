@@ -3,61 +3,70 @@ package winrm
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/masterzen/winrm/soap"
-	"github.com/masterzen/xmlpath"
 	"io"
 	"strconv"
 	"strings"
+
+	"github.com/masterzen/winrm/soap"
+	"github.com/masterzen/xmlpath"
 )
 
-func first(node *xmlpath.Node, xpath string) (content string, err error) {
+func first(node *xmlpath.Node, xpath string) (string, error) {
 	path, err := xmlpath.CompileWithNamespace(xpath, soap.GetAllNamespaces())
 	if err != nil {
-		return
+		return "", err
 	}
-	content, _ = path.String(node)
-	return
+	content, _ := path.String(node)
+	return content, nil
 }
 
-func any(node *xmlpath.Node, xpath string) (found bool, err error) {
+func any(node *xmlpath.Node, xpath string) (bool, error) {
 	path, err := xmlpath.CompileWithNamespace(xpath, soap.GetAllNamespaces())
 	if err != nil {
-		return
+		return false, err
 	}
 
-	found = path.Exists(node)
-	return
+	return path.Exists(node), nil
+
 }
 
-func xpath(node *xmlpath.Node, xpath string) (nodes []xmlpath.Node, err error) {
+func xpath(node *xmlpath.Node, xpath string) ([]xmlpath.Node, error) {
 	path, err := xmlpath.CompileWithNamespace(xpath, soap.GetAllNamespaces())
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	nodes = make([]xmlpath.Node, 0, 1)
+	nodes := make([]xmlpath.Node, 0, 1)
 	iter := path.Iter(node)
 	for iter.Next() {
 		nodes = append(nodes, *(iter.Node()))
 	}
-	return
+
+	return nodes, nil
 }
 
-func ParseOpenShellResponse(response string) (shellId string, err error) {
+func ParseOpenShellResponse(response string) (string, error) {
 	doc, err := xmlpath.Parse(strings.NewReader(response))
-
-	shellId, err = first(doc, "//w:Selector[@Name='ShellId']")
-	return
+	if err != nil {
+		return "", err
+	}
+	return first(doc, "//w:Selector[@Name='ShellId']")
 }
 
-func ParseExecuteCommandResponse(response string) (commandId string, err error) {
+func ParseExecuteCommandResponse(response string) (string, error) {
 	doc, err := xmlpath.Parse(strings.NewReader(response))
-
-	commandId, err = first(doc, "//rsp:CommandId")
-	return
+	if err != nil {
+		return "", err
+	}
+	return first(doc, "//rsp:CommandId")
 }
 
-func ParseSlurpOutputErrResponse(response string, stdout io.Writer, stderr io.Writer) (finished bool, exitCode int, err error) {
+func ParseSlurpOutputErrResponse(response string, stdout, stderr io.Writer) (bool, int, error) {
+	var (
+		finished bool
+		exitCode int
+	)
+
 	doc, err := xmlpath.Parse(strings.NewReader(response))
 
 	stdouts, _ := xpath(doc, "//rsp:Stream[@Name='stdout']")
@@ -83,10 +92,15 @@ func ParseSlurpOutputErrResponse(response string, stdout io.Writer, stderr io.Wr
 		finished = false
 	}
 
-	return
+	return finished, exitCode, err
 }
 
-func ParseSlurpOutputResponse(response string, stream io.Writer, streamType string) (finished bool, exitCode int, err error) {
+func ParseSlurpOutputResponse(response string, stream io.Writer, streamType string) (bool, int, error) {
+	var (
+		finished bool
+		exitCode int
+	)
+
 	doc, err := xmlpath.Parse(strings.NewReader(response))
 
 	nodes, _ := xpath(doc, fmt.Sprintf("//rsp:Stream[@Name='%s']", streamType))
@@ -107,5 +121,5 @@ func ParseSlurpOutputResponse(response string, stream io.Writer, streamType stri
 		finished = false
 	}
 
-	return
+	return finished, exitCode, err
 }

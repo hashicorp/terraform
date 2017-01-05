@@ -22,12 +22,12 @@ type commandReader struct {
 // Command represents a given command running on a Shell. This structure allows to get access
 // to the various stdout, stderr and stdin pipes.
 type Command struct {
-	client    *Client
-	shell     *Shell
-	commandId string
-	exitCode  int
-	finished  bool
-	err       error
+	client   *Client
+	shell    *Shell
+	id       string
+	exitCode int
+	finished bool
+	err      error
 
 	Stdin  *commandWriter
 	Stdout *commandReader
@@ -37,10 +37,22 @@ type Command struct {
 	cancel chan struct{}
 }
 
-func newCommand(shell *Shell, commandId string) *Command {
-	command := &Command{shell: shell, client: shell.client, commandId: commandId, exitCode: 1, err: nil, done: make(chan struct{}), cancel: make(chan struct{})}
-	command.Stdin = &commandWriter{Command: command, eof: false}
+func newCommand(shell *Shell, ids string) *Command {
+	command := &Command{
+		shell:    shell,
+		client:   shell.client,
+		id:       ids,
+		exitCode: 0,
+		err:      nil,
+		done:     make(chan struct{}),
+		cancel:   make(chan struct{}),
+	}
+
 	command.Stdout = newCommandReader("stdout", command)
+	command.Stdin = &commandWriter{
+		Command: command,
+		eof:     false,
+	}
 	command.Stderr = newCommandReader("stderr", command)
 
 	go fetchOutput(command)
@@ -50,7 +62,12 @@ func newCommand(shell *Shell, commandId string) *Command {
 
 func newCommandReader(stream string, command *Command) *commandReader {
 	read, write := io.Pipe()
-	return &commandReader{Command: command, stream: stream, write: write, read: read}
+	return &commandReader{
+		Command: command,
+		stream:  stream,
+		write:   write,
+		read:    read,
+	}
 }
 
 func fetchOutput(command *Command) {
@@ -70,122 +87,132 @@ func fetchOutput(command *Command) {
 	}
 }
 
-func (command *Command) check() (err error) {
-	if command.commandId == "" {
+func (c *Command) check() error {
+	if c.id == "" {
 		return errors.New("Command has already been closed")
 	}
-	if command.shell == nil {
+	if c.shell == nil {
 		return errors.New("Command has no associated shell")
 	}
-	if command.client == nil {
+	if c.client == nil {
 		return errors.New("Command has no associated client")
 	}
-	return
+	return nil
 }
 
 // Close will terminate the running command
-func (command *Command) Close() (err error) {
-	if err = command.check(); err != nil {
+func (c *Command) Close() error {
+	if err := c.check(); err != nil {
 		return err
 	}
 
 	select { // close cancel channel if it's still open
-	case <-command.cancel:
+	case <-c.cancel:
 	default:
-		close(command.cancel)
+		close(c.cancel)
 	}
 
-	request := NewSignalRequest(command.client.url, command.shell.ShellId, command.commandId, &command.client.Parameters)
+	request := NewSignalRequest(c.client.url, c.shell.id, c.id, &c.client.Parameters)
 	defer request.Free()
 
-	_, err = command.client.sendRequest(request)
+	_, err := c.client.sendRequest(request)
 	return err
 }
 
-func (command *Command) slurpAllOutput() (finished bool, err error) {
-	if err = command.check(); err != nil {
-		command.Stderr.write.CloseWithError(err)
-		command.Stdout.write.CloseWithError(err)
+func (c *Command) slurpAllOutput() (bool, error) {
+	if err := c.check(); err != nil {
+		c.Stderr.write.CloseWithError(err)
+		c.Stdout.write.CloseWithError(err)
 		return true, err
 	}
 
-	request := NewGetOutputRequest(command.client.url, command.shell.ShellId, command.commandId, "stdout stderr", &command.client.Parameters)
+	request := NewGetOutputRequest(c.client.url, c.shell.id, c.id, "stdout stderr", &c.client.Parameters)
 	defer request.Free()
 
-	response, err := command.client.sendRequest(request)
+	response, err := c.client.sendRequest(request)
 	if err != nil {
 		if strings.Contains(err.Error(), "OperationTimeout") {
 			// Operation timeout because there was no command output
-			return
+			return false, err
+		}
+		if strings.Contains(err.Error(), "EOF") {
+			c.exitCode = 16001
 		}
 
-		command.Stderr.write.CloseWithError(err)
-		command.Stdout.write.CloseWithError(err)
+		c.Stderr.write.CloseWithError(err)
+		c.Stdout.write.CloseWithError(err)
 		return true, err
 	}
 
 	var exitCode int
 	var stdout, stderr bytes.Buffer
-	finished, exitCode, err = ParseSlurpOutputErrResponse(response, &stdout, &stderr)
+	finished, exitCode, err := ParseSlurpOutputErrResponse(response, &stdout, &stderr)
 	if err != nil {
-		command.Stderr.write.CloseWithError(err)
-		command.Stdout.write.CloseWithError(err)
+		c.Stderr.write.CloseWithError(err)
+		c.Stdout.write.CloseWithError(err)
 		return true, err
 	}
 	if stdout.Len() > 0 {
-		command.Stdout.write.Write(stdout.Bytes())
+		c.Stdout.write.Write(stdout.Bytes())
 	}
 	if stderr.Len() > 0 {
-		command.Stderr.write.Write(stderr.Bytes())
+		c.Stderr.write.Write(stderr.Bytes())
 	}
 	if finished {
-		command.exitCode = exitCode
-		command.Stderr.write.Close()
-		command.Stdout.write.Close()
+		c.exitCode = exitCode
+		c.Stderr.write.Close()
+		c.Stdout.write.Close()
 	}
 
-	return
+	return finished, nil
 }
 
-func (command *Command) sendInput(data []byte) (err error) {
-	if err = command.check(); err != nil {
+func (c *Command) sendInput(data []byte) error {
+	if err := c.check(); err != nil {
 		return err
 	}
 
-	request := NewSendInputRequest(command.client.url, command.shell.ShellId, command.commandId, data, &command.client.Parameters)
+	request := NewSendInputRequest(c.client.url, c.shell.id, c.id, data, &c.client.Parameters)
 	defer request.Free()
 
-	_, err = command.client.sendRequest(request)
-	return
+	_, err := c.client.sendRequest(request)
+	return err
 }
 
 // ExitCode returns command exit code when it is finished. Before that the result is always 0.
-func (command *Command) ExitCode() int {
-	return command.exitCode
+func (c *Command) ExitCode() int {
+	return c.exitCode
 }
 
-// Calling this function will block the current goroutine until the remote command terminates.
-func (command *Command) Wait() {
+// Wait function will block the current goroutine until the remote command terminates.
+func (c *Command) Wait() {
 	// block until finished
-	<-command.done
+	<-c.done
 }
 
 // Write data to this Pipe
-func (w *commandWriter) Write(data []byte) (written int, err error) {
+// commandWriter implements io.Writer interface
+func (w *commandWriter) Write(data []byte) (int, error) {
+
+	var (
+		written int
+		err     error
+	)
+
 	for len(data) > 0 {
 		if w.eof {
-			err = io.EOF
-			return
+			return written, io.EOF
 		}
 		// never send more data than our EnvelopeSize.
 		n := min(w.client.Parameters.EnvelopeSize-1000, len(data))
-		if err = w.sendInput(data[:n]); err != nil {
+		if err := w.sendInput(data[:n]); err != nil {
 			break
 		}
 		data = data[n:]
-		written += int(n)
+		written += n
 	}
-	return
+
+	return written, err
 }
 
 func min(a int, b int) int {
@@ -195,6 +222,8 @@ func min(a int, b int) int {
 	return b
 }
 
+// Close method wrapper
+// commandWriter implements io.Closer interface
 func (w *commandWriter) Close() error {
 	w.eof = true
 	return w.Close()

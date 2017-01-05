@@ -19,7 +19,6 @@ type MessageBuilder interface {
 	Header() *SoapHeader
 	Doc() *dom.Document
 	Free()
-
 	String() string
 }
 
