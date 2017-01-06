@@ -20,8 +20,8 @@ func TestAccCirconusCheckBundle_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					/* testAccCheckBundleExists("circonus_check.usage_check", "foo"), */
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "active", "true"),
-					resource.TestCheckResourceAttr("circonus_check.usage_check", "collectors.#", "1"),
-					resource.TestCheckResourceAttr("circonus_check.usage_check", "collectors.0", "/broker/1"),
+					resource.TestCheckResourceAttr("circonus_check.usage_check", "collector.#", "1"),
+					resource.TestCheckResourceAttr("circonus_check.usage_check", "collector.2388330941.id", "/broker/1"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "config.#", "1"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "config.0.http_headers.%", "3"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "config.0.http_headers.Accept", "application/json"),
