@@ -2,6 +2,7 @@ package circonus
 
 import (
 	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -57,7 +58,7 @@ func dataSourceCirconusAccount() *schema.Resource {
 				Computed: true,
 				// ConflictsWith: []string{accountCurrentAttr},
 				ValidateFunc: validateFuncs(
-					validateRegexp(accountCIDAttr, accountCIDRegex),
+					validateRegexp(accountCIDAttr, config.AccountCIDRegex),
 				),
 			},
 			accountCityAttr: &schema.Schema{

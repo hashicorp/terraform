@@ -25,11 +25,6 @@ const (
 	keyAttr                              = "key"
 	maxSeverity                          = 5
 	minSeverity                          = 1
-	numSeverityLevels                    = 5
-
-	apiAccountPrefix      = "/account"
-	apiContactGroupPrefix = "/contact_group"
-	apiUserPrefix         = "/user"
 )
 
 // Constants that want to be a constant but can't in Go
@@ -54,9 +49,9 @@ func Provider() terraform.ResourceProvider {
 			keyAttr: {
 				Type:        schema.TypeString,
 				Required:    true,
+				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc("CIRCONUS_API_TOKEN", nil),
 				Description: "API token used to authenticate with the Circonus API",
-				Sensitive:   true,
 			},
 		},
 
