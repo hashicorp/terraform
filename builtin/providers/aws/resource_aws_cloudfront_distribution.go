@@ -103,7 +103,7 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 							},
 						},
 						"lambda_function_association": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							MaxItems: 4,
 							Elem: &schema.Resource{
@@ -250,7 +250,7 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 							},
 						},
 						"lambda_function_association": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							MaxItems: 4,
 							Elem: &schema.Resource{
