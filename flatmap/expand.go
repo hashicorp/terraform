@@ -2,6 +2,8 @@ package flatmap
 
 import (
 	"fmt"
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -42,9 +44,40 @@ func expandArray(m map[string]string, prefix string) []interface{} {
 		panic(err)
 	}
 
+	// Unless we actually have a list of our keys here, we are going to run into
+	// trouble with hashed lists (ie: sets). Assemble and sort the list of
+	// available keys in this attribute.
+	keys := make([]int, 0)
+	listElementKey := regexp.MustCompile("^" + prefix + "\\.([0-9]+)")
+	for id := range m {
+		if match := listElementKey.FindStringSubmatch(id); match != nil {
+			index, err := strconv.Atoi(match[1])
+			if err != nil {
+				panic(err)
+			}
+			keys = append(keys, index)
+		}
+	}
+
+	// sort the keys
+	sort.Ints(keys)
+
+	// remove duplicates
+	n := 0
+	for {
+		if n >= len(keys)-1 {
+			break
+		}
+		if keys[n+1] == keys[n] {
+			keys = append(keys[:n], keys[n+1:]...)
+		} else {
+			n++
+		}
+	}
+
 	result := make([]interface{}, num)
 	for i := 0; i < int(num); i++ {
-		result[i] = Expand(m, fmt.Sprintf("%s.%d", prefix, i))
+		result[i] = Expand(m, fmt.Sprintf("%s.%d", prefix, keys[i]))
 	}
 
 	return result

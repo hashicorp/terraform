@@ -838,6 +838,46 @@ func TestInterpolator_nestedMapsAndLists(t *testing.T) {
 		interfaceToVariableSwallowError(mapOfList))
 }
 
+func TestInterpolator_setAsList(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_route53_zone.yada": &ResourceState{
+						Type:         "aws_route53_zone",
+						Dependencies: []string{},
+						Primary: &InstanceState{
+							ID: "null",
+							Attributes: map[string]string{
+								"list_from_set.#":          "2",
+								"list_from_set.1938594527": "foo",
+								"list_from_set.1996459178": "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: new(sync.RWMutex),
+		State:     state,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	list := []interface{}{"foo", "bar"}
+
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.list_from_set",
+		interfaceToVariableSwallowError(list))
+
+}
+
 func testInterpolate(
 	t *testing.T, i *Interpolater,
 	scope *InterpolationScope,
