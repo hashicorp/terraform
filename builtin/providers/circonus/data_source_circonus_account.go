@@ -10,7 +10,6 @@ const (
 	accountAddress1Attr      = "address1"
 	accountAddress2Attr      = "address2"
 	accountCCEmailAttr       = "cc_email"
-	accountCIDAttr           = "cid"
 	accountCityAttr          = "city"
 	accountContactGroupsAttr = "contact_groups"
 	accountCountryAttr       = "country"
@@ -29,6 +28,7 @@ const (
 	accountUIBaseURLAttr     = "ui_base_url"
 	accountUsageAttr         = "usage"
 	accountUsedAttr          = "used"
+	accountUserIDAttr        = "id"
 	accountUsersAttr         = "users"
 )
 
@@ -38,123 +38,140 @@ func dataSourceCirconusAccount() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			accountAddress1Attr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: accountDescription[accountAddress1Attr],
 			},
 			accountAddress2Attr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: accountDescription[accountAddress2Attr],
 			},
 			accountCCEmailAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: accountDescription[accountCCEmailAttr],
 			},
-			accountCIDAttr: &schema.Schema{
+			accountIDAttr: &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				// ConflictsWith: []string{accountCurrentAttr},
 				ValidateFunc: validateFuncs(
-					validateRegexp(accountCIDAttr, config.AccountCIDRegex),
+					validateRegexp(accountIDAttr, config.AccountCIDRegex),
 				),
+				Description: accountDescription[accountIDAttr],
 			},
 			accountCityAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: accountDescription[accountCityAttr],
 			},
 			accountContactGroupsAttr: &schema.Schema{
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
-				Description: "Contact Groups in this account",
 				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: accountDescription[accountContactGroupsAttr],
 			},
 			accountCountryAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: accountDescription[accountCountryAttr],
 			},
 			accountCurrentAttr: &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Computed: true,
-				// ConflictsWith: []string{accountCIDAttr},
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Computed:    true,
+				Description: accountDescription[accountCurrentAttr],
 			},
 			accountDescriptionAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: accountDescription[accountDescriptionAttr],
 			},
 			accountInvitesAttr: &schema.Schema{
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
-				Description: "Outstanding invites attached to the account",
+				Description: accountDescription[accountInvitesAttr],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						accountEmailAttr: &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: accountDescription[accountEmailAttr],
 						},
 						accountRoleAttr: &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: accountDescription[accountRoleAttr],
 						},
 					},
 				},
 			},
 			accountNameAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: accountDescription[accountNameAttr],
 			},
 			accountOwnerAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: accountDescription[accountOwnerAttr],
 			},
 			accountStateProvAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: accountDescription[accountStateProvAttr],
 			},
 			accountTimezoneAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: accountDescription[accountTimezoneAttr],
 			},
 			accountUIBaseURLAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: accountDescription[accountUIBaseURLAttr],
 			},
 			accountUsageAttr: &schema.Schema{
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
-				Description: "Account's usage limits",
+				Description: accountDescription[accountUsageAttr],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						accountLimitAttr: &schema.Schema{
-							Type:     schema.TypeInt,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Computed:    true,
+							Description: accountDescription[accountLimitAttr],
 						},
 						accountTypeAttr: &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: accountDescription[accountTypeAttr],
 						},
 						accountUsedAttr: &schema.Schema{
-							Type:     schema.TypeInt,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Computed:    true,
+							Description: accountDescription[accountUsedAttr],
 						},
 					},
 				},
@@ -163,18 +180,20 @@ func dataSourceCirconusAccount() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
-				Description: "Users attached to this account",
+				Description: accountDescription[accountUsersAttr],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						accountIDAttr: &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+						accountUserIDAttr: &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: accountDescription[accountUserIDAttr],
 						},
 						accountRoleAttr: &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:        schema.TypeString,
+							Optional:    true,
+							Computed:    true,
+							Description: accountDescription[accountRoleAttr],
 						},
 					},
 				},
@@ -190,7 +209,7 @@ func dataSourceCirconusAccountRead(d *schema.ResourceData, meta interface{}) err
 
 	var a *api.Account
 	var err error
-	if v, ok := d.GetOk(accountCIDAttr); ok {
+	if v, ok := d.GetOk(accountIDAttr); ok {
 		cid = v.(string)
 	}
 
@@ -225,15 +244,15 @@ func dataSourceCirconusAccountRead(d *schema.ResourceData, meta interface{}) err
 	usersList := make([]interface{}, 0, len(a.Users))
 	for i := range a.Users {
 		usersList = append(usersList, map[string]interface{}{
-			accountIDAttr:   a.Users[i].UserCID,
-			accountRoleAttr: a.Users[i].Role,
+			accountUserIDAttr: a.Users[i].UserCID,
+			accountRoleAttr:   a.Users[i].Role,
 		})
 	}
 
 	d.Set(accountAddress1Attr, a.Address1)
 	d.Set(accountAddress2Attr, a.Address2)
 	d.Set(accountCCEmailAttr, a.CCEmail)
-	d.Set(accountCIDAttr, a.CID)
+	d.Set(accountIDAttr, a.CID)
 	d.Set(accountCityAttr, a.City)
 	d.Set(accountContactGroupsAttr, a.ContactGroups)
 	d.Set(accountCountryAttr, a.Country)

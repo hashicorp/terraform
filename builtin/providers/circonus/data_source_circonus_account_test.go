@@ -32,8 +32,8 @@ func testAccDataSourceCirconusAccountCheck(name, cid string) resource.TestCheckF
 
 		attr := rs.Primary.Attributes
 
-		if attr["cid"] != cid {
-			return fmt.Errorf("bad id %s", attr["cid"])
+		if attr[accountIDAttr] != cid {
+			return fmt.Errorf("bad %s %s", accountIDAttr, attr[accountIDAttr])
 		}
 
 		return nil

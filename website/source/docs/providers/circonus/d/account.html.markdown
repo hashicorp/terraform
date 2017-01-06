@@ -32,7 +32,7 @@ The arguments of this data source act as filters for querying the available
 regions. The given filters must match exactly one region whose data will be
 exported as attributes.
 
-* `cid` - (Optional) The Circonus ID of a given account.
+* `id` - (Optional) The Circonus ID of a given account.
 * `current` - (Optional) Automatically use the current Circonus Account attached
   to the API token making the request.
 
@@ -49,11 +49,11 @@ The following attributes are exported:
 
 * `cc_email` - An optionally specified email address used in the CC line of invoices.
 
-* `cid` - The Circonus ID of the selected Account.
+* `id` - The Circonus ID of the selected Account.
 
 * `city` - The city part of the address associated with the account.
 
-* `contact_groups` - A list of CIDs for each contact group in the account.
+* `contact_groups` - A list of IDs for each contact group in the account.
 
 * `country` - The country of the user's address.
 

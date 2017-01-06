@@ -31,7 +31,7 @@ the name of the Circonus Collector configured on the provider.
 
 ```
 data "circonus_collector" "ashburn" {
-  cid = "/broker/1"
+  id = "/broker/1"
 }
 ```
 
@@ -41,7 +41,7 @@ The arguments of this data source act as filters for querying the available
 regions. The given filters must match exactly one region whose data will be
 exported as attributes.
 
-* `cid` - (Optional) The Circonus ID of a given collector.
+* `id` - (Optional) The Circonus ID of a given collector.
 
 At least one of the above attributes should be provided when searching for a
 collector.
@@ -50,7 +50,7 @@ collector.
 
 The following attributes are exported:
 
-* `cid` - The Circonus ID of the selected Collector.
+* `id` - The Circonus ID of the selected Collector.
 
 * `details` - A list of details about the individual Collector instances that
   make up the group of collectors.  See below for a list of attributes within
