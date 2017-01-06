@@ -33,6 +33,9 @@ const (
 	checkTargetAttr      = "target"
 	checkTimeoutAttr     = "timeout"
 	checkTypeAttr        = "type"
+
+	// circonus_check.collector attributes
+	checkCollectorIDAttr = "id"
 )
 
 const (
@@ -113,10 +116,19 @@ func resourceCheckBundle() *schema.Resource {
 				Description: checkDescription[checkActiveAttr],
 			},
 			checkCollectorAttr: &schema.Schema{
-				Type:        schema.TypeList,
-				Required:    true,
-				MinItems:    1,
-				Elem:        &schema.Schema{Type: schema.TypeString},
+				Type:     schema.TypeSet,
+				Required: true,
+				MinItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						checkCollectorIDAttr: &schema.Schema{
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateRegexp(checkCollectorIDAttr, config.BrokerCIDRegex),
+							Description:  checkDescription[checkCollectorIDAttr],
+						},
+					},
+				},
 				Description: checkDescription[checkCollectorAttr],
 			},
 			checkConfigAttr: &schema.Schema{
@@ -562,10 +574,14 @@ func getCheckBundleInput(d *schema.ResourceData, meta interface{}) (*api.CheckBu
 	}
 
 	if collectorsRaw, ok := d.GetOk(checkCollectorAttr); ok {
-		collectorsList := collectorsRaw.([]interface{})
-		cb.Brokers = make([]string, 0, len(collectorsList))
-		for _, collectorRaw := range collectorsList {
-			cb.Brokers = append(cb.Brokers, collectorRaw.(string))
+		collectorsListRaw := collectorsRaw.(*schema.Set).List()
+		cb.Brokers = make([]string, 0, len(collectorsListRaw))
+		for _, collectorMapRaw := range collectorsListRaw {
+			collectorMap := collectorMapRaw.(map[string]interface{})
+
+			if v, ok := collectorMap[checkCollectorIDAttr]; ok {
+				cb.Brokers = append(cb.Brokers, v.(string))
+			}
 		}
 	}
 
