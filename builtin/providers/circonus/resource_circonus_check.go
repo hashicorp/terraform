@@ -21,7 +21,7 @@ import (
 const (
 	// Attributes in circonus_check
 	checkActiveAttr      = "active"
-	checkBrokersAttr     = "brokers"
+	checkCollectorAttr   = "collector"
 	checkConfigAttr      = "config"
 	checkMetricLimitAttr = "metric_limit"
 	checkMetricAttr      = "metric"
@@ -112,12 +112,12 @@ func resourceCheckBundle() *schema.Resource {
 				Computed:    true,
 				Description: checkDescription[checkActiveAttr],
 			},
-			checkBrokersAttr: &schema.Schema{
+			checkCollectorAttr: &schema.Schema{
 				Type:        schema.TypeList,
 				Required:    true,
 				MinItems:    1,
 				Elem:        &schema.Schema{Type: schema.TypeString},
-				Description: checkDescription[checkBrokersAttr],
+				Description: checkDescription[checkCollectorAttr],
 			},
 			checkConfigAttr: &schema.Schema{
 				Type:     schema.TypeList,
@@ -486,7 +486,7 @@ func checkBundleRead(d *schema.ResourceData, meta interface{}) error {
 	metrics := map[string]interface{}{} // NOTE(sean@): TODO. Also populate checkMetricNamesAttr.
 	metricNames := []interface{}{}
 
-	d.Set(checkBrokersAttr, cb.Brokers)
+	d.Set(checkCollectorAttr, cb.Brokers)
 	d.Set(checkConfigAttr, []interface{}{checkConfig})
 	d.Set(checkMetricNameAttr, cb.DisplayName)
 	// NOTE(sean@): fixme
@@ -561,11 +561,11 @@ func getCheckBundleInput(d *schema.ResourceData, meta interface{}) (*api.CheckBu
 		cb.Status = statusString
 	}
 
-	if brokersRaw, ok := d.GetOk(checkBrokersAttr); ok {
-		brokersList := brokersRaw.([]interface{})
-		cb.Brokers = make([]string, 0, len(brokersList))
-		for _, brokerRaw := range brokersList {
-			cb.Brokers = append(cb.Brokers, brokerRaw.(string))
+	if collectorsRaw, ok := d.GetOk(checkCollectorAttr); ok {
+		collectorsList := collectorsRaw.([]interface{})
+		cb.Brokers = make([]string, 0, len(collectorsList))
+		for _, collectorRaw := range collectorsList {
+			cb.Brokers = append(cb.Brokers, collectorRaw.(string))
 		}
 	}
 

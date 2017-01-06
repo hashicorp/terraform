@@ -61,8 +61,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"circonus_account": dataSourceCirconusAccount(),
-			"circonus_broker":  dataSourceCirconusBroker(),
+			"circonus_account":   dataSourceCirconusAccount(),
+			"circonus_collector": dataSourceCirconusCollector(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{

@@ -30,7 +30,9 @@ EOF
 
   type    = "json"
   target  = "host.example.org"
-  brokers = ["/broker/1"]
+  collector {
+    id = "/broker/1"
+  }
 
   metric {
     name  = "some`app`counter"
@@ -65,17 +67,19 @@ EOF
 
 * `active` - (Optional) Whether or not the check is enabled or not (default `true`).
 
-* `brokers` - (Required) A list of broker CIDs.  The brokers that are
+* `collector` - (Required) A collector CIDs.  The collector(s) that are
   responsible for gathering the metrics. These can either be CIDs for Circonus
-  brokers running in the cloud or enterprise brokers running in your datacenter.
-  One collection of metrics will be automatically created for each broker.
+  collectors running in the cloud or enterprise collectors running in your
+  datacenter.  One collection of metrics will be automatically created for each
+  collector.  Reminder: in Terraform the vernacular is "collector" where
+  Circonus still refers to collectors as "brokers".
 
 * `config` - (Optional) Configuration options for this check.  See below for a
   list of supported `config` attributes.
 
 * `metric_limit` - (Optional) Setting a metric limit will tell the Circonus
   backend to periodically look at the check to see if there are additional
-  metrics the broker has seen that we should collect. It will not reactivate
+  metrics the collector has seen that we should collect. It will not reactivate
   metrics previously collected and then marked as inactive. Values are `0` to
   disable, `-1` to enable all metrics or `N+` to collect up to the value `N`
   (both `-1` and `N+` can not exceed other account restrictions).
@@ -205,7 +209,9 @@ provider "circonus" {
 resource "circonus_check" "usage" {
   type    = "json"
   target  = "api.circonus.com"
-  brokers = ["/broker/1"]
+  collector {
+    id = "/broker/1"
+  }
 
   metric {
     name  = "_usage`0`_used"
