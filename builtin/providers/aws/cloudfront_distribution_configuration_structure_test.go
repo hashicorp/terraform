@@ -46,7 +46,7 @@ func trustedSignersConf() []interface{} {
 	return []interface{}{"1234567890EX", "1234567891EX"}
 }
 
-func lambdaFunctionAssociationsConf() *schema.Set {
+func lambdaFunctionAssociationsConf() []interface{} {
 	s := []interface{}{
 		map[string]interface{}{
 			"event_type": "viewer-request",
@@ -57,7 +57,7 @@ func lambdaFunctionAssociationsConf() *schema.Set {
 			"lambda_arn": "arn:aws:lambda:us-east-1:999999999:function2:alias",
 		},
 	}
-	return schema.NewSet(lambdaFunctionAssociationHash, s)
+	return s
 }
 
 func forwardedValuesConf() map[string]interface{} {
@@ -359,9 +359,8 @@ func TestCloudFrontStructure_flattenCacheBehavior(t *testing.T) {
 	if out["target_origin_id"] != "myS3Origin" {
 		t.Fatalf("Expected out[target_origin_id] to be myS3Origin, got %v", out["target_origin_id"])
 	}
-	diff = out["lambda_function_association"].(*schema.Set).Difference(in["lambda_function_association"].(*schema.Set))
-	if diff.Len() > 0 {
-		t.Fatalf("Expected out[lambda_function_association] to be %v, got %v, diff: %v", out["lambda_function_association"], in["lambda_function_association"], diff)
+	if reflect.DeepEqual(out["lambda_function_associations"], in["lambda_function_associations"]) != true {
+		t.Fatalf("Expected out[lambda_function_associations] to be %v, got %v", in["lambda_function_associations"], out["lambda_function_associations"])
 	}
 	diff = out["forwarded_values"].(*schema.Set).Difference(in["forwarded_values"].(*schema.Set))
 	if len(diff.List()) > 0 {
@@ -475,13 +474,13 @@ func TestCloudFrontStructure_flattenlambdaFunctionAssociations(t *testing.T) {
 	lfa := expandLambdaFunctionAssociations(in)
 	out := flattenLambdaFunctionAssociations(lfa)
 
-	if out.Difference(in).Len() != 0 {
+	if reflect.DeepEqual(in, out) != true {
 		t.Fatalf("Expected out to be %v, got %v", in, out)
 	}
 }
 
 func TestCloudFrontStructure_expandlambdaFunctionAssociations_empty(t *testing.T) {
-	data := schema.NewSet(lambdaFunctionAssociationHash, []interface{}{})
+	data := []interface{}{}
 	lfa := expandLambdaFunctionAssociations(data)
 	if *lfa.Quantity != 0 {
 		t.Fatalf("Expected Quantity to be 0, got %v", *lfa.Quantity)
