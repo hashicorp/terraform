@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/errwrap"
 )
 
@@ -18,12 +19,6 @@ const (
 	// Misc package constants
 	defaultCheckTypeName  = "default"
 	defaultNumHTTPHeaders = 3
-)
-
-const (
-	accountCIDRegex      = "^" + apiAccountPrefix + "/([0-9]+|current)$"
-	contactGroupCIDRegex = `^` + apiContactGroupPrefix + `/[0-9]+$`
-	userCIDRegex         = "^" + apiUserPrefix + "/([0-9]+|current)$"
 )
 
 var defaultCheckTypeConfigSize map[CheckType]int
@@ -121,7 +116,7 @@ func validateContactGroup(cg *api.ContactGroup) error {
 
 func validateContactGroupCID(attrName string) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
-		validContactGroupCID := regexp.MustCompile(contactGroupCIDRegex)
+		validContactGroupCID := regexp.MustCompile(config.ContactGroupCIDRegex)
 
 		if !validContactGroupCID.MatchString(v.(string)) {
 			errors = append(errors, fmt.Errorf("Invalid %s specified (%q)", attrName, v.(string)))
@@ -286,7 +281,7 @@ func validateTags(v interface{}) error {
 
 func validateUserCID(attrName string) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
-		valid := regexp.MustCompile(userCIDRegex)
+		valid := regexp.MustCompile(config.UserCIDRegex)
 
 		if !valid.MatchString(v.(string)) {
 			errors = append(errors, fmt.Errorf("Invalid %s specified (%q)", attrName, v.(string)))

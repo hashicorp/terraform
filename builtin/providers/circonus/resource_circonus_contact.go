@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -303,6 +304,7 @@ func resourceContactGroup() *schema.Resource {
 						contactPagerDutyIntegrationKeyAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
+							Sensitive:    true,
 							ValidateFunc: validateHTTPURL(contactPagerDutyIntegrationKeyAttr),
 							Description:  contactDescription[contactPagerDutyIntegrationKeyAttr],
 						},
@@ -418,6 +420,7 @@ func resourceContactGroup() *schema.Resource {
 						contactVictorOpsAPIKeyAttr: &schema.Schema{
 							Type:        schema.TypeString,
 							Required:    true,
+							Sensitive:   true,
 							Description: contactDescription[contactVictorOpsAPIKeyAttr],
 						},
 						contactVictorOpsCriticalAttr: &schema.Schema{
@@ -608,9 +611,9 @@ func contactGroupAlertOptionsToState(cg *api.ContactGroup) []interface{} {
 		escalateAfter uint
 		escalateTo    string
 	}
-	alertOptions := make([]alertOption, numSeverityLevels)
+	alertOptions := make([]alertOption, config.NumSeverityLevels)
 
-	if numSeverityLevels != len(cg.Reminders) {
+	if config.NumSeverityLevels != len(cg.Reminders) {
 		panic("Need to update constants")
 	}
 
@@ -619,7 +622,7 @@ func contactGroupAlertOptionsToState(cg *api.ContactGroup) []interface{} {
 	}
 
 	if cg.Escalations != nil {
-		if numSeverityLevels != len(cg.Escalations) {
+		if config.NumSeverityLevels != len(cg.Escalations) {
 			panic("Need to update constants")
 		}
 

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -16,11 +17,11 @@ func failoverGroupIDToCID(groupID int) string {
 		return ""
 	}
 
-	return fmt.Sprintf("%s/%d", apiContactGroupPrefix, groupID)
+	return fmt.Sprintf("%s/%d", config.ContactGroupPrefix, groupID)
 }
 
 func failoverGroupCIDToID(cid api.CIDType) (int, error) {
-	re := regexp.MustCompile("^" + apiContactGroupPrefix + "/([0-9]+)$")
+	re := regexp.MustCompile("^" + config.ContactGroupPrefix + "/(" + config.DefaultCIDRegex + ")$")
 	matches := re.FindStringSubmatch(string(*cid))
 	if matches == nil || len(matches) < 2 {
 		return -1, fmt.Errorf("Did not find a valid contact_group ID in the CID %q", string(*cid))
