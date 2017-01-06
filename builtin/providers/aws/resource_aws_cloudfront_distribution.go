@@ -105,7 +105,6 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 						"lambda_function_association": {
 							Type:     schema.TypeSet,
 							Optional: true,
-							Set:      lambdaFunctionAssociationHash,
 							MaxItems: 4,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -253,7 +252,6 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 						"lambda_function_association": {
 							Type:     schema.TypeSet,
 							Optional: true,
-							Set:      lambdaFunctionAssociationHash,
 							MaxItems: 4,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{

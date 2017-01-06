@@ -228,11 +228,6 @@ func defaultCacheBehaviorHash(v interface{}) int {
 			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
 		}
 	}
-	if d, ok := m["lambda_function_association"]; ok {
-		for _, e := range d.(*schema.Set).List() {
-			buf.WriteString(fmt.Sprintf("%d-", lambdaFunctionAssociationHash(e.(map[string]interface{}))))
-		}
-	}
 	return hashcode.String(buf.String())
 }
 
@@ -365,11 +360,6 @@ func cacheBehaviorHash(v interface{}) int {
 	if d, ok := m["path_pattern"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", d))
 	}
-	if d, ok := m["lambda_function_association"]; ok {
-		for _, e := range d.(*schema.Set).List() {
-			buf.WriteString(fmt.Sprintf("%d-", lambdaFunctionAssociationHash(e.(map[string]interface{}))))
-		}
-	}
 	return hashcode.String(buf.String())
 }
 
@@ -400,11 +390,11 @@ func expandLambdaFunctionAssociations(v interface{}) *cloudfront.LambdaFunctionA
 		}
 	}
 
-	s := v.(*schema.Set)
+	s := v.([]interface{})
 	var lfa cloudfront.LambdaFunctionAssociations
-	lfa.Quantity = aws.Int64(int64(s.Len()))
-	lfa.Items = make([]*cloudfront.LambdaFunctionAssociation, s.Len())
-	for i, lf := range s.List() {
+	lfa.Quantity = aws.Int64(int64(len(s)))
+	lfa.Items = make([]*cloudfront.LambdaFunctionAssociation, len(s))
+	for i, lf := range s {
 		lfa.Items[i] = expandLambdaFunctionAssociation(lf.(map[string]interface{}))
 	}
 	return &lfa
@@ -421,12 +411,12 @@ func expandLambdaFunctionAssociation(lf map[string]interface{}) *cloudfront.Lamb
 	return &lfa
 }
 
-func flattenLambdaFunctionAssociations(lfa *cloudfront.LambdaFunctionAssociations) *schema.Set {
+func flattenLambdaFunctionAssociations(lfa *cloudfront.LambdaFunctionAssociations) []interface{} {
 	s := make([]interface{}, len(lfa.Items))
 	for i, v := range lfa.Items {
 		s[i] = flattenLambdaFunctionAssociation(v)
 	}
-	return schema.NewSet(lambdaFunctionAssociationHash, s)
+	return s
 }
 
 func flattenLambdaFunctionAssociation(lfa *cloudfront.LambdaFunctionAssociation) map[string]interface{} {
@@ -436,14 +426,6 @@ func flattenLambdaFunctionAssociation(lfa *cloudfront.LambdaFunctionAssociation)
 		m["lambda_arn"] = *lfa.LambdaFunctionARN
 	}
 	return m
-}
-
-func lambdaFunctionAssociationHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["event_type"].(string)))
-	buf.WriteString(fmt.Sprintf("%s", m["lambda_arn"].(string)))
-	return hashcode.String(buf.String())
 }
 
 func expandForwardedValues(m map[string]interface{}) *cloudfront.ForwardedValues {
