@@ -50,6 +50,27 @@ func TestAccComputeForwardingRule_ip(t *testing.T) {
 	})
 }
 
+func TestAccComputeForwardingRule_internalLoadBalancing(t *testing.T) {
+	serviceName := fmt.Sprintf("tf-%s", acctest.RandString(10))
+	checkName := fmt.Sprintf("tf-%s", acctest.RandString(10))
+	ruleName := fmt.Sprintf("tf-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeForwardingRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeForwardingRule_internalLoadBalancing(serviceName, checkName, ruleName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeForwardingRuleExists(
+						"google_compute_forwarding_rule.foobar"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeForwardingRuleDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -131,4 +152,32 @@ resource "google_compute_forwarding_rule" "foobar" {
   target      = "${google_compute_target_pool.foobar-tp.self_link}"
 }
 `, addrName, poolName, ruleName)
+}
+
+func testAccComputeForwardingRule_internalLoadBalancing(serviceName, checkName, ruleName string) string {
+	return fmt.Sprintf(`
+resource "google_compute_region_backend_service" "foobar-bs" {
+  name                  = "%s"
+  description           = "Resource created for Terraform acceptance testing"
+  health_checks         = ["${google_compute_health_check.zero.self_link}"]
+  region                = "us-central1"
+}
+resource "google_compute_health_check" "zero" {
+  name               = "%s"
+  description        = "Resource created for Terraform acceptance testing"
+  check_interval_sec = 1
+  timeout_sec        = 1
+
+  tcp_health_check {
+    port = "80"
+  }
+}
+resource "google_compute_forwarding_rule" "foobar" {
+  description           = "Resource created for Terraform acceptance testing"
+  name                  = "%s"
+  load_balancing_scheme = "INTERNAL"
+  backend_service       = "${google_compute_region_backend_service.foobar-bs.self_link}"
+  ports                 = ["80"]
+}
+`, serviceName, checkName, ruleName)
 }

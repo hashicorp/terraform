@@ -74,6 +74,10 @@ func testAccPreCheck(t *testing.T) {
 	if v := multiEnvSearch(regs); v != "us-central1" {
 		t.Fatalf("One of %s must be set to us-central1 for acceptance tests", strings.Join(regs, ", "))
 	}
+
+	if v := os.Getenv("GOOGLE_XPN_HOST_PROJECT"); v == "" {
+		t.Fatal("GOOGLE_XPN_HOST_PROJECT must be set for acceptance tests")
+	}
 }
 
 func TestProvider_getRegionFromZone(t *testing.T) {

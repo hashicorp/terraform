@@ -3,6 +3,7 @@ package udnssdk
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 )
 
@@ -60,7 +61,7 @@ func (k NotificationKey) URI() string {
 }
 
 // Select requests all notifications by RRSetKey and optional query, using pagination and error handling
-func (s *NotificationsService) Select(k RRSetKey, query string) ([]NotificationDTO, *Response, error) {
+func (s *NotificationsService) Select(k RRSetKey, query string) ([]NotificationDTO, *http.Response, error) {
 	// TODO: Sane Configuration for timeouts / retries
 	maxerrs := 5
 	waittime := 5 * time.Second
@@ -73,7 +74,7 @@ func (s *NotificationsService) Select(k RRSetKey, query string) ([]NotificationD
 	for {
 		reqNotifications, ri, res, err := s.SelectWithOffset(k, query, offset)
 		if err != nil {
-			if res.StatusCode >= 500 {
+			if res != nil && res.StatusCode >= 500 {
 				errcnt = errcnt + 1
 				if errcnt < maxerrs {
 					time.Sleep(waittime)
@@ -96,7 +97,7 @@ func (s *NotificationsService) Select(k RRSetKey, query string) ([]NotificationD
 }
 
 // SelectWithOffset requests list of notifications by RRSetKey, query and offset, also returning list metadata, the actual response, or an error
-func (s *NotificationsService) SelectWithOffset(k RRSetKey, query string, offset int) ([]NotificationDTO, ResultInfo, *Response, error) {
+func (s *NotificationsService) SelectWithOffset(k RRSetKey, query string, offset int) ([]NotificationDTO, ResultInfo, *http.Response, error) {
 	var tld NotificationListDTO
 
 	uri := k.NotificationsQueryURI(query, offset)
@@ -111,23 +112,23 @@ func (s *NotificationsService) SelectWithOffset(k RRSetKey, query string, offset
 }
 
 // Find requests a notification by NotificationKey,returning the actual response, or an error
-func (s *NotificationsService) Find(k NotificationKey) (NotificationDTO, *Response, error) {
+func (s *NotificationsService) Find(k NotificationKey) (NotificationDTO, *http.Response, error) {
 	var t NotificationDTO
 	res, err := s.client.get(k.URI(), &t)
 	return t, res, err
 }
 
 // Create requests creation of an event by RRSetKey, with provided NotificationInfoDTO, returning actual response or an error
-func (s *NotificationsService) Create(k NotificationKey, n NotificationDTO) (*Response, error) {
+func (s *NotificationsService) Create(k NotificationKey, n NotificationDTO) (*http.Response, error) {
 	return s.client.post(k.URI(), n, nil)
 }
 
 // Update requests update of an event by NotificationKey, with provided NotificationInfoDTO, returning the actual response or an error
-func (s *NotificationsService) Update(k NotificationKey, n NotificationDTO) (*Response, error) {
+func (s *NotificationsService) Update(k NotificationKey, n NotificationDTO) (*http.Response, error) {
 	return s.client.put(k.URI(), n, nil)
 }
 
 // Delete requests deletion of an event by NotificationKey, returning the actual response or an error
-func (s *NotificationsService) Delete(k NotificationKey) (*Response, error) {
+func (s *NotificationsService) Delete(k NotificationKey) (*http.Response, error) {
 	return s.client.delete(k.URI(), nil)
 }

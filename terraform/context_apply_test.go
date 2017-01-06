@@ -2708,6 +2708,49 @@ func TestContext2Apply_moduleBool(t *testing.T) {
 	}
 }
 
+// Tests that a module can be targeted and everything is properly created.
+// This adds to the plan test to also just verify that apply works.
+func TestContext2Apply_moduleTarget(t *testing.T) {
+	m := testModule(t, "plan-targeted-cross-module")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"module.B"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+<no state>
+module.A:
+  aws_instance.foo:
+    ID = foo
+    foo = bar
+    type = aws_instance
+
+  Outputs:
+
+  value = foo
+module.B:
+  aws_instance.bar:
+    ID = foo
+    foo = foo
+    type = aws_instance
+	`)
+}
+
 func TestContext2Apply_multiProvider(t *testing.T) {
 	m := testModule(t, "apply-multi-provider")
 	p := testProvider("aws")
@@ -2745,6 +2788,205 @@ func TestContext2Apply_multiProvider(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
 	}
+}
+
+func TestContext2Apply_multiProviderDestroy(t *testing.T) {
+	m := testModule(t, "apply-multi-provider-destroy")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	p2 := testProvider("do")
+	p2.ApplyFn = testApplyFn
+	p2.DiffFn = testDiffFn
+
+	var state *State
+
+	// First, create the instances
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws":   testProviderFuncFixed(p),
+				"vault": testProviderFuncFixed(p2),
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		s, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state = s
+	}
+
+	// Destroy them
+	{
+		// Verify that aws_instance.bar is destroyed first
+		var checked bool
+		var called int32
+		var lock sync.Mutex
+		applyFn := func(
+			info *InstanceInfo,
+			is *InstanceState,
+			id *InstanceDiff) (*InstanceState, error) {
+			lock.Lock()
+			defer lock.Unlock()
+
+			if info.HumanId() == "aws_instance.bar" {
+				checked = true
+
+				// Sleep to allow parallel execution
+				time.Sleep(50 * time.Millisecond)
+
+				// Verify that called is 0 (dep not called)
+				if atomic.LoadInt32(&called) != 0 {
+					return nil, fmt.Errorf("nothing else should be called")
+				}
+			}
+
+			atomic.AddInt32(&called, 1)
+			return testApplyFn(info, is, id)
+		}
+
+		// Set the apply functions
+		p.ApplyFn = applyFn
+		p2.ApplyFn = applyFn
+
+		ctx := testContext2(t, &ContextOpts{
+			Destroy: true,
+			State:   state,
+			Module:  m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws":   testProviderFuncFixed(p),
+				"vault": testProviderFuncFixed(p2),
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		s, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if !checked {
+			t.Fatal("should be checked")
+		}
+
+		state = s
+	}
+
+	checkStateString(t, state, `<no state>`)
+}
+
+// This is like the multiProviderDestroy test except it tests that
+// dependent resources within a child module that inherit provider
+// configuration are still destroyed first.
+func TestContext2Apply_multiProviderDestroyChild(t *testing.T) {
+	m := testModule(t, "apply-multi-provider-destroy-child")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	p2 := testProvider("do")
+	p2.ApplyFn = testApplyFn
+	p2.DiffFn = testDiffFn
+
+	var state *State
+
+	// First, create the instances
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws":   testProviderFuncFixed(p),
+				"vault": testProviderFuncFixed(p2),
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		s, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state = s
+	}
+
+	// Destroy them
+	{
+		// Verify that aws_instance.bar is destroyed first
+		var checked bool
+		var called int32
+		var lock sync.Mutex
+		applyFn := func(
+			info *InstanceInfo,
+			is *InstanceState,
+			id *InstanceDiff) (*InstanceState, error) {
+			lock.Lock()
+			defer lock.Unlock()
+
+			if info.HumanId() == "module.child.aws_instance.bar" {
+				checked = true
+
+				// Sleep to allow parallel execution
+				time.Sleep(50 * time.Millisecond)
+
+				// Verify that called is 0 (dep not called)
+				if atomic.LoadInt32(&called) != 0 {
+					return nil, fmt.Errorf("nothing else should be called")
+				}
+			}
+
+			atomic.AddInt32(&called, 1)
+			return testApplyFn(info, is, id)
+		}
+
+		// Set the apply functions
+		p.ApplyFn = applyFn
+		p2.ApplyFn = applyFn
+
+		ctx := testContext2(t, &ContextOpts{
+			Destroy: true,
+			State:   state,
+			Module:  m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws":   testProviderFuncFixed(p),
+				"vault": testProviderFuncFixed(p2),
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		s, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if !checked {
+			t.Fatal("should be checked")
+		}
+
+		state = s
+	}
+
+	checkStateString(t, state, `
+<no state>
+module.child:
+  <no state>
+`)
 }
 
 func TestContext2Apply_multiVar(t *testing.T) {
@@ -6900,5 +7142,67 @@ module.middle.bottom:
 		`)
 	if actual != expected {
 		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
+	}
+}
+
+// If a data source explicitly depends on another resource, it's because we need
+// that resource to be applied first.
+func TestContext2Apply_dataDependsOn(t *testing.T) {
+	p := testProvider("null")
+	m := testModule(t, "apply-data-depends-on")
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+	})
+
+	// the "provisioner" here writes to this variable, because the intent is to
+	// create a dependency which can't be viewed through the graph, and depends
+	// solely on the configuration providing "depends_on"
+	provisionerOutput := ""
+
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
+		// the side effect of the resource being applied
+		provisionerOutput = "APPLIED"
+		return testApplyFn(info, s, d)
+	}
+
+	p.DiffFn = testDiffFn
+	p.ReadDataDiffFn = testDataDiffFn
+
+	p.ReadDataApplyFn = func(*InstanceInfo, *InstanceDiff) (*InstanceState, error) {
+		// Read the artifact created by our dependency being applied.
+		// Without any "depends_on", this would be skipped as it's assumed the
+		// initial diff during refresh was all that's needed.
+		return &InstanceState{
+			ID: "read",
+			Attributes: map[string]string{
+				"foo": provisionerOutput,
+			},
+		}, nil
+	}
+
+	_, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	root := state.ModuleByPath(RootModulePath)
+	actual := root.Resources["data.null_data_source.read"].Primary.Attributes["foo"]
+
+	expected := "APPLIED"
+	if actual != expected {
+		t.Fatalf("bad:\n%s", strings.TrimSpace(state.String()))
 	}
 }

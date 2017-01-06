@@ -21,13 +21,15 @@ func TestAccNetworkingV2SecGroup_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2SecGroup_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2SecGroupExists(t, "openstack_networking_secgroup_v2.foo", &security_group),
+					testAccCheckNetworkingV2SecGroupExists(
+						"openstack_networking_secgroup_v2.secgroup_1", &security_group),
 				),
 			},
 			resource.TestStep{
 				Config: testAccNetworkingV2SecGroup_update,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("openstack_networking_secgroup_v2.foo", "name", "security_group_2"),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_secgroup_v2.secgroup_1", "name", "security_group_2"),
 				),
 			},
 		},
@@ -38,7 +40,7 @@ func testAccCheckNetworkingV2SecGroupDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 	if err != nil {
-		return fmt.Errorf("(testAccCheckNetworkingV2SecGroupDestroy) Error creating OpenStack networking client: %s", err)
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
 	for _, rs := range s.RootModule().Resources {
@@ -55,7 +57,7 @@ func testAccCheckNetworkingV2SecGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckNetworkingV2SecGroupExists(t *testing.T, n string, security_group *groups.SecGroup) resource.TestCheckFunc {
+func testAccCheckNetworkingV2SecGroupExists(n string, security_group *groups.SecGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -69,7 +71,7 @@ func testAccCheckNetworkingV2SecGroupExists(t *testing.T, n string, security_gro
 		config := testAccProvider.Meta().(*Config)
 		networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 		if err != nil {
-			return fmt.Errorf("(testAccCheckNetworkingV2SecGroupExists) Error creating OpenStack networking client: %s", err)
+			return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 		}
 
 		found, err := groups.Get(networkingClient, rs.Primary.ID).Extract()
@@ -87,14 +89,16 @@ func testAccCheckNetworkingV2SecGroupExists(t *testing.T, n string, security_gro
 	}
 }
 
-var testAccNetworkingV2SecGroup_basic = fmt.Sprintf(`
-  resource "openstack_networking_secgroup_v2" "foo" {
-    name = "security_group"
-    description = "terraform security group acceptance test"
-  }`)
+const testAccNetworkingV2SecGroup_basic = `
+resource "openstack_networking_secgroup_v2" "secgroup_1" {
+  name = "security_group"
+  description = "terraform security group acceptance test"
+}
+`
 
-var testAccNetworkingV2SecGroup_update = fmt.Sprintf(`
-  resource "openstack_networking_secgroup_v2" "foo" {
-    name = "security_group_2"
-    description = "terraform security group acceptance test"
-  }`)
+const testAccNetworkingV2SecGroup_update = `
+resource "openstack_networking_secgroup_v2" "secgroup_1" {
+  name = "security_group_2"
+  description = "terraform security group acceptance test"
+}
+`

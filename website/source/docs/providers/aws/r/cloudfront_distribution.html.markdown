@@ -25,9 +25,18 @@ want to wait, you need to use the `retain_on_delete` flag.
 The following example below creates a CloudFront distribution with an S3 origin.
 
 ```
+resource "aws_s3_bucket" "b" {
+  bucket = "mybucket"
+  acl    = "private"
+
+  tags {
+    Name = "My bucket"
+  }
+}
+
 resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
-    domain_name = "mybucket.s3.amazonaws.com"
+    domain_name = "${aws_s3_bucket.b.bucket}.s3.amazonaws.com"
     origin_id   = "myS3Origin"
 
     s3_origin_config {

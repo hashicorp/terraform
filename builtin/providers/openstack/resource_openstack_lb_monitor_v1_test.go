@@ -21,7 +21,7 @@ func TestAccLBV1Monitor_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccLBV1Monitor_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckLBV1MonitorExists(t, "openstack_lb_monitor_v1.monitor_1", &monitor),
+					testAccCheckLBV1MonitorExists("openstack_lb_monitor_v1.monitor_1", &monitor),
 				),
 			},
 			resource.TestStep{
@@ -38,7 +38,7 @@ func testAccCheckLBV1MonitorDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 	if err != nil {
-		return fmt.Errorf("(testAccCheckLBV1MonitorDestroy) Error creating OpenStack networking client: %s", err)
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
 	for _, rs := range s.RootModule().Resources {
@@ -55,7 +55,7 @@ func testAccCheckLBV1MonitorDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckLBV1MonitorExists(t *testing.T, n string, monitor *monitors.Monitor) resource.TestCheckFunc {
+func testAccCheckLBV1MonitorExists(n string, monitor *monitors.Monitor) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -69,7 +69,7 @@ func testAccCheckLBV1MonitorExists(t *testing.T, n string, monitor *monitors.Mon
 		config := testAccProvider.Meta().(*Config)
 		networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 		if err != nil {
-			return fmt.Errorf("(testAccCheckLBV1MonitorExists) Error creating OpenStack networking client: %s", err)
+			return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 		}
 
 		found, err := monitors.Get(networkingClient, rs.Primary.ID).Extract()
@@ -87,24 +87,24 @@ func testAccCheckLBV1MonitorExists(t *testing.T, n string, monitor *monitors.Mon
 	}
 }
 
-var testAccLBV1Monitor_basic = fmt.Sprintf(`
-  resource "openstack_lb_monitor_v1" "monitor_1" {
-    region = "%s"
-    type = "PING"
-    delay = 30
-    timeout = 5
-    max_retries = 3
-    admin_state_up = "true"
-  }`,
-	OS_REGION_NAME)
+const testAccLBV1Monitor_basic = `
+resource "openstack_lb_monitor_v1" "monitor_1" {
+  region = "%s"
+  type = "PING"
+  delay = 30
+  timeout = 5
+  max_retries = 3
+  admin_state_up = "true"
+}
+`
 
-var testAccLBV1Monitor_update = fmt.Sprintf(`
-  resource "openstack_lb_monitor_v1" "monitor_1" {
-    region = "%s"
-    type = "PING"
-    delay = 20
-    timeout = 5
-    max_retries = 3
-    admin_state_up = "true"
-  }`,
-	OS_REGION_NAME)
+const testAccLBV1Monitor_update = `
+resource "openstack_lb_monitor_v1" "monitor_1" {
+  region = "%s"
+  type = "PING"
+  delay = 20
+  timeout = 5
+  max_retries = 3
+  admin_state_up = "true"
+}
+`

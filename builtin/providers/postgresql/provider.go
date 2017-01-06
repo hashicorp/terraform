@@ -1,6 +1,9 @@
 package postgresql
 
 import (
+	"bytes"
+	"fmt"
+
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -12,61 +15,89 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"host": {
 				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGHOST", "POSTGRESQL_HOST"}, nil),
-				Description: "The PostgreSQL server address",
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("PGHOST", nil),
+				Description: "Name of PostgreSQL server address to connect to",
 			},
 			"port": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Default:     5432,
-				Description: "The PostgreSQL server port",
+				DefaultFunc: schema.EnvDefaultFunc("PGPORT", 5432),
+				Description: "The PostgreSQL port number to connect to at the server host, or socket file name extension for Unix-domain connections",
+			},
+			"database": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The name of the database to connect to in order to conenct to (defaults to `postgres`).",
+				DefaultFunc: schema.EnvDefaultFunc("PGDATABASE", "postgres"),
 			},
 			"username": {
 				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGUSER", "POSTGRESQL_USER"}, nil),
-				Description: "Username for PostgreSQL server connection",
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("PGUSER", "postgres"),
+				Description: "PostgreSQL user name to connect as",
 			},
 			"password": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGPASSWORD", "POSTGRESQL_PASSWORD"}, nil),
-				Description: "Password for PostgreSQL server connection",
+				DefaultFunc: schema.EnvDefaultFunc("PGPASSWORD", nil),
+				Description: "Password to be used if the PostgreSQL server demands password authentication",
 			},
-			"ssl_mode": {
+			"sslmode": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("PGSSLMODE", "require"),
-				Description: "Connection mode for PostgreSQL server",
+				DefaultFunc: schema.EnvDefaultFunc("PGSSLMODE", nil),
+				Description: "This option determines whether or with what priority a secure SSL TCP/IP connection will be negotiated with the PostgreSQL server",
+			},
+			"ssl_mode": {
+				Type:       schema.TypeString,
+				Optional:   true,
+				Deprecated: "Rename PostgreSQL provider `ssl_mode` attribute to `sslmode`",
 			},
 			"connect_timeout": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     15,
-				DefaultFunc: schema.EnvDefaultFunc("PGCONNECT_TIMEOUT", nil),
-				Description: "Maximum wait for connection, in seconds. Zero or not specified means wait indefinitely.",
+				Type:         schema.TypeInt,
+				Optional:     true,
+				DefaultFunc:  schema.EnvDefaultFunc("PGCONNECT_TIMEOUT", 180),
+				Description:  "Maximum wait for connection, in seconds. Zero or not specified means wait indefinitely.",
+				ValidateFunc: validateConnTimeout,
 			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
 			"postgresql_database":  resourcePostgreSQLDatabase(),
-			"postgresql_role":      resourcePostgreSQLRole(),
 			"postgresql_extension": resourcePostgreSQLExtension(),
+			"postgresql_schema":    resourcePostgreSQLSchema(),
+			"postgresql_role":      resourcePostgreSQLRole(),
 		},
 
 		ConfigureFunc: providerConfigure,
 	}
 }
 
+func validateConnTimeout(v interface{}, key string) (warnings []string, errors []error) {
+	value := v.(int)
+	if value < 0 {
+		errors = append(errors, fmt.Errorf("%s can not be less than 0", key))
+	}
+	return
+}
+
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+	var sslMode string
+	if sslModeRaw, ok := d.GetOk("sslmode"); ok {
+		sslMode = sslModeRaw.(string)
+	} else {
+		sslMode = d.Get("ssl_mode").(string)
+	}
 	config := Config{
-		Host:     d.Get("host").(string),
-		Port:     d.Get("port").(int),
-		Username: d.Get("username").(string),
-		Password: d.Get("password").(string),
-		SslMode:  d.Get("ssl_mode").(string),
-		Timeout:  d.Get("connect_timeout").(int),
+		Host:              d.Get("host").(string),
+		Port:              d.Get("port").(int),
+		Database:          d.Get("database").(string),
+		Username:          d.Get("username").(string),
+		Password:          d.Get("password").(string),
+		SSLMode:           sslMode,
+		ApplicationName:   tfAppName(),
+		ConnectTimeoutSec: d.Get("connect_timeout").(int),
 	}
 
 	client, err := config.NewClient()
@@ -75,4 +106,16 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	return client, nil
+}
+
+func tfAppName() string {
+	const VersionPrerelease = terraform.VersionPrerelease
+	var versionString bytes.Buffer
+
+	fmt.Fprintf(&versionString, "Terraform v%s", terraform.Version)
+	if terraform.VersionPrerelease != "" {
+		fmt.Fprintf(&versionString, "-%s", terraform.VersionPrerelease)
+	}
+
+	return versionString.String()
 }

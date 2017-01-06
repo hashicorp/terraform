@@ -141,7 +141,7 @@ func resourceAwsLightsailInstanceCreate(d *schema.ResourceData, meta interface{}
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"Started"},
 		Target:     []string{"Completed", "Succeeded"},
-		Refresh:    resourceAwsLightsailInstanceOperationRefreshFunc(op.Id, meta),
+		Refresh:    resourceAwsLightsailOperationRefreshFunc(op.Id, meta),
 		Timeout:    10 * time.Minute,
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -217,7 +217,7 @@ func resourceAwsLightsailInstanceDelete(d *schema.ResourceData, meta interface{}
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"Started"},
 		Target:     []string{"Completed", "Succeeded"},
-		Refresh:    resourceAwsLightsailInstanceOperationRefreshFunc(op.Id, meta),
+		Refresh:    resourceAwsLightsailOperationRefreshFunc(op.Id, meta),
 		Timeout:    10 * time.Minute,
 		Delay:      5 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -242,11 +242,11 @@ func resourceAwsLightsailInstanceDelete(d *schema.ResourceData, meta interface{}
 // - Failed
 // - Completed
 // - Succeeded (not documented?)
-func resourceAwsLightsailInstanceOperationRefreshFunc(
+func resourceAwsLightsailOperationRefreshFunc(
 	oid *string, meta interface{}) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		conn := meta.(*AWSClient).lightsailconn
-		log.Printf("[DEBUG] Checking if Lightsail Instance Operation (%s) is Completed", *oid)
+		log.Printf("[DEBUG] Checking if Lightsail Operation (%s) is Completed", *oid)
 		o, err := conn.GetOperation(&lightsail.GetOperationInput{
 			OperationId: oid,
 		})
@@ -258,7 +258,7 @@ func resourceAwsLightsailInstanceOperationRefreshFunc(
 			return nil, "Failed", fmt.Errorf("[ERR] Error retrieving Operation info for operation (%s)", *oid)
 		}
 
-		log.Printf("[DEBUG] Lightsail Instance Operation (%s) is currently %q", *oid, *o.Operation.Status)
+		log.Printf("[DEBUG] Lightsail Operation (%s) is currently %q", *oid, *o.Operation.Status)
 		return o, *o.Operation.Status, nil
 	}
 }

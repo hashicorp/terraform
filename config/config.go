@@ -18,7 +18,7 @@ import (
 
 // NameRegexp is the regular expression that all names (modules, providers,
 // resources, etc.) must follow.
-var NameRegexp = regexp.MustCompile(`\A[A-Za-z0-9\-\_]+\z`)
+var NameRegexp = regexp.MustCompile(`(?i)\A[A-Z0-9_][A-Z0-9\-\_]*\z`)
 
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
@@ -280,6 +280,14 @@ func (c *Config) Validate() error {
 		}
 
 		varMap[v.Name] = v
+	}
+
+	for k, _ := range varMap {
+		if !NameRegexp.MatchString(k) {
+			errs = append(errs, fmt.Errorf(
+				"variable %q: variable name must match regular expresion %s",
+				k, NameRegexp))
+		}
 	}
 
 	for _, v := range c.Variables {
@@ -544,15 +552,6 @@ func (c *Config) Validate() error {
 
 		// Validate DependsOn
 		errs = append(errs, c.validateDependsOn(n, r.DependsOn, resources, modules)...)
-
-		// Verify provider points to a provider that is configured
-		if r.Provider != "" {
-			if _, ok := providerSet[r.Provider]; !ok {
-				errs = append(errs, fmt.Errorf(
-					"%s: resource depends on non-configured provider '%s'",
-					n, r.Provider))
-			}
-		}
 
 		// Verify provisioners don't contain any splats
 		for _, p := range r.Provisioners {
@@ -907,7 +906,10 @@ func (o *Output) mergerMerge(m merger) merger {
 
 	result := *o
 	result.Name = o2.Name
+	result.Description = o2.Description
 	result.RawConfig = result.RawConfig.merge(o2.RawConfig)
+	result.Sensitive = o2.Sensitive
+	result.DependsOn = o2.DependsOn
 
 	return &result
 }
@@ -934,6 +936,10 @@ func (c *ProviderConfig) mergerMerge(m merger) merger {
 	result := *c
 	result.Name = c2.Name
 	result.RawConfig = result.RawConfig.merge(c2.RawConfig)
+
+	if c2.Alias != "" {
+		result.Alias = c2.Alias
+	}
 
 	return &result
 }
@@ -970,6 +976,9 @@ func (v *Variable) Merge(v2 *Variable) *Variable {
 	// The names should be the same, but the second name always wins.
 	result.Name = v2.Name
 
+	if v2.DeclaredType != "" {
+		result.DeclaredType = v2.DeclaredType
+	}
 	if v2.Default != nil {
 		result.Default = v2.Default
 	}

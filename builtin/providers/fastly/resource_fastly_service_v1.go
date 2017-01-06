@@ -166,6 +166,12 @@ func resourceServiceV1() *schema.Resource {
 							Default:     80,
 							Description: "The port number Backend responds on. Default 80",
 						},
+						"shield": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "The POP of the shield designated to reduce inbound load.",
+						},
 						"ssl_check_cert": &schema.Schema{
 							Type:        schema.TypeBool,
 							Optional:    true,
@@ -819,6 +825,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					AutoLoadbalance:     gofastly.CBool(df["auto_loadbalance"].(bool)),
 					SSLCheckCert:        gofastly.CBool(df["ssl_check_cert"].(bool)),
 					SSLHostname:         df["ssl_hostname"].(string),
+					Shield:              df["shield"].(string),
 					Port:                uint(df["port"].(int)),
 					BetweenBytesTimeout: uint(df["between_bytes_timeout"].(int)),
 					ConnectTimeout:      uint(df["connect_timeout"].(int)),
@@ -1499,6 +1506,7 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 			"first_byte_timeout":    int(b.FirstByteTimeout),
 			"max_conn":              int(b.MaxConn),
 			"port":                  int(b.Port),
+			"shield":                b.Shield,
 			"ssl_check_cert":        gofastly.CBool(b.SSLCheckCert),
 			"ssl_hostname":          b.SSLHostname,
 			"weight":                int(b.Weight),

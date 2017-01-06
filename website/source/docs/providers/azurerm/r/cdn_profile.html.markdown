@@ -25,8 +25,8 @@ resource "azurerm_cdn_profile" "test" {
     sku = "Standard_Verizon"
 
     tags {
-	environment = "Production"
-	cost_center = "MSFT"
+    	environment = "Production"
+    	cost_center = "MSFT"
     }
 }
 ```
@@ -45,7 +45,7 @@ The following arguments are supported:
 
 * `sku` - (Required) The pricing related information of current CDN profile. Accepted values are `Standard_Verizon`, `Standard_Akamai` or `Premium_Verizon`.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 
@@ -55,7 +55,7 @@ The following attributes are exported:
 
 ## Import
 
-CDN Profiles can be imported using the `resource id`, e.g. 
+CDN Profiles can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_cdn_profile.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Cdn/profiles/myprofile1

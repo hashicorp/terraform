@@ -79,10 +79,9 @@ func resourceArmServiceBusTopic() *schema.Resource {
 			},
 
 			"max_size_in_megabytes": {
-				Type:         schema.TypeInt,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: validateArmServiceBusTopicMaxSize,
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
 			},
 
 			"requires_duplicate_detection": {
@@ -200,14 +199,23 @@ func resourceArmServiceBusTopicRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("requires_duplicate_detection", props.RequiresDuplicateDetection)
 	d.Set("support_ordering", props.SupportOrdering)
 
-	// if partitioning is enabled then the max size returned by the API will be
-	// 16 times greater than the value set by the user
+	maxSize := int(*props.MaxSizeInMegabytes)
+
+	// if the topic is in a premium namespace and partitioning is enabled then the
+	// max size returned by the API will be 16 times greater than the value set
 	if *props.EnablePartitioning {
-		const partitionCount = 16
-		d.Set("max_size_in_megabytes", int(*props.MaxSizeInMegabytes/partitionCount))
-	} else {
-		d.Set("max_size_in_megabytes", int(*props.MaxSizeInMegabytes))
+		namespace, err := meta.(*ArmClient).serviceBusNamespacesClient.Get(resGroup, namespaceName)
+		if err != nil {
+			return err
+		}
+
+		if namespace.Sku.Name != servicebus.Premium {
+			const partitionCount = 16
+			maxSize = int(*props.MaxSizeInMegabytes / partitionCount)
+		}
 	}
+
+	d.Set("max_size_in_megabytes", maxSize)
 
 	return nil
 }
@@ -226,13 +234,4 @@ func resourceArmServiceBusTopicDelete(d *schema.ResourceData, meta interface{}) 
 	_, err = client.Delete(resGroup, namespaceName, name)
 
 	return err
-}
-
-func validateArmServiceBusTopicMaxSize(i interface{}, k string) (s []string, es []error) {
-	v := i.(int)
-	if v%1024 != 0 || v < 0 || v > 5120 {
-		es = append(es, fmt.Errorf("%q must be a multiple of 1024 up to and including 5120", k))
-	}
-
-	return
 }

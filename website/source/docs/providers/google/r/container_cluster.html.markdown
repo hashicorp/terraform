@@ -73,9 +73,10 @@ resource "google_container_cluster" "primary" {
 * `node_config` -  (Optional) The machine type and image to use for all nodes in
     this cluster
 
-* `node_version` - (Optional) The Kubernetes version on the nodes. Only valid
-    for upgrading of existing cluster. Defaults to latest version supported by
-    the server.
+* `node_version` - (Optional) The Kubernetes version on the nodes. Also affects
+    the initial master version on cluster creation. Updates affect nodes only. 
+    Defaults to the default version set by GKE which is not necessarily the latest 
+    version.
 
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.

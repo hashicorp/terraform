@@ -455,6 +455,7 @@ resource "aws_lambda_function" "func" {
     function_name = "example_lambda_name_%d"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+		runtime = "nodejs4.3"
 }
 
 resource "aws_s3_bucket" "bucket" {
