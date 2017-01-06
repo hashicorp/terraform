@@ -227,7 +227,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	vmc.Sender = autorest.CreateSender(withRequestLogging())
 	client.vmClient = vmc
 
-	csc := containerservice.NewContainerServicesClient(c.SubscriptionID)
+	csc := containerservice.NewContainerServicesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&csc.Client)
 	csc.Authorizer = spt
 	csc.Sender = autorest.CreateSender(withRequestLogging())
