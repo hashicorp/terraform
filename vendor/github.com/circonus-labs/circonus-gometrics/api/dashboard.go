@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
 // DashboardGridLayout defines layout
@@ -207,11 +209,6 @@ type Dashboard struct {
 	Widgets        []DashboardWidget   `json:"widgets"`
 }
 
-const (
-	baseDashboardPath = "/dashboard"
-	dashboardCIDRegex = "^" + baseDashboardPath + "/[0-9]+$"
-)
-
 // FetchDashboard retrieves a dashboard definition
 func (a *API) FetchDashboard(cid CIDType) (*Dashboard, error) {
 	if cid == nil || *cid == "" {
@@ -220,7 +217,7 @@ func (a *API) FetchDashboard(cid CIDType) (*Dashboard, error) {
 
 	dashboardCID := string(*cid)
 
-	matched, err := regexp.MatchString(dashboardCIDRegex, dashboardCID)
+	matched, err := regexp.MatchString(config.DashboardCIDRegex, dashboardCID)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +240,7 @@ func (a *API) FetchDashboard(cid CIDType) (*Dashboard, error) {
 
 // FetchDashboards retrieves all dashboards
 func (a *API) FetchDashboards() (*[]Dashboard, error) {
-	result, err := a.Get(baseDashboardPath)
+	result, err := a.Get(config.DashboardPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -257,14 +254,14 @@ func (a *API) FetchDashboards() (*[]Dashboard, error) {
 }
 
 // UpdateDashboard update dashboard definition
-func (a *API) UpdateDashboard(config *Dashboard) (*Dashboard, error) {
-	if config == nil {
+func (a *API) UpdateDashboard(cfg *Dashboard) (*Dashboard, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid dashboard config [nil]")
 	}
 
-	dashboardCID := string(config.CID)
+	dashboardCID := string(cfg.CID)
 
-	matched, err := regexp.MatchString(dashboardCIDRegex, dashboardCID)
+	matched, err := regexp.MatchString(config.DashboardCIDRegex, dashboardCID)
 	if err != nil {
 		return nil, err
 	}
@@ -272,12 +269,12 @@ func (a *API) UpdateDashboard(config *Dashboard) (*Dashboard, error) {
 		return nil, fmt.Errorf("Invalid dashboard CID [%s]", dashboardCID)
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Put(dashboardCID, cfg)
+	result, err := a.Put(dashboardCID, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -291,17 +288,17 @@ func (a *API) UpdateDashboard(config *Dashboard) (*Dashboard, error) {
 }
 
 // CreateDashboard create a new dashboard
-func (a *API) CreateDashboard(config *Dashboard) (*Dashboard, error) {
-	if config == nil {
+func (a *API) CreateDashboard(cfg *Dashboard) (*Dashboard, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid dashboard config [nil]")
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Post(baseDashboardPath, cfg)
+	result, err := a.Post(config.DashboardPrefix, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -315,12 +312,11 @@ func (a *API) CreateDashboard(config *Dashboard) (*Dashboard, error) {
 }
 
 // DeleteDashboard delete a dashboard
-func (a *API) DeleteDashboard(config *Dashboard) (bool, error) {
-	if config == nil {
+func (a *API) DeleteDashboard(cfg *Dashboard) (bool, error) {
+	if cfg == nil {
 		return false, fmt.Errorf("Invalid dashboard config [none]")
 	}
-	cid := CIDType(&config.CID)
-	return a.DeleteDashboardByCID(cid)
+	return a.DeleteDashboardByCID(CIDType(&cfg.CID))
 }
 
 // DeleteDashboardByCID delete a dashboard by cid
@@ -331,7 +327,7 @@ func (a *API) DeleteDashboardByCID(cid CIDType) (bool, error) {
 
 	dashboardCID := string(*cid)
 
-	matched, err := regexp.MatchString(dashboardCIDRegex, dashboardCID)
+	matched, err := regexp.MatchString(config.DashboardCIDRegex, dashboardCID)
 	if err != nil {
 		return false, err
 	}
@@ -370,7 +366,7 @@ func (a *API) SearchDashboards(searchCriteria *SearchQueryType, filterCriteria *
 	}
 
 	reqURL := url.URL{
-		Path:     baseDashboardPath,
+		Path:     config.DashboardPrefix,
 		RawQuery: q.Encode(),
 	}
 

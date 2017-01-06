@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
 // BrokerDetail instance attributes
@@ -39,11 +41,6 @@ type Broker struct {
 	Type      string         `json:"_type"`
 }
 
-const (
-	baseBrokerPath = "/broker"
-	brokerCIDRegex = "^" + baseBrokerPath + "/[0-9]+$"
-)
-
 // FetchBroker fetch a broker configuration by cid
 func (a *API) FetchBroker(cid CIDType) (*Broker, error) {
 	if cid == nil || *cid == "" {
@@ -52,7 +49,7 @@ func (a *API) FetchBroker(cid CIDType) (*Broker, error) {
 
 	brokerCID := string(*cid)
 
-	matched, err := regexp.MatchString(brokerCIDRegex, brokerCID)
+	matched, err := regexp.MatchString(config.BrokerCIDRegex, brokerCID)
 	if err != nil {
 		return nil, err
 	}
@@ -60,13 +57,13 @@ func (a *API) FetchBroker(cid CIDType) (*Broker, error) {
 		return nil, fmt.Errorf("Invalid broker CID [%s]", brokerCID)
 	}
 
-	reqURL := url.URL{
-		Path: brokerCID,
-	}
-
-	result, err := a.Get(reqURL.String())
+	result, err := a.Get(brokerCID)
 	if err != nil {
 		return nil, err
+	}
+
+	if a.Debug {
+		a.Log.Printf("[DEBUG] fetch broker, received JSON: %s", string(result))
 	}
 
 	response := new(Broker)
@@ -80,7 +77,7 @@ func (a *API) FetchBroker(cid CIDType) (*Broker, error) {
 
 // FetchBrokers return list of all brokers available to the api token/app
 func (a *API) FetchBrokers() (*[]Broker, error) {
-	result, err := a.Get(baseBrokerPath)
+	result, err := a.Get(config.BrokerPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +113,7 @@ func (a *API) SearchBrokers(searchCriteria *SearchQueryType, filterCriteria *Sea
 	}
 
 	reqURL := url.URL{
-		Path:     baseBrokerPath,
+		Path:     config.BrokerPrefix,
 		RawQuery: q.Encode(),
 	}
 

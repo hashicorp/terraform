@@ -13,6 +13,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
 // BrokerStratcon defines stratcons for broker
@@ -40,11 +42,6 @@ type ProvisionBroker struct {
 	Tags                    []string         `json:"tags,omitempty"`
 }
 
-const (
-	baseProvisionBrokerPath = "/provision_broker"
-	brokerProvisionCIDRegex = "^" + baseProvisionBrokerPath + "/[a-z0-9]+-[a-z0-9]+$"
-)
-
 // FetchProvisionBroker retrieves a broker definition
 func (a *API) FetchProvisionBroker(cid CIDType) (*ProvisionBroker, error) {
 	if cid == nil || *cid == "" {
@@ -53,7 +50,7 @@ func (a *API) FetchProvisionBroker(cid CIDType) (*ProvisionBroker, error) {
 
 	brokerCID := string(*cid)
 
-	matched, err := regexp.MatchString(brokerProvisionCIDRegex, brokerCID)
+	matched, err := regexp.MatchString(config.ProvisionBrokerCIDRegex, brokerCID)
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +72,8 @@ func (a *API) FetchProvisionBroker(cid CIDType) (*ProvisionBroker, error) {
 }
 
 // UpdateProvisionBroker update broker definition
-func (a *API) UpdateProvisionBroker(cid CIDType, config *ProvisionBroker) (*ProvisionBroker, error) {
-	if config == nil {
+func (a *API) UpdateProvisionBroker(cid CIDType, cfg *ProvisionBroker) (*ProvisionBroker, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid broker config [nil]")
 	}
 
@@ -86,7 +83,7 @@ func (a *API) UpdateProvisionBroker(cid CIDType, config *ProvisionBroker) (*Prov
 
 	brokerCID := string(*cid)
 
-	matched, err := regexp.MatchString(brokerProvisionCIDRegex, brokerCID)
+	matched, err := regexp.MatchString(config.ProvisionBrokerCIDRegex, brokerCID)
 	if err != nil {
 		return nil, err
 	}
@@ -94,12 +91,12 @@ func (a *API) UpdateProvisionBroker(cid CIDType, config *ProvisionBroker) (*Prov
 		return nil, fmt.Errorf("Invalid broker CID [%s]", brokerCID)
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Put(brokerCID, cfg)
+	result, err := a.Put(brokerCID, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -113,17 +110,17 @@ func (a *API) UpdateProvisionBroker(cid CIDType, config *ProvisionBroker) (*Prov
 }
 
 // CreateProvisionBroker create a new broker
-func (a *API) CreateProvisionBroker(config *ProvisionBroker) (*ProvisionBroker, error) {
-	if config == nil {
+func (a *API) CreateProvisionBroker(cfg *ProvisionBroker) (*ProvisionBroker, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid broker config [nil]")
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Post(baseProvisionBrokerPath, cfg)
+	result, err := a.Post(config.ProvisionBrokerPrefix, jsonCfg)
 	if err != nil {
 		return nil, err
 	}

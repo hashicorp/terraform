@@ -52,4 +52,52 @@ const (
 	//
 	ReverseSecretKey = Key("reverse:secret_key")
 	SubmissionURL    = Key("submission_url")
+
+	//
+	// Endpoint prefix & cid regex
+	//
+	DefaultCIDRegex            = "[0-9]+"
+	DefaultUUIDRegex           = "[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}"
+	AccountPrefix              = "/account"
+	AccountCIDRegex            = "^" + AccountPrefix + "/(" + DefaultCIDRegex + "|current)$"
+	AcknowledgementPrefix      = "/acknowledgement"
+	AcknowledgementCIDRegex    = "^" + AcknowledgementPrefix + "/" + DefaultCIDRegex + "$"
+	AlertPrefix                = "/alert"
+	AlertCIDRegex              = "^" + AlertPrefix + "/" + DefaultCIDRegex + "$"
+	AnnotationPrefix           = "/annotation"
+	AnnotationCIDRegex         = "^" + AnnotationPrefix + "/" + DefaultCIDRegex + "$"
+	BrokerPrefix               = "/broker"
+	BrokerCIDRegex             = "^" + BrokerPrefix + "/" + DefaultCIDRegex + "$"
+	CheckBundleMetricsPrefix   = "/check_bundle_metrics"
+	CheckBundleMetricsCIDRegex = "^" + CheckBundleMetricsPrefix + "/" + DefaultCIDRegex + "$"
+	CheckBundlePrefix          = "/check_bundle"
+	CheckBundleCIDRegex        = "^" + CheckBundlePrefix + "/" + DefaultCIDRegex + "$"
+	CheckPrefix                = "/check"
+	CheckCIDRegex              = "^" + CheckPrefix + "/" + DefaultCIDRegex + "$"
+	ContactGroupPrefix         = "/contact_group"
+	ContactGroupCIDRegex       = "^" + ContactGroupPrefix + "/" + DefaultCIDRegex + "$"
+	DashboardPrefix            = "/dashboard"
+	DashboardCIDRegex          = "^" + DashboardPrefix + "/" + DefaultCIDRegex + "$"
+	GraphPrefix                = "/graph"
+	GraphCIDRegex              = "^" + GraphPrefix + "/" + DefaultUUIDRegex + "$"
+	MaintenancePrefix          = "/maintenance"
+	MaintenanceCIDRegex        = "^" + MaintenancePrefix + "/" + DefaultCIDRegex + "$"
+	MetricClusterPrefix        = "/metric_cluster"
+	MetricClusterCIDRegex      = "^" + MetricClusterPrefix + "/" + DefaultCIDRegex + "$"
+	MetricPrefix               = "/metric"
+	MetricCIDRegex             = "^" + MetricPrefix + "/" + DefaultCIDRegex + "_[^[:space:]]+$"
+	OutlierReportPrefix        = "/outlier_report"
+	OutlierReportCIDRegex      = "^" + OutlierReportPrefix + "/" + DefaultCIDRegex + "$"
+	ProvisionBrokerPrefix      = "/provision_broker"
+	ProvisionBrokerCIDRegex    = "^" + ProvisionBrokerPrefix + "/[a-z0-9]+-[a-z0-9]+$"
+	RuleSetGroupPrefix         = "/rule_set_group"
+	RulesetGroupCIDRegex       = "^" + RuleSetGroupPrefix + "/" + DefaultCIDRegex + "$"
+	RuleSetPrefix              = "/rule_set"
+	RuleSetCIDRegex            = "^" + RuleSetPrefix + "/" + DefaultCIDRegex + "_[^[:space:]]+$"
+	UserPrefix                 = "/user"
+	UserCIDRegex               = "^" + UserPrefix + "/(" + DefaultCIDRegex + "|current)$"
+	WorksheetPrefix            = "/worksheet"
+	WorksheetCIDRegex          = "^" + WorksheetPrefix + "/" + DefaultUUIDRegex + "$"
+	// contact group serverity levels
+	NumSeverityLevels = 5
 )

@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
 // Alert defines a alert
@@ -35,11 +37,6 @@ type Alert struct {
 	Value              string   `json:"_value,omitempty"`
 }
 
-const (
-	baseAlertPath = "/alert"
-	alertCIDRegex = "^" + baseAlertPath + "/[0-9]+$"
-)
-
 // FetchAlert retrieves a alert definition
 func (a *API) FetchAlert(cid CIDType) (*Alert, error) {
 	if cid == nil || *cid == "" {
@@ -48,7 +45,7 @@ func (a *API) FetchAlert(cid CIDType) (*Alert, error) {
 
 	alertCID := string(*cid)
 
-	matched, err := regexp.MatchString(alertCIDRegex, alertCID)
+	matched, err := regexp.MatchString(config.AlertCIDRegex, alertCID)
 	if err != nil {
 		return nil, err
 	}
@@ -61,6 +58,10 @@ func (a *API) FetchAlert(cid CIDType) (*Alert, error) {
 		return nil, err
 	}
 
+	if a.Debug {
+		a.Log.Printf("[DEBUG] fetch alert, received JSON: %s", string(result))
+	}
+
 	alert := &Alert{}
 	if err := json.Unmarshal(result, alert); err != nil {
 		return nil, err
@@ -71,7 +72,7 @@ func (a *API) FetchAlert(cid CIDType) (*Alert, error) {
 
 // FetchAlerts retrieves all alerts
 func (a *API) FetchAlerts() (*[]Alert, error) {
-	result, err := a.Get(baseAlertPath)
+	result, err := a.Get(config.AlertPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +108,7 @@ func (a *API) SearchAlerts(searchCriteria *SearchQueryType, filterCriteria *Sear
 	}
 
 	reqURL := url.URL{
-		Path:     baseAlertPath,
+		Path:     config.AlertPrefix,
 		RawQuery: q.Encode(),
 	}
 

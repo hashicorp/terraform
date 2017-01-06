@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
 // Maintenance defines a maintenance
@@ -26,11 +28,6 @@ type Maintenance struct {
 	Type       string      `json:"type,omitempty"`
 }
 
-const (
-	baseMaintenancePath = "/maintenance"
-	maintenanceCIDRegex = "^" + baseMaintenancePath + "/[0-9]+$"
-)
-
 // FetchMaintenanceWindow retrieves a maintenance window definition
 func (a *API) FetchMaintenanceWindow(cid CIDType) (*Maintenance, error) {
 	if cid == nil || *cid == "" {
@@ -39,7 +36,7 @@ func (a *API) FetchMaintenanceWindow(cid CIDType) (*Maintenance, error) {
 
 	maintenanceCID := string(*cid)
 
-	matched, err := regexp.MatchString(maintenanceCIDRegex, maintenanceCID)
+	matched, err := regexp.MatchString(config.MaintenanceCIDRegex, maintenanceCID)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +59,7 @@ func (a *API) FetchMaintenanceWindow(cid CIDType) (*Maintenance, error) {
 
 // FetchMaintenanceWindows retrieves all maintenance windows
 func (a *API) FetchMaintenanceWindows() (*[]Maintenance, error) {
-	result, err := a.Get(baseMaintenancePath)
+	result, err := a.Get(config.MaintenancePrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -76,14 +73,14 @@ func (a *API) FetchMaintenanceWindows() (*[]Maintenance, error) {
 }
 
 // UpdateMaintenanceWindow update maintenance window definition
-func (a *API) UpdateMaintenanceWindow(config *Maintenance) (*Maintenance, error) {
-	if config == nil {
+func (a *API) UpdateMaintenanceWindow(cfg *Maintenance) (*Maintenance, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid maintenance window config [nil]")
 	}
 
-	maintenanceCID := string(config.CID)
+	maintenanceCID := string(cfg.CID)
 
-	matched, err := regexp.MatchString(maintenanceCIDRegex, maintenanceCID)
+	matched, err := regexp.MatchString(config.MaintenanceCIDRegex, maintenanceCID)
 	if err != nil {
 		return nil, err
 	}
@@ -91,12 +88,12 @@ func (a *API) UpdateMaintenanceWindow(config *Maintenance) (*Maintenance, error)
 		return nil, fmt.Errorf("Invalid maintenance window CID [%s]", maintenanceCID)
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Put(maintenanceCID, cfg)
+	result, err := a.Put(maintenanceCID, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -110,17 +107,17 @@ func (a *API) UpdateMaintenanceWindow(config *Maintenance) (*Maintenance, error)
 }
 
 // CreateMaintenanceWindow create a new maintenance window
-func (a *API) CreateMaintenanceWindow(config *Maintenance) (*Maintenance, error) {
-	if config == nil {
+func (a *API) CreateMaintenanceWindow(cfg *Maintenance) (*Maintenance, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid maintenance window config [nil]")
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Post(baseMaintenancePath, cfg)
+	result, err := a.Post(config.MaintenancePrefix, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +131,11 @@ func (a *API) CreateMaintenanceWindow(config *Maintenance) (*Maintenance, error)
 }
 
 // DeleteMaintenanceWindow delete a maintenance
-func (a *API) DeleteMaintenanceWindow(config *Maintenance) (bool, error) {
-	if config == nil {
+func (a *API) DeleteMaintenanceWindow(cfg *Maintenance) (bool, error) {
+	if cfg == nil {
 		return false, fmt.Errorf("Invalid maintenance window config [none]")
 	}
-
-	cid := CIDType(&config.CID)
-	return a.DeleteMaintenanceWindowByCID(cid)
+	return a.DeleteMaintenanceWindowByCID(CIDType(&cfg.CID))
 }
 
 // DeleteMaintenanceWindowByCID delete a maintenance window by cid
@@ -151,7 +146,7 @@ func (a *API) DeleteMaintenanceWindowByCID(cid CIDType) (bool, error) {
 
 	maintenanceCID := string(*cid)
 
-	matched, err := regexp.MatchString(maintenanceCIDRegex, maintenanceCID)
+	matched, err := regexp.MatchString(config.MaintenanceCIDRegex, maintenanceCID)
 	if err != nil {
 		return false, err
 	}
@@ -190,7 +185,7 @@ func (a *API) SearchMaintenanceWindows(searchCriteria *SearchQueryType, filterCr
 	}
 
 	reqURL := url.URL{
-		Path:     baseMaintenancePath,
+		Path:     config.MaintenancePrefix,
 		RawQuery: q.Encode(),
 	}
 
