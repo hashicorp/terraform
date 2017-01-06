@@ -3,13 +3,14 @@ package circonus
 var (
 	checkDescription       map[string]string
 	checkMetricDescription map[string]string
+	collectorDescription   map[string]string
 	contactDescription     map[string]string
 )
 
 func init() {
 	checkDescription = map[string]string{
 		checkActiveAttr:                "If the check is activate or disabled",
-		checkBrokersAttr:               "The broker(s) that are responsible for gathering the metrics",
+		checkCollectorAttr:             "The collector(s) that are responsible for gathering the metrics",
 		checkConfigAuthMethodAttr:      "The HTTP Authentication method",
 		checkConfigAuthPasswordAttr:    "The HTTP Authentication user password",
 		checkConfigAuthUserAttr:        "The HTTP Authentication user name",
@@ -32,7 +33,7 @@ func init() {
 		checkPeriodAttr:                "The period between each time the check is made",
 		checkTagsAttr:                  "A list of tags assigned to the check",
 		checkTargetAttr:                "The target of the check (e.g. hostname, URL, IP, etc)",
-		checkTimeoutAttr:               "The length of time in seconds (and fractions of a second) before the check will timeout if no response is returned to the broker",
+		checkTimeoutAttr:               "The length of time in seconds (and fractions of a second) before the check will timeout if no response is returned to the collector",
 		checkTypeAttr:                  "The check type",
 	}
 
@@ -42,6 +43,12 @@ func init() {
 		checkMetricTagsAttr:   "A list of tags assigned to a metric",
 		checkMetricTypeAttr:   "Type of the metric",
 		checkMetricUnitsAttr:  "Units for the metric",
+	}
+
+	// NOTE(sean@): needs to be completed
+	collectorDescription = map[string]string{
+		collectorDetailsAttr: "Details associated with individual collectors (a.k.a. broker)",
+		collectorTagsAttr:    "Tags assigned to a collector",
 	}
 
 	// NOTE(sean@): needs to be completed

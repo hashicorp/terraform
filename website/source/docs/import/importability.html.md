@@ -122,6 +122,7 @@ To make a resource importable, please see the
 ### Circonus
 
 * circonus_check
+* circonus_contact_group
 
 ### DigitalOcean
 

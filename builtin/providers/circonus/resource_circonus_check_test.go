@@ -20,8 +20,8 @@ func TestAccCirconusCheckBundle_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					/* testAccCheckBundleExists("circonus_check.usage_check", "foo"), */
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "active", "true"),
-					resource.TestCheckResourceAttr("circonus_check.usage_check", "brokers.#", "1"),
-					resource.TestCheckResourceAttr("circonus_check.usage_check", "brokers.0", "/broker/1"),
+					resource.TestCheckResourceAttr("circonus_check.usage_check", "collectors.#", "1"),
+					resource.TestCheckResourceAttr("circonus_check.usage_check", "collectors.0", "/broker/1"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "config.#", "1"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "config.0.http_headers.%", "3"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "config.0.http_headers.Accept", "application/json"),
@@ -120,9 +120,9 @@ resource "circonus_check" "usage_check" {
   type = "json"
   target = "api.circonus.com"
   period = "60s"
-  brokers = [
-    "/broker/1",
-  ]
+  collector {
+    id = "/broker/1"
+  }
   metric {
     name = "_usage` + "`0`" + `_used"
     tags = ["source:circonus"]

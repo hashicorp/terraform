@@ -8,22 +8,22 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccDataSourceCirconusBroker(t *testing.T) {
+func TestAccDataSourceCirconusCollector(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDataSourceCirconusBrokerConfig,
+				Config: testAccDataSourceCirconusCollectorConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDataSourceCirconusBrokerCheck("data.circonus_broker.by_cid", "/broker/1"),
+					testAccDataSourceCirconusCollectorCheck("data.circonus_collector.by_cid", "/broker/1"),
 				),
 			},
 		},
 	})
 }
 
-func testAccDataSourceCirconusBrokerCheck(name, cid string) resource.TestCheckFunc {
+func testAccDataSourceCirconusCollectorCheck(name, cid string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -40,14 +40,14 @@ func testAccDataSourceCirconusBrokerCheck(name, cid string) resource.TestCheckFu
 	}
 }
 
-const testAccDataSourceCirconusBrokerConfig = `
+const testAccDataSourceCirconusCollectorConfig = `
 variable circonus_api_token {}
 
 provider "circonus" {
   key = "${var.circonus_api_token}"
 }
 
-data "circonus_broker" "by_cid" {
+data "circonus_collector" "by_cid" {
   cid = "/broker/1"
 }
 `
