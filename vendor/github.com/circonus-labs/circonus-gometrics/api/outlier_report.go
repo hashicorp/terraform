@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
 // OutlierReport defines a outlier report
@@ -27,11 +29,6 @@ type OutlierReport struct {
 	Title            string   `json:"title,omitempty"`
 }
 
-const (
-	baseOutlierReportPath = "/outlier_report"
-	reportCIDRegex        = "^" + baseOutlierReportPath + "/[0-9]+$"
-)
-
 // FetchOutlierReport retrieves a outlier report definition
 func (a *API) FetchOutlierReport(cid CIDType) (*OutlierReport, error) {
 	if cid == nil || *cid == "" {
@@ -40,7 +37,7 @@ func (a *API) FetchOutlierReport(cid CIDType) (*OutlierReport, error) {
 
 	reportCID := string(*cid)
 
-	matched, err := regexp.MatchString(reportCIDRegex, reportCID)
+	matched, err := regexp.MatchString(config.OutlierReportCIDRegex, reportCID)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +60,7 @@ func (a *API) FetchOutlierReport(cid CIDType) (*OutlierReport, error) {
 
 // FetchOutlierReports retrieves all outlier reports
 func (a *API) FetchOutlierReports() (*[]OutlierReport, error) {
-	result, err := a.Get(baseOutlierReportPath)
+	result, err := a.Get(config.OutlierReportPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -77,14 +74,14 @@ func (a *API) FetchOutlierReports() (*[]OutlierReport, error) {
 }
 
 // UpdateOutlierReport update outlier report definition
-func (a *API) UpdateOutlierReport(config *OutlierReport) (*OutlierReport, error) {
-	if config == nil {
+func (a *API) UpdateOutlierReport(cfg *OutlierReport) (*OutlierReport, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid outlier report config [nil]")
 	}
 
-	reportCID := string(config.CID)
+	reportCID := string(cfg.CID)
 
-	matched, err := regexp.MatchString(reportCIDRegex, reportCID)
+	matched, err := regexp.MatchString(config.OutlierReportCIDRegex, reportCID)
 	if err != nil {
 		return nil, err
 	}
@@ -92,12 +89,12 @@ func (a *API) UpdateOutlierReport(config *OutlierReport) (*OutlierReport, error)
 		return nil, fmt.Errorf("Invalid outlier report CID [%s]", reportCID)
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Put(reportCID, cfg)
+	result, err := a.Put(reportCID, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -111,17 +108,17 @@ func (a *API) UpdateOutlierReport(config *OutlierReport) (*OutlierReport, error)
 }
 
 // CreateOutlierReport create a new outlier report
-func (a *API) CreateOutlierReport(config *OutlierReport) (*OutlierReport, error) {
-	if config == nil {
+func (a *API) CreateOutlierReport(cfg *OutlierReport) (*OutlierReport, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid outlier report config [nil]")
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Post(baseOutlierReportPath, cfg)
+	result, err := a.Post(config.OutlierReportPrefix, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -135,13 +132,11 @@ func (a *API) CreateOutlierReport(config *OutlierReport) (*OutlierReport, error)
 }
 
 // DeleteOutlierReport delete a report
-func (a *API) DeleteOutlierReport(config *OutlierReport) (bool, error) {
-	if config == nil {
+func (a *API) DeleteOutlierReport(cfg *OutlierReport) (bool, error) {
+	if cfg == nil {
 		return false, fmt.Errorf("Invalid report config [none]")
 	}
-
-	cid := CIDType(&config.CID)
-	return a.DeleteOutlierReportByCID(cid)
+	return a.DeleteOutlierReportByCID(CIDType(&cfg.CID))
 }
 
 // DeleteOutlierReportByCID delete a outlier report by cid
@@ -152,7 +147,7 @@ func (a *API) DeleteOutlierReportByCID(cid CIDType) (bool, error) {
 
 	reportCID := string(*cid)
 
-	matched, err := regexp.MatchString(reportCIDRegex, reportCID)
+	matched, err := regexp.MatchString(config.OutlierReportCIDRegex, reportCID)
 	if err != nil {
 		return false, err
 	}
@@ -191,7 +186,7 @@ func (a *API) SearchOutlierReports(searchCriteria *SearchQueryType, filterCriter
 	}
 
 	reqURL := url.URL{
-		Path:     baseOutlierReportPath,
+		Path:     config.OutlierReportPrefix,
 		RawQuery: q.Encode(),
 	}
 

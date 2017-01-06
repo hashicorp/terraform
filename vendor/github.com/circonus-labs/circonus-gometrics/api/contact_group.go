@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
 // ContactGroupAlertFormats define alert formats
@@ -62,17 +64,11 @@ type ContactGroup struct {
 	Tags              []string                  `json:"tags,omitempty"`
 }
 
-const (
-	baseContactGroupPath = "/contact_group"
-	contactGroupCIDRegex = "^" + baseContactGroupPath + "/[0-9]+$"
-	numSeverityLevels    = 5
-)
-
 // NewContactGroup returns a ContactGroup
 func (a *API) NewContactGroup() *ContactGroup {
 	return &ContactGroup{
-		Escalations: make([]*ContactGroupEscalation, numSeverityLevels),
-		Reminders:   make([]uint, numSeverityLevels),
+		Escalations: make([]*ContactGroupEscalation, config.NumSeverityLevels),
+		Reminders:   make([]uint, config.NumSeverityLevels),
 		Contacts: ContactGroupContacts{
 			External: []ContactGroupContactsExternal{},
 			Users:    []ContactGroupContactsUser{},
@@ -88,15 +84,21 @@ func (a *API) FetchContactGroup(cid CIDType) (*ContactGroup, error) {
 
 	groupCID := string(*cid)
 
-	if matched, err := regexp.MatchString(contactGroupCIDRegex, groupCID); err != nil {
+	matched, err := regexp.MatchString(config.ContactGroupCIDRegex, groupCID)
+	if err != nil {
 		return nil, err
-	} else if !matched {
+	}
+	if !matched {
 		return nil, fmt.Errorf("Invalid contact group CID [%s]", groupCID)
 	}
 
 	result, err := a.Get(groupCID)
 	if err != nil {
 		return nil, err
+	}
+
+	if a.Debug {
+		a.Log.Printf("[DEBUG] fetch contact group, received JSON: %s", string(result))
 	}
 
 	group := new(ContactGroup)
@@ -109,7 +111,7 @@ func (a *API) FetchContactGroup(cid CIDType) (*ContactGroup, error) {
 
 // FetchContactGroups retrieves all contact groups
 func (a *API) FetchContactGroups() (*[]ContactGroup, error) {
-	result, err := a.Get(baseContactGroupPath)
+	result, err := a.Get(config.ContactGroupPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -123,25 +125,31 @@ func (a *API) FetchContactGroups() (*[]ContactGroup, error) {
 }
 
 // UpdateContactGroup update contact group definition
-func (a *API) UpdateContactGroup(config *ContactGroup) (*ContactGroup, error) {
-	if config == nil {
+func (a *API) UpdateContactGroup(cfg *ContactGroup) (*ContactGroup, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid contact group config [nil]")
 	}
 
-	groupCID := string(config.CID)
+	groupCID := string(cfg.CID)
 
-	if matched, err := regexp.MatchString(contactGroupCIDRegex, groupCID); err != nil {
+	matched, err := regexp.MatchString(config.ContactGroupCIDRegex, groupCID)
+	if err != nil {
 		return nil, err
-	} else if !matched {
+	}
+	if !matched {
 		return nil, fmt.Errorf("Invalid contact group CID [%s]", groupCID)
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Put(groupCID, cfg)
+	if a.Debug {
+		a.Log.Printf("[DEBUG] update contact group, sending JSON: %s", string(jsonCfg))
+	}
+
+	result, err := a.Put(groupCID, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -155,17 +163,21 @@ func (a *API) UpdateContactGroup(config *ContactGroup) (*ContactGroup, error) {
 }
 
 // CreateContactGroup create a new contact group
-func (a *API) CreateContactGroup(config *ContactGroup) (*ContactGroup, error) {
-	reqURL := url.URL{
-		Path: baseContactGroupPath,
+func (a *API) CreateContactGroup(cfg *ContactGroup) (*ContactGroup, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("Invalid contact group config [nil]")
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Post(reqURL.String(), cfg)
+	if a.Debug {
+		a.Log.Printf("[DEBUG] create contact group, sending JSON: %s", string(jsonCfg))
+	}
+
+	result, err := a.Post(config.ContactGroupPrefix, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -179,11 +191,11 @@ func (a *API) CreateContactGroup(config *ContactGroup) (*ContactGroup, error) {
 }
 
 // DeleteContactGroup delete a contact group
-func (a *API) DeleteContactGroup(config *ContactGroup) (bool, error) {
-	if config == nil {
+func (a *API) DeleteContactGroup(cfg *ContactGroup) (bool, error) {
+	if cfg == nil {
 		return false, fmt.Errorf("Invalid contact group config [nil]")
 	}
-	return a.DeleteContactGroupByCID(CIDType(&config.CID))
+	return a.DeleteContactGroupByCID(CIDType(&cfg.CID))
 }
 
 // DeleteContactGroupByCID delete a contact group by cid
@@ -194,7 +206,7 @@ func (a *API) DeleteContactGroupByCID(cid CIDType) (bool, error) {
 
 	groupCID := string(*cid)
 
-	matched, err := regexp.MatchString(contactGroupCIDRegex, groupCID)
+	matched, err := regexp.MatchString(config.ContactGroupCIDRegex, groupCID)
 	if err != nil {
 		return false, err
 	}
@@ -233,7 +245,7 @@ func (a *API) SearchContactGroups(searchCriteria *SearchQueryType, filterCriteri
 	}
 
 	reqURL := url.URL{
-		Path:     baseContactGroupPath,
+		Path:     config.ContactGroupPrefix,
 		RawQuery: q.Encode(),
 	}
 

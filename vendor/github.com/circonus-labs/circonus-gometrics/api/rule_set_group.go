@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
 // RulesetGroupRule defines a rulesetGroup rule
@@ -47,11 +49,6 @@ type RulesetGroup struct {
 	Tags              []string                `json:"tags"`
 }
 
-const (
-	baseRulesetGroupPath = "/rule_set_group"
-	rulesetGroupCIDRegex = "^" + baseRulesetGroupPath + "/[0-9]+$"
-)
-
 // FetchRulesetGroup retrieves a rulesetGroup definition
 func (a *API) FetchRulesetGroup(cid CIDType) (*RulesetGroup, error) {
 	if cid == nil || *cid == "" {
@@ -60,9 +57,11 @@ func (a *API) FetchRulesetGroup(cid CIDType) (*RulesetGroup, error) {
 
 	groupCID := string(*cid)
 
-	if matched, err := regexp.MatchString(rulesetGroupCIDRegex, groupCID); err != nil {
+	matched, err := regexp.MatchString(config.RulesetGroupCIDRegex, groupCID)
+	if err != nil {
 		return nil, err
-	} else if !matched {
+	}
+	if !matched {
 		return nil, fmt.Errorf("Invalid rule set group CID [%s]", groupCID)
 	}
 
@@ -81,7 +80,7 @@ func (a *API) FetchRulesetGroup(cid CIDType) (*RulesetGroup, error) {
 
 // FetchRulesetGroups retrieves all rulesetGroups
 func (a *API) FetchRulesetGroups() (*[]RulesetGroup, error) {
-	result, err := a.Get(baseRulesetGroupPath)
+	result, err := a.Get(config.RuleSetGroupPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -95,25 +94,27 @@ func (a *API) FetchRulesetGroups() (*[]RulesetGroup, error) {
 }
 
 // UpdateRulesetGroup update rulesetGroup definition
-func (a *API) UpdateRulesetGroup(config *RulesetGroup) (*RulesetGroup, error) {
-	if config == nil {
+func (a *API) UpdateRulesetGroup(cfg *RulesetGroup) (*RulesetGroup, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid rule set group config [nil]")
 	}
 
-	groupCID := string(config.CID)
+	groupCID := string(cfg.CID)
 
-	if matched, err := regexp.MatchString(rulesetGroupCIDRegex, groupCID); err != nil {
+	matched, err := regexp.MatchString(config.RulesetGroupCIDRegex, groupCID)
+	if err != nil {
 		return nil, err
-	} else if !matched {
+	}
+	if !matched {
 		return nil, fmt.Errorf("Invalid rule set group CID [%s]", groupCID)
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Put(groupCID, cfg)
+	result, err := a.Put(groupCID, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -127,17 +128,17 @@ func (a *API) UpdateRulesetGroup(config *RulesetGroup) (*RulesetGroup, error) {
 }
 
 // CreateRulesetGroup create a new rulesetGroup
-func (a *API) CreateRulesetGroup(config *RulesetGroup) (*RulesetGroup, error) {
-	if config == nil {
+func (a *API) CreateRulesetGroup(cfg *RulesetGroup) (*RulesetGroup, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid rule set group config [nil]")
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Post(baseRulesetGroupPath, cfg)
+	result, err := a.Post(config.RuleSetGroupPrefix, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -151,13 +152,11 @@ func (a *API) CreateRulesetGroup(config *RulesetGroup) (*RulesetGroup, error) {
 }
 
 // DeleteRulesetGroup delete a rulesetGroup
-func (a *API) DeleteRulesetGroup(config *RulesetGroup) (bool, error) {
-	if config == nil {
+func (a *API) DeleteRulesetGroup(cfg *RulesetGroup) (bool, error) {
+	if cfg == nil {
 		return false, fmt.Errorf("Invalid rule set group config [nil]")
 	}
-
-	cid := CIDType(&config.CID)
-	return a.DeleteRulesetGroupByCID(cid)
+	return a.DeleteRulesetGroupByCID(CIDType(&cfg.CID))
 }
 
 // DeleteRulesetGroupByCID delete a rulesetGroup by cid
@@ -168,7 +167,7 @@ func (a *API) DeleteRulesetGroupByCID(cid CIDType) (bool, error) {
 
 	groupCID := string(*cid)
 
-	matched, err := regexp.MatchString(rulesetGroupCIDRegex, groupCID)
+	matched, err := regexp.MatchString(config.RulesetGroupCIDRegex, groupCID)
 	if err != nil {
 		return false, err
 	}
@@ -207,7 +206,7 @@ func (a *API) SearchRulesetGroups(searchCriteria *SearchQueryType, filterCriteri
 	}
 
 	reqURL := url.URL{
-		Path:     baseRulesetGroupPath,
+		Path:     config.RuleSetGroupPrefix,
 		RawQuery: q.Encode(),
 	}
 

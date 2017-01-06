@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
 // MetricQuery object
@@ -31,11 +33,6 @@ type MetricCluster struct {
 	Tags                []string            `json:"tags"`
 }
 
-const (
-	baseMetricClusterPath = "/metric_cluster"
-	metricClusterCIDRegex = "^" + baseMetricClusterPath + "/[0-9]+$"
-)
-
 // FetchMetricCluster fetch a metric cluster configuration by cid
 func (a *API) FetchMetricCluster(cid CIDType, extras string) (*MetricCluster, error) {
 	if cid == nil || *cid == "" {
@@ -44,7 +41,7 @@ func (a *API) FetchMetricCluster(cid CIDType, extras string) (*MetricCluster, er
 
 	clusterCID := string(*cid)
 
-	matched, err := regexp.MatchString(metricClusterCIDRegex, clusterCID)
+	matched, err := regexp.MatchString(config.MetricClusterCIDRegex, clusterCID)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +84,7 @@ func (a *API) FetchMetricCluster(cid CIDType, extras string) (*MetricCluster, er
 func (a *API) FetchMetricClusters(extras string) (*[]MetricCluster, error) {
 
 	reqURL := url.URL{
-		Path: baseMetricClusterPath,
+		Path: config.MetricClusterPrefix,
 	}
 
 	extra := ""
@@ -118,25 +115,27 @@ func (a *API) FetchMetricClusters(extras string) (*[]MetricCluster, error) {
 }
 
 // UpdateMetricCluster updates a metric cluster
-func (a *API) UpdateMetricCluster(config *MetricCluster) (*MetricCluster, error) {
-	if config == nil {
+func (a *API) UpdateMetricCluster(cfg *MetricCluster) (*MetricCluster, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid metric cluster config [nil]")
 	}
 
-	clusterCID := string(config.CID)
+	clusterCID := string(cfg.CID)
 
-	if matched, err := regexp.MatchString(metricClusterCIDRegex, clusterCID); err != nil {
+	matched, err := regexp.MatchString(config.MetricClusterCIDRegex, clusterCID)
+	if err != nil {
 		return nil, err
-	} else if !matched {
+	}
+	if !matched {
 		return nil, fmt.Errorf("Invalid metric cluster CID [%s]", clusterCID)
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Put(clusterCID, cfg)
+	result, err := a.Put(clusterCID, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -150,17 +149,17 @@ func (a *API) UpdateMetricCluster(config *MetricCluster) (*MetricCluster, error)
 }
 
 // CreateMetricCluster create a new metric cluster
-func (a *API) CreateMetricCluster(config *MetricCluster) (*MetricCluster, error) {
-	if config == nil {
+func (a *API) CreateMetricCluster(cfg *MetricCluster) (*MetricCluster, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid metric cluster config [nil]")
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Post(baseMetricClusterPath, cfg)
+	result, err := a.Post(config.MetricClusterPrefix, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -174,13 +173,11 @@ func (a *API) CreateMetricCluster(config *MetricCluster) (*MetricCluster, error)
 }
 
 // DeleteMetricCluster delete a metric cluster
-func (a *API) DeleteMetricCluster(config *MetricCluster) (bool, error) {
-	if config == nil {
+func (a *API) DeleteMetricCluster(cfg *MetricCluster) (bool, error) {
+	if cfg == nil {
 		return false, fmt.Errorf("Invalid metric cluster config [none]")
 	}
-
-	cid := CIDType(&config.CID)
-	return a.DeleteMetricClusterByCID(cid)
+	return a.DeleteMetricClusterByCID(CIDType(&cfg.CID))
 }
 
 // DeleteMetricClusterByCID delete a metric cluster by cid
@@ -191,13 +188,15 @@ func (a *API) DeleteMetricClusterByCID(cid CIDType) (bool, error) {
 
 	clusterCID := string(*cid)
 
-	if matched, err := regexp.MatchString(metricClusterCIDRegex, clusterCID); err != nil {
+	matched, err := regexp.MatchString(config.MetricClusterCIDRegex, clusterCID)
+	if err != nil {
 		return false, err
-	} else if !matched {
+	}
+	if !matched {
 		return false, fmt.Errorf("Invalid metric cluster CID [%s]", clusterCID)
 	}
 
-	_, err := a.Delete(clusterCID)
+	_, err = a.Delete(clusterCID)
 	if err != nil {
 		return false, err
 	}
@@ -228,7 +227,7 @@ func (a *API) SearchMetricClusters(searchCriteria *SearchQueryType, filterCriter
 	}
 
 	reqURL := url.URL{
-		Path:     baseMetricClusterPath,
+		Path:     config.MetricClusterPrefix,
 		RawQuery: q.Encode(),
 	}
 

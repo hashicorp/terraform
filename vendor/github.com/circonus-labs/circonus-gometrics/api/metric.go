@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
 // Metric defines a metric
@@ -33,11 +35,6 @@ type Metric struct {
 	Notes          *string  `json:"notes,omitempty"` // string or null
 }
 
-const (
-	baseMetricPath = "/metric"
-	metricCIDRegex = "^" + baseMetricPath + "/[0-9]+$"
-)
-
 // FetchMetric retrieves a metric definition
 func (a *API) FetchMetric(cid CIDType) (*Metric, error) {
 	if cid == nil || *cid == "" {
@@ -46,7 +43,7 @@ func (a *API) FetchMetric(cid CIDType) (*Metric, error) {
 
 	metricCID := string(*cid)
 
-	matched, err := regexp.MatchString(metricCIDRegex, metricCID)
+	matched, err := regexp.MatchString(config.MetricCIDRegex, metricCID)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +66,7 @@ func (a *API) FetchMetric(cid CIDType) (*Metric, error) {
 
 // FetchMetrics retrieves all metrics
 func (a *API) FetchMetrics() (*[]Metric, error) {
-	result, err := a.Get(baseMetricPath)
+	result, err := a.Get(config.MetricPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -83,14 +80,14 @@ func (a *API) FetchMetrics() (*[]Metric, error) {
 }
 
 // UpdateMetric update metric definition
-func (a *API) UpdateMetric(config *Metric) (*Metric, error) {
-	if config == nil {
+func (a *API) UpdateMetric(cfg *Metric) (*Metric, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid metric config [nil]")
 	}
 
-	metricCID := string(config.CID)
+	metricCID := string(cfg.CID)
 
-	matched, err := regexp.MatchString(metricCIDRegex, metricCID)
+	matched, err := regexp.MatchString(config.MetricCIDRegex, metricCID)
 	if err != nil {
 		return nil, err
 	}
@@ -98,12 +95,12 @@ func (a *API) UpdateMetric(config *Metric) (*Metric, error) {
 		return nil, fmt.Errorf("Invalid metric CID [%s]", metricCID)
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Put(metricCID, cfg)
+	result, err := a.Put(metricCID, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +136,7 @@ func (a *API) SearchMetrics(searchCriteria *SearchQueryType, filterCriteria *Sea
 	}
 
 	reqURL := url.URL{
-		Path:     baseMetricPath,
+		Path:     config.MetricPrefix,
 		RawQuery: q.Encode(),
 	}
 

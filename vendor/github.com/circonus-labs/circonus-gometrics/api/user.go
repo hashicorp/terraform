@@ -15,6 +15,8 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
 // UserContactInfo defines known contact details
@@ -32,22 +34,17 @@ type User struct {
 	Lastname    string          `json:"lastname"`
 }
 
-const (
-	baseUserPath = "/user"
-	userCIDRegex = "^" + baseUserPath + "/([0-9]+|current)$"
-)
-
 // FetchUser retrieves a user definition
 func (a *API) FetchUser(cid CIDType) (*User, error) {
 	var userCID string
 
 	if cid == nil || *cid == "" {
-		userCID = baseUserPath + "/current"
+		userCID = config.UserPrefix + "/current"
 	} else {
 		userCID = string(*cid)
 	}
 
-	matched, err := regexp.MatchString(userCIDRegex, userCID)
+	matched, err := regexp.MatchString(config.UserCIDRegex, userCID)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +67,7 @@ func (a *API) FetchUser(cid CIDType) (*User, error) {
 
 // FetchUsers retrieves users for current account
 func (a *API) FetchUsers() (*[]User, error) {
-	result, err := a.Get(baseUserPath)
+	result, err := a.Get(config.UserPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -84,14 +81,14 @@ func (a *API) FetchUsers() (*[]User, error) {
 }
 
 // UpdateUser update user information
-func (a *API) UpdateUser(config *User) (*User, error) {
-	if config == nil {
+func (a *API) UpdateUser(cfg *User) (*User, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid user config [nil]")
 	}
 
-	userCID := string(config.CID)
+	userCID := string(cfg.CID)
 
-	matched, err := regexp.MatchString(userCIDRegex, userCID)
+	matched, err := regexp.MatchString(config.UserCIDRegex, userCID)
 	if err != nil {
 		return nil, err
 	}
@@ -99,12 +96,12 @@ func (a *API) UpdateUser(config *User) (*User, error) {
 		return nil, fmt.Errorf("Invalid user CID [%s]", userCID)
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Put(userCID, cfg)
+	result, err := a.Put(userCID, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +137,7 @@ func (a *API) SearchUsers(searchCriteria *SearchQueryType, filterCriteria *Searc
 	}
 
 	reqURL := url.URL{
-		Path:     baseUserPath,
+		Path:     config.UserPrefix,
 		RawQuery: q.Encode(),
 	}
 

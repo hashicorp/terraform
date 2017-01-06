@@ -12,6 +12,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
 // AccountLimit defines a usage limit imposed on account
@@ -53,22 +55,17 @@ type Account struct {
 	Usage         []AccountLimit  `json:"_usage,omitempty"`          // [] len >= 0
 }
 
-const (
-	baseAccountPath = "/account"
-	accountCIDRegex = "^" + baseAccountPath + "/([0-9]+|current)$"
-)
-
 // FetchAccount retrieves an account definition
 func (a *API) FetchAccount(cid CIDType) (*Account, error) {
 	var accountCID string
 
 	if cid == nil || *cid == "" {
-		accountCID = baseAccountPath + "/current"
+		accountCID = config.AccountPrefix + "/current"
 	} else {
 		accountCID = string(*cid)
 	}
 
-	matched, err := regexp.MatchString(accountCIDRegex, accountCID)
+	matched, err := regexp.MatchString(config.AccountCIDRegex, accountCID)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +79,7 @@ func (a *API) FetchAccount(cid CIDType) (*Account, error) {
 	}
 
 	if a.Debug {
-		a.Log.Printf("[DEBUG] account fetch, JSON from API: %s", string(result))
+		a.Log.Printf("[DEBUG] account fetch, received JSON: %s", string(result))
 	}
 
 	account := new(Account)
@@ -94,14 +91,14 @@ func (a *API) FetchAccount(cid CIDType) (*Account, error) {
 }
 
 // UpdateAccount update account configuration
-func (a *API) UpdateAccount(config *Account) (*Account, error) {
-	if config == nil {
+func (a *API) UpdateAccount(cfg *Account) (*Account, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid account config [nil]")
 	}
 
-	accountCID := string(config.CID)
+	accountCID := string(cfg.CID)
 
-	matched, err := regexp.MatchString(accountCIDRegex, accountCID)
+	matched, err := regexp.MatchString(config.AccountCIDRegex, accountCID)
 	if err != nil {
 		return nil, err
 	}
@@ -109,16 +106,16 @@ func (a *API) UpdateAccount(config *Account) (*Account, error) {
 		return nil, fmt.Errorf("Invalid account CID [%s]", accountCID)
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	if a.Debug {
-		a.Log.Printf("[DEBUG] account update, sending JSON API: %s", string(cfg))
+		a.Log.Printf("[DEBUG] account update, sending JSON: %s", string(jsonCfg))
 	}
 
-	result, err := a.Put(accountCID, cfg)
+	result, err := a.Put(accountCID, jsonCfg)
 	if err != nil {
 		return nil, err
 	}

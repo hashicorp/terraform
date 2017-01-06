@@ -13,6 +13,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
 // See check_bundle.go for CheckBundleMetric definition
@@ -23,11 +25,6 @@ type CheckBundleMetrics struct {
 	Metrics []CheckBundleMetric `json:"metrics"`
 }
 
-const (
-	baseCheckBundleMetricsPath = "/check_bundle_metrics"
-	metricsCIDRegex            = "^" + baseCheckBundleMetricsPath + "/[0-9]+$"
-)
-
 // FetchCheckBundleMetrics retrieves metrics
 func (a *API) FetchCheckBundleMetrics(cid CIDType) (*CheckBundleMetrics, error) {
 	if cid == nil || *cid == "" {
@@ -36,7 +33,7 @@ func (a *API) FetchCheckBundleMetrics(cid CIDType) (*CheckBundleMetrics, error) 
 
 	metricsCID := string(*cid)
 
-	matched, err := regexp.MatchString(metricsCIDRegex, metricsCID)
+	matched, err := regexp.MatchString(config.CheckBundleMetricsCIDRegex, metricsCID)
 	if err != nil {
 		return nil, err
 	}
@@ -49,6 +46,10 @@ func (a *API) FetchCheckBundleMetrics(cid CIDType) (*CheckBundleMetrics, error) 
 		return nil, err
 	}
 
+	if a.Debug {
+		a.Log.Printf("[DEBUG] fetch check bundle metrics, received JSON: %s", string(result))
+	}
+
 	metrics := &CheckBundleMetrics{}
 	if err := json.Unmarshal(result, metrics); err != nil {
 		return nil, err
@@ -58,14 +59,14 @@ func (a *API) FetchCheckBundleMetrics(cid CIDType) (*CheckBundleMetrics, error) 
 }
 
 // UpdateCheckBundleMetrics update metrics definition
-func (a *API) UpdateCheckBundleMetrics(config *CheckBundleMetrics) (*CheckBundleMetrics, error) {
-	if config == nil {
+func (a *API) UpdateCheckBundleMetrics(cfg *CheckBundleMetrics) (*CheckBundleMetrics, error) {
+	if cfg == nil {
 		return nil, fmt.Errorf("Invalid check bundle metrics config [nil]")
 	}
 
-	metricsCID := string(config.CID)
+	metricsCID := string(cfg.CID)
 
-	matched, err := regexp.MatchString(metricsCIDRegex, metricsCID)
+	matched, err := regexp.MatchString(config.CheckBundleMetricsCIDRegex, metricsCID)
 	if err != nil {
 		return nil, err
 	}
@@ -73,12 +74,16 @@ func (a *API) UpdateCheckBundleMetrics(config *CheckBundleMetrics) (*CheckBundle
 		return nil, fmt.Errorf("Invalid check bundle metrics CID [%s]", metricsCID)
 	}
 
-	cfg, err := json.Marshal(config)
+	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := a.Put(metricsCID, cfg)
+	if a.Debug {
+		a.Log.Printf("[DEBUG] update check bundle metrics, sending JSON: %s", string(jsonCfg))
+	}
+
+	result, err := a.Put(metricsCID, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
