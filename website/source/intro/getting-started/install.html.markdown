@@ -28,7 +28,7 @@ for instructions on setting the PATH on Linux and Mac.
 contains instructions for setting the PATH on Windows.
 
 Example for Linux/Mac - Type the following into your terminal:
->`PATH=/usr/local/terraform/bin:/home/your-user-name/terraform:$PATH`
+>`PATH=/usr/local/terraform/bin:/home/your-user-name:$PATH`
 
 Example for Windows - Type the following into Powershell:
 >`[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ({;C:\terraform},{C:\terraform})[$env:PATH[-1] -eq ';'], "User")`
