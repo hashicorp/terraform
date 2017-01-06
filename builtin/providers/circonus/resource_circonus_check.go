@@ -25,6 +25,7 @@ const (
 	checkConfigAttr      = "config"
 	checkMetricLimitAttr = "metric_limit"
 	checkMetricAttr      = "metric"
+	checkMetricNamesAttr = "metric_names"
 	checkNameAttr        = "name"
 	checkNotesAttr       = "notes"
 	checkPeriodAttr      = "period"
@@ -109,14 +110,14 @@ func resourceCheckBundle() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Computed:    true,
-				Description: "If the check is activate or disabled",
+				Description: checkDescription[checkActiveAttr],
 			},
 			checkBrokersAttr: &schema.Schema{
 				Type:        schema.TypeList,
 				Required:    true,
 				MinItems:    1,
 				Elem:        &schema.Schema{Type: schema.TypeString},
-				Description: "The broker(s) that are responsible for gathering the metrics",
+				Description: checkDescription[checkBrokersAttr],
 			},
 			checkConfigAttr: &schema.Schema{
 				Type:     schema.TypeList,
@@ -128,112 +129,119 @@ func resourceCheckBundle() *schema.Resource {
 							Type:         schema.TypeString,
 							Optional:     true,
 							Computed:     true,
-							Description:  "The HTTP Authentication method",
 							ValidateFunc: validateRegexp(checkConfigAuthMethodAttr, `^(?:Basic|Digest|Auto)$`),
+							Description:  checkDescription[checkConfigAuthMethodAttr],
 						},
 						checkConfigAuthPasswordAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							Description:  "The HTTP Authentication user password",
 							ValidateFunc: validateRegexp(checkConfigAuthPasswordAttr, `^.*`),
+							Description:  checkDescription[checkConfigAuthPasswordAttr],
 						},
 						checkConfigAuthUserAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							Description:  "The HTTP Authentication user name",
 							ValidateFunc: validateRegexp(checkConfigAuthUserAttr, `[^:]*`),
+							Description:  checkDescription[checkConfigAuthUserAttr],
 						},
 						checkConfigCAChainAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							Description:  "A path to a file containing all the certificate authorities that should be loaded to validate the remote certificate (for SSL checks)",
 							ValidateFunc: validateRegexp(checkConfigCAChainAttr, `.+`),
+							Description:  checkDescription[checkConfigCAChainAttr],
 						},
 						checkConfigCertificateFileAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							Description:  "A path to a file containing the client certificate that will be presented to the remote server (for SSL checks)",
 							ValidateFunc: validateRegexp(checkConfigCertificateFileAttr, `.+`),
+							Description:  checkDescription[checkConfigCertificateFileAttr],
 						},
 						checkConfigCiphersAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
 							Computed:     true,
-							Description:  "A list of ciphers to be used in the SSL protocol (for SSL checks)",
 							ValidateFunc: validateRegexp(checkConfigCiphersAttr, `.+`),
+							Description:  checkDescription[checkConfigCiphersAttr],
 						},
 						checkConfigHTTPHeadersAttr: &schema.Schema{
 							Type:         schema.TypeMap,
 							Optional:     true,
-							Description:  "Map of HTTP Headers to send along with HTTP Requests",
 							ValidateFunc: validateHTTPHeaders,
+							Description:  checkDescription[checkConfigHTTPHeadersAttr],
 						},
 						checkConfigHTTPVersionAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
 							Computed:     true,
-							Description:  "Sets the HTTP version for the check to use",
 							ValidateFunc: validateHTTPVersion,
+							Description:  checkDescription[checkConfigHTTPVersionAttr],
 						},
 						checkConfigKeyFileAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							Description:  "A path to a file containing key to be used in conjunction with the cilent certificate (for SSL checks)",
 							ValidateFunc: validateRegexp(checkConfigKeyFileAttr, `.+`),
+							Description:  checkDescription[checkConfigKeyFileAttr],
 						},
 						checkConfigMethodAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
 							Computed:     true,
-							Description:  "The HTTP method to use",
 							ValidateFunc: validateRegexp(checkConfigMethodAttr, `\S+`),
+							Description:  checkDescription[checkConfigMethodAttr],
 						},
 						checkConfigPayloadAttr: &schema.Schema{
 							Type:        schema.TypeString,
 							Optional:    true,
 							Computed:    true,
-							Description: "The information transferred as the payload of an HTTP request",
+							Description: checkDescription[checkConfigPayloadAttr],
 						},
 						checkConfigPortAttr: &schema.Schema{
 							Type:        schema.TypeString, // NOTE(sean@): Why isn't this an Int on Circonus's side?  Are they doing an /etc/services lookup?  TODO: convert this to a TypeInt and force users in TF to do a map lookup.
 							Optional:    true,
 							Computed:    true,
-							Description: "Specifies the port on which the management interface can be reached",
+							Description: checkDescription[checkConfigPortAttr],
 						},
 						checkConfigReadLimitAttr: &schema.Schema{
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Computed:    true,
-							Description: "Sets an approximate limit on the data read (0 means no limit)",
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
 							ValidateFunc: validateFuncs(
 								validateIntMin(checkConfigReadLimitAttr, 0),
 							),
+							Description: checkDescription[checkConfigReadLimitAttr],
 						},
 						checkConfigRedirectsAttr: &schema.Schema{
-							Type:        schema.TypeInt,
-							Optional:    true,
-							Computed:    true,
-							Description: `The maximum number of Location header redirects to follow (0 means no limit)`,
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
 							ValidateFunc: validateFuncs(
 								validateIntMin(checkConfigRedirectsAttr, 0),
 							),
+							Description: checkDescription[checkConfigRedirectsAttr],
 						},
 						checkConfigURLAttr: &schema.Schema{
 							Type:        schema.TypeString,
 							Optional:    true,
-							Description: "The URL including schema and hostname (as you would type into a browser's location bar)",
+							Description: checkDescription[checkConfigURLAttr],
 						},
 					},
 				},
 			},
 			checkMetricLimitAttr: &schema.Schema{
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Computed:    true,
-				Description: `Setting a metric_limit will enable all (-1), disable (0), or allow up to the specified limit of metrics for this check ("N+", where N is a positive integer)`,
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
 				ValidateFunc: validateFuncs(
 					validateIntMin(checkMetricLimitAttr, -1),
 				),
+				Description: checkDescription[checkMetricLimitAttr],
+			},
+			checkMetricNamesAttr: &schema.Schema{
+				Type:        schema.TypeList,
+				Optional:    true,
+				Computed:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Description: checkDescription[checkMetricNamesAttr],
 			},
 			checkMetricAttr: &schema.Schema{
 				Type:     schema.TypeList,
@@ -245,36 +253,36 @@ func resourceCheckBundle() *schema.Resource {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Default:     true,
-							Description: "True if metric is active and collecting data",
+							Description: checkMetricDescription[checkMetricActiveAttr],
 						},
 						checkMetricNameAttr: &schema.Schema{
 							Type:        schema.TypeString,
 							Optional:    true,
 							Computed:    true,
-							Description: "Name of the metric",
+							Description: checkMetricDescription[checkMetricNameAttr],
 						},
 						checkMetricTagsAttr: &schema.Schema{
-							Type:        schema.TypeSet,
-							Optional:    true,
-							Computed:    true,
-							Description: "Tags assigned to a metric",
+							Type:     schema.TypeSet,
+							Optional: true,
+							Computed: true,
+							Set:      schema.HashString,
 							Elem: &schema.Schema{
 								Type:         schema.TypeString,
 								ValidateFunc: validateTag,
 							},
-							Set: schema.HashString,
+							Description: checkMetricDescription[checkMetricTagsAttr],
 						},
 						checkMetricTypeAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							Description:  "Type of the metric",
 							ValidateFunc: validateMetricType,
+							Description:  checkMetricDescription[checkMetricTypeAttr],
 						},
 						checkMetricUnitsAttr: &schema.Schema{
 							Type:        schema.TypeString,
 							Optional:    true,
 							Computed:    true,
-							Description: "Units for the metric",
+							Description: checkMetricDescription[checkMetricUnitsAttr],
 						},
 					},
 				},
@@ -283,60 +291,60 @@ func resourceCheckBundle() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "The name of the check bundle that will be displayed in the web interface",
+				Description: checkDescription[checkNameAttr],
 			},
 			checkNotesAttr: &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "Notes about this check bundle",
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 				StateFunc: func(v interface{}) string {
 					return strings.TrimSpace(v.(string))
 				},
+				Description: checkDescription[checkNotesAttr],
 			},
 			checkPeriodAttr: &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "The period between each time the check is made",
-				StateFunc:   normalizeTimeDurationStringToSeconds,
+				Type:      schema.TypeString,
+				Optional:  true,
+				Computed:  true,
+				StateFunc: normalizeTimeDurationStringToSeconds,
 				ValidateFunc: validateFuncs(
 					validateDurationMin(checkPeriodAttr, defaultCirconusCheckPeriodMin),
 					validateDurationMax(checkPeriodAttr, defaultCirconusCheckPeriodMax),
 				),
+				Description: checkDescription[checkPeriodAttr],
 			},
 			checkTagsAttr: &schema.Schema{
-				Type:        schema.TypeSet,
-				Optional:    true,
-				Computed:    true,
-				Description: "An array of tags",
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Set:      schema.HashString,
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
 					ValidateFunc: validateTag,
 				},
-				Set: schema.HashString,
+				Description: checkDescription[checkTagsAttr],
 			},
 			checkTargetAttr: &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The target of the check (e.g. hostname, URL, IP, etc)",
+				Description: checkDescription[checkTargetAttr],
 			},
 			checkTimeoutAttr: &schema.Schema{
-				Type:        schema.TypeFloat,
-				Optional:    true,
-				Computed:    true,
-				Description: "The length of time in seconds (and fractions of a second) before the check will timeout if no response is returned to the broker",
+				Type:     schema.TypeFloat,
+				Optional: true,
+				Computed: true,
 				ValidateFunc: validateFuncs(
 					validateDurationMin(checkTimeoutAttr, defaultCirconusTimeoutMin),
 					validateDurationMax(checkTimeoutAttr, defaultCirconusTimeoutMax),
 				),
+				Description: checkDescription[checkTimeoutAttr],
 			},
 			checkTypeAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
-				Description:  "The check type",
 				ValidateFunc: validateCheckType,
+				Description:  checkDescription[checkTypeAttr],
 			},
 		},
 	}
@@ -475,7 +483,8 @@ func checkBundleRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// NOTE(sean@): todo
-	metrics := map[string]interface{}{} // NOTE(sean@): TODO
+	metrics := map[string]interface{}{} // NOTE(sean@): TODO. Also populate checkMetricNamesAttr.
+	metricNames := []interface{}{}
 
 	d.Set(checkBrokersAttr, cb.Brokers)
 	d.Set(checkConfigAttr, []interface{}{checkConfig})
@@ -483,6 +492,7 @@ func checkBundleRead(d *schema.ResourceData, meta interface{}) error {
 	// NOTE(sean@): fixme
 	_ = metrics
 	// d.Set(checkBundleMetricsAttr, []interface{}{metrics})
+	d.Set(checkMetricNamesAttr, metricNames)
 	d.Set(checkNotesAttr, cb.Notes)
 	d.Set(checkPeriodAttr, fmt.Sprintf("%ds", cb.Period))
 	d.Set(checkActiveAttr, active)
