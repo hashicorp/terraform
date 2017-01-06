@@ -1,6 +1,7 @@
 package circonus
 
 var (
+	accountDescription     map[string]string
 	checkDescription       map[string]string
 	checkMetricDescription map[string]string
 	collectorDescription   map[string]string
@@ -8,6 +9,14 @@ var (
 )
 
 func init() {
+	// NOTE(sean@): needs to be completed
+	accountDescription = map[string]string{
+		accountContactGroupsAttr: "Contact Groups in this account",
+		accountInvitesAttr:       "Outstanding invites attached to the account",
+		accountUsageAttr:         "Account's usage limits",
+		accountUsersAttr:         "Users attached to this account",
+	}
+
 	checkDescription = map[string]string{
 		checkActiveAttr:                "If the check is activate or disabled",
 		checkCollectorAttr:             "The collector(s) that are responsible for gathering the metrics",

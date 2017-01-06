@@ -67,11 +67,11 @@ EOF
 
 * `active` - (Optional) Whether or not the check is enabled or not (default `true`).
 
-* `collector` - (Required) A collector CIDs.  The collector(s) that are
-  responsible for gathering the metrics. These can either be CIDs for Circonus
-  collectors running in the cloud or enterprise collectors running in your
-  datacenter.  One collection of metrics will be automatically created for each
-  collector.  Reminder: in Terraform the vernacular is "collector" where
+* `collector` - (Required) A collector ID.  The collector(s) that are
+  responsible for gathering the metrics. These can either be an ID for a
+  Circonus collector running in the cloud or enterprise collectors running in
+  your datacenter.  One collection of metrics will be automatically created for
+  each collector.  Reminder: in Terraform the vernacular is "collector" where
   Circonus still refers to collectors as "brokers".
 
 * `config` - (Optional) Configuration options for this check.  See below for a
@@ -240,9 +240,9 @@ resource "circonus_check" "usage" {
 It is possible to import a `circonus_check` resource with the following command:
 
 ```
-$ terraform import circonus_check.usage CID
+$ terraform import circonus_check.usage ID
 ```
 
-Where `CID` is the `_cid` or Circonus ID of the Check Bundle
+Where `ID` is the `_cid` or Circonus ID of the Check Bundle
 (e.g. `/check_bundle/12345`) and `circonus_check.usage` is the name of the
 resource whose state will be populated as a result of the command.

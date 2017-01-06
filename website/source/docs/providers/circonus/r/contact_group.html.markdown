@@ -101,7 +101,7 @@ resource "circonus_contact_group" "myteam-alerts" {
   for details.
 
 * `email` - (Optional) Zero or more `email` attributes may be present to
-  dispatch email to Circonus users by referencing their user CID, or by
+  dispatch email to Circonus users by referencing their user ID, or by
   specifying an email address.  See below for details on supported attributes.
 
 * `http` - (Optional) Zero or more `http` attributes may be present to dispatch
@@ -134,7 +134,7 @@ resource "circonus_contact_group" "myteam-alerts" {
   dispatch to Pager Duty teams.  See below for details on supported attributes.
 
 * `sms` - (Optional) Zero or more `sms` attributes may be present to dispatch
-  SMS messages to Circonus users by referencing their user CID, or by specifying
+  SMS messages to Circonus users by referencing their user ID, or by specifying
   an SMS Phone Number.  See below for details on supported attributes.
 
 * `tags` - (Optional) A list of tags attached to the Contact Group.
@@ -149,7 +149,7 @@ resource "circonus_contact_group" "myteam-alerts" {
 * `escalate_after` - (Optional) How long to wait before escalating an alert that
   is received at a given severity.
 
-* `escalate_to` - (Optional) The Contact Group CID who will receive the
+* `escalate_to` - (Optional) The Contact Group ID who will receive the
   escalation.
 
 * `reminder` - (Optional) If specified, reminders will be sent after a user
@@ -166,7 +166,7 @@ Either an `address` or `user` attribute is required.
 * `address` - (Optional) A well formed email address.
 
 * `user` - (Optional) An email will be sent to the email address of record for
-  the corresponding user CID (e.g. `/user/1234`).
+  the corresponding user ID (e.g. `/user/1234`).
 
 A `user`'s email address is automatically maintained and kept up to date by the
 recipient, whereas an `address` provides no automatic layer of indirection for
@@ -225,7 +225,7 @@ Either an `address` or `user` attribute is required.
 * `address` - (Optional) SMS Phone Number to send a short notification to.
 
 * `user` - (Optional) An SMS page will be sent to the phone number of record for
-  the corresponding user CID (e.g. `/user/1234`).
+  the corresponding user ID (e.g. `/user/1234`).
 
 A `user`'s phone number is automatically maintained and kept up to date by the
 recipient, whereas an `address` provides no automatic layer of indirection for
@@ -252,7 +252,7 @@ Either an `address` or `user` attribute is required.
 * `address` - (Optional) XMPP address to send a short notification to.
 
 * `user` - (Optional) An XMPP notification will be sent to the XMPP address of
-  record for the corresponding user CID (e.g. `/user/1234`).
+  record for the corresponding user ID (e.g. `/user/1234`).
 
 ## Import Example
 
@@ -281,9 +281,9 @@ resource "circonus_contact_group" "myteam" {
 It is possible to import a `circonus_contact_group` resource with the following command:
 
 ```
-$ terraform import circonus_contact_group.myteam CID
+$ terraform import circonus_contact_group.myteam ID
 ```
 
-Where `CID` is the `_cid` or Circonus ID of the Contact Group
+Where `ID` is the `_cid` or Circonus ID of the Contact Group
 (e.g. `/contact_group/12345`) and `circonus_contact_group.myteam` is the name of
 the resource whose state will be populated as a result of the command.
