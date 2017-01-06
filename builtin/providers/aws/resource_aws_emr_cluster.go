@@ -24,121 +24,120 @@ func resourceAwsEMRCluster() *schema.Resource {
 		Update: resourceAwsEMRClusterUpdate,
 		Delete: resourceAwsEMRClusterDelete,
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-			"release_label": &schema.Schema{
+			"release_label": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-			"master_instance_type": &schema.Schema{
+			"master_instance_type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"core_instance_type": &schema.Schema{
+			"core_instance_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
-			"core_instance_count": &schema.Schema{
+			"core_instance_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  1,
 			},
-			"cluster_state": &schema.Schema{
+			"cluster_state": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"log_uri": &schema.Schema{
+			"log_uri": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
 			},
-			"master_public_dns": &schema.Schema{
+			"master_public_dns": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"applications": &schema.Schema{
+			"applications": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"termination_protection": &schema.Schema{
+			"termination_protection": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+			"keep_job_flow_alive_when_no_steps": {
 				Type:     schema.TypeBool,
 				ForceNew: true,
 				Optional: true,
 				Computed: true,
 			},
-			"keep_job_flow_alive_when_no_steps": &schema.Schema{
-				Type:     schema.TypeBool,
-				ForceNew: true,
-				Optional: true,
-				Computed: true,
-			},
-			"ec2_attributes": &schema.Schema{
+			"ec2_attributes": {
 				Type:     schema.TypeList,
 				MaxItems: 1,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"key_name": &schema.Schema{
+						"key_name": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"subnet_id": &schema.Schema{
+						"subnet_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"additional_master_security_groups": &schema.Schema{
+						"additional_master_security_groups": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"additional_slave_security_groups": &schema.Schema{
+						"additional_slave_security_groups": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"emr_managed_master_security_group": &schema.Schema{
+						"emr_managed_master_security_group": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"emr_managed_slave_security_group": &schema.Schema{
+						"emr_managed_slave_security_group": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"instance_profile": &schema.Schema{
+						"instance_profile": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"service_access_security_group": &schema.Schema{
+						"service_access_security_group": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 					},
 				},
 			},
-			"bootstrap_action": &schema.Schema{
+			"bootstrap_action": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"path": &schema.Schema{
+						"path": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"args": &schema.Schema{
+						"args": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
@@ -148,20 +147,19 @@ func resourceAwsEMRCluster() *schema.Resource {
 				},
 			},
 			"tags": tagsSchema(),
-			"configurations": &schema.Schema{
+			"configurations": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
 			},
-			"service_role": &schema.Schema{
+			"service_role": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-			"visible_to_all_users": &schema.Schema{
+			"visible_to_all_users": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				ForceNew: true,
 				Default:  true,
 			},
 		},
@@ -380,7 +378,10 @@ func resourceAwsEMRClusterRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsEMRClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).emrconn
 
+	d.Partial(true)
+
 	if d.HasChange("core_instance_count") {
+		d.SetPartial("core_instance_count")
 		log.Printf("[DEBUG] Modify EMR cluster")
 		groups, err := fetchAllEMRInstanceGroups(meta, d.Id())
 		if err != nil {
@@ -409,24 +410,55 @@ func resourceAwsEMRClusterUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		log.Printf("[DEBUG] Modify EMR Cluster done...")
+
+		log.Println("[INFO] Waiting for EMR Cluster to be available")
+
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"STARTING", "BOOTSTRAPPING"},
+			Target:     []string{"WAITING", "RUNNING"},
+			Refresh:    resourceAwsEMRClusterStateRefreshFunc(d, meta),
+			Timeout:    40 * time.Minute,
+			MinTimeout: 10 * time.Second,
+			Delay:      5 * time.Second,
+		}
+
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf("[WARN] Error waiting for EMR Cluster state to be \"WAITING\" or \"RUNNING\" after modification: %s", err)
+		}
 	}
 
-	log.Println(
-		"[INFO] Waiting for EMR Cluster to be available")
-
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"STARTING", "BOOTSTRAPPING"},
-		Target:     []string{"WAITING", "RUNNING"},
-		Refresh:    resourceAwsEMRClusterStateRefreshFunc(d, meta),
-		Timeout:    40 * time.Minute,
-		MinTimeout: 10 * time.Second,
-		Delay:      5 * time.Second,
+	if d.HasChange("visible_to_all_users") {
+		d.SetPartial("visible_to_all_users")
+		_, errModify := conn.SetVisibleToAllUsers(&emr.SetVisibleToAllUsersInput{
+			JobFlowIds:        []*string{aws.String(d.Id())},
+			VisibleToAllUsers: aws.Bool(d.Get("visible_to_all_users").(bool)),
+		})
+		if errModify != nil {
+			log.Printf("[ERROR] %s", errModify)
+			return errModify
+		}
 	}
 
-	_, err := stateConf.WaitForState()
-	if err != nil {
-		return fmt.Errorf("[WARN] Error waiting for EMR Cluster state to be \"WAITING\" or \"RUNNING\" after modification: %s", err)
+	if d.HasChange("termination_protection") {
+		d.SetPartial("termination_protection")
+		_, errModify := conn.SetTerminationProtection(&emr.SetTerminationProtectionInput{
+			JobFlowIds:           []*string{aws.String(d.Id())},
+			TerminationProtected: aws.Bool(d.Get("termination_protection").(bool)),
+		})
+		if errModify != nil {
+			log.Printf("[ERROR] %s", errModify)
+			return errModify
+		}
 	}
+
+	if err := setTagsEMR(conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
+
+	d.Partial(false)
 
 	return resourceAwsEMRClusterRead(d, meta)
 }
@@ -591,6 +623,64 @@ func tagsToMapEMR(ts []*emr.Tag) map[string]string {
 	}
 
 	return result
+}
+
+func diffTagsEMR(oldTags, newTags []*emr.Tag) ([]*emr.Tag, []*emr.Tag) {
+	// First, we're creating everything we have
+	create := make(map[string]interface{})
+	for _, t := range newTags {
+		create[*t.Key] = *t.Value
+	}
+
+	// Build the list of what to remove
+	var remove []*emr.Tag
+	for _, t := range oldTags {
+		old, ok := create[*t.Key]
+		if !ok || old != *t.Value {
+			// Delete it!
+			remove = append(remove, t)
+		}
+	}
+
+	return expandTags(create), remove
+}
+
+func setTagsEMR(conn *emr.EMR, d *schema.ResourceData) error {
+	if d.HasChange("tags") {
+		oraw, nraw := d.GetChange("tags")
+		o := oraw.(map[string]interface{})
+		n := nraw.(map[string]interface{})
+		create, remove := diffTagsEMR(expandTags(o), expandTags(n))
+
+		// Set tags
+		if len(remove) > 0 {
+			log.Printf("[DEBUG] Removing tags: %s", remove)
+			k := make([]*string, len(remove), len(remove))
+			for i, t := range remove {
+				k[i] = t.Key
+			}
+
+			_, err := conn.RemoveTags(&emr.RemoveTagsInput{
+				ResourceId: aws.String(d.Id()),
+				TagKeys:    k,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if len(create) > 0 {
+			log.Printf("[DEBUG] Creating tags: %s", create)
+			_, err := conn.AddTags(&emr.AddTagsInput{
+				ResourceId: aws.String(d.Id()),
+				Tags:       create,
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func expandBootstrapActions(bootstrapActions []interface{}) []*emr.BootstrapActionConfig {

@@ -9,7 +9,6 @@ type RegisterResourceProviderResponse struct {
 	ApplicationID     *string `mapstructure:"applicationId"`
 }
 
-// TODO: Investigate RegistrationState response polling
 type RegisterResourceProvider struct {
 	Namespace string `json:"-"`
 }

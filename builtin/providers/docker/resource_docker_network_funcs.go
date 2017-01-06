@@ -22,6 +22,9 @@ func resourceDockerNetworkCreate(d *schema.ResourceData, meta interface{}) error
 	if v, ok := d.GetOk("options"); ok {
 		createOpts.Options = v.(map[string]interface{})
 	}
+	if v, ok := d.GetOk("internal"); ok {
+		createOpts.Internal = v.(bool)
+	}
 
 	ipamOpts := dc.IPAMOptions{}
 	ipamOptsSet := false
@@ -53,6 +56,9 @@ func resourceDockerNetworkCreate(d *schema.ResourceData, meta interface{}) error
 	d.Set("driver", retNetwork.Driver)
 	d.Set("options", retNetwork.Options)
 
+	// The 'internal' property is not send back when create network
+	d.Set("internal", createOpts.Internal)
+
 	return nil
 }
 
@@ -74,6 +80,7 @@ func resourceDockerNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("scope", retNetwork.Scope)
 	d.Set("driver", retNetwork.Driver)
 	d.Set("options", retNetwork.Options)
+	d.Set("internal", retNetwork.Internal)
 
 	return nil
 }

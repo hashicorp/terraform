@@ -416,7 +416,7 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		Pending:    []string{"creating", "backing-up", "modifying", "restoring"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
-		Timeout:    40 * time.Minute,
+		Timeout:    75 * time.Minute,
 		MinTimeout: 10 * time.Second,
 	}
 
@@ -594,8 +594,8 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 		requestUpdate = true
 	}
 
-	if d.HasChange("vpc_security_group_ips") {
-		req.VpcSecurityGroupIds = expandStringList(d.Get("vpc_security_group_ips").(*schema.Set).List())
+	if d.HasChange("vpc_security_group_ids") {
+		req.VpcSecurityGroupIds = expandStringList(d.Get("vpc_security_group_ids").(*schema.Set).List())
 		requestUpdate = true
 	}
 

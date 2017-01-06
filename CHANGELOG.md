@@ -2,6 +2,8 @@
 
 FEATURES:
 
+ * **New Provider:**  `Ignition` [GH-6189]
+ * **New Provider:**  `OpsGenie` [GH-11012]
  * **New Data Source:**  `aws_vpc_peering_connection` [GH-10913]
  * **New Resource:**  `azurerm_container_registry` [GH-10973]
  * **New Resource:**  `azurerm_eventhub_authorization_rule` [GH-10971]
@@ -13,7 +15,13 @@ IMPROVEMENTS:
  * provider/aws: Add `most_recent` to the `ebs_snapshot` data source [GH-10986]
  * provider/aws: Add support for instance tenancy in `aws_opsworks_instance` [GH-10885]
  * provider/aws: Added a validation for security group rule types [GH-10864]
+ * provider:aws: Add support for updating aws_emr_cluster parameters [GH-11008]
+ * provider/aws: Add Placement Constraints to `aws_ecs_task_definition` [GH-11030]
+ * provider/aws: Increasing timeout for redshift cluster creation to 75 minutes [GH-11041]
+ * provider/azurerm: support non public clouds [GH-11026]
  * provider/azurerm: Azure resource providers which are already registered are no longer re-registered. [GH-10991]
+ * provider/docker: Add network create --internal flag support [GH-10932]
+ * provider/docker: Add support for a list of pull_triggers within the docker_image resource. [GH-10845]
  * provider/pagerduty Add delete support to `pagerduty_service_integration` [GH-10891]
  * provider/postgresql Add permissions support to `postgresql_schema` as nested `policy` attributes [GH-10808]
 
@@ -25,7 +33,15 @@ BUG FIXES:
  * provider/aws: `storage_class` is now correctly treated as optional when configuring replication for `aws_s3_bucket` resources. [GH-10921]
  * provider/aws: `user_data` on `aws_launch_configuration` resources is only base 64 encoded if the value provided is not already base 64 encoded. [GH-10871]
  * provider/aws: Add snapshotting to the list of pending state for elasticache [GH-10965]
+ * provider/aws: Add support for updating tags in aws_emr_cluster [GH-11003]
+ * provider/aws: Fix the normalization of AWS policy statements [GH-11009]
+ * provider/aws: data_source_aws_iam_server_certificate latest should be bool not string causes panic [GH-11016]
+ * provider/aws: Fix typo in aws_redshift_cluster causing security groups to not allow update [GH-11025]
+ * provider/aws: Set `key_name` in `aws_key_pair` if omited in configuration [GH-10987]
+ * provider/aws: Updating the aws_efs_mount_target dns_name [GH-11023]
+ * provider/google: Fix backwards incompatibility around create_timeout in instances [GH-10858]
  * provider/openstack: Handle `PENDING_UPDATE` status with LBaaS v2 members [GH-10875]
+ * provider/rancher: Add 'finishing-upgrade' state to rancher stack [GH-11019]
 
 
 ## 0.8.2 (December 21, 2016)
