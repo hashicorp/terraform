@@ -53,6 +53,10 @@ The following arguments are supported:
 * `provider` - (Optional) The name of the provider. Changing this creates a new
     loadbalancer.
 
+* `security_group_ids` - (Optional) A list of security group IDs to apply to the
+    loadbalancer. The security groups must be specified by ID and not name (as
+    opposed to how they are configured with the Compute Instance).
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -66,4 +70,5 @@ The following attributes are exported:
 * `admin_state_up` - See Argument Reference above.
 * `flavor` - See Argument Reference above.
 * `provider` - See Argument Reference above.
+* `security_group_ids` - See Argument Reference above.
 * `vip_port_id` - The Port ID of the Load Balancer IP.
