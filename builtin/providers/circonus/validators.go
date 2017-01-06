@@ -107,6 +107,15 @@ func validateContactGroup(cg *api.ContactGroup) error {
 		}
 	}
 
+	for severityIndex := range cg.Escalations {
+		switch {
+		case cg.Escalations[severityIndex] == nil:
+			continue
+		case cg.Escalations[severityIndex].After >= 0 && cg.Escalations[severityIndex].ContactGroupCID == "":
+			return fmt.Errorf("severity %d escallation requires both and %s and %s be set", severityIndex+1, contactEscalateToAttr, contactEscalateAfterAttr)
+		}
+	}
+
 	return nil
 }
 
