@@ -50,7 +50,7 @@ type ContactGroupEscalation struct {
 	ContactGroupCID string `json:"contact_group"`
 }
 
-// ContactGroup defines a contactGroup
+// ContactGroup defines a contact group. See https://login.circonus.com/resources/api/calls/contact_group for more information.
 type ContactGroup struct {
 	CID               string                    `json:"_cid,omitempty"`
 	LastModified      uint                      `json:"_last_modified,omitempty"`
@@ -64,8 +64,8 @@ type ContactGroup struct {
 	Tags              []string                  `json:"tags,omitempty"`
 }
 
-// NewContactGroup returns a ContactGroup
-func (a *API) NewContactGroup() *ContactGroup {
+// NewContactGroup returns a ContactGroup (with defaults, if applicable)
+func NewContactGroup() *ContactGroup {
 	return &ContactGroup{
 		Escalations: make([]*ContactGroupEscalation, config.NumSeverityLevels),
 		Reminders:   make([]uint, config.NumSeverityLevels),
@@ -76,7 +76,7 @@ func (a *API) NewContactGroup() *ContactGroup {
 	}
 }
 
-// FetchContactGroup retrieves a contact group definition
+// FetchContactGroup retrieves contact group with passed cid.
 func (a *API) FetchContactGroup(cid CIDType) (*ContactGroup, error) {
 	if cid == nil || *cid == "" {
 		return nil, fmt.Errorf("Invalid contact group CID [none]")
@@ -109,7 +109,7 @@ func (a *API) FetchContactGroup(cid CIDType) (*ContactGroup, error) {
 	return group, nil
 }
 
-// FetchContactGroups retrieves all contact groups
+// FetchContactGroups retrieves all contact groups available to the API Token.
 func (a *API) FetchContactGroups() (*[]ContactGroup, error) {
 	result, err := a.Get(config.ContactGroupPrefix)
 	if err != nil {
@@ -124,7 +124,7 @@ func (a *API) FetchContactGroups() (*[]ContactGroup, error) {
 	return &groups, nil
 }
 
-// UpdateContactGroup update contact group definition
+// UpdateContactGroup updates passed contact group.
 func (a *API) UpdateContactGroup(cfg *ContactGroup) (*ContactGroup, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid contact group config [nil]")
@@ -162,7 +162,7 @@ func (a *API) UpdateContactGroup(cfg *ContactGroup) (*ContactGroup, error) {
 	return group, nil
 }
 
-// CreateContactGroup create a new contact group
+// CreateContactGroup creates a new contact group.
 func (a *API) CreateContactGroup(cfg *ContactGroup) (*ContactGroup, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid contact group config [nil]")
@@ -190,7 +190,7 @@ func (a *API) CreateContactGroup(cfg *ContactGroup) (*ContactGroup, error) {
 	return group, nil
 }
 
-// DeleteContactGroup delete a contact group
+// DeleteContactGroup deletes passed contact group.
 func (a *API) DeleteContactGroup(cfg *ContactGroup) (bool, error) {
 	if cfg == nil {
 		return false, fmt.Errorf("Invalid contact group config [nil]")
@@ -198,7 +198,7 @@ func (a *API) DeleteContactGroup(cfg *ContactGroup) (bool, error) {
 	return a.DeleteContactGroupByCID(CIDType(&cfg.CID))
 }
 
-// DeleteContactGroupByCID delete a contact group by cid
+// DeleteContactGroupByCID deletes contact group with passed cid.
 func (a *API) DeleteContactGroupByCID(cid CIDType) (bool, error) {
 	if cid == nil || *cid == "" {
 		return false, fmt.Errorf("Invalid contact group CID [none]")
@@ -222,9 +222,9 @@ func (a *API) DeleteContactGroupByCID(cid CIDType) (bool, error) {
 	return true, nil
 }
 
-// SearchContactGroups returns list of contact groups matching a search query and/or filter
-//    - a search query (see: https://login.circonus.com/resources/api#searching)
-//    - a filter (see: https://login.circonus.com/resources/api#filtering)
+// SearchContactGroups returns contact groups matching the specified
+// search query and/or filter. If nil is passed for both parameters
+// all contact groups will be returned.
 func (a *API) SearchContactGroups(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]ContactGroup, error) {
 	q := url.Values{}
 

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// RulesetGroup API support - Fetch, Create, Update, Delete, and Search
+// RuleSetGroup API support - Fetch, Create, Update, Delete, and Search
 // See: https://login.circonus.com/resources/api/calls/rule_set_group
 
 package api
@@ -16,8 +16,8 @@ import (
 	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
-// RulesetGroupRule defines a rulesetGroup rule
-type RulesetGroupRule struct {
+// RuleSetGroupRule defines a rulesetGroup rule
+type RuleSetGroupRule struct {
 	Criteria          string `json:"criteria"`
 	Severity          uint   `json:"severity"`
 	Value             string `json:"value"`
@@ -26,38 +26,43 @@ type RulesetGroupRule struct {
 	Wait              uint   `json:"wait,omitempty"`
 }
 
-// RulesetGroupFormula defines a formula for raising alerts
-type RulesetGroupFormula struct {
+// RuleSetGroupFormula defines a formula for raising alerts
+type RuleSetGroupFormula struct {
 	Expression    string `json:"expression"`
 	RaiseSeverity uint   `json:"raise_severity"`
 	Wait          uint   `json:"wait"`
 }
 
-// RulesetGroupCondition defines conditions for raising alerts
-type RulesetGroupCondition struct {
+// RuleSetGroupCondition defines conditions for raising alerts
+type RuleSetGroupCondition struct {
 	MatchingSeverities []string `json:"matching_serverities"`
-	RulesetCID         string   `json:"rule_set"`
+	RuleSetCID         string   `json:"rule_set"`
 }
 
-// RulesetGroup defines a ruleset group
-type RulesetGroup struct {
+// RuleSetGroup defines a ruleset group
+type RuleSetGroup struct {
 	CID               string                  `json:"_cid,omitempty"`
 	ContactGroups     map[uint8][]string      `json:"contact_groups"`
-	Formulas          []RulesetGroupFormula   `json:"formulas"`
+	Formulas          []RuleSetGroupFormula   `json:"formulas"`
 	Name              string                  `json:"name"`
-	RulesetConditions []RulesetGroupCondition `json:"rule_set_conditions"`
+	RuleSetConditions []RuleSetGroupCondition `json:"rule_set_conditions"`
 	Tags              []string                `json:"tags"`
 }
 
-// FetchRulesetGroup retrieves a rulesetGroup definition
-func (a *API) FetchRulesetGroup(cid CIDType) (*RulesetGroup, error) {
+// NewRuleSetGroup returns a new RuleSetGroup (with defaults, if applicable)
+func NewRuleSetGroup() *RuleSetGroup {
+	return &RuleSetGroup{}
+}
+
+// FetchRuleSetGroup retrieves rule set group with passed cid.
+func (a *API) FetchRuleSetGroup(cid CIDType) (*RuleSetGroup, error) {
 	if cid == nil || *cid == "" {
 		return nil, fmt.Errorf("Invalid rule set group CID [none]")
 	}
 
 	groupCID := string(*cid)
 
-	matched, err := regexp.MatchString(config.RulesetGroupCIDRegex, groupCID)
+	matched, err := regexp.MatchString(config.RuleSetGroupCIDRegex, groupCID)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +75,11 @@ func (a *API) FetchRulesetGroup(cid CIDType) (*RulesetGroup, error) {
 		return nil, err
 	}
 
-	rulesetGroup := &RulesetGroup{}
+	if a.Debug {
+		a.Log.Printf("[DEBUG] fetch rule set group, received JSON: %s", string(result))
+	}
+
+	rulesetGroup := &RuleSetGroup{}
 	if err := json.Unmarshal(result, rulesetGroup); err != nil {
 		return nil, err
 	}
@@ -78,14 +87,14 @@ func (a *API) FetchRulesetGroup(cid CIDType) (*RulesetGroup, error) {
 	return rulesetGroup, nil
 }
 
-// FetchRulesetGroups retrieves all rulesetGroups
-func (a *API) FetchRulesetGroups() (*[]RulesetGroup, error) {
+// FetchRuleSetGroups retrieves all rulesetGroups
+func (a *API) FetchRuleSetGroups() (*[]RuleSetGroup, error) {
 	result, err := a.Get(config.RuleSetGroupPrefix)
 	if err != nil {
 		return nil, err
 	}
 
-	var rulesetGroups []RulesetGroup
+	var rulesetGroups []RuleSetGroup
 	if err := json.Unmarshal(result, &rulesetGroups); err != nil {
 		return nil, err
 	}
@@ -93,15 +102,15 @@ func (a *API) FetchRulesetGroups() (*[]RulesetGroup, error) {
 	return &rulesetGroups, nil
 }
 
-// UpdateRulesetGroup update rulesetGroup definition
-func (a *API) UpdateRulesetGroup(cfg *RulesetGroup) (*RulesetGroup, error) {
+// UpdateRuleSetGroup update rulesetGroup definition
+func (a *API) UpdateRuleSetGroup(cfg *RuleSetGroup) (*RuleSetGroup, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid rule set group config [nil]")
 	}
 
 	groupCID := string(cfg.CID)
 
-	matched, err := regexp.MatchString(config.RulesetGroupCIDRegex, groupCID)
+	matched, err := regexp.MatchString(config.RuleSetGroupCIDRegex, groupCID)
 	if err != nil {
 		return nil, err
 	}
@@ -114,12 +123,16 @@ func (a *API) UpdateRulesetGroup(cfg *RulesetGroup) (*RulesetGroup, error) {
 		return nil, err
 	}
 
+	if a.Debug {
+		a.Log.Printf("[DEBUG] update rule set group, sending JSON: %s", string(jsonCfg))
+	}
+
 	result, err := a.Put(groupCID, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	groups := &RulesetGroup{}
+	groups := &RuleSetGroup{}
 	if err := json.Unmarshal(result, groups); err != nil {
 		return nil, err
 	}
@@ -127,8 +140,8 @@ func (a *API) UpdateRulesetGroup(cfg *RulesetGroup) (*RulesetGroup, error) {
 	return groups, nil
 }
 
-// CreateRulesetGroup create a new rulesetGroup
-func (a *API) CreateRulesetGroup(cfg *RulesetGroup) (*RulesetGroup, error) {
+// CreateRuleSetGroup create a new rulesetGroup
+func (a *API) CreateRuleSetGroup(cfg *RuleSetGroup) (*RuleSetGroup, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid rule set group config [nil]")
 	}
@@ -138,12 +151,16 @@ func (a *API) CreateRulesetGroup(cfg *RulesetGroup) (*RulesetGroup, error) {
 		return nil, err
 	}
 
+	if a.Debug {
+		a.Log.Printf("[DEBUG] create rule set group, sending JSON: %s", string(jsonCfg))
+	}
+
 	result, err := a.Post(config.RuleSetGroupPrefix, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	group := &RulesetGroup{}
+	group := &RuleSetGroup{}
 	if err := json.Unmarshal(result, group); err != nil {
 		return nil, err
 	}
@@ -151,23 +168,23 @@ func (a *API) CreateRulesetGroup(cfg *RulesetGroup) (*RulesetGroup, error) {
 	return group, nil
 }
 
-// DeleteRulesetGroup delete a rulesetGroup
-func (a *API) DeleteRulesetGroup(cfg *RulesetGroup) (bool, error) {
+// DeleteRuleSetGroup delete a rulesetGroup
+func (a *API) DeleteRuleSetGroup(cfg *RuleSetGroup) (bool, error) {
 	if cfg == nil {
 		return false, fmt.Errorf("Invalid rule set group config [nil]")
 	}
-	return a.DeleteRulesetGroupByCID(CIDType(&cfg.CID))
+	return a.DeleteRuleSetGroupByCID(CIDType(&cfg.CID))
 }
 
-// DeleteRulesetGroupByCID delete a rulesetGroup by cid
-func (a *API) DeleteRulesetGroupByCID(cid CIDType) (bool, error) {
+// DeleteRuleSetGroupByCID delete a rulesetGroup by cid
+func (a *API) DeleteRuleSetGroupByCID(cid CIDType) (bool, error) {
 	if cid == nil || *cid == "" {
 		return false, fmt.Errorf("Invalid rule set group CID [none]")
 	}
 
 	groupCID := string(*cid)
 
-	matched, err := regexp.MatchString(config.RulesetGroupCIDRegex, groupCID)
+	matched, err := regexp.MatchString(config.RuleSetGroupCIDRegex, groupCID)
 	if err != nil {
 		return false, err
 	}
@@ -183,10 +200,10 @@ func (a *API) DeleteRulesetGroupByCID(cid CIDType) (bool, error) {
 	return true, nil
 }
 
-// SearchRulesetGroups returns list of annotations matching a search query and/or filter
+// SearchRuleSetGroups returns list of annotations matching a search query and/or filter
 //    - a search query (see: https://login.circonus.com/resources/api#searching)
 //    - a filter (see: https://login.circonus.com/resources/api#filtering)
-func (a *API) SearchRulesetGroups(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]RulesetGroup, error) {
+func (a *API) SearchRuleSetGroups(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]RuleSetGroup, error) {
 	q := url.Values{}
 
 	if searchCriteria != nil && *searchCriteria != "" {
@@ -202,7 +219,7 @@ func (a *API) SearchRulesetGroups(searchCriteria *SearchQueryType, filterCriteri
 	}
 
 	if q.Encode() == "" {
-		return a.FetchRulesetGroups()
+		return a.FetchRuleSetGroups()
 	}
 
 	reqURL := url.URL{
@@ -215,7 +232,7 @@ func (a *API) SearchRulesetGroups(searchCriteria *SearchQueryType, filterCriteri
 		return nil, fmt.Errorf("[ERROR] API call error %+v", err)
 	}
 
-	var groups []RulesetGroup
+	var groups []RuleSetGroup
 	if err := json.Unmarshal(result, &groups); err != nil {
 		return nil, err
 	}

@@ -34,7 +34,7 @@ type User struct {
 	Lastname    string          `json:"lastname"`
 }
 
-// FetchUser retrieves a user definition
+// FetchUser retrieve a specific user. Pass a valid cid or nil for '/user/current'.
 func (a *API) FetchUser(cid CIDType) (*User, error) {
 	var userCID string
 
@@ -55,6 +55,10 @@ func (a *API) FetchUser(cid CIDType) (*User, error) {
 	result, err := a.Get(userCID)
 	if err != nil {
 		return nil, err
+	}
+
+	if a.Debug {
+		a.Log.Printf("[DEBUG] fetch user, received JSON: %s", string(result))
 	}
 
 	user := new(User)
@@ -101,6 +105,10 @@ func (a *API) UpdateUser(cfg *User) (*User, error) {
 		return nil, err
 	}
 
+	if a.Debug {
+		a.Log.Printf("[DEBUG] update user, sending JSON: %s", string(jsonCfg))
+	}
+
 	result, err := a.Put(userCID, jsonCfg)
 	if err != nil {
 		return nil, err
@@ -114,15 +122,11 @@ func (a *API) UpdateUser(cfg *User) (*User, error) {
 	return user, nil
 }
 
-// SearchUsers returns list of users matching a search query and/or filter
-//    - a search query (see: https://login.circonus.com/resources/api#searching)
-//    - a filter (see: https://login.circonus.com/resources/api#filtering)
-func (a *API) SearchUsers(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]User, error) {
+// SearchUsers returns list of users matching a filter (search queries
+// are not suppoted by the user endpoint). Pass nil as filter for all
+// users the API Token can access.
+func (a *API) SearchUsers(filterCriteria *SearchFilterType) (*[]User, error) {
 	q := url.Values{}
-
-	if searchCriteria != nil && *searchCriteria != "" {
-		q.Set("search", string(*searchCriteria))
-	}
 
 	if filterCriteria != nil && len(*filterCriteria) > 0 {
 		for filter, criteria := range *filterCriteria {

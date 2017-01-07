@@ -16,7 +16,7 @@ import (
 	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
-// Alert defines a alert
+// Alert defines a alert. See https://login.circonus.com/resources/api/calls/alert for more information.
 type Alert struct {
 	CID                string   `json:"_cid,omitempty"`
 	AcknowledgementCID string   `json:"_acknowledgement,omitempty"`
@@ -37,7 +37,12 @@ type Alert struct {
 	Value              string   `json:"_value,omitempty"`
 }
 
-// FetchAlert retrieves a alert definition
+// NewAlert returns a new alert (with defaults, if applicable)
+func NewAlert() *Alert {
+	return &Alert{}
+}
+
+// FetchAlert retrieves alert with passed cid.
 func (a *API) FetchAlert(cid CIDType) (*Alert, error) {
 	if cid == nil || *cid == "" {
 		return nil, fmt.Errorf("Invalid alert CID [none]")
@@ -70,7 +75,7 @@ func (a *API) FetchAlert(cid CIDType) (*Alert, error) {
 	return alert, nil
 }
 
-// FetchAlerts retrieves all alerts
+// FetchAlerts retrieves all alerts available to the API Token.
 func (a *API) FetchAlerts() (*[]Alert, error) {
 	result, err := a.Get(config.AlertPrefix)
 	if err != nil {
@@ -85,9 +90,9 @@ func (a *API) FetchAlerts() (*[]Alert, error) {
 	return &alerts, nil
 }
 
-// SearchAlerts returns list of alerts matching a search query and/or filter
-//    - a search query (see: https://login.circonus.com/resources/api#searching)
-//    - a filter (see: https://login.circonus.com/resources/api#filtering)
+// SearchAlerts returns alerts matching the specified search query
+// and/or filter. If nil is passed for both parameters all alerts
+// will be returned.
 func (a *API) SearchAlerts(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]Alert, error) {
 	q := url.Values{}
 

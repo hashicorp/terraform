@@ -17,7 +17,7 @@ import (
 	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
-// Metric defines a metric
+// Metric defines a metric. See https://login.circonus.com/resources/api/calls/metric for more information.
 type Metric struct {
 	CID            string   `json:"_cid,omitempty"`
 	Active         bool     `json:"_active,omitempty"`
@@ -35,7 +35,7 @@ type Metric struct {
 	Notes          *string  `json:"notes,omitempty"` // string or null
 }
 
-// FetchMetric retrieves a metric definition
+// FetchMetric retrieves metric with passed cid.
 func (a *API) FetchMetric(cid CIDType) (*Metric, error) {
 	if cid == nil || *cid == "" {
 		return nil, fmt.Errorf("Invalid metric CID [none]")
@@ -56,6 +56,10 @@ func (a *API) FetchMetric(cid CIDType) (*Metric, error) {
 		return nil, err
 	}
 
+	if a.Debug {
+		a.Log.Printf("[DEBUG] fetch metric, received JSON: %s", string(result))
+	}
+
 	metric := &Metric{}
 	if err := json.Unmarshal(result, metric); err != nil {
 		return nil, err
@@ -64,7 +68,7 @@ func (a *API) FetchMetric(cid CIDType) (*Metric, error) {
 	return metric, nil
 }
 
-// FetchMetrics retrieves all metrics
+// FetchMetrics retrieves all metrics available to API Token.
 func (a *API) FetchMetrics() (*[]Metric, error) {
 	result, err := a.Get(config.MetricPrefix)
 	if err != nil {
@@ -79,7 +83,7 @@ func (a *API) FetchMetrics() (*[]Metric, error) {
 	return &metrics, nil
 }
 
-// UpdateMetric update metric definition
+// UpdateMetric updates passed metric.
 func (a *API) UpdateMetric(cfg *Metric) (*Metric, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid metric config [nil]")
@@ -100,6 +104,10 @@ func (a *API) UpdateMetric(cfg *Metric) (*Metric, error) {
 		return nil, err
 	}
 
+	if a.Debug {
+		a.Log.Printf("[DEBUG] update metric, sending JSON: %s", string(jsonCfg))
+	}
+
 	result, err := a.Put(metricCID, jsonCfg)
 	if err != nil {
 		return nil, err
@@ -113,9 +121,9 @@ func (a *API) UpdateMetric(cfg *Metric) (*Metric, error) {
 	return metric, nil
 }
 
-// SearchMetrics returns list of metrics matching a search query and/or filter
-//    - a search query (see: https://login.circonus.com/resources/api#searching)
-//    - a filter (see: https://login.circonus.com/resources/api#filtering)
+// SearchMetrics returns metrics matching the specified search query
+// and/or filter. If nil is passed for both parameters all metrics
+// will be returned.
 func (a *API) SearchMetrics(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]Metric, error) {
 	q := url.Values{}
 

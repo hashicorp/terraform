@@ -76,8 +76,9 @@ func TestAccCirconusContactGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "long_summary", "long summary"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "short_message", "short message"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "short_summary", "short summary"),
-					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.#", "1"),
-					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.4159623090", "creator:terraform"),
+					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.#", "2"),
+					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.3256831619", "other:foo"),
+					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.3051626963", "author:terraform"),
 				),
 			},
 		},
@@ -85,7 +86,7 @@ func TestAccCirconusContactGroup_basic(t *testing.T) {
 }
 
 func testAccCheckDestroyCirconusContactGroup(s *terraform.State) error {
-	c := testAccProvider.Meta().(*api.API)
+	c := testAccProvider.Meta().(*providerContext)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "circonus_contact_group" {
@@ -118,7 +119,7 @@ func testAccContactGroupExists(n string, contactID api.CIDType) resource.TestChe
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*api.API)
+		client := testAccProvider.Meta().(*providerContext)
 		cid := rs.Primary.ID
 		exists, err := checkContactGroupExists(client, api.CIDType(&cid))
 		switch {
@@ -134,8 +135,8 @@ func testAccContactGroupExists(n string, contactID api.CIDType) resource.TestChe
 	}
 }
 
-func checkContactGroupExists(c *api.API, contactID api.CIDType) (bool, error) {
-	cb, err := c.FetchContactGroup(contactID)
+func checkContactGroupExists(c *providerContext, contactID api.CIDType) (bool, error) {
+	cb, err := c.client.FetchContactGroup(contactID)
 	if err != nil {
 		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {
 			return false, nil
@@ -251,6 +252,9 @@ resource "circonus_contact_group" "staging-sev3" {
   short_message = "short message"
   short_summary = "short summary"
 
-  tags = ["creator:terraform"]
+  # NOTE(sean): FIXME: these two should work because the provider is
+	# appending the "author:terraform" tag and its shown in the state and
+	# the API objects, but the test isn't detecting it.
+  tags = ["author:terraform", "other:foo"]
 }
 `

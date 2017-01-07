@@ -54,7 +54,7 @@ type GraphDatapoint struct {
 	CheckID       uint        `json:"check_id,omitempty"`
 	Color         string      `json:"color,omitempty"`
 	DataFormula   *string     `json:"data_formula,omitempty"` // null or string
-	Derive        interface{} `json:"derive,omitempty"`       // this is supposed to be a string but for CAQL statements it comes out as a boolean
+	Derive        interface{} `json:"derive,omitempty"`       // BUG this is supposed to be a string but for CAQL statements it comes out as a boolean
 	Hidden        bool        `json:"hidden,omitempty"`
 	LegendFormula string      `json:"legend_formula,omitempty"`
 	MetricName    string      `json:"metric_name,omitempty"`
@@ -133,7 +133,7 @@ type GraphOverlaySet struct {
 	Title    string             `json:"title,omitempty"`
 }
 
-// Graph definition
+// Graph defines a graph. See https://login.circonus.com/resources/api/calls/graph for more information.
 type Graph struct {
 	CID            string                      `json:"_cid,omitempty"`
 	AccessKeys     []GraphAccessKey            `json:"access_keys,omitempty"`
@@ -142,13 +142,13 @@ type Graph struct {
 	Description    string                      `json:"description,omitempty"`
 	Guides         []GraphGuide                `json:"guides,omitempty"`
 	LineStyle      string                      `json:"line_style,omitempty"`
-	LogLeftY       int                         `json:"logarithmitc_left_y,omitempty"`  // doc: number, comes as null|string
-	LogRightY      int                         `json:"logarithmitc_right_y,omitempty"` // doc: number, comes as null|string
-	MaxLeftY       *string                     `json:"max_left_y,omitempty"`           // doc: number, comes as null|string
-	MaxRightY      *string                     `json:"max_right_y,omitempty"`          // doc: number, comes as null|string
+	LogLeftY       int                         `json:"logarithmitc_left_y,omitempty"`  // BUG doc: number, comes as null|string
+	LogRightY      int                         `json:"logarithmitc_right_y,omitempty"` // BUG doc: number, comes as null|string
+	MaxLeftY       *string                     `json:"max_left_y,omitempty"`           // BUG doc: number, comes as null|string
+	MaxRightY      *string                     `json:"max_right_y,omitempty"`          // BUG doc: number, comes as null|string
 	MetricClusters []GraphMetricCluster        `json:"metric_clusters,omitempty"`
-	MinLeftY       *string                     `json:"min_left_y,omitempty"`  // doc: number, comes as null|string
-	MinRightY      *string                     `json:"min_right_y,omitempty"` // doc: number, comes as null|string
+	MinLeftY       *string                     `json:"min_left_y,omitempty"`  // BUG doc: number, comes as null|string
+	MinRightY      *string                     `json:"min_right_y,omitempty"` // BUG doc: number, comes as null|string
 	Notes          string                      `json:"notes,omitempty"`
 	OverlaySets    *map[string]GraphOverlaySet `json:"overlay_sets,omitempty"` // null or overlay sets object
 	Style          string                      `json:"style,omitempty"`
@@ -156,7 +156,12 @@ type Graph struct {
 	Title          string                      `json:"title,omitempty"`
 }
 
-// FetchGraph retrieves a graph definition
+// NewGraph returns a Graph (with defaults, if applicable)
+func NewGraph() *Graph {
+	return &Graph{}
+}
+
+// FetchGraph retrieves graph with passed cid.
 func (a *API) FetchGraph(cid CIDType) (*Graph, error) {
 	if cid == nil || *cid == "" {
 		return nil, fmt.Errorf("Invalid graph CID [none]")
@@ -176,9 +181,8 @@ func (a *API) FetchGraph(cid CIDType) (*Graph, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	if a.Debug {
-		a.Log.Printf("[DEBUG] fetch graph, JSON from API: %s", string(result))
+		a.Log.Printf("[DEBUG] fetch graph, received JSON: %s", string(result))
 	}
 
 	graph := new(Graph)
@@ -189,7 +193,7 @@ func (a *API) FetchGraph(cid CIDType) (*Graph, error) {
 	return graph, nil
 }
 
-// FetchGraphs retrieves all graphs
+// FetchGraphs retrieves all graphs available to the API Token.
 func (a *API) FetchGraphs() (*[]Graph, error) {
 	result, err := a.Get(config.GraphPrefix)
 	if err != nil {
@@ -204,7 +208,7 @@ func (a *API) FetchGraphs() (*[]Graph, error) {
 	return &graphs, nil
 }
 
-// UpdateGraph update graph definition
+// UpdateGraph updates passed graph.
 func (a *API) UpdateGraph(cfg *Graph) (*Graph, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid graph config [nil]")
@@ -226,7 +230,7 @@ func (a *API) UpdateGraph(cfg *Graph) (*Graph, error) {
 	}
 
 	if a.Debug {
-		a.Log.Printf("[DEBUG] update graph, sending JSON API: %s", string(jsonCfg))
+		a.Log.Printf("[DEBUG] update graph, sending JSON: %s", string(jsonCfg))
 	}
 
 	result, err := a.Put(graphCID, jsonCfg)
@@ -242,7 +246,7 @@ func (a *API) UpdateGraph(cfg *Graph) (*Graph, error) {
 	return graph, nil
 }
 
-// CreateGraph create a new graph
+// CreateGraph creates a new graph.
 func (a *API) CreateGraph(cfg *Graph) (*Graph, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid graph config [nil]")
@@ -254,7 +258,7 @@ func (a *API) CreateGraph(cfg *Graph) (*Graph, error) {
 	}
 
 	if a.Debug {
-		a.Log.Printf("[DEBUG] create graph, sending JSON API: %s", string(jsonCfg))
+		a.Log.Printf("[DEBUG] update graph, sending JSON: %s", string(jsonCfg))
 	}
 
 	result, err := a.Post(config.GraphPrefix, jsonCfg)
@@ -270,7 +274,7 @@ func (a *API) CreateGraph(cfg *Graph) (*Graph, error) {
 	return graph, nil
 }
 
-// DeleteGraph delete a graph
+// DeleteGraph deletes passed graph.
 func (a *API) DeleteGraph(cfg *Graph) (bool, error) {
 	if cfg == nil {
 		return false, fmt.Errorf("Invalid graph config [nil]")
@@ -278,7 +282,7 @@ func (a *API) DeleteGraph(cfg *Graph) (bool, error) {
 	return a.DeleteGraphByCID(CIDType(&cfg.CID))
 }
 
-// DeleteGraphByCID delete a graph by cid
+// DeleteGraphByCID deletes graph with passed cid.
 func (a *API) DeleteGraphByCID(cid CIDType) (bool, error) {
 	if cid == nil || *cid == "" {
 		return false, fmt.Errorf("Invalid graph CID [none]")
@@ -302,10 +306,10 @@ func (a *API) DeleteGraphByCID(cid CIDType) (bool, error) {
 	return true, nil
 }
 
-// GraphSearch returns list of graphs matching a search query and/or filter
-//    - a search query (see: https://login.circonus.com/resources/api#searching)
-//    - a filter (see: https://login.circonus.com/resources/api#filtering)
-func (a *API) GraphSearch(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]Graph, error) {
+// SearchGraphs returns graphs matching the specified search query
+// and/or filter. If nil is passed for both parameters all graphs
+// will be returned.
+func (a *API) SearchGraphs(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]Graph, error) {
 	q := url.Values{}
 
 	if searchCriteria != nil && *searchCriteria != "" {

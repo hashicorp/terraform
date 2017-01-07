@@ -6,6 +6,7 @@ var (
 	checkMetricDescription map[string]string
 	collectorDescription   map[string]string
 	contactDescription     map[string]string
+	providerDescription    map[string]string
 )
 
 func init() {
@@ -63,5 +64,11 @@ func init() {
 	// NOTE(sean@): needs to be completed
 	contactDescription = map[string]string{
 		contactSlackUsernameAttr: "Username Slackbot uses in Slack",
+	}
+
+	providerDescription = map[string]string{
+		apiURLAttr:  "URL of the Circonus API",
+		autoTagAttr: "Signals that the provider should automatically add a tag to all API calls denoting that the resource was created by Terraform",
+		keyAttr:     "API token used to authenticate with the Circonus API",
 	}
 }

@@ -16,8 +16,8 @@ import (
 	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
-// RulesetRule defines a ruleset rule
-type RulesetRule struct {
+// RuleSetRule defines a ruleset rule
+type RuleSetRule struct {
 	Criteria          string `json:"criteria"`
 	Severity          uint   `json:"severity"`
 	Value             string `json:"value"`
@@ -26,8 +26,8 @@ type RulesetRule struct {
 	Wait              uint   `json:"wait,omitempty"`
 }
 
-// Ruleset defines a ruleset
-type Ruleset struct {
+// RuleSet defines a ruleset
+type RuleSet struct {
 	CID           string             `json:"_cid,omitempty"`
 	CheckCID      string             `json:"check"`
 	ContactGroups map[uint8][]string `json:"contact_groups"`
@@ -38,12 +38,17 @@ type Ruleset struct {
 	MetricType    string             `json:"metric_type"`
 	Notes         string             `json:"notes"`
 	Parent        string             `json:"parent,omitempty"`
-	Rules         []RulesetRule      `json:"rules"`
+	Rules         []RuleSetRule      `json:"rules"`
 	Tags          []string           `json:"tags"`
 }
 
-// FetchRuleset retrieves a ruleset definition
-func (a *API) FetchRuleset(cid CIDType) (*Ruleset, error) {
+// NewRuleSet returns a new RuleSet (with defaults if applicable)
+func NewRuleSet() *RuleSet {
+	return &RuleSet{}
+}
+
+// FetchRuleSet retrieves rule set with passed cid.
+func (a *API) FetchRuleSet(cid CIDType) (*RuleSet, error) {
 	if cid == nil || *cid == "" {
 		return nil, fmt.Errorf("Invalid rule set CID [none]")
 	}
@@ -63,7 +68,11 @@ func (a *API) FetchRuleset(cid CIDType) (*Ruleset, error) {
 		return nil, err
 	}
 
-	ruleset := &Ruleset{}
+	if a.Debug {
+		a.Log.Printf("[DEBUG] fetch rule set, received JSON: %s", string(result))
+	}
+
+	ruleset := &RuleSet{}
 	if err := json.Unmarshal(result, ruleset); err != nil {
 		return nil, err
 	}
@@ -71,14 +80,14 @@ func (a *API) FetchRuleset(cid CIDType) (*Ruleset, error) {
 	return ruleset, nil
 }
 
-// FetchRulesets retrieves all rulesets
-func (a *API) FetchRulesets() (*[]Ruleset, error) {
+// FetchRuleSets retrieves all rulesets
+func (a *API) FetchRuleSets() (*[]RuleSet, error) {
 	result, err := a.Get(config.RuleSetPrefix)
 	if err != nil {
 		return nil, err
 	}
 
-	var rulesets []Ruleset
+	var rulesets []RuleSet
 	if err := json.Unmarshal(result, &rulesets); err != nil {
 		return nil, err
 	}
@@ -86,8 +95,8 @@ func (a *API) FetchRulesets() (*[]Ruleset, error) {
 	return &rulesets, nil
 }
 
-// UpdateRuleset update ruleset definition
-func (a *API) UpdateRuleset(cfg *Ruleset) (*Ruleset, error) {
+// UpdateRuleSet update ruleset definition
+func (a *API) UpdateRuleSet(cfg *RuleSet) (*RuleSet, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid rule set config [none]")
 	}
@@ -107,12 +116,16 @@ func (a *API) UpdateRuleset(cfg *Ruleset) (*Ruleset, error) {
 		return nil, err
 	}
 
+	if a.Debug {
+		a.Log.Printf("[DEBUG] update rule set, sending JSON: %s", string(jsonCfg))
+	}
+
 	result, err := a.Put(rulesetCID, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	ruleset := &Ruleset{}
+	ruleset := &RuleSet{}
 	if err := json.Unmarshal(result, ruleset); err != nil {
 		return nil, err
 	}
@@ -120,8 +133,8 @@ func (a *API) UpdateRuleset(cfg *Ruleset) (*Ruleset, error) {
 	return ruleset, nil
 }
 
-// CreateRuleset create a new ruleset
-func (a *API) CreateRuleset(cfg *Ruleset) (*Ruleset, error) {
+// CreateRuleSet create a new ruleset
+func (a *API) CreateRuleSet(cfg *RuleSet) (*RuleSet, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid rule set config [none]")
 	}
@@ -131,12 +144,16 @@ func (a *API) CreateRuleset(cfg *Ruleset) (*Ruleset, error) {
 		return nil, err
 	}
 
+	if a.Debug {
+		a.Log.Printf("[DEBUG] create rule set, sending JSON: %s", string(jsonCfg))
+	}
+
 	resp, err := a.Post(config.RuleSetPrefix, jsonCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	ruleset := &Ruleset{}
+	ruleset := &RuleSet{}
 	if err := json.Unmarshal(resp, ruleset); err != nil {
 		return nil, err
 	}
@@ -144,16 +161,16 @@ func (a *API) CreateRuleset(cfg *Ruleset) (*Ruleset, error) {
 	return ruleset, nil
 }
 
-// DeleteRuleset delete a ruleset
-func (a *API) DeleteRuleset(cfg *Ruleset) (bool, error) {
+// DeleteRuleSet delete a ruleset
+func (a *API) DeleteRuleSet(cfg *RuleSet) (bool, error) {
 	if cfg == nil {
 		return false, fmt.Errorf("Invalid rule set config [none]")
 	}
-	return a.DeleteRulesetByCID(CIDType(&cfg.CID))
+	return a.DeleteRuleSetByCID(CIDType(&cfg.CID))
 }
 
-// DeleteRulesetByCID delete a ruleset by cid
-func (a *API) DeleteRulesetByCID(cid CIDType) (bool, error) {
+// DeleteRuleSetByCID delete a ruleset by cid
+func (a *API) DeleteRuleSetByCID(cid CIDType) (bool, error) {
 	if cid == nil || *cid == "" {
 		return false, fmt.Errorf("Invalid rule set CID [none]")
 	}
@@ -176,10 +193,10 @@ func (a *API) DeleteRulesetByCID(cid CIDType) (bool, error) {
 	return true, nil
 }
 
-// SearchRulesets returns list of rule sets matching a search query and/or filter
+// SearchRuleSets returns list of rule sets matching a search query and/or filter
 //    - a search query (see: https://login.circonus.com/resources/api#searching)
 //    - a filter (see: https://login.circonus.com/resources/api#filtering)
-func (a *API) SearchRulesets(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]Ruleset, error) {
+func (a *API) SearchRuleSets(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]RuleSet, error) {
 	q := url.Values{}
 
 	if searchCriteria != nil && *searchCriteria != "" {
@@ -195,7 +212,7 @@ func (a *API) SearchRulesets(searchCriteria *SearchQueryType, filterCriteria *Se
 	}
 
 	if q.Encode() == "" {
-		return a.FetchRulesets()
+		return a.FetchRuleSets()
 	}
 
 	reqURL := url.URL{
@@ -208,7 +225,7 @@ func (a *API) SearchRulesets(searchCriteria *SearchQueryType, filterCriteria *Se
 		return nil, fmt.Errorf("[ERROR] API call error %+v", err)
 	}
 
-	var rulesets []Ruleset
+	var rulesets []RuleSet
 	if err := json.Unmarshal(result, &rulesets); err != nil {
 		return nil, err
 	}

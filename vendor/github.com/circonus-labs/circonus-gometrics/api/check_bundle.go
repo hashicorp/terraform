@@ -23,7 +23,7 @@ type CheckBundleMetric struct {
 	Units  string   `json:"units"`
 	Status string   `json:"status"`
 	Tags   []string `json:"tags"`
-	Result string   `json:"result,omitempty"` // note: this is not settable - it is a return value
+	Result string   `json:"result,omitempty"` // NOTE this is not settable - it is a return/information value only
 }
 
 // CheckBundleConfig contains the check type specific configuration settings
@@ -31,7 +31,7 @@ type CheckBundleMetric struct {
 // for the specific settings available for each distinct check type)
 type CheckBundleConfig map[config.Key]string
 
-// CheckBundle definition
+// CheckBundle defines a check bundle. See https://login.circonus.com/resources/api/calls/check_bundle for more information.
 type CheckBundle struct {
 	CheckUUIDs         []string            `json:"_check_uuids,omitempty"`
 	Checks             []string            `json:"_checks,omitempty"`
@@ -54,8 +54,8 @@ type CheckBundle struct {
 	Type               string              `json:"type"`
 }
 
-// NewCheckBundle returns a check bundle with defaults
-func (a *API) NewCheckBundle() *CheckBundle {
+// NewCheckBundle returns new CheckBundle (with defaults, if applicable)
+func NewCheckBundle() *CheckBundle {
 	return &CheckBundle{
 		MetricLimit: config.DefaultCheckBundleMetricLimit,
 		Period:      config.DefaultCheckBundlePeriod,
@@ -64,7 +64,7 @@ func (a *API) NewCheckBundle() *CheckBundle {
 	}
 }
 
-// FetchCheckBundle fetch a check bundle configuration by cid
+// FetchCheckBundle retrieves check bundle with passed cid.
 func (a *API) FetchCheckBundle(cid CIDType) (*CheckBundle, error) {
 	if cid == nil || *cid == "" {
 		return nil, fmt.Errorf("Invalid check bundle CID [none]")
@@ -97,7 +97,7 @@ func (a *API) FetchCheckBundle(cid CIDType) (*CheckBundle, error) {
 	return checkBundle, nil
 }
 
-// FetchCheckBundles fetch a check bundle configurations
+// FetchCheckBundles retrieves all check bundles available to the API Token.
 func (a *API) FetchCheckBundles() (*[]CheckBundle, error) {
 	result, err := a.Get(config.CheckBundlePrefix)
 	if err != nil {
@@ -112,7 +112,7 @@ func (a *API) FetchCheckBundles() (*[]CheckBundle, error) {
 	return &checkBundles, nil
 }
 
-// UpdateCheckBundle updates a check bundle configuration
+// UpdateCheckBundle updates passed check bundle.
 func (a *API) UpdateCheckBundle(cfg *CheckBundle) (*CheckBundle, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid check bundle config [nil]")
@@ -150,7 +150,7 @@ func (a *API) UpdateCheckBundle(cfg *CheckBundle) (*CheckBundle, error) {
 	return checkBundle, nil
 }
 
-// CreateCheckBundle create a new check bundle (check)
+// CreateCheckBundle creates a new check bundle (check).
 func (a *API) CreateCheckBundle(cfg *CheckBundle) (*CheckBundle, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid check bundle config [nil]")
@@ -178,7 +178,7 @@ func (a *API) CreateCheckBundle(cfg *CheckBundle) (*CheckBundle, error) {
 	return checkBundle, nil
 }
 
-// DeleteCheckBundle delete a check bundle
+// DeleteCheckBundle deletes passed check bundle.
 func (a *API) DeleteCheckBundle(cfg *CheckBundle) (bool, error) {
 	if cfg == nil {
 		return false, fmt.Errorf("Invalid check bundle config [nil]")
@@ -186,7 +186,7 @@ func (a *API) DeleteCheckBundle(cfg *CheckBundle) (bool, error) {
 	return a.DeleteCheckBundleByCID(CIDType(&cfg.CID))
 }
 
-// DeleteCheckBundleByCID delete a check bundle by cid
+// DeleteCheckBundleByCID deletes check bundle with passed cid.
 func (a *API) DeleteCheckBundleByCID(cid CIDType) (bool, error) {
 
 	if cid == nil || *cid == "" {
@@ -211,9 +211,9 @@ func (a *API) DeleteCheckBundleByCID(cid CIDType) (bool, error) {
 	return true, nil
 }
 
-// SearchCheckBundles returns list of annotations matching a search query and/or filter
-//    - a search query (see: https://login.circonus.com/resources/api#searching)
-//    - a filter (see: https://login.circonus.com/resources/api#filtering)
+// SearchCheckBundles returns check bundles matching the specified
+// search query and/or filter. If nil is passed for both parameters
+// all check bundles will be returned.
 func (a *API) SearchCheckBundles(searchCriteria *SearchQueryType, filterCriteria *map[string][]string) (*[]CheckBundle, error) {
 
 	q := url.Values{}

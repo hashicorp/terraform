@@ -3,6 +3,7 @@ package circonus
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"time"
 
@@ -50,6 +51,32 @@ func flattenList(l []interface{}) []*string {
 // flattenSet flattens the values in a schema.Set and returns a []*string
 func flattenSet(s *schema.Set) []*string {
 	return flattenList(s.List())
+}
+
+// injectTag adds the context's
+func injectTag(ctxt *providerContext, tags []string, overrideTag string) []string {
+	if !ctxt.autoTag {
+		return tags
+	}
+
+	tag := ctxt.defaultTag
+	if overrideTag != "" {
+		tag = overrideTag
+	}
+
+	if len(tags) == 0 {
+		return []string{tag}
+	}
+
+	for i := range tags {
+		if tags[i] == ctxt.defaultTag || tags[i] == tag {
+			return tags
+		}
+	}
+
+	tags = append(tags, tag)
+	sort.Strings(tags) // Not strictly necessary
+	return tags
 }
 
 func normalizeTimeDurationStringToSeconds(v interface{}) string {

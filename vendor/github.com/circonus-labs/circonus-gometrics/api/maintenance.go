@@ -16,19 +16,24 @@ import (
 	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
-// Maintenance defines a maintenance
+// Maintenance defines a maintenance window. See https://login.circonus.com/resources/api/calls/maintenance for more information.
 type Maintenance struct {
 	CID        string      `json:"_cid,omitempty"`
 	Item       string      `json:"item,omitempty"`
 	Notes      string      `json:"notes,omitempty"`
-	Severities interface{} `json:"severities,omitempty"` // CSV string or []string
+	Severities interface{} `json:"severities,omitempty"` // NOTE CSV string or []string
 	Start      uint        `json:"start,omitempty"`
 	Stop       uint        `json:"stop,omitempty"`
 	Tags       []string    `json:"tags,omitempty"`
 	Type       string      `json:"type,omitempty"`
 }
 
-// FetchMaintenanceWindow retrieves a maintenance window definition
+// NewMaintenanceWindow returns a new Maintenance window (with defaults, if applicable)
+func NewMaintenanceWindow() *Maintenance {
+	return &Maintenance{}
+}
+
+// FetchMaintenanceWindow retrieves maintenance [window] with passed cid.
 func (a *API) FetchMaintenanceWindow(cid CIDType) (*Maintenance, error) {
 	if cid == nil || *cid == "" {
 		return nil, fmt.Errorf("Invalid maintenance window CID [none]")
@@ -49,6 +54,10 @@ func (a *API) FetchMaintenanceWindow(cid CIDType) (*Maintenance, error) {
 		return nil, err
 	}
 
+	if a.Debug {
+		a.Log.Printf("[DEBUG] fetch maintenance window, received JSON: %s", string(result))
+	}
+
 	window := &Maintenance{}
 	if err := json.Unmarshal(result, window); err != nil {
 		return nil, err
@@ -57,7 +66,7 @@ func (a *API) FetchMaintenanceWindow(cid CIDType) (*Maintenance, error) {
 	return window, nil
 }
 
-// FetchMaintenanceWindows retrieves all maintenance windows
+// FetchMaintenanceWindows retrieves all maintenance [windows] available to API Token.
 func (a *API) FetchMaintenanceWindows() (*[]Maintenance, error) {
 	result, err := a.Get(config.MaintenancePrefix)
 	if err != nil {
@@ -72,7 +81,7 @@ func (a *API) FetchMaintenanceWindows() (*[]Maintenance, error) {
 	return &windows, nil
 }
 
-// UpdateMaintenanceWindow update maintenance window definition
+// UpdateMaintenanceWindow updates passed maintenance [window].
 func (a *API) UpdateMaintenanceWindow(cfg *Maintenance) (*Maintenance, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid maintenance window config [nil]")
@@ -93,6 +102,10 @@ func (a *API) UpdateMaintenanceWindow(cfg *Maintenance) (*Maintenance, error) {
 		return nil, err
 	}
 
+	if a.Debug {
+		a.Log.Printf("[DEBUG] update maintenance window, sending JSON: %s", string(jsonCfg))
+	}
+
 	result, err := a.Put(maintenanceCID, jsonCfg)
 	if err != nil {
 		return nil, err
@@ -106,7 +119,7 @@ func (a *API) UpdateMaintenanceWindow(cfg *Maintenance) (*Maintenance, error) {
 	return window, nil
 }
 
-// CreateMaintenanceWindow create a new maintenance window
+// CreateMaintenanceWindow creates a new maintenance [window].
 func (a *API) CreateMaintenanceWindow(cfg *Maintenance) (*Maintenance, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid maintenance window config [nil]")
@@ -115,6 +128,10 @@ func (a *API) CreateMaintenanceWindow(cfg *Maintenance) (*Maintenance, error) {
 	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
+	}
+
+	if a.Debug {
+		a.Log.Printf("[DEBUG] create maintenance window, sending JSON: %s", string(jsonCfg))
 	}
 
 	result, err := a.Post(config.MaintenancePrefix, jsonCfg)
@@ -130,7 +147,7 @@ func (a *API) CreateMaintenanceWindow(cfg *Maintenance) (*Maintenance, error) {
 	return window, nil
 }
 
-// DeleteMaintenanceWindow delete a maintenance
+// DeleteMaintenanceWindow deletes passed maintenance [window].
 func (a *API) DeleteMaintenanceWindow(cfg *Maintenance) (bool, error) {
 	if cfg == nil {
 		return false, fmt.Errorf("Invalid maintenance window config [none]")
@@ -138,7 +155,7 @@ func (a *API) DeleteMaintenanceWindow(cfg *Maintenance) (bool, error) {
 	return a.DeleteMaintenanceWindowByCID(CIDType(&cfg.CID))
 }
 
-// DeleteMaintenanceWindowByCID delete a maintenance window by cid
+// DeleteMaintenanceWindowByCID deletes maintenance [window] with passed cid.
 func (a *API) DeleteMaintenanceWindowByCID(cid CIDType) (bool, error) {
 	if cid == nil || *cid == "" {
 		return false, fmt.Errorf("Invalid maintenance window CID [none]")
@@ -151,7 +168,7 @@ func (a *API) DeleteMaintenanceWindowByCID(cid CIDType) (bool, error) {
 		return false, err
 	}
 	if !matched {
-		return false, fmt.Errorf("Invalid maintenance CID [%s]", maintenanceCID)
+		return false, fmt.Errorf("Invalid maintenance window CID [%s]", maintenanceCID)
 	}
 
 	_, err = a.Delete(maintenanceCID)
@@ -162,9 +179,9 @@ func (a *API) DeleteMaintenanceWindowByCID(cid CIDType) (bool, error) {
 	return true, nil
 }
 
-// SearchMaintenanceWindows returns list of maintenances matching a search query and/or filter
-//    - a search query (see: https://login.circonus.com/resources/api#searching)
-//    - a filter (see: https://login.circonus.com/resources/api#filtering)
+// SearchMaintenanceWindows returns maintenance [windows] matching
+// the specified search query and/or filter. If nil is passed for
+// both parameters all maintenance [windows] will be returned.
 func (a *API) SearchMaintenanceWindows(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]Maintenance, error) {
 	q := url.Values{}
 

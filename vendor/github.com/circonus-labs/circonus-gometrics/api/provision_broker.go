@@ -42,7 +42,12 @@ type ProvisionBroker struct {
 	Tags                    []string         `json:"tags,omitempty"`
 }
 
-// FetchProvisionBroker retrieves a broker definition
+// NewProvisionBroker returns a new ProvisionBroker (with defaults, if applicable)
+func NewProvisionBroker() *ProvisionBroker {
+	return &ProvisionBroker{}
+}
+
+// FetchProvisionBroker retrieves provision broker [request] with passed cid.
 func (a *API) FetchProvisionBroker(cid CIDType) (*ProvisionBroker, error) {
 	if cid == nil || *cid == "" {
 		return nil, fmt.Errorf("Invalid broker CID [none]")
@@ -61,6 +66,10 @@ func (a *API) FetchProvisionBroker(cid CIDType) (*ProvisionBroker, error) {
 	result, err := a.Get(brokerCID)
 	if err != nil {
 		return nil, err
+	}
+
+	if a.Debug {
+		a.Log.Printf("[DEBUG] fetch broker provision request, received JSON: %s", string(result))
 	}
 
 	broker := &ProvisionBroker{}
@@ -96,6 +105,10 @@ func (a *API) UpdateProvisionBroker(cid CIDType, cfg *ProvisionBroker) (*Provisi
 		return nil, err
 	}
 
+	if a.Debug {
+		a.Log.Printf("[DEBUG] update broker provision request, sending JSON: %s", string(jsonCfg))
+	}
+
 	result, err := a.Put(brokerCID, jsonCfg)
 	if err != nil {
 		return nil, err
@@ -118,6 +131,10 @@ func (a *API) CreateProvisionBroker(cfg *ProvisionBroker) (*ProvisionBroker, err
 	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
+	}
+
+	if a.Debug {
+		a.Log.Printf("[DEBUG] create broker provision request, sending JSON: %s", string(jsonCfg))
 	}
 
 	result, err := a.Post(config.ProvisionBrokerPrefix, jsonCfg)
