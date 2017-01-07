@@ -77,9 +77,10 @@ func resourceAwsElastiCacheCommonSchema() map[string]*schema.Schema {
 			Set:      schema.HashString,
 		},
 		"snapshot_window": &schema.Schema{
-			Type:     schema.TypeString,
-			Optional: true,
-			Computed: true,
+			Type:         schema.TypeString,
+			Optional:     true,
+			Computed:     true,
+			ValidateFunc: validateOnceADayWindowFormat,
 		},
 		"snapshot_name": &schema.Schema{
 			Type:     schema.TypeString,
@@ -96,6 +97,7 @@ func resourceAwsElastiCacheCommonSchema() map[string]*schema.Schema {
 				// to lowercase
 				return strings.ToLower(val.(string))
 			},
+			ValidateFunc: validateOnceAWeekWindowFormat,
 		},
 		"port": &schema.Schema{
 			Type:     schema.TypeInt,

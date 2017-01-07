@@ -101,6 +101,7 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 					}
 					return strings.ToLower(val.(string))
 				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
 			},
 
 			"cluster_parameter_group_name": {
