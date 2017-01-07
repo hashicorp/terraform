@@ -361,7 +361,7 @@ func flattenAzureRmContainerServiceLinuxProfile(profile containerservice.LinuxPr
 	}
 	for _, ssh := range *profile.SSH.PublicKeys {
 		keys := map[string]interface{}{}
-		keys["key_data"] = ssh.KeyData
+		keys["key_data"] = *ssh.KeyData
 		sshKeys.Add(keys)
 	}
 
@@ -587,9 +587,9 @@ func resourceAzureRMContainerServiceLinuxProfilesSSHKeysHash(v interface{}) int 
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 
-	keyData := m["key_data"].(*string)
+	keyData := m["key_data"].(string)
 
-	buf.WriteString(fmt.Sprintf("%s-", *keyData))
+	buf.WriteString(fmt.Sprintf("%s-", keyData))
 
 	return hashcode.String(buf.String())
 }
