@@ -2,6 +2,8 @@ package flatmap
 
 import (
 	"fmt"
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -42,9 +44,27 @@ func expandArray(m map[string]string, prefix string) []interface{} {
 		panic(err)
 	}
 
+	keySet := make(map[int]struct{})
+	listElementKey := regexp.MustCompile("^" + prefix + "\\.([0-9]+)(?:\\..*)?$")
+	for key := range m {
+		if matches := listElementKey.FindStringSubmatch(key); matches != nil {
+			k, err := strconv.ParseInt(matches[1], 0, 0)
+			if err != nil {
+				panic(err)
+			}
+			keySet[int(k)] = struct{}{}
+		}
+	}
+
+	keysList := make([]int, 0, num)
+	for key := range keySet {
+		keysList = append(keysList, key)
+	}
+	sort.Ints(keysList)
+
 	result := make([]interface{}, num)
-	for i := 0; i < int(num); i++ {
-		result[i] = Expand(m, fmt.Sprintf("%s.%d", prefix, i))
+	for i, key := range keysList {
+		result[i] = Expand(m, fmt.Sprintf("%s.%d", prefix, key))
 	}
 
 	return result
