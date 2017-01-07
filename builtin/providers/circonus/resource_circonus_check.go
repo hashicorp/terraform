@@ -363,14 +363,14 @@ func resourceCheckBundle() *schema.Resource {
 }
 
 func checkBundleCreate(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*api.API)
+	c := meta.(*providerContext)
 
 	in, err := getCheckBundleInput(d, meta)
 	if err != nil {
 		return err
 	}
 
-	cb, err := c.CreateCheckBundle(in)
+	cb, err := c.client.CreateCheckBundle(in)
 	if err != nil {
 		return err
 	}
@@ -381,10 +381,10 @@ func checkBundleCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func checkBundleExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	c := meta.(*api.API)
+	c := meta.(*providerContext)
 
 	cid := d.Id()
-	cb, err := c.FetchCheckBundle(api.CIDType(&cid))
+	cb, err := c.client.FetchCheckBundle(api.CIDType(&cid))
 	if err != nil {
 		return false, err
 	}
@@ -397,10 +397,10 @@ func checkBundleExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 }
 
 func checkBundleRead(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*api.API)
+	c := meta.(*providerContext)
 
 	cid := d.Id()
-	cb, err := c.FetchCheckBundle(api.CIDType(&cid))
+	cb, err := c.client.FetchCheckBundle(api.CIDType(&cid))
 	if err != nil {
 		return err
 	}
@@ -527,7 +527,7 @@ func checkBundleRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func checkBundleUpdate(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*api.API)
+	c := meta.(*providerContext)
 
 	in, err := getCheckBundleInput(d, meta)
 	if err != nil {
@@ -536,7 +536,7 @@ func checkBundleUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	in.CID = d.Id()
 
-	if _, err := c.UpdateCheckBundle(in); err != nil {
+	if _, err := c.client.UpdateCheckBundle(in); err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("unable to update check %q: {{err}}", d.Id()), err)
 	}
 
@@ -544,9 +544,9 @@ func checkBundleUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func checkBundleDelete(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*api.API)
+	c := meta.(*providerContext)
 
-	if _, err := c.Delete(d.Id()); err != nil {
+	if _, err := c.client.Delete(d.Id()); err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("unable to delete check %q: {{err}}", d.Id()), err)
 	}
 
@@ -556,9 +556,9 @@ func checkBundleDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func getCheckBundleInput(d *schema.ResourceData, meta interface{}) (*api.CheckBundle, error) {
-	c := meta.(*api.API)
+	c := meta.(*providerContext)
 
-	cb := c.NewCheckBundle()
+	cb := api.NewCheckBundle()
 
 	if name, ok := d.GetOk(checkNameAttr); ok {
 		cb.DisplayName = name.(string)
@@ -668,7 +668,9 @@ func getCheckBundleInput(d *schema.ResourceData, meta interface{}) (*api.CheckBu
 				for _, tag := range tags {
 					metricTags = append(metricTags, *tag)
 				}
+
 			}
+			metricTags = injectTag(c, metricTags, c.defaultTag)
 
 			var metricType string
 			if v, ok := metricMap[checkMetricTypeAttr]; ok {
@@ -707,6 +709,7 @@ func getCheckBundleInput(d *schema.ResourceData, meta interface{}) (*api.CheckBu
 			cb.Tags = append(cb.Tags, *tag)
 		}
 	}
+	cb.Tags = injectTag(c, cb.Tags, c.defaultTag)
 
 	if v, ok := d.GetOk(checkTargetAttr); ok {
 		cb.Target = v.(string)

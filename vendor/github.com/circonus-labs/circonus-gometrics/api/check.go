@@ -22,7 +22,7 @@ type CheckDetails struct {
 	SubmissionURL string `json:"submission_url"`
 }
 
-// Check definition
+// Check defines a check. See https://login.circonus.com/resources/api/calls/check for more information.
 type Check struct {
 	CID            string       `json:"_cid"`
 	Active         bool         `json:"_active"`
@@ -32,7 +32,7 @@ type Check struct {
 	Details        CheckDetails `json:"_details"`
 }
 
-// FetchCheck fetch a check configuration by cid
+// FetchCheck retrieves check with passed cid.
 func (a *API) FetchCheck(cid CIDType) (*Check, error) {
 	if cid == nil || *cid == "" {
 		return nil, fmt.Errorf("Invalid check CID [none]")
@@ -65,7 +65,7 @@ func (a *API) FetchCheck(cid CIDType) (*Check, error) {
 	return check, nil
 }
 
-// FetchChecks fetches check configurations
+// FetchChecks retrieves all checks available to the API Token.
 func (a *API) FetchChecks() (*[]Check, error) {
 	result, err := a.Get(config.CheckPrefix)
 	if err != nil {
@@ -80,7 +80,9 @@ func (a *API) FetchChecks() (*[]Check, error) {
 	return &checks, nil
 }
 
-// SearchChecks returns a list of checks matching a search query
+// SearchChecks returns checks matching the specified search query
+// and/or filter. If nil is passed for both parameters all checks
+// will be returned.
 func (a *API) SearchChecks(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]Check, error) {
 	q := url.Values{}
 

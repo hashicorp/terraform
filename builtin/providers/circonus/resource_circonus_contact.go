@@ -484,14 +484,14 @@ func resourceContactGroup() *schema.Resource {
 }
 
 func contactGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*api.API)
+	c := meta.(*providerContext)
 
 	in, err := getContactGroupInput(d, meta)
 	if err != nil {
 		return err
 	}
 
-	cg, err := c.CreateContactGroup(in)
+	cg, err := c.client.CreateContactGroup(in)
 	if err != nil {
 		return err
 	}
@@ -502,10 +502,10 @@ func contactGroupCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func contactGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	c := meta.(*api.API)
+	c := meta.(*providerContext)
 
 	cid := d.Id()
-	cg, err := c.FetchContactGroup(api.CIDType(&cid))
+	cg, err := c.client.FetchContactGroup(api.CIDType(&cid))
 	if err != nil {
 		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {
 			return false, nil
@@ -522,11 +522,11 @@ func contactGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) 
 }
 
 func contactGroupRead(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*api.API)
+	c := meta.(*providerContext)
 
 	cid := d.Id()
 
-	cg, err := c.FetchContactGroup(api.CIDType(&cid))
+	cg, err := c.client.FetchContactGroup(api.CIDType(&cid))
 	if err != nil {
 		return err
 	}
@@ -569,12 +569,11 @@ func contactGroupRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set(contactTagsAttr, cg.Tags)
 
 	d.SetId(cg.CID)
-
 	return nil
 }
 
 func contactGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*api.API)
+	c := meta.(*providerContext)
 
 	in, err := getContactGroupInput(d, meta)
 	if err != nil {
@@ -583,7 +582,7 @@ func contactGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	in.CID = d.Id()
 
-	if _, err := c.UpdateContactGroup(in); err != nil {
+	if _, err := c.client.UpdateContactGroup(in); err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("unable to update contact group %q: {{err}}", d.Id()), err)
 	}
 
@@ -591,10 +590,10 @@ func contactGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func contactGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*api.API)
+	c := meta.(*providerContext)
 
 	cid := d.Id()
-	if _, err := c.DeleteContactGroupByCID(api.CIDType(&cid)); err != nil {
+	if _, err := c.client.DeleteContactGroupByCID(api.CIDType(&cid)); err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("unable to delete contact group %q: {{err}}", d.Id()), err)
 	}
 
@@ -700,9 +699,9 @@ func contactGroupHTTPToState(cg *api.ContactGroup) ([]interface{}, error) {
 }
 
 func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.ContactGroup, error) {
-	c := meta.(*api.API)
+	c := meta.(*providerContext)
 
-	cg := c.NewContactGroup()
+	cg := api.NewContactGroup()
 	if v, ok := d.GetOk(contactAggregationWindowAttr); ok {
 		aggWindow, _ := time.ParseDuration(v.(string))
 		cg.AggregationWindow = uint(aggWindow.Seconds())
@@ -1045,16 +1044,16 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 		cg.AlertFormats.ShortMessage = &msg
 	}
 
-	var contactTags []string
 	if tagsRaw, ok := d.GetOk(contactTagsAttr); ok {
 		tags := flattenSet(tagsRaw.(*schema.Set))
 
-		contactTags = make([]string, 0, len(tags))
+		contactTags := make([]string, 0, len(tags))
 		for _, tag := range tags {
 			contactTags = append(contactTags, *tag)
 		}
 		cg.Tags = contactTags
 	}
+	cg.Tags = injectTag(c, cg.Tags, c.defaultTag)
 
 	if err := validateContactGroup(cg); err != nil {
 		return nil, err

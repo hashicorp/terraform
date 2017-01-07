@@ -91,7 +91,7 @@ const (
 	ProvisionBrokerPrefix      = "/provision_broker"
 	ProvisionBrokerCIDRegex    = "^" + ProvisionBrokerPrefix + "/[a-z0-9]+-[a-z0-9]+$"
 	RuleSetGroupPrefix         = "/rule_set_group"
-	RulesetGroupCIDRegex       = "^" + RuleSetGroupPrefix + "/" + DefaultCIDRegex + "$"
+	RuleSetGroupCIDRegex       = "^" + RuleSetGroupPrefix + "/" + DefaultCIDRegex + "$"
 	RuleSetPrefix              = "/rule_set"
 	RuleSetCIDRegex            = "^" + RuleSetPrefix + "/" + DefaultCIDRegex + "_[^[:space:]]+$"
 	UserPrefix                 = "/user"

@@ -12,6 +12,7 @@ import (
 
 const (
 	apiURLAttr                           = "api_url"
+	autoTagAttr                          = "auto_tag"
 	defaultCirconus404ErrorString        = "API response code 404:"
 	defaultCirconusAggregationWindow     = "300s"
 	defaultCirconusAlertMinEscalateAfter = "300s"
@@ -20,6 +21,7 @@ const (
 	defaultCirconusHTTPFormat            = "json"
 	defaultCirconusHTTPMethod            = "POST"
 	defaultCirconusSlackUsername         = "Circonus"
+	defaultCirconusTag                   = "author:terraform"
 	defaultCirconusTimeoutMax            = "300s"
 	defaultCirconusTimeoutMin            = "0s"
 	keyAttr                              = "key"
@@ -36,6 +38,17 @@ var (
 type CheckType string
 type ContactMethods string
 
+type providerContext struct {
+	// Circonus API client
+	client *api.API
+
+	// autoTag, when true, automatically appends defaultCirconusTag
+	autoTag bool
+
+	// defaultTag is the tag to be used when autoTag tags a tag.
+	defaultTag string
+}
+
 // Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
@@ -44,14 +57,20 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "https://api.circonus.com/v2",
-				Description: "URL of the Circonus API",
+				Description: providerDescription[apiURLAttr],
+			},
+			autoTagAttr: {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     true,
+				Description: providerDescription[autoTagAttr],
 			},
 			keyAttr: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc("CIRCONUS_API_TOKEN", nil),
-				Description: "API token used to authenticate with the Circonus API",
+				Description: providerDescription[keyAttr],
 			},
 		},
 
@@ -76,12 +95,16 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		TokenApp: tfAppName(),
 	}
 
-	c, err := api.NewAPI(config)
+	client, err := api.NewAPI(config)
 	if err != nil {
 		return nil, errwrap.Wrapf("Error initializing Circonus: %s", err)
 	}
 
-	return c, nil
+	return &providerContext{
+		client:     client,
+		autoTag:    d.Get(autoTagAttr).(bool),
+		defaultTag: defaultCirconusTag,
+	}, nil
 }
 
 func tfAppName() string {

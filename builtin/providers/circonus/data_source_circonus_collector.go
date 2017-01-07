@@ -141,13 +141,13 @@ func dataSourceCirconusCollector() *schema.Resource {
 }
 
 func dataSourceCirconusCollectorRead(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*api.API)
+	c := meta.(*providerContext)
 
 	var b *api.Broker
 	var err error
 	if cidRaw, ok := d.GetOk(collectorCIDAttr); ok {
 		cid := cidRaw.(string)
-		b, err = c.FetchBroker(api.CIDType(&cid))
+		b, err = c.client.FetchBroker(api.CIDType(&cid))
 		if err != nil {
 			return err
 		}

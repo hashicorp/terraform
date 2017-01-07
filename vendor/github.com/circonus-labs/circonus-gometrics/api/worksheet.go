@@ -40,7 +40,12 @@ type Worksheet struct {
 	Title        string                `json:"title"`
 }
 
-// FetchWorksheet retrieves a worksheet definition
+// NewWorksheet returns a new Worksheet (with defaults, if applicable)
+func NewWorksheet() *Worksheet {
+	return &Worksheet{}
+}
+
+// FetchWorksheet retrieves worksheet with passed cid.
 func (a *API) FetchWorksheet(cid CIDType) (*Worksheet, error) {
 	if cid == nil || *cid == "" {
 		return nil, fmt.Errorf("Invalid worksheet CID [none]")
@@ -59,6 +64,10 @@ func (a *API) FetchWorksheet(cid CIDType) (*Worksheet, error) {
 	result, err := a.Get(string(*cid))
 	if err != nil {
 		return nil, err
+	}
+
+	if a.Debug {
+		a.Log.Printf("[DEBUG] fetch worksheet, received JSON: %s", string(result))
 	}
 
 	worksheet := new(Worksheet)
@@ -105,6 +114,10 @@ func (a *API) UpdateWorksheet(cfg *Worksheet) (*Worksheet, error) {
 		return nil, err
 	}
 
+	if a.Debug {
+		a.Log.Printf("[DEBUG] update worksheet, sending JSON: %s", string(jsonCfg))
+	}
+
 	result, err := a.Put(worksheetCID, jsonCfg)
 	if err != nil {
 		return nil, err
@@ -127,6 +140,10 @@ func (a *API) CreateWorksheet(cfg *Worksheet) (*Worksheet, error) {
 	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
+	}
+
+	if a.Debug {
+		a.Log.Printf("[DEBUG] create annotation, sending JSON: %s", string(jsonCfg))
 	}
 
 	result, err := a.Post(config.WorksheetPrefix, jsonCfg)

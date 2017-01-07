@@ -11,6 +11,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"regexp"
 
 	"github.com/circonus-labs/circonus-gometrics/api/config"
@@ -35,7 +36,7 @@ type AccountUser struct {
 	UserCID string `json:"user"` // string
 }
 
-// Account definition
+// Account defines an account. See https://login.circonus.com/resources/api/calls/account for more information.
 type Account struct {
 	CID           string          `json:"_cid,omitempty"`            // string
 	Name          string          `json:"name,omitempty"`            // string
@@ -55,7 +56,7 @@ type Account struct {
 	Usage         []AccountLimit  `json:"_usage,omitempty"`          // [] len >= 0
 }
 
-// FetchAccount retrieves an account definition
+// FetchAccount retrieves a specific account. Pass a valid cid or nil for '/account/current'.
 func (a *API) FetchAccount(cid CIDType) (*Account, error) {
 	var accountCID string
 
@@ -90,7 +91,22 @@ func (a *API) FetchAccount(cid CIDType) (*Account, error) {
 	return account, nil
 }
 
-// UpdateAccount update account configuration
+// FetchAccounts retrieves all accounts available to the API Token.
+func (a *API) FetchAccounts() (*[]Account, error) {
+	result, err := a.Get(config.AccountPrefix)
+	if err != nil {
+		return nil, err
+	}
+
+	var accounts []Account
+	if err := json.Unmarshal(result, &accounts); err != nil {
+		return nil, err
+	}
+
+	return &accounts, nil
+}
+
+// UpdateAccount updates passed account.
 func (a *API) UpdateAccount(cfg *Account) (*Account, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid account config [nil]")
@@ -126,4 +142,40 @@ func (a *API) UpdateAccount(cfg *Account) (*Account, error) {
 	}
 
 	return account, nil
+}
+
+// SearchAccounts returns accounts matching a filter (search queries are not
+// suppoted by the account endpoint). Pass nil as filter for all accounts the
+// API Token can access.
+func (a *API) SearchAccounts(filterCriteria *SearchFilterType) (*[]Account, error) {
+	q := url.Values{}
+
+	if filterCriteria != nil && len(*filterCriteria) > 0 {
+		for filter, criteria := range *filterCriteria {
+			for _, val := range criteria {
+				q.Add(filter, val)
+			}
+		}
+	}
+
+	if q.Encode() == "" {
+		return a.FetchAccounts()
+	}
+
+	reqURL := url.URL{
+		Path:     config.AccountPrefix,
+		RawQuery: q.Encode(),
+	}
+
+	result, err := a.Get(reqURL.String())
+	if err != nil {
+		return nil, fmt.Errorf("[ERROR] API call error %+v", err)
+	}
+
+	var accounts []Account
+	if err := json.Unmarshal(result, &accounts); err != nil {
+		return nil, err
+	}
+
+	return &accounts, nil
 }

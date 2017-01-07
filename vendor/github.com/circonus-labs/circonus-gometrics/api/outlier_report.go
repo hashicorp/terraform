@@ -29,7 +29,12 @@ type OutlierReport struct {
 	Title            string   `json:"title,omitempty"`
 }
 
-// FetchOutlierReport retrieves a outlier report definition
+// NewOutlierReport returns a new OutlierReport (with defaults, if applicable)
+func NewOutlierReport() *OutlierReport {
+	return &OutlierReport{}
+}
+
+// FetchOutlierReport retrieves outlier report with passed cid.
 func (a *API) FetchOutlierReport(cid CIDType) (*OutlierReport, error) {
 	if cid == nil || *cid == "" {
 		return nil, fmt.Errorf("Invalid outlier report CID [none]")
@@ -48,6 +53,10 @@ func (a *API) FetchOutlierReport(cid CIDType) (*OutlierReport, error) {
 	result, err := a.Get(reportCID)
 	if err != nil {
 		return nil, err
+	}
+
+	if a.Debug {
+		a.Log.Printf("[DEBUG] fetch outlier report, received JSON: %s", string(result))
 	}
 
 	report := &OutlierReport{}
@@ -94,6 +103,10 @@ func (a *API) UpdateOutlierReport(cfg *OutlierReport) (*OutlierReport, error) {
 		return nil, err
 	}
 
+	if a.Debug {
+		a.Log.Printf("[DEBUG] update outlier report, sending JSON: %s", string(jsonCfg))
+	}
+
 	result, err := a.Put(reportCID, jsonCfg)
 	if err != nil {
 		return nil, err
@@ -116,6 +129,10 @@ func (a *API) CreateOutlierReport(cfg *OutlierReport) (*OutlierReport, error) {
 	jsonCfg, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err
+	}
+
+	if a.Debug {
+		a.Log.Printf("[DEBUG] create outlier report, sending JSON: %s", string(jsonCfg))
 	}
 
 	result, err := a.Post(config.OutlierReportPrefix, jsonCfg)

@@ -203,7 +203,7 @@ func dataSourceCirconusAccount() *schema.Resource {
 }
 
 func dataSourceCirconusAccountRead(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*api.API)
+	c := meta.(*providerContext)
 
 	var cid string
 
@@ -219,7 +219,7 @@ func dataSourceCirconusAccountRead(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
-	a, err = c.FetchAccount(api.CIDType(&cid))
+	a, err = c.client.FetchAccount(api.CIDType(&cid))
 	if err != nil {
 		return err
 	}

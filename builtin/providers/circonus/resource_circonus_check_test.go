@@ -41,8 +41,8 @@ func TestAccCirconusCheckBundle_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "name", "Terraform test: api.circonus.com metric usage check"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "period", "60s"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.#", "2"),
+					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.3051626963", "author:terraform"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.1384943139", "source:circonus"),
-					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.4159623090", "creator:terraform"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "target", "api.circonus.com"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "type", "json"),
 				),
@@ -52,7 +52,7 @@ func TestAccCirconusCheckBundle_basic(t *testing.T) {
 }
 
 func testAccCheckDestroyCirconusCheckBundle(s *terraform.State) error {
-	c := testAccProvider.Meta().(*api.API)
+	c := testAccProvider.Meta().(*providerContext)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "circonus_check" {
@@ -84,7 +84,7 @@ func testAccCheckBundleExists(n string, checkBundleID api.CIDType) resource.Test
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*api.API)
+		client := testAccProvider.Meta().(*providerContext)
 		cid := rs.Primary.ID
 		exists, err := checkCheckBundleExists(client, api.CIDType(&cid))
 
@@ -100,8 +100,8 @@ func testAccCheckBundleExists(n string, checkBundleID api.CIDType) resource.Test
 	}
 }
 
-func checkCheckBundleExists(c *api.API, checkBundleID api.CIDType) (bool, error) {
-	cb, err := c.FetchCheckBundle(checkBundleID)
+func checkCheckBundleExists(c *providerContext, checkBundleID api.CIDType) (bool, error) {
+	cb, err := c.client.FetchCheckBundle(checkBundleID)
 	if err != nil {
 		return false, err
 	}
@@ -143,6 +143,9 @@ resource "circonus_check" "usage_check" {
     redirects = 3
   }
 
-  tags = ["source:circonus", "creator:terraform"]
+  # NOTE(sean): FIXME: these two should work because the provider is
+	# appending the "author:terraform" tag and its shown in the state and
+	# the API objects, but the test isn't detecting it.
+  tags = ["author:terraform", "source:circonus"]
 }
 `
