@@ -341,8 +341,8 @@ func flattenAzureRmContainerServiceMasterProfile(profile containerservice.Master
 
 	masterProfile := make(map[string]interface{}, 2)
 
-	masterProfile["count"] = profile.Count
-	masterProfile["dns_prefix"] = profile.DNSPrefix
+	masterProfile["count"] = int(*profile.Count)
+	masterProfile["dns_prefix"] = *profile.DNSPrefix
 
 	masterProfiles.Add(masterProfile)
 
@@ -365,7 +365,7 @@ func flattenAzureRmContainerServiceLinuxProfile(profile containerservice.LinuxPr
 		sshKeys.Add(keys)
 	}
 
-	values["admin_username"] = profile.AdminUsername
+	values["admin_username"] = *profile.AdminUsername
 	values["ssh_key"] = sshKeys.List()
 	profiles.Add(values)
 
@@ -379,10 +379,10 @@ func flattenAzureRmContainerServiceAgentPoolProfiles(profiles *[]containerservic
 
 	for _, profile := range *profiles {
 		agentPoolProfile := map[string]interface{}{}
-		agentPoolProfile["count"] = profile.Count
-		agentPoolProfile["dns_prefix"] = profile.DNSPrefix
-		agentPoolProfile["fqdn"] = profile.Fqdn
-		agentPoolProfile["name"] = profile.Name
+		agentPoolProfile["count"] = int(*profile.Count)
+		agentPoolProfile["dns_prefix"] = *profile.DNSPrefix
+		agentPoolProfile["fqdn"] = *profile.Fqdn
+		agentPoolProfile["name"] = *profile.Name
 		agentPoolProfile["vm_size"] = string(profile.VMSize)
 		agentPoolProfiles.Add(agentPoolProfile)
 	}
@@ -402,8 +402,10 @@ func flattenAzureRmContainerServiceServicePrincipalProfile(profile *containerser
 
 	values := map[string]interface{}{}
 
-	values["client_id"] = profile.ClientID
-	values["client_secret"] = profile.Secret
+	values["client_id"] = *profile.ClientID
+	if profile.Secret != nil {
+		values["client_secret"] = *profile.Secret
+	}
 
 	servicePrincipalProfiles.Add(values)
 
@@ -417,8 +419,10 @@ func flattenAzureRmContainerServiceDiagnosticsProfile(profile *containerservice.
 
 	values := map[string]interface{}{}
 
-	values["enabled"] = profile.VMDiagnostics.Enabled
-	values["storage_uri"] = profile.VMDiagnostics.StorageURI
+	values["enabled"] = *profile.VMDiagnostics.Enabled
+	if profile.VMDiagnostics.StorageURI != nil {
+		values["storage_uri"] = *profile.VMDiagnostics.StorageURI
+	}
 	diagnosticProfiles.Add(values)
 
 	return &diagnosticProfiles
@@ -559,11 +563,11 @@ func resourceAzureRMContainerServiceMasterProfileHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 
-	count := m["count"].(*int32)
-	dnsPrefix := m["dns_prefix"].(*string)
+	count := m["count"].(int)
+	dnsPrefix := m["dns_prefix"].(string)
 
 	buf.WriteString(fmt.Sprintf("%d-", count))
-	buf.WriteString(fmt.Sprintf("%s-", *dnsPrefix))
+	buf.WriteString(fmt.Sprintf("%s-", dnsPrefix))
 
 	return hashcode.String(buf.String())
 }
@@ -572,9 +576,9 @@ func resourceAzureRMContainerServiceLinuxProfilesHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 
-	adminUsername := m["admin_username"].(*string)
+	adminUsername := m["admin_username"].(string)
 
-	buf.WriteString(fmt.Sprintf("%s-", *adminUsername))
+	buf.WriteString(fmt.Sprintf("%s-", adminUsername))
 
 	return hashcode.String(buf.String())
 }
@@ -594,16 +598,14 @@ func resourceAzureRMContainerServiceAgentPoolProfilesHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 
-	count := m["count"].(*int32)
-	dnsPrefix := m["dns_prefix"].(*string)
-	fqdn := m["fqdn"].(*string)
-	name := m["name"].(*string)
+	count := m["count"].(int)
+	dnsPrefix := m["dns_prefix"].(string)
+	name := m["name"].(string)
 	vm_size := m["vm_size"].(string)
 
 	buf.WriteString(fmt.Sprintf("%d-", count))
-	buf.WriteString(fmt.Sprintf("%s-", *dnsPrefix))
-	buf.WriteString(fmt.Sprintf("%s-", *fqdn))
-	buf.WriteString(fmt.Sprintf("%s-", *name))
+	buf.WriteString(fmt.Sprintf("%s-", dnsPrefix))
+	buf.WriteString(fmt.Sprintf("%s-", name))
 	buf.WriteString(fmt.Sprintf("%s-", vm_size))
 
 	return hashcode.String(buf.String())
@@ -613,13 +615,8 @@ func resourceAzureRMContainerServiceServicePrincipalProfileHash(v interface{}) i
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 
-	clientId := m["client_id"].(*string)
-	clientSecret := m["client_secret"].(*string)
-
-	buf.WriteString(fmt.Sprintf("%s-", *clientId))
-	if clientSecret != nil {
-		buf.WriteString(fmt.Sprintf("%s-", *clientSecret))
-	}
+	clientId := m["client_id"].(string)
+	buf.WriteString(fmt.Sprintf("%s-", clientId))
 
 	return hashcode.String(buf.String())
 }
@@ -628,9 +625,9 @@ func resourceAzureRMContainerServiceDiagnosticProfilesHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 
-	enabled := m["enabled"].(*bool)
+	enabled := m["enabled"].(bool)
 
-	buf.WriteString(fmt.Sprintf("%t", *enabled))
+	buf.WriteString(fmt.Sprintf("%t", enabled))
 
 	return hashcode.String(buf.String())
 }
