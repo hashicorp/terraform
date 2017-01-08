@@ -6,7 +6,6 @@ var (
 	checkMetricDescription map[string]string
 	collectorDescription   map[string]string
 	contactDescription     map[string]string
-	metricDescription      map[schemaAttr]string
 	providerDescription    map[string]string
 )
 
@@ -65,10 +64,6 @@ func init() {
 	// NOTE(sean@): needs to be completed
 	contactDescription = map[string]string{
 		contactSlackUsernameAttr: "Username Slackbot uses in Slack",
-	}
-
-	metricDescription = map[schemaAttr]string{
-		metricNameAttr: "Name of the metric",
 	}
 
 	providerDescription = map[string]string{

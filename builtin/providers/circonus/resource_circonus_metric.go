@@ -1,141 +1,115 @@
 package circonus
 
+// The `circonus_metric` type is a synthetic, top-level resource that doesn't
+// actually exist within Circonus.  The `circonus_check` resource uses
+// `circonus_metric` as input to its `streams` attribute.  The `circonus_check`
+// resource can, if configured, override various parameters in the
+// `circonus_metric` resource if no value was set (e.g. the `icmp_ping` will
+// implicitly set the `unit` metric to `seconds`).
+
 import (
 	"github.com/hashicorp/errwrap"
-	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-type metric struct {
-	ID   typeMetricID
-	Name typeMetricName
-	Tags typeTags
-	Unit typeUnit
+// circonus_metric.* resource attribute names
+const (
+	_MetricIDAttr   _SchemaAttr = "id"
+	_MetricNameAttr _SchemaAttr = "name"
+	_MetricTypeAttr _SchemaAttr = "type"
+	_MetricTagsAttr _SchemaAttr = "tags"
+	_MetricUnitAttr _SchemaAttr = "unit"
+)
+
+var _MetricDescriptions = _AttrDescrs{
+	_MetricNameAttr: "Name of the metric",
+	_MetricTypeAttr: "Type of metric",
 }
 
-func resourceMetric() *schema.Resource {
+func _NewCirconusMetricResource() *schema.Resource {
 	return &schema.Resource{
-		Create: metricCreate,
-		Read:   metricRead,
-		Update: metricUpdate,
-		Delete: metricDelete,
-		Exists: metricExists,
+		Create: _MetricCreate,
+		Read:   _MetricRead,
+		Update: _MetricUpdate,
+		Delete: _MetricDelete,
+		Exists: _MetricExists,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
-			metricNameAttr: &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: metricDescription[metricNameAttr],
+		Schema: castSchemaToTF(map[_SchemaAttr]*schema.Schema{
+			_MetricNameAttr: &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
 			},
-			metricTypeAttr: &schema.Schema{
+			_MetricTypeAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateStringIn(metricTypeAttr, validMetricTypes),
-				Description:  metricDescription[metricTypeAttr],
+				ValidateFunc: validateStringIn(_MetricTypeAttr, _ValidMetricTypes),
 			},
-			metricTagsAttr: &schema.Schema{
+			_MetricTagsAttr: &schema.Schema{
 				Type:             schema.TypeMap,
 				Optional:         true,
 				ValidateFunc:     validateTags,
 				DiffSuppressFunc: suppressAutoTag,
-				Description:      metricDescription[metricTagsAttr],
 			},
-			metricUnitAttr: &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: metricDescription[metricUnitAttr],
+			_MetricUnitAttr: &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 			},
-		}),
+		}, _MetricDescriptions),
 	}
 }
 
-func metricCreate(d *schema.ResourceData, meta interface{}) error {
-	m, err := metricSchemaParse(d, meta)
-	if err != nil {
+func _MetricCreate(d *schema.ResourceData, meta interface{}) error {
+	m := _NewMetric()
+	if err := m.ParseSchema(d, meta); err != nil {
 		return errwrap.Wrapf("error parsing metric schema during create: {{err}}", err)
 	}
 
-	if err = metricSchemaSave(d, m); err != nil {
+	if err := m.Save(d); err != nil {
 		return errwrap.Wrapf("error saving metric during create: {{err}}", err)
 	}
 
-	return metricRead(d, meta)
+	return _MetricRead(d, meta)
 }
 
-func metricRead(d *schema.ResourceData, meta interface{}) error {
-	m, err := metricSchemaParse(d, meta)
-	if err != nil {
-		return errwrap.Wrapf("unable to read metric during read: {{err}}", err)
+func _MetricRead(d *schema.ResourceData, meta interface{}) error {
+	m := _NewMetric()
+	if err := m.ParseSchema(d, meta); err != nil {
+		return errwrap.Wrapf("error parsing metric schema during read: {{err}}", err)
 	}
 
-	if err = metricSchemaSave(d, m); err != nil {
+	if err := m.Save(d); err != nil {
 		return errwrap.Wrapf("error saving metric during read: {{err}}", err)
 	}
 
 	return nil
 }
 
-func metricUpdate(d *schema.ResourceData, meta interface{}) error {
-	m, err := metricSchemaParse(d, meta)
-	if err != nil {
-		return errwrap.Wrapf("unable to read metric during read: {{err}}", err)
+func _MetricUpdate(d *schema.ResourceData, meta interface{}) error {
+	m := _NewMetric()
+	if err := m.ParseSchema(d, meta); err != nil {
+		return errwrap.Wrapf("error parsing metric schema during update: {{err}}", err)
 	}
 
-	if err = metricSchemaSave(d, m); err != nil {
-		return errwrap.Wrapf("error saving metric during read: {{err}}", err)
+	if err := m.Save(d); err != nil {
+		return errwrap.Wrapf("error saving metric during update: {{err}}", err)
 	}
 
 	return nil
 }
 
-func metricDelete(d *schema.ResourceData, meta interface{}) error {
+func _MetricDelete(d *schema.ResourceData, meta interface{}) error {
 	d.SetId("")
 
 	return nil
 }
 
-func metricExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+func _MetricExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	if id := d.Id(); id != "" {
 		return true, nil
 	}
 
 	return false, nil
-}
-
-func metricSchemaParse(d *schema.ResourceData, meta interface{}) (*metric, error) {
-	ctxt := meta.(*providerContext)
-
-	id := typeMetricID(schemaGetString(d, metricIDAttr))
-	if id == "" {
-		newID, err := uuid.GenerateUUID()
-		if err != nil {
-			return nil, errwrap.Wrapf("metric ID creation failed: {{err}}", err)
-		}
-
-		id = typeMetricID(newID)
-	}
-
-	name := typeMetricName(schemaGetString(d, metricNameAttr))
-	unit := typeUnit(schemaGetString(d, metricUnitAttr))
-	tags := schemaGetTags(ctxt, d, metricTagsAttr, typeTag{})
-
-	return &metric{
-		ID:   id,
-		Name: name,
-		Unit: unit,
-		Tags: tags,
-	}, nil
-}
-
-func metricSchemaSave(d *schema.ResourceData, m *metric) error {
-	stateSet(d, metricNameAttr, m.Name)
-	stateSet(d, metricTagsAttr, m.Tags)
-	stateSet(d, metricUnitAttr, m.Unit)
-
-	d.SetId(string(m.ID))
-
-	return nil
 }

@@ -27,8 +27,8 @@ const (
 
 // Constants that want to be a constant but can't in Go
 var (
-	validContactHTTPFormats = validStringValues{"json", "params"}
-	validContactHTTPMethods = validStringValues{"GET", "POST"}
+	validContactHTTPFormats = _ValidStringValues{"json", "params"}
+	validContactHTTPMethods = _ValidStringValues{"GET", "POST"}
 )
 
 type CheckType string
@@ -50,7 +50,7 @@ type providerContext struct {
 	autoTag bool
 
 	// defaultTag make up the tag to be used when autoTag tags a tag.
-	defaultTag typeTag
+	defaultTag _Tag
 }
 
 // Provider returns a terraform.ResourceProvider.
@@ -86,7 +86,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"circonus_check":         resourceCheckBundle(),
 			"circonus_contact_group": resourceContactGroup(),
-			"circonus_metric":        resourceMetric(),
+			"circonus_metric":        _NewCirconusMetricResource(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -110,7 +110,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	return &providerContext{
 		client:  client,
 		autoTag: d.Get(providerAutoTagAttr).(bool),
-		defaultTag: typeTag{
+		defaultTag: _Tag{
 			Category: defaultCirconusTagCategory,
 			Value:    defaultCirconusTagValue,
 		},

@@ -1,21 +1,24 @@
 package circonus
 
-type metricType string
-type schemaAttr string
+type _AttrDescr string
+type _AttrDescrs map[_SchemaAttr]_AttrDescr
 
-type typeMetricID string
-type typeMetricName string
+type _MetricType string
+type _SchemaAttr string
 
-type typeTagCategory string
-type typeTagValue string
-type typeTags map[typeTagCategory]typeTagValue
+type _MetricID string
+type _MetricName string
 
-type typeTag struct {
-	Category typeTagCategory
-	Value    typeTagValue
+type _TagCategory string
+type _TagValue string
+type _Tags map[_TagCategory]_TagValue
+
+type _Tag struct {
+	Category _TagCategory
+	Value    _TagValue
 }
 
-type typeUnit string
+type _Unit string
 
-type validString string
-type validStringValues []validString
+type _ValidString string
+type _ValidStringValues []_ValidString

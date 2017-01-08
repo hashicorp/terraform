@@ -650,13 +650,13 @@ func getCheckBundleInput(d *schema.ResourceData, meta interface{}) (*api.CheckBu
 				}
 			}
 
-			var metricTags typeTags
+			var metricTags _Tags
 			if tagsRaw, ok := metricMap[checkMetricTagsAttr]; ok {
 				tags := tagsRaw.(map[string]interface{})
 
-				metricTags = make(typeTags, len(tags))
+				metricTags = make(_Tags, len(tags))
 				for k, v := range tags {
-					metricTags[typeTagCategory(k)] = typeTagValue(v.(string))
+					metricTags[_TagCategory(k)] = _TagValue(v.(string))
 				}
 			}
 			metricTags = injectTag(c, metricTags, c.defaultTag)
@@ -690,13 +690,13 @@ func getCheckBundleInput(d *schema.ResourceData, meta interface{}) (*api.CheckBu
 		cb.Period = uint(d.Seconds())
 	}
 
-	var checkTags typeTags
+	var checkTags _Tags
 	if tagsRaw, ok := d.GetOk(checkTagsAttr); ok {
 		tags := tagsRaw.(map[string]interface{})
 
-		checkTags = make(typeTags, len(tags))
+		checkTags = make(_Tags, len(tags))
 		for k, v := range tags {
-			checkTags[typeTagCategory(k)] = typeTagValue(v.(string))
+			checkTags[_TagCategory(k)] = _TagValue(v.(string))
 		}
 	}
 	checkTags = injectTag(c, checkTags, c.defaultTag)
