@@ -76,9 +76,9 @@ func TestAccCirconusContactGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "long_summary", "long summary"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "short_message", "short message"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "short_summary", "short summary"),
-					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.#", "2"),
-					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.3256831619", "other:foo"),
-					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.3051626963", "author:terraform"),
+					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.%", "2"),
+					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.other", "foo"),
+					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.author", "terraform"),
 				),
 			},
 		},
@@ -255,6 +255,9 @@ resource "circonus_contact_group" "staging-sev3" {
   # NOTE(sean): FIXME: these two should work because the provider is
 	# appending the "author:terraform" tag and its shown in the state and
 	# the API objects, but the test isn't detecting it.
-  tags = ["author:terraform", "other:foo"]
+  tags = {
+    "author"="terraform",
+    "other"="foo",
+  }
 }
 `

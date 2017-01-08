@@ -13,6 +13,15 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+func castSchemaToTF(in map[schemaAttr]*schema.Schema) map[string]*schema.Schema {
+	out := make(map[string]*schema.Schema, len(in))
+	for k, v := range in {
+		out[string(k)] = v
+	}
+
+	return out
+}
+
 func failoverGroupIDToCID(groupID int) string {
 	if groupID == 0 {
 		return ""
@@ -54,28 +63,32 @@ func flattenSet(s *schema.Set) []*string {
 }
 
 // injectTag adds the context's
-func injectTag(ctxt *providerContext, tags []string, overrideTag string) []string {
+func injectTag(ctxt *providerContext, tags typeTags, overrideTag typeTag) typeTags {
 	if !ctxt.autoTag {
 		return tags
 	}
 
 	tag := ctxt.defaultTag
-	if overrideTag != "" {
+	if overrideTag.Category != "" {
 		tag = overrideTag
 	}
 
 	if len(tags) == 0 {
-		return []string{tag}
-	}
-
-	for i := range tags {
-		if tags[i] == ctxt.defaultTag || tags[i] == tag {
-			return tags
+		return typeTags{
+			tag.Category: tag.Value,
 		}
 	}
 
-	tags = append(tags, tag)
-	sort.Strings(tags) // Not strictly necessary
+	if val, found := tags[ctxt.defaultTag.Category]; found && val == ctxt.defaultTag.Value {
+		return tags
+	}
+
+	if val, found := tags[tag.Category]; found && val == tag.Value {
+		return tags
+	}
+
+	tags[tag.Category] = tag.Value
+
 	return tags
 }
 
@@ -93,6 +106,38 @@ func normalizeTimeDurationStringToSeconds(v interface{}) string {
 	}
 }
 
+// schemaGetString returns an attribute as a string.  If the attribute is not
+// found, return an empty string.
+func schemaGetString(d *schema.ResourceData, attrName schemaAttr) string {
+	if v, ok := d.GetOk(string(attrName)); ok {
+		return v.(string)
+	}
+
+	return ""
+}
+
+func schemaGetTags(ctxt *providerContext, d *schema.ResourceData, attrName schemaAttr, defaultTag typeTag) typeTags {
+	var tags typeTags
+	if tagsRaw, ok := d.GetOk(string(attrName)); ok {
+		tagsMap := tagsRaw.(map[string]interface{})
+
+		tags = make(typeTags, len(tagsMap))
+		for k, v := range tagsMap {
+			tags[typeTagCategory(k)] = typeTagValue(v.(string))
+		}
+	}
+
+	return injectTag(ctxt, tags, defaultTag)
+}
+
+// stateSet sets an attribute based on an attrName and panic()'s if the Set
+// failed.
+func stateSet(d *schema.ResourceData, attrName schemaAttr, v interface{}) {
+	if err := d.Set(string(attrName), v); err != nil {
+		panic(fmt.Sprintf("Provider Bug: failed set schema attribute %s to value %#v", attrName, v))
+	}
+}
+
 func suppressEquivalentTimeDurations(k, old, new string, d *schema.ResourceData) bool {
 	d1, err := time.ParseDuration(old)
 	if err != nil {
@@ -105,4 +150,13 @@ func suppressEquivalentTimeDurations(k, old, new string, d *schema.ResourceData)
 	}
 
 	return d1 == d2
+}
+
+func tagsToAPI(tags typeTags) []string {
+	apiTags := make([]string, 0, len(tags))
+	for k, v := range tags {
+		apiTags = append(apiTags, string(k)+":"+string(v))
+	}
+	sort.Strings(apiTags)
+	return apiTags
 }

@@ -35,14 +35,14 @@ func TestAccCirconusCheckBundle_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "config.0.url", "https://api.circonus.com/account/current"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.#", "1"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.0.name", "_usage`0`_used"),
-					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.0.tags.#", "1"),
-					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.0.tags.1384943139", "source:circonus"),
+					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.0.tags.%", "1"),
+					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.0.tags.source", "circonus"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.0.type", "numeric"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "name", "Terraform test: api.circonus.com metric usage check"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "period", "60s"),
-					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.#", "2"),
-					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.3051626963", "author:terraform"),
-					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.1384943139", "source:circonus"),
+					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.%", "2"),
+					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.author", "terraform"),
+					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.source", "circonus"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "target", "api.circonus.com"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "type", "json"),
 				),
@@ -125,7 +125,7 @@ resource "circonus_check" "usage_check" {
   }
   metric {
     name = "_usage` + "`0`" + `_used"
-    tags = ["source:circonus"]
+    tags = {"source"="circonus"}
     type = "numeric"
   }
   config {
@@ -146,6 +146,9 @@ resource "circonus_check" "usage_check" {
   # NOTE(sean): FIXME: these two should work because the provider is
 	# appending the "author:terraform" tag and its shown in the state and
 	# the API objects, but the test isn't detecting it.
-  tags = ["author:terraform", "source:circonus"]
+  tags = {
+    "author"="terraform",
+    "source"="circonus",
+  }
 }
 `
