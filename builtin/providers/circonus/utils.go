@@ -13,9 +13,13 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func castSchemaToTF(in map[schemaAttr]*schema.Schema) map[string]*schema.Schema {
+func castSchemaToTF(in map[_SchemaAttr]*schema.Schema, descrs _AttrDescrs) map[string]*schema.Schema {
 	out := make(map[string]*schema.Schema, len(in))
 	for k, v := range in {
+		if descr, ok := descrs[k]; ok {
+			v.Description = string(descr)
+		}
+
 		out[string(k)] = v
 	}
 
@@ -63,7 +67,7 @@ func flattenSet(s *schema.Set) []*string {
 }
 
 // injectTag adds the context's
-func injectTag(ctxt *providerContext, tags typeTags, overrideTag typeTag) typeTags {
+func injectTag(ctxt *providerContext, tags _Tags, overrideTag _Tag) _Tags {
 	if !globalAutoTag || !ctxt.autoTag {
 		return tags
 	}
@@ -74,7 +78,7 @@ func injectTag(ctxt *providerContext, tags typeTags, overrideTag typeTag) typeTa
 	}
 
 	if len(tags) == 0 {
-		return typeTags{
+		return _Tags{
 			tag.Category: tag.Value,
 		}
 	}
@@ -108,7 +112,7 @@ func normalizeTimeDurationStringToSeconds(v interface{}) string {
 
 // schemaGetString returns an attribute as a string.  If the attribute is not
 // found, return an empty string.
-func schemaGetString(d *schema.ResourceData, attrName schemaAttr) string {
+func schemaGetString(d *schema.ResourceData, attrName _SchemaAttr) string {
 	if v, ok := d.GetOk(string(attrName)); ok {
 		return v.(string)
 	}
@@ -116,14 +120,14 @@ func schemaGetString(d *schema.ResourceData, attrName schemaAttr) string {
 	return ""
 }
 
-func schemaGetTags(ctxt *providerContext, d *schema.ResourceData, attrName schemaAttr, defaultTag typeTag) typeTags {
-	var tags typeTags
+func schemaGetTags(ctxt *providerContext, d *schema.ResourceData, attrName _SchemaAttr, defaultTag _Tag) _Tags {
+	var tags _Tags
 	if tagsRaw, ok := d.GetOk(string(attrName)); ok {
 		tagsMap := tagsRaw.(map[string]interface{})
 
-		tags = make(typeTags, len(tagsMap))
+		tags = make(_Tags, len(tagsMap))
 		for k, v := range tagsMap {
-			tags[typeTagCategory(k)] = typeTagValue(v.(string))
+			tags[_TagCategory(k)] = _TagValue(v.(string))
 		}
 	}
 
@@ -132,7 +136,7 @@ func schemaGetTags(ctxt *providerContext, d *schema.ResourceData, attrName schem
 
 // stateSet sets an attribute based on an attrName and panic()'s if the Set
 // failed.
-func stateSet(d *schema.ResourceData, attrName schemaAttr, v interface{}) {
+func stateSet(d *schema.ResourceData, attrName _SchemaAttr, v interface{}) {
 	if err := d.Set(string(attrName), v); err != nil {
 		panic(fmt.Sprintf("Provider Bug: failed set schema attribute %s to value %#v", attrName, v))
 	}
@@ -144,9 +148,9 @@ func suppressAutoTag(k, old, new string, d *schema.ResourceData) bool {
 	}
 
 	switch {
-	case k == string(metricTagsAttr)+"."+string(defaultCirconusTagCategory) && old == string(defaultCirconusTagValue):
+	case k == string(_MetricTagsAttr)+"."+string(defaultCirconusTagCategory) && old == string(defaultCirconusTagValue):
 		return true
-	case k == string(metricTagsAttr)+".%":
+	case k == string(_MetricTagsAttr)+".%":
 		oldNum, err := strconv.ParseInt(old, 10, 32)
 		if err != nil {
 			return false
@@ -177,7 +181,7 @@ func suppressEquivalentTimeDurations(k, old, new string, d *schema.ResourceData)
 	return d1 == d2
 }
 
-func tagsToAPI(tags typeTags) []string {
+func tagsToAPI(tags _Tags) []string {
 	apiTags := make([]string, 0, len(tags))
 	for k, v := range tags {
 		apiTags = append(apiTags, string(k)+":"+string(v))

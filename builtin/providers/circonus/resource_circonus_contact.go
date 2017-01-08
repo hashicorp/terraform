@@ -1040,13 +1040,13 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 		cg.AlertFormats.ShortMessage = &msg
 	}
 
-	var contactTags typeTags
+	var contactTags _Tags
 	if tagsRaw, ok := d.GetOk(contactTagsAttr); ok {
 		tags := tagsRaw.(map[string]interface{})
 
-		contactTags = make(typeTags, len(tags))
+		contactTags = make(_Tags, len(tags))
 		for k, v := range tags {
-			contactTags[typeTagCategory(k)] = typeTagValue(v.(string))
+			contactTags[_TagCategory(k)] = _TagValue(v.(string))
 		}
 	}
 	cg.Tags = tagsToAPI(injectTag(c, contactTags, c.defaultTag))

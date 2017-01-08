@@ -345,7 +345,7 @@ func validateHTTPURL(attrName string) func(v interface{}, key string) (warnings 
 	}
 }
 
-func validateStringIn(attrName schemaAttr, valid validStringValues) func(v interface{}, key string) (warnings []string, errors []error) {
+func validateStringIn(attrName _SchemaAttr, valid _ValidStringValues) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		s := v.(string)
 		var found bool
