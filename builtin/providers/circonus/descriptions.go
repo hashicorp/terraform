@@ -72,8 +72,8 @@ func init() {
 	}
 
 	providerDescription = map[string]string{
-		apiURLAttr:  "URL of the Circonus API",
-		autoTagAttr: "Signals that the provider should automatically add a tag to all API calls denoting that the resource was created by Terraform",
-		keyAttr:     "API token used to authenticate with the Circonus API",
+		providerAPIURLAttr:  "URL of the Circonus API",
+		providerAutoTagAttr: "Signals that the provider should automatically add a tag to all API calls denoting that the resource was created by Terraform",
+		providerKeyAttr:     "API token used to authenticate with the Circonus API",
 	}
 }

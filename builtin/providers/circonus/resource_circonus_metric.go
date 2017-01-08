@@ -37,10 +37,11 @@ func resourceMetric() *schema.Resource {
 				Description:  metricDescription[metricTypeAttr],
 			},
 			metricTagsAttr: &schema.Schema{
-				Type:         schema.TypeMap,
-				Optional:     true,
-				ValidateFunc: validateTags,
-				Description:  metricDescription[metricTagsAttr],
+				Type:             schema.TypeMap,
+				Optional:         true,
+				ValidateFunc:     validateTags,
+				DiffSuppressFunc: suppressAutoTag,
+				Description:      metricDescription[metricTagsAttr],
 			},
 			metricUnitAttr: &schema.Schema{
 				Type:        schema.TypeString,

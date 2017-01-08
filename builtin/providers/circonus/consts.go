@@ -2,10 +2,21 @@ package circonus
 
 const (
 	// Provider-level constants
+
+	// defaultAutoTag determines the default behavior of circonus.auto_tag.
+	defaultAutoTag = false
+
+	// When auto_tag is enabled, the default tag category and value will be set to
+	// the following values unless overriden.
 	defaultCirconusTagCategory typeTagCategory = "author"
 	defaultCirconusTagValue    typeTagValue    = "terraform"
 
+	// If there are more than this number of tags a warning will be issued.
 	defaultWarnTags = 30
+
+	providerAPIURLAttr  = "api_url"
+	providerAutoTagAttr = "auto_tag"
+	providerKeyAttr     = "key"
 )
 
 const (
