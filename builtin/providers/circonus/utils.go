@@ -64,7 +64,7 @@ func flattenSet(s *schema.Set) []*string {
 
 // injectTag adds the context's
 func injectTag(ctxt *providerContext, tags typeTags, overrideTag typeTag) typeTags {
-	if !ctxt.autoTag {
+	if !globalAutoTag || !ctxt.autoTag {
 		return tags
 	}
 
@@ -135,6 +135,31 @@ func schemaGetTags(ctxt *providerContext, d *schema.ResourceData, attrName schem
 func stateSet(d *schema.ResourceData, attrName schemaAttr, v interface{}) {
 	if err := d.Set(string(attrName), v); err != nil {
 		panic(fmt.Sprintf("Provider Bug: failed set schema attribute %s to value %#v", attrName, v))
+	}
+}
+
+func suppressAutoTag(k, old, new string, d *schema.ResourceData) bool {
+	if !globalAutoTag {
+		return false
+	}
+
+	switch {
+	case k == string(metricTagsAttr)+"."+string(defaultCirconusTagCategory) && old == string(defaultCirconusTagValue):
+		return true
+	case k == string(metricTagsAttr)+".%":
+		oldNum, err := strconv.ParseInt(old, 10, 32)
+		if err != nil {
+			return false
+		}
+
+		newNum, err := strconv.ParseInt(new, 10, 32)
+		if err != nil {
+			return false
+		}
+
+		return (oldNum - 1) == newNum
+	default:
+		return false
 	}
 }
 

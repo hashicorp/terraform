@@ -11,8 +11,6 @@ import (
 )
 
 const (
-	apiURLAttr                           = "api_url"
-	autoTagAttr                          = "auto_tag"
 	defaultCirconus404ErrorString        = "API response code 404:"
 	defaultCirconusAggregationWindow     = "300s"
 	defaultCirconusAlertMinEscalateAfter = "300s"
@@ -23,7 +21,6 @@ const (
 	defaultCirconusSlackUsername         = "Circonus"
 	defaultCirconusTimeoutMax            = "300s"
 	defaultCirconusTimeoutMin            = "0s"
-	keyAttr                              = "key"
 	maxSeverity                          = 5
 	minSeverity                          = 1
 )
@@ -36,6 +33,14 @@ var (
 
 type CheckType string
 type ContactMethods string
+
+// globalAutoTag controls whether or not the provider should automatically add a
+// tag to each resource.
+//
+// NOTE(sean): This is done as a global variable because the diff suppress
+// functions does not have access to the providerContext, only the key, old, and
+// new values.
+var globalAutoTag bool
 
 type providerContext struct {
 	// Circonus API client
@@ -52,24 +57,24 @@ type providerContext struct {
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			apiURLAttr: {
+			providerAPIURLAttr: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "https://api.circonus.com/v2",
-				Description: providerDescription[apiURLAttr],
+				Description: providerDescription[providerAPIURLAttr],
 			},
-			autoTagAttr: {
+			providerAutoTagAttr: {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     true,
-				Description: providerDescription[autoTagAttr],
+				Default:     defaultAutoTag,
+				Description: providerDescription[providerAutoTagAttr],
 			},
-			keyAttr: {
+			providerKeyAttr: {
 				Type:        schema.TypeString,
 				Required:    true,
 				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc("CIRCONUS_API_TOKEN", nil),
-				Description: providerDescription[keyAttr],
+				Description: providerDescription[providerKeyAttr],
 			},
 		},
 
@@ -89,9 +94,11 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+	globalAutoTag = d.Get(providerAutoTagAttr).(bool)
+
 	config := &api.Config{
-		URL:      d.Get(apiURLAttr).(string),
-		TokenKey: d.Get(keyAttr).(string),
+		URL:      d.Get(providerAPIURLAttr).(string),
+		TokenKey: d.Get(providerKeyAttr).(string),
 		TokenApp: tfAppName(),
 	}
 
@@ -102,7 +109,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	return &providerContext{
 		client:  client,
-		autoTag: d.Get(autoTagAttr).(bool),
+		autoTag: d.Get(providerAutoTagAttr).(bool),
 		defaultTag: typeTag{
 			Category: defaultCirconusTagCategory,
 			Value:    defaultCirconusTagValue,
