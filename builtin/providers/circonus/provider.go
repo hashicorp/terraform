@@ -21,7 +21,6 @@ const (
 	defaultCirconusHTTPFormat            = "json"
 	defaultCirconusHTTPMethod            = "POST"
 	defaultCirconusSlackUsername         = "Circonus"
-	defaultCirconusTag                   = "author:terraform"
 	defaultCirconusTimeoutMax            = "300s"
 	defaultCirconusTimeoutMin            = "0s"
 	keyAttr                              = "key"
@@ -31,8 +30,8 @@ const (
 
 // Constants that want to be a constant but can't in Go
 var (
-	validContactHTTPFormats = []string{"json", "params"}
-	validContactHTTPMethods = []string{"GET", "POST"}
+	validContactHTTPFormats = validStringValues{"json", "params"}
+	validContactHTTPMethods = validStringValues{"GET", "POST"}
 )
 
 type CheckType string
@@ -45,8 +44,8 @@ type providerContext struct {
 	// autoTag, when true, automatically appends defaultCirconusTag
 	autoTag bool
 
-	// defaultTag is the tag to be used when autoTag tags a tag.
-	defaultTag string
+	// defaultTag make up the tag to be used when autoTag tags a tag.
+	defaultTag typeTag
 }
 
 // Provider returns a terraform.ResourceProvider.
@@ -82,6 +81,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"circonus_check":         resourceCheckBundle(),
 			"circonus_contact_group": resourceContactGroup(),
+			"circonus_metric":        resourceMetric(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -101,9 +101,12 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	return &providerContext{
-		client:     client,
-		autoTag:    d.Get(autoTagAttr).(bool),
-		defaultTag: defaultCirconusTag,
+		client:  client,
+		autoTag: d.Get(autoTagAttr).(bool),
+		defaultTag: typeTag{
+			Category: defaultCirconusTagCategory,
+			Value:    defaultCirconusTagValue,
+		},
 	}, nil
 }
 

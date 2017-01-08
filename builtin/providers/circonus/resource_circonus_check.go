@@ -274,15 +274,10 @@ func resourceCheckBundle() *schema.Resource {
 							Description: checkMetricDescription[checkMetricNameAttr],
 						},
 						checkMetricTagsAttr: &schema.Schema{
-							Type:     schema.TypeSet,
-							Optional: true,
-							Computed: true,
-							Set:      schema.HashString,
-							Elem: &schema.Schema{
-								Type:         schema.TypeString,
-								ValidateFunc: validateTag,
-							},
-							Description: checkMetricDescription[checkMetricTagsAttr],
+							Type:         schema.TypeMap,
+							Optional:     true,
+							ValidateFunc: validateTags,
+							Description:  checkMetricDescription[checkMetricTagsAttr],
 						},
 						checkMetricTypeAttr: &schema.Schema{
 							Type:         schema.TypeString,
@@ -326,15 +321,10 @@ func resourceCheckBundle() *schema.Resource {
 				Description: checkDescription[checkPeriodAttr],
 			},
 			checkTagsAttr: &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Computed: true,
-				Set:      schema.HashString,
-				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validateTag,
-				},
-				Description: checkDescription[checkTagsAttr],
+				Type:         schema.TypeMap,
+				Optional:     true,
+				ValidateFunc: validateTags,
+				Description:  contactDescription[checkTagsAttr],
 			},
 			checkTargetAttr: &schema.Schema{
 				Type:        schema.TypeString,
@@ -660,15 +650,14 @@ func getCheckBundleInput(d *schema.ResourceData, meta interface{}) (*api.CheckBu
 				}
 			}
 
-			var metricTags []string
+			var metricTags typeTags
 			if tagsRaw, ok := metricMap[checkMetricTagsAttr]; ok {
-				tags := flattenSet(tagsRaw.(*schema.Set))
+				tags := tagsRaw.(map[string]interface{})
 
-				metricTags = make([]string, 0, len(tags))
-				for _, tag := range tags {
-					metricTags = append(metricTags, *tag)
+				metricTags = make(typeTags, len(tags))
+				for k, v := range tags {
+					metricTags[typeTagCategory(k)] = typeTagValue(v.(string))
 				}
-
 			}
 			metricTags = injectTag(c, metricTags, c.defaultTag)
 
@@ -685,7 +674,7 @@ func getCheckBundleInput(d *schema.ResourceData, meta interface{}) (*api.CheckBu
 			cb.Metrics = append(cb.Metrics, api.CheckBundleMetric{
 				Name:   metricName,
 				Status: metricStatus,
-				Tags:   metricTags,
+				Tags:   tagsToAPI(metricTags),
 				Type:   metricType,
 				Units:  metricUnits,
 			})
@@ -701,15 +690,17 @@ func getCheckBundleInput(d *schema.ResourceData, meta interface{}) (*api.CheckBu
 		cb.Period = uint(d.Seconds())
 	}
 
+	var checkTags typeTags
 	if tagsRaw, ok := d.GetOk(checkTagsAttr); ok {
-		checkTags := flattenSet(tagsRaw.(*schema.Set))
+		tags := tagsRaw.(map[string]interface{})
 
-		cb.Tags = make([]string, 0, len(checkTags))
-		for _, tag := range checkTags {
-			cb.Tags = append(cb.Tags, *tag)
+		checkTags = make(typeTags, len(tags))
+		for k, v := range tags {
+			checkTags[typeTagCategory(k)] = typeTagValue(v.(string))
 		}
 	}
-	cb.Tags = injectTag(c, cb.Tags, c.defaultTag)
+	checkTags = injectTag(c, checkTags, c.defaultTag)
+	cb.Tags = tagsToAPI(checkTags)
 
 	if v, ok := d.GetOk(checkTargetAttr); ok {
 		cb.Target = v.(string)

@@ -397,14 +397,10 @@ func resourceContactGroup() *schema.Resource {
 				},
 			},
 			contactTagsAttr: &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Set:      schema.HashString,
-				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validateTag,
-				},
-				Description: contactDescription[contactTagsAttr],
+				Type:         schema.TypeMap,
+				Optional:     true,
+				ValidateFunc: validateTags,
+				Description:  contactDescription[contactTagsAttr],
 			},
 			contactVictorOpsAttr: &schema.Schema{
 				Type:     schema.TypeSet,
@@ -484,14 +480,14 @@ func resourceContactGroup() *schema.Resource {
 }
 
 func contactGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*providerContext)
+	ctxt := meta.(*providerContext)
 
 	in, err := getContactGroupInput(d, meta)
 	if err != nil {
 		return err
 	}
 
-	cg, err := c.client.CreateContactGroup(in)
+	cg, err := ctxt.client.CreateContactGroup(in)
 	if err != nil {
 		return err
 	}
@@ -1044,16 +1040,16 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 		cg.AlertFormats.ShortMessage = &msg
 	}
 
+	var contactTags typeTags
 	if tagsRaw, ok := d.GetOk(contactTagsAttr); ok {
-		tags := flattenSet(tagsRaw.(*schema.Set))
+		tags := tagsRaw.(map[string]interface{})
 
-		contactTags := make([]string, 0, len(tags))
-		for _, tag := range tags {
-			contactTags = append(contactTags, *tag)
+		contactTags = make(typeTags, len(tags))
+		for k, v := range tags {
+			contactTags[typeTagCategory(k)] = typeTagValue(v.(string))
 		}
-		cg.Tags = contactTags
 	}
-	cg.Tags = injectTag(c, cg.Tags, c.defaultTag)
+	cg.Tags = tagsToAPI(injectTag(c, contactTags, c.defaultTag))
 
 	if err := validateContactGroup(cg); err != nil {
 		return nil, err

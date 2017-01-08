@@ -5,7 +5,9 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"text/scanner"
 	"time"
+	"unicode"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/circonus-labs/circonus-gometrics/api/config"
@@ -259,24 +261,59 @@ func validateRegexp(attrName, reString string) func(v interface{}, key string) (
 	}
 }
 
-func validateTag(v interface{}, key string) (warnings []string, errors []error) {
-	tag := v.(string)
-	if !strings.ContainsRune(tag, ':') {
-		errors = append(errors, fmt.Errorf("tag %q is missing a category", tag))
-	}
+func validateTags(v interface{}, key string) (warnings []string, errors []error) {
+	tagsRaw := v.(map[string]interface{})
+	for k, valueRaw := range tagsRaw {
+		{
+			if len(k) == 0 {
+				errors = append(errors, fmt.Errorf("tag category can not be empty"))
+				continue
+			}
 
-	return warnings, errors
-}
+			var s scanner.Scanner
+			s.Init(strings.NewReader(k))
+			var tok rune
+		KEY:
+			for tok != scanner.EOF {
+				switch tok = s.Scan(); {
+				case tok == ':':
+					errors = append(errors, fmt.Errorf("tag category %q contains a colon character at codepoint %d", k, s.Pos()))
+					break KEY
+				case unicode.IsSpace(tok) == true:
+					errors = append(errors, fmt.Errorf("tag category %+q contains a whitespace character at codepoint %d", k, s.Pos()))
+					break KEY
+				}
+			}
+		}
 
-func validateTags(v interface{}) error {
-	for i, tagRaw := range v.([]interface{}) {
-		tag := tagRaw.(string)
-		if !strings.ContainsRune(tag, ':') {
-			return fmt.Errorf("tag %q at position %d in tag list is missing a category", tag, i+1)
+		{
+			value := valueRaw.(string)
+			if len(value) == 0 {
+				continue
+			}
+
+			var s scanner.Scanner
+			s.Init(strings.NewReader(value))
+			var tok rune
+		VALUE:
+			for tok != scanner.EOF {
+				switch tok = s.Scan(); {
+				case tok == ':':
+					errors = append(errors, fmt.Errorf("tag value %q contains a colon character at codepoint %d", value, s.Pos()))
+					break VALUE
+				case unicode.IsSpace(tok) == true:
+					errors = append(errors, fmt.Errorf("tag value %q contains a whitespace character at codepoint %d", value, s.Pos()))
+					break VALUE
+				}
+			}
 		}
 	}
 
-	return nil
+	if numTags := len(tagsRaw); numTags > defaultWarnTags {
+		warnings = append(warnings, fmt.Sprintf("Too many tags per resource (%d).  Recommend keeping it under %d", numTags, defaultWarnTags))
+	}
+
+	return warnings, errors
 }
 
 func validateUserCID(attrName string) func(v interface{}, key string) (warnings []string, errors []error) {
@@ -308,19 +345,19 @@ func validateHTTPURL(attrName string) func(v interface{}, key string) (warnings 
 	}
 }
 
-func validateStringIn(attrName string, valid []string) func(v interface{}, key string) (warnings []string, errors []error) {
+func validateStringIn(attrName schemaAttr, valid validStringValues) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		s := v.(string)
 		var found bool
 		for i := range valid {
-			if s == valid[i] {
+			if s == string(valid[i]) {
 				found = true
 				break
 			}
 		}
 
 		if !found {
-			errors = append(errors, fmt.Errorf("Invalid %s specified: %q not found in list %v", attrName, valid))
+			errors = append(errors, fmt.Errorf("Invalid %q specified: %q not found in list %#v", string(attrName), s, valid))
 		}
 
 		return warnings, errors
