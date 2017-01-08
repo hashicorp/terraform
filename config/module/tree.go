@@ -261,6 +261,14 @@ func (t *Tree) Validate() error {
 	// If something goes wrong, here is our error template
 	newErr := &TreeError{Name: []string{t.Name()}}
 
+	// Terraform core does not handle root module children named "root".
+	// We plan to fix this in the future but this bug was brought up in
+	// the middle of a release and we don't want to introduce wide-sweeping
+	// changes at that time.
+	if len(t.path) == 1 && t.name == "root" {
+		return fmt.Errorf("root module cannot contain module named 'root'")
+	}
+
 	// Validate our configuration first.
 	if err := t.config.Validate(); err != nil {
 		newErr.Err = err
