@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
@@ -66,6 +67,18 @@ func flattenSet(s *schema.Set) []*string {
 	return flattenList(s.List())
 }
 
+// listToSet returns a TypeSet from the given list.
+func stringListToSet(stringList []string, keyName _SchemaAttr) []interface{} {
+	m := make([]interface{}, 0, len(stringList))
+	for _, v := range stringList {
+		s := make(map[string]interface{}, 1)
+		s[string(keyName)] = v
+		m = append(m, s)
+	}
+
+	return m
+}
+
 // injectTag adds the context's
 func injectTag(ctxt *providerContext, tags _Tags, overrideTag _Tag) _Tags {
 	if !globalAutoTag || !ctxt.autoTag {
@@ -110,25 +123,68 @@ func normalizeTimeDurationStringToSeconds(v interface{}) string {
 	}
 }
 
+// schemaGetBoolOk returns the boolean value if found and true as the second
+// argument, otherwise returns false if the value was not found.
+func schemaGetBoolOK(d *schema.ResourceData, attrName _SchemaAttr) (b, found bool) {
+	if v, ok := d.GetOk(string(attrName)); ok {
+		return v.(bool), true
+	}
+
+	return false, false
+}
+
+func schemaGetSetAsListOk(d *schema.ResourceData, attrName _SchemaAttr) (_InterfaceList, bool) {
+	if listRaw, ok := d.GetOk(string(attrName)); ok {
+		return listRaw.(*schema.Set).List(), true
+	}
+	return nil, false
+}
+
 // schemaGetString returns an attribute as a string.  If the attribute is not
 // found, return an empty string.
 func schemaGetString(d *schema.ResourceData, attrName _SchemaAttr) string {
-	if v, ok := d.GetOk(string(attrName)); ok {
-		return v.(string)
+	if s, ok := schemaGetStringOk(d, attrName); ok {
+		return s
 	}
 
 	return ""
 }
 
+// schemaGetStringOk returns an attribute as a string and true if the attribute
+// was found.  If the attribute is not found, return an empty string.
+func schemaGetStringOk(d *schema.ResourceData, attrName _SchemaAttr) (string, bool) {
+	if v, ok := d.GetOk(string(attrName)); ok {
+		return v.(string), ok
+	}
+
+	return "", false
+}
+
+// schemaGetStringPtr returns an attribute as a *string.  If the attribute is
+// not found, return a nil pointer.
+func schemaGetStringPtr(d *schema.ResourceData, attrName _SchemaAttr) *string {
+	if s, ok := schemaGetStringOk(d, attrName); ok {
+		return &s
+	}
+
+	return nil
+}
+
 func schemaGetTags(ctxt *providerContext, d *schema.ResourceData, attrName _SchemaAttr, defaultTag _Tag) _Tags {
 	var tags _Tags
 	if tagsRaw, ok := d.GetOk(string(attrName)); ok {
-		tagsMap := tagsRaw.(map[string]interface{})
+		return buildTagsFromRawMap(ctxt, tagsRaw, defaultTag)
+	}
 
-		tags = make(_Tags, len(tagsMap))
-		for k, v := range tagsMap {
-			tags[_TagCategory(k)] = _TagValue(v.(string))
-		}
+	return injectTag(ctxt, tags, defaultTag)
+}
+
+func buildTagsFromRawMap(ctxt *providerContext, tagsRaw interface{}, defaultTag _Tag) _Tags {
+	tagsMap := tagsRaw.(map[string]interface{})
+
+	tags := make(_Tags, len(tagsMap))
+	for k, v := range tagsMap {
+		tags[_TagCategory(k)] = _TagValue(v.(string))
 	}
 
 	return injectTag(ctxt, tags, defaultTag)
@@ -188,4 +244,23 @@ func tagsToAPI(tags _Tags) []string {
 	}
 	sort.Strings(apiTags)
 	return apiTags
+}
+
+func apiToTags(apiTags []string) _Tags {
+	tags := make(_Tags, len(apiTags))
+	for _, v := range apiTags {
+		if len(v) == 0 {
+			continue
+		}
+
+		t := strings.SplitN(v, ":", 2)
+		switch len(t) {
+		case 1:
+			tags[_TagCategory(t[0])] = ""
+		case 2:
+			tags[_TagCategory(t[0])] = _TagValue(t[1])
+		}
+	}
+
+	return tags
 }

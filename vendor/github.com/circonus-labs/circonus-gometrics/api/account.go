@@ -38,25 +38,25 @@ type AccountUser struct {
 
 // Account defines an account. See https://login.circonus.com/resources/api/calls/account for more information.
 type Account struct {
-	CID           string          `json:"_cid,omitempty"`            // string
-	Name          string          `json:"name,omitempty"`            // string
-	Description   *string         `json:"description,omitempty"`     // string or null
-	OwnerCID      string          `json:"_owner,omitempty"`          // string
 	Address1      *string         `json:"address1,omitempty"`        // string or null
 	Address2      *string         `json:"address2,omitempty"`        // string or null
 	CCEmail       *string         `json:"cc_email,omitempty"`        // string or null
+	CID           string          `json:"_cid,omitempty"`            // string
 	City          *string         `json:"city,omitempty"`            // string or null
-	StateProv     *string         `json:"state_prov,omitempty"`      // string or null
-	Country       string          `json:"country_code,omitempty"`    // string
-	Timezone      string          `json:"timezone,omitempty"`        // string
-	Invites       []AccountInvite `json:"invites,omitempty"`         // [] len >= 0
-	Users         []AccountUser   `json:"users,omitempty"`           // [] len >= 0
 	ContactGroups []string        `json:"_contact_groups,omitempty"` // [] len >= 0
+	Country       string          `json:"country_code,omitempty"`    // string
+	Description   *string         `json:"description,omitempty"`     // string or null
+	Invites       []AccountInvite `json:"invites,omitempty"`         // [] len >= 0
+	Name          string          `json:"name,omitempty"`            // string
+	OwnerCID      string          `json:"_owner,omitempty"`          // string
+	StateProv     *string         `json:"state_prov,omitempty"`      // string or null
+	Timezone      string          `json:"timezone,omitempty"`        // string
 	UIBaseURL     string          `json:"_ui_base_url,omitempty"`    // string
 	Usage         []AccountLimit  `json:"_usage,omitempty"`          // [] len >= 0
+	Users         []AccountUser   `json:"users,omitempty"`           // [] len >= 0
 }
 
-// FetchAccount retrieves a specific account. Pass a valid cid or nil for '/account/current'.
+// FetchAccount retrieves account with passed cid. Pass nil for '/account/current'.
 func (a *API) FetchAccount(cid CIDType) (*Account, error) {
 	var accountCID string
 

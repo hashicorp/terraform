@@ -18,50 +18,50 @@ import (
 
 // ContactGroupAlertFormats define alert formats
 type ContactGroupAlertFormats struct {
-	LongMessage  *string `json:"long_message"`
-	LongSubject  *string `json:"long_subject"`
-	LongSummary  *string `json:"long_summary"`
-	ShortMessage *string `json:"short_message"`
-	ShortSummary *string `json:"short_summary"`
+	LongMessage  *string `json:"long_message"`  // string or null
+	LongSubject  *string `json:"long_subject"`  // string or null
+	LongSummary  *string `json:"long_summary"`  // string or null
+	ShortMessage *string `json:"short_message"` // string or null
+	ShortSummary *string `json:"short_summary"` // string or null
 }
 
 // ContactGroupContactsExternal external contacts
 type ContactGroupContactsExternal struct {
-	Info   string `json:"contact_info"`
-	Method string `json:"method"`
+	Info   string `json:"contact_info"` // string
+	Method string `json:"method"`       // string
 }
 
 // ContactGroupContactsUser user contacts
 type ContactGroupContactsUser struct {
-	Info    string `json:"_contact_info,omitempty"`
-	Method  string `json:"method"`
-	UserCID string `json:"user"`
+	Info    string `json:"_contact_info,omitempty"` // string
+	Method  string `json:"method"`                  // string
+	UserCID string `json:"user"`                    // string
 }
 
 // ContactGroupContacts list of contacts
 type ContactGroupContacts struct {
-	External []ContactGroupContactsExternal `json:"external"`
-	Users    []ContactGroupContactsUser     `json:"users"`
+	External []ContactGroupContactsExternal `json:"external"` // [] len >= 0
+	Users    []ContactGroupContactsUser     `json:"users"`    // [] len >= 0
 }
 
 // ContactGroupEscalation defines escalations for severity levels
 type ContactGroupEscalation struct {
-	After           uint   `json:"after"`
-	ContactGroupCID string `json:"contact_group"`
+	After           uint   `json:"after"`         // uint
+	ContactGroupCID string `json:"contact_group"` // string
 }
 
 // ContactGroup defines a contact group. See https://login.circonus.com/resources/api/calls/contact_group for more information.
 type ContactGroup struct {
-	CID               string                    `json:"_cid,omitempty"`
-	LastModified      uint                      `json:"_last_modified,omitempty"`
-	LastModifiedBy    string                    `json:"_last_modified_by,omitempty"`
-	AggregationWindow uint                      `json:"aggregation_window,omitempty"`
-	AlertFormats      ContactGroupAlertFormats  `json:"alert_formats,omitempty"`
-	Contacts          ContactGroupContacts      `json:"contacts,omitempty"`
-	Escalations       []*ContactGroupEscalation `json:"escalations,omitempty"`
-	Name              string                    `json:"name,omitempty"`
-	Reminders         []uint                    `json:"reminders,omitempty"`
-	Tags              []string                  `json:"tags,omitempty"`
+	AggregationWindow uint                      `json:"aggregation_window,omitempty"` // uint
+	AlertFormats      ContactGroupAlertFormats  `json:"alert_formats,omitempty"`      // ContactGroupAlertFormats
+	CID               string                    `json:"_cid,omitempty"`               // string
+	Contacts          ContactGroupContacts      `json:"contacts,omitempty"`           // ContactGroupContacts
+	Escalations       []*ContactGroupEscalation `json:"escalations,omitempty"`        // [] len == 5, elements: ContactGroupEscalation or null
+	LastModified      uint                      `json:"_last_modified,omitempty"`     // uint
+	LastModifiedBy    string                    `json:"_last_modified_by,omitempty"`  // string
+	Name              string                    `json:"name,omitempty"`               // string
+	Reminders         []uint                    `json:"reminders,omitempty"`          // [] len == 5
+	Tags              []string                  `json:"tags,omitempty"`               // [] len >= 0
 }
 
 // NewContactGroup returns a ContactGroup (with defaults, if applicable)

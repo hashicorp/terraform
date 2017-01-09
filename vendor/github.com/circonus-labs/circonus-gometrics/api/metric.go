@@ -19,20 +19,20 @@ import (
 
 // Metric defines a metric. See https://login.circonus.com/resources/api/calls/metric for more information.
 type Metric struct {
-	CID            string   `json:"_cid,omitempty"`
-	Active         bool     `json:"_active,omitempty"`
-	CheckCID       string   `json:"_check,omitempty"`
-	CheckActive    bool     `json:"_check_active,omitempty"`
-	CheckBundleCID string   `json:"_check_bundle,omitempty"`
-	CheckTags      []string `json:"_check_tags,omitempty"`
-	CheckUUID      string   `json:"_check_uuid,omitempty"`
-	Histogram      bool     `json:"_histogram,omitempty"`
-	MetricName     string   `json:"_metric_name,omitempty"`
-	MetricType     string   `json:"_metric_type,omitempty"`
-	Tags           []string `json:"tags,omitempty"`
-	Units          *string  `json:"units,omitempty"` // string or null
-	Link           *string  `json:"link,omitempty"`  // string or null
-	Notes          *string  `json:"notes,omitempty"` // string or null
+	Active         bool     `json:"_active,omitempty"`       // boolean
+	CheckActive    bool     `json:"_check_active,omitempty"` // boolean
+	CheckBundleCID string   `json:"_check_bundle,omitempty"` // string
+	CheckCID       string   `json:"_check,omitempty"`        // string
+	CheckTags      []string `json:"_check_tags,omitempty"`   // [] len >= 0
+	CheckUUID      string   `json:"_check_uuid,omitempty"`   // string
+	CID            string   `json:"_cid,omitempty"`          // string
+	Histogram      bool     `json:"_histogram,omitempty"`    // boolean
+	Link           *string  `json:"link,omitempty"`          // string or null
+	MetricName     string   `json:"_metric_name,omitempty"`  // string
+	MetricType     string   `json:"_metric_type,omitempty"`  // string
+	Notes          *string  `json:"notes,omitempty"`         // string or null
+	Tags           []string `json:"tags,omitempty"`          // [] len >= 0
+	Units          *string  `json:"units,omitempty"`         // string or null
 }
 
 // FetchMetric retrieves metric with passed cid.

@@ -331,7 +331,7 @@ func (a *API) CreateDashboard(cfg *Dashboard) (*Dashboard, error) {
 // DeleteDashboard deletes passed dashboard.
 func (a *API) DeleteDashboard(cfg *Dashboard) (bool, error) {
 	if cfg == nil {
-		return false, fmt.Errorf("Invalid dashboard config [none]")
+		return false, fmt.Errorf("Invalid dashboard config [nil]")
 	}
 	return a.DeleteDashboardByCID(CIDType(&cfg.CID))
 }
