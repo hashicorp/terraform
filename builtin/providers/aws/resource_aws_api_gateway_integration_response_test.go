@@ -28,6 +28,8 @@ func TestAccAWSAPIGatewayIntegrationResponse_basic(t *testing.T) {
 						"aws_api_gateway_integration_response.test", "response_templates.application/json", ""),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_integration_response.test", "response_templates.application/xml", "#set($inputRoot = $input.path('$'))\n{ }"),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_integration_response.test", "content_handling", ""),
 				),
 			},
 
@@ -40,6 +42,8 @@ func TestAccAWSAPIGatewayIntegrationResponse_basic(t *testing.T) {
 						"aws_api_gateway_integration_response.test", "response_templates.application/json", "$input.path('$')"),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_integration_response.test", "response_templates.application/xml", ""),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_integration_response.test", "content_handling", "CONVERT_TO_BINARY"),
 				),
 			},
 		},
@@ -281,6 +285,8 @@ resource "aws_api_gateway_integration_response" "test" {
     "application/json" = "$input.path('$')"
     "application/xml" = ""
   }
+
+  content_handling = "CONVERT_TO_BINARY"
 
 }
 `
