@@ -10,7 +10,8 @@ FEATURES:
  * **New Resource:**  `azurerm_eventhub_consumer_group` [GH-9902]
 
 IMPROVEMENTS:
- 
+
+ * command/fmt: Show filename on parse error [GH-10923]
  * provider/archive: `archive_file` now exports `output_md5` attribute in addition to existing SHA1 and Base64 SHA256 hashes. [GH-10851]
  * provider/aws: Add `most_recent` to the `ebs_snapshot` data source [GH-10986]
  * provider/aws: Add support for instance tenancy in `aws_opsworks_instance` [GH-10885]
@@ -27,6 +28,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * command/fmt: Lists of heredocs format properly [GH-10947]
  * provider/aws: Guard against nil change output in `route53_zone` that causes panic [GH-10798]
  * provider/aws: Reworked validateArn function to handle empty values [GH-10833]
  * provider/aws: Set `aws_autoscaling_policy` `metric_aggregation_type` to be Computed [GH-10904]
