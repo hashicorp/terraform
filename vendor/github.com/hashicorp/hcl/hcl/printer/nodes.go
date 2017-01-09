@@ -207,7 +207,7 @@ func (p *printer) literalType(lit *ast.LiteralType) []byte {
 	case token.STRING:
 		// If this is a multiline string, poison lines 2+ so we don't
 		// indent them.
-		if bytes.ContainsRune(result, '\n') {
+		if bytes.IndexRune(result, '\n') >= 0 {
 			result = p.heredocIndent(result)
 		}
 	}
@@ -503,7 +503,16 @@ func (p *printer) list(l *ast.ListType) []byte {
 			val := p.output(item)
 			curLen := len(val)
 			buf.Write(p.indent(val))
-			buf.WriteString(",")
+
+			// if this item is a heredoc, then we output the comma on
+			// the next line. This is the only case this happens.
+			comma := []byte{','}
+			if lit, ok := item.(*ast.LiteralType); ok && lit.Token.Type == token.HEREDOC {
+				buf.WriteByte(newline)
+				comma = p.indent(comma)
+			}
+
+			buf.Write(comma)
 
 			if lit, ok := item.(*ast.LiteralType); ok && lit.LineComment != nil {
 				// if the next item doesn't have any comments, do not align
