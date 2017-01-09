@@ -2,6 +2,7 @@ package google
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -549,6 +550,6 @@ resource "google_compute_instance_template" "foobar" {
 	network_interface{
 		network = "default"
 	}
-	
+
 	metadata_startup_script = "echo 'Hello'"
 }`, acctest.RandString(10))
