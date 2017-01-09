@@ -48,6 +48,7 @@ BUG FIXES:
  * provider/aws: Set `key_name` in `aws_key_pair` if omited in configuration [GH-10987]
  * provider/aws: Updating the aws_efs_mount_target dns_name [GH-11023]
  * provider/aws: Validate window time format for snapshot times and backup windows on RDS and ElastiCache resources [GH-11089]
+ * provider/aws: aws_db_instance restored from snapshot had problem with subnet_group [GH-11050]
  * provider/google: Fix backwards incompatibility around create_timeout in instances [GH-10858]
  * provider/openstack: Handle `PENDING_UPDATE` status with LBaaS v2 members [GH-10875]
  * provider/rancher: Add 'finishing-upgrade' state to rancher stack [GH-11019]
