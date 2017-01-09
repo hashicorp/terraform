@@ -257,8 +257,11 @@ func (c *_Check) parseJSONCheck(l _InterfaceList) error {
 			c.Config[config.URL] = v.(string)
 
 			u, _ := url.Parse(v.(string))
-			host := strings.SplitN(u.Host, ":", 2)
-			c.Target = host[0]
+			hostInfo := strings.SplitN(u.Host, ":", 2)
+			c.Target = hostInfo[0]
+			if len(hostInfo) == 2 {
+				c.Config[config.Port] = hostInfo[1]
+			}
 		}
 	}
 
