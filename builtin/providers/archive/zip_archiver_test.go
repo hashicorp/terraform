@@ -44,6 +44,26 @@ func TestZipArchiver_Dir(t *testing.T) {
 	})
 }
 
+func TestZipArchiver_CopyArchive(t *testing.T) {
+	zipfilepath := "archive-base.zip"
+	archiver := NewZipArchiver(zipfilepath)
+
+	if err := archiver.CopyArchive("./test-fixtures/archive.zip"); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	if err := archiver.ArchiveFile("./test-fixtures/test-file.txt"); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	ensureContents(t, zipfilepath, map[string][]byte{
+		"file1.txt":     []byte("This is file 1"),
+		"file2.txt":     []byte("This is file 2"),
+		"file3.txt":     []byte("This is file 3"),
+		"test-file.txt": []byte("This is test content"),
+	})
+}
+
 func ensureContents(t *testing.T, zipfilepath string, wants map[string][]byte) {
 	r, err := zip.OpenReader(zipfilepath)
 	if err != nil {
