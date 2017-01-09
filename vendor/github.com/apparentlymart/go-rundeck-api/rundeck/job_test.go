@@ -11,7 +11,7 @@ func TestUnmarshalJobDetail(t *testing.T) {
 			"with-config",
 			`<job><uuid>baz</uuid><dispatch><rankOrder>ascending</rankOrder></dispatch></job>`,
 			&JobDetail{},
-			func (rv interface {}) error {
+			func(rv interface{}) error {
 				v := rv.(*JobDetail)
 				if v.ID != "baz" {
 					return fmt.Errorf("got ID %s, but expecting baz", v.ID)
@@ -26,7 +26,7 @@ func TestUnmarshalJobDetail(t *testing.T) {
 			"with-empty-config",
 			`<JobPlugin type="foo-plugin"><configuration/></JobPlugin>`,
 			&JobPlugin{},
-			func (rv interface {}) error {
+			func(rv interface{}) error {
 				v := rv.(*JobPlugin)
 				if v.Type != "foo-plugin" {
 					return fmt.Errorf("got Type %s, but expecting foo-plugin", v.Type)
@@ -56,7 +56,7 @@ func TestMarshalJobPlugin(t *testing.T) {
 		marshalTest{
 			"with-empty-config",
 			JobPlugin{
-				Type: "foo-plugin",
+				Type:   "foo-plugin",
 				Config: map[string]string{},
 			},
 			`<JobPlugin type="foo-plugin"></JobPlugin>`,
@@ -77,7 +77,7 @@ func TestUnmarshalJobPlugin(t *testing.T) {
 			"with-config",
 			`<JobPlugin type="foo-plugin"><configuration><entry key="woo" value="foo"/><entry key="bar" value="baz"/></configuration></JobPlugin>`,
 			&JobPlugin{},
-			func (rv interface {}) error {
+			func(rv interface{}) error {
 				v := rv.(*JobPlugin)
 				if v.Type != "foo-plugin" {
 					return fmt.Errorf("got Type %s, but expecting foo-plugin", v.Type)
@@ -98,7 +98,7 @@ func TestUnmarshalJobPlugin(t *testing.T) {
 			"with-empty-config",
 			`<JobPlugin type="foo-plugin"><configuration/></JobPlugin>`,
 			&JobPlugin{},
-			func (rv interface {}) error {
+			func(rv interface{}) error {
 				v := rv.(*JobPlugin)
 				if v.Type != "foo-plugin" {
 					return fmt.Errorf("got Type %s, but expecting foo-plugin", v.Type)
@@ -132,9 +132,9 @@ func TestMarshalJobCommand(t *testing.T) {
 			"with-script-interpreter",
 			JobCommand{
 				FileExtension: "sh",
-				Script: "Hello World!",
-			  ScriptInterpreter: &JobCommandScriptInterpreter{
-						InvocationString: "sudo",
+				Script:        "Hello World!",
+				ScriptInterpreter: &JobCommandScriptInterpreter{
+					InvocationString: "sudo",
 				},
 			},
 			`<JobCommand><fileExtension>sh</fileExtension><script>Hello World!</script><scriptinterpreter>sudo</scriptinterpreter></JobCommand>`,
@@ -148,7 +148,7 @@ func TestUnmarshalJobCommand(t *testing.T) {
 			"with-shell",
 			`<JobCommand><exec>command</exec></JobCommand>`,
 			&JobCommand{},
-			func (rv interface {}) error {
+			func(rv interface{}) error {
 				v := rv.(*JobCommand)
 				if v.ShellCommand != "command" {
 					return fmt.Errorf("got ShellCommand %s, but expecting command", v.ShellCommand)
@@ -160,7 +160,7 @@ func TestUnmarshalJobCommand(t *testing.T) {
 			"with-script",
 			`<JobCommand><script>script</script></JobCommand>`,
 			&JobCommand{},
-			func (rv interface {}) error {
+			func(rv interface{}) error {
 				v := rv.(*JobCommand)
 				if v.Script != "script" {
 					return fmt.Errorf("got Script %s, but expecting script", v.Script)
@@ -172,7 +172,7 @@ func TestUnmarshalJobCommand(t *testing.T) {
 			"with-script-interpreter",
 			`<JobCommand><script>Hello World!</script><fileExtension>sh</fileExtension><scriptinterpreter>sudo</scriptinterpreter></JobCommand>`,
 			&JobCommand{},
-			func (rv interface {}) error {
+			func(rv interface{}) error {
 				v := rv.(*JobCommand)
 				if v.FileExtension != "sh" {
 					return fmt.Errorf("got FileExtension %s, but expecting sh", v.FileExtension)
@@ -197,15 +197,15 @@ func TestMarshalScriptInterpreter(t *testing.T) {
 		marshalTest{
 			"with-script-interpreter",
 			JobCommandScriptInterpreter{
-					InvocationString: "sudo",
+				InvocationString: "sudo",
 			},
 			`<scriptinterpreter>sudo</scriptinterpreter>`,
 		},
 		marshalTest{
 			"with-script-interpreter-quoted",
 			JobCommandScriptInterpreter{
-					ArgsQuoted: true,
-					InvocationString: "sudo",
+				ArgsQuoted:       true,
+				InvocationString: "sudo",
 			},
 			`<scriptinterpreter argsquoted="true">sudo</scriptinterpreter>`,
 		},
@@ -218,7 +218,7 @@ func TestUnmarshalScriptInterpreter(t *testing.T) {
 			"with-script-interpreter",
 			`<scriptinterpreter>sudo</scriptinterpreter>`,
 			&JobCommandScriptInterpreter{},
-			func (rv interface {}) error {
+			func(rv interface{}) error {
 				v := rv.(*JobCommandScriptInterpreter)
 				if v.InvocationString != "sudo" {
 					return fmt.Errorf("got InvocationString %s, but expecting sudo", v.InvocationString)
@@ -233,12 +233,12 @@ func TestUnmarshalScriptInterpreter(t *testing.T) {
 			"with-script-interpreter-quoted",
 			`<scriptinterpreter argsquoted="true">sudo</scriptinterpreter>`,
 			&JobCommandScriptInterpreter{},
-			func (rv interface {}) error {
+			func(rv interface{}) error {
 				v := rv.(*JobCommandScriptInterpreter)
 				if v.InvocationString != "sudo" {
 					return fmt.Errorf("got InvocationString %s, but expecting sudo", v.InvocationString)
 				}
-				if ! v.ArgsQuoted {
+				if !v.ArgsQuoted {
 					return fmt.Errorf("got ArgsQuoted %s, but expecting true", v.ArgsQuoted)
 				}
 				return nil
@@ -252,14 +252,14 @@ func TestMarshalErrorHanlder(t *testing.T) {
 		marshalTest{
 			"with-errorhandler",
 			JobCommandSequence{
-				ContinueOnError: true,
+				ContinueOnError:  true,
 				OrderingStrategy: "step-first",
 				Commands: []JobCommand{
 					JobCommand{
 						Script: "inline_script",
 						ErrorHandler: &JobCommand{
 							ContinueOnError: true,
-							Script: "error_script",
+							Script:          "error_script",
 						},
 					},
 				},
@@ -268,7 +268,6 @@ func TestMarshalErrorHanlder(t *testing.T) {
 		},
 	})
 }
-
 
 func TestMarshalJobOption(t *testing.T) {
 	testMarshalXML(t, []marshalTest{
@@ -282,33 +281,32 @@ func TestMarshalJobOption(t *testing.T) {
 		marshalTest{
 			"with-option-multivalued",
 			JobOption{
-				Name: "Multivalued",
-				MultiValueDelimiter: "|",
+				Name:                    "Multivalued",
+				MultiValueDelimiter:     "|",
 				RequirePredefinedChoice: true,
-				AllowsMultipleValues: true,
-				IsRequired: true,
-				ValueChoices: JobValueChoices([]string{"myValues"}),
+				AllowsMultipleValues:    true,
+				IsRequired:              true,
+				ValueChoices:            JobValueChoices([]string{"myValues"}),
 			},
 			`<option delimiter="|" enforcedvalues="true" multivalued="true" name="Multivalued" required="true" values="myValues"></option>`,
 		},
 		marshalTest{
 			"with-all-attributes",
 			JobOption{
-				Name: "advanced",
-				MultiValueDelimiter: "|",
+				Name:                    "advanced",
+				MultiValueDelimiter:     "|",
 				RequirePredefinedChoice: true,
-				AllowsMultipleValues: true,
-				ValidationRegex: ".+",
-				IsRequired: true,
-				ObscureInput: true,
-				StoragePath: "myKey",
-				DefaultValue: "myValue",
+				AllowsMultipleValues:    true,
+				ValidationRegex:         ".+",
+				IsRequired:              true,
+				ObscureInput:            true,
+				StoragePath:             "myKey",
+				DefaultValue:            "myValue",
 				ValueIsExposedToScripts: true,
-				ValueChoices: JobValueChoices([]string{"myValues"}),
-				ValueChoicesURL: "myValuesUrl",
+				ValueChoices:            JobValueChoices([]string{"myValues"}),
+				ValueChoicesURL:         "myValuesUrl",
 			},
 			`<option delimiter="|" enforcedvalues="true" multivalued="true" name="advanced" regex=".+" required="true" secure="true" storagePath="myKey" value="myValue" valueExposed="true" values="myValues" valuesUrl="myValuesUrl"></option>`,
 		},
 	})
 }
-

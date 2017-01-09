@@ -8,8 +8,8 @@ import (
 type InstanceNetWork string
 
 const (
-	ClassicNet = InstanceNetWork("Classic")
-	VpcNet     = InstanceNetWork("Vpc")
+	ClassicNet = InstanceNetWork("classic")
+	VpcNet     = InstanceNetWork("vpc")
 )
 
 const defaultTimeout = 120

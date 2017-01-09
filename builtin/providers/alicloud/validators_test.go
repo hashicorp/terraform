@@ -236,6 +236,24 @@ func TestValidateCIDRNetworkAddress(t *testing.T) {
 	}
 }
 
+func TestValidateRouteEntryNextHopType(t *testing.T) {
+	validNexthopType := []string{"Instance", "Tunnel"}
+	for _, v := range validNexthopType {
+		_, errors := validateRouteEntryNextHopType(v, "route_entry_nexthop_type")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid route entry nexthop type: %q", v, errors)
+		}
+	}
+
+	invalidNexthopType := []string{"ri", "vpc"}
+	for _, v := range invalidNexthopType {
+		_, errors := validateRouteEntryNextHopType(v, "route_entry_nexthop_type")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid route entry nexthop type", v)
+		}
+	}
+}
+
 func TestValidateSwitchCIDRNetworkAddress(t *testing.T) {
 	validSwitchCIDRNetworkAddress := []string{"192.168.10.0/24", "0.0.0.0/16", "127.0.0.0/29", "10.121.10.0/24"}
 	for _, v := range validSwitchCIDRNetworkAddress {
@@ -273,7 +291,7 @@ func TestValidateIoOptimized(t *testing.T) {
 }
 
 func TestValidateInstanceNetworkType(t *testing.T) {
-	validInstanceNetworkType := []string{"", "Classic", "Vpc"}
+	validInstanceNetworkType := []string{"", "classic", "vpc"}
 	for _, v := range validInstanceNetworkType {
 		_, errors := validateInstanceNetworkType(v, "instance_network_type")
 		if len(errors) != 0 {
@@ -281,7 +299,7 @@ func TestValidateInstanceNetworkType(t *testing.T) {
 		}
 	}
 
-	invalidInstanceNetworkType := []string{"classic", "vswitch", "123"}
+	invalidInstanceNetworkType := []string{"Classic", "vswitch", "123"}
 	for _, v := range invalidInstanceNetworkType {
 		_, errors := validateInstanceNetworkType(v, "instance_network_type")
 		if len(errors) == 0 {

@@ -17,7 +17,8 @@ func String(v string) *string {
 //
 func tagsSchema() *schema.Schema {
 	return &schema.Schema{
-		Type:     schema.TypeMap,
+		Type: schema.TypeMap,
+		//Elem:     &schema.Schema{Type: schema.TypeString},
 		Optional: true,
 	}
 }
@@ -96,6 +97,15 @@ func tagsFromMap(m map[string]interface{}) []Tag {
 			Key:   k,
 			Value: v.(string),
 		})
+	}
+
+	return result
+}
+
+func tagsToMap(tags []ecs.TagItemType) map[string]string {
+	result := make(map[string]string)
+	for _, t := range tags {
+		result[t.TagKey] = t.TagValue
 	}
 
 	return result

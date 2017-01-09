@@ -14,7 +14,6 @@ resource "alicloud_instance" "instance" {
   security_groups = "${var.security_groups}"
 
   internet_charge_type = "PayByBandwidth"
-  instance_network_type = "Classic"
 
   io_optimized = "none"
 

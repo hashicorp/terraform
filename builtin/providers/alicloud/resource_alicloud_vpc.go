@@ -56,6 +56,10 @@ func resourceAliyunVpc() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"router_table_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -75,6 +79,7 @@ func resourceAliyunVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(vpc.VpcId)
+	d.Set("router_table_id", vpc.RouteTableId)
 
 	err = ecsconn.WaitForVpcAvailable(args.RegionId, vpc.VpcId, 60)
 	if err != nil {
@@ -112,34 +117,29 @@ func resourceAliyunVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	d.Partial(true)
 
-	vpcid := d.Id()
+	attributeUpdate := false
+	args := &ecs.ModifyVpcAttributeArgs{
+		VpcId: d.Id(),
+	}
 
 	if d.HasChange("name") {
-		val := d.Get("name").(string)
-		args := &ecs.ModifyVpcAttributeArgs{
-			VpcId:   vpcid,
-			VpcName: val,
-		}
-
-		if err := conn.ModifyVpcAttribute(args); err != nil {
-			return err
-		}
-
 		d.SetPartial("name")
+		args.VpcName = d.Get("name").(string)
+
+		attributeUpdate = true
 	}
 
 	if d.HasChange("description") {
-		val := d.Get("description").(string)
-		args := &ecs.ModifyVpcAttributeArgs{
-			VpcId:       vpcid,
-			Description: val,
-		}
+		d.SetPartial("description")
+		args.Description = d.Get("description").(string)
 
+		attributeUpdate = true
+	}
+
+	if attributeUpdate {
 		if err := conn.ModifyVpcAttribute(args); err != nil {
 			return err
 		}
-
-		d.SetPartial("description")
 	}
 
 	d.Partial(false)

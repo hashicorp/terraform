@@ -62,6 +62,7 @@ func resourceAliyunNatGateway() *schema.Resource {
 					},
 				},
 				Required: true,
+				MaxItems: 4,
 			},
 		},
 	}
@@ -77,10 +78,6 @@ func resourceAliyunNatGatewayCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	bandwidthPackages := d.Get("bandwidth_packages").([]interface{})
-
-	if len(bandwidthPackages) > 4 {
-		return fmt.Errorf("Only less than 4 bandwidth packages form per NatGateway is supported")
-	}
 
 	bandwidthPackageTypes := []BandwidthPackageType{}
 
@@ -103,10 +100,6 @@ func resourceAliyunNatGatewayCreate(d *schema.ResourceData, meta interface{}) er
 	if v, ok := d.GetOk("name"); ok {
 		name = v.(string)
 	}
-	// } else {
-	// 	name = resource.PrefixedUniqueId("tf-ngw-")
-	// 	d.Set("name", name)
-	// }
 
 	args.Name = name
 
@@ -120,21 +113,7 @@ func resourceAliyunNatGatewayCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	d.SetId(resp.NatGatewayId)
-	d.Partial(true)
-	d.SetPartial("name")
-	d.SetPartial("description")
-	d.SetPartial("spec")
-	d.SetPartial("vpc_id")
 
-	// for i, packageId := range resp.BandwidthPackageIds.BandwidthPackageId {
-	// 	packages[i].(map[string]interface{})["id"] = packageId
-	// }
-
-	d.SetPartial("bandwidth_packages")
-
-	//d.Set("bandwidth_package_id", resp.BandwidthPackageIds.BandwidthPackageId[0])
-	d.SetPartial("bandwidth_package_ids")
-	d.Partial(false)
 	return resourceAliyunNatGatewayRead(d, meta)
 }
 
@@ -155,6 +134,7 @@ func resourceAliyunNatGatewayRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("spec", natGateway.Spec)
 	d.Set("bandwidth_package_ids", strings.Join(natGateway.BandwidthPackageIds.BandwidthPackageId, ","))
 	d.Set("description", natGateway.Description)
+	d.Set("vpc_id", natGateway.VpcId)
 
 	return nil
 }
@@ -169,30 +149,27 @@ func resourceAliyunNatGatewayUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	d.Partial(true)
+	attributeUpdate := false
+	args := &ModifyNatGatewayAttributeArgs{
+		RegionId:     natGateway.RegionId,
+		NatGatewayId: natGateway.NatGatewayId,
+	}
 
 	if d.HasChange("name") {
+		d.SetPartial("name")
 		var name string
 		if v, ok := d.GetOk("name"); ok {
 			name = v.(string)
 		} else {
 			return fmt.Errorf("cann't change name to empty string")
 		}
+		args.Name = name
 
-		args := &ModifyNatGatewayAttributeArgs{
-			RegionId:     natGateway.RegionId,
-			NatGatewayId: natGateway.NatGatewayId,
-			Name:         name,
-		}
-
-		err := ModifyNatGatewayAttribute(client.vpcconn, args)
-		if err != nil {
-			return err
-		}
-
-		d.SetPartial("name")
+		attributeUpdate = true
 	}
 
 	if d.HasChange("description") {
+		d.SetPartial("description")
 		var description string
 		if v, ok := d.GetOk("description"); ok {
 			description = v.(string)
@@ -200,21 +177,19 @@ func resourceAliyunNatGatewayUpdate(d *schema.ResourceData, meta interface{}) er
 			return fmt.Errorf("can to change description to empty string")
 		}
 
-		args := &ModifyNatGatewayAttributeArgs{
-			RegionId:     natGateway.RegionId,
-			NatGatewayId: natGateway.NatGatewayId,
-			Description:  description,
-		}
+		args.Description = description
 
-		err := ModifyNatGatewayAttribute(client.vpcconn, args)
-		if err != nil {
-			return fmt.Errorf("%#v %#v", err, *args)
-		}
+		attributeUpdate = true
+	}
 
-		d.SetPartial("description")
+	if attributeUpdate {
+		if err := ModifyNatGatewayAttribute(client.vpcconn, args); err != nil {
+			return err
+		}
 	}
 
 	if d.HasChange("spec") {
+		d.SetPartial("spec")
 		var spec NatGatewaySpec
 		if v, ok := d.GetOk("spec"); ok {
 			spec = NatGatewaySpec(v.(string))
@@ -234,7 +209,6 @@ func resourceAliyunNatGatewayUpdate(d *schema.ResourceData, meta interface{}) er
 			return fmt.Errorf("%#v %#v", err, *args)
 		}
 
-		d.SetPartial("spec")
 	}
 	d.Partial(false)
 

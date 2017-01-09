@@ -9,26 +9,28 @@ variable "image_id" {
 }
 
 variable "role" {
+  default = "work"
 }
 variable "datacenter" {
+  default = "beijing"
 }
 variable "short_name" {
   default = "hi"
 }
 variable "ecs_type" {
+  default = "ecs.n1.small"
 }
 variable "ecs_password" {
+  default = "Test12345"
 }
 variable "availability_zones" {
+  default = "cn-beijing-b"
 }
 variable "allocate_public_ip" {
   default = true
 }
 variable "internet_charge_type" {
   default = "PayByTraffic"
-}
-variable "instance_network_type" {
-  default = "Classic"
 }
 variable "internet_max_bandwidth_out" {
   default = 5

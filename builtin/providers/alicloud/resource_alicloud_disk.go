@@ -124,17 +124,6 @@ func resourceAliyunDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(diskID)
-	d.Partial(true)
-
-	d.SetPartial("name")
-	d.SetPartial("description")
-	d.SetPartial("availability_zone")
-	d.SetPartial("description")
-	d.SetPartial("size")
-	d.SetPartial("category")
-	d.SetPartial("snapshot_id")
-
-	d.Partial(false)
 
 	return resourceAliyunDiskUpdate(d, meta)
 }
@@ -157,16 +146,18 @@ func resourceAliyunDiskRead(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] DescribeDiskAttribute for instance: %#v", disks)
 
-	if disks != nil && len(disks) > 0 {
-		disk := disks[0]
-		d.Set("availability_zone", disk.ZoneId)
-		d.Set("category", disk.Category)
-		d.Set("size", disk.Size)
-		d.Set("status", disk.Status)
-		d.Set("name", disk.DiskName)
-		d.Set("description", disk.Description)
-		d.Set("snapshot_id", disk.SourceSnapshotId)
+	if disks == nil || len(disks) <= 0 {
+		return fmt.Errorf("No disks found.")
 	}
+
+	disk := disks[0]
+	d.Set("availability_zone", disk.ZoneId)
+	d.Set("category", disk.Category)
+	d.Set("size", disk.Size)
+	d.Set("status", disk.Status)
+	d.Set("name", disk.DiskName)
+	d.Set("description", disk.Description)
+	d.Set("snapshot_id", disk.SourceSnapshotId)
 
 	tags, _, err := conn.DescribeTags(&ecs.DescribeTagsArgs{
 		RegionId:     getRegion(d, meta),
@@ -178,7 +169,7 @@ func resourceAliyunDiskRead(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("[DEBUG] DescribeTags for disk got error: %#v", err)
 	}
 
-	d.Set("tags", tagsToString(tags))
+	d.Set("tags", tagsToMap(tags))
 
 	return nil
 }
@@ -195,33 +186,30 @@ func resourceAliyunDiskUpdate(d *schema.ResourceData, meta interface{}) error {
 	} else {
 		d.SetPartial("tags")
 	}
+	attributeUpdate := false
+	args := &ecs.ModifyDiskAttributeArgs{
+		DiskId: d.Id(),
+	}
 
 	if d.HasChange("name") {
-		val := d.Get("name").(string)
-		args := &ecs.ModifyDiskAttributeArgs{
-			DiskId:   d.Id(),
-			DiskName: val,
-		}
-
-		if err := conn.ModifyDiskAttribute(args); err != nil {
-			return err
-		}
-
 		d.SetPartial("name")
+		val := d.Get("name").(string)
+		args.DiskName = val
+
+		attributeUpdate = true
 	}
 
 	if d.HasChange("description") {
+		d.SetPartial("description")
 		val := d.Get("description").(string)
-		args := &ecs.ModifyDiskAttributeArgs{
-			DiskId:      d.Id(),
-			Description: val,
-		}
+		args.Description = val
 
+		attributeUpdate = true
+	}
+	if attributeUpdate {
 		if err := conn.ModifyDiskAttribute(args); err != nil {
 			return err
 		}
-
-		d.SetPartial("description")
 	}
 
 	d.Partial(false)

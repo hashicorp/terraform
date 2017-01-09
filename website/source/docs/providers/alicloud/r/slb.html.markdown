@@ -49,7 +49,6 @@ resource "alicloud_vswitch" "default" {
 
 resource "alicloud_slb" "vpc" {
 	name = "test-slb-tf"
-	vpc_id =  "${alicloud_vpc.default.id}"
 	vswitch_id = "${alicloud_vswitch.default.id}"
 }
 ```

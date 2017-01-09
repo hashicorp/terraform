@@ -7,12 +7,12 @@ type CNAMERecord struct {
 }
 
 type CreateCNAMERecordSetResponse struct {
-	ID           string             `mapstructure:"id"`
-	Name         string             `mapstructure:"name"`
-	Location     string             `mapstructure:"location"`
-	Tags         map[string]*string `mapstructure:"tags"`
-	TTL          *int               `mapstructure:"TTL"`
-	CNAMERecord  CNAMERecord        `mapstructure:"CNAMERecord"`
+	ID          string             `mapstructure:"id"`
+	Name        string             `mapstructure:"name"`
+	Location    string             `mapstructure:"location"`
+	Tags        map[string]*string `mapstructure:"tags"`
+	TTL         *int               `mapstructure:"TTL"`
+	CNAMERecord CNAMERecord        `mapstructure:"CNAMERecord"`
 }
 
 type CreateCNAMERecordSet struct {

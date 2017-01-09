@@ -43,21 +43,21 @@ type JobDetail struct {
 	 * by this reason omitempty cannot be present.
 	 * This has to be handle by the user.
 	 */
-	NodesSelectedByDefault    bool                `xml:"nodesSelectedByDefault"`
-	Schedule                  *JobSchedule        `xml:"schedule,omitempty"`
+	NodesSelectedByDefault bool         `xml:"nodesSelectedByDefault"`
+	Schedule               *JobSchedule `xml:"schedule,omitempty"`
 }
 
 type JobSchedule struct {
-	XMLName         xml.Name               `xml:"schedule"`
-	DayOfMonth      *JobScheduleDayOfMonth `xml:"dayofmonth,omitempty"`
-	Time            JobScheduleTime        `xml:"time"`
-	Month           JobScheduleMonth       `xml:"month"`
-	WeekDay         *JobScheduleWeekDay    `xml:"weekday,omitempty"`
-	Year            JobScheduleYear        `xml:"year"`
+	XMLName    xml.Name               `xml:"schedule"`
+	DayOfMonth *JobScheduleDayOfMonth `xml:"dayofmonth,omitempty"`
+	Time       JobScheduleTime        `xml:"time"`
+	Month      JobScheduleMonth       `xml:"month"`
+	WeekDay    *JobScheduleWeekDay    `xml:"weekday,omitempty"`
+	Year       JobScheduleYear        `xml:"year"`
 }
 
 type JobScheduleDayOfMonth struct {
-	XMLName      xml.Name `xml:"dayofmonth"`
+	XMLName xml.Name `xml:"dayofmonth"`
 }
 
 type JobScheduleMonth struct {
@@ -73,14 +73,14 @@ type JobScheduleYear struct {
 
 type JobScheduleWeekDay struct {
 	XMLName xml.Name `xml:"weekday"`
-	Day string   	 `xml:"day,attr"`
+	Day     string   `xml:"day,attr"`
 }
 
 type JobScheduleTime struct {
-	XMLName  xml.Name `xml:"time"`
-	Hour     string   `xml:"hour,attr"`
-	Minute   string   `xml:"minute,attr"`
-	Seconds  string   `xml:"seconds,attr"`
+	XMLName xml.Name `xml:"time"`
+	Hour    string   `xml:"hour,attr"`
+	Minute  string   `xml:"minute,attr"`
+	Seconds string   `xml:"seconds,attr"`
 }
 
 type jobDetailList struct {
@@ -143,7 +143,6 @@ type JobOption struct {
 	Description string `xml:"description,omitempty"`
 }
 
-
 // JobValueChoices is a specialization of []string representing a sequence of predefined values
 // for a job option.
 type JobValueChoices []string
@@ -173,7 +172,7 @@ type JobCommand struct {
 	XMLName xml.Name
 
 	// If the Workflow keepgoing is false, this allows the Workflow to continue when the Error Handler is successful.
-	ContinueOnError bool     `xml:"keepgoingOnSuccess,attr,omitempty"`
+	ContinueOnError bool `xml:"keepgoingOnSuccess,attr,omitempty"`
 
 	// Description
 	Description string `xml:"description,omitempty"`

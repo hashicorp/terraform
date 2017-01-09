@@ -86,35 +86,29 @@ func resourceAliyunSecurityGroupUpdate(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AliyunClient).ecsconn
 
 	d.Partial(true)
+	attributeUpdate := false
+	args := &ecs.ModifySecurityGroupAttributeArgs{
+		SecurityGroupId: d.Id(),
+		RegionId:        getRegion(d, meta),
+	}
 
 	if d.HasChange("name") {
-		val := d.Get("name").(string)
-		args := &ecs.ModifySecurityGroupAttributeArgs{
-			SecurityGroupId:   d.Id(),
-			RegionId:          getRegion(d, meta),
-			SecurityGroupName: val,
-		}
-
-		if err := conn.ModifySecurityGroupAttribute(args); err != nil {
-			return err
-		}
-
 		d.SetPartial("name")
+		args.SecurityGroupName = d.Get("name").(string)
+
+		attributeUpdate = true
 	}
 
 	if d.HasChange("description") {
-		val := d.Get("description").(string)
-		args := &ecs.ModifySecurityGroupAttributeArgs{
-			SecurityGroupId: d.Id(),
-			RegionId:        getRegion(d, meta),
-			Description:     val,
-		}
+		d.SetPartial("description")
+		args.Description = d.Get("description").(string)
 
+		attributeUpdate = true
+	}
+	if attributeUpdate {
 		if err := conn.ModifySecurityGroupAttribute(args); err != nil {
 			return err
 		}
-
-		d.SetPartial("description")
 	}
 
 	return nil

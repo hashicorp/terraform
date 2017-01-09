@@ -73,8 +73,8 @@
 //
 // To use xmlpath with namespaces, it is required to give the supported set of namespace
 // when compiling:
-// 
-// 
+//
+//
 //    var namespaces = []xmlpath.Namespace {
 //        { "s", "http://www.w3.org/2003/05/soap-envelope" },
 //        { "a", "http://schemas.xmlsoap.org/ws/2004/08/addressing" },
@@ -90,6 +90,6 @@
 //    if value, ok := path.String(root); ok {
 //            fmt.Println("Found:", value)
 //    }
-// 
+//
 
 package xmlpath

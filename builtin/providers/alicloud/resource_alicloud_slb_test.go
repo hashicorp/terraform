@@ -109,6 +109,7 @@ func TestAccAlicloudSlb_listener(t *testing.T) {
 					testAccCheckSlbExists("alicloud_slb.listener", &slb),
 					resource.TestCheckResourceAttr(
 						"alicloud_slb.listener", "name", "tf_test_slb"),
+					testAccCheckListenersExists("alicloud_slb.listener", &slb, "http"),
 					testListener(),
 				),
 			},
@@ -220,6 +221,42 @@ func testAccCheckSlbExists(n string, slb *slb.LoadBalancerType) resource.TestChe
 		}
 
 		*slb = *instance
+		return nil
+	}
+}
+
+func testAccCheckListenersExists(n string, slb *slb.LoadBalancerType, p string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No SLB ID is set")
+		}
+
+		client := testAccProvider.Meta().(*AliyunClient)
+		instance, err := client.DescribeLoadBalancerAttribute(rs.Primary.ID)
+
+		if err != nil {
+			return err
+		}
+		if instance == nil {
+			return fmt.Errorf("SLB not found")
+		}
+
+		exist := false
+		for _, listener := range instance.ListenerPortsAndProtocol.ListenerPortAndProtocol {
+			if listener.ListenerProtocol == p {
+				exist = true
+				break
+			}
+		}
+
+		if !exist {
+			return fmt.Errorf("The %s protocol Listener not found.", p)
+		}
 		return nil
 	}
 }

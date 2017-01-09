@@ -15,7 +15,7 @@ Provides a ECS EIP resource.
 ```
 # Create a new EIP.
 resource "alicloud_eip" "example" {
-    band_width ＝ "10"
+    bandwidth ＝ "10"
     internet_charge_type ＝ "PayByBandwidth"
 }
 ```
@@ -23,7 +23,7 @@ resource "alicloud_eip" "example" {
 
 The following arguments are supported:
 
-* `band_width` - (Optional) Maximum bandwidth to the elastic public network, measured in Mbps (Mega bit per second). If this value is not specified, then automatically sets it to 5 Mbps.
+* `bandwidth` - (Optional) Maximum bandwidth to the elastic public network, measured in Mbps (Mega bit per second). If this value is not specified, then automatically sets it to 5 Mbps.
 * `internet_charge_type` - (Optional, Forces new resource) Internet charge type of the EIP, Valid values are `PayByBandwidth`, `PayByTraffic`. Default is `PayByBandwidth`.
 
 ## Attributes Reference
@@ -31,7 +31,7 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The EIP ID.
-* `band_width` - The elastic public network bandwidth.
+* `bandwidth` - The elastic public network bandwidth.
 * `internet_charge_type` - The EIP internet charge type.
 * `status` - The EIP current status.
 * `ip_address` - The elastic ip address

@@ -127,7 +127,6 @@ resource "alicloud_instance" "instance" {
   security_groups = ["${alicloud_security_group.group.id}"]
   vswitch_id = "${alicloud_vswitch.main.id}"
   instance_name = "hello"
-  instance_network_type = "Vpc"
 
   tags {
     Name = "TerraformTest-instance"

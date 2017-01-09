@@ -31,6 +31,8 @@ func TestAccAlicloudVpc_basic(t *testing.T) {
 						"alicloud_vpc.foo", "cidr_block", "172.16.0.0/12"),
 					resource.TestCheckResourceAttrSet(
 						"alicloud_vpc.foo", "router_id"),
+					resource.TestCheckResourceAttrSet(
+						"alicloud_vpc.foo", "router_table_id"),
 				),
 			},
 		},

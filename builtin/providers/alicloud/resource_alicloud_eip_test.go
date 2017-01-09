@@ -40,7 +40,7 @@ func TestAccAlicloudEIP_basic(t *testing.T) {
 					testAccCheckEIPAttributes(&eip),
 					resource.TestCheckResourceAttr(
 						"alicloud_eip.foo",
-						"band_width",
+						"bandwidth",
 						"10"),
 				),
 			},
@@ -125,7 +125,7 @@ resource "alicloud_eip" "foo" {
 
 const testAccEIPConfigTwo = `
 resource "alicloud_eip" "foo" {
-    band_width = "10"
+    bandwidth = "10"
     internet_charge_type = "PayByBandwidth"
 }
 `

@@ -52,10 +52,6 @@ func resourceAliyunSlbAttachmentCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	d.Partial(true)
-	d.SetPartial("instances")
-	d.SetPartial("slb_id")
-	d.SetPartial("backend_servers")
 	d.SetId(loadBalancer.LoadBalancerId)
 
 	return resourceAliyunSlbAttachmentUpdate(d, meta)

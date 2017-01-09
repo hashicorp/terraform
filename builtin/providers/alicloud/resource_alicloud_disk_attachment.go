@@ -42,29 +42,14 @@ func resourceAliyunDiskAttachment() *schema.Resource {
 
 func resourceAliyunDiskAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
 
-	conn := meta.(*AliyunClient).ecsconn
-
-	diskID := d.Get("disk_id").(string)
-	instanceID := d.Get("instance_id").(string)
-
-	deviceName := d.Get("device_name").(string)
-
-	args := &ecs.AttachDiskArgs{
-		InstanceId: instanceID,
-		DiskId:     diskID,
-		Device:     deviceName,
-	}
-	if err := conn.AttachDisk(args); err != nil {
+	err := diskAttachment(d, meta)
+	if err != nil {
 		return err
 	}
 
-	d.SetId(diskID + ":" + instanceID)
-	d.Partial(true)
-	d.SetPartial("disk_id")
-	d.SetPartial("instance_id")
-	d.SetPartial("device_name")
-	d.Partial(false)
-	return resourceAliyunDiskRead(d, meta)
+	d.SetId(d.Get("disk_id").(string) + ":" + d.Get("instance_id").(string))
+
+	return resourceAliyunDiskAttachmentRead(d, meta)
 }
 
 func resourceAliyunDiskAttachmentRead(d *schema.ResourceData, meta interface{}) error {
@@ -89,13 +74,14 @@ func resourceAliyunDiskAttachmentRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	log.Printf("[DEBUG] DescribeDiskAttribute for instance: %#v", disks)
-
-	if disks != nil && len(disks) > 0 {
-		disk := disks[0]
-		d.Set("instance_id", disk.InstanceId)
-		d.Set("disk_id", disk.DiskId)
-		d.Set("device_name", disk.Device)
+	if disks == nil || len(disks) <= 0 {
+		return fmt.Errorf("No Disks Found.")
 	}
+
+	disk := disks[0]
+	d.Set("instance_id", disk.InstanceId)
+	d.Set("disk_id", disk.DiskId)
+	d.Set("device_name", disk.Device)
 
 	return nil
 }
@@ -142,4 +128,49 @@ func getDiskIDAndInstanceID(d *schema.ResourceData, meta interface{}) (string, s
 		return "", "", fmt.Errorf("invalid resource id")
 	}
 	return parts[0], parts[1], nil
+}
+func diskAttachment(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AliyunClient).ecsconn
+
+	diskID := d.Get("disk_id").(string)
+	instanceID := d.Get("instance_id").(string)
+
+	deviceName := d.Get("device_name").(string)
+
+	args := &ecs.AttachDiskArgs{
+		InstanceId: instanceID,
+		DiskId:     diskID,
+		Device:     deviceName,
+	}
+
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+		err := conn.AttachDisk(args)
+		log.Printf("error : %s", err)
+
+		if err != nil {
+			e, _ := err.(*common.Error)
+			if e.ErrorResponse.Code == DiskIncorrectStatus || e.ErrorResponse.Code == InstanceIncorrectStatus {
+				return resource.RetryableError(fmt.Errorf("Disk or Instance status is incorrect - trying again while it attaches"))
+			}
+			return resource.NonRetryableError(err)
+		}
+
+		disks, _, descErr := conn.DescribeDisks(&ecs.DescribeDisksArgs{
+			RegionId:   getRegion(d, meta),
+			InstanceId: instanceID,
+			DiskIds:    []string{diskID},
+		})
+
+		if descErr != nil {
+			log.Printf("[ERROR] Disk %s is not attached.", diskID)
+			return resource.NonRetryableError(err)
+		}
+
+		if disks == nil || len(disks) <= 0 {
+			return resource.RetryableError(fmt.Errorf("Disk in attaching - trying again while it is attached."))
+		}
+
+		return nil
+
+	})
 }

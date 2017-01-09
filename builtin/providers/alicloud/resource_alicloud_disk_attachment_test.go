@@ -13,7 +13,6 @@ import (
 func TestAccAlicloudDiskAttachment(t *testing.T) {
 	var i ecs.InstanceAttributesType
 	var v ecs.DiskItemType
-	// todo: create volume
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
@@ -61,13 +60,11 @@ func testAccCheckDiskAttachmentExists(n string, instance *ecs.InstanceAttributes
 
 		request := &ecs.DescribeDisksArgs{
 			RegionId: client.Region,
-			//InstanceId: instance.InstanceId,
-			DiskIds: []string{rs.Primary.Attributes["disk_id"]},
+			DiskIds:  []string{rs.Primary.Attributes["disk_id"]},
 		}
 
 		return resource.Retry(3*time.Minute, func() *resource.RetryError {
 			response, _, err := conn.DescribeDisks(request)
-
 			if response != nil {
 				for _, d := range response {
 					if d.Status != ecs.DiskStatusInUse {
@@ -136,7 +133,6 @@ resource "alicloud_instance" "instance" {
   availability_zone = "cn-beijing-a"
   security_groups = ["${alicloud_security_group.group.id}"]
   instance_name = "hello"
-  instance_network_type = "Classic"
   internet_charge_type = "PayByBandwidth"
 
   tags {

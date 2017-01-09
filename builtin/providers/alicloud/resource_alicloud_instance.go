@@ -60,10 +60,8 @@ func resourceAliyunInstance() *schema.Resource {
 			},
 
 			"instance_network_type": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				ValidateFunc: validateInstanceNetworkType,
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"internet_charge_type": &schema.Schema{
@@ -89,8 +87,9 @@ func resourceAliyunInstance() *schema.Resource {
 				Computed: true,
 			},
 			"password": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
 			},
 			"io_optimized": &schema.Schema{
 				Type:         schema.TypeString,
@@ -156,11 +155,6 @@ func resourceAliyunInstance() *schema.Resource {
 			},
 
 			"tags": tagsSchema(),
-
-			"output_tags": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 		},
 	}
 }
@@ -180,37 +174,13 @@ func resourceAliyunInstanceCreate(d *schema.ResourceData, meta interface{}) erro
 
 	d.SetId(instanceID)
 
-	d.Partial(true)
-	d.SetPartial("instance_name")
-	d.SetPartial("description")
-	d.SetPartial("password")
-	if d.Get("subnet_id") != "" || d.Get("vswitch_id") != "" {
-		d.SetPartial("subnet_id")
-		d.SetPartial("vswitch_id")
-		if InstanceNetWork(d.Get("instance_network_type").(string)) != VpcNet {
-			return fmt.Errorf("if vswitch_id set value then the instance_network_type must be set : %s", VpcNet)
-		}
-	}
-	d.SetPartial("system_disk_category")
-	d.SetPartial("instance_charge_type")
-	d.SetPartial("internet_charge_type")
-	d.SetPartial("availability_zone")
-	d.SetPartial("allocate_public_ip")
-	d.SetPartial("instance_network_type")
-	d.SetPartial("internet_max_bandwidth_in")
-	d.SetPartial("status")
-	d.SetPartial("io_optimized")
-	d.SetPartial("private_ip")
-	d.SetPartial("tags")
-	d.SetPartial("output_tags")
-	d.SetPartial("public_ip")
+	d.Set("password", d.Get("password"))
+	d.Set("system_disk_category", d.Get("system_disk_category"))
 
 	if d.Get("allocate_public_ip").(bool) {
-		ipAddress, err := conn.AllocatePublicIpAddress(d.Id())
+		_, err := conn.AllocatePublicIpAddress(d.Id())
 		if err != nil {
 			log.Printf("[DEBUG] AllocatePublicIpAddress for instance got error: %#v", err)
-		} else {
-			d.Set("public_ip", ipAddress)
 		}
 	}
 
@@ -232,9 +202,10 @@ func resourceAliyunInstanceCreate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceAliyunInstanceRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AliyunClient).ecsconn
+	client := meta.(*AliyunClient)
+	conn := client.ecsconn
 
-	instance, err := conn.DescribeInstanceAttribute(d.Id())
+	instance, err := client.QueryInstancesById(d.Id())
 	if err != nil {
 		if notFoundError(err) {
 			d.SetId("")
@@ -249,22 +220,29 @@ func resourceAliyunInstanceRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("description", instance.Description)
 	d.Set("status", instance.Status)
 	d.Set("availability_zone", instance.ZoneId)
-
+	d.Set("host_name", instance.HostName)
 	d.Set("image_id", instance.ImageId)
 	d.Set("instance_type", instance.InstanceType)
+
+	// In Classic network, internet_charge_type is valid in any case, and its default value is 'PayByBanwidth'.
+	// In VPC network, internet_charge_type is valid when instance has public ip, and its default value is 'PayByBanwidth'.
 	d.Set("internet_charge_type", instance.InternetChargeType)
+
+	if d.Get("allocate_public_ip").(bool) {
+		d.Set("public_ip", instance.PublicIpAddress.IpAddress[0])
+	}
 
 	if ecs.StringOrBool(instance.IoOptimized).Value {
 		d.Set("io_optimized", "optimized")
 	} else {
 		d.Set("io_optimized", "none")
 	}
-	d.Set("host_name", instance.HostName)
 
 	log.Printf("instance.InternetChargeType: %#v", instance.InternetChargeType)
 
-	// private ip only support vpc instance
-	if InstanceNetWork(d.Get("instance_network_type").(string)) == VpcNet {
+	d.Set("instance_network_type", instance.InstanceNetworkType)
+
+	if d.Get("subnet_id").(string) != "" || d.Get("vswitch_id").(string) != "" {
 		ipAddress := instance.VpcAttributes.PrivateIpAddress.IpAddress[0]
 		d.Set("private_ip", ipAddress)
 		d.Set("subnet_id", instance.VpcAttributes.VSwitchId)
@@ -281,9 +259,9 @@ func resourceAliyunInstanceRead(d *schema.ResourceData, meta interface{}) error 
 	})
 
 	if err != nil {
-		log.Printf("[DEBUG] DescribeTags for instance got error: %#v", err)
+		log.Printf("[ERROR] DescribeTags for instance got error: %#v", err)
 	}
-	d.Set("output_tags", tagsToString(tags))
+	d.Set("tags", tagsToMap(tags))
 
 	return nil
 }
@@ -302,18 +280,52 @@ func resourceAliyunInstanceUpdate(d *schema.ResourceData, meta interface{}) erro
 		d.SetPartial("tags")
 	}
 
+	attributeUpdate := false
+	args := &ecs.ModifyInstanceAttributeArgs{
+		InstanceId: d.Id(),
+	}
+
+	if d.HasChange("instance_name") {
+		log.Printf("[DEBUG] ModifyInstanceAttribute instance_name")
+		d.SetPartial("instance_name")
+		args.InstanceName = d.Get("instance_name").(string)
+
+		attributeUpdate = true
+	}
+
+	if d.HasChange("description") {
+		log.Printf("[DEBUG] ModifyInstanceAttribute description")
+		d.SetPartial("description")
+		args.Description = d.Get("description").(string)
+
+		attributeUpdate = true
+	}
+
+	if d.HasChange("host_name") {
+		log.Printf("[DEBUG] ModifyInstanceAttribute host_name")
+		d.SetPartial("host_name")
+		args.HostName = d.Get("host_name").(string)
+
+		attributeUpdate = true
+	}
+
+	passwordUpdate := false
 	if d.HasChange("password") {
 		log.Printf("[DEBUG] ModifyInstanceAttribute password")
-		val := d.Get("password").(string)
-		args := &ecs.ModifyInstanceAttributeArgs{
-			InstanceId: d.Id(),
-			Password:   val,
-		}
+		d.SetPartial("password")
+		args.Password = d.Get("password").(string)
 
+		attributeUpdate = true
+		passwordUpdate = true
+	}
+
+	if attributeUpdate {
 		if err := conn.ModifyInstanceAttribute(args); err != nil {
-			return fmt.Errorf("Instance change password got error: %#v", err)
+			return fmt.Errorf("Modify instance attribute got error: %#v", err)
 		}
+	}
 
+	if passwordUpdate {
 		if v, ok := d.GetOk("status"); ok && v.(string) != "" {
 			if ecs.InstanceStatus(d.Get("status").(string)) == ecs.Running {
 				log.Printf("[DEBUG] RebootInstance after change password")
@@ -326,53 +338,6 @@ func resourceAliyunInstanceUpdate(d *schema.ResourceData, meta interface{}) erro
 				}
 			}
 		}
-
-		d.SetPartial("password")
-	}
-
-	if d.HasChange("instance_name") {
-		log.Printf("[DEBUG] ModifyInstanceAttribute instance_name")
-		val := d.Get("instance_name").(string)
-		args := &ecs.ModifyInstanceAttributeArgs{
-			InstanceId:   d.Id(),
-			InstanceName: val,
-		}
-
-		if err := conn.ModifyInstanceAttribute(args); err != nil {
-			return fmt.Errorf("Modify instance name got error: %#v", err)
-		}
-
-		d.SetPartial("instance_name")
-	}
-
-	if d.HasChange("description") {
-		log.Printf("[DEBUG] ModifyInstanceAttribute description")
-		val := d.Get("description").(string)
-		args := &ecs.ModifyInstanceAttributeArgs{
-			InstanceId:  d.Id(),
-			Description: val,
-		}
-
-		if err := conn.ModifyInstanceAttribute(args); err != nil {
-			return fmt.Errorf("Modify instance description got error: %#v", err)
-		}
-
-		d.SetPartial("description")
-	}
-
-	if d.HasChange("host_name") {
-		log.Printf("[DEBUG] ModifyInstanceAttribute host_name")
-		val := d.Get("host_name").(string)
-		args := &ecs.ModifyInstanceAttributeArgs{
-			InstanceId: d.Id(),
-			HostName:   val,
-		}
-
-		if err := conn.ModifyInstanceAttribute(args); err != nil {
-			return fmt.Errorf("Modify instance host_name got error: %#v", err)
-		}
-
-		d.SetPartial("host_name")
 	}
 
 	if d.HasChange("security_groups") {
@@ -404,10 +369,10 @@ func resourceAliyunInstanceUpdate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceAliyunInstanceDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*AliyunClient)
+	conn := client.ecsconn
 
-	conn := meta.(*AliyunClient).ecsconn
-
-	instance, err := conn.DescribeInstanceAttribute(d.Id())
+	instance, err := client.QueryInstancesById(d.Id())
 	if err != nil {
 		if notFoundError(err) {
 			return nil
@@ -442,9 +407,6 @@ func buildAliyunInstanceArgs(d *schema.ResourceData, meta interface{}) (*ecs.Cre
 	}
 
 	imageID := d.Get("image_id").(string)
-	//if _, err := client.DescribeImage(imageID); err != nil {
-	//	return nil, err
-	//}
 
 	args.ImageId = imageID
 
@@ -519,6 +481,9 @@ func buildAliyunInstanceArgs(d *schema.ResourceData, meta interface{}) (*ecs.Cre
 	}
 	if vswitchValue != "" {
 		args.VSwitchId = vswitchValue
+		if d.Get("allocate_public_ip").(bool) && args.InternetMaxBandwidthOut <= 0 {
+			return nil, fmt.Errorf("Invalid internet_max_bandwidth_out result in allocation public ip failed in the VPC.")
+		}
 	}
 
 	if v := d.Get("instance_charge_type").(string); v != "" {

@@ -3,6 +3,7 @@ package alicloud
 import (
 	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
+	"strings"
 )
 
 func (client *AliyunClient) DescribeEipAddress(allocationId string) (*ecs.EipAddressSetType, error) {
@@ -91,4 +92,43 @@ func (client *AliyunClient) QueryVswitchById(vpcId, vswitchId string) (vsw *ecs.
 	}
 
 	return &vsws[0], nil
+}
+
+func (client *AliyunClient) QueryRouteTables(args *ecs.DescribeRouteTablesArgs) (routeTables []ecs.RouteTableSetType, err error) {
+	rts, _, err := client.ecsconn.DescribeRouteTables(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return rts, nil
+}
+
+func (client *AliyunClient) QueryRouteTableById(routeTableId string) (rt *ecs.RouteTableSetType, err error) {
+	args := &ecs.DescribeRouteTablesArgs{
+		RouteTableId: routeTableId,
+	}
+	rts, err := client.QueryRouteTables(args)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(rts) == 0 {
+		return nil, &common.Error{ErrorResponse: common.ErrorResponse{Message: Notfound}}
+	}
+
+	return &rts[0], nil
+}
+
+func (client *AliyunClient) QueryRouteEntry(routeTableId, cidrBlock, nextHopType, nextHopId string) (rn *ecs.RouteEntrySetType, err error) {
+	rt, errs := client.QueryRouteTableById(routeTableId)
+	if errs != nil {
+		return nil, errs
+	}
+
+	for _, e := range rt.RouteEntrys.RouteEntry {
+		if strings.ToLower(string(e.DestinationCidrBlock)) == cidrBlock {
+			return &e, nil
+		}
+	}
+	return nil, nil
 }

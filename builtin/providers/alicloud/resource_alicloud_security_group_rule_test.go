@@ -114,54 +114,6 @@ func TestAccAlicloudSecurityGroupRule_Vpc_Ingress(t *testing.T) {
 
 }
 
-func TestAccAlicloudSecurityGroupRule_MultiIngress(t *testing.T) {
-	var sg ecs.DescribeSecurityGroupAttributeResponse
-
-	testMultiRuleCount := func(*terraform.State) error {
-		ps := sg.Permissions.Permission
-		if len(ps) != 2 {
-			return fmt.Errorf("Wrong Security Group rule count, expected %d, got %d",
-				2, len(ps))
-		}
-
-		var rule ecs.PermissionType
-		for _, p := range ps {
-			if p.PortRange == "1/200" {
-				rule = p
-			}
-		}
-		log.Printf("[WARN]verify multi ingress %#v", rule)
-		if rule.SourceCidrIp != "10.159.6.18/12" {
-			return fmt.Errorf("Wrong Security Group cidr setting, expected %s, got %s",
-				"10.159.6.18/12", rule.SourceCidrIp)
-		}
-
-		return nil
-	}
-
-	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-
-		// module name
-		IDRefreshName: "alicloud_security_group.foo",
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckSecurityGroupRuleDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccSecurityGroupRuleMultiIngress,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckSecurityGroupExists(
-						"alicloud_security_group.foo", &sg),
-					testMultiRuleCount,
-				),
-			},
-		},
-	})
-
-}
-
 func testAccCheckSecurityGroupRuleExists(n string, m *ecs.PermissionType) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]

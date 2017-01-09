@@ -10,7 +10,7 @@ type CreateAlertResponse struct {
 
 // CountAlertResponse holds the result data of the CountAlertRequest
 type CountAlertResponse struct {
-	Count   int    `json:"count"`
+	Count int `json:"count"`
 }
 
 // CloseAlertResponse holds the result data of the CloseAlertRequest

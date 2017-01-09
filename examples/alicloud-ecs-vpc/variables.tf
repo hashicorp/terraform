@@ -40,11 +40,11 @@ variable "system_disk_category" {
 variable "internet_charge_type" {
   default = "PayByTraffic"
 }
-variable "instance_network_type" {
-  default = "Vpc"
-}
 variable "internet_max_bandwidth_out" {
   default = 5
+}
+variable "allocate_public_ip" {
+  default = true
 }
 
 variable "disk_category" {

@@ -1,6 +1,7 @@
 package alicloud
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
@@ -81,6 +82,41 @@ func (client *AliyunClient) DescribeZone(zoneID string) (*ecs.ZoneType, error) {
 	}
 
 	return zone, nil
+}
+
+func (client *AliyunClient) QueryInstancesByIds(ids []string) (instances []ecs.InstanceAttributesType, err error) {
+	idsStr, jerr := json.Marshal(ids)
+	if jerr != nil {
+		return nil, jerr
+	}
+
+	args := ecs.DescribeInstancesArgs{
+		RegionId:    client.Region,
+		InstanceIds: string(idsStr),
+	}
+
+	instances, _, errs := client.ecsconn.DescribeInstances(&args)
+
+	if errs != nil {
+		return nil, errs
+	}
+
+	return instances, nil
+}
+
+func (client *AliyunClient) QueryInstancesById(id string) (instance *ecs.InstanceAttributesType, err error) {
+	ids := []string{id}
+
+	instances, errs := client.QueryInstancesByIds(ids)
+	if errs != nil {
+		return nil, errs
+	}
+
+	if len(instances) == 0 {
+		return nil, common.GetClientErrorFromString(InstanceNotfound)
+	}
+
+	return &instances[0], nil
 }
 
 // ResourceAvailable check resource available for zone

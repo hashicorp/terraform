@@ -41,9 +41,6 @@ variable "internet_charge_type" {
 variable "slb_internet_charge_type" {
   default = "paybytraffic"
 }
-variable "instance_network_type" {
-  default = "Classic"
-}
 variable "internet_max_bandwidth_out" {
   default = 5
 }

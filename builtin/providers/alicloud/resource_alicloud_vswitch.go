@@ -112,32 +112,29 @@ func resourceAliyunSwitchUpdate(d *schema.ResourceData, meta interface{}) error 
 
 	d.Partial(true)
 
+	attributeUpdate := false
+	args := &ecs.ModifyVSwitchAttributeArgs{
+		VSwitchId: d.Id(),
+	}
+
 	if d.HasChange("name") {
-		val := d.Get("name").(string)
-		args := &ecs.ModifyVSwitchAttributeArgs{
-			VSwitchId:   d.Id(),
-			VSwitchName: val,
-		}
-
-		if err := conn.ModifyVSwitchAttribute(args); err != nil {
-			return err
-		}
-
 		d.SetPartial("name")
+		args.VSwitchName = d.Get("name").(string)
+
+		attributeUpdate = true
 	}
 
 	if d.HasChange("description") {
-		val := d.Get("description").(string)
-		args := &ecs.ModifyVSwitchAttributeArgs{
-			VSwitchId:   d.Id(),
-			Description: val,
-		}
+		d.SetPartial("description")
+		args.Description = d.Get("description").(string)
 
+		attributeUpdate = true
+	}
+	if attributeUpdate {
 		if err := conn.ModifyVSwitchAttribute(args); err != nil {
 			return err
 		}
 
-		d.SetPartial("description")
 	}
 
 	d.Partial(false)

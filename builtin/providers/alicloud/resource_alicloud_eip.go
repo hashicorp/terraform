@@ -19,7 +19,7 @@ func resourceAliyunEip() *schema.Resource {
 		Delete: resourceAliyunEipDelete,
 
 		Schema: map[string]*schema.Schema{
-			"band_width": &schema.Schema{
+			"bandwidth": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  5,
@@ -82,7 +82,7 @@ func resourceAliyunEipRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	bandwidth, _ := strconv.Atoi(eip.Bandwidth)
-	d.Set("band_width", bandwidth)
+	d.Set("bandwidth", bandwidth)
 	d.Set("internet_charge_type", eip.InternetChargeType)
 	d.Set("ip_address", eip.IpAddress)
 	d.Set("status", eip.Status)
@@ -102,13 +102,13 @@ func resourceAliyunEipUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	d.Partial(true)
 
-	if d.HasChange("band_width") {
-		err := conn.ModifyEipAddressAttribute(d.Id(), d.Get("band_width").(int))
+	if d.HasChange("bandwidth") {
+		err := conn.ModifyEipAddressAttribute(d.Id(), d.Get("bandwidth").(int))
 		if err != nil {
 			return err
 		}
 
-		d.SetPartial("band_width")
+		d.SetPartial("bandwidth")
 	}
 
 	d.Partial(false)
@@ -148,7 +148,7 @@ func buildAliyunEipArgs(d *schema.ResourceData, meta interface{}) (*ecs.Allocate
 
 	args := &ecs.AllocateEipAddressArgs{
 		RegionId:           getRegion(d, meta),
-		Bandwidth:          d.Get("band_width").(int),
+		Bandwidth:          d.Get("bandwidth").(int),
 		InternetChargeType: common.InternetChargeType(d.Get("internet_charge_type").(string)),
 	}
 

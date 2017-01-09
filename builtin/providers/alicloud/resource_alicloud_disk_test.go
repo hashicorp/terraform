@@ -12,7 +12,6 @@ import (
 
 func TestAccAlicloudDisk_basic(t *testing.T) {
 	var v ecs.DiskItemType
-	// todo: create disk
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {

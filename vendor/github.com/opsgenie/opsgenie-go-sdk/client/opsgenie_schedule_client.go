@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/opsgenie/opsgenie-go-sdk/schedule"
 	"github.com/opsgenie/opsgenie-go-sdk/logging"
+	"github.com/opsgenie/opsgenie-go-sdk/schedule"
 )
 
 const (
-	scheduleURL          = "/v1/json/schedule"
+	scheduleURL = "/v1/json/schedule"
 )
 
 // OpsGenieScheduleClient is the data type to make Schedule API requests.
@@ -119,6 +119,6 @@ func (cli *OpsGenieScheduleClient) List(req schedule.ListSchedulesRequest) (*sch
 		logging.Logger().Warn(message)
 		return nil, errors.New(message)
 	}
-	
+
 	return &listSchedulesResp, nil
 }

@@ -67,15 +67,14 @@ Terraform will autogenerate a name beginning with `tf-ecs`.
 * `system_disk_category` - (Optional) Valid values are `cloud`, `cloud_efficiency`, `cloud_ssd`, For I/O optimized instance type, `cloud_ssd` and `cloud_efficiency` disks are supported. For non I/O Optimized instance type, `cloud` disk are supported. 
 * `system_disk_size` - (Optional) Size of the system disk, value range: 40GB ~ 500GB. Default is 40GB.
 * `description` - (Optional) Description of the instance, This description can have a string of 2 to 256 characters, It cannot begin with http:// or https://. Default value is null.
-* `instance_network_type` - (Optional) Valid values are `Classic`, `Vpc`, If `Classic`, the instance will be create in classic network. If `Vpc`, the instance will be create in VPC network.
-* `internet_charge_type` - (Optional) Internet charge type of the instance, Valid values are `PayByBandwidth`, `PayByTraffic`. Default is `PayByBandwidth`. 
+* `internet_charge_type` - (Optional) Internet charge type of the instance, Valid values are `PayByBandwidth`, `PayByTraffic`. Default is `PayByBandwidth`.
 * `internet_max_bandwidth_in` - (Optional) Maximum incoming bandwidth from the public network, measured in Mbps (Mega bit per second). Value range: [1, 200]. If this value is not specified, then automatically sets it to 200 Mbps.
 * `internet_max_bandwidth_out` - (Optional) Maximum outgoing bandwidth to the public network, measured in Mbps (Mega bit per second). Value range: 
 `internet_charge_type` is `PayByBandwidth`: this value range [0, 100], If this value is not specified, then automatically sets it to 0 Mbps; If `internet_charge_type` is `PayByTraffic`: this value range [1, 100]. this value must be set value, such as 5.
 * `host_name` - (Optional) Host name of the ECS, which is a string of at least two characters. “hostname” cannot start or end with “.” or “-“. In addition, two or more consecutive “.” or “-“ symbols are not allowed. On Windows, the host name can contain a maximum of 15 characters, which can be a combination of uppercase/lowercase letters, numerals, and “-“. The host name cannot contain dots (“.”) or contain only numeric characters.
 On other OSs such as Linux, the host name can contain a maximum of 30 characters, which can be segments separated by dots (“.”), where each segment can contain uppercase/lowercase letters, numerals, or “_“.
 * `password` - (Optional) Password to an instance is a string of 8 to 30 characters. It must contain uppercase/lowercase letters and numerals, but cannot contain special symbols.
-* `vswitch_id` - (Optional) The virtual switch ID to launch in VPC.
+* `vswitch_id` - (Optional) The virtual switch ID to launch in VPC. If you want to create instances in VPC network, this parameter must be set.
 * `instance_charge_type` - (Optional) Valid values are `PrePaid`, `PostPaid`, The default is `PostPaid`.
 * `period` - (Optional) The time that you have bought the resource, in month. Only valid when instance_charge_type is set as `PrePaid`. Value range [1, 12].
 * `private_ip` - (Optional) Private IP address to associate with the instance in a VPC.
@@ -93,7 +92,9 @@ The following attributes are exported:
 * `status` - The instance status.
 * `image_id` - The instance Image Id.
 * `instance_type` - The instance type.
+* `instance_network_type` - The instance network type and it has two values: `vpc` and `classic`.
 * `io_optimized` - The instance whether I/O optimized.
 * `private_ip` - The instance private ip.
+* `public_ip` - The instance public ip.
 * `vswitch_id` - If the instance created in VPC, then this value is  virtual switch ID.
-* `output_tags` - The instance tags.
+* `tags` - The instance tags, use jsonencode(item) to display the value.
