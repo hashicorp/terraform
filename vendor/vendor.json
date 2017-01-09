@@ -390,6 +390,24 @@
 			"revisionTime": "2016-06-29T21:43:12Z"
 		},
 		{
+			"checksumSHA1": "KmjnydoAbofMieIWm+it5OWERaM=",
+			"path": "github.com/alecthomas/template",
+			"revision": "a0175ee3bccc567396460bf5acd36800cb10c49c",
+			"revisionTime": "2016-04-05T07:15:01Z"
+		},
+		{
+			"checksumSHA1": "3wt0pTXXeS+S93unwhGoLIyGX/Q=",
+			"path": "github.com/alecthomas/template/parse",
+			"revision": "a0175ee3bccc567396460bf5acd36800cb10c49c",
+			"revisionTime": "2016-04-05T07:15:01Z"
+		},
+		{
+			"checksumSHA1": "fCc3grA7vIxfBru7R3SqjcW+oLI=",
+			"path": "github.com/alecthomas/units",
+			"revision": "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a",
+			"revisionTime": "2015-10-22T06:55:26Z"
+		},
+		{
 			"checksumSHA1": "kn+zdUr5TNsoAX8BgjOaWYtMT5U=",
 			"path": "github.com/apparentlymart/go-cidr/cidr",
 			"revision": "a3ebdb999b831ecb6ab8a226e31b07b2b9061c47"
@@ -420,6 +438,12 @@
 			"checksumSHA1": "gNO0JNpLzYOdInGeq7HqMZUzx9M=",
 			"path": "github.com/armon/go-radix",
 			"revision": "4239b77079c7b5d1243b7b4736304ce8ddb6f0f2"
+		},
+		{
+			"checksumSHA1": "8kvElaAyYpiZZrYu8DS0IHixpkg=",
+			"path": "github.com/arukasio/cli",
+			"revision": "98eced17d43288a7d5849fc5d2e5709ece6378a1",
+			"revisionTime": "2016-12-15T18:26:22Z"
 		},
 		{
 			"checksumSHA1": "a4LHK2+jFbBQqPz9hBE4JVblTuE=",
@@ -1244,6 +1268,12 @@
 			"checksumSHA1": "hugdbffSP0G67FyJUhGvu9O0WmM=",
 			"path": "github.com/fsouza/go-dockerclient/external/golang.org/x/sys/unix",
 			"revision": "bf97c77db7c945cbcdbf09d56c6f87a66f54537b"
+		},
+		{
+			"checksumSHA1": "SYxDN6l6j6OJ9f9BQDzneaJBd0k=",
+			"path": "github.com/gedex/inflector",
+			"revision": "046f2c31204676e3623730ee70fd0964e05822e7",
+			"revisionTime": "2016-11-03T04:27:56Z"
 		},
 		{
 			"checksumSHA1": "JKjnR1ApU6NcC79xcGaT7QRMx3A=",
@@ -2151,6 +2181,12 @@
 			"revision": "d392059301313eee8059c85a4e698f22c664ef78"
 		},
 		{
+			"checksumSHA1": "BMxNUz0/EaTvexw9Vxm5jPG3w60=",
+			"path": "github.com/manyminds/api2go/jsonapi",
+			"revision": "cffec192576151f789d0810719895d722d526ba9",
+			"revisionTime": "2016-12-20T07:43:40Z"
+		},
+		{
 			"checksumSHA1": "yg57Q4J8Ob0LoYvqDxsWZ6AHffE=",
 			"path": "github.com/masterzen/simplexml/dom",
 			"revision": "95ba30457eb1121fa27753627c774c7cd4e90083"
@@ -2848,6 +2884,12 @@
 			"checksumSHA1": "U7dGDNwEHORvJFMoNSXErKE7ITg=",
 			"path": "google.golang.org/cloud/internal",
 			"revision": "fb10e8da373d97f6ba5e648299a10b3b91f14cd5"
+		},
+		{
+			"checksumSHA1": "8BhOe2McbS6AKIorxwJMl1TJ50A=",
+			"path": "gopkg.in/alecthomas/kingpin.v2",
+			"revision": "e9044be3ab2a8e11d4e1f418d12f0790d57e8d70",
+			"revisionTime": "2016-08-29T10:30:05Z"
 		},
 		{
 			"checksumSHA1": "swmqTO+Xvmy/B2XOMDFGG0SOpNU=",

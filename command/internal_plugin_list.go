@@ -7,6 +7,7 @@ package command
 
 import (
 	archiveprovider "github.com/hashicorp/terraform/builtin/providers/archive"
+	arukasprovider "github.com/hashicorp/terraform/builtin/providers/arukas"
 	atlasprovider "github.com/hashicorp/terraform/builtin/providers/atlas"
 	awsprovider "github.com/hashicorp/terraform/builtin/providers/aws"
 	azureprovider "github.com/hashicorp/terraform/builtin/providers/azure"
@@ -73,6 +74,7 @@ import (
 
 var InternalProviders = map[string]plugin.ProviderFunc{
 	"archive":      archiveprovider.Provider,
+	"arukas":       arukasprovider.Provider,
 	"atlas":        atlasprovider.Provider,
 	"aws":          awsprovider.Provider,
 	"azure":        azureprovider.Provider,
