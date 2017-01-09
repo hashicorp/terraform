@@ -12,7 +12,9 @@ Renders a template from a file.
 
 ## Example Usage
 
-From a file:
+Option 1: From a file:
+
+Reference the template path:
 
 ```
 data "template_file" "init" {
@@ -24,7 +26,15 @@ data "template_file" "init" {
 }
 ```
 
-Inline:
+Inside the file, reference the variable as such:
+
+```
+#!/bin/bash
+
+echo "CONSUL_ADDRESS = ${consul_address}" > /tmp/iplist
+```
+
+Option 2: Inline:
 
 ```
 data "template_file" "init" {
