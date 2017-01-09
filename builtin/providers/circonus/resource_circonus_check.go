@@ -29,8 +29,8 @@ const (
 	_CheckCollectorIDAttr _SchemaAttr = "id"
 
 	// circonus_check.json.* resource attribute names
-	_CheckJSONHTTPHeadersAttr _SchemaAttr = "http_headers"
-	_CheckJSONHTTPVersionAttr _SchemaAttr = "http_version"
+	_CheckJSONHTTPHeadersAttr _SchemaAttr = "headers"
+	_CheckJSONHTTPVersionAttr _SchemaAttr = "version"
 	_CheckJSONMethodAttr      _SchemaAttr = "method"
 	_CheckJSONPortAttr        _SchemaAttr = "port"
 	_CheckJSONReadLimitAttr   _SchemaAttr = "read_limit"
@@ -122,46 +122,15 @@ func _NewCirconusCheckResource() *schema.Resource {
 					}, _CheckCollectorDescriptions),
 				},
 			},
-			_CheckStreamAttr: &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				MinItems: 1,
-				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[_SchemaAttr]*schema.Schema{
-						_MetricNameAttr: &schema.Schema{
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateRegexp(_MetricNameAttr, `[\S]+`),
-						},
-						_MetricTagsAttr: &schema.Schema{
-							Type:         schema.TypeMap,
-							Optional:     true,
-							ValidateFunc: validateTags,
-						},
-						_MetricTypeAttr: &schema.Schema{
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateMetricType,
-						},
-						_MetricUnitAttr: &schema.Schema{
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: validateRegexp(_MetricUnitAttr, `.+`),
-						},
-					}, _CheckStreamDescriptions),
-				},
-			},
-			_CheckStreamsAttr: &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Set:      schema.HashString,
-				MinItems: 1,
-				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validateUUID(_MetricIDAttr),
-				},
-			},
 			_CheckJSONAttr: jsonAttr,
+			checkMetricLimitAttr: &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+				ValidateFunc: validateFuncs(
+					validateIntMin(checkMetricLimitAttr, -1),
+				),
+			},
 			// checkConfigAttr: &schema.Schema{
 			// 	Type:     schema.TypeList,
 			// 	Optional: true,
@@ -255,20 +224,6 @@ func _NewCirconusCheckResource() *schema.Resource {
 			// 		},
 			// 	},
 			// },
-			checkMetricLimitAttr: &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
-				ValidateFunc: validateFuncs(
-					validateIntMin(checkMetricLimitAttr, -1),
-				),
-			},
-			checkMetricNamesAttr: &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
 			// checkMetricAttr: &schema.Schema{
 			// 	Type:     schema.TypeList,
 			// 	Required: true,
@@ -325,6 +280,45 @@ func _NewCirconusCheckResource() *schema.Resource {
 					validateDurationMin(checkPeriodAttr, defaultCirconusCheckPeriodMin),
 					validateDurationMax(checkPeriodAttr, defaultCirconusCheckPeriodMax),
 				),
+			},
+			_CheckStreamAttr: &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				MinItems: 1,
+				Elem: &schema.Resource{
+					Schema: castSchemaToTF(map[_SchemaAttr]*schema.Schema{
+						_MetricNameAttr: &schema.Schema{
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateRegexp(_MetricNameAttr, `[\S]+`),
+						},
+						_MetricTagsAttr: &schema.Schema{
+							Type:         schema.TypeMap,
+							Optional:     true,
+							ValidateFunc: validateTags,
+						},
+						_MetricTypeAttr: &schema.Schema{
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateMetricType,
+						},
+						_MetricUnitAttr: &schema.Schema{
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateRegexp(_MetricUnitAttr, `.+`),
+						},
+					}, _CheckStreamDescriptions),
+				},
+			},
+			_CheckStreamsAttr: &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Set:      schema.HashString,
+				MinItems: 1,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validateUUID(_MetricIDAttr),
+				},
 			},
 			checkTagsAttr: &schema.Schema{
 				Type:         schema.TypeMap,
