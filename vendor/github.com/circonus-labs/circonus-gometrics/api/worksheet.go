@@ -18,26 +18,26 @@ import (
 
 // WorksheetGraph defines a worksheet cid to be include in the worksheet
 type WorksheetGraph struct {
-	GraphCID string `json:"graph"`
+	GraphCID string `json:"graph"` // string
 }
 
 // WorksheetSmartQuery defines a query to include multiple worksheets
 type WorksheetSmartQuery struct {
 	Name  string   `json:"name"`
-	Query string   `json:"query"`
 	Order []string `json:"order"`
+	Query string   `json:"query"`
 }
 
-// Worksheet defines a worksheet
+// Worksheet defines a worksheet. See https://login.circonus.com/resources/api/calls/worksheet for more information.
 type Worksheet struct {
-	CID          string                `json:"_cid,omitempty"`
-	Description  string                `json:"description"`
-	Favorite     bool                  `json:"favorite"`
-	Graphs       []WorksheetGraph      `json:"worksheets,omitempty"`
-	Notes        string                `json:"notes"`
-	SmartQueries []WorksheetSmartQuery `json:"smart_queries,omitempty"`
-	Tags         []string              `json:"tags"`
-	Title        string                `json:"title"`
+	CID          string                `json:"_cid,omitempty"`          // string
+	Description  *string               `json:"description"`             // string or null
+	Favorite     bool                  `json:"favorite"`                // boolean
+	Graphs       []WorksheetGraph      `json:"worksheets,omitempty"`    // [] len >= 0
+	Notes        *string               `json:"notes"`                   // string or null
+	SmartQueries []WorksheetSmartQuery `json:"smart_queries,omitempty"` // [] len >= 0
+	Tags         []string              `json:"tags"`                    // [] len >= 0
+	Title        string                `json:"title"`                   // string
 }
 
 // NewWorksheet returns a new Worksheet (with defaults, if applicable)
@@ -78,7 +78,7 @@ func (a *API) FetchWorksheet(cid CIDType) (*Worksheet, error) {
 	return worksheet, nil
 }
 
-// FetchWorksheets retrieves all worksheets
+// FetchWorksheets retrieves all worksheets available to API Token.
 func (a *API) FetchWorksheets() (*[]Worksheet, error) {
 	result, err := a.Get(config.WorksheetPrefix)
 	if err != nil {
@@ -93,7 +93,7 @@ func (a *API) FetchWorksheets() (*[]Worksheet, error) {
 	return &worksheets, nil
 }
 
-// UpdateWorksheet update worksheet definition
+// UpdateWorksheet updates passed worksheet.
 func (a *API) UpdateWorksheet(cfg *Worksheet) (*Worksheet, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid worksheet config [nil]")
@@ -131,7 +131,7 @@ func (a *API) UpdateWorksheet(cfg *Worksheet) (*Worksheet, error) {
 	return worksheet, nil
 }
 
-// CreateWorksheet create a new worksheet
+// CreateWorksheet creates a new worksheet.
 func (a *API) CreateWorksheet(cfg *Worksheet) (*Worksheet, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("Invalid worksheet config [nil]")
@@ -159,15 +159,15 @@ func (a *API) CreateWorksheet(cfg *Worksheet) (*Worksheet, error) {
 	return worksheet, nil
 }
 
-// DeleteWorksheet delete a worksheet
+// DeleteWorksheet deletes passed worksheet.
 func (a *API) DeleteWorksheet(cfg *Worksheet) (bool, error) {
 	if cfg == nil {
-		return false, fmt.Errorf("Invalid worksheet config [none]")
+		return false, fmt.Errorf("Invalid worksheet config [nil]")
 	}
 	return a.DeleteWorksheetByCID(CIDType(&cfg.CID))
 }
 
-// DeleteWorksheetByCID delete a worksheet by cid
+// DeleteWorksheetByCID deletes worksheet with passed cid.
 func (a *API) DeleteWorksheetByCID(cid CIDType) (bool, error) {
 	if cid == nil || *cid == "" {
 		return false, fmt.Errorf("Invalid worksheet CID [none]")
@@ -191,9 +191,9 @@ func (a *API) DeleteWorksheetByCID(cid CIDType) (bool, error) {
 	return true, nil
 }
 
-// SearchWorksheets returns list of worksheets matching a search query and/or filter
-//    - a search query (see: https://login.circonus.com/resources/api#searching)
-//    - a filter (see: https://login.circonus.com/resources/api#filtering)
+// SearchWorksheets returns worksheets matching the specified search
+// query and/or filter. If nil is passed for both parameters all
+// worksheets will be returned.
 func (a *API) SearchWorksheets(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]Worksheet, error) {
 	q := url.Values{}
 

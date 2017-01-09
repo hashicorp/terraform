@@ -14,16 +14,26 @@ import (
 
 // circonus_metric.* resource attribute names
 const (
-	_MetricIDAttr   _SchemaAttr = "id"
-	_MetricNameAttr _SchemaAttr = "name"
-	_MetricTypeAttr _SchemaAttr = "type"
-	_MetricTagsAttr _SchemaAttr = "tags"
-	_MetricUnitAttr _SchemaAttr = "unit"
+	_MetricActiveAttr _SchemaAttr = "active"
+	_MetricIDAttr     _SchemaAttr = "id"
+	_MetricNameAttr   _SchemaAttr = "name"
+	_MetricTypeAttr   _SchemaAttr = "type"
+	_MetricTagsAttr   _SchemaAttr = "tags"
+	_MetricUnitAttr   _SchemaAttr = "unit"
+)
+
+const (
+	// CheckBundle.Metric.Status can be one of these values
+	_MetricStatusActive    = "active"
+	_MetricStatusAvailable = "available"
 )
 
 var _MetricDescriptions = _AttrDescrs{
-	_MetricNameAttr: "Name of the metric",
-	_MetricTypeAttr: "Type of metric",
+	_MetricActiveAttr: "Enables or disables the metric",
+	_MetricNameAttr:   "Name of the metric",
+	_MetricTypeAttr:   "Type of metric (e.g. numeric, histogram, text)",
+	_MetricTagsAttr:   "Tags assigned to the metric",
+	_MetricUnitAttr:   "The unit of measurement for a metric",
 }
 
 func _NewCirconusMetricResource() *schema.Resource {
@@ -38,9 +48,15 @@ func _NewCirconusMetricResource() *schema.Resource {
 		},
 
 		Schema: castSchemaToTF(map[_SchemaAttr]*schema.Schema{
+			_MetricActiveAttr: &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 			_MetricNameAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateRegexp(_MetricNameAttr, `[\S]+`),
 			},
 			_MetricTypeAttr: &schema.Schema{
 				Type:         schema.TypeString,
@@ -54,8 +70,9 @@ func _NewCirconusMetricResource() *schema.Resource {
 				DiffSuppressFunc: suppressAutoTag,
 			},
 			_MetricUnitAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateRegexp(_MetricUnitAttr, `.+`),
 			},
 		}, _MetricDescriptions),
 	}
@@ -67,8 +84,8 @@ func _MetricCreate(d *schema.ResourceData, meta interface{}) error {
 		return errwrap.Wrapf("error parsing metric schema during create: {{err}}", err)
 	}
 
-	if err := m.Save(d); err != nil {
-		return errwrap.Wrapf("error saving metric during create: {{err}}", err)
+	if err := m.Create(d); err != nil {
+		return errwrap.Wrapf("error creating metric: {{err}}", err)
 	}
 
 	return _MetricRead(d, meta)
@@ -93,8 +110,8 @@ func _MetricUpdate(d *schema.ResourceData, meta interface{}) error {
 		return errwrap.Wrapf("error parsing metric schema during update: {{err}}", err)
 	}
 
-	if err := m.Save(d); err != nil {
-		return errwrap.Wrapf("error saving metric during update: {{err}}", err)
+	if err := m.Update(d); err != nil {
+		return errwrap.Wrapf("error updating metric: {{err}}", err)
 	}
 
 	return nil

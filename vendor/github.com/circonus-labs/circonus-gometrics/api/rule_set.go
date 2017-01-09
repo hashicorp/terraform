@@ -18,28 +18,28 @@ import (
 
 // RuleSetRule defines a ruleset rule
 type RuleSetRule struct {
-	Criteria          string `json:"criteria"`
-	Severity          uint   `json:"severity"`
-	Value             string `json:"value"`
-	WindowingDuration uint   `json:"windowing_duration,omitempty"`
-	WindowingFunction string `json:"windowing_function,omitempty"`
-	Wait              uint   `json:"wait,omitempty"`
+	Criteria          string  `json:"criteria"`                     // string
+	Severity          uint    `json:"severity"`                     // uint
+	Value             string  `json:"value"`                        // string
+	Wait              uint    `json:"wait,omitempty"`               // uint
+	WindowingDuration uint    `json:"windowing_duration,omitempty"` // uint
+	WindowingFunction *string `json:"windowing_function,omitempty"` // string or null
 }
 
-// RuleSet defines a ruleset
+// RuleSet defines a ruleset. See https://login.circonus.com/resources/api/calls/rule_set for more information.
 type RuleSet struct {
-	CID           string             `json:"_cid,omitempty"`
-	CheckCID      string             `json:"check"`
-	ContactGroups map[uint8][]string `json:"contact_groups"`
-	Derive        string             `json:"derive,omitempty"`
-	Link          string             `json:"link"`
-	MetricName    string             `json:"metric_name"`
-	MetricTags    []string           `json:"metric_tags"`
-	MetricType    string             `json:"metric_type"`
-	Notes         string             `json:"notes"`
-	Parent        string             `json:"parent,omitempty"`
-	Rules         []RuleSetRule      `json:"rules"`
-	Tags          []string           `json:"tags"`
+	CheckCID      string             `json:"check"`            // string
+	CID           string             `json:"_cid,omitempty"`   // string
+	ContactGroups map[uint8][]string `json:"contact_groups"`   // [] len 5
+	Derive        *string            `json:"derive,omitempty"` // string or null
+	Link          *string            `json:"link"`             // string or null
+	MetricName    string             `json:"metric_name"`      // string
+	MetricTags    []string           `json:"metric_tags"`      // [] len >= 0
+	MetricType    string             `json:"metric_type"`      // string
+	Notes         *string            `json:"notes"`            // string or null
+	Parent        *string            `json:"parent,omitempty"` // string or null
+	Rules         []RuleSetRule      `json:"rules"`            // [] len >= 1
+	Tags          []string           `json:"tags"`             // [] len >= 0
 }
 
 // NewRuleSet returns a new RuleSet (with defaults if applicable)
@@ -80,7 +80,7 @@ func (a *API) FetchRuleSet(cid CIDType) (*RuleSet, error) {
 	return ruleset, nil
 }
 
-// FetchRuleSets retrieves all rulesets
+// FetchRuleSets retrieves all rule sets available to API Token.
 func (a *API) FetchRuleSets() (*[]RuleSet, error) {
 	result, err := a.Get(config.RuleSetPrefix)
 	if err != nil {
@@ -95,10 +95,10 @@ func (a *API) FetchRuleSets() (*[]RuleSet, error) {
 	return &rulesets, nil
 }
 
-// UpdateRuleSet update ruleset definition
+// UpdateRuleSet updates passed rule set.
 func (a *API) UpdateRuleSet(cfg *RuleSet) (*RuleSet, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("Invalid rule set config [none]")
+		return nil, fmt.Errorf("Invalid rule set config [nil]")
 	}
 
 	rulesetCID := string(cfg.CID)
@@ -133,10 +133,10 @@ func (a *API) UpdateRuleSet(cfg *RuleSet) (*RuleSet, error) {
 	return ruleset, nil
 }
 
-// CreateRuleSet create a new ruleset
+// CreateRuleSet creates a new rule set.
 func (a *API) CreateRuleSet(cfg *RuleSet) (*RuleSet, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("Invalid rule set config [none]")
+		return nil, fmt.Errorf("Invalid rule set config [nil]")
 	}
 
 	jsonCfg, err := json.Marshal(cfg)
@@ -161,15 +161,15 @@ func (a *API) CreateRuleSet(cfg *RuleSet) (*RuleSet, error) {
 	return ruleset, nil
 }
 
-// DeleteRuleSet delete a ruleset
+// DeleteRuleSet deletes passed rule set.
 func (a *API) DeleteRuleSet(cfg *RuleSet) (bool, error) {
 	if cfg == nil {
-		return false, fmt.Errorf("Invalid rule set config [none]")
+		return false, fmt.Errorf("Invalid rule set config [nil]")
 	}
 	return a.DeleteRuleSetByCID(CIDType(&cfg.CID))
 }
 
-// DeleteRuleSetByCID delete a ruleset by cid
+// DeleteRuleSetByCID deletes rule set with passed cid.
 func (a *API) DeleteRuleSetByCID(cid CIDType) (bool, error) {
 	if cid == nil || *cid == "" {
 		return false, fmt.Errorf("Invalid rule set CID [none]")
@@ -193,9 +193,9 @@ func (a *API) DeleteRuleSetByCID(cid CIDType) (bool, error) {
 	return true, nil
 }
 
-// SearchRuleSets returns list of rule sets matching a search query and/or filter
-//    - a search query (see: https://login.circonus.com/resources/api#searching)
-//    - a filter (see: https://login.circonus.com/resources/api#filtering)
+// SearchRuleSets returns rule sets matching the specified search
+// query and/or filter. If nil is passed for both parameters all
+// rule sets will be returned.
 func (a *API) SearchRuleSets(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]RuleSet, error) {
 	q := url.Values{}
 

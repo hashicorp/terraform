@@ -12,6 +12,7 @@ import (
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/errwrap"
+	uuid "github.com/hashicorp/go-uuid"
 )
 
 var knownCheckTypes map[CheckType]struct{}
@@ -71,14 +72,6 @@ func init() {
 		knownContactMethods[ContactMethods(k)] = struct{}{}
 		userContactMethods[k] = struct{}{}
 	}
-}
-
-func validateCheck(cb *api.CheckBundle) error {
-	if cb.Timeout > float64(cb.Period) {
-		return fmt.Errorf("Timeout (%f) can not exceed period (%d)", cb.Timeout, cb.Period)
-	}
-
-	return nil
 }
 
 func validateCheckType(v interface{}, key string) (warnings []string, errors []error) {
@@ -218,7 +211,7 @@ func validateHTTPVersion(v interface{}, key string) (warnings []string, errors [
 	return warnings, errors
 }
 
-func validateIntMin(attrName string, min int) func(v interface{}, key string) (warnings []string, errors []error) {
+func validateIntMin(attrName _SchemaAttr, min int) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		if v.(int) < min {
 			errors = append(errors, fmt.Errorf("Invalid %s specified (%d): minimum value must be %s", attrName, v.(int), min))
@@ -249,12 +242,12 @@ func validateMetricType(v interface{}, key string) (warnings []string, errors []
 	return warnings, errors
 }
 
-func validateRegexp(attrName, reString string) func(v interface{}, key string) (warnings []string, errors []error) {
+func validateRegexp(attrName _SchemaAttr, reString string) func(v interface{}, key string) (warnings []string, errors []error) {
 	re := regexp.MustCompile(reString)
 
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		if !re.MatchString(v.(string)) {
-			errors = append(errors, fmt.Errorf("Invalid %s specified (%q): regexp failed", attrName, v.(string)))
+			errors = append(errors, fmt.Errorf("Invalid %s specified (%q): regexp failed to match string", attrName, v.(string)))
 		}
 
 		return warnings, errors
@@ -328,17 +321,53 @@ func validateUserCID(attrName string) func(v interface{}, key string) (warnings 
 	}
 }
 
-func validateHTTPURL(attrName string) func(v interface{}, key string) (warnings []string, errors []error) {
+func validateUUID(attrName _SchemaAttr) func(v interface{}, key string) (warnings []string, errors []error) {
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		_, err := uuid.ParseUUID(v.(string))
+		if err != nil {
+			errors = append(errors, errwrap.Wrapf(fmt.Sprintf("Invalid %s specified (%q): {{err}}", attrName, v.(string)), err))
+		}
+
+		return warnings, errors
+	}
+}
+
+type _URLParseFlags int
+
+const (
+	_URLIsAbs _URLParseFlags = 1 << iota
+	_URLWithoutSchema
+	_URLWithoutPort
+)
+
+const _URLBasicCheck _URLParseFlags = 0
+
+func validateHTTPURL(attrName _SchemaAttr, checkFlags _URLParseFlags) func(v interface{}, key string) (warnings []string, errors []error) {
 
 	return func(v interface{}, key string) (warnings []string, errors []error) {
-		url, err := url.Parse(v.(string))
+		u, err := url.Parse(v.(string))
 		switch {
 		case err != nil:
 			errors = append(errors, errwrap.Wrapf(fmt.Sprintf("Invalid %s specified (%q): {{err}}", attrName, v.(string)), err))
-		case url.Host == "":
+		case u.Host == "":
 			errors = append(errors, fmt.Errorf("Invalid %s specified: host can not be empty", attrName))
-		case !(url.Scheme == "http" || url.Scheme == "https"):
+		case !(u.Scheme == "http" || u.Scheme == "https"):
 			errors = append(errors, fmt.Errorf("Invalid %s specified: scheme unsupported (only support http and https)", attrName))
+		}
+
+		if checkFlags&_URLIsAbs != 0 && !u.IsAbs() {
+			errors = append(errors, fmt.Errorf("Schema is missing from URL %q (HINT: https://%s)", v.(string), v.(string)))
+		}
+
+		if checkFlags&_URLWithoutSchema != 0 && u.IsAbs() {
+			errors = append(errors, fmt.Errorf("Schema is present on URL %q (HINT: drop the https://%s)", v.(string), v.(string)))
+		}
+
+		if checkFlags&_URLWithoutPort != 0 {
+			hostParts := strings.SplitN(u.Host, ":", 2)
+			if len(hostParts) != 1 {
+				errors = append(errors, fmt.Errorf("Port is present on URL %q (HINT: drop the :%d)", v.(string), hostParts[1]))
+			}
 		}
 
 		return warnings, errors

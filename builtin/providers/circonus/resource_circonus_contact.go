@@ -46,17 +46,17 @@ const (
 	//contactUserCIDAttr
 
 	// circonus_contact.http attributes
-	contactHTTPAddressAttr = "address"
-	contactHTTPFormatAttr  = "format"
-	contactHTTPMethodAttr  = "method"
+	contactHTTPAddressAttr _SchemaAttr = "address"
+	contactHTTPFormatAttr              = "format"
+	contactHTTPMethodAttr              = "method"
 
 	// circonus_contact.irc attributes
 	//contactUserCIDAttr
 
 	// circonus_contact.pager_duty attributes
 	//contactContactGroupFallbackAttr
-	contactPagerDutyIntegrationKeyAttr = "integration_key"
-	contactPagerDutyWebhookURLAttr     = "webook_url"
+	contactPagerDutyIntegrationKeyAttr _SchemaAttr = "integration_key"
+	contactPagerDutyWebhookURLAttr     _SchemaAttr = "webook_url"
 
 	// circonus_contact.slack attributes
 	//contactContactGroupFallbackAttr
@@ -131,6 +131,23 @@ type contactVictorOpsInfo struct {
 	Warning          int    `json:"warning,string"`
 }
 
+var _ContactEmailDescriptions = _AttrDescrs{
+	contactEmailAddressAttr: "",
+	contactUserCIDAttr:      "",
+}
+
+var _ContactHTTPDescriptions = _AttrDescrs{
+	contactHTTPAddressAttr: "",
+	contactHTTPFormatAttr:  "",
+	contactHTTPMethodAttr:  "",
+}
+
+var _ContactPagerDutyDescriptions = _AttrDescrs{
+	contactContactGroupFallbackAttr:    "",
+	contactPagerDutyIntegrationKeyAttr: "",
+	contactPagerDutyWebhookURLAttr:     "",
+}
+
 func resourceContactGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: contactGroupCreate,
@@ -202,49 +219,44 @@ func resourceContactGroup() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
+					Schema: castSchemaToTF(map[_SchemaAttr]*schema.Schema{
 						contactEmailAddressAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
 							ConflictsWith: []string{contactEmailAttr + "." + contactUserCIDAttr},
-							Description:   contactDescription[contactEmailAddressAttr],
 						},
 						contactUserCIDAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
 							ValidateFunc:  validateUserCID(contactUserCIDAttr),
 							ConflictsWith: []string{contactEmailAttr + "." + contactEmailAddressAttr},
-							Description:   contactDescription[contactUserCIDAttr],
 						},
-					},
+					}, _ContactEmailDescriptions),
 				},
 			},
 			contactHTTPAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
+					Schema: castSchemaToTF(map[_SchemaAttr]*schema.Schema{
 						contactHTTPAddressAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateHTTPURL(contactHTTPAddressAttr),
-							Description:  contactDescription[contactHTTPAddressAttr],
+							ValidateFunc: validateHTTPURL(contactHTTPAddressAttr, _URLBasicCheck),
 						},
 						contactHTTPFormatAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      defaultCirconusHTTPFormat,
 							ValidateFunc: validateStringIn(contactHTTPFormatAttr, validContactHTTPFormats),
-							Description:  contactDescription[contactHTTPFormatAttr],
 						},
 						contactHTTPMethodAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      defaultCirconusHTTPMethod,
 							ValidateFunc: validateStringIn(contactHTTPMethodAttr, validContactHTTPMethods),
-							Description:  contactDescription[contactHTTPMethodAttr],
 						},
-					},
+					}, _ContactHTTPDescriptions),
 				},
 			},
 			contactIRCAttr: &schema.Schema{
@@ -294,27 +306,24 @@ func resourceContactGroup() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
+					Schema: castSchemaToTF(map[_SchemaAttr]*schema.Schema{
 						contactContactGroupFallbackAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
 							ValidateFunc: validateContactGroupCID(contactContactGroupFallbackAttr),
-							Description:  contactDescription[contactContactGroupFallbackAttr],
 						},
 						contactPagerDutyIntegrationKeyAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
 							Sensitive:    true,
-							ValidateFunc: validateHTTPURL(contactPagerDutyIntegrationKeyAttr),
-							Description:  contactDescription[contactPagerDutyIntegrationKeyAttr],
+							ValidateFunc: validateHTTPURL(contactPagerDutyIntegrationKeyAttr, _URLIsAbs),
 						},
 						contactPagerDutyWebhookURLAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateHTTPURL(contactPagerDutyWebhookURLAttr),
-							Description:  contactDescription[contactPagerDutyWebhookURLAttr],
+							ValidateFunc: validateHTTPURL(contactPagerDutyWebhookURLAttr, _URLIsAbs),
 						},
-					},
+					}, _ContactPagerDutyDescriptions),
 				},
 			},
 			contactShortMessageAttr: &schema.Schema{
@@ -684,9 +693,9 @@ func contactGroupHTTPToState(cg *api.ContactGroup) ([]interface{}, error) {
 			}
 
 			httpContacts = append(httpContacts, map[string]interface{}{
-				contactHTTPAddressAttr: url.Address,
-				contactHTTPFormatAttr:  url.Format,
-				contactHTTPMethodAttr:  url.Method,
+				string(contactHTTPAddressAttr): url.Address,
+				string(contactHTTPFormatAttr):  url.Format,
+				string(contactHTTPMethodAttr):  url.Method,
 			})
 		}
 	}
@@ -789,15 +798,15 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 
 			httpInfo := contactHTTPInfo{}
 
-			if v, ok := httpMap[contactHTTPAddressAttr]; ok {
+			if v, ok := httpMap[string(contactHTTPAddressAttr)]; ok {
 				httpInfo.Address = v.(string)
 			}
 
-			if v, ok := httpMap[contactHTTPFormatAttr]; ok {
+			if v, ok := httpMap[string(contactHTTPFormatAttr)]; ok {
 				httpInfo.Format = v.(string)
 			}
 
-			if v, ok := httpMap[contactHTTPMethodAttr]; ok {
+			if v, ok := httpMap[string(contactHTTPMethodAttr)]; ok {
 				httpInfo.Method = v.(string)
 			}
 
@@ -843,11 +852,11 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 				pagerDutyInfo.FallbackGroupCID = contactGroupID
 			}
 
-			if v, ok := pagerDutyMap[contactPagerDutyIntegrationKeyAttr]; ok {
+			if v, ok := pagerDutyMap[string(contactPagerDutyIntegrationKeyAttr)]; ok {
 				pagerDutyInfo.IntegrationKey = v.(string)
 			}
 
-			if v, ok := pagerDutyMap[contactPagerDutyWebhookURLAttr]; ok {
+			if v, ok := pagerDutyMap[string(contactPagerDutyWebhookURLAttr)]; ok {
 				pagerDutyInfo.WebookURL = v.(string)
 			}
 
@@ -1085,9 +1094,9 @@ func contactGroupPagerDutyToState(cg *api.ContactGroup) ([]interface{}, error) {
 			}
 
 			pdContacts = append(pdContacts, map[string]interface{}{
-				contactContactGroupFallbackAttr:    failoverGroupIDToCID(pdInfo.FallbackGroupCID),
-				contactPagerDutyIntegrationKeyAttr: pdInfo.IntegrationKey,
-				contactPagerDutyWebhookURLAttr:     pdInfo.WebookURL,
+				string(contactContactGroupFallbackAttr):    failoverGroupIDToCID(pdInfo.FallbackGroupCID),
+				string(contactPagerDutyIntegrationKeyAttr): pdInfo.IntegrationKey,
+				string(contactPagerDutyWebhookURLAttr):     pdInfo.WebookURL,
 			})
 		}
 	}

@@ -18,14 +18,14 @@ import (
 
 // Maintenance defines a maintenance window. See https://login.circonus.com/resources/api/calls/maintenance for more information.
 type Maintenance struct {
-	CID        string      `json:"_cid,omitempty"`
-	Item       string      `json:"item,omitempty"`
-	Notes      string      `json:"notes,omitempty"`
-	Severities interface{} `json:"severities,omitempty"` // NOTE CSV string or []string
-	Start      uint        `json:"start,omitempty"`
-	Stop       uint        `json:"stop,omitempty"`
-	Tags       []string    `json:"tags,omitempty"`
-	Type       string      `json:"type,omitempty"`
+	CID        string      `json:"_cid,omitempty"`       // string
+	Item       string      `json:"item,omitempty"`       // string
+	Notes      string      `json:"notes,omitempty"`      // string
+	Severities interface{} `json:"severities,omitempty"` // []string NOTE can be set with CSV string or []string
+	Start      uint        `json:"start,omitempty"`      // uint
+	Stop       uint        `json:"stop,omitempty"`       // uint
+	Tags       []string    `json:"tags,omitempty"`       // [] len >= 0
+	Type       string      `json:"type,omitempty"`       // string
 }
 
 // NewMaintenanceWindow returns a new Maintenance window (with defaults, if applicable)
@@ -150,7 +150,7 @@ func (a *API) CreateMaintenanceWindow(cfg *Maintenance) (*Maintenance, error) {
 // DeleteMaintenanceWindow deletes passed maintenance [window].
 func (a *API) DeleteMaintenanceWindow(cfg *Maintenance) (bool, error) {
 	if cfg == nil {
-		return false, fmt.Errorf("Invalid maintenance window config [none]")
+		return false, fmt.Errorf("Invalid maintenance window config [nil]")
 	}
 	return a.DeleteMaintenanceWindowByCID(CIDType(&cfg.CID))
 }

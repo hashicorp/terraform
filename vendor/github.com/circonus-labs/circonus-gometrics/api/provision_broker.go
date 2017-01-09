@@ -19,27 +19,27 @@ import (
 
 // BrokerStratcon defines stratcons for broker
 type BrokerStratcon struct {
-	CN   string `json:"cn,omitempty"`
-	Host string `json:"host,omitempty"`
-	Port string `json:"port,omitempty"`
+	CN   string `json:"cn,omitempty"`   // string
+	Host string `json:"host,omitempty"` // string
+	Port string `json:"port,omitempty"` // string
 }
 
-// ProvisionBroker defines a broker
+// ProvisionBroker defines a provision broker [request]. See https://login.circonus.com/resources/api/calls/provision_broker for more details.
 type ProvisionBroker struct {
-	CID                     string           `json:"_cid,omitempty"`
-	Cert                    string           `json:"_cert,omitempty"`
-	Stratcons               []BrokerStratcon `json:"_stratcons,omitempty"`
-	CSR                     string           `json:"_csr,omitempty"`
-	ExternalHost            string           `json:"external_host,omitempty"`
-	ExternalPort            string           `json:"external_port,omitempty"`
-	IPAddress               string           `json:"ipaddress,omitempty"`
-	Latitude                string           `json:"latitude,omitempty"`
-	Longitude               string           `json:"longitude,omitempty"`
-	NoitName                string           `json:"noit_name,omitempty"`
-	Port                    string           `json:"port,omitempty"`
-	PreferReverseConnection bool             `json:"prefer_reverse_connection,omitempty"`
-	Rebuild                 bool             `json:"rebuild,omitempty"`
-	Tags                    []string         `json:"tags,omitempty"`
+	Cert                    string           `json:"_cert,omitempty"`                     // string
+	CID                     string           `json:"_cid,omitempty"`                      // string
+	CSR                     string           `json:"_csr,omitempty"`                      // string
+	ExternalHost            string           `json:"external_host,omitempty"`             // string
+	ExternalPort            string           `json:"external_port,omitempty"`             // string
+	IPAddress               string           `json:"ipaddress,omitempty"`                 // string
+	Latitude                string           `json:"latitude,omitempty"`                  // string
+	Longitude               string           `json:"longitude,omitempty"`                 // string
+	Name                    string           `json:"noit_name,omitempty"`                 // string
+	Port                    string           `json:"port,omitempty"`                      // string
+	PreferReverseConnection bool             `json:"prefer_reverse_connection,omitempty"` // boolean
+	Rebuild                 bool             `json:"rebuild,omitempty"`                   // boolean
+	Stratcons               []BrokerStratcon `json:"_stratcons,omitempty"`                // [] len >= 1
+	Tags                    []string         `json:"tags,omitempty"`                      // [] len >= 0
 }
 
 // NewProvisionBroker returns a new ProvisionBroker (with defaults, if applicable)
@@ -50,7 +50,7 @@ func NewProvisionBroker() *ProvisionBroker {
 // FetchProvisionBroker retrieves provision broker [request] with passed cid.
 func (a *API) FetchProvisionBroker(cid CIDType) (*ProvisionBroker, error) {
 	if cid == nil || *cid == "" {
-		return nil, fmt.Errorf("Invalid broker CID [none]")
+		return nil, fmt.Errorf("Invalid provision broker request CID [none]")
 	}
 
 	brokerCID := string(*cid)
@@ -60,7 +60,7 @@ func (a *API) FetchProvisionBroker(cid CIDType) (*ProvisionBroker, error) {
 		return nil, err
 	}
 	if !matched {
-		return nil, fmt.Errorf("Invalid broker CID [%s]", brokerCID)
+		return nil, fmt.Errorf("Invalid provision broker request CID [%s]", brokerCID)
 	}
 
 	result, err := a.Get(brokerCID)
@@ -80,14 +80,14 @@ func (a *API) FetchProvisionBroker(cid CIDType) (*ProvisionBroker, error) {
 	return broker, nil
 }
 
-// UpdateProvisionBroker update broker definition
+// UpdateProvisionBroker updates a broker definition [request].
 func (a *API) UpdateProvisionBroker(cid CIDType, cfg *ProvisionBroker) (*ProvisionBroker, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("Invalid broker config [nil]")
+		return nil, fmt.Errorf("Invalid provision broker request config [nil]")
 	}
 
 	if cid == nil || *cid == "" {
-		return nil, fmt.Errorf("Invalid broker CID [none]")
+		return nil, fmt.Errorf("Invalid provision broker request CID [none]")
 	}
 
 	brokerCID := string(*cid)
@@ -97,7 +97,7 @@ func (a *API) UpdateProvisionBroker(cid CIDType, cfg *ProvisionBroker) (*Provisi
 		return nil, err
 	}
 	if !matched {
-		return nil, fmt.Errorf("Invalid broker CID [%s]", brokerCID)
+		return nil, fmt.Errorf("Invalid provision broker request CID [%s]", brokerCID)
 	}
 
 	jsonCfg, err := json.Marshal(cfg)
@@ -122,10 +122,10 @@ func (a *API) UpdateProvisionBroker(cid CIDType, cfg *ProvisionBroker) (*Provisi
 	return broker, nil
 }
 
-// CreateProvisionBroker create a new broker
+// CreateProvisionBroker creates a new provison broker [request].
 func (a *API) CreateProvisionBroker(cfg *ProvisionBroker) (*ProvisionBroker, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("Invalid broker config [nil]")
+		return nil, fmt.Errorf("Invalid provision broker request config [nil]")
 	}
 
 	jsonCfg, err := json.Marshal(cfg)
