@@ -53,6 +53,7 @@ BUG FIXES:
  * provider/aws: aws_db_instance restored from snapshot had problem with subnet_group [GH-11050]
  * provider/aws: Allow disabled access_log in ELB [GH-11120]
  * provider/google: Fix backwards incompatibility around create_timeout in instances [GH-10858]
+ * provider/google: google_compute_instance_group_manager update_strategy not properly read [GH-10174]
  * provider/openstack: Handle `PENDING_UPDATE` status with LBaaS v2 members [GH-10875]
  * provider/rancher: Add 'finishing-upgrade' state to rancher stack [GH-11019]
 
