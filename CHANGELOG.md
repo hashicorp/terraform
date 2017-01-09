@@ -23,6 +23,7 @@ IMPROVEMENTS:
  * provider/aws: Increasing timeout for redshift cluster creation to 75 minutes [GH-11041]
  * provider/aws: Add support for content_handling to aws_api_gateway_integration_response [GH-11002]
  * provider/aws: Add S3 bucket name validation [GH-11116]
+ * provider/aws: Add Route53 Record type validation [GH-11119]
  * provider/azurerm: support non public clouds [GH-11026]
  * provider/azurerm: Azure resource providers which are already registered are no longer re-registered. [GH-10991]
  * provider/docker: Add network create --internal flag support [GH-10932]
