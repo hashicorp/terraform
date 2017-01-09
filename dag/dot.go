@@ -79,7 +79,7 @@ func (g *marshalGraph) Dot(opts *DotOpts) []byte {
 	return w.Bytes()
 }
 
-func (v *marshalVertex) dot(g *marshalGraph) []byte {
+func (v *marshalVertex) dot(g *marshalGraph, opts *DotOpts) []byte {
 	var buf bytes.Buffer
 	graphName := g.Name
 	if graphName == "" {
@@ -89,7 +89,7 @@ func (v *marshalVertex) dot(g *marshalGraph) []byte {
 	name := v.Name
 	attrs := v.Attrs
 	if v.graphNodeDotter != nil {
-		node := v.graphNodeDotter.DotNode(name, nil)
+		node := v.graphNodeDotter.DotNode(name, opts)
 		if node == nil {
 			return []byte{}
 		}
@@ -171,7 +171,7 @@ func (g *marshalGraph) writeBody(opts *DotOpts, w *indentWriter) {
 			continue
 		}
 
-		w.Write(v.dot(g))
+		w.Write(v.dot(g, opts))
 	}
 
 	var dotEdges []string
