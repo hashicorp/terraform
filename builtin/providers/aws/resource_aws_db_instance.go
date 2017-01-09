@@ -120,9 +120,10 @@ func resourceAwsDbInstance() *schema.Resource {
 			},
 
 			"backup_window": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateOnceADayWindowFormat,
 			},
 
 			"iops": {
@@ -147,6 +148,7 @@ func resourceAwsDbInstance() *schema.Resource {
 					}
 					return ""
 				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
 			},
 
 			"multi_az": {
