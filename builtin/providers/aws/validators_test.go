@@ -923,3 +923,85 @@ func TestValidateSecurityRuleType(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateOnceAWeekWindowFormat(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			// once a day window format
+			Value:    "04:00-05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid day of week
+			Value:    "san:04:00-san:05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid hour
+			Value:    "sun:24:00-san:25:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid min
+			Value:    "sun:04:00-sun:04:60",
+			ErrCount: 1,
+		},
+		{
+			// valid format
+			Value:    "sun:04:00-sun:05:00",
+			ErrCount: 0,
+		},
+		{
+			// "Sun" can also be used
+			Value:    "Sun:04:00-Sun:05:00",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateOnceAWeekWindowFormat(tc.Value, "maintenance_window")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d validation errors, But got %d errors for \"%s\"", tc.ErrCount, len(errors), tc.Value)
+		}
+	}
+}
+
+func TestValidateOnceADayWindowFormat(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			// once a week window format
+			Value:    "sun:04:00-sun:05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid hour
+			Value:    "24:00-25:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid min
+			Value:    "04:00-04:60",
+			ErrCount: 1,
+		},
+		{
+			// valid format
+			Value:    "04:00-05:00",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateOnceADayWindowFormat(tc.Value, "backup_window")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d validation errors, But got %d errors for \"%s\"", tc.ErrCount, len(errors), tc.Value)
+		}
+	}
+}
