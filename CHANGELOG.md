@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Provider:**  `Arukas` [GH-10862]
  * **New Provider:**  `Ignition` [GH-6189]
  * **New Provider:**  `OpsGenie` [GH-11012]
  * **New Data Source:**  `aws_vpc_peering_connection` [GH-10913]
