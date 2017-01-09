@@ -43,6 +43,21 @@ func (s *BackupState) PersistState() error {
 	return s.Real.PersistState()
 }
 
+// all states get wrapped by BackupState, so it has to be a Locker
+func (s *BackupState) Lock(reason string) error {
+	if s, ok := s.Real.(Locker); ok {
+		return s.Lock(reason)
+	}
+	return nil
+}
+
+func (s *BackupState) Unlock() error {
+	if s, ok := s.Real.(Locker); ok {
+		return s.Unlock()
+	}
+	return nil
+}
+
 func (s *BackupState) backup() error {
 	state := s.Real.State()
 	if state == nil {
