@@ -119,7 +119,7 @@ func TestAccComputeInstanceTemplate_subnet_custom(t *testing.T) {
 func TestAccComputeInstanceTemplate_subnet_xpn(t *testing.T) {
 	var instanceTemplate compute.InstanceTemplate
 	var xpn_host = os.Getenv("GOOGLE_XPN_HOST_PROJECT")
-	
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
