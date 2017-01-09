@@ -115,6 +115,30 @@ func TestAccComputeInstanceTemplate_subnet_custom(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstanceTemplate_subnet_xpn(t *testing.T) {
+	var instanceTemplate compute.InstanceTemplate
+	var xpn_host = os.Getenv("GOOGLE_XPN_HOST_PROJECT")
+	if xpn_host == "" {
+		t.Fatal("GOOGLE_XPN_HOST_PROJECT must be set for TestAccComputeInstanceTemplate_subnet_xpn test")
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceTemplateDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstanceTemplate_subnet_xpn(xpn_host),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceTemplateExists(
+						"google_compute_instance_template.foobar", &instanceTemplate),
+					testAccCheckComputeInstanceTemplateSubnetwork(&instanceTemplate),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeInstanceTemplate_metadata_startup_script(t *testing.T) {
 	var instanceTemplate compute.InstanceTemplate
 
@@ -466,6 +490,45 @@ resource "google_compute_instance_template" "foobar" {
 		foo = "bar"
 	}
 }`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
+
+func testAccComputeInstanceTemplate_subnet_xpn(xpn_host string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_network" "network" {
+		name = "network-%s"
+		auto_create_subnetworks = false
+		project = "%s"
+	}
+
+	resource "google_compute_subnetwork" "subnetwork" {
+		name = "subnetwork-%s"
+		ip_cidr_range = "10.0.0.0/24"
+		region = "us-central1"
+		network = "${google_compute_network.network.self_link}"
+		project = "%s"
+	}
+
+	resource "google_compute_instance_template" "foobar" {
+		name = "instance-test-%s"
+		machine_type = "n1-standard-1"
+		region = "us-central1"
+
+		disk {
+			source_image = "debian-8-jessie-v20160803"
+			auto_delete = true
+			disk_size_gb = 10
+			boot = true
+		}
+
+		network_interface {
+			subnetwork = "${google_compute_subnetwork.subnetwork.name}"
+			subnetwork_project = "${google_compute_subnetwork.subnetwork.project}"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, acctest.RandString(10), xpn_host, acctest.RandString(10), xpn_host, acctest.RandString(10))
+}
 
 var testAccComputeInstanceTemplate_startup_script = fmt.Sprintf(`
 resource "google_compute_instance_template" "foobar" {
