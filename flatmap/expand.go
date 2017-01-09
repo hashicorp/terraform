@@ -43,6 +43,10 @@ func expandArray(m map[string]string, prefix string) []interface{} {
 		panic(err)
 	}
 
+	// The Schema "Set" type stores its values in an array format, but using
+	// numeric hash values instead of ordinal keys. Take the set of keys
+	// regardless of value, and expand them in numeric order.
+	// See GH-11042 for more details.
 	keySet := map[int]bool{}
 	for k := range m {
 		if !strings.HasPrefix(k, prefix+".") {
