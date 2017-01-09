@@ -10,7 +10,8 @@ FEATURES:
  * **New Resource:**  `azurerm_eventhub_consumer_group` [GH-9902]
 
 IMPROVEMENTS:
- 
+
+ * command/fmt: Show filename on parse error [GH-10923]
  * provider/archive: `archive_file` now exports `output_md5` attribute in addition to existing SHA1 and Base64 SHA256 hashes. [GH-10851]
  * provider/aws: Add `most_recent` to the `ebs_snapshot` data source [GH-10986]
  * provider/aws: Add support for instance tenancy in `aws_opsworks_instance` [GH-10885]
