@@ -112,8 +112,8 @@ func testAccGrantCheckDestroy(s *terraform.State) error {
 const testAccGrantConfig_basic = `
 resource "mysql_user" "test" {
         user = "jdoe"
-				host = "example.com"
-				password = "password"
+		host = "example.com"
+		password = "password"
 }
 
 resource "mysql_grant" "test" {
