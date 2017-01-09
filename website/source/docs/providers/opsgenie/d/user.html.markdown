@@ -13,12 +13,17 @@ Use this data source to get information about a specific user within OpsGenie.
 ## Example Usage
 
 ```
-data "opsgenie_user" "me" {
+data "opsgenie_user" "cookie_monster" {
   username = "me@cookie-monster.com"
 }
 
 resource "opsgenie_team" "test" {
-  TODO: example
+  name = "cookieeaters"
+
+  member {
+    username = "${data.opsgenie_user.cookie_monster.username}"
+    role     = "${data.opsgenie_user.cookie_monster.role}"
+  }
 }
 ```
 
