@@ -32,7 +32,9 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * core: Properly expand sets as lists from a flatmap [GH-11042] 
+ * core: Disallow root modules named "root" as a temporary workaround [GH-11099]
  * command/fmt: Lists of heredocs format properly [GH-10947]
+ * command/graph: Fix crash when `-type=legacy` [GH-11095]
  * provider/aws: Guard against nil change output in `route53_zone` that causes panic [GH-10798]
  * provider/aws: Reworked validateArn function to handle empty values [GH-10833]
  * provider/aws: Set `aws_autoscaling_policy` `metric_aggregation_type` to be Computed [GH-10904]
