@@ -29,6 +29,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * core: Properly expand sets as lists from a flatmap [GH-11042] 
  * command/fmt: Lists of heredocs format properly [GH-10947]
  * provider/aws: Guard against nil change output in `route53_zone` that causes panic [GH-10798]
  * provider/aws: Reworked validateArn function to handle empty values [GH-10833]
