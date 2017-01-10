@@ -54,7 +54,6 @@ func resourceArmLoadBalancerProbe() *schema.Resource {
 			"request_path": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 			},
 
 			"interval_in_seconds": {
