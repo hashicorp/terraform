@@ -21,5 +21,11 @@ const (
 
 // Consts and their close relative, Go pseudo-consts.
 
-// _ValidMetricTypes: See `_metric_type`: https://login.circonus.com/resources/api/calls/metric
-var _ValidMetricTypes = _ValidStringValues{"numeric", "text"}
+// _ValidMetricTypes: See `type`: https://login.circonus.com/resources/api/calls/check_bundle
+var _ValidMetricTypes = _ValidStringValues{
+	`caql`,
+	`composite`,
+	`histogram`,
+	`numeric`,
+	`text`,
+}

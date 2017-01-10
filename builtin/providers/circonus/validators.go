@@ -27,6 +27,7 @@ const (
 var defaultCheckTypeConfigSize map[CheckType]int
 var userContactMethods map[string]struct{}
 var externalContactMethods map[string]struct{}
+var _SupportedHTTPVersions = _ValidStringValues{"0.9", "1.0", "1.1", "2.0"}
 
 func init() {
 	// The values come from manually tallying up various options per check
@@ -202,7 +203,7 @@ func validateHTTPHeaders(v interface{}, key string) (warnings []string, errors [
 }
 
 func validateHTTPVersion(v interface{}, key string) (warnings []string, errors []error) {
-	validHTTPVersion := regexp.MustCompile(`\d+\.\d+`)
+	validHTTPVersion := regexp.MustCompile(`^\d+\.\d+$`)
 
 	if !validHTTPVersion.MatchString(v.(string)) {
 		errors = append(errors, fmt.Errorf("Invalid %s specified (%q)", checkConfigHTTPVersionAttr, v.(string)))
