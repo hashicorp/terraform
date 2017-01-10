@@ -10,6 +10,7 @@ package circonus
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/circonus-labs/circonus-gometrics/api/config"
@@ -106,7 +107,7 @@ func _NewCirconusCheckResource() *schema.Resource {
 			_CheckActiveAttr: &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
+				Default:  true,
 			},
 			_CheckCollectorAttr: &schema.Schema{
 				Type:     schema.TypeSet,
@@ -332,9 +333,10 @@ func _NewCirconusCheckResource() *schema.Resource {
 				ValidateFunc: validateHTTPURL(checkTargetAttr, _URLWithoutSchema|_URLWithoutPort),
 			},
 			checkTimeoutAttr: &schema.Schema{
-				Type:     schema.TypeFloat,
-				Optional: true,
-				Computed: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				Computed:  true,
+				StateFunc: normalizeTimeDurationStringToSeconds,
 				ValidateFunc: validateFuncs(
 					validateDurationMin(checkTimeoutAttr, defaultCirconusTimeoutMin),
 					validateDurationMax(checkTimeoutAttr, defaultCirconusTimeoutMax),
@@ -498,7 +500,10 @@ func checkBundleRead(d *schema.ResourceData, meta interface{}) error {
 	stateSet(d, _CheckActiveAttr, active)
 	d.Set(checkTagsAttr, cb.Tags)
 	d.Set(checkTargetAttr, cb.Target)
-	d.Set(checkTimeoutAttr, cb.Timeout)
+	{
+		t, _ := time.ParseDuration(fmt.Sprintf("%fs", cb.Timeout))
+		d.Set(checkTimeoutAttr, t.String())
+	}
 	d.Set(checkTypeAttr, cb.Type)
 
 	// Out parameters
@@ -559,7 +564,7 @@ var jsonAttr = &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: validateHTTPVersion,
+				ValidateFunc: validateStringIn(_CheckJSONHTTPVersionAttr, _SupportedHTTPVersions),
 			},
 			_CheckJSONMethodAttr: &schema.Schema{
 				Type:         schema.TypeString,

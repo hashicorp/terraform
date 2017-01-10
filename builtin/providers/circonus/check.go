@@ -8,6 +8,7 @@ import (
 
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/circonus-labs/circonus-gometrics/api/config"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -41,7 +42,12 @@ func (c *_Check) Create(ctxt *providerContext) error {
 }
 
 func (c *_Check) Update(ctxt *providerContext) error {
-	panic("not implemented")
+	_, err := ctxt.client.UpdateCheckBundle(&c.CheckBundle)
+	if err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to update check bundle %s: {{err}}", c.CID), err)
+	}
+
+	return nil
 }
 
 func (c *_Check) ParseSchema(d *schema.ResourceData, meta interface{}) error {
@@ -216,7 +222,9 @@ func (c *_Check) ParseSchema(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v, ok := d.GetOk(checkTimeoutAttr); ok {
-		c.Timeout = v.(float32)
+		d, _ := time.ParseDuration(v.(string))
+		var t float32 = float32(d.Seconds())
+		c.Timeout = t
 	}
 
 	if err := c.Validate(); err != nil {
