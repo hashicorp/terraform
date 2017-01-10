@@ -450,6 +450,7 @@ resource "digitalocean_droplet" "foobar" {
   size     = "1gb"
   image    = "centos-7-x64"
   region   = "nyc3"
+  user_data = "foobar"
   ssh_keys = ["${digitalocean_ssh_key.foobar.id}"]
   resize_disk = false
 }
