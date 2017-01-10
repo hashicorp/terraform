@@ -689,6 +689,14 @@
 			"versionExact": "v1.5.13"
 		},
 		{
+			"checksumSHA1": "MTlPViWUHDJ1wVPusVAeFSZWU2k=",
+			"path": "github.com/aws/aws-sdk-go/service/codebuild",
+			"revision": "918c42e2bcdb277aa821401c906e88254501bdf4",
+			"revisionTime": "2016-12-01T20:26:07Z",
+			"version": "v1.5.13",
+			"versionExact": "v1.5.13"
+		},
+		{
 			"checksumSHA1": "rKsbQ6FWQSqiE+ujHG6HietgH5Y=",
 			"path": "github.com/aws/aws-sdk-go/service/codecommit",
 			"revision": "918c42e2bcdb277aa821401c906e88254501bdf4",
