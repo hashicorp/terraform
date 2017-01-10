@@ -5,8 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"regexp"
-
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -102,28 +100,6 @@ func TestAccAzureRMLoadBalancerProbe_update(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMLoadBalancerProbe_duplicate(t *testing.T) {
-	var lb network.LoadBalancer
-	ri := acctest.RandInt()
-	probeName := fmt.Sprintf("probe-%d", ri)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccAzureRMLoadBalancerProbe_multipleProbes(ri, probeName, probeName),
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
-					testCheckAzureRMLoadBalancerProbeExists(probeName, &lb),
-				),
-				ExpectError: regexp.MustCompile(fmt.Sprintf("A Probe with name %q already exists.", probeName)),
-			},
-		},
-	})
-}
-
 func TestAccAzureRMLoadBalancerProbe_updateProtocol(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
@@ -148,6 +124,40 @@ func TestAccAzureRMLoadBalancerProbe_updateProtocol(t *testing.T) {
 					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
 					testCheckAzureRMLoadBalancerProbeExists(probeName, &lb),
 					resource.TestCheckResourceAttr("azurerm_lb_probe.test", "protocol", "Tcp"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMLoadBalancerProbe_reapply(t *testing.T) {
+	var lb network.LoadBalancer
+	ri := acctest.RandInt()
+	probeName := fmt.Sprintf("probe-%d", ri)
+
+	deleteProbeState := func(s *terraform.State) error {
+		return s.Remove("azurerm_lb_probe.test")
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLoadBalancerProbe_basic(ri, probeName),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerProbeExists(probeName, &lb),
+					deleteProbeState,
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config: testAccAzureRMLoadBalancerProbe_basic(ri, probeName),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerProbeExists(probeName, &lb),
 				),
 			},
 		},
