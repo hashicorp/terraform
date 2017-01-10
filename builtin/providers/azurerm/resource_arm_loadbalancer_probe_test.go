@@ -124,6 +124,36 @@ func TestAccAzureRMLoadBalancerProbe_duplicate(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMLoadBalancerProbe_updateProtocol(t *testing.T) {
+	var lb network.LoadBalancer
+	ri := acctest.RandInt()
+	probeName := fmt.Sprintf("probe-%d", ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLoadBalancerProbe_updateProtocolBefore(ri, probeName),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerProbeExists(probeName, &lb),
+					resource.TestCheckResourceAttr("azurerm_lb_probe.test", "protocol", "Http"),
+				),
+			},
+			{
+				Config: testAccAzureRMLoadBalancerProbe_updateProtocolAfter(ri, probeName),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerProbeExists(probeName, &lb),
+					resource.TestCheckResourceAttr("azurerm_lb_probe.test", "protocol", "Tcp"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMLoadBalancerProbeExists(natRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerProbeByName(lb, natRuleName)
@@ -292,4 +322,77 @@ resource "azurerm_lb_probe" "test2" {
   port = 8080
 }
 `, rInt, rInt, rInt, rInt, probeName, probe2Name)
+}
+
+func testAccAzureRMLoadBalancerProbe_updateProtocolBefore(rInt int, probeName string) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+    name = "acctestrg-%d"
+    location = "West US"
+}
+
+resource "azurerm_public_ip" "test" {
+    name = "test-ip-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    public_ip_address_allocation = "static"
+}
+
+resource "azurerm_lb" "test" {
+    name = "arm-test-loadbalancer-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    frontend_ip_configuration {
+      name = "one-%d"
+      public_ip_address_id = "${azurerm_public_ip.test.id}"
+    }
+}
+
+resource "azurerm_lb_probe" "test" {
+  location = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  loadbalancer_id = "${azurerm_lb.test.id}"
+  name = "%s"
+  protocol = "Http"
+  request_path = "/"
+  port = 80
+}
+`, rInt, rInt, rInt, rInt, probeName)
+}
+
+func testAccAzureRMLoadBalancerProbe_updateProtocolAfter(rInt int, probeName string) string {
+	return fmt.Sprintf(`
+resource "azurerm_resource_group" "test" {
+    name = "acctestrg-%d"
+    location = "West US"
+}
+
+resource "azurerm_public_ip" "test" {
+    name = "test-ip-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    public_ip_address_allocation = "static"
+}
+
+resource "azurerm_lb" "test" {
+    name = "arm-test-loadbalancer-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    frontend_ip_configuration {
+      name = "one-%d"
+      public_ip_address_id = "${azurerm_public_ip.test.id}"
+    }
+}
+
+resource "azurerm_lb_probe" "test" {
+  location = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  loadbalancer_id = "${azurerm_lb.test.id}"
+  name = "%s"
+  protocol = "Tcp"
+  port = 80
+}
+`, rInt, rInt, rInt, rInt, probeName)
 }
