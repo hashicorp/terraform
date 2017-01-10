@@ -16,7 +16,7 @@ func dataSourceAwsIAMServerCertificate() *schema.Resource {
 		Read: dataSourceAwsIAMServerCertificateRead,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
@@ -32,7 +32,7 @@ func dataSourceAwsIAMServerCertificate() *schema.Resource {
 				},
 			},
 
-			"name_prefix": &schema.Schema{
+			"name_prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -46,24 +46,24 @@ func dataSourceAwsIAMServerCertificate() *schema.Resource {
 				},
 			},
 
-			"latest": &schema.Schema{
-				Type:     schema.TypeString,
+			"latest": {
+				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 				Default:  false,
 			},
 
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"path": &schema.Schema{
+			"path": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"expiration_date": &schema.Schema{
+			"expiration_date": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

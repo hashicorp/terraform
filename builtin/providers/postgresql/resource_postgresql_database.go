@@ -32,6 +32,7 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 		Read:   resourcePostgreSQLDatabaseRead,
 		Update: resourcePostgreSQLDatabaseUpdate,
 		Delete: resourcePostgreSQLDatabaseDelete,
+		Exists: resourcePostgreSQLDatabaseExists,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -46,7 +47,7 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "The role name of the user who will own the new database",
+				Description: "The ROLE which owns the database",
 			},
 			dbTemplateAttr: {
 				Type:        schema.TypeString,
@@ -107,6 +108,10 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 
 func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return errwrap.Wrapf("Error connecting to PostgreSQL: {{err}}", err)
@@ -184,11 +189,14 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 
 	d.SetId(dbName)
 
-	return resourcePostgreSQLDatabaseRead(d, meta)
+	return resourcePostgreSQLDatabaseReadImpl(d, meta)
 }
 
 func resourcePostgreSQLDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return errwrap.Wrapf("Error connecting to PostgreSQL: {{err}}", err)
@@ -220,7 +228,38 @@ func resourcePostgreSQLDatabaseDelete(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
+func resourcePostgreSQLDatabaseExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	c := meta.(*Client)
+	c.catalogLock.RLock()
+	defer c.catalogLock.RUnlock()
+
+	conn, err := c.Connect()
+	if err != nil {
+		return false, err
+	}
+	defer conn.Close()
+
+	var dbName string
+	err = conn.QueryRow("SELECT d.datname from pg_database d WHERE datname=$1", d.Id()).Scan(&dbName)
+	switch {
+	case err == sql.ErrNoRows:
+		return false, nil
+	case err != nil:
+		return false, err
+	}
+
+	return true, nil
+}
+
 func resourcePostgreSQLDatabaseRead(d *schema.ResourceData, meta interface{}) error {
+	c := meta.(*Client)
+	c.catalogLock.RLock()
+	defer c.catalogLock.RUnlock()
+
+	return resourcePostgreSQLDatabaseReadImpl(d, meta)
+}
+
+func resourcePostgreSQLDatabaseReadImpl(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
 	conn, err := c.Connect()
 	if err != nil {
@@ -276,6 +315,9 @@ func resourcePostgreSQLDatabaseRead(d *schema.ResourceData, meta interface{}) er
 
 func resourcePostgreSQLDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return err
@@ -308,7 +350,7 @@ func resourcePostgreSQLDatabaseUpdate(d *schema.ResourceData, meta interface{}) 
 
 	// Empty values: ALTER DATABASE name RESET configuration_parameter;
 
-	return resourcePostgreSQLDatabaseRead(d, meta)
+	return resourcePostgreSQLDatabaseReadImpl(d, meta)
 }
 
 func setDBName(conn *sql.DB, d *schema.ResourceData) error {

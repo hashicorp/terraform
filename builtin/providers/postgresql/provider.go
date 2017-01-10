@@ -112,11 +112,10 @@ func tfAppName() string {
 	const VersionPrerelease = terraform.VersionPrerelease
 	var versionString bytes.Buffer
 
-	fmt.Fprintf(&versionString, "'Terraform v%s", terraform.Version)
+	fmt.Fprintf(&versionString, "Terraform v%s", terraform.Version)
 	if terraform.VersionPrerelease != "" {
 		fmt.Fprintf(&versionString, "-%s", terraform.VersionPrerelease)
 	}
-	fmt.Fprintf(&versionString, "'")
 
 	return versionString.String()
 }

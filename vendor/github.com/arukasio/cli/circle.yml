@@ -1,0 +1,36 @@
+machine:
+  environment:
+    GODIST: "go1.7.3.linux-amd64.tar.gz"
+    GOPATH: /home/ubuntu/.go_workspace
+    ARUKAS_JSON_API_SECRET: PASSWORD
+    ARUKAS_JSON_API_TOKEN: USER
+    REPO_ROOT: /home/ubuntu/.go_workspace/src/github.com/arukasio/cli
+
+dependencies:
+  cache_directories:
+    - /home/ubuntu/.go_workspace
+  pre:
+    - if [[ ! -e /home/ubuntu/go/bin/go ]]; then cd /home/ubuntu; curl https://storage.googleapis.com/golang/${GODIST} | tar -xz; fi
+    - sudo rm -rf /usr/local/go
+    - sudo mv /home/ubuntu/go /usr/local/go
+    - go get -u github.com/tools/godep
+    - go get -u github.com/golang/lint/golint
+  override:
+    - mkdir -p ${REPO_ROOT}
+    - rsync -azC --delete ./ ${REPO_ROOT}
+
+test:
+  pre:
+    - cd ${REPO_ROOT} && godep restore
+  override:
+    - cd ${REPO_ROOT} && make test vet
+    - cd ${REPO_ROOT} && for package in `go list ./...| grep -v vendor`; do golint ${package}; done
+    - cd ${REPO_ROOT} && godep go test -cover -bench -benchmem `go list ./... | grep -v /vendor/` -v
+
+deployment:
+  release:
+    tag: /v[0-9]+(\.[0-9]+)*/
+    commands:
+      - cd ${REPO_ROOT} && CGO_ENABLED=0 XC_OS="linux darwin windows" XC_ARCH="amd64" make bin
+      - cd ${REPO_ROOT} && test "${CIRCLE_TAG}" == "$(arukas version)"
+      - cd ${REPO_ROOT} && bash ./scripts/dist.sh "$(arukas version)"

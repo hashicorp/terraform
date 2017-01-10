@@ -16,7 +16,7 @@ type IncidentDetail struct {
 	AssignedToUser        *json.RawMessage `json:"assigned_to_user"`
 	AssignedTo            []string         `json:"assigned_to"`
 	TriggerSummaryData    *json.RawMessage `json:"trigger_summary_data"`
-	TriggerDeatilsHTMLUrl string           `json:"trigger_details_html_url"`
+	TriggerDetailsHTMLUrl string           `json:"trigger_details_html_url"`
 }
 
 // WebhookPayload is a single message array for a webhook.

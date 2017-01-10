@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"sort"
 	"sync"
 	"testing"
 
@@ -675,19 +674,6 @@ func TestInterpolater_selfVarWithoutResource(t *testing.T) {
 	}
 }
 
-// Verify sorting by key index number
-func TestInterpolator_indexKeySort(t *testing.T) {
-	keys := []string{"a.1", "a.2", "a.10", "a.20", "a.3"}
-	sorted := []string{"a.1", "a.2", "a.3", "a.10", "a.20"}
-
-	sort.Sort(indexKeys(keys))
-	for i := range keys {
-		if keys[i] != sorted[i] {
-			t.Fatalf("indexes out of order\nexpected: %q\ngot: %q", sorted, keys)
-		}
-	}
-}
-
 func TestInterpolator_interpolatedListOrder(t *testing.T) {
 	state := &State{
 		Modules: []*ModuleState{
@@ -794,6 +780,100 @@ func getInterpolaterFixture(t *testing.T) *Interpolater {
 		StateLock: lock,
 		State:     state,
 	}
+}
+
+func TestInterpolator_nestedMapsAndLists(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_route53_zone.yada": &ResourceState{
+						Type:         "aws_route53_zone",
+						Dependencies: []string{},
+						Primary: &InstanceState{
+							ID: "null",
+							Attributes: map[string]string{
+								"list_of_map.#":       "2",
+								"list_of_map.0.%":     "1",
+								"list_of_map.0.a":     "1",
+								"list_of_map.1.%":     "1",
+								"list_of_map.1.b":     "2",
+								"map_of_list.%":       "2",
+								"map_of_list.list2.#": "1",
+								"map_of_list.list2.0": "b",
+								"map_of_list.list1.#": "1",
+								"map_of_list.list1.0": "a",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: new(sync.RWMutex),
+		State:     state,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	listOfMap := []interface{}{
+		map[string]interface{}{"a": "1"},
+		map[string]interface{}{"b": "2"},
+	}
+
+	mapOfList := map[string]interface{}{
+		"list1": []interface{}{"a"},
+		"list2": []interface{}{"b"},
+	}
+
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.list_of_map",
+		interfaceToVariableSwallowError(listOfMap))
+	testInterpolate(t, i, scope, `aws_route53_zone.yada.map_of_list`,
+		interfaceToVariableSwallowError(mapOfList))
+}
+
+func TestInterpolator_sets(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_network_interface.set": &ResourceState{
+						Type:         "aws_network_interface",
+						Dependencies: []string{},
+						Primary: &InstanceState{
+							ID: "null",
+							Attributes: map[string]string{
+								"private_ips.#":          "1",
+								"private_ips.3977356764": "10.42.16.179",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: new(sync.RWMutex),
+		State:     state,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	set := []interface{}{"10.42.16.179"}
+
+	testInterpolate(t, i, scope, "aws_network_interface.set.private_ips",
+		interfaceToVariableSwallowError(set))
 }
 
 func testInterpolate(

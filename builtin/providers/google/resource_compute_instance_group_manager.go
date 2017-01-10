@@ -242,7 +242,11 @@ func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interf
 	d.Set("instance_group", manager.InstanceGroup)
 	d.Set("target_size", manager.TargetSize)
 	d.Set("self_link", manager.SelfLink)
-	d.Set("update_strategy", "RESTART") //this field doesn't match the manager api, set to default value
+	update_strategy, ok := d.GetOk("update_strategy")
+	if !ok {
+		update_strategy = "RESTART"
+	}
+	d.Set("update_strategy", update_strategy.(string))
 
 	return nil
 }

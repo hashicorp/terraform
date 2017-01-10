@@ -324,7 +324,11 @@ func deleteAllRecordsInHostedZoneId(hostedZoneId, hostedZoneName string, conn *r
 		resp, lastDeleteErr = deleteRoute53RecordSet(conn, req)
 		if out, ok := resp.(*route53.ChangeResourceRecordSetsOutput); ok {
 			log.Printf("[DEBUG] Waiting for change batch to become INSYNC: %#v", out)
-			lastErrorFromWaiter = waitForRoute53RecordSetToSync(conn, cleanChangeID(*out.ChangeInfo.Id))
+			if out.ChangeInfo != nil && out.ChangeInfo.Id != nil {
+				lastErrorFromWaiter = waitForRoute53RecordSetToSync(conn, cleanChangeID(*out.ChangeInfo.Id))
+			} else {
+				log.Printf("[DEBUG] Change info was empty")
+			}
 		} else {
 			log.Printf("[DEBUG] Unable to wait for change batch because of an error: %s", lastDeleteErr)
 		}

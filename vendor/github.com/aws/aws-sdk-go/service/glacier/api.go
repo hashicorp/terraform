@@ -37,7 +37,6 @@ const opAbortMultipartUpload = "AbortMultipartUpload"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) AbortMultipartUploadRequest(input *AbortMultipartUploadInput) (req *request.Request, output *AbortMultipartUploadOutput) {
 	op := &request.Operation{
 		Name:       opAbortMultipartUpload,
@@ -132,7 +131,6 @@ const opAbortVaultLock = "AbortVaultLock"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) AbortVaultLockRequest(input *AbortVaultLockInput) (req *request.Request, output *AbortVaultLockOutput) {
 	op := &request.Operation{
 		Name:       opAbortVaultLock,
@@ -223,7 +221,6 @@ const opAddTagsToVault = "AddTagsToVault"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) AddTagsToVaultRequest(input *AddTagsToVaultInput) (req *request.Request, output *AddTagsToVaultOutput) {
 	op := &request.Operation{
 		Name:       opAddTagsToVault,
@@ -307,7 +304,6 @@ const opCompleteMultipartUpload = "CompleteMultipartUpload"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) CompleteMultipartUploadRequest(input *CompleteMultipartUploadInput) (req *request.Request, output *ArchiveCreationOutput) {
 	op := &request.Operation{
 		Name:       opCompleteMultipartUpload,
@@ -424,7 +420,6 @@ const opCompleteVaultLock = "CompleteVaultLock"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) CompleteVaultLockRequest(input *CompleteVaultLockInput) (req *request.Request, output *CompleteVaultLockOutput) {
 	op := &request.Operation{
 		Name:       opCompleteVaultLock,
@@ -514,7 +509,6 @@ const opCreateVault = "CreateVault"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) CreateVaultRequest(input *CreateVaultInput) (req *request.Request, output *CreateVaultOutput) {
 	op := &request.Operation{
 		Name:       opCreateVault,
@@ -610,7 +604,6 @@ const opDeleteArchive = "DeleteArchive"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) DeleteArchiveRequest(input *DeleteArchiveInput) (req *request.Request, output *DeleteArchiveOutput) {
 	op := &request.Operation{
 		Name:       opDeleteArchive,
@@ -710,7 +703,6 @@ const opDeleteVault = "DeleteVault"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) DeleteVaultRequest(input *DeleteVaultInput) (req *request.Request, output *DeleteVaultOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVault,
@@ -808,7 +800,6 @@ const opDeleteVaultAccessPolicy = "DeleteVaultAccessPolicy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) DeleteVaultAccessPolicyRequest(input *DeleteVaultAccessPolicyInput) (req *request.Request, output *DeleteVaultAccessPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVaultAccessPolicy,
@@ -893,7 +884,6 @@ const opDeleteVaultNotifications = "DeleteVaultNotifications"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) DeleteVaultNotificationsRequest(input *DeleteVaultNotificationsInput) (req *request.Request, output *DeleteVaultNotificationsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVaultNotifications,
@@ -983,7 +973,6 @@ const opDescribeJob = "DescribeJob"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) DescribeJobRequest(input *DescribeJobInput) (req *request.Request, output *JobDescription) {
 	op := &request.Operation{
 		Name:       opDescribeJob,
@@ -1078,7 +1067,6 @@ const opDescribeVault = "DescribeVault"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) DescribeVaultRequest(input *DescribeVaultInput) (req *request.Request, output *DescribeVaultOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVault,
@@ -1171,7 +1159,6 @@ const opGetDataRetrievalPolicy = "GetDataRetrievalPolicy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) GetDataRetrievalPolicyRequest(input *GetDataRetrievalPolicyInput) (req *request.Request, output *GetDataRetrievalPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetDataRetrievalPolicy,
@@ -1243,7 +1230,6 @@ const opGetJobOutput = "GetJobOutput"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) GetJobOutputRequest(input *GetJobOutputInput) (req *request.Request, output *GetJobOutputOutput) {
 	op := &request.Operation{
 		Name:       opGetJobOutput,
@@ -1360,7 +1346,6 @@ const opGetVaultAccessPolicy = "GetVaultAccessPolicy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) GetVaultAccessPolicyRequest(input *GetVaultAccessPolicyInput) (req *request.Request, output *GetVaultAccessPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetVaultAccessPolicy,
@@ -1439,7 +1424,6 @@ const opGetVaultLock = "GetVaultLock"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) GetVaultLockRequest(input *GetVaultLockInput) (req *request.Request, output *GetVaultLockOutput) {
 	op := &request.Operation{
 		Name:       opGetVaultLock,
@@ -1532,7 +1516,6 @@ const opGetVaultNotifications = "GetVaultNotifications"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) GetVaultNotificationsRequest(input *GetVaultNotificationsInput) (req *request.Request, output *GetVaultNotificationsOutput) {
 	op := &request.Operation{
 		Name:       opGetVaultNotifications,
@@ -1624,7 +1607,6 @@ const opInitiateJob = "InitiateJob"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) InitiateJobRequest(input *InitiateJobInput) (req *request.Request, output *InitiateJobOutput) {
 	op := &request.Operation{
 		Name:       opInitiateJob,
@@ -1842,7 +1824,6 @@ const opInitiateMultipartUpload = "InitiateMultipartUpload"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) InitiateMultipartUploadRequest(input *InitiateMultipartUploadInput) (req *request.Request, output *InitiateMultipartUploadOutput) {
 	op := &request.Operation{
 		Name:       opInitiateMultipartUpload,
@@ -1950,7 +1931,6 @@ const opInitiateVaultLock = "InitiateVaultLock"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) InitiateVaultLockRequest(input *InitiateVaultLockInput) (req *request.Request, output *InitiateVaultLockOutput) {
 	op := &request.Operation{
 		Name:       opInitiateVaultLock,
@@ -2052,7 +2032,6 @@ const opListJobs = "ListJobs"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) ListJobsRequest(input *ListJobsInput) (req *request.Request, output *ListJobsOutput) {
 	op := &request.Operation{
 		Name:       opListJobs,
@@ -2196,7 +2175,6 @@ const opListMultipartUploads = "ListMultipartUploads"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) (req *request.Request, output *ListMultipartUploadsOutput) {
 	op := &request.Operation{
 		Name:       opListMultipartUploads,
@@ -2330,7 +2308,6 @@ const opListParts = "ListParts"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) ListPartsRequest(input *ListPartsInput) (req *request.Request, output *ListPartsOutput) {
 	op := &request.Operation{
 		Name:       opListParts,
@@ -2458,7 +2435,6 @@ const opListProvisionedCapacity = "ListProvisionedCapacity"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) ListProvisionedCapacityRequest(input *ListProvisionedCapacityInput) (req *request.Request, output *ListProvisionedCapacityOutput) {
 	op := &request.Operation{
 		Name:       opListProvisionedCapacity,
@@ -2528,7 +2504,6 @@ const opListTagsForVault = "ListTagsForVault"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) ListTagsForVaultRequest(input *ListTagsForVaultInput) (req *request.Request, output *ListTagsForVaultOutput) {
 	op := &request.Operation{
 		Name:       opListTagsForVault,
@@ -2604,7 +2579,6 @@ const opListVaults = "ListVaults"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) ListVaultsRequest(input *ListVaultsInput) (req *request.Request, output *ListVaultsOutput) {
 	op := &request.Operation{
 		Name:       opListVaults,
@@ -2729,7 +2703,6 @@ const opPurchaseProvisionedCapacity = "PurchaseProvisionedCapacity"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) PurchaseProvisionedCapacityRequest(input *PurchaseProvisionedCapacityInput) (req *request.Request, output *PurchaseProvisionedCapacityOutput) {
 	op := &request.Operation{
 		Name:       opPurchaseProvisionedCapacity,
@@ -2802,7 +2775,6 @@ const opRemoveTagsFromVault = "RemoveTagsFromVault"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) RemoveTagsFromVaultRequest(input *RemoveTagsFromVaultInput) (req *request.Request, output *RemoveTagsFromVaultOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTagsFromVault,
@@ -2882,7 +2854,6 @@ const opSetDataRetrievalPolicy = "SetDataRetrievalPolicy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) SetDataRetrievalPolicyRequest(input *SetDataRetrievalPolicyInput) (req *request.Request, output *SetDataRetrievalPolicyOutput) {
 	op := &request.Operation{
 		Name:       opSetDataRetrievalPolicy,
@@ -2960,7 +2931,6 @@ const opSetVaultAccessPolicy = "SetVaultAccessPolicy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) SetVaultAccessPolicyRequest(input *SetVaultAccessPolicyInput) (req *request.Request, output *SetVaultAccessPolicyOutput) {
 	op := &request.Operation{
 		Name:       opSetVaultAccessPolicy,
@@ -3042,7 +3012,6 @@ const opSetVaultNotifications = "SetVaultNotifications"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) SetVaultNotificationsRequest(input *SetVaultNotificationsInput) (req *request.Request, output *SetVaultNotificationsOutput) {
 	op := &request.Operation{
 		Name:       opSetVaultNotifications,
@@ -3149,7 +3118,6 @@ const opUploadArchive = "UploadArchive"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) UploadArchiveRequest(input *UploadArchiveInput) (req *request.Request, output *ArchiveCreationOutput) {
 	op := &request.Operation{
 		Name:       opUploadArchive,
@@ -3262,7 +3230,6 @@ const opUploadMultipartPart = "UploadMultipartPart"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) UploadMultipartPartRequest(input *UploadMultipartPartInput) (req *request.Request, output *UploadMultipartPartOutput) {
 	op := &request.Operation{
 		Name:       opUploadMultipartPart,

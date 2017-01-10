@@ -46,13 +46,14 @@ mkdir -p "$SRCPATH"
 chown -R vagrant:vagrant "$SRCPATH" 2>/dev/null || true
 # ^^ silencing errors here because we expect this to fail for the shared folder
 
-install -m0755 /dev/stdin /etc/profile.d/gopath.sh <<EOF
+cat >/etc/profile.d/gopath.sh <<EOF
 export GOPATH="$SRCPATH"
 export GOROOT="$SRCROOT"
 export PATH="$SRCROOT/bin:$SRCPATH/bin:\$PATH"
 EOF
+chmod 755 /etc/profile.d/gopath.sh
 
-cat >>/home/vagrant/.bashrc <<EOF
+grep -q -F 'cd /opt/gopath/src/github.com/hashicorp/terraform' /home/vagrant/.bashrc || cat >>/home/vagrant/.bashrc <<EOF
 
 ## After login, change to terraform directory
 cd /opt/gopath/src/github.com/hashicorp/terraform

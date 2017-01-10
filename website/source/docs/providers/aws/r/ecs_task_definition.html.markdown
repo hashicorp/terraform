@@ -21,6 +21,11 @@ resource "aws_ecs_task_definition" "service" {
     name = "service-storage"
     host_path = "/ecs/service-storage"
   }
+
+  placement_constraints {
+    type = "memberOf"
+    expression = "attribute:ecs.availability-zone in [us-west-2a, us-west-2b]"
+  }
 }
 ```
 
@@ -74,12 +79,24 @@ official [Developer Guide](https://docs.aws.amazon.com/AmazonECS/latest/develope
 * `task_role_arn` - (Optional) The ARN of IAM role that allows your Amazon ECS container task to make calls to other AWS services.
 * `network_mode` - (Optional) The Docker networking mode to use for the containers in the task. The valid values are `none`, `bridge`, and `host`.
 * `volume` - (Optional) A volume block. See below for details about what arguments are supported.
+* `placement_constraints` - (Optional) rules that are taken into consideration during task placement. Maximum number of 
+`placement_constraints` is `10`. Defined below.
 
 Volume block supports the following arguments:
 
 * `name` - (Required) The name of the volume. This name is referenced in the `sourceVolume`
 parameter of container definition in the `mountPoints` section.
 * `host_path` - (Optional) The path on the host container instance that is presented to the container. If not set, ECS will create a nonpersistent data volume that starts empty and is deleted after the task has finished.
+
+## placement_constraints 
+
+`placement_constraints` support the following:
+
+* `expression` -  Cluster Query Language expression to apply to the constraint.
+For more information, see [Cluster Query Language in the Amazon EC2 Container
+Service Developer
+Guide](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-query-language.html).
+* `type` - The type of constraint. The only valid value at this time is `memberOf`
 
 ## Attributes Reference
 

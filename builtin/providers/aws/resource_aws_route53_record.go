@@ -47,9 +47,10 @@ func resourceAwsRoute53Record() *schema.Resource {
 			},
 
 			"type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateRoute53RecordType,
 			},
 
 			"zone_id": &schema.Schema{

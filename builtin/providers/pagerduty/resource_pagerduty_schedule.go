@@ -95,6 +95,10 @@ func resourcePagerDutySchedule() *schema.Resource {
 										Type:     schema.TypeString,
 										Required: true,
 									},
+									"start_day_of_week": {
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
 									"duration_seconds": {
 										Type:     schema.TypeInt,
 										Required: true,

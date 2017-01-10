@@ -460,6 +460,7 @@ resource "aws_lambda_function" "test_lambda" {
     function_name = "lambda_function_name_perm"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.handler"
+    runtime = "nodejs4.3"
 }
 
 resource "aws_iam_role" "iam_for_lambda" {
@@ -495,6 +496,7 @@ resource "aws_lambda_function" "test_lambda" {
     function_name = "lambda_function_name_perm_raw_func_name"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.handler"
+    runtime = "nodejs4.3"
 }
 
 resource "aws_iam_role" "iam_for_lambda" {
@@ -540,6 +542,7 @@ resource "aws_lambda_function" "test_lambda" {
     function_name = "lambda_function_name_perm_qualifier"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.handler"
+    runtime = "nodejs4.3"
 }
 
 resource "aws_iam_role" "iam_for_lambda" {
@@ -583,6 +586,7 @@ resource "aws_lambda_function" "test_lambda" {
     function_name = "lambda_function_name_perm_multiperms"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.handler"
+    runtime = "nodejs4.3"
 }
 
 resource "aws_iam_role" "iam_for_lambda" {
@@ -635,6 +639,7 @@ resource "aws_lambda_function" "my-func" {
     function_name = "lambda_function_name_perm_s3"
     role = "${aws_iam_role.police.arn}"
     handler = "exports.handler"
+    runtime = "nodejs4.3"
 }
 
 resource "aws_iam_role" "police" {
@@ -681,6 +686,7 @@ resource "aws_lambda_function" "my-func" {
     function_name = "lambda_function_name_perm_sns"
     role = "${aws_iam_role.police.arn}"
     handler = "exports.handler"
+    runtime = "nodejs4.3"
 }
 
 resource "aws_iam_role" "police" {

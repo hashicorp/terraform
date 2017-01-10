@@ -160,9 +160,10 @@ func resourceAwsRDSCluster() *schema.Resource {
 			},
 
 			"preferred_backup_window": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateOnceADayWindowFormat,
 			},
 
 			"preferred_maintenance_window": {
@@ -175,6 +176,7 @@ func resourceAwsRDSCluster() *schema.Resource {
 					}
 					return strings.ToLower(val.(string))
 				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
 			},
 
 			"backup_retention_period": {

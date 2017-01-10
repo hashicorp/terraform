@@ -301,7 +301,6 @@ func resourceComputeInstance() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  4,
-				ForceNew: true,
 			},
 		},
 	}

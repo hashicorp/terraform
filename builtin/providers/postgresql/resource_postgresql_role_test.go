@@ -23,6 +23,10 @@ func TestAccPostgresqlRole_Basic(t *testing.T) {
 						"postgresql_role.myrole2", "name", "myrole2"),
 					resource.TestCheckResourceAttr(
 						"postgresql_role.myrole2", "login", "true"),
+					resource.TestCheckResourceAttr(
+						"postgresql_role.myrole2", "skip_drop_role", "false"),
+					resource.TestCheckResourceAttr(
+						"postgresql_role.myrole2", "skip_reassign_owned", "false"),
 
 					resource.TestCheckResourceAttr(
 						"postgresql_role.role_with_defaults", "name", "testing_role_with_defaults"),
@@ -46,6 +50,10 @@ func TestAccPostgresqlRole_Basic(t *testing.T) {
 						"postgresql_role.role_with_defaults", "password", ""),
 					resource.TestCheckResourceAttr(
 						"postgresql_role.role_with_defaults", "valid_until", "infinity"),
+					resource.TestCheckResourceAttr(
+						"postgresql_role.role_with_defaults", "skip_drop_role", "false"),
+					resource.TestCheckResourceAttr(
+						"postgresql_role.role_with_defaults", "skip_reassign_owned", "false"),
 				),
 			},
 		},
@@ -164,6 +172,8 @@ resource "postgresql_role" "role_with_defaults" {
   connection_limit = -1
   encrypted_password = true
   password = ""
+  skip_drop_role = false
+  skip_reassign_owned = false
   valid_until = "infinity"
 }
 `
