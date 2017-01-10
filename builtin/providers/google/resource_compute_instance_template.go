@@ -650,6 +650,7 @@ func flattenNetworkInterfaces(networkInterfaces []*compute.NetworkInterface) ([]
 			subnetworkUrl := strings.Split(networkInterface.Subnetwork, "/")
 			networkInterfaceMap["subnetwork"] = subnetworkUrl[len(subnetworkUrl)-1]
 			region = subnetworkUrl[len(subnetworkUrl)-3]
+			networkInterfaceMap["subnetwork_project"] = subnetworkUrl[len(subnetworkUrl)-5]
 		}
 
 		if networkInterface.AccessConfigs != nil {
