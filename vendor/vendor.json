@@ -990,6 +990,14 @@
 			"versionExact": "v1.6.9"
 		},
 		{
+			"checksumSHA1": "Z0KJh0BT1VDqX3wU9Nj/+6hmi9s=",
+			"path": "github.com/aws/aws-sdk-go/service/sfn",
+			"revision": "36670f6ab1769ad77fa5f7e2c194398733503635",
+			"revisionTime": "2016-12-30T00:33:20Z",
+			"version": "v1.6.9",
+			"versionExact": "v1.6.9"
+		},
+		{
 			"checksumSHA1": "l2IvDSyTWaPmHKJ6HNinOf+3GzA=",
 			"path": "github.com/aws/aws-sdk-go/service/simpledb",
 			"revision": "36670f6ab1769ad77fa5f7e2c194398733503635",
