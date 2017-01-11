@@ -18,7 +18,7 @@ func dataSourceAwsRouteTable() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
-			"rtb_id": {
+			"route_table_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -103,7 +103,7 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 	req := &ec2.DescribeRouteTablesInput{}
 	vpcId, vpcIdOk := d.GetOk("vpc_id")
 	subnetId, subnetIdOk := d.GetOk("subnet_id")
-	rtbId, rtbOk := d.GetOk("rtb_id")
+	rtbId, rtbOk := d.GetOk("route_table_id")
 	tags, tagsOk := d.GetOk("tags")
 	filter, filterOk := d.GetOk("filter")
 

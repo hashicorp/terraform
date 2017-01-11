@@ -173,7 +173,7 @@ data "aws_route_table" "by_subnet" {
 }
 
 data "aws_route_table" "by_id" {
-  rtb_id = "${aws_route_table.test.id}"
+  route_table_id = "${aws_route_table.test.id}"
   depends_on = ["aws_route_table_association.a"]
 }
 `
