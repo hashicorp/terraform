@@ -9,6 +9,4 @@ package github
 // methods of the GitHub API.
 //
 // GitHub API docs: http://developer.github.com/v3/git/
-type GitService struct {
-	client *Client
-}
+type GitService service

@@ -11,9 +11,7 @@ import "fmt"
 // GitHub API.
 //
 // GitHub API docs: http://developer.github.com/v3/gitignore/
-type GitignoresService struct {
-	client *Client
-}
+type GitignoresService service
 
 // Gitignore represents a .gitignore file as returned by the GitHub API.
 type Gitignore struct {

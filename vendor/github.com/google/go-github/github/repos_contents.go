@@ -21,11 +21,14 @@ import (
 
 // RepositoryContent represents a file or directory in a github repository.
 type RepositoryContent struct {
-	Type        *string `json:"type,omitempty"`
-	Encoding    *string `json:"encoding,omitempty"`
-	Size        *int    `json:"size,omitempty"`
-	Name        *string `json:"name,omitempty"`
-	Path        *string `json:"path,omitempty"`
+	Type     *string `json:"type,omitempty"`
+	Encoding *string `json:"encoding,omitempty"`
+	Size     *int    `json:"size,omitempty"`
+	Name     *string `json:"name,omitempty"`
+	Path     *string `json:"path,omitempty"`
+	// Content contains the actual file content, which may be encoded.
+	// Callers should call GetContent which will decode the content if
+	// necessary.
 	Content     *string `json:"content,omitempty"`
 	SHA         *string `json:"sha,omitempty"`
 	URL         *string `json:"url,omitempty"`
@@ -56,11 +59,14 @@ type RepositoryContentGetOptions struct {
 	Ref string `url:"ref,omitempty"`
 }
 
+// String converts RepositoryContent to a string. It's primarily for testing.
 func (r RepositoryContent) String() string {
 	return Stringify(r)
 }
 
 // Decode decodes the file content if it is base64 encoded.
+//
+// Deprecated: Use GetContent instead.
 func (r *RepositoryContent) Decode() ([]byte, error) {
 	if *r.Encoding != "base64" {
 		return nil, errors.New("cannot decode non-base64")
@@ -70,6 +76,27 @@ func (r *RepositoryContent) Decode() ([]byte, error) {
 		return nil, err
 	}
 	return o, nil
+}
+
+// GetContent returns the content of r, decoding it if necessary.
+func (r *RepositoryContent) GetContent() (string, error) {
+	var encoding string
+	if r.Encoding != nil {
+		encoding = *r.Encoding
+	}
+
+	switch encoding {
+	case "base64":
+		c, err := base64.StdEncoding.DecodeString(*r.Content)
+		return string(c), err
+	case "":
+		if r.Content == nil {
+			return "", nil
+		}
+		return *r.Content, nil
+	default:
+		return "", fmt.Errorf("unsupported content encoding: %v", encoding)
+	}
 }
 
 // GetReadme gets the Readme file for the repository.
@@ -128,9 +155,7 @@ func (s *RepositoriesService) DownloadContents(owner, repo, filepath string, opt
 //
 // GitHub API docs: http://developer.github.com/v3/repos/contents/#get-contents
 func (s *RepositoriesService) GetContents(owner, repo, path string, opt *RepositoryContentGetOptions) (fileContent *RepositoryContent, directoryContent []*RepositoryContent, resp *Response, err error) {
-	// escape characters not allowed in URL path.  This actually escapes a
-	// lot more, but seems to be harmless.
-	escapedPath := url.QueryEscape(path)
+	escapedPath := (&url.URL{Path: path}).String()
 	u := fmt.Sprintf("repos/%s/%s/contents/%s", owner, repo, escapedPath)
 	u, err = addOptions(u, opt)
 	if err != nil {
@@ -242,8 +267,12 @@ func (s *RepositoriesService) GetArchiveLink(owner, repo string, archiveformat a
 	} else {
 		resp, err = s.client.client.Transport.RoundTrip(req)
 	}
-	if err != nil || resp.StatusCode != http.StatusFound {
-		return nil, newResponse(resp), err
+	if err != nil {
+		return nil, nil, err
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusFound {
+		return nil, newResponse(resp), fmt.Errorf("unexpected status code: %s", resp.Status)
 	}
 	parsedURL, err := url.Parse(resp.Header.Get("Location"))
 	return parsedURL, newResponse(resp), err

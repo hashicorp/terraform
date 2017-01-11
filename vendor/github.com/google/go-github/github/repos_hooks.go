@@ -105,7 +105,7 @@ func (s *RepositoriesService) CreateHook(owner, repo string, hook *Hook) (*Hook,
 // ListHooks lists all Hooks for the specified repository.
 //
 // GitHub API docs: http://developer.github.com/v3/repos/hooks/#list
-func (s *RepositoriesService) ListHooks(owner, repo string, opt *ListOptions) ([]Hook, *Response, error) {
+func (s *RepositoriesService) ListHooks(owner, repo string, opt *ListOptions) ([]*Hook, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/hooks", owner, repo)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -117,7 +117,7 @@ func (s *RepositoriesService) ListHooks(owner, repo string, opt *ListOptions) ([
 		return nil, nil, err
 	}
 
-	hooks := new([]Hook)
+	hooks := new([]*Hook)
 	resp, err := s.client.Do(req, hooks)
 	if err != nil {
 		return nil, resp, err
@@ -191,6 +191,6 @@ func (s *RepositoriesService) TestHook(owner, repo string, id int) (*Response, e
 }
 
 // ListServiceHooks is deprecated.  Use Client.ListServiceHooks instead.
-func (s *RepositoriesService) ListServiceHooks() ([]ServiceHook, *Response, error) {
+func (s *RepositoriesService) ListServiceHooks() ([]*ServiceHook, *Response, error) {
 	return s.client.ListServiceHooks()
 }

@@ -9,10 +9,11 @@ import "fmt"
 
 // Key represents a public SSH key used to authenticate a user or deploy script.
 type Key struct {
-	ID    *int    `json:"id,omitempty"`
-	Key   *string `json:"key,omitempty"`
-	URL   *string `json:"url,omitempty"`
-	Title *string `json:"title,omitempty"`
+	ID       *int    `json:"id,omitempty"`
+	Key      *string `json:"key,omitempty"`
+	URL      *string `json:"url,omitempty"`
+	Title    *string `json:"title,omitempty"`
+	ReadOnly *bool   `json:"read_only,omitempty"`
 }
 
 func (k Key) String() string {
@@ -23,7 +24,7 @@ func (k Key) String() string {
 // string will fetch keys for the authenticated user.
 //
 // GitHub API docs: http://developer.github.com/v3/users/keys/#list-public-keys-for-a-user
-func (s *UsersService) ListKeys(user string, opt *ListOptions) ([]Key, *Response, error) {
+func (s *UsersService) ListKeys(user string, opt *ListOptions) ([]*Key, *Response, error) {
 	var u string
 	if user != "" {
 		u = fmt.Sprintf("users/%v/keys", user)
@@ -40,7 +41,7 @@ func (s *UsersService) ListKeys(user string, opt *ListOptions) ([]Key, *Response
 		return nil, nil, err
 	}
 
-	keys := new([]Key)
+	keys := new([]*Key)
 	resp, err := s.client.Do(req, keys)
 	if err != nil {
 		return nil, resp, err

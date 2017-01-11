@@ -180,14 +180,14 @@ func (s *ServiceHook) String() string {
 // ListServiceHooks lists all of the available service hooks.
 //
 // GitHub API docs: https://developer.github.com/webhooks/#services
-func (c *Client) ListServiceHooks() ([]ServiceHook, *Response, error) {
+func (c *Client) ListServiceHooks() ([]*ServiceHook, *Response, error) {
 	u := "hooks"
 	req, err := c.NewRequest("GET", u, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	hooks := new([]ServiceHook)
+	hooks := new([]*ServiceHook)
 	resp, err := c.Do(req, hooks)
 	if err != nil {
 		return nil, resp, err

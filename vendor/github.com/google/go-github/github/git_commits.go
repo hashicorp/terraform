@@ -10,16 +10,25 @@ import (
 	"time"
 )
 
+// SignatureVerification represents GPG signature verification.
+type SignatureVerification struct {
+	Verified  *bool   `json:"verified,omitempty"`
+	Reason    *string `json:"reason,omitempty"`
+	Signature *string `json:"signature,omitempty"`
+	Payload   *string `json:"payload,omitempty"`
+}
+
 // Commit represents a GitHub commit.
 type Commit struct {
-	SHA       *string       `json:"sha,omitempty"`
-	Author    *CommitAuthor `json:"author,omitempty"`
-	Committer *CommitAuthor `json:"committer,omitempty"`
-	Message   *string       `json:"message,omitempty"`
-	Tree      *Tree         `json:"tree,omitempty"`
-	Parents   []Commit      `json:"parents,omitempty"`
-	Stats     *CommitStats  `json:"stats,omitempty"`
-	URL       *string       `json:"url,omitempty"`
+	SHA          *string                `json:"sha,omitempty"`
+	Author       *CommitAuthor          `json:"author,omitempty"`
+	Committer    *CommitAuthor          `json:"committer,omitempty"`
+	Message      *string                `json:"message,omitempty"`
+	Tree         *Tree                  `json:"tree,omitempty"`
+	Parents      []Commit               `json:"parents,omitempty"`
+	Stats        *CommitStats           `json:"stats,omitempty"`
+	URL          *string                `json:"url,omitempty"`
+	Verification *SignatureVerification `json:"verification,omitempty"`
 
 	// CommentCount is the number of GitHub comments on the commit.  This
 	// is only populated for requests that fetch GitHub data like
@@ -37,6 +46,9 @@ type CommitAuthor struct {
 	Date  *time.Time `json:"date,omitempty"`
 	Name  *string    `json:"name,omitempty"`
 	Email *string    `json:"email,omitempty"`
+
+	// The following fields are only populated by Webhook events.
+	Login *string `json:"username,omitempty"` // Renamed for go-github consistency.
 }
 
 func (c CommitAuthor) String() string {
@@ -52,6 +64,9 @@ func (s *GitService) GetCommit(owner string, repo string, sha string) (*Commit, 
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeGitSigningPreview)
 
 	c := new(Commit)
 	resp, err := s.client.Do(req, c)

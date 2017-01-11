@@ -15,9 +15,7 @@ import (
 // in the GitHub API.
 //
 // GitHub API docs: http://developer.github.com/v3/search/
-type SearchService struct {
-	client *Client
-}
+type SearchService service
 
 // SearchOptions specifies optional parameters to the SearchService methods.
 type SearchOptions struct {
@@ -42,8 +40,9 @@ type SearchOptions struct {
 
 // RepositoriesSearchResult represents the result of a repositories search.
 type RepositoriesSearchResult struct {
-	Total        *int         `json:"total_count,omitempty"`
-	Repositories []Repository `json:"items,omitempty"`
+	Total             *int         `json:"total_count,omitempty"`
+	IncompleteResults *bool        `json:"incomplete_results,omitempty"`
+	Repositories      []Repository `json:"items,omitempty"`
 }
 
 // Repositories searches repositories via various criteria.
@@ -57,8 +56,9 @@ func (s *SearchService) Repositories(query string, opt *SearchOptions) (*Reposit
 
 // IssuesSearchResult represents the result of an issues search.
 type IssuesSearchResult struct {
-	Total  *int    `json:"total_count,omitempty"`
-	Issues []Issue `json:"items,omitempty"`
+	Total             *int    `json:"total_count,omitempty"`
+	IncompleteResults *bool   `json:"incomplete_results,omitempty"`
+	Issues            []Issue `json:"items,omitempty"`
 }
 
 // Issues searches issues via various criteria.
@@ -70,10 +70,11 @@ func (s *SearchService) Issues(query string, opt *SearchOptions) (*IssuesSearchR
 	return result, resp, err
 }
 
-// UsersSearchResult represents the result of an issues search.
+// UsersSearchResult represents the result of a users search.
 type UsersSearchResult struct {
-	Total *int   `json:"total_count,omitempty"`
-	Users []User `json:"items,omitempty"`
+	Total             *int   `json:"total_count,omitempty"`
+	IncompleteResults *bool  `json:"incomplete_results,omitempty"`
+	Users             []User `json:"items,omitempty"`
 }
 
 // Users searches users via various criteria.
@@ -104,10 +105,11 @@ func (tm TextMatch) String() string {
 	return Stringify(tm)
 }
 
-// CodeSearchResult represents the result of an code search.
+// CodeSearchResult represents the result of a code search.
 type CodeSearchResult struct {
-	Total       *int         `json:"total_count,omitempty"`
-	CodeResults []CodeResult `json:"items,omitempty"`
+	Total             *int         `json:"total_count,omitempty"`
+	IncompleteResults *bool        `json:"incomplete_results,omitempty"`
+	CodeResults       []CodeResult `json:"items,omitempty"`
 }
 
 // CodeResult represents a single search result.
@@ -148,7 +150,7 @@ func (s *SearchService) search(searchType string, query string, opt *SearchOptio
 		return nil, err
 	}
 
-	if opt.TextMatch {
+	if opt != nil && opt.TextMatch {
 		// Accept header defaults to "application/vnd.github.v3+json"
 		// We change it here to fetch back text-match metadata
 		req.Header.Set("Accept", "application/vnd.github.v3.text-match+json")

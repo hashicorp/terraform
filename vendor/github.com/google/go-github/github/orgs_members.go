@@ -69,7 +69,7 @@ type ListMembersOptions struct {
 // public members, otherwise it will only return public members.
 //
 // GitHub API docs: http://developer.github.com/v3/orgs/members/#members-list
-func (s *OrganizationsService) ListMembers(org string, opt *ListMembersOptions) ([]User, *Response, error) {
+func (s *OrganizationsService) ListMembers(org string, opt *ListMembersOptions) ([]*User, *Response, error) {
 	var u string
 	if opt != nil && opt.PublicOnly {
 		u = fmt.Sprintf("orgs/%v/public_members", org)
@@ -86,11 +86,7 @@ func (s *OrganizationsService) ListMembers(org string, opt *ListMembersOptions) 
 		return nil, nil, err
 	}
 
-	if opt != nil && opt.Role != "" {
-		req.Header.Set("Accept", mediaTypeOrgPermissionPreview)
-	}
-
-	members := new([]User)
+	members := new([]*User)
 	resp, err := s.client.Do(req, members)
 	if err != nil {
 		return nil, resp, err
@@ -182,7 +178,7 @@ type ListOrgMembershipsOptions struct {
 // ListOrgMemberships lists the organization memberships for the authenticated user.
 //
 // GitHub API docs: https://developer.github.com/v3/orgs/members/#list-your-organization-memberships
-func (s *OrganizationsService) ListOrgMemberships(opt *ListOrgMembershipsOptions) ([]Membership, *Response, error) {
+func (s *OrganizationsService) ListOrgMemberships(opt *ListOrgMembershipsOptions) ([]*Membership, *Response, error) {
 	u := "user/memberships/orgs"
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -194,7 +190,7 @@ func (s *OrganizationsService) ListOrgMemberships(opt *ListOrgMembershipsOptions
 		return nil, nil, err
 	}
 
-	var memberships []Membership
+	var memberships []*Membership
 	resp, err := s.client.Do(req, &memberships)
 	if err != nil {
 		return nil, resp, err
