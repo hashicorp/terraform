@@ -87,6 +87,7 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Computed:     true,
+				Default:      -1,
 				Description:  "How many concurrent connections can be made to this database",
 				ValidateFunc: validateConnLimit,
 			},
