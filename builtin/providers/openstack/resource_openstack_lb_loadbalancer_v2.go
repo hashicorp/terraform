@@ -136,20 +136,8 @@ func resourceLoadBalancerV2Create(d *schema.ResourceData, meta interface{}) erro
 
 	// Once the loadbalancer has been created, apply any requested security groups
 	// to the port that was created behind the scenes.
-	if lb.VipPortID != "" {
-		if _, ok := d.GetOk("security_group_ids"); ok {
-			updateOpts := ports.UpdateOpts{
-				SecurityGroups: resourcePortSecurityGroupsV2(d),
-			}
-
-			log.Printf("[DEBUG] Adding security groups to OpenStack LoadBalancer (%s) "+
-				"VIP Port (%s): %#v", lb.ID, lb.VipPortID, updateOpts)
-
-			_, err = ports.Update(networkingClient, lb.VipPortID, updateOpts).Extract()
-			if err != nil {
-				return err
-			}
-		}
+	if err := resourceLoadBalancerV2SecurityGroups(networkingClient, lb.VipPortID, d); err != nil {
+		return err
 	}
 
 	// If all has been successful, set the ID on the resource
@@ -224,15 +212,8 @@ func resourceLoadBalancerV2Update(d *schema.ResourceData, meta interface{}) erro
 	// Security Groups get updated separately
 	if d.HasChange("security_group_ids") {
 		vipPortID := d.Get("vip_port_id").(string)
-		if vipPortID != "" {
-			updateOpts := ports.UpdateOpts{
-				SecurityGroups: resourcePortSecurityGroupsV2(d),
-			}
-
-			_, err := ports.Update(networkingClient, vipPortID, updateOpts).Extract()
-			if err != nil {
-				return err
-			}
+		if err := resourceLoadBalancerV2SecurityGroups(networkingClient, vipPortID, d); err != nil {
+			return err
 		}
 	}
 
@@ -261,6 +242,26 @@ func resourceLoadBalancerV2Delete(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.SetId("")
+	return nil
+}
+
+func resourceLoadBalancerV2SecurityGroups(networkingClient *gophercloud.ServiceClient, vipPortID string, d *schema.ResourceData) error {
+	if vipPortID != "" {
+		if _, ok := d.GetOk("security_group_ids"); ok {
+			updateOpts := ports.UpdateOpts{
+				SecurityGroups: resourcePortSecurityGroupsV2(d),
+			}
+
+			log.Printf("[DEBUG] Adding security groups to OpenStack LoadBalancer "+
+				"VIP Port (%s): %#v", vipPortID, updateOpts)
+
+			_, err := ports.Update(networkingClient, vipPortID, updateOpts).Extract()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
