@@ -1,5 +1,9 @@
 ## 0.8.5 (Unreleased)
 
+IMPROVEMENTS:
+
+ * provider/aws: Add 'route_table_id' to route_table data source ([#11157](https://github.com/hashicorp/terraform/pull/11157))
+
 BUG FIXES:
 
  * provider/aws: Fix panic when querying VPC's main route table via data source ([#11134](https://github.com/hashicorp/terraform/issues/11134))
