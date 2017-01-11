@@ -19,6 +19,7 @@ func TestAccDataSourceAwsRouteTable(t *testing.T) {
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_tag"),
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_filter"),
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_subnet"),
+					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_id"),
 				),
 			},
 		},
@@ -165,11 +166,16 @@ data "aws_route_table" "by_tag" {
   }
   depends_on = ["aws_route_table_association.a"]
 }
+
 data "aws_route_table" "by_subnet" {
   subnet_id = "${aws_subnet.test.id}"
   depends_on = ["aws_route_table_association.a"]
 }
 
+data "aws_route_table" "by_id" {
+  rtb_id = "${aws_route_table.test.id}"
+  depends_on = ["aws_route_table_association.a"]
+}
 `
 
 // Uses us-east-2, as region only has a single main route table
