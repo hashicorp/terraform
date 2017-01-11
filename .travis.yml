@@ -11,6 +11,7 @@ install:
 - bash scripts/gogetcookie.sh
 script:
 - make test vet
+- GOOS=windows go build
 branches:
   only:
   - master
