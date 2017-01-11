@@ -20,6 +20,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("PDNS_SERVER_URL", nil),
 				Description: "Location of PowerDNS server",
 			},
+			"allow_unverified_tls": {
+				Type:		schema.TypeBool,
+				Optional:	true,
+				Default:	false,
+				Description: "Allow unverified TLS, default: false",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -34,6 +40,7 @@ func providerConfigure(data *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		ApiKey:    data.Get("api_key").(string),
 		ServerUrl: data.Get("server_url").(string),
+		AllowUnverifiedTLS: data.Get("allow_unverified_tls").(bool),
 	}
 
 	return config.Client()

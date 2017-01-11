@@ -21,11 +21,14 @@ type Client struct {
 }
 
 // NewClient returns a new PowerDNS client
-func NewClient(serverUrl string, apiKey string) (*Client, error) {
+func NewClient(serverUrl string, apiKey string, allowUnverifiedTLS bool) (*Client, error) {
 	client := Client{
 		ServerUrl: serverUrl,
 		ApiKey:    apiKey,
 		Http:      cleanhttp.DefaultClient(),
+	}
+	if allowUnverifiedTLS {
+		client.Http = cleanhttp.NoTLSVerifyClient()
 	}
 	var err error
 	client.ApiVersion, err = client.detectApiVersion()

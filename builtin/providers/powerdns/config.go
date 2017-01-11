@@ -8,11 +8,12 @@ import (
 type Config struct {
 	ServerUrl string
 	ApiKey    string
+	AllowUnverifiedTLS bool
 }
 
 // Client returns a new client for accessing PowerDNS
 func (c *Config) Client() (*Client, error) {
-	client, err := NewClient(c.ServerUrl, c.ApiKey)
+	client, err := NewClient(c.ServerUrl, c.ApiKey, c.AllowUnverifiedTLS)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up PowerDNS client: %s", err)
