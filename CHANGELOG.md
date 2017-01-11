@@ -1,4 +1,9 @@
 ## 0.8.5 (Unreleased)
+
+BUG FIXES:
+
+ * provider/aws: Fix panic when querying VPC's main route table via data source ([#11134](https://github.com/hashicorp/terraform/issues/11134)
+ 
 ## 0.8.4 (January 11, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
