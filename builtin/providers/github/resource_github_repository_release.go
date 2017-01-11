@@ -8,12 +8,12 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceGithubRelease() *schema.Resource {
+func resourceGithubRepositoryRelease() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGithubReleaseCreate,
-		Read:   resourceGithubReleaseRead,
-		Update: resourceGithubReleaseUpdate,
-		Delete: resourceGithubReleaseDelete,
+		Create: resourceGithubRepositoryReleaseCreate,
+		Read:   resourceGithubRepositoryReleaseRead,
+		Update: resourceGithubRepositoryReleaseUpdate,
+		Delete: resourceGithubRepositoryReleaseDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -53,7 +53,7 @@ func resourceGithubRelease() *schema.Resource {
 	}
 }
 
-func resourceGithubReleaseCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryReleaseCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 
 	r := d.Get("repo").(string)
@@ -82,7 +82,7 @@ func resourceGithubReleaseCreate(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryReleaseRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 
 	r := d.Get("repo").(string)
@@ -107,7 +107,7 @@ func resourceGithubReleaseRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceGithubReleaseUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryReleaseUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -140,7 +140,7 @@ func resourceGithubReleaseUpdate(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceGithubReleaseDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGithubRepositoryReleaseDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
