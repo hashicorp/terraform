@@ -8,7 +8,7 @@ description: |-
 
 # OpsGenie Provider
 
-The OpenStack provider is used to interact with the
+The OpsGenie provider is used to interact with the
 many resources supported by OpsGenie. The provider needs to be configured
 with the proper credentials before it can be used.
 
