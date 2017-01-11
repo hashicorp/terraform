@@ -77,7 +77,7 @@ func resourcePostgreSQLRole() *schema.Resource {
 			roleConnLimitAttr: {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				Computed:     true,
+				Default:      -1,
 				Description:  "How many concurrent connections can be made with this role",
 				ValidateFunc: validateConnLimit,
 			},
