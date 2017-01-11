@@ -80,6 +80,7 @@ func (q *queryParser) parseStruct(v url.Values, value reflect.Value, prefix stri
 			continue
 		}
 
+
 		if protocol.CanSetIdempotencyToken(value.Field(i), field) {
 			token := protocol.GetIdempotencyToken()
 			elemValue = reflect.ValueOf(token)
