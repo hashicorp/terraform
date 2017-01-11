@@ -1,4 +1,4 @@
-## 0.8.4 (Unreleased)
+## 0.8.4 (January 11, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
