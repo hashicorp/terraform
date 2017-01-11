@@ -1,5 +1,11 @@
 ## 0.8.4 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * We have removed the `Arukas` provider that was added in v0.8.3 for this release. Unfortunately we found the 
+ new provider included a dependency that would not compile and run on Windows operating systems. For now the 
+ provider has been removed and we hope to work to reintroduce it for all platforms in the near future. Going forward we will also be taking additional steps in our build testing to ensure Terraform builds on all platforms before release. 
+ 
 ## 0.8.3 (January 10, 2017)
 
 FEATURES:
