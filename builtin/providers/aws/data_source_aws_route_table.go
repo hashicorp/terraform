@@ -108,7 +108,7 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 	filter, filterOk := d.GetOk("filter")
 
 	if !vpcIdOk && !subnetIdOk && !tagsOk && !filterOk && !rtbOk {
-		return fmt.Errorf("One of rtb_id, vpc_id, subnet_id, filters, or tags must be assigned")
+		return fmt.Errorf("One of route_table_id, vpc_id, subnet_id, filters, or tags must be assigned")
 	}
 	req.Filters = buildEC2AttributeFilterList(
 		map[string]string{
