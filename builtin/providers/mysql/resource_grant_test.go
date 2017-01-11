@@ -21,17 +21,18 @@ func TestAccGrant(t *testing.T) {
 			resource.TestStep{
 				Config: testAccGrantConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccPrivilegeExists("mysql_grant.test", "SELECT"),
+					testAccPrivilegeExists("mysql_grant.test", "SELECT", "foo", "bar"),
 					resource.TestCheckResourceAttr("mysql_grant.test", "user", "jdoe"),
 					resource.TestCheckResourceAttr("mysql_grant.test", "host", "example.com"),
 					resource.TestCheckResourceAttr("mysql_grant.test", "database", "foo"),
+					resource.TestCheckResourceAttr("mysql_grant.test", "table", "bar"),
 				),
 			},
 		},
 	})
 }
 
-func testAccPrivilegeExists(rn string, privilege string) resource.TestCheckFunc {
+func testAccPrivilegeExists(rn string, privilege string, database string, table string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[rn]
 		if !ok {
@@ -62,8 +63,11 @@ func testAccPrivilegeExists(rn string, privilege string) resource.TestCheckFunc 
 		privilegeFound := false
 		for _, row := range rows {
 			log.Printf("Result Row: %s", row[0])
+			// verify privilege set on the correct database and table
 			privIndex := strings.Index(string(row[0].([]byte)), privilege)
-			if privIndex != -1 {
+			dbIndex := strings.Index(string(row[0].([]byte)), database)
+			tableIndex := strings.Index(string(row[0].([]byte)), table)
+			if privIndex != -1 && dbIndex != -1 && tableIndex != -1 {
 				privilegeFound = true
 			}
 		}
@@ -120,6 +124,7 @@ resource "mysql_grant" "test" {
         user = "${mysql_user.test.user}"
         host = "${mysql_user.test.host}"
         database = "foo"
+        table = "bar"
         privileges = ["UPDATE", "SELECT"]
 }
 `
