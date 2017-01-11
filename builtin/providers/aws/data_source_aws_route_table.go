@@ -197,7 +197,10 @@ func dataSourceAssociationsRead(ec2Assocations []*ec2.RouteTableAssociation) []m
 		m := make(map[string]interface{})
 		m["route_table_id"] = *a.RouteTableId
 		m["route_table_association_id"] = *a.RouteTableAssociationId
-		m["subnet_id"] = *a.SubnetId
+		// GH[11134]
+		if a.SubnetId != nil {
+			m["subnet_id"] = *a.SubnetId
+		}
 		m["main"] = *a.Main
 		associations = append(associations, m)
 	}
