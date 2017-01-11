@@ -42,7 +42,7 @@ Route Table whose data will be exported as attributes.
 
 * `filter` - (Optional) Custom filter block as described below.
 
-* `id` - (Optional) The id of the specific Route Table to retrieve.
+* `route_table_id` - (Optional) The id of the specific Route Table to retrieve.
 
 * `tags` - (Optional) A mapping of tags, each pair of which must exactly match
   a pair on the desired Route Table.
