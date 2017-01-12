@@ -1,5 +1,9 @@
 ## 0.8.5 (Unreleased)
 
+FEATURES:
+
+ * **New Data Source:**  `aws_elb_hosted_zone_id ` [GH-11027]
+
 IMPROVEMENTS:
 
  * provider/aws: Add 'route_table_id' to route_table data source ([#11157](https://github.com/hashicorp/terraform/pull/11157))
