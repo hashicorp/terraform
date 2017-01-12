@@ -105,11 +105,9 @@ func resourceArmLoadBalancerProbeCreate(d *schema.ResourceData, meta interface{}
 
 	existingProbe, existingProbeIndex, exists := findLoadBalancerProbeByName(loadBalancer, d.Get("name").(string))
 	if exists {
-		if d.Id() == *existingProbe.ID {
-			// this probe is being updated remove old copy from the slice
+		if d.Get("name").(string) == *existingProbe.Name {
+			// this probe is being updated/reapplied remove old copy from the slice
 			probes = append(probes[:existingProbeIndex], probes[existingProbeIndex+1:]...)
-		} else {
-			return fmt.Errorf("A Probe with name %q already exists.", d.Get("name").(string))
 		}
 	}
 
