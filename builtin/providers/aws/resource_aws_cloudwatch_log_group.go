@@ -213,16 +213,6 @@ func resourceAwsCloudWatchLogGroupDelete(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func expandCloudWatchLogGroupTags(tagsMap map[string]interface{}) map[string]*string {
-	output := make(map[string]*string, len(tagsMap))
-
-	for i, v := range tagsMap {
-		output[i] = aws.String(v.(string))
-	}
-
-	return output
-}
-
 func flattenCloudWatchTags(d *schema.ResourceData, conn *cloudwatchlogs.CloudWatchLogs) (map[string]interface{}, error) {
 	tagsOutput, err := conn.ListTagsLogGroup(&cloudwatchlogs.ListTagsLogGroupInput{
 		LogGroupName: aws.String(d.Get("name").(string)),
