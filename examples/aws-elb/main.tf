@@ -6,7 +6,7 @@ provider "aws" {
 # Our default security group to access
 # the instances over SSH and HTTP
 resource "aws_security_group" "default" {
-  name        = "instance_sg"
+  name_prefix        = "instance_sg"
   description = "Used in the terraform"
 
   # SSH access from anywhere
@@ -30,7 +30,7 @@ resource "aws_security_group" "default" {
 # Our elb security group to access
 # the ELB over HTTP
 resource "aws_security_group" "elb" {
-  name        = "elb_sg"
+  name_prefix        = "elb_sg"
   description = "Used in the terraform"
 
   # HTTP access from anywhere
