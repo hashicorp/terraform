@@ -25,13 +25,6 @@ resource "aws_security_group" "default" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # outbound internet access
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 }
 
 # Our elb security group to access
@@ -48,13 +41,6 @@ resource "aws_security_group" "elb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # outbound internet access
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 }
 
 resource "aws_elb" "web" {
@@ -62,7 +48,7 @@ resource "aws_elb" "web" {
 
   # The same availability zone as our instance
   availability_zones = ["${aws_instance.web.availability_zone}"]
-  security_groups    = ["${aws_security_group.elb.id}"]
+  source_security_group    = "${aws_security_group.elb.name}"
 
   listener {
     instance_port     = 80
@@ -96,7 +82,7 @@ resource "aws_lb_cookie_stickiness_policy" "default" {
 }
 
 resource "aws_instance" "web" {
-  instance_type = "t2.micro"
+  instance_type = "t1.micro"
 
   # Lookup the correct AMI based on the region
   # we specified
