@@ -5,8 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"regexp"
-
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -199,15 +197,14 @@ func TestAccAzureRMLoadBalancerRule_update(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMLoadBalancerRule_duplicateRules(t *testing.T) {
+func TestAccAzureRMLoadBalancerRule_reapply(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
 	lbRuleName := fmt.Sprintf("LbRule-%s", acctest.RandStringFromCharSet(8, acctest.CharSetAlpha))
 
-	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
-	lbRuleID := fmt.Sprintf(
-		"/subscriptions/%s/resourceGroups/acctestrg-%d/providers/Microsoft.Network/loadBalancers/arm-test-loadbalancer-%d/loadBalancingRules/%s",
-		subscriptionID, ri, ri, lbRuleName)
+	deleteRuleState := func(s *terraform.State) error {
+		return s.Remove("azurerm_lb_rule.test")
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -215,13 +212,20 @@ func TestAccAzureRMLoadBalancerRule_duplicateRules(t *testing.T) {
 		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLoadBalancerRule_multipleRules(ri, lbRuleName, lbRuleName),
+				Config: testAccAzureRMLoadBalancerRule_basic(ri, lbRuleName),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
 					testCheckAzureRMLoadBalancerRuleExists(lbRuleName, &lb),
-					resource.TestCheckResourceAttr("azurerm_lb_rule.test", "id", lbRuleID),
+					deleteRuleState,
 				),
-				ExpectError: regexp.MustCompile(fmt.Sprintf("A LoadBalancer Rule with name %q already exists.", lbRuleName)),
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config: testAccAzureRMLoadBalancerRule_basic(ri, lbRuleName),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerRuleExists(lbRuleName, &lb),
+				),
 			},
 		},
 	})
