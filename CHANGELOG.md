@@ -5,6 +5,7 @@ IMPROVEMENTS:
  * provider/aws: Add 'route_table_id' to route_table data source ([#11157](https://github.com/hashicorp/terraform/pull/11157))
  * provider/azurerm: add caching support for virtual_machine data_disks [GH-11142]
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
+ * provider/openstack: LoadBalancer Security Groups [GH-11074]
 
 BUG FIXES:
 
