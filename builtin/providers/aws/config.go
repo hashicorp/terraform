@@ -266,7 +266,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.cloudwatchconn = cloudwatch.New(sess)
 	client.cloudwatcheventsconn = cloudwatchevents.New(sess)
 	client.cloudwatchlogsconn = cloudwatchlogs.New(sess)
-	client.codecommitconn = codecommit.New(usEast1Sess)
+	client.codecommitconn = codecommit.New(sess)
 	client.codedeployconn = codedeploy.New(sess)
 	client.dsconn = directoryservice.New(sess)
 	client.dynamodbconn = dynamodb.New(dynamoSess)
