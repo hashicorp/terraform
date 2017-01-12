@@ -27,7 +27,9 @@ func resourceAwsRoute53Record() *schema.Resource {
 		Read:   resourceAwsRoute53RecordRead,
 		Update: resourceAwsRoute53RecordUpdate,
 		Delete: resourceAwsRoute53RecordDelete,
-
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 		SchemaVersion: 2,
 		MigrateState:  resourceAwsRoute53RecordMigrateState,
 		Schema: map[string]*schema.Schema{
