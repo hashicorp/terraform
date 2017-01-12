@@ -484,7 +484,7 @@ func setRoleConnLimit(conn *sql.DB, d *schema.ResourceData) error {
 
 	connLimit := d.Get(roleConnLimitAttr).(int)
 	roleName := d.Get(roleNameAttr).(string)
-	query := fmt.Sprintf("ALTER ROLE %s CONNECTION LIMIT = %d", pq.QuoteIdentifier(roleName), connLimit)
+	query := fmt.Sprintf("ALTER ROLE %s CONNECTION LIMIT %d", pq.QuoteIdentifier(roleName), connLimit)
 	if _, err := conn.Query(query); err != nil {
 		return errwrap.Wrapf("Error updating role CONNECTION LIMIT: {{err}}", err)
 	}
