@@ -2,6 +2,7 @@ package remote
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -23,6 +24,16 @@ func (s *State) State() *terraform.State {
 
 // StateWriter impl.
 func (s *State) WriteState(state *terraform.State) error {
+
+	// Don't allow clobbering with a state of a different lineage unless
+	// our existing state is empty. This is intended to prevent accidental
+	// loss of states through misconfiguration.
+	if s.state.HasResources() && !s.state.SameLineage(state) {
+		return fmt.Errorf(
+			"can't overwrite remote state with state of different lineage",
+		)
+	}
+
 	s.state = state
 	return nil
 }

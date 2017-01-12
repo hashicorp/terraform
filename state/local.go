@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -50,6 +51,15 @@ func (s *LocalState) WriteState(state *terraform.State) error {
 		}
 
 		return err
+	}
+
+	// Don't allow clobbering with a state of a different lineage unless
+	// our existing state is empty. This is intended to prevent accidental
+	// loss of states through misconfiguration.
+	if s.readState.HasResources() && !s.readState.SameLineage(state) {
+		return fmt.Errorf(
+			"can't overwrite local state with state of different lineage",
+		)
 	}
 
 	// Create all the directories
