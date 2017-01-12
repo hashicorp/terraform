@@ -16,7 +16,7 @@ type lockInfo struct {
 	// Path to the state file
 	Path string
 	// The time the lock was taken
-	Time time.Time
+	Created time.Time
 	// The time this lock expires
 	Expires time.Time
 	// The lock reason passed to State.Lock
@@ -26,7 +26,7 @@ type lockInfo struct {
 // return the lock info formatted in an error
 func (l *lockInfo) Err() error {
 	return fmt.Errorf("state file %q locked. created:%s, expires:%s, reason:%s",
-		l.Path, l.Time, l.Expires, l.Reason)
+		l.Path, l.Created, l.Expires, l.Reason)
 }
 
 // LocalState manages a state storage that is local to the filesystem.
@@ -227,8 +227,8 @@ func (s *LocalState) writeLockInfo(reason string) error {
 
 	lockInfo := &lockInfo{
 		Path:    s.Path,
-		Time:    time.Now(),
-		Expires: time.Now().Add(time.Hour),
+		Created: time.Now().UTC(),
+		Expires: time.Now().Add(time.Hour).UTC(),
 		Reason:  reason,
 	}
 
