@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/codebuild"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
@@ -144,6 +145,7 @@ type AWSClient struct {
 	lightsailconn         *lightsail.Lightsail
 	opsworksconn          *opsworks.OpsWorks
 	glacierconn           *glacier.Glacier
+	codebuildconn         *codebuild.CodeBuild
 	codedeployconn        *codedeploy.CodeDeploy
 	codecommitconn        *codecommit.CodeCommit
 	sfnconn               *sfn.SFN
@@ -275,6 +277,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.cloudwatcheventsconn = cloudwatchevents.New(sess)
 	client.cloudwatchlogsconn = cloudwatchlogs.New(sess)
 	client.codecommitconn = codecommit.New(sess)
+	client.codebuildconn = codebuild.New(sess)
 	client.codedeployconn = codedeploy.New(sess)
 	client.dsconn = directoryservice.New(sess)
 	client.dynamodbconn = dynamodb.New(dynamoSess)
