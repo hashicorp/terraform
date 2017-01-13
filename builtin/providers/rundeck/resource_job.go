@@ -43,7 +43,8 @@ func resourceRundeckJob() *schema.Resource {
 
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default:  "",
 			},
 
 			"log_level": &schema.Schema{
@@ -62,6 +63,7 @@ func resourceRundeckJob() *schema.Resource {
 			"max_thread_count": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Default:  1,
 			},
 
 			// false: Stop at the failed step: Fail immediately (default).
@@ -129,11 +131,13 @@ func resourceRundeckJob() *schema.Resource {
 			"execution_timeout": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"execution_retry": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"execution_enabled": &schema.Schema{
