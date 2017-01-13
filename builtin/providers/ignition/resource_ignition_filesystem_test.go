@@ -71,7 +71,7 @@ func TestIngnitionFilesystem(t *testing.T) {
 		}
 
 		if f.Mount.Create != nil {
-			return fmt.Errorf("mount, create was found %q", f.Mount.Create)
+			return fmt.Errorf("mount, create was found %#v", f.Mount.Create)
 		}
 
 		f = c.Storage.Filesystems[2]
@@ -88,7 +88,7 @@ func TestIngnitionFilesystem(t *testing.T) {
 		}
 
 		if f.Mount.Create.Force != true {
-			return fmt.Errorf("mount.0.force, found %q", f.Mount.Create.Force)
+			return fmt.Errorf("mount.0.force, found %t", f.Mount.Create.Force)
 		}
 
 		if len(f.Mount.Create.Options) != 1 || f.Mount.Create.Options[0] != "rw" {
