@@ -24,8 +24,7 @@ func validateRecordType(v interface{}, k string) (ws []string, errors []error) {
 
 	if _, ok := validTypes[value]; !ok {
 		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid type %q. Valid types are: %q, %q, %q, %q, %q, %q, %q, %q, or %q",
-			k, value, "A", "AAAA", "CNAME", "TXT", "SRV", "LOC", "MX", "NS", "SPF"))
+			`%q contains an invalid type %q. Valid types are "A", "AAAA", "CNAME", "TXT", "SRV", "LOC", "MX", "NS" or "SPF"`, k, value))
 	}
 	return
 }
