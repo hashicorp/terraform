@@ -166,7 +166,7 @@ type Schema struct {
 
 	// Sensitive ensures that the attribute's value does not get displayed in
 	// logs or regular output. It should be used for passwords or other
-	// secret fields. Futrure versions of Terraform may encrypt these
+	// secret fields. Future versions of Terraform may encrypt these
 	// values.
 	Sensitive bool
 }

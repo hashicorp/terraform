@@ -1019,6 +1019,7 @@ resource "azurerm_virtual_machine" "test" {
         vhd_uri       = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/mydatadisk1.vhd"
     	disk_size_gb  = "1023"
     	create_option = "Empty"
+        caching       = "ReadWrite"
     	lun           = 0
     }
 

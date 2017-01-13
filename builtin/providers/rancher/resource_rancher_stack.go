@@ -245,7 +245,7 @@ func resourceRancherStackUpdate(d *schema.ResourceData, meta interface{}) error 
 			}
 
 			stateConf = &resource.StateChangeConf{
-				Pending:    []string{"active", "upgraded"},
+				Pending:    []string{"active", "upgraded", "finishing-upgrade"},
 				Target:     []string{"active"},
 				Refresh:    StackStateRefreshFunc(client, stack.Id),
 				Timeout:    10 * time.Minute,

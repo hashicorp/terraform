@@ -200,13 +200,13 @@ func resourceAwsEfsMountTargetRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	// DNS name per http://docs.aws.amazon.com/efs/latest/ug/mounting-fs-mount-cmd-dns-name.html
-	az, err := getAzFromSubnetId(*mt.SubnetId, meta.(*AWSClient).ec2conn)
+	_, err = getAzFromSubnetId(*mt.SubnetId, meta.(*AWSClient).ec2conn)
 	if err != nil {
 		return fmt.Errorf("Failed getting Availability Zone from subnet ID (%s): %s", *mt.SubnetId, err)
 	}
 
 	region := meta.(*AWSClient).region
-	err = d.Set("dns_name", resourceAwsEfsMountTargetDnsName(az, *mt.FileSystemId, region))
+	err = d.Set("dns_name", resourceAwsEfsMountTargetDnsName(*mt.FileSystemId, region))
 	if err != nil {
 		return err
 	}
@@ -286,8 +286,8 @@ func resourceAwsEfsMountTargetDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceAwsEfsMountTargetDnsName(az, fileSystemId, region string) string {
-	return fmt.Sprintf("%s.%s.efs.%s.amazonaws.com", az, fileSystemId, region)
+func resourceAwsEfsMountTargetDnsName(fileSystemId, region string) string {
+	return fmt.Sprintf("%s.efs.%s.amazonaws.com", fileSystemId, region)
 }
 
 func hasEmptyMountTargets(mto *efs.DescribeMountTargetsOutput) bool {

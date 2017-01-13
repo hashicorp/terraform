@@ -100,11 +100,9 @@ func resourceArmLoadBalancerNatPoolCreate(d *schema.ResourceData, meta interface
 
 	existingNatPool, existingNatPoolIndex, exists := findLoadBalancerNatPoolByName(loadBalancer, d.Get("name").(string))
 	if exists {
-		if d.Id() == *existingNatPool.ID {
-			// this probe is being updated remove old copy from the slice
+		if d.Get("name").(string) == *existingNatPool.Name {
+			// this probe is being updated/reapplied remove old copy from the slice
 			natPools = append(natPools[:existingNatPoolIndex], natPools[existingNatPoolIndex+1:]...)
-		} else {
-			return fmt.Errorf("A NAT Pool with name %q already exists.", d.Get("name").(string))
 		}
 	}
 
