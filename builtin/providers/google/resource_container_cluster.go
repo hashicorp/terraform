@@ -95,6 +95,7 @@ func resourceContainerCluster() *schema.Resource {
 			"additional_zones": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
+				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
