@@ -119,9 +119,13 @@ The following arguments are supported:
 
 * `schedule`: (Optional) Schedule a cronjob.
 
+* `schedule_enabled`: (Optional) Allow this Job to be scheduled. The default is `true`.
+
 * `execution_timeout`: (Optional) The maximum time for an execution to run. Time in seconds, or specify time units: "120m", "2h", "3d". Use blank or 0 to indicate no timeout. Can include option value references like "${option.timeout}". 
 
 * `execution_retry`: (Optional) Maximum number of times to retry execution when this job is directly invoked. Retry will occur if the job fails or times out, but not if it is manually killed. Can use an option value reference like "${option.retry}". 
+
+* `execution_enabled`: (Optional) Allow this Job to be executed. The default is `true`.
 
 * `option`: (Optional) Nested block defining an option a user may set when executing this job. A
   job may have any number of options. The structure of this nested block is described below.
