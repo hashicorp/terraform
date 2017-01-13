@@ -720,7 +720,7 @@ func validateAggregatorMethod(v interface{}, k string) (ws []string, errors []er
 	}
 	if _, ok := validMethods[value]; !ok {
 		errors = append(errors, fmt.Errorf(
-			`%q contains an invalid method %q. Valid methods are either "average", "max", "min", or "sum"`))
+			`%q contains an invalid method %q. Valid methods are either "average", "max", "min", or "sum"`, k, value))
 	}
 	return
 }
