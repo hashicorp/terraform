@@ -120,6 +120,12 @@ func resourceRundeckJob() *schema.Resource {
 				Optional: true,
 			},
 
+			"schedule_enabled": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+
 			"execution_timeout": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -128,6 +134,12 @@ func resourceRundeckJob() *schema.Resource {
 			"execution_retry": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+
+			"execution_enabled": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
 			},
 
 			// Element: Job>Dispatch
@@ -651,6 +663,8 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 		NodesSelectedByDefault:    d.Get("nodes_selected_by_default").(bool),
 		Timeout:                   d.Get("execution_timeout").(string),
 		Retry:                     d.Get("execution_retry").(string),
+		ExecutionEnabled:          d.Get("execution_enabled").(bool),
+		ScheduleEnabled:           d.Get("schedule_enabled").(bool),
 	}
 
 	// Element: Job>Notification
@@ -899,6 +913,8 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 	d.Set("nodes_selected_by_default", job.NodesSelectedByDefault)
 	d.Set("execution_timeout", job.Timeout)
 	d.Set("execution_retry", job.Retry)
+	d.Set("execution_enabled", job.ExecutionEnabled)
+	d.Set("schedule_enabled", job.ScheduleEnabled)
 
 	// Element: Job>Filter
 	d.Set("node_filter_query", nil)

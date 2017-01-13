@@ -31,6 +31,7 @@ type JobDetail struct {
 	ProjectName               string              `xml:"context>project,omitempty"`
 	OptionsConfig             *JobOptions         `xml:"context>options,omitempty"`
 	Description               string              `xml:"description"`
+	ExecutionEnabled          bool                `xml:"executionEnabled"`
 	LogLevel                  string              `xml:"loglevel,omitempty"`
 	AllowConcurrentExecutions bool                `xml:"multipleExecutions,omitempty"`
 	Dispatch                  *JobDispatch        `xml:"dispatch,omitempty"`
@@ -45,7 +46,8 @@ type JobDetail struct {
 	 * This has to be handle by the user.
 	 */
 	NodesSelectedByDefault    bool                `xml:"nodesSelectedByDefault"`
-	Schedule                  *JobSchedule        `xml:"schedule"`
+	Schedule                  *JobSchedule        `xml:"schedule,omitempty"`
+	ScheduleEnabled           bool                `xml:"scheduleEnabled"`
 }
 
 type JobNotification struct {
