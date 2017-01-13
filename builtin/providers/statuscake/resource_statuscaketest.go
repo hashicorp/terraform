@@ -57,6 +57,10 @@ func resourceStatusCakeTest() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
+			"confirmations": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -65,13 +69,14 @@ func CreateTest(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*statuscake.Client)
 
 	newTest := &statuscake.Test{
-		WebsiteName: d.Get("website_name").(string),
-		WebsiteURL:  d.Get("website_url").(string),
-		CheckRate:   d.Get("check_rate").(int),
-		TestType:    d.Get("test_type").(string),
-		Paused:      d.Get("paused").(bool),
-		Timeout:     d.Get("timeout").(int),
-		ContactID:   d.Get("contact_id").(int),
+		WebsiteName:  d.Get("website_name").(string),
+		WebsiteURL:   d.Get("website_url").(string),
+		CheckRate:    d.Get("check_rate").(int),
+		TestType:     d.Get("test_type").(string),
+		Paused:       d.Get("paused").(bool),
+		Timeout:      d.Get("timeout").(int),
+		ContactID:    d.Get("contact_id").(int),
+		Confirmation: d.Get("confirmations").(int),
 	}
 
 	log.Printf("[DEBUG] Creating new StatusCake Test: %s", d.Get("website_name").(string))
@@ -134,6 +139,7 @@ func ReadTest(d *schema.ResourceData, meta interface{}) error {
 	d.Set("paused", testResp.Paused)
 	d.Set("timeout", testResp.Timeout)
 	d.Set("contact_id", testResp.ContactID)
+	d.Set("confirmations", testResp.Confirmation)
 
 	return nil
 }
@@ -166,6 +172,9 @@ func getStatusCakeTestInput(d *schema.ResourceData) *statuscake.Test {
 	}
 	if v, ok := d.GetOk("contact_id"); ok {
 		test.ContactID = v.(int)
+	}
+	if v, ok := d.GetOk("confirmations"); ok {
+		test.Confirmation = v.(int)
 	}
 	return test
 }
