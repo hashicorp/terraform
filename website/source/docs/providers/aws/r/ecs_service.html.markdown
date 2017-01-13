@@ -25,6 +25,11 @@ resource "aws_ecs_service" "mongo" {
   iam_role = "${aws_iam_role.foo.arn}"
   depends_on = ["aws_iam_role_policy.foo"]
 
+  placement_strategy {
+    type = "binpack"
+    field = "CPU"
+  }
+
   load_balancer {
     elb_name = "${aws_elb.foo.name}"
     container_name = "mongo"
@@ -44,6 +49,10 @@ The following arguments are supported:
 * `iam_role` - (Optional) The ARN of IAM role that allows your Amazon ECS container agent to make calls to your load balancer on your behalf. This parameter is only required if you are using a load balancer with your service.
 * `deployment_maximum_percent` - (Optional) The upper limit (as a percentage of the service's desiredCount) of the number of running tasks that can be running in a service during a deployment.
 * `deployment_minimum_healthy_percent` - (Optional) The lower limit (as a percentage of the service's desiredCount) of the number of running tasks that must remain running and healthy in a service during a deployment.
+* `placement_strategy` - (Optional) Service level strategy rules that are taken
+into consideration during task placement. The maximum number of
+`placement_strategy` blocks is `5`. See [the related docs](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-placement-strategies.html) for
+details on attributes.
 * `load_balancer` - (Optional) A load balancer block. Load balancers documented below.
 
 -> **Note:** As a result of an AWS limitation, a single `load_balancer` can be attached to the ECS service at most. See [related docs](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-load-balancing.html#load-balancing-concepts).
