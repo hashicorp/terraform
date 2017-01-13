@@ -698,10 +698,11 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 	if len(dispatchConfigI) > 0 {
 		dispatchMap := dispatchConfigI[0].(map[string]interface{})
 		job.Dispatch = &rundeck.JobDispatch{
-			MaxThreadCount:  d.Get("max_thread_count").(int),
-			ContinueOnError: dispatchMap["continue_on_error"].(bool),
-			RankAttribute:   d.Get("rank_attribute").(string),
-			RankOrder:       d.Get("rank_order").(string),
+			ExcludePrecedence: d.Get("node_filter_exclude_precedence").(bool),
+			MaxThreadCount:    d.Get("max_thread_count").(int),
+			ContinueOnError:   dispatchMap["continue_on_error"].(bool),
+			RankAttribute:     d.Get("rank_attribute").(string),
+			RankOrder:         d.Get("rank_order").(string),
 		}
 	}
 
@@ -796,8 +797,7 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 	// Job>Filter
 	if d.Get("node_filter_query").(string) != "" {
 		job.NodeFilter = &rundeck.JobNodeFilter{
-			ExcludePrecedence: d.Get("node_filter_exclude_precedence").(bool),
-			Query:             d.Get("node_filter_query").(string),
+			Query: d.Get("node_filter_query").(string),
 		}
 	}
 
@@ -918,10 +918,8 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 
 	// Element: Job>Filter
 	d.Set("node_filter_query", nil)
-	d.Set("node_filter_exclude_precedence", nil)
 	if job.NodeFilter != nil {
 		d.Set("node_filter_query", job.NodeFilter.Query)
-		d.Set("node_filter_exclude_precedence", job.NodeFilter.ExcludePrecedence)
 	}
 
 	// Element: Job>Schedule
@@ -1020,6 +1018,7 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 
 	// Element: Job>Dispatch
 	if job.Dispatch != nil {
+		d.Set("node_filter_exclude_precedence", job.Dispatch.ExcludePrecedence)
 		d.Set("max_thread_count", job.Dispatch.MaxThreadCount)
 		d.Set("rank_attribute", job.Dispatch.RankAttribute)
 		d.Set("rank_order", job.Dispatch.RankOrder)
