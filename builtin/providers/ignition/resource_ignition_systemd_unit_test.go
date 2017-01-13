@@ -42,11 +42,11 @@ func TestIngnitionSystemdUnit(t *testing.T) {
 		}
 
 		if u.Mask != true {
-			return fmt.Errorf("mask, found %q", u.Mask)
+			return fmt.Errorf("mask, found %t", u.Mask)
 		}
 
 		if u.Enable != false {
-			return fmt.Errorf("enable, found %q", u.Enable)
+			return fmt.Errorf("enable, found %t", u.Enable)
 		}
 
 		if len(u.DropIns) != 1 {

@@ -185,23 +185,23 @@ func testAccCheckAWSOpsworksCreateLayerAttributes(
 
 		if *opslayer.AutoAssignElasticIps {
 			return fmt.Errorf(
-				"Unexpected AutoAssignElasticIps: %s", *opslayer.AutoAssignElasticIps)
+				"Unexpected AutoAssignElasticIps: %t", *opslayer.AutoAssignElasticIps)
 		}
 
 		if !*opslayer.EnableAutoHealing {
 			return fmt.Errorf(
-				"Unexpected EnableAutoHealing: %s", *opslayer.EnableAutoHealing)
+				"Unexpected EnableAutoHealing: %t", *opslayer.EnableAutoHealing)
 		}
 
 		if !*opslayer.LifecycleEventConfiguration.Shutdown.DelayUntilElbConnectionsDrained {
 			return fmt.Errorf(
-				"Unexpected DelayUntilElbConnectionsDrained: %s",
+				"Unexpected DelayUntilElbConnectionsDrained: %t",
 				*opslayer.LifecycleEventConfiguration.Shutdown.DelayUntilElbConnectionsDrained)
 		}
 
 		if *opslayer.LifecycleEventConfiguration.Shutdown.ExecutionTimeout != 300 {
 			return fmt.Errorf(
-				"Unexpected ExecutionTimeout: %s",
+				"Unexpected ExecutionTimeout: %d",
 				*opslayer.LifecycleEventConfiguration.Shutdown.ExecutionTimeout)
 		}
 
@@ -215,7 +215,7 @@ func testAccCheckAWSOpsworksCreateLayerAttributes(
 		}
 
 		if !reflect.DeepEqual(expectedPackages, opslayer.Packages) {
-			return fmt.Errorf("Unexpected Packages: %s", opslayer.Packages)
+			return fmt.Errorf("Unexpected Packages: %v", aws.StringValueSlice(opslayer.Packages))
 		}
 
 		expectedEbsVolumes := []*opsworks.VolumeConfiguration{
