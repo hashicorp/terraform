@@ -130,11 +130,11 @@ func testAccCheckAWSOpsworksCreatePermissionAttributes(
 	opsperm *opsworks.Permission, allowSsh bool, allowSudo bool, level string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *opsperm.AllowSsh != allowSsh {
-			return fmt.Errorf("Unnexpected allowSsh: %s", *opsperm.AllowSsh)
+			return fmt.Errorf("Unnexpected allowSsh: %t", *opsperm.AllowSsh)
 		}
 
 		if *opsperm.AllowSudo != allowSudo {
-			return fmt.Errorf("Unnexpected allowSudo: %s", *opsperm.AllowSudo)
+			return fmt.Errorf("Unnexpected allowSudo: %t", *opsperm.AllowSudo)
 		}
 
 		if *opsperm.Level != level {
