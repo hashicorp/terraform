@@ -689,11 +689,11 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 	}
 
 	// Element: Job>Schedule
-	scheduleCron := d.Get("schedule_cron").(string)
+	scheduleCron := d.Get("schedule").(string)
 	if len(scheduleCron) > 0 {
 		scheduleCronArray := strings.Split(scheduleCron, " ")
 		if len(scheduleCronArray) != 7 {
-			return nil, fmt.Errorf("rundeck schedule_cron format is incorrect")
+			return nil, fmt.Errorf("rundeck schedule format is incorrect")
 		}
 		job.Schedule = &rundeck.JobSchedule{
 			Month: rundeck.JobScheduleMonth{
@@ -710,7 +710,7 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 		}
 
 		if scheduleCronArray[3] == "?" && scheduleCronArray[5] == "?" {
-			return nil, fmt.Errorf("rundeck schedule_cron format is incorrect, to many ?")
+			return nil, fmt.Errorf("rundeck schedule_cron format is incorrect, to many ?\nRundeck schedule must be formated like a cron expression, as defined here: http://www.quartz-scheduler.org/documentation/quartz-2.2.x/tutorials/tutorial-lesson-06.html")
 		} else if scheduleCronArray[5] == "?" {
 			job.Schedule.DayOfMonth = &rundeck.JobScheduleDayOfMonth{}
 			job.Schedule.Month.Day = scheduleCronArray[3]
@@ -719,7 +719,7 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 				Day: scheduleCronArray[5],
 			}
 		} else {
-			return nil, fmt.Errorf("rundeck schedule_cron format is incorrect, missing ?")
+			return nil, fmt.Errorf("rundeck schedule_cron format is incorrect, missing ?\nRundeck schedule must be formated like a cron expression, as defined here: http://www.quartz-scheduler.org/documentation/quartz-2.2.x/tutorials/tutorial-lesson-06.html")
 		}
 	}
 
@@ -781,30 +781,6 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 		job.NodeFilter = &rundeck.JobNodeFilter{
 			ExcludePrecedence: d.Get("node_filter_exclude_precedence").(bool),
 			Query:             d.Get("node_filter_query").(string),
-		}
-	}
-
-	if d.Get("schedule").(string) != "" {
-		schedule := strings.Split(d.Get("schedule").(string), " ")
-		if len(schedule) != 7 {
-			return nil, fmt.Errorf("Rundeck schedule must be formated like a cron expression, as defined here: http://www.quartz-scheduler.org/documentation/quartz-2.2.x/tutorials/tutorial-lesson-06.html")
-		}
-		job.Schedule = &rundeck.JobSchedule{
-			Time: rundeck.JobScheduleTime{
-				Seconds: schedule[0],
-				Minute:  schedule[1],
-				Hour:    schedule[2],
-			},
-			Month: rundeck.JobScheduleMonth{
-				Day:   schedule[3],
-				Month: schedule[4],
-			},
-			WeekDay: &rundeck.JobScheduleWeekDay{
-				Day: schedule[5],
-			},
-			Year: rundeck.JobScheduleYear{
-				Year: schedule[6],
-			},
 		}
 	}
 
@@ -939,7 +915,7 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 			weekDay = job.Schedule.WeekDay.Day
 		}
 
-		d.Set("schedule_cron", fmt.Sprintf("%s %s %s %s %s %s %s",
+		d.Set("schedule", fmt.Sprintf("%s %s %s %s %s %s %s",
 			job.Schedule.Time.Seconds,
 			job.Schedule.Time.Minute,
 			job.Schedule.Time.Hour,
