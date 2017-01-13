@@ -117,7 +117,7 @@ The following arguments are supported:
 
 * `nodes_selected_by_default`: (Optional) Boolean controlling the user has to explicitly select target nodes.
 
-* `schedule_cron`: (Optional) Schedule a cronjob.
+* `schedule`: (Optional) Schedule a cronjob.
 
 * `execution_timeout`: (Optional) The maximum time for an execution to run. Time in seconds, or specify time units: "120m", "2h", "3d". Use blank or 0 to indicate no timeout. Can include option value references like "${option.timeout}". 
 
