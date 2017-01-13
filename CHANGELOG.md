@@ -9,8 +9,9 @@ IMPROVEMENTS:
  * provider/aws: Add 'route_table_id' to route_table data source ([#11157](https://github.com/hashicorp/terraform/pull/11157))
  * provider/azurerm: add caching support for virtual_machine data_disks [GH-11142]
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
- * providers/google: Add subnetwork_project field to enable cross-project networking in instance templates [GH-11110]
+ * provider/google: Add subnetwork_project field to enable cross-project networking in instance templates [GH-11110]
  * provider/openstack: LoadBalancer Security Groups [GH-11074]
+ * provider/statuscake: Add support for StatusCake confirmation servers [GH-11179]
 
 BUG FIXES:
 
