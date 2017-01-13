@@ -34,9 +34,10 @@ func resourceCloudFlareRecord() *schema.Resource {
 			},
 
 			"type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateRecordType,
 			},
 
 			"value": &schema.Schema{
@@ -86,6 +87,11 @@ func resourceCloudFlareRecordCreate(d *schema.ResourceData, meta interface{}) er
 
 	if ttl, ok := d.GetOk("ttl"); ok {
 		newRecord.TTL = ttl.(int)
+	}
+
+	// Validate value based on type
+	if err := validateRecordName(newRecord.Type, newRecord.Content); err != nil {
+		return fmt.Errorf("Error validating record name %q: %s", newRecord.Name, err)
 	}
 
 	zoneId, err := client.ZoneIDByName(newRecord.ZoneName)
