@@ -288,16 +288,17 @@ func _NewCirconusCheckResource() *schema.Resource {
 				MinItems: 1,
 				Elem: &schema.Resource{
 					Schema: castSchemaToTF(map[_SchemaAttr]*schema.Schema{
+						_MetricActiveAttr: &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
 						_MetricNameAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateRegexp(_MetricNameAttr, `[\S]+`),
 						},
-						_MetricTagsAttr: &schema.Schema{
-							Type:         schema.TypeMap,
-							Optional:     true,
-							ValidateFunc: validateTags,
-						},
+						_MetricTagsAttr: _TagMakeConfigSchema(_MetricTagsAttr),
 						_MetricTypeAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
@@ -321,11 +322,7 @@ func _NewCirconusCheckResource() *schema.Resource {
 					ValidateFunc: validateUUID(_MetricIDAttr),
 				},
 			},
-			checkTagsAttr: &schema.Schema{
-				Type:         schema.TypeMap,
-				Optional:     true,
-				ValidateFunc: validateTags,
-			},
+			checkTagsAttr: _TagMakeConfigSchema(checkTagsAttr),
 			checkTargetAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,

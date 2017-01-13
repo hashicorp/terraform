@@ -7,9 +7,11 @@ const (
 	defaultAutoTag = false
 
 	// When auto_tag is enabled, the default tag category and value will be set to
-	// the following values unless overriden.
-	defaultCirconusTagCategory _TagCategory = "author"
-	defaultCirconusTagValue    _TagValue    = "terraform"
+	// the following value unless overriden.
+	defaultCirconusTag _Tag = "author:terraform"
+
+	// When hashing a Set, default to a buffer this size
+	defaultHashBufSize = 512
 
 	// If there are more than this number of tags a warning will be issued.
 	defaultWarnTags = 30

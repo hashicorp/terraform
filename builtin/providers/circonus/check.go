@@ -78,7 +78,7 @@ func (c *_Check) ParseSchema(d *schema.ResourceData, meta interface{}) error {
 
 			m := _NewMetric()
 			m.Name = metricAttrs.GetString(_MetricNameAttr)
-			m.SetTags(metricAttrs.GetTags(ctxt, _MetricTagsAttr, _Tag{}))
+			m.Tags = tagsToState(metricAttrs.GetTags(ctxt, _MetricTagsAttr, _Tag("")))
 			m.Type = metricAttrs.GetString(_MetricTypeAttr)
 			m.Units = metricAttrs.GetStringPtr(_MetricUnitAttr)
 
@@ -205,16 +205,7 @@ func (c *_Check) ParseSchema(d *schema.ResourceData, meta interface{}) error {
 		c.Period = uint(d.Seconds())
 	}
 
-	var checkTags _Tags
-	if tagsRaw, ok := d.GetOk(checkTagsAttr); ok {
-		tags := tagsRaw.(map[string]interface{})
-
-		checkTags = make(_Tags, len(tags))
-		for k, v := range tags {
-			checkTags[_TagCategory(k)] = _TagValue(v.(string))
-		}
-	}
-	checkTags = injectTag(ctxt, checkTags, ctxt.defaultTag)
+	checkTags := _ConfigGetTags(ctxt, d, checkTagsAttr, ctxt.defaultTag)
 	c.Tags = tagsToAPI(checkTags)
 
 	if v, ok := d.GetOk(checkTargetAttr); ok {
@@ -242,36 +233,16 @@ func (c *_Check) Validate() error {
 	return nil
 }
 
-func (c *_Check) parseJSONCheck(l _InterfaceList) error {
-	c.Type = string(_CheckTypeJSON)
-
-	for _, mapRaw := range l {
-		jsonAttrs := mapRaw.(map[string]interface{})
-
-		if mapRaw, ok := jsonAttrs[string(_CheckJSONHTTPHeadersAttr)]; ok {
-			headerMap := mapRaw.(map[string]interface{})
-
-			for k, v := range headerMap {
-				h := config.HeaderPrefix + config.Key(k)
-				c.Config[h] = v.(string)
-			}
-		}
-
-		if v, ok := jsonAttrs[string(_CheckJSONHTTPVersionAttr)]; ok {
-			c.Config[config.HTTPVersion] = v.(string)
-		}
-
-		if v, ok := jsonAttrs[string(_CheckJSONURLAttr)]; ok {
-			c.Config[config.URL] = v.(string)
-
-			u, _ := url.Parse(v.(string))
-			hostInfo := strings.SplitN(u.Host, ":", 2)
-			c.Target = hostInfo[0]
-			if len(hostInfo) == 2 {
-				c.Config[config.Port] = hostInfo[1]
-			}
-		}
+func apiCheckStatusToBool(s string) bool {
+	var active bool
+	switch s {
+	case checkStatusActive:
+		active = true
+	case checkStatusDisabled:
+		active = false
+	default:
+		panic(fmt.Sprintf("PROVIDER BUG: check status %q unsupported", s))
 	}
 
-	return nil
+	return active
 }

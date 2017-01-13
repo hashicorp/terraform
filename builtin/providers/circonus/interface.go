@@ -43,10 +43,18 @@ func (m _InterfaceMap) GetStringPtr(attrName _SchemaAttr) *string {
 }
 
 func (m _InterfaceMap) GetTags(ctxt *providerContext, attrName _SchemaAttr, defaultTag _Tag) _Tags {
-	var tags _Tags
 	if tagsRaw, ok := m[string(attrName)]; ok {
-		return buildTagsFromRawMap(ctxt, tagsRaw, defaultTag)
+		tagList := flattenSet(tagsRaw.(*schema.Set))
+		tags := make(_Tags, 0, len(tagList))
+		for i := range tagList {
+			if tagList[i] == nil || *tagList[i] == "" {
+				continue
+			}
+
+			tags = append(tags, _Tag(*tagList[i]))
+		}
+		return injectTag(ctxt, tags, defaultTag)
 	}
 
-	return injectTag(ctxt, tags, defaultTag)
+	return injectTag(ctxt, _Tags{}, defaultTag)
 }
