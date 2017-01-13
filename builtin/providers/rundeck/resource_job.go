@@ -47,9 +47,10 @@ func resourceRundeckJob() *schema.Resource {
 			},
 
 			"log_level": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "INFO",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "INFO",
+				ValidateFunc: validateValueFunc([]string{"INFO", "DEBUG"}),
 			},
 
 			"allow_concurrent_executions": &schema.Schema{
@@ -71,9 +72,10 @@ func resourceRundeckJob() *schema.Resource {
 			},
 
 			"rank_order": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "ascending",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "ascending",
+				ValidateFunc: validateValueFunc([]string{"ascending", "descending"}),
 			},
 
 			"rank_attribute": &schema.Schema{
@@ -88,9 +90,10 @@ func resourceRundeckJob() *schema.Resource {
 			},
 
 			"command_ordering_strategy": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "node-first",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "node-first",
+				ValidateFunc: validateValueFunc([]string{"node-first", "step-first", "parallel"}),
 			},
 
 			"node_filter_query": &schema.Schema{
