@@ -42,6 +42,7 @@ resource "datadog_timeboard" "acceptance_test" {
     viz = "timeseries"
     request {
       q = "avg:redis.mem.used{$host} - avg:redis.mem.lua{$host}, avg:redis.mem.lua{$host}"
+      aggregator = "sum"
       stacked = true
     }
     request {
@@ -53,6 +54,7 @@ resource "datadog_timeboard" "acceptance_test" {
       style {
         palette = "warm"
       }
+      aggregator = "max"
     }
   }
   template_variable {
@@ -90,6 +92,7 @@ resource "datadog_timeboard" "acceptance_test" {
     request {
       q = "sum:aws.elb.request_count{*}.as_count()"
       type = "line"
+      aggregator = "min"
       conditional_format {
         comparator = ">"
         value = "1000"
@@ -139,11 +142,14 @@ func TestAccDatadogTimeboard_update(t *testing.T) {
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.title", "Redis memory usage"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.viz", "timeseries"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.q", "avg:redis.mem.used{$host} - avg:redis.mem.lua{$host}, avg:redis.mem.lua{$host}"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.aggregator", "sum"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.stacked", "true"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.1.q", "avg:redis.mem.rss{$host}"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "template_variable.0.name", "host"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "template_variable.0.prefix", "host"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.2.type", "bars"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.2.q", "avg:redis.mem.rss{$host}"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.2.aggregator", "max"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.2.style.palette", "warm"),
 		),
 	}
@@ -166,6 +172,7 @@ func TestAccDatadogTimeboard_update(t *testing.T) {
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.title", "ELB Requests"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.viz", "query_value"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.q", "sum:aws.elb.request_count{*}.as_count()"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.aggregator", "min"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.type", "line"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.conditional_format.0.comparator", ">"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.conditional_format.0.value", "1000"),
@@ -213,4 +220,33 @@ func checkDestroy(s *terraform.State) error {
 		return fmt.Errorf("Timeboard still exists")
 	}
 	return nil
+}
+
+func TestValidateAggregatorMethod(t *testing.T) {
+	validMethods := []string{
+		"average",
+		"max",
+		"min",
+		"sum",
+	}
+	for _, v := range validMethods {
+		_, errors := validateAggregatorMethod(v, "request")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid aggregator method: %q", v, errors)
+		}
+	}
+
+	invalidMethods := []string{
+		"avg",
+		"suM",
+		"m",
+		"foo",
+	}
+	for _, v := range invalidMethods {
+		_, errors := validateAggregatorMethod(v, "request")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid aggregator method", v)
+		}
+	}
+
 }
