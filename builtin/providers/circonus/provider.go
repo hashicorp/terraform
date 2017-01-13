@@ -108,12 +108,9 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	return &providerContext{
-		client:  client,
-		autoTag: d.Get(providerAutoTagAttr).(bool),
-		defaultTag: _Tag{
-			Category: defaultCirconusTagCategory,
-			Value:    defaultCirconusTagValue,
-		},
+		client:     client,
+		autoTag:    d.Get(providerAutoTagAttr).(bool),
+		defaultTag: defaultCirconusTag,
 	}, nil
 }
 

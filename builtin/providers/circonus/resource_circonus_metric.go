@@ -9,6 +9,7 @@ package circonus
 
 import (
 	"github.com/hashicorp/errwrap"
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -63,12 +64,7 @@ func _NewCirconusMetricResource() *schema.Resource {
 				Required:     true,
 				ValidateFunc: validateStringIn(_MetricTypeAttr, _ValidMetricTypes),
 			},
-			_MetricTagsAttr: &schema.Schema{
-				Type:             schema.TypeMap,
-				Optional:         true,
-				ValidateFunc:     validateTags,
-				DiffSuppressFunc: suppressAutoTag,
-			},
+			_MetricTagsAttr: _TagMakeConfigSchema(_MetricTagsAttr),
 			_MetricUnitAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -79,8 +75,17 @@ func _NewCirconusMetricResource() *schema.Resource {
 }
 
 func _MetricCreate(d *schema.ResourceData, meta interface{}) error {
+	id := d.Id()
+	if id == "" {
+		var err error
+		id, err = uuid.GenerateUUID()
+		if err != nil {
+			return errwrap.Wrapf("metric ID creation failed: {{err}}", err)
+		}
+	}
+
 	m := _NewMetric()
-	if err := m.ParseSchema(d, meta); err != nil {
+	if err := m.ParseConfig(id, d, meta); err != nil {
 		return errwrap.Wrapf("error parsing metric schema during create: {{err}}", err)
 	}
 
@@ -93,11 +98,11 @@ func _MetricCreate(d *schema.ResourceData, meta interface{}) error {
 
 func _MetricRead(d *schema.ResourceData, meta interface{}) error {
 	m := _NewMetric()
-	if err := m.ParseSchema(d, meta); err != nil {
+	if err := m.ParseConfig(d.Id(), d, meta); err != nil {
 		return errwrap.Wrapf("error parsing metric schema during read: {{err}}", err)
 	}
 
-	if err := m.Save(d); err != nil {
+	if err := m.SaveState(d); err != nil {
 		return errwrap.Wrapf("error saving metric during read: {{err}}", err)
 	}
 
@@ -106,7 +111,8 @@ func _MetricRead(d *schema.ResourceData, meta interface{}) error {
 
 func _MetricUpdate(d *schema.ResourceData, meta interface{}) error {
 	m := _NewMetric()
-	if err := m.ParseSchema(d, meta); err != nil {
+
+	if err := m.ParseConfig(d.Id(), d, meta); err != nil {
 		return errwrap.Wrapf("error parsing metric schema during update: {{err}}", err)
 	}
 

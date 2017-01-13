@@ -79,36 +79,6 @@ func stringListToSet(stringList []string, keyName _SchemaAttr) []interface{} {
 	return m
 }
 
-// injectTag adds the context's
-func injectTag(ctxt *providerContext, tags _Tags, overrideTag _Tag) _Tags {
-	if !globalAutoTag || !ctxt.autoTag {
-		return tags
-	}
-
-	tag := ctxt.defaultTag
-	if overrideTag.Category != "" {
-		tag = overrideTag
-	}
-
-	if len(tags) == 0 {
-		return _Tags{
-			tag.Category: tag.Value,
-		}
-	}
-
-	if val, found := tags[ctxt.defaultTag.Category]; found && val == ctxt.defaultTag.Value {
-		return tags
-	}
-
-	if val, found := tags[tag.Category]; found && val == tag.Value {
-		return tags
-	}
-
-	tags[tag.Category] = tag.Value
-
-	return tags
-}
-
 func normalizeTimeDurationStringToSeconds(v interface{}) string {
 	switch v.(type) {
 	case string:
@@ -170,56 +140,11 @@ func schemaGetStringPtr(d *schema.ResourceData, attrName _SchemaAttr) *string {
 	return nil
 }
 
-func schemaGetTags(ctxt *providerContext, d *schema.ResourceData, attrName _SchemaAttr, defaultTag _Tag) _Tags {
-	var tags _Tags
-	if tagsRaw, ok := d.GetOk(string(attrName)); ok {
-		return buildTagsFromRawMap(ctxt, tagsRaw, defaultTag)
-	}
-
-	return injectTag(ctxt, tags, defaultTag)
-}
-
-func buildTagsFromRawMap(ctxt *providerContext, tagsRaw interface{}, defaultTag _Tag) _Tags {
-	tagsMap := tagsRaw.(map[string]interface{})
-
-	tags := make(_Tags, len(tagsMap))
-	for k, v := range tagsMap {
-		tags[_TagCategory(k)] = _TagValue(v.(string))
-	}
-
-	return injectTag(ctxt, tags, defaultTag)
-}
-
-// stateSet sets an attribute based on an attrName and panic()'s if the Set
+// _StateSet sets an attribute based on an attrName and panic()'s if the Set
 // failed.
-func stateSet(d *schema.ResourceData, attrName _SchemaAttr, v interface{}) {
+func _StateSet(d *schema.ResourceData, attrName _SchemaAttr, v interface{}) {
 	if err := d.Set(string(attrName), v); err != nil {
-		panic(fmt.Sprintf("Provider Bug: failed set schema attribute %s to value %#v", attrName, v))
-	}
-}
-
-func suppressAutoTag(k, old, new string, d *schema.ResourceData) bool {
-	if !globalAutoTag {
-		return false
-	}
-
-	switch {
-	case k == string(_MetricTagsAttr)+"."+string(defaultCirconusTagCategory) && old == string(defaultCirconusTagValue):
-		return true
-	case k == string(_MetricTagsAttr)+".%":
-		oldNum, err := strconv.ParseInt(old, 10, 32)
-		if err != nil {
-			return false
-		}
-
-		newNum, err := strconv.ParseInt(new, 10, 32)
-		if err != nil {
-			return false
-		}
-
-		return (oldNum - 1) == newNum
-	default:
-		return false
+		panic(fmt.Sprintf("Provider Bug: failed set schema attribute %s to value %#v: %v", attrName, v, err))
 	}
 }
 
@@ -235,32 +160,4 @@ func suppressEquivalentTimeDurations(k, old, new string, d *schema.ResourceData)
 	}
 
 	return d1 == d2
-}
-
-func tagsToAPI(tags _Tags) []string {
-	apiTags := make([]string, 0, len(tags))
-	for k, v := range tags {
-		apiTags = append(apiTags, string(k)+":"+string(v))
-	}
-	sort.Strings(apiTags)
-	return apiTags
-}
-
-func apiToTags(apiTags []string) _Tags {
-	tags := make(_Tags, len(apiTags))
-	for _, v := range apiTags {
-		if len(v) == 0 {
-			continue
-		}
-
-		t := strings.SplitN(v, ":", 2)
-		switch len(t) {
-		case 1:
-			tags[_TagCategory(t[0])] = ""
-		case 2:
-			tags[_TagCategory(t[0])] = _TagValue(t[1])
-		}
-	}
-
-	return tags
 }

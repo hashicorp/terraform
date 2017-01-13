@@ -6,8 +6,6 @@ import (
 	"fmt"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
-	"github.com/hashicorp/errwrap"
-	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -21,37 +19,23 @@ func _NewMetric() _Metric {
 }
 
 func (m *_Metric) Create(d *schema.ResourceData) error {
-	return m.Save(d)
+	return m.SaveState(d)
 }
 
-func (m *_Metric) ParseSchema(d *schema.ResourceData, meta interface{}) error {
+func (m *_Metric) ParseConfig(id string, d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*providerContext)
 
-	id := schemaGetString(d, _MetricIDAttr)
-	if id == "" {
-		var err error
-		id, err = uuid.GenerateUUID()
-		if err != nil {
-			return errwrap.Wrapf("metric ID creation failed: {{err}}", err)
-		}
-	}
-
-	var metricStatus string = _MetricStatusAvailable
-	if b, ok := schemaGetBoolOK(d, _MetricActiveAttr); ok && b {
-		metricStatus = _MetricStatusActive
-	}
-
 	m.ID = _MetricID(id)
-	m.Name = schemaGetString(d, _MetricNameAttr)
-	m.Status = metricStatus
-	m.SetTags(schemaGetTags(ctxt, d, _MetricTagsAttr, _Tag{}))
-	m.Type = schemaGetString(d, _MetricTypeAttr)
-	m.Units = schemaGetStringPtr(d, _MetricUnitAttr)
+	m.Name = _ConfigGetString(d, _MetricNameAttr)
+	m.Status = _MetricActiveToAPIStatus(_ConfigGetBool(d, _MetricActiveAttr))
+	m.Tags = tagsToState(_ConfigGetTags(ctxt, d, _MetricTagsAttr))
+	m.Type = _ConfigGetString(d, _MetricTypeAttr)
+	m.Units = _ConfigGetStringPtr(d, _MetricUnitAttr)
 
 	return nil
 }
 
-func (m *_Metric) Save(d *schema.ResourceData) error {
+func (m *_Metric) SaveState(d *schema.ResourceData) error {
 	var active bool
 	switch m.Status {
 	case _MetricStatusActive:
@@ -62,10 +46,10 @@ func (m *_Metric) Save(d *schema.ResourceData) error {
 		panic(fmt.Sprintf("Provider bug: unsupported active type: %s", m.Status))
 	}
 
-	stateSet(d, _MetricActiveAttr, active)
-	stateSet(d, _MetricNameAttr, m.Name)
-	stateSet(d, _MetricTagsAttr, apiToTags(m.Tags))
-	stateSet(d, _MetricUnitAttr, m.Units)
+	_StateSet(d, _MetricActiveAttr, active)
+	_StateSet(d, _MetricNameAttr, m.Name)
+	_StateSet(d, _MetricTagsAttr, m.Tags)
+	_StateSet(d, _MetricUnitAttr, m.Units)
 
 	d.SetId(string(m.ID))
 
@@ -73,9 +57,30 @@ func (m *_Metric) Save(d *schema.ResourceData) error {
 }
 
 func (m *_Metric) Update(d *schema.ResourceData) error {
-	return m.Save(d)
+	// NOTE: there are no "updates" to be made against an API server, so we just
+	// pass through a call to SaveState.  Keep this method around for API
+	// symmetry.
+	return m.SaveState(d)
 }
 
-func (m *_Metric) SetTags(tags _Tags) {
-	m.Tags = tagsToAPI(tags)
+func _MetricAPIStatusToBool(s string) bool {
+	switch s {
+	case _MetricStatusActive:
+		return true
+	case _MetricStatusAvailable:
+		return false
+	default:
+		panic(fmt.Sprintf("PROVIDER BUG: metric status %q unsupported", s))
+	}
+}
+
+func _MetricActiveToAPIStatus(active bool) string {
+	switch active {
+	case true:
+		return _MetricStatusActive
+	case false:
+		return _MetricStatusAvailable
+	}
+
+	panic("suppress Go error message")
 }

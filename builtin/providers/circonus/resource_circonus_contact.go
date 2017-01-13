@@ -405,12 +405,7 @@ func resourceContactGroup() *schema.Resource {
 					},
 				},
 			},
-			contactTagsAttr: &schema.Schema{
-				Type:         schema.TypeMap,
-				Optional:     true,
-				ValidateFunc: validateTags,
-				Description:  contactDescription[contactTagsAttr],
-			},
+			contactTagsAttr: _TagMakeConfigSchema(contactTagsAttr),
 			contactVictorOpsAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -704,7 +699,7 @@ func contactGroupHTTPToState(cg *api.ContactGroup) ([]interface{}, error) {
 }
 
 func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.ContactGroup, error) {
-	c := meta.(*providerContext)
+	ctxt := meta.(*providerContext)
 
 	cg := api.NewContactGroup()
 	if v, ok := d.GetOk(contactAggregationWindowAttr); ok {
@@ -1049,16 +1044,8 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 		cg.AlertFormats.ShortMessage = &msg
 	}
 
-	var contactTags _Tags
-	if tagsRaw, ok := d.GetOk(contactTagsAttr); ok {
-		tags := tagsRaw.(map[string]interface{})
-
-		contactTags = make(_Tags, len(tags))
-		for k, v := range tags {
-			contactTags[_TagCategory(k)] = _TagValue(v.(string))
-		}
-	}
-	cg.Tags = tagsToAPI(injectTag(c, contactTags, c.defaultTag))
+	contactTags := _ConfigGetTags(ctxt, d, checkTagsAttr)
+	cg.Tags = tagsToAPI(contactTags)
 
 	if err := validateContactGroup(cg); err != nil {
 		return nil, err
@@ -1181,8 +1168,7 @@ func contactGroupVictorOpsToState(cg *api.ContactGroup) ([]interface{}, error) {
 func hashAlertOptions(v interface{}) int {
 	m := v.(map[string]interface{})
 	b := &bytes.Buffer{}
-	const defaultBufSize = 512
-	b.Grow(defaultBufSize)
+	b.Grow(defaultHashBufSize)
 	fmt.Fprintf(b, "%x", m[contactSeverityAttr].(int))
 	fmt.Fprint(b, normalizeTimeDurationStringToSeconds(m[contactEscalateAfterAttr]))
 	fmt.Fprint(b, m[contactEscalateToAttr])

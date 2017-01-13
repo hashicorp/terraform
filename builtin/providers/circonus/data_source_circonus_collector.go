@@ -126,16 +126,7 @@ func dataSourceCirconusCollector() *schema.Resource {
 				Computed:    true,
 				Description: collectorDescription[collectorNameAttr],
 			},
-			collectorTagsAttr: &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				Computed: true,
-				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validateTags,
-				},
-				Description: collectorDescription[collectorTagsAttr],
-			},
+			collectorTagsAttr: _TagMakeConfigSchema(collectorTagsAttr),
 		},
 	}
 }

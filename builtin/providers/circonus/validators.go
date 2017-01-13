@@ -255,58 +255,37 @@ func validateRegexp(attrName _SchemaAttr, reString string) func(v interface{}, k
 	}
 }
 
+func validateTag(v interface{}, key string) (warnings []string, errors []error) {
+	tag := v.(string)
+	if !strings.ContainsRune(tag, ':') {
+		errors = append(errors, fmt.Errorf("tag %q is missing a category", tag))
+	}
+
+	return warnings, errors
+}
+
 func validateTags(v interface{}, key string) (warnings []string, errors []error) {
-	tagsRaw := v.(map[string]interface{})
-	for k, valueRaw := range tagsRaw {
-		{
-			if len(k) == 0 {
-				errors = append(errors, fmt.Errorf("tag category can not be empty"))
-				continue
-			}
-
-			var s scanner.Scanner
-			s.Init(strings.NewReader(k))
-			var tok rune
-		KEY:
-			for tok != scanner.EOF {
-				switch tok = s.Scan(); {
-				case tok == ':':
-					errors = append(errors, fmt.Errorf("tag category %q contains a colon character at codepoint %d", k, s.Pos()))
-					break KEY
-				case unicode.IsSpace(tok) == true:
-					errors = append(errors, fmt.Errorf("tag category %+q contains a whitespace character at codepoint %d", k, s.Pos()))
-					break KEY
+	for _, tagRaw := range v.([]interface{}) {
+		var s scanner.Scanner
+		s.Init(strings.NewReader(tagRaw.(string)))
+		var tok rune
+		permittedColons := 1
+	SCAN:
+		for tok != scanner.EOF {
+			switch tok = s.Scan(); {
+			case tok == ':':
+				if permittedColons > 0 {
+					permittedColons--
+				} else {
+					errors = append(errors, fmt.Errorf("tag %q contains more colon characters than permitted, extra colon at codepoint %s", tagRaw.(string), s.Pos()))
+					break SCAN
 				}
-			}
-		}
-
-		{
-			value := valueRaw.(string)
-			if len(value) == 0 {
-				continue
-			}
-
-			var s scanner.Scanner
-			s.Init(strings.NewReader(value))
-			var tok rune
-		VALUE:
-			for tok != scanner.EOF {
-				switch tok = s.Scan(); {
-				case tok == ':':
-					errors = append(errors, fmt.Errorf("tag value %q contains a colon character at codepoint %d", value, s.Pos()))
-					break VALUE
-				case unicode.IsSpace(tok) == true:
-					errors = append(errors, fmt.Errorf("tag value %q contains a whitespace character at codepoint %d", value, s.Pos()))
-					break VALUE
-				}
+			case unicode.IsSpace(tok) == true:
+				errors = append(errors, fmt.Errorf("tag %q contains a whitespace character at codepoint %s", tagRaw.(string), s.Pos()))
+				break SCAN
 			}
 		}
 	}
-
-	if numTags := len(tagsRaw); numTags > defaultWarnTags {
-		warnings = append(warnings, fmt.Sprintf("Too many tags per resource (%d).  Recommend keeping it under %d", numTags, defaultWarnTags))
-	}
-
 	return warnings, errors
 }
 
