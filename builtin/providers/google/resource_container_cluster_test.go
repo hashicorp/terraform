@@ -178,7 +178,7 @@ func testAccCheckContainerClusterAdditionalZonesExist(n string) resource.TestChe
 		if additionalZonesSize, err = strconv.Atoi(rs.Primary.Attributes["additional_zones.#"]); err != nil {
 			return err
 		}
-		if additionalZonesSize < 2 {
+		if additionalZonesSize != 2 {
 			return fmt.Errorf("number of additional zones did not match 2")
 		}
 
