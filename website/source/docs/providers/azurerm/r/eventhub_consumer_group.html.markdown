@@ -40,12 +40,12 @@ resource "azurerm_eventhub" "test" {
 }
 
 resource "azurerm_eventhub_consumer_group" "test" {
-    name = "acceptanceTestEventHubConsumerGroup"
-    namespace_name = "${azurerm_eventhub_namespace.test.name}"
-    eventhub_name = "${azurerm_eventhub.test.name}"
+    name                = "acceptanceTestEventHubConsumerGroup"
+    namespace_name      = "${azurerm_eventhub_namespace.test.name}"
+    eventhub_name       = "${azurerm_eventhub.test.name}"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "${azurerm_resource_group.test.location}"
-    user_metadata = "some-meta-data"
+    location            = "${azurerm_resource_group.test.location}"
+    user_metadata       = "some-meta-data"
 }
 ```
 

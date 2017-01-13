@@ -127,11 +127,9 @@ func resourceArmLoadBalancerRuleCreate(d *schema.ResourceData, meta interface{})
 
 	existingRule, existingRuleIndex, exists := findLoadBalancerRuleByName(loadBalancer, d.Get("name").(string))
 	if exists {
-		if d.Id() == *existingRule.ID {
-			// this rule is being updated remove old copy from the slice
+		if d.Get("name").(string) == *existingRule.Name {
+			// this rule is being updated/reapplied remove old copy from the slice
 			lbRules = append(lbRules[:existingRuleIndex], lbRules[existingRuleIndex+1:]...)
-		} else {
-			return fmt.Errorf("A LoadBalancer Rule with name %q already exists.", d.Get("name").(string))
 		}
 	}
 

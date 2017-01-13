@@ -18,6 +18,11 @@ func dataSourceAwsRouteTable() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"route_table_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -98,14 +103,16 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 	req := &ec2.DescribeRouteTablesInput{}
 	vpcId, vpcIdOk := d.GetOk("vpc_id")
 	subnetId, subnetIdOk := d.GetOk("subnet_id")
+	rtbId, rtbOk := d.GetOk("route_table_id")
 	tags, tagsOk := d.GetOk("tags")
 	filter, filterOk := d.GetOk("filter")
 
-	if !vpcIdOk && !subnetIdOk && !tagsOk && !filterOk {
-		return fmt.Errorf("One of vpc_id, subnet_id, filters, or tags must be assigned")
+	if !vpcIdOk && !subnetIdOk && !tagsOk && !filterOk && !rtbOk {
+		return fmt.Errorf("One of route_table_id, vpc_id, subnet_id, filters, or tags must be assigned")
 	}
 	req.Filters = buildEC2AttributeFilterList(
 		map[string]string{
+			"route-table-id":        rtbId.(string),
 			"vpc-id":                vpcId.(string),
 			"association.subnet-id": subnetId.(string),
 		},
@@ -197,7 +204,10 @@ func dataSourceAssociationsRead(ec2Assocations []*ec2.RouteTableAssociation) []m
 		m := make(map[string]interface{})
 		m["route_table_id"] = *a.RouteTableId
 		m["route_table_association_id"] = *a.RouteTableAssociationId
-		m["subnet_id"] = *a.SubnetId
+		// GH[11134]
+		if a.SubnetId != nil {
+			m["subnet_id"] = *a.SubnetId
+		}
 		m["main"] = *a.Main
 		associations = append(associations, m)
 	}

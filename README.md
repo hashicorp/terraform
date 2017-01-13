@@ -88,7 +88,7 @@ Assuming your work is on a branch called `my-feature-branch`, the steps look lik
     go get github.com/hashicorp/my-project
     ```
 
-2.  Add the new package to your vendor/ directory:
+2.  Add the new package to your `vendor/` directory:
 
     ```bash
     govendor add github.com/hashicorp/my-project/package

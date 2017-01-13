@@ -80,6 +80,27 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 				},
 				Set: resourceAwsEcsTaskDefinitionVolumeHash,
 			},
+
+			"placement_constraints": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 10,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": &schema.Schema{
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Required: true,
+						},
+						"expression": &schema.Schema{
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Required: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -128,6 +149,19 @@ func resourceAwsEcsTaskDefinitionCreate(d *schema.ResourceData, meta interface{}
 		input.Volumes = volumes
 	}
 
+	constraints := d.Get("placement_constraints").(*schema.Set).List()
+	if len(constraints) > 0 {
+		var pc []*ecs.TaskDefinitionPlacementConstraint
+		for _, raw := range constraints {
+			p := raw.(map[string]interface{})
+			pc = append(pc, &ecs.TaskDefinitionPlacementConstraint{
+				Type:       aws.String(p["type"].(string)),
+				Expression: aws.String(p["expression"].(string)),
+			})
+		}
+		input.PlacementConstraints = pc
+	}
+
 	log.Printf("[DEBUG] Registering ECS task definition: %s", input)
 	out, err := conn.RegisterTaskDefinition(&input)
 	if err != nil {
@@ -167,8 +201,25 @@ func resourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("task_role_arn", taskDefinition.TaskRoleArn)
 	d.Set("network_mode", taskDefinition.NetworkMode)
 	d.Set("volumes", flattenEcsVolumes(taskDefinition.Volumes))
+	if err := d.Set("placement_constraints", flattenPlacementConstraints(taskDefinition.PlacementConstraints)); err != nil {
+		log.Printf("[ERR] Error setting placement_constraints for (%s): %s", d.Id(), err)
+	}
 
 	return nil
+}
+
+func flattenPlacementConstraints(pcs []*ecs.TaskDefinitionPlacementConstraint) []map[string]interface{} {
+	if len(pcs) == 0 {
+		return nil
+	}
+	results := make([]map[string]interface{}, 0)
+	for _, pc := range pcs {
+		c := make(map[string]interface{})
+		c["type"] = *pc.Type
+		c["expression"] = *pc.Expression
+		results = append(results, c)
+	}
+	return results
 }
 
 func resourceAwsEcsTaskDefinitionDelete(d *schema.ResourceData, meta interface{}) error {

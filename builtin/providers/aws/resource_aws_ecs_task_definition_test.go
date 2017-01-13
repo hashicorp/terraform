@@ -11,6 +11,7 @@ import (
 )
 
 func TestAccAWSEcsTaskDefinition_basic(t *testing.T) {
+	var def ecs.TaskDefinition
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -19,13 +20,13 @@ func TestAccAWSEcsTaskDefinition_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSEcsTaskDefinition,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.jenkins"),
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.jenkins", &def),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSEcsTaskDefinitionModified,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.jenkins"),
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.jenkins", &def),
 				),
 			},
 		},
@@ -34,6 +35,7 @@ func TestAccAWSEcsTaskDefinition_basic(t *testing.T) {
 
 // Regression for https://github.com/hashicorp/terraform/issues/2370
 func TestAccAWSEcsTaskDefinition_withScratchVolume(t *testing.T) {
+	var def ecs.TaskDefinition
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -42,7 +44,7 @@ func TestAccAWSEcsTaskDefinition_withScratchVolume(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSEcsTaskDefinitionWithScratchVolume,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep"),
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep", &def),
 				),
 			},
 		},
@@ -51,6 +53,7 @@ func TestAccAWSEcsTaskDefinition_withScratchVolume(t *testing.T) {
 
 // Regression for https://github.com/hashicorp/terraform/issues/2694
 func TestAccAWSEcsTaskDefinition_withEcsService(t *testing.T) {
+	var def ecs.TaskDefinition
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -59,14 +62,14 @@ func TestAccAWSEcsTaskDefinition_withEcsService(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSEcsTaskDefinitionWithEcsService,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep"),
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep", &def),
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.sleep-svc"),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSEcsTaskDefinitionWithEcsServiceModified,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep"),
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep", &def),
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.sleep-svc"),
 				),
 			},
@@ -75,6 +78,7 @@ func TestAccAWSEcsTaskDefinition_withEcsService(t *testing.T) {
 }
 
 func TestAccAWSEcsTaskDefinition_withTaskRoleArn(t *testing.T) {
+	var def ecs.TaskDefinition
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -83,7 +87,7 @@ func TestAccAWSEcsTaskDefinition_withTaskRoleArn(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSEcsTaskDefinitionWithTaskRoleArn,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep"),
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep", &def),
 				),
 			},
 		},
@@ -91,6 +95,7 @@ func TestAccAWSEcsTaskDefinition_withTaskRoleArn(t *testing.T) {
 }
 
 func TestAccAWSEcsTaskDefinition_withNetworkMode(t *testing.T) {
+	var def ecs.TaskDefinition
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -99,7 +104,7 @@ func TestAccAWSEcsTaskDefinition_withNetworkMode(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSEcsTaskDefinitionWithNetworkMode,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep"),
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep", &def),
 					resource.TestCheckResourceAttr(
 						"aws_ecs_task_definition.sleep", "network_mode", "bridge"),
 				),
@@ -108,6 +113,33 @@ func TestAccAWSEcsTaskDefinition_withNetworkMode(t *testing.T) {
 	})
 }
 
+func TestAccAWSEcsTaskDefinition_constraint(t *testing.T) {
+	var def ecs.TaskDefinition
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsTaskDefinitionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEcsTaskDefinition_constraint,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.jenkins", &def),
+					resource.TestCheckResourceAttr("aws_ecs_task_definition.jenkins", "placement_constraints.#", "1"),
+					testAccCheckAWSTaskDefinitionConstraintsAttrs(&def),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckAWSTaskDefinitionConstraintsAttrs(def *ecs.TaskDefinition) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if len(def.PlacementConstraints) != 1 {
+			return fmt.Errorf("Expected (1) placement_constraints, got (%d)", len(def.PlacementConstraints))
+		}
+		return nil
+	}
+}
 func TestValidateAwsEcsTaskDefinitionNetworkMode(t *testing.T) {
 	validNames := []string{
 		"bridge",
@@ -159,16 +191,81 @@ func testAccCheckAWSEcsTaskDefinitionDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSEcsTaskDefinitionExists(name string) resource.TestCheckFunc {
+func testAccCheckAWSEcsTaskDefinitionExists(name string, def *ecs.TaskDefinition) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		_, ok := s.RootModule().Resources[name]
+		rs, ok := s.RootModule().Resources[name]
 		if !ok {
 			return fmt.Errorf("Not found: %s", name)
 		}
 
+		conn := testAccProvider.Meta().(*AWSClient).ecsconn
+
+		out, err := conn.DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{
+			TaskDefinition: aws.String(rs.Primary.Attributes["arn"]),
+		})
+		if err != nil {
+			return err
+		}
+
+		*def = *out.TaskDefinition
+
 		return nil
 	}
 }
+
+var testAccAWSEcsTaskDefinition_constraint = `
+resource "aws_ecs_task_definition" "jenkins" {
+  family = "terraform-acc-test"
+  container_definitions = <<TASK_DEFINITION
+[
+	{
+		"cpu": 10,
+		"command": ["sleep", "10"],
+		"entryPoint": ["/"],
+		"environment": [
+			{"name": "VARNAME", "value": "VARVAL"}
+		],
+		"essential": true,
+		"image": "jenkins",
+		"links": ["mongodb"],
+		"memory": 128,
+		"name": "jenkins",
+		"portMappings": [
+			{
+				"containerPort": 80,
+				"hostPort": 8080
+			}
+		]
+	},
+	{
+		"cpu": 10,
+		"command": ["sleep", "10"],
+		"entryPoint": ["/"],
+		"essential": true,
+		"image": "mongodb",
+		"memory": 128,
+		"name": "mongodb",
+		"portMappings": [
+			{
+				"containerPort": 28017,
+				"hostPort": 28017
+			}
+		]
+	}
+]
+TASK_DEFINITION
+
+  volume {
+    name = "jenkins-home"
+    host_path = "/ecs/jenkins-home"
+  }
+
+	placement_constraints {
+		type = "memberOf"
+		expression = "attribute:ecs.availability-zone in [us-west-2a, us-west-2b]"
+	}
+}
+`
 
 var testAccAWSEcsTaskDefinition = `
 resource "aws_ecs_task_definition" "jenkins" {

@@ -131,7 +131,7 @@ None. Vendor it and write tests covering the parts you use.
 
 ## Contributing
 
-See the [contributing guide](./CONTRIBUTING.md).
+See the [contributing guide](./.github/CONTRIBUTING.md).
 
 ## Help and feedback
 
