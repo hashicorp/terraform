@@ -272,7 +272,6 @@ type JobPluginConfig map[string]string
 // JobNodeFilter describes which nodes from the project's resource list will run the configured
 // commands.
 type JobNodeFilter struct {
-	ExcludePrecedence bool   `xml:"excludeprecedence"`
 	Query             string `xml:"filter,omitempty"`
 }
 
@@ -296,10 +295,11 @@ type jobImportResult struct {
 }
 
 type JobDispatch struct {
-	MaxThreadCount  int    `xml:"threadcount,omitempty"`
-	ContinueOnError bool   `xml:"keepgoing"`
-	RankAttribute   string `xml:"rankAttribute,omitempty"`
-	RankOrder       string `xml:"rankOrder,omitempty"`
+	ExcludePrecedence bool   `xml:"excludePrecedence"`
+	MaxThreadCount    int    `xml:"threadcount,omitempty"`
+	ContinueOnError   bool   `xml:"keepgoing"`
+	RankAttribute     string `xml:"rankAttribute,omitempty"`
+	RankOrder         string `xml:"rankOrder,omitempty"`
 }
 
 // GetJobSummariesForProject returns summaries of the jobs belonging to the named project.
