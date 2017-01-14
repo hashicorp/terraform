@@ -28,7 +28,6 @@ const (
 	_CheckNotesAttr       _SchemaAttr = "notes"
 	_CheckPeriodAttr      _SchemaAttr = "period"
 	_CheckStreamAttr      _SchemaAttr = "stream"
-	_CheckStreamsAttr     _SchemaAttr = "streams"
 	_CheckTagsAttr        _SchemaAttr = "tags"
 	_CheckTargetAttr      _SchemaAttr = "target"
 	_CheckTimeoutAttr     _SchemaAttr = "timeout"
@@ -60,14 +59,23 @@ const (
 var _CheckDescriptions = _AttrDescrs{
 	_CheckActiveAttr:      "If the check is activate or disabled",
 	_CheckCollectorAttr:   "The collector(s) that are responsible for gathering the metrics",
+	_CheckJSONAttr:        "JSON check configuration",
 	_CheckMetricLimitAttr: `Setting a metric_limit will enable all (-1), disable (0), or allow up to the specified limit of metrics for this check ("N+", where N is a positive integer)`,
 	_CheckNameAttr:        "The name of the check bundle that will be displayed in the web interface",
 	_CheckNotesAttr:       "Notes about this check bundle",
 	_CheckPeriodAttr:      "The period between each time the check is made",
+	_CheckStreamAttr:      "Configuration for a stream of metrics",
 	_CheckTagsAttr:        "A list of tags assigned to the check",
 	_CheckTargetAttr:      "The target of the check (e.g. hostname, URL, IP, etc)",
 	_CheckTimeoutAttr:     "The length of time in seconds (and fractions of a second) before the check will timeout if no response is returned to the collector",
 	_CheckTypeAttr:        "The check type",
+
+	_CheckOutChecksAttr:             "",
+	_CheckOutCheckUUIDsAttr:         "",
+	_CheckOutCreatedAttr:            "",
+	_CheckOutLastModifiedAttr:       "",
+	_CheckOutLastModifiedByAttr:     "",
+	_CheckOutReverseConnectURLsAttr: "",
 }
 
 var _CheckCollectorDescriptions = _AttrDescrs{
@@ -167,16 +175,6 @@ func _NewCheckResource() *schema.Resource {
 							ValidateFunc: validateRegexp(_MetricUnitAttr, `.+`),
 						},
 					}, _CheckStreamDescriptions),
-				},
-			},
-			_CheckStreamsAttr: &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Set:      schema.HashString,
-				MinItems: 1,
-				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validateUUID(_MetricIDAttr),
 				},
 			},
 			_CheckTagsAttr: _TagMakeConfigSchema(_CheckTagsAttr),
