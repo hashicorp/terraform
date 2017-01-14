@@ -32,8 +32,8 @@ func TestAccCirconusContactGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "http.1287846151.address", "https://www.example.org/post/endpoint"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "http.1287846151.format", "json"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "http.1287846151.method", "POST"),
-					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "irc.#", "1"),
-					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "irc.918937268.user", "/user/6331"),
+					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "irc.#", "0"),
+					// resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "irc.918937268.user", "/user/6331"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "slack.#", "1"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "slack.2910152445.channel", "#ops-staging"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "slack.2910152445.team", "T038UT13D"),
@@ -76,9 +76,9 @@ func TestAccCirconusContactGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "long_summary", "long summary"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "short_message", "short message"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "short_summary", "short summary"),
-					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.%", "2"),
-					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.other", "foo"),
-					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.author", "terraform"),
+					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.#", "2"),
+					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.3051626963", "author:terraform"),
+					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "tags.3256831619", "other:foo"),
 				),
 			},
 		},
@@ -174,15 +174,18 @@ resource "circonus_contact_group" "staging-sev3" {
     method = "POST"
   }
 
+/*
+  // Account needs to be setup with IRC before this can work.
   irc {
     user = "/user/6331"
   }
+*/
 
-  /*
+/*
   pagerduty {
     // NOTE(sean@): needs to be filled in
   }
-  */
+*/
 
   slack {
     channel = "#ops-staging"
@@ -252,12 +255,9 @@ resource "circonus_contact_group" "staging-sev3" {
   short_message = "short message"
   short_summary = "short summary"
 
-  # NOTE(sean): FIXME: these two should work because the provider is
-	# appending the "author:terraform" tag and its shown in the state and
-	# the API objects, but the test isn't detecting it.
-  tags = {
-    "author"="terraform",
-    "other"="foo",
-  }
+  tags = [
+    "author:terraform",
+    "other:foo",
+  ]
 }
 `

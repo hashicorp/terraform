@@ -16,7 +16,16 @@ func _CastSchemaToTF(in map[_SchemaAttr]*schema.Schema, descrs _AttrDescrs) map[
 	out := make(map[string]*schema.Schema, len(in))
 	for k, v := range in {
 		if descr, ok := descrs[k]; ok {
+			// NOTE(sean@): At some point this check needs to be uncommented and all
+			// missing descriptions need to be populated.
+			//
+			// if len(descr) == 0 {
+			// 	panic(fmt.Sprintf("PROVIDER BUG: Description of attribute %s empty", k))
+			// }
+
 			v.Description = string(descr)
+		} else {
+			panic(fmt.Sprintf("PROVIDER BUG: Unable to find description for attr %s", k))
 		}
 
 		out[string(k)] = v

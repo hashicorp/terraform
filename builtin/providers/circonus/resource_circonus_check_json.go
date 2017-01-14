@@ -212,7 +212,7 @@ func (c *_Check) ReadJSON(d *schema.ResourceData) error {
 	}
 
 	for k, _ := range swamp {
-		if v, ok := whitelistedConfigKeys[k]; ok {
+		if _, ok := whitelistedConfigKeys[k]; ok {
 			delete(c.Config, k)
 		}
 
