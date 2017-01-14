@@ -110,7 +110,7 @@ func _NewCheckResource() *schema.Resource {
 						_CheckCollectorIDAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateRegexp(_CheckCollectorIDAttr, config.BrokerCIDRegex),
+							ValidateFunc: _ValidateRegexp(_CheckCollectorIDAttr, config.BrokerCIDRegex),
 						},
 					}, _CheckCollectorDescriptions),
 				},
@@ -161,7 +161,7 @@ func _NewCheckResource() *schema.Resource {
 						_MetricNameAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateRegexp(_MetricNameAttr, `[\S]+`),
+							ValidateFunc: _ValidateRegexp(_MetricNameAttr, `[\S]+`),
 						},
 						_MetricTagsAttr: _TagMakeConfigSchema(_MetricTagsAttr),
 						_MetricTypeAttr: &schema.Schema{
@@ -172,7 +172,7 @@ func _NewCheckResource() *schema.Resource {
 						_MetricUnitAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateRegexp(_MetricUnitAttr, `.+`),
+							ValidateFunc: _ValidateRegexp(_MetricUnitAttr, `.+`),
 						},
 					}, _CheckStreamDescriptions),
 				},

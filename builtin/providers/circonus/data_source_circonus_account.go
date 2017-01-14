@@ -61,7 +61,7 @@ func dataSourceCirconusAccount() *schema.Resource {
 				Computed: true,
 				// ConflictsWith: []string{accountCurrentAttr},
 				ValidateFunc: validateFuncs(
-					validateRegexp(accountIDAttr, config.AccountCIDRegex),
+					_ValidateRegexp(accountIDAttr, config.AccountCIDRegex),
 				),
 				Description: accountDescription[accountIDAttr],
 			},

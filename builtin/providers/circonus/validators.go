@@ -217,7 +217,7 @@ func validateMetricType(v interface{}, key string) (warnings []string, errors []
 	return warnings, errors
 }
 
-func validateRegexp(attrName _SchemaAttr, reString string) func(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateRegexp(attrName _SchemaAttr, reString string) func(v interface{}, key string) (warnings []string, errors []error) {
 	re := regexp.MustCompile(reString)
 
 	return func(v interface{}, key string) (warnings []string, errors []error) {
