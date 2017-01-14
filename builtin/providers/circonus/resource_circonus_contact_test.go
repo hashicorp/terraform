@@ -86,7 +86,7 @@ func TestAccCirconusContactGroup_basic(t *testing.T) {
 }
 
 func testAccCheckDestroyCirconusContactGroup(s *terraform.State) error {
-	c := testAccProvider.Meta().(*providerContext)
+	c := testAccProvider.Meta().(*_ProviderContext)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "circonus_contact_group" {
@@ -119,7 +119,7 @@ func testAccContactGroupExists(n string, contactID api.CIDType) resource.TestChe
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*providerContext)
+		client := testAccProvider.Meta().(*_ProviderContext)
 		cid := rs.Primary.ID
 		exists, err := checkContactGroupExists(client, api.CIDType(&cid))
 		switch {
@@ -135,7 +135,7 @@ func testAccContactGroupExists(n string, contactID api.CIDType) resource.TestChe
 	}
 }
 
-func checkContactGroupExists(c *providerContext, contactID api.CIDType) (bool, error) {
+func checkContactGroupExists(c *_ProviderContext, contactID api.CIDType) (bool, error) {
 	cb, err := c.client.FetchContactGroup(contactID)
 	if err != nil {
 		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {

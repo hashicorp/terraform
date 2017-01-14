@@ -42,7 +42,7 @@ func (m _InterfaceMap) GetStringPtr(attrName _SchemaAttr) *string {
 	return nil
 }
 
-func (m _InterfaceMap) GetTags(ctxt *providerContext, attrName _SchemaAttr, defaultTag _Tag) _Tags {
+func (m _InterfaceMap) GetTags(ctxt *_ProviderContext, attrName _SchemaAttr) _Tags {
 	if tagsRaw, ok := m[string(attrName)]; ok {
 		tagList := flattenSet(tagsRaw.(*schema.Set))
 		tags := make(_Tags, 0, len(tagList))

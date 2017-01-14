@@ -368,7 +368,7 @@ func _CheckCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func checkBundleExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	ctxt := meta.(*providerContext)
+	ctxt := meta.(*_ProviderContext)
 
 	cid := d.Id()
 	cb, err := ctxt.client.FetchCheckBundle(api.CIDType(&cid))
@@ -384,7 +384,7 @@ func checkBundleExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 }
 
 func checkBundleRead(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*providerContext)
+	ctxt := meta.(*_ProviderContext)
 
 	cid := d.Id()
 	cb, err := ctxt.client.FetchCheckBundle(api.CIDType(&cid))
@@ -517,7 +517,7 @@ func checkBundleRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func checkBundleUpdate(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*providerContext)
+	ctxt := meta.(*_ProviderContext)
 	c := _NewCheck()
 
 	if err := c.ParseSchema(d, meta); err != nil {
@@ -534,7 +534,7 @@ func checkBundleUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func checkBundleDelete(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*providerContext)
+	ctxt := meta.(*_ProviderContext)
 
 	if _, err := ctxt.client.Delete(d.Id()); err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("unable to delete check %q: {{err}}", d.Id()), err)

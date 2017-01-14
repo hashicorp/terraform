@@ -203,7 +203,7 @@ func dataSourceCirconusAccount() *schema.Resource {
 }
 
 func dataSourceCirconusAccountRead(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*providerContext)
+	c := meta.(*_ProviderContext)
 
 	var cid string
 

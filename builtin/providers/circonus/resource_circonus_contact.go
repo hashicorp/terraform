@@ -484,7 +484,7 @@ func resourceContactGroup() *schema.Resource {
 }
 
 func contactGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*providerContext)
+	ctxt := meta.(*_ProviderContext)
 
 	in, err := getContactGroupInput(d, meta)
 	if err != nil {
@@ -502,7 +502,7 @@ func contactGroupCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func contactGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	c := meta.(*providerContext)
+	c := meta.(*_ProviderContext)
 
 	cid := d.Id()
 	cg, err := c.client.FetchContactGroup(api.CIDType(&cid))
@@ -522,7 +522,7 @@ func contactGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) 
 }
 
 func contactGroupRead(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*providerContext)
+	c := meta.(*_ProviderContext)
 
 	cid := d.Id()
 
@@ -573,7 +573,7 @@ func contactGroupRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func contactGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*providerContext)
+	c := meta.(*_ProviderContext)
 
 	in, err := getContactGroupInput(d, meta)
 	if err != nil {
@@ -590,7 +590,7 @@ func contactGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func contactGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*providerContext)
+	c := meta.(*_ProviderContext)
 
 	cid := d.Id()
 	if _, err := c.client.DeleteContactGroupByCID(api.CIDType(&cid)); err != nil {
@@ -699,7 +699,7 @@ func contactGroupHTTPToState(cg *api.ContactGroup) ([]interface{}, error) {
 }
 
 func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.ContactGroup, error) {
-	ctxt := meta.(*providerContext)
+	ctxt := meta.(*_ProviderContext)
 
 	cg := api.NewContactGroup()
 	if v, ok := d.GetOk(contactAggregationWindowAttr); ok {
