@@ -30,7 +30,7 @@ func _NewCheck() _Check {
 	}
 }
 
-func (c *_Check) Create(ctxt *providerContext) error {
+func (c *_Check) Create(ctxt *_ProviderContext) error {
 	cb, err := ctxt.client.CreateCheckBundle(&c.CheckBundle)
 	if err != nil {
 		return err
@@ -41,7 +41,7 @@ func (c *_Check) Create(ctxt *providerContext) error {
 	return nil
 }
 
-func (c *_Check) Update(ctxt *providerContext) error {
+func (c *_Check) Update(ctxt *_ProviderContext) error {
 	_, err := ctxt.client.UpdateCheckBundle(&c.CheckBundle)
 	if err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("Unable to update check bundle %s: {{err}}", c.CID), err)

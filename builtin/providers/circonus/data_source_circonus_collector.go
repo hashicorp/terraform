@@ -132,7 +132,7 @@ func dataSourceCirconusCollector() *schema.Resource {
 }
 
 func dataSourceCirconusCollectorRead(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*providerContext)
+	c := meta.(*_ProviderContext)
 
 	var b *api.Broker
 	var err error

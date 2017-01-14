@@ -56,7 +56,7 @@ func TestAccCirconusCheckBundle_basic(t *testing.T) {
 }
 
 func testAccCheckDestroyCirconusCheckBundle(s *terraform.State) error {
-	c := testAccProvider.Meta().(*providerContext)
+	c := testAccProvider.Meta().(*_ProviderContext)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "circonus_check" {
@@ -88,7 +88,7 @@ func testAccCheckBundleExists(n string, checkBundleID api.CIDType) resource.Test
 			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*providerContext)
+		client := testAccProvider.Meta().(*_ProviderContext)
 		cid := rs.Primary.ID
 		exists, err := checkCheckBundleExists(client, api.CIDType(&cid))
 
@@ -104,7 +104,7 @@ func testAccCheckBundleExists(n string, checkBundleID api.CIDType) resource.Test
 	}
 }
 
-func checkCheckBundleExists(c *providerContext, checkBundleID api.CIDType) (bool, error) {
+func checkCheckBundleExists(c *_ProviderContext, checkBundleID api.CIDType) (bool, error) {
 	cb, err := c.client.FetchCheckBundle(checkBundleID)
 	if err != nil {
 		return false, err

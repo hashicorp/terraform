@@ -47,7 +47,7 @@ func (t _Tag) Value() string {
 	}
 }
 
-func injectTagPtr(ctxt *providerContext, tagPtrs []*string) _Tags {
+func injectTagPtr(ctxt *_ProviderContext, tagPtrs []*string) _Tags {
 	tags := make(_Tags, 0, len(tagPtrs))
 	for _, t := range tagPtrs {
 		tags = append(tags, _Tag(*t))
@@ -58,7 +58,7 @@ func injectTagPtr(ctxt *providerContext, tagPtrs []*string) _Tags {
 
 // injectTag adds a default tag.  If enabled, add a missing preconfigured tag to
 // _Tags.
-func injectTag(ctxt *providerContext, tags _Tags) _Tags {
+func injectTag(ctxt *_ProviderContext, tags _Tags) _Tags {
 	if !globalAutoTag || !ctxt.autoTag {
 		return tags
 	}
@@ -79,7 +79,7 @@ func injectTag(ctxt *providerContext, tags _Tags) _Tags {
 	return tags
 }
 
-func _ConfigGetTags(ctxt *providerContext, d *schema.ResourceData, attrName _SchemaAttr) _Tags {
+func _ConfigGetTags(ctxt *_ProviderContext, d *schema.ResourceData, attrName _SchemaAttr) _Tags {
 	if tagsRaw, ok := d.GetOk(string(attrName)); ok {
 		tagPtrs := flattenSet(tagsRaw.(*schema.Set))
 		return injectTagPtr(ctxt, tagPtrs)

@@ -42,7 +42,7 @@ type ContactMethods string
 // new values.
 var globalAutoTag bool
 
-type providerContext struct {
+type _ProviderContext struct {
 	// Circonus API client
 	client *api.API
 
@@ -107,7 +107,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, errwrap.Wrapf("Error initializing Circonus: %s", err)
 	}
 
-	return &providerContext{
+	return &_ProviderContext{
 		client:     client,
 		autoTag:    d.Get(providerAutoTagAttr).(bool),
 		defaultTag: defaultCirconusTag,
