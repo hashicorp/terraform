@@ -54,7 +54,7 @@ func _NewMetricResource() *schema.Resource {
 			_MetricNameAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateRegexp(_MetricNameAttr, `[\S]+`),
+				ValidateFunc: _ValidateRegexp(_MetricNameAttr, `[\S]+`),
 			},
 			_MetricTypeAttr: &schema.Schema{
 				Type:         schema.TypeString,
@@ -65,7 +65,7 @@ func _NewMetricResource() *schema.Resource {
 			_MetricUnitAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateRegexp(_MetricUnitAttr, `.+`),
+				ValidateFunc: _ValidateRegexp(_MetricUnitAttr, `.+`),
 			},
 		}, _MetricDescriptions),
 	}

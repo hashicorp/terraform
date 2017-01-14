@@ -364,7 +364,7 @@ func resourceContactGroup() *schema.Resource {
 							Required:    true,
 							Description: contactDescription[contactSlackChannelAttr],
 							ValidateFunc: validateFuncs(
-								validateRegexp(contactSlackChannelAttr, `^#[\S]+$`),
+								_ValidateRegexp(contactSlackChannelAttr, `^#[\S]+$`),
 							),
 						},
 						contactSlackTeamAttr: &schema.Schema{
@@ -377,7 +377,7 @@ func resourceContactGroup() *schema.Resource {
 							Optional: true,
 							Default:  defaultCirconusSlackUsername,
 							ValidateFunc: validateFuncs(
-								validateRegexp(contactSlackChannelAttr, `^[\S]+$`),
+								_ValidateRegexp(contactSlackChannelAttr, `^[\S]+$`),
 							),
 							Description: contactDescription[contactSlackUsernameAttr],
 						},
