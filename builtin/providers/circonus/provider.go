@@ -31,8 +31,7 @@ var (
 	validContactHTTPMethods = _ValidStringValues{"GET", "POST"}
 )
 
-type CheckType string
-type ContactMethods string
+type _ContactMethods string
 
 // globalAutoTag controls whether or not the provider should automatically add a
 // tag to each resource.
@@ -84,9 +83,9 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"circonus_check":         _NewCirconusCheckResource(),
+			"circonus_check":         _NewCheckResource(),
 			"circonus_contact_group": resourceContactGroup(),
-			"circonus_metric":        _NewCirconusMetricResource(),
+			"circonus_metric":        _NewMetricResource(),
 		},
 
 		ConfigureFunc: providerConfigure,

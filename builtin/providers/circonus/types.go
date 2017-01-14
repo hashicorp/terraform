@@ -14,6 +14,8 @@ package circonus
 // file and casting is only done at assignment time when storing a result to a
 // struct.
 
+type _APICheckType string
+
 type _AttrDescr string
 type _AttrDescrs map[_SchemaAttr]_AttrDescr
 

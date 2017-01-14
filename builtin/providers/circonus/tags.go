@@ -121,8 +121,12 @@ func tagsToAPI(tags _Tags) []string {
 	return apiTags
 }
 
-func tagsToState(tags _Tags) []string {
-	return tagsToAPI(tags)
+func tagsToState(tags _Tags) []interface{} {
+	stateTags := make([]interface{}, 0, len(tags))
+	for i := range tags {
+		stateTags = append(stateTags, string(tags[i]))
+	}
+	return stateTags
 }
 
 func apiToTags(apiTags []string) _Tags {

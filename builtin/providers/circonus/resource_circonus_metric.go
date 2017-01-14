@@ -9,21 +9,18 @@ package circonus
 
 import (
 	"github.com/hashicorp/errwrap"
-	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-// circonus_metric.* resource attribute names
 const (
+	// circonus_metric.* resource attribute names
 	_MetricActiveAttr _SchemaAttr = "active"
 	_MetricIDAttr     _SchemaAttr = "id"
 	_MetricNameAttr   _SchemaAttr = "name"
 	_MetricTypeAttr   _SchemaAttr = "type"
 	_MetricTagsAttr   _SchemaAttr = "tags"
 	_MetricUnitAttr   _SchemaAttr = "unit"
-)
 
-const (
 	// CheckBundle.Metric.Status can be one of these values
 	_MetricStatusActive    = "active"
 	_MetricStatusAvailable = "available"
@@ -37,7 +34,7 @@ var _MetricDescriptions = _AttrDescrs{
 	_MetricUnitAttr:   "The unit of measurement for a metric",
 }
 
-func _NewCirconusMetricResource() *schema.Resource {
+func _NewMetricResource() *schema.Resource {
 	return &schema.Resource{
 		Create: _MetricCreate,
 		Read:   _MetricRead,
@@ -48,7 +45,7 @@ func _NewCirconusMetricResource() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: castSchemaToTF(map[_SchemaAttr]*schema.Schema{
+		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
 			_MetricActiveAttr: &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -75,17 +72,20 @@ func _NewCirconusMetricResource() *schema.Resource {
 }
 
 func _MetricCreate(d *schema.ResourceData, meta interface{}) error {
+	m := _NewMetric()
+	ctxt := meta.(*_ProviderContext)
+	cr := _NewConfigReader(ctxt, d)
+
 	id := d.Id()
 	if id == "" {
 		var err error
-		id, err = uuid.GenerateUUID()
+		id, err = _NewMetricID()
 		if err != nil {
 			return errwrap.Wrapf("metric ID creation failed: {{err}}", err)
 		}
 	}
 
-	m := _NewMetric()
-	if err := m.ParseConfig(id, d, meta); err != nil {
+	if err := m.ParseConfig(id, cr); err != nil {
 		return errwrap.Wrapf("error parsing metric schema during create: {{err}}", err)
 	}
 
@@ -98,7 +98,10 @@ func _MetricCreate(d *schema.ResourceData, meta interface{}) error {
 
 func _MetricRead(d *schema.ResourceData, meta interface{}) error {
 	m := _NewMetric()
-	if err := m.ParseConfig(d.Id(), d, meta); err != nil {
+	ctxt := meta.(*_ProviderContext)
+	cr := _NewConfigReader(ctxt, d)
+
+	if err := m.ParseConfig(d.Id(), cr); err != nil {
 		return errwrap.Wrapf("error parsing metric schema during read: {{err}}", err)
 	}
 
@@ -111,8 +114,10 @@ func _MetricRead(d *schema.ResourceData, meta interface{}) error {
 
 func _MetricUpdate(d *schema.ResourceData, meta interface{}) error {
 	m := _NewMetric()
+	ctxt := meta.(*_ProviderContext)
+	cr := _NewConfigReader(ctxt, d)
 
-	if err := m.ParseConfig(d.Id(), d, meta); err != nil {
+	if err := m.ParseConfig(d.Id(), cr); err != nil {
 		return errwrap.Wrapf("error parsing metric schema during update: {{err}}", err)
 	}
 

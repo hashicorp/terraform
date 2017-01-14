@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/hashicorp/errwrap"
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -22,15 +24,13 @@ func (m *_Metric) Create(d *schema.ResourceData) error {
 	return m.SaveState(d)
 }
 
-func (m *_Metric) ParseConfig(id string, d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*providerContext)
-
+func (m *_Metric) ParseConfig(id string, ar _AttrReader) error {
 	m.ID = _MetricID(id)
-	m.Name = _ConfigGetString(d, _MetricNameAttr)
-	m.Status = _MetricActiveToAPIStatus(_ConfigGetBool(d, _MetricActiveAttr))
-	m.Tags = tagsToState(_ConfigGetTags(ctxt, d, _MetricTagsAttr))
-	m.Type = _ConfigGetString(d, _MetricTypeAttr)
-	m.Units = _ConfigGetStringPtr(d, _MetricUnitAttr)
+	m.Name = ar.GetString(_MetricNameAttr)
+	m.Status = _MetricActiveToAPIStatus(ar.GetBool(_MetricActiveAttr))
+	m.Tags = tagsToAPI(ar.GetTags(_MetricTagsAttr))
+	m.Type = ar.GetString(_MetricTypeAttr)
+	m.Units = ar.GetStringPtr(_MetricUnitAttr)
 
 	return nil
 }
@@ -49,6 +49,7 @@ func (m *_Metric) SaveState(d *schema.ResourceData) error {
 	_StateSet(d, _MetricActiveAttr, active)
 	_StateSet(d, _MetricNameAttr, m.Name)
 	_StateSet(d, _MetricTagsAttr, m.Tags)
+	_StateSet(d, _MetricTypeAttr, m.Type)
 	_StateSet(d, _MetricUnitAttr, m.Units)
 
 	d.SetId(string(m.ID))
@@ -83,4 +84,13 @@ func _MetricActiveToAPIStatus(active bool) string {
 	}
 
 	panic("suppress Go error message")
+}
+
+func _NewMetricID() (string, error) {
+	id, err := uuid.GenerateUUID()
+	if err != nil {
+		return "", errwrap.Wrapf("metric ID creation failed: {{err}}", err)
+	}
+
+	return id, nil
 }
