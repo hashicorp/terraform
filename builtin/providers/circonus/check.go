@@ -2,14 +2,9 @@ package circonus
 
 import (
 	"fmt"
-	"net/url"
-	"strings"
-	"time"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
-	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/helper/schema"
 )
 
 // The _Check type is the backing store of the `circonus_check` resource.
@@ -19,6 +14,12 @@ type _Check struct {
 }
 
 type _CheckType string
+
+const (
+	// CheckBundle.Status can be one of these values
+	_CheckStatusActive   = "active"
+	_CheckStatusDisabled = "disabled"
+)
 
 const (
 	_CheckTypeJSON _CheckType = "json"
@@ -50,170 +51,85 @@ func (c *_Check) Update(ctxt *_ProviderContext) error {
 	return nil
 }
 
-func (c *_Check) ParseSchema(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*providerContext)
+func _LoadCheck(ctxt *_ProviderContext, cid api.CIDType) (_Check, error) {
+	var c _Check
+	cb, err := ctxt.client.FetchCheckBundle(cid)
+	if err != nil {
+		return _Check{}, err
+	}
+	c.CheckBundle = *cb
 
-	if name, ok := d.GetOk(checkNameAttr); ok {
-		c.DisplayName = name.(string)
+	return c, nil
+}
+
+func (c *_Check) ParseConfig(ar _AttrReader) error {
+	if name, ok := ar.GetStringOk(_CheckNameAttr); ok {
+		c.DisplayName = name
 	}
 
-	if status, ok := schemaGetBoolOK(d, _CheckActiveAttr); ok {
-		statusString := checkStatusActive
+	if status, ok := ar.GetBoolOK(_CheckActiveAttr); ok {
+		statusString := _CheckStatusActive
 		if !status {
-			statusString = checkStatusDisabled
+			statusString = _CheckStatusDisabled
 		}
 
 		c.Status = statusString
 	}
 
-	if collectorsList, ok := schemaGetSetAsListOk(d, _CheckCollectorAttr); ok {
-		c.Brokers = collectorsList.CollectKey(_CheckCollectorIDAttr)
+	if collectorsList, ok := ar.GetSetAsListOk(_CheckCollectorAttr); ok {
+		c.Brokers = collectorsList.CollectList(_CheckCollectorIDAttr)
 	}
 
-	if streamList, ok := schemaGetSetAsListOk(d, _CheckStreamAttr); ok {
+	if streamList, ok := ar.GetSetAsListOk(_CheckStreamAttr); ok {
 		c.Metrics = make([]api.CheckBundleMetric, 0, len(streamList))
 
 		for _, metricListRaw := range streamList {
 			metricAttrs := _NewInterfaceMap(metricListRaw)
 
+			var id string
+			if v, ok := ar.GetStringOk(_MetricIDAttr); ok {
+				id = v
+			} else {
+				var err error
+				id, err = _NewMetricID()
+				if err != nil {
+					return errwrap.Wrapf("unable to create a new metric ID: {{err}}", err)
+				}
+			}
+
 			m := _NewMetric()
-			m.Name = metricAttrs.GetString(_MetricNameAttr)
-			m.Tags = tagsToState(metricAttrs.GetTags(ctxt, _MetricTagsAttr, _Tag("")))
-			m.Type = metricAttrs.GetString(_MetricTypeAttr)
-			m.Units = metricAttrs.GetStringPtr(_MetricUnitAttr)
+			mr := _NewMapReader(ar.Context(), metricAttrs)
+			if err := m.ParseConfig(id, mr); err != nil {
+				return errwrap.Wrapf("unable to parse config: {{err}}", err)
+			}
 
 			c.Metrics = append(c.Metrics, m.CheckBundleMetric)
 		}
 	}
 
-	if l, ok := schemaGetSetAsListOk(d, _CheckJSONAttr); ok {
+	if l, ok := ar.GetSetAsListOk(_CheckJSONAttr); ok {
 		if err := c.parseJSONCheck(l); err != nil {
 			return err
 		}
 	}
 
-	// var checkType CheckType
-	// if v, ok := d.GetOk(checkTypeAttr); ok {
-	// 	c.Type = v.(string)
-	// 	checkType = CheckType(c.Type)
-	// }
-
-	// if bundleConfigRaw, ok := d.GetOk(checkConfigAttr); ok {
-	// 	bundleConfigList := bundleConfigRaw.([]interface{})
-	// 	checkConfig := makeCheckBundleConfig(checkType)
-	// 	switch configLen := len(bundleConfigList); {
-	// 	case configLen > 1:
-	// 		return fmt.Errorf("config doesn't match schema: count %d", configLen)
-	// 	case configLen == 1:
-	// 		configMap := bundleConfigList[0].(map[string]interface{})
-	// 		if v, ok := configMap[checkConfigHTTPHeadersAttr]; ok {
-	// 			headerMap := v.(map[string]interface{})
-	// 			for hK, hV := range headerMap {
-	// 				hKey := config.HeaderPrefix + config.Key(hK)
-	// 				checkConfig[hKey] = hV.(string)
-	// 			}
-	// 		}
-
-	// 		if v, ok := configMap[checkConfigHTTPVersionAttr]; ok {
-	// 			checkConfig[checkConfigHTTPVersionAttr] = v.(string)
-	// 		}
-
-	// 		if v, ok := configMap[checkConfigPortAttr]; ok {
-	// 			checkConfig[checkConfigPortAttr] = v.(string)
-	// 		}
-
-	// 		if v, ok := configMap[checkConfigReadLimitAttr]; ok {
-	// 			checkConfig[checkConfigReadLimitAttr] = fmt.Sprintf("%d", v.(int))
-	// 		}
-
-	// 		if v, ok := configMap[checkConfigRedirectsAttr]; ok {
-	// 			checkConfig[checkConfigRedirectsAttr] = fmt.Sprintf("%d", v.(int))
-	// 		}
-
-	// 		if v, ok := configMap[checkConfigURLAttr]; ok {
-	// 			checkConfig[checkConfigURLAttr] = v.(string)
-	// 		}
-	// 	case configLen == 0:
-	// 		// Default config values, if any
-	// 	}
-
-	// 	c.Config = checkConfig
-	// }
-
-	if v, ok := d.GetOk(checkMetricLimitAttr); ok {
-		c.MetricLimit = v.(int)
+	if i, ok := ar.GetIntOK(_CheckMetricLimitAttr); ok {
+		c.MetricLimit = i
 	}
 
-	// if bundleMetricsRaw, ok := d.GetOk(checkMetricAttr); ok {
-	// 	bundleMetricsList := bundleMetricsRaw.([]interface{})
-	// 	c.Metrics = make([]api.CheckBundleMetric, 0, len(bundleMetricsList))
+	c.Notes = ar.GetStringPtr(_CheckNotesAttr)
 
-	// 	if len(bundleMetricsList) == 0 {
-	// 		return fmt.Errorf("at least one metric must be specified per check bundle")
-	// 	}
-
-	// 	for _, metricRaw := range bundleMetricsList {
-	// 		metricMap := metricRaw.(map[string]interface{})
-
-	// 		var metricName string
-	// 		if v, ok := metricMap[checkMetricNameAttr]; ok {
-	// 			metricName = v.(string)
-	// 		}
-
-	// 		var metricStatus string = metricStatusActive
-	// 		if v, ok := metricMap[checkMetricActiveAttr]; ok {
-	// 			if !v.(bool) {
-	// 				metricStatus = metricStatusAvailable
-	// 			}
-	// 		}
-
-	// 		var metricTags _Tags
-	// 		if tagsRaw, ok := metricMap[checkMetricTagsAttr]; ok {
-	// 			tags := tagsRaw.(map[string]interface{})
-
-	// 			metricTags = make(_Tags, len(tags))
-	// 			for k, v := range tags {
-	// 				metricTags[_TagCategory(k)] = _TagValue(v.(string))
-	// 			}
-	// 		}
-	// 		metricTags = injectTag(ctxt, metricTags, ctxt.defaultTag)
-
-	// 		var metricType string
-	// 		if v, ok := metricMap[checkMetricTypeAttr]; ok {
-	// 			metricType = v.(string)
-	// 		}
-
-	// 		var metricUnits string
-	// 		if v, ok := metricMap[checkMetricUnitsAttr]; ok {
-	// 			metricUnits = v.(string)
-	// 		}
-
-	// 		c.Metrics = append(c.Metrics, api.CheckBundleMetric{
-	// 			Name:   metricName,
-	// 			Status: metricStatus,
-	// 			Tags:   tagsToAPI(metricTags),
-	// 			Type:   metricType,
-	// 			Units:  metricUnits,
-	// 		})
-	// 	}
-	// }
-
-	c.Notes = schemaGetStringPtr(d, checkNotesAttr)
-
-	if v, ok := d.GetOk(checkPeriodAttr); ok {
-		d, _ := time.ParseDuration(v.(string))
+	if d, ok := ar.GetDurationOK(_CheckPeriodAttr); ok {
 		c.Period = uint(d.Seconds())
 	}
 
-	checkTags := _ConfigGetTags(ctxt, d, checkTagsAttr, ctxt.defaultTag)
-	c.Tags = tagsToAPI(checkTags)
+	c.Tags = tagsToAPI(ar.GetTags(_CheckTagsAttr))
 
-	if v, ok := d.GetOk(checkTargetAttr); ok {
-		c.Target = v.(string)
+	if s, ok := ar.GetStringOk(_CheckTargetAttr); ok {
+		c.Target = s
 	}
 
-	if v, ok := d.GetOk(checkTimeoutAttr); ok {
-		d, _ := time.ParseDuration(v.(string))
+	if d, ok := ar.GetDurationOK(_CheckTimeoutAttr); ok {
 		var t float32 = float32(d.Seconds())
 		c.Timeout = t
 	}
@@ -236,9 +152,9 @@ func (c *_Check) Validate() error {
 func apiCheckStatusToBool(s string) bool {
 	var active bool
 	switch s {
-	case checkStatusActive:
+	case _CheckStatusActive:
 		active = true
-	case checkStatusDisabled:
+	case _CheckStatusDisabled:
 		active = false
 	default:
 		panic(fmt.Sprintf("PROVIDER BUG: check status %q unsupported", s))

@@ -17,14 +17,6 @@ func init() {
 		accountUsersAttr:         "Users attached to this account",
 	}
 
-	checkMetricDescription = map[string]string{
-		checkMetricActiveAttr: "True if metric is active and collecting data",
-		checkMetricNameAttr:   "The name of a metric",
-		checkMetricTagsAttr:   "A list of tags assigned to a metric",
-		checkMetricTypeAttr:   "Type of the metric",
-		checkMetricUnitsAttr:  "Units for the metric",
-	}
-
 	// NOTE(sean@): needs to be completed
 	collectorDescription = map[string]string{
 		collectorDetailsAttr: "Details associated with individual collectors (a.k.a. broker)",

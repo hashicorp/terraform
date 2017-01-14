@@ -3,9 +3,7 @@ package circonus
 import (
 	"fmt"
 	"regexp"
-	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
@@ -14,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func castSchemaToTF(in map[_SchemaAttr]*schema.Schema, descrs _AttrDescrs) map[string]*schema.Schema {
+func _CastSchemaToTF(in map[_SchemaAttr]*schema.Schema, descrs _AttrDescrs) map[string]*schema.Schema {
 	out := make(map[string]*schema.Schema, len(in))
 	for k, v := range in {
 		if descr, ok := descrs[k]; ok {
@@ -93,14 +91,32 @@ func normalizeTimeDurationStringToSeconds(v interface{}) string {
 	}
 }
 
-// schemaGetBoolOk returns the boolean value if found and true as the second
+// _ConfigGetBool returns the boolean value if found.
+func _ConfigGetBool(d *schema.ResourceData, attrName _SchemaAttr) bool {
+	return d.Get(string(attrName)).(bool)
+}
+
+// _ConfigGetBoolOk returns the boolean value if found and true as the second
 // argument, otherwise returns false if the value was not found.
-func schemaGetBoolOK(d *schema.ResourceData, attrName _SchemaAttr) (b, found bool) {
+func _ConfigGetBoolOK(d *schema.ResourceData, attrName _SchemaAttr) (b, found bool) {
 	if v, ok := d.GetOk(string(attrName)); ok {
 		return v.(bool), true
 	}
 
 	return false, false
+}
+
+func _ConfigGetDurationOK(d *schema.ResourceData, attrName _SchemaAttr) (time.Duration, bool) {
+	if v, ok := d.GetOk(string(attrName)); ok {
+		d, err := time.ParseDuration(v.(string))
+		if err != nil {
+			return time.Duration(0), false
+		}
+
+		return d, true
+	}
+
+	return time.Duration(0), false
 }
 
 func schemaGetSetAsListOk(d *schema.ResourceData, attrName _SchemaAttr) (_InterfaceList, bool) {
@@ -110,9 +126,9 @@ func schemaGetSetAsListOk(d *schema.ResourceData, attrName _SchemaAttr) (_Interf
 	return nil, false
 }
 
-// schemaGetString returns an attribute as a string.  If the attribute is not
+// _ConfigGetString returns an attribute as a string.  If the attribute is not
 // found, return an empty string.
-func schemaGetString(d *schema.ResourceData, attrName _SchemaAttr) string {
+func _ConfigGetString(d *schema.ResourceData, attrName _SchemaAttr) string {
 	if s, ok := schemaGetStringOk(d, attrName); ok {
 		return s
 	}
@@ -130,9 +146,9 @@ func schemaGetStringOk(d *schema.ResourceData, attrName _SchemaAttr) (string, bo
 	return "", false
 }
 
-// schemaGetStringPtr returns an attribute as a *string.  If the attribute is
+// _ConfigGetStringPtr returns an attribute as a *string.  If the attribute is
 // not found, return a nil pointer.
-func schemaGetStringPtr(d *schema.ResourceData, attrName _SchemaAttr) *string {
+func _ConfigGetStringPtr(d *schema.ResourceData, attrName _SchemaAttr) *string {
 	if s, ok := schemaGetStringOk(d, attrName); ok {
 		return &s
 	}

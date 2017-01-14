@@ -15,31 +15,15 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 )
 
-var knownCheckTypes map[CheckType]struct{}
-var knownContactMethods map[ContactMethods]struct{}
+var knownCheckTypes map[_CheckType]struct{}
+var knownContactMethods map[_ContactMethods]struct{}
 
-const (
-	// Misc package constants
-	defaultCheckTypeName  = "default"
-	defaultNumHTTPHeaders = 3
-)
-
-var defaultCheckTypeConfigSize map[CheckType]int
-var userContactMethods map[string]struct{}
-var externalContactMethods map[string]struct{}
+var userContactMethods map[_ContactMethods]struct{}
+var externalContactMethods map[_ContactMethods]struct{}
 var _SupportedHTTPVersions = _ValidStringValues{"0.9", "1.0", "1.1", "2.0"}
 
 func init() {
-	// The values come from manually tallying up various options per check
-	// type located at:
-	// https://login.circonus.com/resources/api/calls/check_bundle
-	defaultCheckTypeConfigSize = map[CheckType]int{
-		defaultCheckTypeName: 8,
-		"http":               16 + defaultNumHTTPHeaders,
-		"json":               13 + defaultNumHTTPHeaders,
-	}
-
-	checkTypes := []string{
+	checkTypes := []_CheckType{
 		"caql", "cim", "circonuswindowsagent", "circonuswindowsagent,nad",
 		"collectd", "composite", "dcm", "dhcp", "dns", "elasticsearch",
 		"external", "ganglia", "googleanalytics", "haproxy", "http",
@@ -52,31 +36,31 @@ func init() {
 		"ec_console", "mongodb",
 	}
 
-	knownCheckTypes = make(map[CheckType]struct{}, len(checkTypes))
+	knownCheckTypes = make(map[_CheckType]struct{}, len(checkTypes))
 	for _, k := range checkTypes {
-		knownCheckTypes[CheckType(k)] = struct{}{}
+		knownCheckTypes[k] = struct{}{}
 	}
 
-	userMethods := []string{"email", "sms", "xmpp"}
-	externalMethods := []string{"slack"}
+	userMethods := []_ContactMethods{"email", "sms", "xmpp"}
+	externalMethods := []_ContactMethods{"slack"}
 
-	knownContactMethods = make(map[ContactMethods]struct{}, len(externalContactMethods)+len(userContactMethods))
+	knownContactMethods = make(map[_ContactMethods]struct{}, len(externalContactMethods)+len(userContactMethods))
 
-	externalContactMethods = make(map[string]struct{}, len(externalMethods))
+	externalContactMethods = make(map[_ContactMethods]struct{}, len(externalMethods))
 	for _, k := range externalMethods {
-		knownContactMethods[ContactMethods(k)] = struct{}{}
+		knownContactMethods[k] = struct{}{}
 		externalContactMethods[k] = struct{}{}
 	}
 
-	userContactMethods = make(map[string]struct{}, len(userMethods))
+	userContactMethods = make(map[_ContactMethods]struct{}, len(userMethods))
 	for _, k := range userMethods {
-		knownContactMethods[ContactMethods(k)] = struct{}{}
+		knownContactMethods[k] = struct{}{}
 		userContactMethods[k] = struct{}{}
 	}
 }
 
 func validateCheckType(v interface{}, key string) (warnings []string, errors []error) {
-	if _, ok := knownCheckTypes[CheckType(v.(string))]; !ok {
+	if _, ok := knownCheckTypes[_CheckType(v.(string))]; !ok {
 		warnings = append(warnings, fmt.Sprintf("Possibly unsupported check type: %s", v.(string)))
 	}
 
@@ -84,7 +68,7 @@ func validateCheckType(v interface{}, key string) (warnings []string, errors []e
 }
 
 func validateContactMethod(v interface{}, key string) (warnings []string, errors []error) {
-	if _, ok := knownContactMethods[ContactMethods(v.(string))]; !ok {
+	if _, ok := knownContactMethods[_ContactMethods(v.(string))]; !ok {
 		warnings = append(warnings, fmt.Sprintf("Possibly unsupported contact method: %s", v.(string)))
 	}
 
@@ -122,7 +106,7 @@ func validateContactGroupCID(attrName string) func(v interface{}, key string) (w
 	}
 }
 
-func validateDurationMin(attrName, minDuration string) func(v interface{}, key string) (warnings []string, errors []error) {
+func validateDurationMin(attrName _SchemaAttr, minDuration string) func(v interface{}, key string) (warnings []string, errors []error) {
 	var min time.Duration
 	{
 		var err error
@@ -145,7 +129,7 @@ func validateDurationMin(attrName, minDuration string) func(v interface{}, key s
 	}
 }
 
-func validateDurationMax(attrName, maxDuration string) func(v interface{}, key string) (warnings []string, errors []error) {
+func validateDurationMax(attrName _SchemaAttr, maxDuration string) func(v interface{}, key string) (warnings []string, errors []error) {
 	var max time.Duration
 	{
 		var err error
@@ -197,16 +181,6 @@ func validateHTTPHeaders(v interface{}, key string) (warnings []string, errors [
 		if !validHTTPValue.MatchString(v) {
 			errors = append(errors, fmt.Errorf("Invalid value for HTTP Header %q specified: %q", k, v))
 		}
-	}
-
-	return warnings, errors
-}
-
-func validateHTTPVersion(v interface{}, key string) (warnings []string, errors []error) {
-	validHTTPVersion := regexp.MustCompile(`^\d+\.\d+$`)
-
-	if !validHTTPVersion.MatchString(v.(string)) {
-		errors = append(errors, fmt.Errorf("Invalid %s specified (%q)", checkConfigHTTPVersionAttr, v.(string)))
 	}
 
 	return warnings, errors

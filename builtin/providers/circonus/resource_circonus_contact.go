@@ -219,7 +219,7 @@ func resourceContactGroup() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[_SchemaAttr]*schema.Schema{
+					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
 						contactEmailAddressAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
@@ -238,7 +238,7 @@ func resourceContactGroup() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[_SchemaAttr]*schema.Schema{
+					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
 						contactHTTPAddressAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
@@ -306,7 +306,7 @@ func resourceContactGroup() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[_SchemaAttr]*schema.Schema{
+					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
 						contactContactGroupFallbackAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
@@ -1044,7 +1044,7 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 		cg.AlertFormats.ShortMessage = &msg
 	}
 
-	contactTags := _ConfigGetTags(ctxt, d, checkTagsAttr)
+	contactTags := _ConfigGetTags(ctxt, d, _CheckTagsAttr)
 	cg.Tags = tagsToAPI(contactTags)
 
 	if err := validateContactGroup(cg); err != nil {
