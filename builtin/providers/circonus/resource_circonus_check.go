@@ -115,7 +115,7 @@ func _NewCheckResource() *schema.Resource {
 					}, _CheckCollectorDescriptions),
 				},
 			},
-			_CheckJSONAttr: jsonAttr,
+			_CheckJSONAttr: _SchemaCheckJSON,
 			_CheckMetricLimitAttr: &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -150,6 +150,7 @@ func _NewCheckResource() *schema.Resource {
 			_CheckStreamAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Set:      _CheckStreamJSON,
 				MinItems: 1,
 				Elem: &schema.Resource{
 					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
@@ -285,28 +286,24 @@ func _CheckRead(d *schema.ResourceData, meta interface{}) error {
 	// Global circonus_check attributes are saved first, followed by the check
 	// type specific attributes handled below in their respective _CheckRead*().
 
-	var streams []interface{}
-	{
-		for _, m := range c.Metrics {
-			metricActive := _MetricAPIStatusToBool(m.Status)
-			var unit string
-			if m.Units != nil {
-				unit = *m.Units
-			}
+	streams := schema.NewSet(_CheckStreamJSON, nil)
+	for _, m := range c.Metrics {
+		metricActive := _MetricAPIStatusToBool(m.Status)
 
-			metricMap := map[_SchemaAttr]interface{}{
-				_MetricActiveAttr: metricActive,
-				_MetricNameAttr:   m.Name,
-				// TODO(sean@): FIXME: For some reason when I include the stream's tags
-				// Set fails.
-				//
-				// _MetricTagsAttr:   tagsToState(apiToTags(m.Tags)),
-				_MetricTypeAttr: m.Type,
-				_MetricUnitAttr: unit,
-			}
-
-			streams = append(streams, metricMap)
+		var unit string
+		if m.Units != nil {
+			unit = *m.Units
 		}
+
+		streamAttrs := map[string]interface{}{
+			string(_MetricActiveAttr): metricActive,
+			string(_MetricNameAttr):   m.Name,
+			string(_MetricTagsAttr):   tagsToState(apiToTags(m.Tags)),
+			string(_MetricTypeAttr):   m.Type,
+			string(_MetricUnitAttr):   unit,
+		}
+
+		streams.Add(streamAttrs)
 	}
 
 	// Write the global circonus_check parameters followed by the check
@@ -375,4 +372,12 @@ func _CheckDelete(d *schema.ResourceData, meta interface{}) error {
 	d.SetId("")
 
 	return nil
+}
+
+func _CheckStreamJSON(v interface{}) int {
+	m := v.(map[string]interface{})
+
+	ar := _NewMapReader(nil, m)
+	csum := _MetricChecksum(ar)
+	return csum
 }

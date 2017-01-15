@@ -89,8 +89,13 @@ func (m _InterfaceMap) GetStringOk(attrName _SchemaAttr) (string, bool) {
 
 func (m _InterfaceMap) GetStringPtr(attrName _SchemaAttr) *string {
 	if v, ok := m[string(attrName)]; ok {
-		s := v.(string)
-		return &s
+		switch v.(type) {
+		case string:
+			s := v.(string)
+			return &s
+		case *string:
+			return v.(*string)
+		}
 	}
 
 	return nil
