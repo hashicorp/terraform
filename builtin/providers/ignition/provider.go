@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/url"
 	"sync"
 
@@ -166,23 +165,20 @@ func getUInt(d *schema.ResourceData, key string) *uint {
 	return uid
 }
 
-func validateUnit(content string) error {
-	r := bytes.NewBuffer([]byte(content))
+var errEmptyUnit = fmt.Errorf("invalid or empty unit content")
 
-	u, err := unit.Deserialize(r)
-	if len(u) == 0 {
-		return fmt.Errorf("invalid or empty unit content")
+func validateUnitContent(content string) error {
+	c := bytes.NewBufferString(content)
+	unit, err := unit.Deserialize(c)
+	if err != nil {
+		return fmt.Errorf("invalid unit content: %s", err)
 	}
 
-	if err == nil {
-		return nil
+	if len(unit) == 0 {
+		return errEmptyUnit
 	}
 
-	if err == io.EOF {
-		return fmt.Errorf("unexpected EOF reading unit content")
-	}
-
-	return err
+	return nil
 }
 
 func buildURL(raw string) (types.Url, error) {

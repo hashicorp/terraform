@@ -30,7 +30,7 @@ func resourceSystemdUnit() *schema.Resource {
 			},
 			"content": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 			"dropin": &schema.Schema{
@@ -85,15 +85,11 @@ func resourceSystemdUnitRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func buildSystemdUnit(d *schema.ResourceData, c *cache) (string, error) {
-	if err := validateUnit(d.Get("content").(string)); err != nil {
-		return "", err
-	}
-
 	var dropins []types.SystemdUnitDropIn
 	for _, raw := range d.Get("dropin").([]interface{}) {
 		value := raw.(map[string]interface{})
 
-		if err := validateUnit(value["content"].(string)); err != nil {
+		if err := validateUnitContent(value["content"].(string)); err != nil {
 			return "", err
 		}
 
@@ -101,6 +97,12 @@ func buildSystemdUnit(d *schema.ResourceData, c *cache) (string, error) {
 			Name:     types.SystemdUnitDropInName(value["name"].(string)),
 			Contents: value["content"].(string),
 		})
+	}
+
+	if err := validateUnitContent(d.Get("content").(string)); err != nil {
+		if err != errEmptyUnit || (err == errEmptyUnit && len(dropins) == 0) {
+			return "", err
+		}
 	}
 
 	return c.addSystemdUnit(&types.SystemdUnit{
