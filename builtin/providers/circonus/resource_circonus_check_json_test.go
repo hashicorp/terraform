@@ -8,7 +8,7 @@ import (
 )
 
 func TestAccCirconusCheckJSON_basic(t *testing.T) {
-	const jsonHash = "1328161357"
+	const jsonHash = "2883347764"
 	jsonAttr := func(key string) string {
 		keyParts := []string{string(_CheckJSONAttr), jsonHash, key}
 		return strings.Join(keyParts, ".")
@@ -48,20 +48,18 @@ func TestAccCirconusCheckJSON_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.usage", "period", "300s"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "stream.#", "2"),
 
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.456441965.active", "true"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.456441965.name", "_usage`0`_limit"),
-					// NOTE(sean@): Fixme.  See comment in resource_circonus_check.go re: setting tags in a stream.
-					// resource.TestCheckResourceAttr("circonus_check.usage", "stream.456441965.tags.#", "1"),
-					// resource.TestCheckResourceAttr("circonus_check.usage", "stream.456441965.tags.1384943139", "source:circonus"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.456441965.type", "numeric"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.456441965.unit", "qty"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.2498389189.active", "true"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.2498389189.name", "_usage`0`_used"),
-					// NOTE(sean@): Fixme.  See comment in resource_circonus_check.go re: setting tags in a stream.
-					// resource.TestCheckResourceAttr("circonus_check.usage", "stream.2498389189.tags.#", "1"),
-					// resource.TestCheckResourceAttr("circonus_check.usage", "stream.2498389189.tags.1384943139", "source:circonus"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.2498389189.type", "numeric"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.2498389189.unit", "qty"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.active", "true"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.name", "_usage`0`_limit"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.tags.#", "1"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.tags.1384943139", "source:circonus"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.unit", "qty"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.active", "true"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.name", "_usage`0`_used"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.tags.#", "1"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.tags.1384943139", "source:circonus"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.unit", "qty"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "tags.#", "2"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "tags.1384943139", "source:circonus"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "tags.3579657361", "source:unittest"),

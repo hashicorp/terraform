@@ -45,6 +45,77 @@ func TestAccCirconusMetric_basic(t *testing.T) {
 	})
 }
 
+func TestAccCirconusMetric_tagsets(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDestroyMetric,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCirconusMetricTags0,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("circonus_metric.t", "name", "foo"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.#", "0"),
+				),
+			},
+			{
+				Config: testAccCirconusMetricTags1,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("circonus_metric.t", "name", "foo"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.#", "1"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.1750285118", "foo:bar"),
+				),
+			},
+			{
+				Config: testAccCirconusMetricTags2,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("circonus_metric.t", "name", "foo"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.#", "2"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.1750285118", "foo:bar"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.2693443894", "foo:baz"),
+				),
+			},
+			{
+				Config: testAccCirconusMetricTags3,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("circonus_metric.t", "name", "foo"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.#", "3"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.1750285118", "foo:bar"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.2693443894", "foo:baz"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.1937518738", "foo:bur"),
+				),
+			},
+			{
+				Config: testAccCirconusMetricTags4,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("circonus_metric.t", "name", "foo"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.#", "4"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.1750285118", "foo:bar"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.2693443894", "foo:baz"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.1937518738", "foo:bur"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.2110890696", "foo:baz2"),
+				),
+			},
+			{
+				Config: testAccCirconusMetricTags5,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("circonus_metric.t", "name", "foo"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.#", "3"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.1750285118", "foo:bar"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.1937518738", "foo:bur"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "tags.2110890696", "foo:baz2"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckDestroyMetric(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "circonus_metric" {
@@ -91,6 +162,84 @@ resource "circonus_metric" "icmp_ping_maximum" {
 
 resource "circonus_metric" "icmp_ping_minimum" {
   name = "Minimum Ping Time"
+  type = "numeric"
+}
+`
+
+const testAccCirconusMetricTags0 = `
+resource "circonus_metric" "t" {
+  name = "foo"
+# tags = [
+#    "foo:bar",
+#    "foo:baz",
+#    "foo:bur",
+#    "foo:baz2"
+# ]
+  type = "numeric"
+}
+`
+
+const testAccCirconusMetricTags1 = `
+resource "circonus_metric" "t" {
+  name = "foo"
+  tags = [
+    "foo:bar",
+#    "foo:baz",
+#    "foo:bur",
+#    "foo:baz2"
+  ]
+  type = "numeric"
+}
+`
+
+const testAccCirconusMetricTags2 = `
+resource "circonus_metric" "t" {
+  name = "foo"
+  tags = [
+    "foo:bar",
+    "foo:baz",
+#    "foo:bur",
+#    "foo:baz2"
+  ]
+  type = "numeric"
+}
+`
+
+const testAccCirconusMetricTags3 = `
+resource "circonus_metric" "t" {
+  name = "foo"
+  tags = [
+    "foo:bar",
+    "foo:baz",
+    "foo:bur",
+#    "foo:baz2"
+  ]
+  type = "numeric"
+}
+`
+
+const testAccCirconusMetricTags4 = `
+resource "circonus_metric" "t" {
+  name = "foo"
+  tags = [
+    "foo:bar",
+    "foo:baz",
+    "foo:bur",
+    "foo:baz2"
+  ]
+  type = "numeric"
+}
+`
+
+const testAccCirconusMetricTags5 = `
+resource "circonus_metric" "t" {
+  name = "foo"
+  tags = [
+    "foo:bar",
+#    "foo:baz",
+    "foo:bur",
+    "foo:baz2"
+  ]
   type = "numeric"
 }
 `

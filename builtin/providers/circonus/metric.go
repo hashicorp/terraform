@@ -3,11 +3,13 @@ package circonus
 // The _Metric type is the backing store of the `circonus_metric` resource.
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/hashicorp/errwrap"
 	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -48,7 +50,7 @@ func (m *_Metric) SaveState(d *schema.ResourceData) error {
 
 	_StateSet(d, _MetricActiveAttr, active)
 	_StateSet(d, _MetricNameAttr, m.Name)
-	_StateSet(d, _MetricTagsAttr, m.Tags)
+	_StateSet(d, _MetricTagsAttr, tagsToState(apiToTags(m.Tags)))
 	_StateSet(d, _MetricTypeAttr, m.Type)
 	_StateSet(d, _MetricUnitAttr, m.Units)
 
@@ -93,4 +95,25 @@ func _NewMetricID() (string, error) {
 	}
 
 	return id, nil
+}
+
+func _MetricChecksum(ar _AttrReader) int {
+	b := &bytes.Buffer{}
+	b.Grow(defaultHashBufSize)
+
+	// Order writes to the buffer using lexically sorted list for easy visual
+	// reconciliation with other lists.
+	fmt.Fprint(b, ar.GetBool(_MetricActiveAttr))
+	fmt.Fprint(b, ar.GetString(_MetricNameAttr))
+	tags := ar.GetTags(_MetricTagsAttr)
+	for _, tag := range tags {
+		fmt.Fprint(b, tag)
+	}
+	fmt.Fprint(b, ar.GetString(_MetricTypeAttr))
+	if p := ar.GetStringPtr(_MetricUnitAttr); p != nil {
+		fmt.Fprint(b, _Indirect(p))
+	}
+
+	s := b.String()
+	return hashcode.String(s)
 }

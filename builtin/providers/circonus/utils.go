@@ -2,6 +2,7 @@ package circonus
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"time"
@@ -165,10 +166,38 @@ func _ConfigGetStringPtr(d *schema.ResourceData, attrName _SchemaAttr) *string {
 	return nil
 }
 
+func _Indirect(v interface{}) interface{} {
+	switch v.(type) {
+	case string:
+		return v
+	case *string:
+		p := v.(*string)
+		if p == nil {
+			return nil
+		}
+		return *p
+	default:
+		return v
+	}
+
+	vVal := reflect.ValueOf(v)
+	switch vVal.Kind() {
+	case reflect.Func, reflect.Map, reflect.Slice, reflect.Array, reflect.Struct:
+		return v
+	case reflect.Ptr:
+		vValPtr := reflect.Indirect(vVal)
+		if vValPtr.IsValid() {
+			return vValPtr.Interface()
+		}
+		return v
+	}
+	return vVal.Interface()
+}
+
 // _StateSet sets an attribute based on an attrName and panic()'s if the Set
 // failed.
 func _StateSet(d *schema.ResourceData, attrName _SchemaAttr, v interface{}) {
-	if err := d.Set(string(attrName), v); err != nil {
+	if err := d.Set(string(attrName), _Indirect(v)); err != nil {
 		panic(fmt.Sprintf("Provider Bug: failed set schema attribute %s to value %#v: %v", attrName, v, err))
 	}
 }

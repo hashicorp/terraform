@@ -47,12 +47,12 @@ var _CheckJSONDescriptions = _AttrDescrs{
 	_CheckJSONVersionAttr:      "Sets the HTTP version for the check to use",
 }
 
-var jsonAttr = &schema.Schema{
+var _SchemaCheckJSON = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
 	MaxItems: 1,
 	MinItems: 1,
-	// Set:      hashCheckJSON,
+	Set:      hashCheckJSON,
 	Elem: &schema.Resource{
 		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
 			_CheckJSONAuthMethodAttr: &schema.Schema{
