@@ -13,12 +13,12 @@ type _Tags []_Tag
 // _TagMakeConfigSchema returns a schema pointer to the necessary tag structure.
 func _TagMakeConfigSchema(tagAttrName _SchemaAttr) *schema.Schema {
 	return &schema.Schema{
-		Type:             schema.TypeSet,
-		Optional:         true,
-		DiffSuppressFunc: suppressAutoTag(tagAttrName),
+		Type:     schema.TypeSet,
+		Optional: true,
 		Elem: &schema.Schema{
-			Type:         schema.TypeString,
-			ValidateFunc: validateTag,
+			Type:             schema.TypeString,
+			DiffSuppressFunc: suppressAutoTag(tagAttrName),
+			ValidateFunc:     validateTag,
 		},
 	}
 }
