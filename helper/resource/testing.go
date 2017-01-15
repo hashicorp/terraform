@@ -581,7 +581,11 @@ func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
 			return fmt.Errorf("No primary instance: %s", name)
 		}
 
-		if is.Attributes[key] != value {
+		if v, ok := is.Attributes[key]; !ok || v != value {
+			if !ok {
+				return fmt.Errorf("%s: Attribute '%s' not found", name, key)
+			}
+
 			return fmt.Errorf(
 				"%s: Attribute '%s' expected %#v, got %#v",
 				name,
