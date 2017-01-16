@@ -1,14 +1,14 @@
 ---
 layout: "intro"
-page_title: "Terraform vs. CloudFormation, Heat, etc."
+page_title: "Terraform vs. CloudFormation"
 sidebar_current: "vs-other-cloudformation"
 description: |-
-  Tools like CloudFormation, Heat, etc. allow the details of an infrastructure to be codified into a configuration file. The configuration files allow the infrastructure to be elastically created, modified and destroyed. Terraform is inspired by the problems they solve.
+  Tools like CloudFormation allow the details of an infrastructure to be codified into a configuration file. The configuration files allow the infrastructure to be elastically created, modified and destroyed. Terraform is inspired by the problems they solve.
 ---
 
-# Terraform vs. CloudFormation, Heat, etc.
+# Terraform vs. CloudFormation
 
-Tools like CloudFormation, Heat, etc. allow the details of an infrastructure
+Tools like CloudFormation allow the details of an infrastructure
 to be codified into a configuration file. The configuration files allow
 the infrastructure to be elastically created, modified and destroyed. Terraform
 is inspired by the problems they solve.
@@ -16,7 +16,7 @@ is inspired by the problems they solve.
 Terraform similarly uses configuration files to detail the infrastructure
 setup, but it goes further by being both cloud-agnostic and enabling
 multiple providers and services to be combined and composed. For example,
-Terraform can be used to orchestrate an AWS and OpenStack cluster simultaneously,
+Terraform can be used to orchestrate an AWS and DigitalOcean cluster simultaneously,
 while enabling 3rd-party providers like CloudFlare and DNSimple to be integrated
 to provide CDN and DNS services. This enables Terraform to represent and
 manage the entire infrastructure with its supporting services, instead of
