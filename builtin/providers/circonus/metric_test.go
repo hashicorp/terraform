@@ -14,7 +14,7 @@ func Test_MetricChecksum(t *testing.T) {
 	ar := _NewMapReader(nil, m)
 
 	csum := _MetricChecksum(ar)
-	if csum != 2309319389 {
+	if csum != 4250221491 {
 		t.Fatalf("Checksum mismatch")
 	}
 }
