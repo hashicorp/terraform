@@ -20,8 +20,8 @@ func TestAccCirconusMetric_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "name", "Average Ping Time"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "active", "false"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "tags.#", "2"),
-					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "tags.3051626963", "author:terraform"),
-					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "tags.1384943139", "source:circonus"),
+					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "tags.2087084518", "author:terraform"),
+					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "tags.3241999189", "source:circonus"),
 
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "type", "numeric"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "unit", "seconds"),
@@ -29,8 +29,8 @@ func TestAccCirconusMetric_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "name", "Maximum Ping Time"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "active", "true"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "tags.#", "2"),
-					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "tags.3051626963", "author:terraform"),
-					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "tags.1384943139", "source:circonus"),
+					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "tags.2087084518", "author:terraform"),
+					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "tags.3241999189", "source:circonus"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "type", "numeric"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "unit", "seconds"),
 
