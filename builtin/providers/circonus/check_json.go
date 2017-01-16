@@ -8,35 +8,36 @@ import (
 	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
-func (c *_Check) parseJSONCheck(l _InterfaceList) error {
+func (c *_Check) parseJSONCheck(ctxt *_ProviderContext, l _InterfaceList) error {
 	c.Type = string(_CheckTypeJSON)
 
 	// Iterate over all `json` attributes, even though we have a max of 1 in the
 	// schema.
 	for _, mapRaw := range l {
 		jsonConfig := _NewInterfaceMap(mapRaw)
+		ar := _NewMapReader(ctxt, jsonConfig)
 
-		if s, ok := jsonConfig.GetStringOk(_CheckJSONAuthMethodAttr); ok {
+		if s, ok := ar.GetStringOk(_CheckJSONAuthMethodAttr); ok {
 			c.Config[config.AuthMethod] = s
 		}
 
-		if s, ok := jsonConfig.GetStringOk(_CheckJSONAuthPasswordAttr); ok {
+		if s, ok := ar.GetStringOk(_CheckJSONAuthPasswordAttr); ok {
 			c.Config[config.AuthPassword] = s
 		}
 
-		if s, ok := jsonConfig.GetStringOk(_CheckJSONAuthUserAttr); ok {
+		if s, ok := ar.GetStringOk(_CheckJSONAuthUserAttr); ok {
 			c.Config[config.AuthUser] = s
 		}
 
-		if s, ok := jsonConfig.GetStringOk(_CheckJSONCAChainAttr); ok {
+		if s, ok := ar.GetStringOk(_CheckJSONCAChainAttr); ok {
 			c.Config[config.CAChain] = s
 		}
 
-		if s, ok := jsonConfig.GetStringOk(_CheckJSONCertFileAttr); ok {
+		if s, ok := ar.GetStringOk(_CheckJSONCertFileAttr); ok {
 			c.Config[config.CertFile] = s
 		}
 
-		if s, ok := jsonConfig.GetStringOk(_CheckJSONCiphersAttr); ok {
+		if s, ok := ar.GetStringOk(_CheckJSONCiphersAttr); ok {
 			c.Config[config.Ciphers] = s
 		}
 
@@ -47,27 +48,27 @@ func (c *_Check) parseJSONCheck(l _InterfaceList) error {
 			}
 		}
 
-		if s, ok := jsonConfig.GetStringOk(_CheckJSONKeyFileAttr); ok {
+		if s, ok := ar.GetStringOk(_CheckJSONKeyFileAttr); ok {
 			c.Config[config.KeyFile] = s
 		}
 
-		if s, ok := jsonConfig.GetStringOk(_CheckJSONMethodAttr); ok {
+		if s, ok := ar.GetStringOk(_CheckJSONMethodAttr); ok {
 			c.Config[config.Method] = s
 		}
 
-		if s, ok := jsonConfig.GetStringOk(_CheckJSONPayloadAttr); ok {
+		if s, ok := ar.GetStringOk(_CheckJSONPayloadAttr); ok {
 			c.Config[config.Payload] = s
 		}
 
-		if s, ok := jsonConfig.GetStringOk(_CheckJSONPortAttr); ok {
+		if s, ok := ar.GetStringOk(_CheckJSONPortAttr); ok {
 			c.Config[config.Port] = s
 		}
 
-		if i, ok := jsonConfig.GetIntOk(_CheckJSONReadLimitAttr); ok {
+		if i, ok := ar.GetIntOk(_CheckJSONReadLimitAttr); ok {
 			c.Config[config.ReadLimit] = fmt.Sprintf("%d", i)
 		}
 
-		if s, ok := jsonConfig.GetStringOk(_CheckJSONURLAttr); ok {
+		if s, ok := ar.GetStringOk(_CheckJSONURLAttr); ok {
 			c.Config[config.URL] = s
 
 			u, _ := url.Parse(s)
@@ -85,7 +86,7 @@ func (c *_Check) parseJSONCheck(l _InterfaceList) error {
 			}
 		}
 
-		if s, ok := jsonConfig.GetStringOk(_CheckJSONVersionAttr); ok {
+		if s, ok := ar.GetStringOk(_CheckJSONVersionAttr); ok {
 			c.Config[config.HTTPVersion] = s
 		}
 	}

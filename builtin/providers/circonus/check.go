@@ -63,21 +63,32 @@ func _LoadCheck(ctxt *_ProviderContext, cid api.CIDType) (_Check, error) {
 }
 
 func (c *_Check) ParseConfig(ar _AttrReader) error {
-	if name, ok := ar.GetStringOk(_CheckNameAttr); ok {
-		c.DisplayName = name
-	}
-
 	if status, ok := ar.GetBoolOK(_CheckActiveAttr); ok {
-		statusString := _CheckStatusActive
-		if !status {
-			statusString = _CheckStatusDisabled
-		}
-
-		c.Status = statusString
+		c.Status = _CheckActiveToAPIStatus(status)
 	}
 
 	if collectorsList, ok := ar.GetSetAsListOk(_CheckCollectorAttr); ok {
 		c.Brokers = collectorsList.CollectList(_CheckCollectorIDAttr)
+	}
+
+	if l, ok := ar.GetSetAsListOk(_CheckJSONAttr); ok {
+		if err := c.parseJSONCheck(ar.Context(), l); err != nil {
+			return err
+		}
+	}
+
+	if i, ok := ar.GetIntOK(_CheckMetricLimitAttr); ok {
+		c.MetricLimit = i
+	}
+
+	if name, ok := ar.GetStringOk(_CheckNameAttr); ok {
+		c.DisplayName = name
+	}
+
+	c.Notes = ar.GetStringPtr(_CheckNotesAttr)
+
+	if d, ok := ar.GetDurationOK(_CheckPeriodAttr); ok {
+		c.Period = uint(d.Seconds())
 	}
 
 	if streamList, ok := ar.GetSetAsListOk(_CheckStreamAttr); ok {
@@ -107,22 +118,6 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 		}
 	}
 
-	if l, ok := ar.GetSetAsListOk(_CheckJSONAttr); ok {
-		if err := c.parseJSONCheck(l); err != nil {
-			return err
-		}
-	}
-
-	if i, ok := ar.GetIntOK(_CheckMetricLimitAttr); ok {
-		c.MetricLimit = i
-	}
-
-	c.Notes = ar.GetStringPtr(_CheckNotesAttr)
-
-	if d, ok := ar.GetDurationOK(_CheckPeriodAttr); ok {
-		c.Period = uint(d.Seconds())
-	}
-
 	c.Tags = tagsToAPI(ar.GetTags(_CheckTagsAttr))
 
 	if s, ok := ar.GetStringOk(_CheckTargetAttr); ok {
@@ -149,7 +144,7 @@ func (c *_Check) Validate() error {
 	return nil
 }
 
-func apiCheckStatusToBool(s string) bool {
+func _CheckAPIStatusToBool(s string) bool {
 	var active bool
 	switch s {
 	case _CheckStatusActive:
@@ -161,4 +156,15 @@ func apiCheckStatusToBool(s string) bool {
 	}
 
 	return active
+}
+
+func _CheckActiveToAPIStatus(active bool) string {
+	switch active {
+	case true:
+		return _CheckStatusActive
+	case false:
+		return _CheckStatusDisabled
+	}
+
+	panic("suppress Go error message")
 }
