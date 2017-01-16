@@ -318,6 +318,13 @@ func resourceJobNotification() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+
+			"plugin": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem:     resourceRundeckJobPluginResource(),
+			},
 		},
 	}
 }
@@ -638,6 +645,21 @@ func notificationFromMap(notificationMap map[string]interface{}) (*rundeck.Notif
 		}
 	}
 
+	// Element: Job>Notification>On....>Plugin
+	pluginsI := notificationMap["plugin"].([]interface{})
+	if len(pluginsI) > 0 {
+		pluginMap := pluginsI[0].(map[string]interface{})
+		configI := pluginMap["config"].(map[string]interface{})
+		config := map[string]string{}
+		for k, v := range configI {
+			config[k] = v.(string)
+		}
+		notification.Plugin = &rundeck.JobPlugin{
+			Type:   pluginMap["type"].(string),
+			Config: config,
+		}
+	}
+
 	return notification, nil
 }
 
@@ -881,6 +903,8 @@ func commandToMap(command rundeck.JobCommand) (*map[string]interface{}, error) {
 
 func notificationToMap(notification *rundeck.Notification) (*map[string]interface{}, error) {
 	notificationMap := map[string]interface{}{}
+
+	// Element: Email
 	if notification.Email != nil {
 		notificationMap["email"] = map[string]interface{}{
 			"subject":    notification.Email.Subject,
@@ -889,8 +913,19 @@ func notificationToMap(notification *rundeck.Notification) (*map[string]interfac
 		}
 	}
 
+	// Element: WebHook
 	if notification.WebHook != nil {
 		notificationMap["webhook_urls"] = notification.WebHook.Urls
+	}
+
+	// Element: Plugin
+	if notification.Plugin != nil {
+		notificationMap["plugin"] = []interface{}{
+			map[string]interface{}{
+				"type":   notification.Plugin.Type,
+				"config": map[string]string(notification.Plugin.Config),
+			},
+		}
 	}
 
 	return &notificationMap, nil
