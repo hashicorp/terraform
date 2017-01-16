@@ -288,19 +288,12 @@ func _CheckRead(d *schema.ResourceData, meta interface{}) error {
 
 	streams := schema.NewSet(_CheckStreamJSON, nil)
 	for _, m := range c.Metrics {
-		metricActive := _MetricAPIStatusToBool(m.Status)
-
-		var unit string
-		if m.Units != nil {
-			unit = *m.Units
-		}
-
 		streamAttrs := map[string]interface{}{
-			string(_MetricActiveAttr): metricActive,
+			string(_MetricActiveAttr): _MetricAPIStatusToBool(m.Status),
 			string(_MetricNameAttr):   m.Name,
 			string(_MetricTagsAttr):   tagsToState(apiToTags(m.Tags)),
 			string(_MetricTypeAttr):   m.Type,
-			string(_MetricUnitAttr):   unit,
+			string(_MetricUnitAttr):   _Indirect(m.Units),
 		}
 
 		streams.Add(streamAttrs)
@@ -309,7 +302,7 @@ func _CheckRead(d *schema.ResourceData, meta interface{}) error {
 	// Write the global circonus_check parameters followed by the check
 	// type-specific parameters.
 
-	_StateSet(d, _CheckActiveAttr, apiCheckStatusToBool(c.Status))
+	_StateSet(d, _CheckActiveAttr, _CheckAPIStatusToBool(c.Status))
 	_StateSet(d, _CheckCollectorAttr, stringListToSet(c.Brokers, _CheckCollectorIDAttr))
 	_StateSet(d, _CheckMetricLimitAttr, c.MetricLimit)
 	_StateSet(d, _CheckNameAttr, c.DisplayName)

@@ -58,72 +58,64 @@ var _SchemaCheckJSON = &schema.Schema{
 			_CheckJSONAuthMethodAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
 				ValidateFunc: _ValidateRegexp(_CheckJSONAuthMethodAttr, `^(?:Basic|Digest|Auto)$`),
 			},
 			_CheckJSONAuthPasswordAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
 				Sensitive:    true,
 				ValidateFunc: _ValidateRegexp(_CheckJSONAuthPasswordAttr, `^.*`),
 			},
 			_CheckJSONAuthUserAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
 				ValidateFunc: _ValidateRegexp(_CheckJSONAuthUserAttr, `[^:]+`),
 			},
 			_CheckJSONCAChainAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
 				ValidateFunc: _ValidateRegexp(_CheckJSONCAChainAttr, `.+`),
 			},
 			_CheckJSONCertFileAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
 				ValidateFunc: _ValidateRegexp(_CheckJSONCertFileAttr, `.+`),
 			},
 			_CheckJSONCiphersAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
 				ValidateFunc: _ValidateRegexp(_CheckJSONCiphersAttr, `.+`),
 			},
 			_CheckJSONHeadersAttr: &schema.Schema{
 				Type:         schema.TypeMap,
+				Elem:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateHTTPHeaders,
 			},
 			_CheckJSONKeyFileAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
 				ValidateFunc: _ValidateRegexp(_CheckJSONKeyFileAttr, `.+`),
 			},
 			_CheckJSONMethodAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
+				Default:      defaultCheckJSONMethod,
 				ValidateFunc: _ValidateRegexp(_CheckJSONMethodAttr, `\S+`),
 			},
 			_CheckJSONPayloadAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
 				ValidateFunc: _ValidateRegexp(_CheckJSONPayloadAttr, `\S+`),
 			},
 			_CheckJSONPortAttr: &schema.Schema{
 				Type:     schema.TypeString, // NOTE(sean@): Why isn't this an Int on Circonus's side?  Are they doing an /etc/services lookup?  TODO: convert this to a TypeInt and force users in TF to do a map lookup.
+				Default:  defaultCheckJSONPort,
 				Optional: true,
-				Computed: true,
 			},
 			_CheckJSONReadLimitAttr: &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
 				ValidateFunc: validateFuncs(
 					validateIntMin(_CheckJSONReadLimitAttr, 0),
 				),
@@ -138,7 +130,7 @@ var _SchemaCheckJSON = &schema.Schema{
 			_CheckJSONVersionAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Computed:     true,
+				Default:      defaultCheckJSONVersion,
 				ValidateFunc: validateStringIn(_CheckJSONVersionAttr, _SupportedHTTPVersions),
 			},
 		}, _CheckJSONDescriptions),
@@ -147,7 +139,7 @@ var _SchemaCheckJSON = &schema.Schema{
 
 // ReadJSON reads the Config data out of _Check.CheckBundle into the statefile.
 func (c *_Check) ReadJSON(d *schema.ResourceData) error {
-	jsonConfig := make(map[_SchemaAttr]interface{}, len(c.Config))
+	jsonConfig := make(map[string]interface{}, len(c.Config))
 
 	// swamp is a sanity check: it must be empty by the time this method returns
 	swamp := make(map[config.Key]string, len(c.Config))
@@ -157,7 +149,7 @@ func (c *_Check) ReadJSON(d *schema.ResourceData) error {
 
 	saveStringConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
 		if v, ok := c.Config[apiKey]; ok {
-			jsonConfig[attrName] = v
+			jsonConfig[string(attrName)] = v
 		}
 
 		delete(swamp, apiKey)
@@ -170,7 +162,7 @@ func (c *_Check) ReadJSON(d *schema.ResourceData) error {
 				panic(fmt.Sprintf("Unable to convert %s to an integer: %v", err))
 				return
 			}
-			jsonConfig[attrName] = i
+			jsonConfig[string(attrName)] = int(i)
 		}
 
 		delete(swamp, apiKey)
@@ -183,7 +175,7 @@ func (c *_Check) ReadJSON(d *schema.ResourceData) error {
 	saveStringConfigToState(config.CertFile, _CheckJSONCertFileAttr)
 	saveStringConfigToState(config.Ciphers, _CheckJSONCiphersAttr)
 
-	headers := make(map[string]string, len(c.Config))
+	headers := make(map[string]interface{}, len(c.Config))
 	headerPrefixLen := len(config.HeaderPrefix)
 	for k, v := range c.Config {
 		if len(k) <= headerPrefixLen {
@@ -196,7 +188,7 @@ func (c *_Check) ReadJSON(d *schema.ResourceData) error {
 		}
 		delete(swamp, k)
 	}
-	jsonConfig[_CheckJSONHeadersAttr] = headers
+	jsonConfig[string(_CheckJSONHeadersAttr)] = headers
 
 	saveStringConfigToState(config.HTTPVersion, _CheckJSONVersionAttr)
 	saveStringConfigToState(config.KeyFile, _CheckJSONKeyFileAttr)
@@ -221,7 +213,7 @@ func (c *_Check) ReadJSON(d *schema.ResourceData) error {
 		}
 	}
 
-	_StateSet(d, _CheckJSONAttr, []interface{}{jsonConfig})
+	_StateSet(d, _CheckJSONAttr, schema.NewSet(hashCheckJSON, []interface{}{jsonConfig}))
 
 	return nil
 }
@@ -232,14 +224,26 @@ func hashCheckJSON(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
+	writeInt := func(attrName _SchemaAttr) {
+		if v, ok := m[string(attrName)]; ok {
+			fmt.Fprint(b, "%x", v.(int))
+		}
+	}
+
+	writeString := func(attrName _SchemaAttr) {
+		if v, ok := m[string(attrName)]; ok && v.(string) != "" {
+			fmt.Fprint(b, v.(string))
+		}
+	}
+
 	// Order writes to the buffer using lexically sorted list for easy visual
 	// reconciliation with other lists.
-	fmt.Fprint(b, m[string(_CheckJSONAuthMethodAttr)].(string))
-	fmt.Fprint(b, m[string(_CheckJSONAuthPasswordAttr)].(string))
-	fmt.Fprint(b, m[string(_CheckJSONAuthUserAttr)].(string))
-	fmt.Fprint(b, m[string(_CheckJSONCAChainAttr)].(string))
-	fmt.Fprint(b, m[string(_CheckJSONCertFileAttr)].(string))
-	fmt.Fprint(b, m[string(_CheckJSONCiphersAttr)].(string))
+	writeString(_CheckJSONAuthMethodAttr)
+	writeString(_CheckJSONAuthPasswordAttr)
+	writeString(_CheckJSONAuthUserAttr)
+	writeString(_CheckJSONCAChainAttr)
+	writeString(_CheckJSONCertFileAttr)
+	writeString(_CheckJSONCiphersAttr)
 
 	if headersRaw, ok := m[string(_CheckJSONHeadersAttr)]; ok {
 		headerMap := headersRaw.(map[string]interface{})
@@ -255,13 +259,13 @@ func hashCheckJSON(v interface{}) int {
 		}
 	}
 
-	fmt.Fprint(b, m[string(_CheckJSONKeyFileAttr)].(string))
-	fmt.Fprint(b, m[string(_CheckJSONMethodAttr)].(string))
-	fmt.Fprint(b, m[string(_CheckJSONPayloadAttr)].(string))
-	fmt.Fprint(b, m[string(_CheckJSONPortAttr)].(string))
-	fmt.Fprint(b, "%x", m[string(_CheckJSONReadLimitAttr)].(int))
-	fmt.Fprint(b, m[string(_CheckJSONURLAttr)].(string))
-	fmt.Fprint(b, m[string(_CheckJSONVersionAttr)].(string))
+	writeString(_CheckJSONKeyFileAttr)
+	writeString(_CheckJSONMethodAttr)
+	writeString(_CheckJSONPayloadAttr)
+	writeString(_CheckJSONPortAttr)
+	writeInt(_CheckJSONReadLimitAttr)
+	writeString(_CheckJSONURLAttr)
+	writeString(_CheckJSONVersionAttr)
 
 	s := b.String()
 	return hashcode.String(s)

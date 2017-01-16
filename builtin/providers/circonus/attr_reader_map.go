@@ -11,19 +11,19 @@ type _MapReader struct {
 	m    _InterfaceMap
 }
 
+func _NewMapReader(ctxt *_ProviderContext, m _InterfaceMap) *_MapReader {
+	return &_MapReader{
+		ctxt: ctxt,
+		m:    m,
+	}
+}
+
 func (r *_MapReader) BackingType() string {
 	return "interface_map"
 }
 
 func (r *_MapReader) Context() *_ProviderContext {
 	return r.ctxt
-}
-
-func _NewMapReader(ctxt *_ProviderContext, m _InterfaceMap) *_MapReader {
-	return &_MapReader{
-		ctxt: ctxt,
-		m:    m,
-	}
 }
 
 func (r *_MapReader) GetBool(attrName _SchemaAttr) bool {

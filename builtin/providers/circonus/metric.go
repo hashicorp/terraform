@@ -38,21 +38,11 @@ func (m *_Metric) ParseConfig(id string, ar _AttrReader) error {
 }
 
 func (m *_Metric) SaveState(d *schema.ResourceData) error {
-	var active bool
-	switch m.Status {
-	case _MetricStatusActive:
-		active = true
-	case _MetricStatusAvailable:
-		active = false
-	default:
-		panic(fmt.Sprintf("Provider bug: unsupported active type: %s", m.Status))
-	}
-
-	_StateSet(d, _MetricActiveAttr, active)
+	_StateSet(d, _MetricActiveAttr, _MetricAPIStatusToBool(m.Status))
 	_StateSet(d, _MetricNameAttr, m.Name)
 	_StateSet(d, _MetricTagsAttr, tagsToState(apiToTags(m.Tags)))
 	_StateSet(d, _MetricTypeAttr, m.Type)
-	_StateSet(d, _MetricUnitAttr, m.Units)
+	_StateSet(d, _MetricUnitAttr, _Indirect(m.Units))
 
 	d.SetId(string(m.ID))
 

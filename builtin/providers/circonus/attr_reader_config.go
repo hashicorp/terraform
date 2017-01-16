@@ -87,8 +87,13 @@ func (r *_ConfigReader) GetStringOk(attrName _SchemaAttr) (string, bool) {
 
 func (r *_ConfigReader) GetStringPtr(attrName _SchemaAttr) *string {
 	if v, ok := r.d.GetOk(string(attrName)); ok {
-		s := v.(string)
-		return &s
+		switch v.(type) {
+		case string:
+			s := v.(string)
+			return &s
+		case *string:
+			return v.(*string)
+		}
 	}
 
 	return nil

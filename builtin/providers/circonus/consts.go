@@ -19,6 +19,10 @@ const (
 	providerAPIURLAttr  = "api_url"
 	providerAutoTagAttr = "auto_tag"
 	providerKeyAttr     = "key"
+
+	defaultCheckJSONMethod  = "GET"
+	defaultCheckJSONPort    = "443"
+	defaultCheckJSONVersion = "1.1"
 )
 
 // Consts and their close relative, Go pseudo-consts.
