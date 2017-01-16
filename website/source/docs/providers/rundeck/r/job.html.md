@@ -412,3 +412,31 @@ Supported arguments are:
 ##### WebHook Argument Reference
 
 * `webhook_urls` (Required) WebHook Url list.
+
+##### Plugin Argument Reference
+
+A notification's `plugin` block both has the following structure:
+(this is the same as `step_plugin` at the command plugin block.
+
+###### Example Usage
+
+```terraform
+notification {
+  onsuccess {
+    plugin {
+      type = "SlackNotification"
+      config {
+        "webhook_url" = "http://onsuccess.url"
+      }
+    }
+  }
+}
+```
+
+###### Argument Reference
+
+A notification's `plugin` block has the following structure:
+
+* `type`: (Required) The name of the plugin to execute.
+
+* `config`: (Optional) Map of arbitrary configuration parameters for the selected plugin.

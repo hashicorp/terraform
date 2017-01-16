@@ -57,8 +57,9 @@ type JobNotification struct {
 }
 
 type Notification struct {
-	Email 	*EmailNotification	 `xml:"email,omitempty"`
+	Email	*EmailNotification   `xml:"email,omitempty"`
 	WebHook *WebHookNotification `xml:"webhook,omitempty"`
+        Plugin  *JobPlugin           `xml:"plugin"`
 }
 
 type EmailNotification struct {
@@ -259,7 +260,7 @@ type JobCommandJobRef struct {
 // JobCommandJobRefArguments is a string representing the arguments in a JobCommandJobRef.
 type JobCommandJobRefArguments string
 
-// JobPlugin is a configuration for a plugin to run within a job.
+// Plugin is a configuration for a plugin to run within a job or notification.
 type JobPlugin struct {
 	XMLName xml.Name
 	Type    string          `xml:"type,attr"`
