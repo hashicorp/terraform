@@ -49,3 +49,55 @@ func validateRecordName(t string, value string) error {
 
 	return nil
 }
+
+func validatePageRuleStatus(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	validStatuses := map[string]struct{}{
+		"active": {},
+		"paused": {},
+	}
+
+	if _, ok := validStatuses[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			`%q contains an invalid status %q. Valid statuses are "active" or "paused"`, k, value))
+	}
+	return
+}
+
+func validatePageRuleActionID(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	validIDs := map[string]struct{}{
+		"always_online":       {},
+		"always_use_https":    {},
+		"browser_cache_ttl":   {},
+		"browser_check":       {},
+		"cache_level":         {},
+		"disable_apps":        {},
+		"disable_performance": {},
+		"disable_railgun":     {},
+		"disable_security":    {},
+		"edge_cache_ttl":      {},
+		"email_obfuscation":   {},
+		"forwarding_url":      {},
+		"ip_geolocation":      {},
+		"mirage":              {},
+		"rocket_loader":       {},
+		"security_level":      {},
+		"server_side_exclude": {},
+		"smart_errors":        {},
+		"ssl":                 {},
+		"waf":                 {},
+	}
+
+	if _, ok := validIDs[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			`%q contains an invalid action ID %q. Valid IDs are "always_online", "always_use_https", "browser_cache_ttl", "browser_check", "cache_level", "disable_apps", "disable_performance", "disable_railgun", "disable_security", "edge_cache_ttl", "email_obfuscation", "forwarding_url", "ip_geolocation", "mirage", "rocket_loader", "security_level", "server_side_exclude", "smart_errors", "ssl", or "waf"`, k, value))
+	}
+	return
+}
+
+func validatePageRuleActionValue(v interface{}, k string) (ws []string, errors []error) {
+	return []string{}, []error{fmt.Errorf("Page Rule action value validation not implemented.")}
+}

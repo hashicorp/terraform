@@ -59,3 +59,77 @@ func TestValidateRecordName(t *testing.T) {
 		}
 	}
 }
+
+func TestValidatePageRuleStatus(t *testing.T) {
+	validStatuses := []string{
+		"active",
+		"paused",
+	}
+	for _, v := range validStatuses {
+		_, errors := validatePageRuleStatus(v, "status")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid page rule status: %q", v, errors)
+		}
+	}
+
+	invalidStatuses := []string{
+		"on",
+		"live",
+		"yes",
+		"no",
+		"true",
+		"false",
+		"running",
+		"stopped",
+	}
+	for _, v := range invalidStatuses {
+		_, errors := validatePageRuleStatus(v, "status")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid page rule status: %q", v, errors)
+		}
+	}
+}
+
+func TestValidatePageRuleActionIDs(t *testing.T) {
+	validActionIDs := []string{
+		"always_online",
+		"always_use_https",
+		"browser_cache_ttl",
+		"browser_check",
+		"cache_level",
+		"disable_apps",
+		"disable_performance",
+		"disable_railgun",
+		"disable_security",
+		"edge_cache_ttl",
+		"email_obfuscation",
+		"forwarding_url",
+		"ip_geolocation",
+		"mirage",
+		"rocket_loader",
+		"security_level",
+		"server_side_exclude",
+		"smart_errors",
+		"ssl",
+		"waf",
+	}
+	for _, v := range validActionIDs {
+		_, errors := validatePageRuleActionID(v, "action")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid page rule action: %q", v, errors)
+		}
+	}
+
+	invalidActionIDs := []string{
+		"foo",
+		"tls",
+		"disable_foobar",
+		"hunter2",
+	}
+	for _, v := range invalidActionIDs {
+		_, errors := validatePageRuleActionID(v, "action")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid page rule action: %q", v, errors)
+		}
+	}
+}
