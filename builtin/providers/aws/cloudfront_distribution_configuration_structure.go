@@ -46,6 +46,7 @@ func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionCo
 		CustomErrorResponses: expandCustomErrorResponses(d.Get("custom_error_response").(*schema.Set)),
 		DefaultCacheBehavior: expandDefaultCacheBehavior(d.Get("default_cache_behavior").(*schema.Set).List()[0].(map[string]interface{})),
 		Enabled:              aws.Bool(d.Get("enabled").(bool)),
+		IsIPV6Enabled:        aws.Bool(d.Get("is_ipv6_enabled").(bool)),
 		HttpVersion:          aws.String(d.Get("http_version").(string)),
 		Origins:              expandOrigins(d.Get("origin").(*schema.Set)),
 		PriceClass:           aws.String(d.Get("price_class").(string)),
@@ -101,6 +102,7 @@ func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloud
 	var err error
 
 	d.Set("enabled", distributionConfig.Enabled)
+	d.Set("is_ipv6_enabled", distributionConfig.IsIPV6Enabled)
 	d.Set("price_class", distributionConfig.PriceClass)
 	d.Set("hosted_zone_id", cloudFrontRoute53ZoneID)
 

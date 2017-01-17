@@ -25,7 +25,7 @@ import (
 	"net/http"
 )
 
-// EventHubsClient is the azure EventHub client
+// EventHubsClient is the azure Event Hubs client
 type EventHubsClient struct {
 	ManagementClient
 }
@@ -41,12 +41,12 @@ func NewEventHubsClientWithBaseURI(baseURI string, subscriptionID string) EventH
 	return EventHubsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate creates/Updates a new Event Hub as a nested resource within
-// a namespace.
+// CreateOrUpdate creates or updates a new Event Hub as a nested resource
+// within a namespace.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. eventHubName is the EventHub name. parameters is
-// parameters supplied to create a EventHub Resource.
+// namespace name. eventHubName is the Event Hub name. parameters is
+// parameters supplied to create an Event Hub resource.
 func (client EventHubsClient) CreateOrUpdate(resourceGroupName string, namespaceName string, eventHubName string, parameters CreateOrUpdateParameters) (result ResourceType, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -115,18 +115,18 @@ func (client EventHubsClient) CreateOrUpdateResponder(resp *http.Response) (resu
 	return
 }
 
-// CreateOrUpdateAuthorizationRule creates an authorization rule for the
-// specified Event Hub.
+// CreateOrUpdateAuthorizationRule creates or updates an authorization rule
+// for the specified Event Hub.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name. eventHubName is the Event Hub name. authorizationRuleName
-// is aauthorization Rule Name. parameters is the shared access authorization
-// rule.
+// is the authorization rule name. parameters is the shared access
+// authorization rule.
 func (client EventHubsClient) CreateOrUpdateAuthorizationRule(resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (result SharedAccessAuthorizationRuleResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
-			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "parameters.Properties.Rights", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "parameters.SharedAccessAuthorizationRuleProperties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.SharedAccessAuthorizationRuleProperties.Rights", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "eventhub.EventHubsClient", "CreateOrUpdateAuthorizationRule")
 	}
 
@@ -192,10 +192,10 @@ func (client EventHubsClient) CreateOrUpdateAuthorizationRuleResponder(resp *htt
 	return
 }
 
-// Delete deletes an Event hub from the specified namespace and resource group.
+// Delete deletes an Event Hub from the specified namespace and resource group.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. eventHubName is the EventHub name.
+// namespace name. eventHubName is the name of the Event Hub to delete.
 func (client EventHubsClient) Delete(resourceGroupName string, namespaceName string, eventHubName string) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(resourceGroupName, namespaceName, eventHubName)
 	if err != nil {
@@ -255,11 +255,11 @@ func (client EventHubsClient) DeleteResponder(resp *http.Response) (result autor
 	return
 }
 
-// DeleteAuthorizationRule deletes a EventHub authorization rule
+// DeleteAuthorizationRule deletes an Event Hubs authorization rule.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. eventHubName is the Eventhub name. authorizationRuleName
-// is authorization Rule Name.
+// namespace name. eventHubName is the Event Hub name. authorizationRuleName
+// is the authorization rule name.
 func (client EventHubsClient) DeleteAuthorizationRule(resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string) (result autorest.Response, err error) {
 	req, err := client.DeleteAuthorizationRulePreparer(resourceGroupName, namespaceName, eventHubName, authorizationRuleName)
 	if err != nil {
@@ -320,10 +320,10 @@ func (client EventHubsClient) DeleteAuthorizationRuleResponder(resp *http.Respon
 	return
 }
 
-// Get returns an Event Hub description for the specified Event Hub.
+// Get gets an Event Hubs description for the specified Event Hub.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. eventHubName is the EventHub name.
+// namespace name. eventHubName is the Event Hub name.
 func (client EventHubsClient) Get(resourceGroupName string, namespaceName string, eventHubName string) (result ResourceType, err error) {
 	req, err := client.GetPreparer(resourceGroupName, namespaceName, eventHubName)
 	if err != nil {
@@ -384,11 +384,12 @@ func (client EventHubsClient) GetResponder(resp *http.Response) (result Resource
 	return
 }
 
-// GetAuthorizationRule authorization rule for a EventHub by name.
+// GetAuthorizationRule gets an authorization rule for an Event Hub by rule
+// name.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name eventHubName is the Event Hub name. authorizationRuleName
-// is authorization rule name.
+// namespace name. eventHubName is the Event Hub name. authorizationRuleName
+// is the authorization rule name.
 func (client EventHubsClient) GetAuthorizationRule(resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string) (result SharedAccessAuthorizationRuleResource, err error) {
 	req, err := client.GetAuthorizationRulePreparer(resourceGroupName, namespaceName, eventHubName, authorizationRuleName)
 	if err != nil {
@@ -450,7 +451,7 @@ func (client EventHubsClient) GetAuthorizationRuleResponder(resp *http.Response)
 	return
 }
 
-// ListAll enumerates the Event Hubs in a namespace.
+// ListAll gets all the Event Hubs in a namespace.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name.
@@ -537,10 +538,10 @@ func (client EventHubsClient) ListAllNextResults(lastResults ListResult) (result
 	return
 }
 
-// ListAuthorizationRules authorization rules for a EventHub.
+// ListAuthorizationRules gets the authorization rules for an Event Hub.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// NameSpace name eventHubName is the EventHub name.
+// namespace name eventHubName is the Event Hub name.
 func (client EventHubsClient) ListAuthorizationRules(resourceGroupName string, namespaceName string, eventHubName string) (result SharedAccessAuthorizationRuleListResult, err error) {
 	req, err := client.ListAuthorizationRulesPreparer(resourceGroupName, namespaceName, eventHubName)
 	if err != nil {
@@ -625,12 +626,12 @@ func (client EventHubsClient) ListAuthorizationRulesNextResults(lastResults Shar
 	return
 }
 
-// ListKeys returns the ACS and SAS connection strings for the Event Hub.
+// ListKeys gets the ACS and SAS connection strings for the Event Hub.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. eventHubName is the event hub name. authorizationRuleName
-// is the connection string of the namespace for the specified
-// authorizationRule.
+// namespace name. eventHubName is the Event Hub name. authorizationRuleName
+// is the connection string of the namespace for the specified authorization
+// rule.
 func (client EventHubsClient) ListKeys(resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string) (result ResourceListKeys, err error) {
 	req, err := client.ListKeysPreparer(resourceGroupName, namespaceName, eventHubName, authorizationRuleName)
 	if err != nil {
@@ -696,10 +697,10 @@ func (client EventHubsClient) ListKeysResponder(resp *http.Response) (result Res
 // Hub.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. eventHubName is the event hub name. authorizationRuleName
-// is the connection string of the EventHub for the specified
-// authorizationRule. parameters is parameters supplied to regenerate Auth
-// Rule.
+// namespace name. eventHubName is the Event Hub name. authorizationRuleName
+// is the connection string of the Event Hub for the specified authorization
+// rule. parameters is parameters supplied to regenerate the authorization
+// rule.
 func (client EventHubsClient) RegenerateKeys(resourceGroupName string, namespaceName string, eventHubName string, authorizationRuleName string, parameters RegenerateKeysParameters) (result ResourceListKeys, err error) {
 	req, err := client.RegenerateKeysPreparer(resourceGroupName, namespaceName, eventHubName, authorizationRuleName, parameters)
 	if err != nil {

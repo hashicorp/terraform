@@ -56,3 +56,11 @@ The following attributes are exported:
 * `name` - The name of the policy.
 * `path` - The path of the policy in IAM.
 * `policy` - The policy document.
+
+## Import
+
+IAM Policies can be imported using the `arn`, e.g.
+
+```
+$ terraform import aws_iam_policy.administrator arn:aws:iam::123456789012:policy/UsersManageOwnCredentials
+```

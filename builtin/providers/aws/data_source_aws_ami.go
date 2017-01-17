@@ -193,7 +193,11 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 		params.Filters = buildAwsDataSourceFilters(filters.(*schema.Set))
 	}
 	if ownersOk {
-		params.Owners = expandStringList(owners.([]interface{}))
+		o := expandStringList(owners.([]interface{}))
+
+		if len(o) > 0 {
+			params.Owners = o
+		}
 	}
 
 	resp, err := conn.DescribeImages(params)

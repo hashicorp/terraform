@@ -51,6 +51,8 @@ There are **meta-parameters** available to all resources:
       conjunction with count, see [Using Variables with
      `count`](#using-variables-with-count) below.
 
+~> **NOTE:** Modules don't currently support the `count` parameter.
+
   * `depends_on` (list of strings) - Explicit dependencies that this
       resource has. These dependencies will be created before this
       resource. For syntax and other details, see the section below on

@@ -45,19 +45,19 @@ func NewRouteTablesClientWithBaseURI(baseURI string, subscriptionID string) Rout
 	return RouteTablesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate the Put RouteTable operation creates/updates a route table
-// in the specified resource group. This method may poll for completion.
-// Polling can be canceled by passing the cancel channel argument. The
-// channel will be used to cancel polling and any outstanding HTTP requests.
+// CreateOrUpdate create or updates a route table in a specified resource
+// group. This method may poll for completion. Polling can be canceled by
+// passing the cancel channel argument. The channel will be used to cancel
+// polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. routeTableName is the
-// name of the route table. parameters is parameters supplied to the
-// create/update Route Table operation
+// name of the route table. parameters is parameters supplied to the create
+// or update route table operation.
 func (client RouteTablesClient) CreateOrUpdate(resourceGroupName string, routeTableName string, parameters RouteTable, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
-			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "parameters.Properties.Subnets", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "parameters.RouteTablePropertiesFormat", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.RouteTablePropertiesFormat.Subnets", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "network.RouteTablesClient", "CreateOrUpdate")
 	}
 
@@ -122,10 +122,10 @@ func (client RouteTablesClient) CreateOrUpdateResponder(resp *http.Response) (re
 	return
 }
 
-// Delete the Delete RouteTable operation deletes the specified Route Table
-// This method may poll for completion. Polling can be canceled by passing
-// the cancel channel argument. The channel will be used to cancel polling
-// and any outstanding HTTP requests.
+// Delete deletes the specified route table. This method may poll for
+// completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
 // resourceGroupName is the name of the resource group. routeTableName is the
 // name of the route table.
@@ -189,11 +189,10 @@ func (client RouteTablesClient) DeleteResponder(resp *http.Response) (result aut
 	return
 }
 
-// Get the Get RouteTables operation retrieves information about the specified
-// route table.
+// Get gets the specified route table.
 //
 // resourceGroupName is the name of the resource group. routeTableName is the
-// name of the route table. expand is expand references resources.
+// name of the route table. expand is expands referenced resources.
 func (client RouteTablesClient) Get(resourceGroupName string, routeTableName string, expand string) (result RouteTable, err error) {
 	req, err := client.GetPreparer(resourceGroupName, routeTableName, expand)
 	if err != nil {
@@ -256,7 +255,7 @@ func (client RouteTablesClient) GetResponder(resp *http.Response) (result RouteT
 	return
 }
 
-// List the list RouteTables returns all route tables in a resource group
+// List gets all route tables in a resource group.
 //
 // resourceGroupName is the name of the resource group.
 func (client RouteTablesClient) List(resourceGroupName string) (result RouteTableListResult, err error) {
@@ -341,7 +340,7 @@ func (client RouteTablesClient) ListNextResults(lastResults RouteTableListResult
 	return
 }
 
-// ListAll the list RouteTables returns all route tables in a subscription
+// ListAll gets all route tables in a subscription.
 func (client RouteTablesClient) ListAll() (result RouteTableListResult, err error) {
 	req, err := client.ListAllPreparer()
 	if err != nil {

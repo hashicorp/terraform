@@ -44,7 +44,7 @@ func TestAccPagerDutyUser_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"pagerduty_user.foo", "color", "red"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_user.foo", "role", "user"),
+						"pagerduty_user.foo", "role", "team_responder"),
 					resource.TestCheckResourceAttr(
 						"pagerduty_user.foo", "job_title", "bar"),
 					resource.TestCheckResourceAttr(
@@ -161,7 +161,7 @@ resource "pagerduty_user" "foo" {
   name        = "bar"
   email       = "bar@foo.com"
   color       = "red"
-  role        = "user"
+  role        = "team_responder"
   job_title   = "bar"
   description = "bar"
 }

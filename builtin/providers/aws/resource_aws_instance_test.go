@@ -245,6 +245,139 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_rootInstanceStore(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_instance.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: `
+					resource "aws_instance" "foo" {
+						# us-west-2
+						# Amazon Linux HVM Instance Store 64-bit (2016.09.0)
+						# https://aws.amazon.com/amazon-linux-ami
+						ami = "ami-44c36524"
+
+						# Only certain instance types support ephemeral root instance stores.
+						# http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html
+						instance_type = "m3.medium"
+					}`,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ami", "ami-44c36524"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_block_device.#", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_optimized", "false"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "instance_type", "m3.medium"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "root_block_device.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAcctABSInstance_noAMIEphemeralDevices(t *testing.T) {
+	var v ec2.Instance
+
+	testCheck := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+
+			// Map out the block devices by name, which should be unique.
+			blockDevices := make(map[string]*ec2.InstanceBlockDeviceMapping)
+			for _, blockDevice := range v.BlockDeviceMappings {
+				blockDevices[*blockDevice.DeviceName] = blockDevice
+			}
+
+			// Check if the root block device exists.
+			if _, ok := blockDevices["/dev/sda1"]; !ok {
+				return fmt.Errorf("block device doesn't exist: /dev/sda1")
+			}
+
+			// Check if the secondary block not exists.
+			if _, ok := blockDevices["/dev/sdb"]; ok {
+				return fmt.Errorf("block device exist: /dev/sdb")
+			}
+
+			// Check if the third block device not exists.
+			if _, ok := blockDevices["/dev/sdc"]; ok {
+				return fmt.Errorf("block device exist: /dev/sdc")
+			}
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_instance.foo",
+		IDRefreshIgnore: []string{
+			"ephemeral_block_device", "security_groups", "vpc_security_groups"},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: `
+					resource "aws_instance" "foo" {
+						# us-west-2
+						ami = "ami-01f05461"  // This AMI (Ubuntu) contains two ephemerals
+
+						instance_type = "c3.large"
+
+						root_block_device {
+							volume_type = "gp2"
+							volume_size = 11
+						}
+						ephemeral_block_device {
+							device_name = "/dev/sdb"
+							no_device = true
+						}
+						ephemeral_block_device {
+							device_name = "/dev/sdc"
+							no_device = true
+						}
+					}`,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ami", "ami-01f05461"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_optimized", "false"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "instance_type", "c3.large"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "root_block_device.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "root_block_device.0.volume_size", "11"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "root_block_device.0.volume_type", "gp2"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_block_device.#", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ephemeral_block_device.#", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ephemeral_block_device.172787947.device_name", "/dev/sdb"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ephemeral_block_device.172787947.no_device", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ephemeral_block_device.3336996981.device_name", "/dev/sdc"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ephemeral_block_device.3336996981.no_device", "true"),
+					testCheck(),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 	var v ec2.Instance
 

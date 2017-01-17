@@ -28,7 +28,7 @@ func (c *StateMeta) State(m *Meta) (state.State, error) {
 	// Determine the backup path. stateOutPath is set to the resulting
 	// file where state is written (cached in the case of remote state)
 	backupPath := fmt.Sprintf(
-		"%s.%d.%s",
+		"%s.%d%s",
 		m.stateOutPath,
 		time.Now().UTC().Unix(),
 		DefaultBackupExtension)

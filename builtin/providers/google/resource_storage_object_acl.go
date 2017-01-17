@@ -150,15 +150,8 @@ func resourceStorageObjectAclRead(d *schema.ResourceData, meta interface{}) erro
 		}
 
 		for _, v := range res.Items {
-			role := ""
-			entity := ""
-			for key, val := range v.(map[string]interface{}) {
-				if key == "role" {
-					role = val.(string)
-				} else if key == "entity" {
-					entity = val.(string)
-				}
-			}
+			role := v.Role
+			entity := v.Entity
 			if _, in := re_local_map[entity]; in {
 				role_entity = append(role_entity, fmt.Sprintf("%s:%s", role, entity))
 				log.Printf("[DEBUG]: saving re %s-%s", role, entity)

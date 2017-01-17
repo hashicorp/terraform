@@ -404,15 +404,18 @@ func loadVariablesHcl(list *ast.ObjectList) ([]*Variable, error) {
 		}
 
 		n := item.Keys[0].Token.Value().(string)
+		if !NameRegexp.MatchString(n) {
+			return nil, fmt.Errorf(
+				"position %s: 'variable' name must match regular expression: %s",
+				item.Pos(), NameRegexp)
+		}
 
-		/*
-			// TODO: catch extra fields
-			// Decode into raw map[string]interface{} so we know ALL fields
-			var config map[string]interface{}
-			if err := hcl.DecodeObject(&config, item.Val); err != nil {
-				return nil, err
-			}
-		*/
+		// Check for invalid keys
+		valid := []string{"type", "default", "description"}
+		if err := checkHCLKeys(item.Val, valid); err != nil {
+			return nil, multierror.Prefix(err, fmt.Sprintf(
+				"variable[%s]:", n))
+		}
 
 		// Decode into hclVariable to get typed values
 		var hclVar hclVariable
@@ -776,6 +779,12 @@ func loadManagedResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 		// destroying the existing instance
 		var lifecycle ResourceLifecycle
 		if o := listVal.Filter("lifecycle"); len(o.Items) > 0 {
+			if len(o.Items) > 1 {
+				return nil, fmt.Errorf(
+					"%s[%s]: Multiple lifecycle blocks found, expected one",
+					t, k)
+			}
+
 			// Check for invalid keys
 			valid := []string{"create_before_destroy", "ignore_changes", "prevent_destroy"}
 			if err := checkHCLKeys(o.Items[0].Val, valid); err != nil {

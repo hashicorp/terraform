@@ -17,6 +17,33 @@ queries in your Consul cluster using Terraform.
 ## Example Usage
 
 ```
+# Creates a prepared query myquery.query.consul that finds the nearest
+# healthy myapp.service.consul instance that has the active tag and not
+# the standby tag.
+resource "consul_prepared_query" "myapp-query" {
+    name = "myquery"
+    datacenter = "us-central1"
+    token = "abcd"
+    stored_token = "wxyz"
+    only_passing = true
+    near = "_agent"
+
+    service = "myapp"
+    tags = ["active","!standby"]
+
+    failover {
+        nearest_n = 3
+        datacenters = ["us-west1", "us-east-2", "asia-east1"]
+    }
+
+    dns {
+        ttl = "30s"
+    }
+}
+
+# Creates a Prepared Query Template that matches *-near-self.query.consul
+# and finds the nearest service that matches the glob character (e.g.
+# foo-near-self.query.consul will find the nearest healthy foo.service.consul).
 resource "consul_prepared_query" "service-near-self" {
     datacenter = "nyc1"
     token = "abcd"
@@ -40,7 +67,6 @@ resource "consul_prepared_query" "service-near-self" {
     dns {
         ttl = "5m"
     }
-
 }
 ```
 
@@ -62,6 +88,16 @@ The following arguments are supported:
   to configure the query as a catch-all.
 
 * `service` - (Required) The name of the service to query.
+
+* `session` - (Optional) The name of the Consul session to tie this query's
+  lifetime to.  This is an advanced parameter that should not be used without a
+  complete understanding of Consul sessions and the implications of their use
+  (it is recommended to leave this blank in nearly all cases).  If this
+  parameter is omitted the query will not expire.
+
+* `tags` - (Optional) The list of required and/or disallowed tags.  If a tag is
+  in this list it must be present.  If the tag is preceded with a "!" then it is
+  disallowed.
 
 * `only_passing` - (Optional) When `true`, the prepared query will only
   return nodes with passing health checks in the result.

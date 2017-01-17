@@ -12,6 +12,9 @@ func resourceGithubMembership() *schema.Resource {
 		Read:   resourceGithubMembershipRead,
 		Update: resourceGithubMembershipUpdate,
 		Delete: resourceGithubMembershipDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"username": &schema.Schema{
@@ -47,8 +50,9 @@ func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) er
 
 func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
+	_, n := parseTwoPartID(d.Id())
 
-	membership, _, err := client.Organizations.GetOrgMembership(d.Get("username").(string), meta.(*Organization).name)
+	membership, _, err := client.Organizations.GetOrgMembership(n, meta.(*Organization).name)
 	if err != nil {
 		d.SetId("")
 		return nil
@@ -64,12 +68,14 @@ func resourceGithubMembershipUpdate(d *schema.ResourceData, meta interface{}) er
 	n := d.Get("username").(string)
 	r := d.Get("role").(string)
 
-	_, _, err := client.Organizations.EditOrgMembership(n, meta.(*Organization).name, &github.Membership{
+	membership, _, err := client.Organizations.EditOrgMembership(n, meta.(*Organization).name, &github.Membership{
 		Role: &r,
 	})
 	if err != nil {
 		return err
 	}
+	d.SetId(buildTwoPartID(membership.Organization.Login, membership.User.Login))
+
 	return nil
 }
 

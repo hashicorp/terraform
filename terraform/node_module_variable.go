@@ -37,6 +37,13 @@ func (n *NodeApplyableModuleVariable) Path() []string {
 	return rootModulePath
 }
 
+// RemovableIfNotTargeted
+func (n *NodeApplyableModuleVariable) RemoveIfNotTargeted() bool {
+	// We need to add this so that this node will be removed if
+	// it isn't targeted or a dependency of a target.
+	return true
+}
+
 // GraphNodeReferenceGlobal
 func (n *NodeApplyableModuleVariable) ReferenceGlobal() bool {
 	// We have to create fully qualified references because we cross

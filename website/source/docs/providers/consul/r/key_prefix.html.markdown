@@ -90,8 +90,8 @@ The following arguments are supported:
   end with a slash, to manage a "folder" of keys.
 
 * `subkeys` - (Optional) A mapping from subkey name (which will be appended
-  to the give `path_prefix`) to the value that should be stored at that key.
-  Use slashes as shown in the above example to create "sub-folders" under
+  to the given `path_prefix`) to the value that should be stored at that key.
+  Use slashes, as shown in the above example, to create "sub-folders" under
   the given path prefix.
 
 * `file` - (Optional) Specifies key/value file to be loaded into Consul.

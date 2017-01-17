@@ -24,8 +24,8 @@ import (
 // Amazon Glacier is a great storage choice when low storage cost is paramount,
 // your data is rarely retrieved, and retrieval latency of several hours is
 // acceptable. If your application requires fast or frequent access to your
-// data, consider using Amazon S3. For more information, go to Amazon Simple
-// Storage Service (Amazon S3) (http://aws.amazon.com/s3/).
+// data, consider using Amazon S3. For more information, see Amazon Simple Storage
+// Service (Amazon S3) (http://aws.amazon.com/s3/).
 //
 // You can store any kind of data in any format. There is no maximum limit on
 // the total amount of data you can store in Amazon Glacier.
@@ -42,7 +42,7 @@ import (
 //    - The Getting Started section walks you through the process of creating
 //    a vault, uploading archives, creating jobs to download archives, retrieving
 //    the job output, and deleting archives.
-//The service client's operations are safe to be used concurrently.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type Glacier struct {
 	*client.Client
@@ -54,8 +54,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "glacier"
+// Service information constants
+const (
+	ServiceName = "glacier"   // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the Glacier client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -68,17 +71,18 @@ const ServiceName = "glacier"
 //     // Create a Glacier client with additional configuration
 //     svc := glacier.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *Glacier {
-	c := p.ClientConfig(ServiceName, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
+	c := p.ClientConfig(EndpointsID, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *Glacier {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *Glacier {
 	svc := &Glacier{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2012-06-01",

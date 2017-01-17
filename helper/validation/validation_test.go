@@ -36,7 +36,7 @@ func TestValidationIntBetween(t *testing.T) {
 	})
 }
 
-func TestValidationSringInSlice(t *testing.T) {
+func TestValidationStringInSlice(t *testing.T) {
 	runTestCases(t, []testCase{
 		{
 			val: "ValidValue",

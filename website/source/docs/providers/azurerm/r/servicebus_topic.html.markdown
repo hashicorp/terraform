@@ -85,9 +85,8 @@ The following arguments are supported:
     Changing this forces a new resource to be created.
 
 * `max_size_in_megabytes` - (Optional) Integer value which controls the size of
-    memory allocated for the topic. Supported values are multiples of 1024 up to
-    5120, if `enable_partitioning` is enabled then 16 partitions will be created
-    per GB, making the maximum possible topic size 81920 (5120 * 16).
+    memory allocated for the topic. For supported values see the "Queue/topic size"
+    section of [this document](https://docs.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quotas).
 
 * `requires_duplicate_detection` - (Optional) Boolean flag which controls whether
     the Topic requires duplicate detection. Defaults to false. Changing this forces

@@ -52,7 +52,7 @@ func resourceNetworkingSecGroupV2() *schema.Resource {
 func resourceNetworkingSecGroupV2Create(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -81,7 +81,7 @@ func resourceNetworkingSecGroupV2Read(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[DEBUG] Retrieve information about security group: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -95,6 +95,8 @@ func resourceNetworkingSecGroupV2Read(d *schema.ResourceData, meta interface{}) 
 	d.Set("description", security_group.Description)
 	d.Set("tenant_id", security_group.TenantID)
 	d.Set("name", security_group.Name)
+	d.Set("region", GetRegion(d))
+
 	return nil
 }
 
@@ -102,7 +104,7 @@ func resourceNetworkingSecGroupV2Delete(d *schema.ResourceData, meta interface{}
 	log.Printf("[DEBUG] Destroy security group: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}

@@ -133,3 +133,12 @@ Weighted routing policies support the following:
 ## Attributes Reference
 
 * `fqdn` - [FQDN](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) built using the zone domain and `name`
+
+
+## Import
+
+Route53 Records can be imported using ID of the record, e.g.
+
+```
+$ terraform import aws_route53_record.myrecord Z4KAPRWWNC7JR_dev.example.com_NS
+```

@@ -65,6 +65,12 @@ func resourceCloudStackPortForward() *schema.Resource {
 							Required: true,
 						},
 
+						"vm_guest_ip": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+						},
+
 						"uuid": &schema.Schema{
 							Type:     schema.TypeString,
 							Computed: true,
@@ -154,9 +160,28 @@ func createPortForward(d *schema.ResourceData, meta interface{}, forward map[str
 	p := cs.Firewall.NewCreatePortForwardingRuleParams(d.Id(), forward["private_port"].(int),
 		forward["protocol"].(string), forward["public_port"].(int), vm.Id)
 
-	// Set the network ID, needed when the public IP address
-	// is not associated with any network yet (VPC case)
-	p.SetNetworkid(vm.Nic[0].Networkid)
+	if vmGuestIP, ok := forward["vm_guest_ip"]; ok {
+		p.SetVmguestip(vmGuestIP.(string))
+
+		// Set the network ID based on the guest IP, needed when the public IP address
+		// is not associated with any network yet
+	NICS:
+		for _, nic := range vm.Nic {
+			if vmGuestIP.(string) == nic.Ipaddress {
+				p.SetNetworkid(nic.Networkid)
+				break NICS
+			}
+			for _, ip := range nic.Secondaryip {
+				if vmGuestIP.(string) == ip.Ipaddress {
+					p.SetNetworkid(nic.Networkid)
+					break NICS
+				}
+			}
+		}
+	} else {
+		// If no guest IP is configured, use the primary NIC
+		p.SetNetworkid(vm.Nic[0].Networkid)
+	}
 
 	// Do not open the firewall automatically in any case
 	p.SetOpenfirewall(false)
@@ -248,6 +273,7 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 			forward["private_port"] = privPort
 			forward["public_port"] = pubPort
 			forward["virtual_machine_id"] = f.Virtualmachineid
+			forward["vm_guest_ip"] = f.Vmguestip
 
 			forwards.Add(forward)
 		}

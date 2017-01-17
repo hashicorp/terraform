@@ -29,6 +29,8 @@ func TestAccAWSAPIGatewayRestApi_basic(t *testing.T) {
 						"aws_api_gateway_rest_api.test", "description", ""),
 					resource.TestCheckResourceAttrSet(
 						"aws_api_gateway_rest_api.test", "created_date"),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_rest_api.test", "binary_media_types", ""),
 				),
 			},
 
@@ -44,6 +46,10 @@ func TestAccAWSAPIGatewayRestApi_basic(t *testing.T) {
 						"aws_api_gateway_rest_api.test", "description", "test"),
 					resource.TestCheckResourceAttrSet(
 						"aws_api_gateway_rest_api.test", "created_date"),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_rest_api.test", "binary_media_types.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_rest_api.test", "binary_media_types.0", "application/octet-stream"),
 				),
 			},
 		},
@@ -135,5 +141,6 @@ const testAccAWSAPIGatewayRestAPIUpdateConfig = `
 resource "aws_api_gateway_rest_api" "test" {
   name = "test"
   description = "test"
+  binary_media_types = ["application/octet-stream"]
 }
 `

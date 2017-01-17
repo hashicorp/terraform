@@ -25,9 +25,18 @@ want to wait, you need to use the `retain_on_delete` flag.
 The following example below creates a CloudFront distribution with an S3 origin.
 
 ```
+resource "aws_s3_bucket" "b" {
+  bucket = "mybucket"
+  acl    = "private"
+
+  tags {
+    Name = "My bucket"
+  }
+}
+
 resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
-    domain_name = "mybucket.s3.amazonaws.com"
+    domain_name = "${aws_s3_bucket.b.bucket}.s3.amazonaws.com"
     origin_id   = "myS3Origin"
 
     s3_origin_config {
@@ -36,6 +45,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   enabled             = true
+  is_ipv6_enabled     = true
   comment             = "Some comment"
   default_root_object = "index.html"
 
@@ -113,6 +123,8 @@ of several sub-resources - these resources are laid out below.
 
   * `enabled` (Required) - Whether the distribution is enabled to accept end
     user requests for content.
+
+  * `is_ipv6_enabled` (Optional) - Whether the IPv6 is enabled for the distribution.
 
   * `http_version` (Optional) - The maximum HTTP version to support on the
     distribution. Allowed values are `http1.1` and `http2`. The default is

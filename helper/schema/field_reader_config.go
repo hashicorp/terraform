@@ -104,7 +104,18 @@ func (r *ConfigFieldReader) readMap(k string, schema *Schema) (FieldReadResult, 
 	// the type of the raw value.
 	mraw, ok := r.Config.GetRaw(k)
 	if !ok {
-		return FieldReadResult{}, nil
+		// check if this is from an interpolated field by seeing if it exists
+		// in the config
+		_, ok := r.Config.Get(k)
+		if !ok {
+			// this really doesn't exist
+			return FieldReadResult{}, nil
+		}
+
+		// We couldn't fetch the value from a nested data structure, so treat the
+		// raw value as an interpolation string. The mraw value is only used
+		// for the type switch below.
+		mraw = "${INTERPOLATED}"
 	}
 
 	result := make(map[string]interface{})

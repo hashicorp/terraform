@@ -1,5 +1,4 @@
 TEST?=$$(go list ./... | grep -v '/terraform/vendor/' | grep -v '/builtin/bins/')
-VETARGS?=-all
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
 default: test vet
@@ -51,6 +50,14 @@ testacc: fmtcheck generate
 	fi
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
 
+test-compile: fmtcheck generate
+	@if [ "$(TEST)" = "./..." ]; then \
+		echo "ERROR: Set TEST to a specific package. For example,"; \
+		echo "  make test-compile TEST=./builtin/providers/aws"; \
+		exit 1; \
+	fi
+	go test -c $(TEST) $(TESTARGS)
+
 # testrace runs the race checker
 testrace: fmtcheck generate
 	TF_ACC= go test -race $(TEST) $(TESTARGS)
@@ -66,8 +73,8 @@ cover:
 # vet runs the Go source code static analysis tool `vet` to find
 # any common errors.
 vet:
-	@echo "go tool vet $(VETARGS) ."
-	@go tool vet $(VETARGS) $$(ls -d */ | grep -v vendor) ; if [ $$? -eq 1 ]; then \
+	@echo "go vet ."
+	@go vet $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \

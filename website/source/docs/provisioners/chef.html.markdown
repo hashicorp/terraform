@@ -80,6 +80,17 @@ The following arguments are supported:
   subdirectory called `logfiles` created in your current directory. The filename will be
   the `node_name` of the new node.
 
+* `use_policyfile (boolean)` - (Optional) If `true`, use the policy files to bootstrap the
+  node. Setting `policy_group` and `policy_name` are required if this is `true`. (defaults to
+  `false`).
+
+* `policy_group (string)` - (Optional) The name of a policy group that exists on the Chef
+  server. Required if `use_policyfile` is set; `policy_name` must also be specified.
+
+* `policy_name (string)` - (Optional) The name of a policy, as identified by the `name`
+  setting in a Policyfile.rb file. Required if `use_policyfile` is set; `policy_group`
+  must also be specified.
+
 * `http_proxy (string)` - (Optional) The proxy server for Chef Client HTTP connections.
 
 * `https_proxy (string)` - (Optional) The proxy server for Chef Client HTTPS connections.

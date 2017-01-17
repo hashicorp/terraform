@@ -178,7 +178,6 @@ func (p *ResourceProvisioner) runScripts(
 
 		remotePath := comm.ScriptPath()
 		err = retryFunc(comm.Timeout(), func() error {
-
 			if err := comm.UploadScript(remotePath, script); err != nil {
 				return fmt.Errorf("Failed to upload script: %v", err)
 			}

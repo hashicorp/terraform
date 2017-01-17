@@ -194,7 +194,7 @@ func testCheckAzureRMAvailabilitySetDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Availability Set still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Availability Set still exists:\n%#v", resp.AvailabilitySetProperties)
 		}
 	}
 

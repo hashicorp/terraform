@@ -79,14 +79,35 @@ func (g *marshalGraph) Dot(opts *DotOpts) []byte {
 	return w.Bytes()
 }
 
-func (v *marshalVertex) dot(g *marshalGraph) []byte {
+func (v *marshalVertex) dot(g *marshalGraph, opts *DotOpts) []byte {
 	var buf bytes.Buffer
 	graphName := g.Name
 	if graphName == "" {
 		graphName = "root"
 	}
-	buf.WriteString(fmt.Sprintf(`"[%s] %s"`, graphName, v.Name))
-	writeAttrs(&buf, v.Attrs)
+
+	name := v.Name
+	attrs := v.Attrs
+	if v.graphNodeDotter != nil {
+		node := v.graphNodeDotter.DotNode(name, opts)
+		if node == nil {
+			return []byte{}
+		}
+
+		newAttrs := make(map[string]string)
+		for k, v := range attrs {
+			newAttrs[k] = v
+		}
+		for k, v := range node.Attrs {
+			newAttrs[k] = v
+		}
+
+		name = node.Name
+		attrs = newAttrs
+	}
+
+	buf.WriteString(fmt.Sprintf(`"[%s] %s"`, graphName, name))
+	writeAttrs(&buf, attrs)
 	buf.WriteByte('\n')
 
 	return buf.Bytes()
@@ -145,12 +166,12 @@ func (g *marshalGraph) writeBody(opts *DotOpts, w *indentWriter) {
 	skip := map[string]bool{}
 
 	for _, v := range g.Vertices {
-		if !v.graphNodeDotter {
+		if v.graphNodeDotter == nil {
 			skip[v.ID] = true
 			continue
 		}
 
-		w.Write(v.dot(g))
+		w.Write(v.dot(g, opts))
 	}
 
 	var dotEdges []string

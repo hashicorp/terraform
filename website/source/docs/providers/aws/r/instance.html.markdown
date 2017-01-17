@@ -126,9 +126,10 @@ Modifying any `ebs_block_device` currently requires resource replacement.
 Each `ephemeral_block_device` supports the following:
 
 * `device_name` - The name of the block device to mount on the instance.
-* `virtual_name` - The [Instance Store Device
+* `virtual_name` - (Optional) The [Instance Store Device
   Name](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html#InstanceStoreDeviceNames)
-  (e.g. `"ephemeral0"`)
+  (e.g. `"ephemeral0"`).
+* `no_device` - (Optional) Suppresses the specified device included in the AMI's block device mapping.
 
 Each AWS Instance type has a different set of Instance Store block devices
 available for attachment. AWS [publishes a

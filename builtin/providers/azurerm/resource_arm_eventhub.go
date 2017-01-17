@@ -39,11 +39,7 @@ func resourceArmEventHub() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
+			"location": locationSchema(),
 
 			"partition_count": {
 				Type:         schema.TypeInt,

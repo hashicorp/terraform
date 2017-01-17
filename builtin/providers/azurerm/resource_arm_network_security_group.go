@@ -30,12 +30,7 @@ func resourceArmNetworkSecurityGroup() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -144,7 +139,7 @@ func resourceArmNetworkSecurityGroupCreate(d *schema.ResourceData, meta interfac
 	sg := network.SecurityGroup{
 		Name:     &name,
 		Location: &location,
-		Properties: &network.SecurityGroupPropertiesFormat{
+		SecurityGroupPropertiesFormat: &network.SecurityGroupPropertiesFormat{
 			SecurityRules: &sgRules,
 		},
 		Tags: expandTags(tags),
@@ -199,8 +194,8 @@ func resourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error making Read request on Azure Network Security Group %s: %s", name, err)
 	}
 
-	if resp.Properties.SecurityRules != nil {
-		d.Set("security_rule", flattenNetworkSecurityRules(resp.Properties.SecurityRules))
+	if resp.SecurityGroupPropertiesFormat.SecurityRules != nil {
+		d.Set("security_rule", flattenNetworkSecurityRules(resp.SecurityGroupPropertiesFormat.SecurityRules))
 	}
 
 	d.Set("resource_group_name", resGroup)
@@ -246,17 +241,17 @@ func flattenNetworkSecurityRules(rules *[]network.SecurityRule) []map[string]int
 	for _, rule := range *rules {
 		sgRule := make(map[string]interface{})
 		sgRule["name"] = *rule.Name
-		sgRule["destination_address_prefix"] = *rule.Properties.DestinationAddressPrefix
-		sgRule["destination_port_range"] = *rule.Properties.DestinationPortRange
-		sgRule["source_address_prefix"] = *rule.Properties.SourceAddressPrefix
-		sgRule["source_port_range"] = *rule.Properties.SourcePortRange
-		sgRule["priority"] = int(*rule.Properties.Priority)
-		sgRule["access"] = rule.Properties.Access
-		sgRule["direction"] = rule.Properties.Direction
-		sgRule["protocol"] = rule.Properties.Protocol
+		sgRule["destination_address_prefix"] = *rule.SecurityRulePropertiesFormat.DestinationAddressPrefix
+		sgRule["destination_port_range"] = *rule.SecurityRulePropertiesFormat.DestinationPortRange
+		sgRule["source_address_prefix"] = *rule.SecurityRulePropertiesFormat.SourceAddressPrefix
+		sgRule["source_port_range"] = *rule.SecurityRulePropertiesFormat.SourcePortRange
+		sgRule["priority"] = int(*rule.SecurityRulePropertiesFormat.Priority)
+		sgRule["access"] = rule.SecurityRulePropertiesFormat.Access
+		sgRule["direction"] = rule.SecurityRulePropertiesFormat.Direction
+		sgRule["protocol"] = rule.SecurityRulePropertiesFormat.Protocol
 
-		if rule.Properties.Description != nil {
-			sgRule["description"] = *rule.Properties.Description
+		if rule.SecurityRulePropertiesFormat.Description != nil {
+			sgRule["description"] = *rule.SecurityRulePropertiesFormat.Description
 		}
 
 		result = append(result, sgRule)
@@ -294,8 +289,8 @@ func expandAzureRmSecurityRules(d *schema.ResourceData) ([]network.SecurityRule,
 
 		name := data["name"].(string)
 		rule := network.SecurityRule{
-			Name:       &name,
-			Properties: &properties,
+			Name: &name,
+			SecurityRulePropertiesFormat: &properties,
 		}
 
 		rules = append(rules, rule)
@@ -311,6 +306,6 @@ func networkSecurityGroupStateRefreshFunc(client *ArmClient, resourceGroupName s
 			return nil, "", fmt.Errorf("Error issuing read request in networkSecurityGroupStateRefreshFunc to Azure ARM for NSG '%s' (RG: '%s'): %s", sgName, resourceGroupName, err)
 		}
 
-		return res, *res.Properties.ProvisioningState, nil
+		return res, *res.SecurityGroupPropertiesFormat.ProvisioningState, nil
 	}
 }

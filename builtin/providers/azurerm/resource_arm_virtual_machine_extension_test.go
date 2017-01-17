@@ -127,7 +127,7 @@ func testCheckAzureRMVirtualMachineExtensionDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Virtual Machine Extension still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Virtual Machine Extension still exists:\n%#v", resp.VirtualMachineExtensionProperties)
 		}
 	}
 

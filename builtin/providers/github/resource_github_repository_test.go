@@ -49,6 +49,24 @@ func TestAccGithubRepository_basic(t *testing.T) {
 	})
 }
 
+func TestAccGithubRepository_importBasic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccGithubRepositoryConfig,
+			},
+			resource.TestStep{
+				ResourceName:      "github_repository.foo",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]

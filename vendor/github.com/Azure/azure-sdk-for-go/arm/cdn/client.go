@@ -1,9 +1,8 @@
-// Package cdn implements the Azure ARM Cdn service API version 2016-04-02.
+// Package cdn implements the Azure ARM Cdn service API version 2016-10-02.
 //
 // Use these APIs to manage Azure CDN resources through the Azure Resource
 // Manager. You must make sure that requests made to these resources are
-// secure. For more information, see
-// https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx.
+// secure.
 package cdn
 
 // Copyright (c) Microsoft and contributors.  All rights reserved.
@@ -26,11 +25,14 @@ package cdn
 
 import (
 	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
+	"net/http"
 )
 
 const (
 	// APIVersion is the version of the Cdn
-	APIVersion = "2016-04-02"
+	APIVersion = "2016-10-02"
 
 	// DefaultBaseURI is the default URI used for the service Cdn
 	DefaultBaseURI = "https://management.azure.com"
@@ -57,4 +59,149 @@ func NewWithBaseURI(baseURI string, subscriptionID string) ManagementClient {
 		APIVersion:     APIVersion,
 		SubscriptionID: subscriptionID,
 	}
+}
+
+// CheckNameAvailability check the availability of a resource name without
+// creating the resource. This is needed for resources where name is globally
+// unique, such as a CDN endpoint.
+//
+// checkNameAvailabilityInput is input to check.
+func (client ManagementClient) CheckNameAvailability(checkNameAvailabilityInput CheckNameAvailabilityInput) (result CheckNameAvailabilityOutput, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: checkNameAvailabilityInput,
+			Constraints: []validation.Constraint{{Target: "checkNameAvailabilityInput.Name", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "checkNameAvailabilityInput.Type", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.ManagementClient", "CheckNameAvailability")
+	}
+
+	req, err := client.CheckNameAvailabilityPreparer(checkNameAvailabilityInput)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "cdn.ManagementClient", "CheckNameAvailability", nil, "Failure preparing request")
+	}
+
+	resp, err := client.CheckNameAvailabilitySender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "cdn.ManagementClient", "CheckNameAvailability", resp, "Failure sending request")
+	}
+
+	result, err = client.CheckNameAvailabilityResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "cdn.ManagementClient", "CheckNameAvailability", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// CheckNameAvailabilityPreparer prepares the CheckNameAvailability request.
+func (client ManagementClient) CheckNameAvailabilityPreparer(checkNameAvailabilityInput CheckNameAvailabilityInput) (*http.Request, error) {
+	queryParameters := map[string]interface{}{
+		"api-version": client.APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsJSON(),
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPath("/providers/Microsoft.Cdn/checkNameAvailability"),
+		autorest.WithJSON(checkNameAvailabilityInput),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare(&http.Request{})
+}
+
+// CheckNameAvailabilitySender sends the CheckNameAvailability request. The method will close the
+// http.Response Body if it receives an error.
+func (client ManagementClient) CheckNameAvailabilitySender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req)
+}
+
+// CheckNameAvailabilityResponder handles the response to the CheckNameAvailability request. The method always
+// closes the http.Response Body.
+func (client ManagementClient) CheckNameAvailabilityResponder(resp *http.Response) (result CheckNameAvailabilityOutput, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// ListOperations lists all of the available CDN REST API operations.
+func (client ManagementClient) ListOperations() (result OperationListResult, err error) {
+	req, err := client.ListOperationsPreparer()
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "cdn.ManagementClient", "ListOperations", nil, "Failure preparing request")
+	}
+
+	resp, err := client.ListOperationsSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "cdn.ManagementClient", "ListOperations", resp, "Failure sending request")
+	}
+
+	result, err = client.ListOperationsResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "cdn.ManagementClient", "ListOperations", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListOperationsPreparer prepares the ListOperations request.
+func (client ManagementClient) ListOperationsPreparer() (*http.Request, error) {
+	queryParameters := map[string]interface{}{
+		"api-version": client.APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPath("/providers/Microsoft.Cdn/operations"),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare(&http.Request{})
+}
+
+// ListOperationsSender sends the ListOperations request. The method will close the
+// http.Response Body if it receives an error.
+func (client ManagementClient) ListOperationsSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req)
+}
+
+// ListOperationsResponder handles the response to the ListOperations request. The method always
+// closes the http.Response Body.
+func (client ManagementClient) ListOperationsResponder(resp *http.Response) (result OperationListResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// ListOperationsNextResults retrieves the next set of results, if any.
+func (client ManagementClient) ListOperationsNextResults(lastResults OperationListResult) (result OperationListResult, err error) {
+	req, err := lastResults.OperationListResultPreparer()
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "cdn.ManagementClient", "ListOperations", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+
+	resp, err := client.ListOperationsSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "cdn.ManagementClient", "ListOperations", resp, "Failure sending next results request")
+	}
+
+	result, err = client.ListOperationsResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "cdn.ManagementClient", "ListOperations", resp, "Failure responding to next results request")
+	}
+
+	return
 }

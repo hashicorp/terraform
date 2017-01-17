@@ -364,6 +364,55 @@ func TestInterpolater_resourceVariableMulti(t *testing.T) {
 	})
 }
 
+// When a splat reference is made to an attribute that is a computed list,
+// the result should be unknown.
+func TestInterpolater_resourceVariableMultiList(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"ip.#": config.UnknownVariableValue,
+							},
+						},
+					},
+
+					"aws_instance.web.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"ip.#": "0",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-resource-variable"),
+		State:     state,
+		StateLock: lock,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "aws_instance.web.*.ip", ast.Variable{
+		Value: config.UnknownVariableValue,
+		Type:  ast.TypeUnknown,
+	})
+}
+
 func TestInterpolater_resourceVariableMulti_interpolated(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
@@ -625,6 +674,55 @@ func TestInterpolater_selfVarWithoutResource(t *testing.T) {
 	}
 }
 
+func TestInterpolator_interpolatedListOrder(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_route53_zone.list": &ResourceState{
+						Type:         "aws_route53_zone",
+						Dependencies: []string{},
+						Primary: &InstanceState{
+							ID: "null",
+							Attributes: map[string]string{
+								"foo.#":  "12",
+								"foo.0":  "a",
+								"foo.1":  "b",
+								"foo.2":  "c",
+								"foo.3":  "d",
+								"foo.4":  "e",
+								"foo.5":  "f",
+								"foo.6":  "g",
+								"foo.7":  "h",
+								"foo.8":  "i",
+								"foo.9":  "j",
+								"foo.10": "k",
+								"foo.11": "l",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: new(sync.RWMutex),
+		State:     state,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	list := []interface{}{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"}
+
+	testInterpolate(t, i, scope, "aws_route53_zone.list.foo",
+		interfaceToVariableSwallowError(list))
+}
+
 func getInterpolaterFixture(t *testing.T) *Interpolater {
 	lock := new(sync.RWMutex)
 	state := &State{
@@ -682,6 +780,100 @@ func getInterpolaterFixture(t *testing.T) *Interpolater {
 		StateLock: lock,
 		State:     state,
 	}
+}
+
+func TestInterpolator_nestedMapsAndLists(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_route53_zone.yada": &ResourceState{
+						Type:         "aws_route53_zone",
+						Dependencies: []string{},
+						Primary: &InstanceState{
+							ID: "null",
+							Attributes: map[string]string{
+								"list_of_map.#":       "2",
+								"list_of_map.0.%":     "1",
+								"list_of_map.0.a":     "1",
+								"list_of_map.1.%":     "1",
+								"list_of_map.1.b":     "2",
+								"map_of_list.%":       "2",
+								"map_of_list.list2.#": "1",
+								"map_of_list.list2.0": "b",
+								"map_of_list.list1.#": "1",
+								"map_of_list.list1.0": "a",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: new(sync.RWMutex),
+		State:     state,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	listOfMap := []interface{}{
+		map[string]interface{}{"a": "1"},
+		map[string]interface{}{"b": "2"},
+	}
+
+	mapOfList := map[string]interface{}{
+		"list1": []interface{}{"a"},
+		"list2": []interface{}{"b"},
+	}
+
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.list_of_map",
+		interfaceToVariableSwallowError(listOfMap))
+	testInterpolate(t, i, scope, `aws_route53_zone.yada.map_of_list`,
+		interfaceToVariableSwallowError(mapOfList))
+}
+
+func TestInterpolator_sets(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_network_interface.set": &ResourceState{
+						Type:         "aws_network_interface",
+						Dependencies: []string{},
+						Primary: &InstanceState{
+							ID: "null",
+							Attributes: map[string]string{
+								"private_ips.#":          "1",
+								"private_ips.3977356764": "10.42.16.179",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: new(sync.RWMutex),
+		State:     state,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	set := []interface{}{"10.42.16.179"}
+
+	testInterpolate(t, i, scope, "aws_network_interface.set.private_ips",
+		interfaceToVariableSwallowError(set))
 }
 
 func testInterpolate(

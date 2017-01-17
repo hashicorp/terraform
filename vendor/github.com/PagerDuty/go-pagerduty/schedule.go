@@ -2,14 +2,16 @@ package pagerduty
 
 import (
 	"fmt"
-	"github.com/google/go-querystring/query"
 	"net/http"
+
+	"github.com/google/go-querystring/query"
 )
 
 // Restriction limits on-call responsibility for a layer to certain times of the day or week.
 type Restriction struct {
 	Type            string `json:"type,omitempty"`
 	StartTimeOfDay  string `json:"start_time_of_day,omitempty"`
+	StartDayOfWeek  uint   `json:"start_day_of_week,omitempty"`
 	DurationSeconds uint   `json:"duration_seconds,omitempty"`
 }
 

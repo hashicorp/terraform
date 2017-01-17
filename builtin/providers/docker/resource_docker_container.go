@@ -369,6 +369,29 @@ func resourceDockerContainer() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
+
+			"upload": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"content": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							// This is intentional. The container is mutated once, and never updated later.
+							// New configuration forces a new deployment, even with the same binaries.
+							ForceNew: true,
+						},
+						"file": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: resourceDockerUploadHash,
+			},
 		},
 	}
 }
@@ -431,6 +454,21 @@ func resourceDockerVolumesHash(v interface{}) int {
 
 	if v, ok := m["read_only"]; ok {
 		buf.WriteString(fmt.Sprintf("%v-", v.(bool)))
+	}
+
+	return hashcode.String(buf.String())
+}
+
+func resourceDockerUploadHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["content"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
+	}
+
+	if v, ok := m["file"]; ok {
+		buf.WriteString(fmt.Sprintf("%v-", v.(string)))
 	}
 
 	return hashcode.String(buf.String())

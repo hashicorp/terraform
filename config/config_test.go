@@ -161,6 +161,13 @@ func TestConfigValidate_table(t *testing.T) {
 			true,
 			"non-existent module 'foo'",
 		},
+
+		{
+			"data source with provisioners",
+			"validate-data-provisioner",
+			true,
+			"data sources cannot have",
+		},
 	}
 
 	for i, tc := range cases {
@@ -446,13 +453,6 @@ func TestConfigValidate_providerMultiRefGood(t *testing.T) {
 	c := testConfig(t, "validate-provider-multi-ref-good")
 	if err := c.Validate(); err != nil {
 		t.Fatalf("should be valid: %s", err)
-	}
-}
-
-func TestConfigValidate_providerMultiRefBad(t *testing.T) {
-	c := testConfig(t, "validate-provider-multi-ref-bad")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
 	}
 }
 

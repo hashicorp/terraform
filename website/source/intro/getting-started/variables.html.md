@@ -56,8 +56,8 @@ the AWS provider with the given variables.
 ## Assigning Variables
 
 There are multiple ways to assign variables. Below is also the order
-in which variable values are chosen. If they're found in an option first
-below, then the options below are ignored.
+in which variable values are chosen. The following is the descending order
+of precedence in which variables are considered.
 
 #### Command-line flags
 
@@ -93,12 +93,6 @@ specify a file. These files are the same syntax as Terraform
 configuration files. And like Terraform configuration files, these files
 can also be JSON.
 
-#### From environment variables
-
-Terraform will read environment variables in the form of `TF_VAR_name`
-to find the value for a variable. For example, the `TF_VAR_access_key`
-variable can be set to set the `access_key` variable.
-
 We don't recommend saving usernames and password to version control, But you
 can create a local secret variables file and use `-var-file` to load it.
 
@@ -110,6 +104,15 @@ $ terraform plan \
   -var-file="secret.tfvars" \
   -var-file="production.tfvars"
 ```
+
+#### From environment variables
+
+Terraform will read environment variables in the form of `TF_VAR_name`
+to find the value for a variable. For example, the `TF_VAR_access_key`
+variable can be set to set the `access_key` variable.
+
+-> **Note**: Environment variables can only populate string-type variables. 
+List and map type variables must be populated via one of the other mechanisms.
 
 #### UI Input
 
@@ -126,6 +129,25 @@ variables must be populated via one of the other mechanisms.
 If no value is assigned to a variable via any of these methods and the
 variable has a `default` key in its declaration, that value will be used
 for the variable.
+
+<a id="lists"></a>
+## Lists
+
+Lists are defined either explicitly or implicity
+
+```
+# implicitly by using brackets [...]
+variable "cidrs" { default = [] }
+
+# explicitly
+variable "cidrs" { type = "list" }
+```
+
+You can specify lists in a `terraform.tfvars` file:
+
+```
+cidrs = [ "10.0.0.0/16", "10.1.0.0/16" ]
+```
 
 <a id="mappings"></a>
 <a id="maps"></a>

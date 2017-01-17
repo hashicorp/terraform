@@ -166,11 +166,23 @@ func resourceServiceV1() *schema.Resource {
 							Default:     80,
 							Description: "The port number Backend responds on. Default 80",
 						},
+						"shield": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "The POP of the shield designated to reduce inbound load.",
+						},
 						"ssl_check_cert": &schema.Schema{
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Default:     true,
 							Description: "Be strict on checking SSL certs",
+						},
+						"ssl_hostname": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "SSL certificate hostname",
 						},
 						// UseSSL is something we want to support in the future, but
 						// requires SSL setup we don't yet have
@@ -810,8 +822,10 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					Version:             latestVersion,
 					Name:                df["name"].(string),
 					Address:             df["address"].(string),
-					AutoLoadbalance:     df["auto_loadbalance"].(bool),
-					SSLCheckCert:        df["ssl_check_cert"].(bool),
+					AutoLoadbalance:     gofastly.CBool(df["auto_loadbalance"].(bool)),
+					SSLCheckCert:        gofastly.CBool(df["ssl_check_cert"].(bool)),
+					SSLHostname:         df["ssl_hostname"].(string),
+					Shield:              df["shield"].(string),
 					Port:                uint(df["port"].(int)),
 					BetweenBytesTimeout: uint(df["between_bytes_timeout"].(int)),
 					ConnectTimeout:      uint(df["connect_timeout"].(int)),
@@ -1485,14 +1499,16 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 		nb := map[string]interface{}{
 			"name":                  b.Name,
 			"address":               b.Address,
-			"auto_loadbalance":      b.AutoLoadbalance,
+			"auto_loadbalance":      gofastly.CBool(b.AutoLoadbalance),
 			"between_bytes_timeout": int(b.BetweenBytesTimeout),
 			"connect_timeout":       int(b.ConnectTimeout),
 			"error_threshold":       int(b.ErrorThreshold),
 			"first_byte_timeout":    int(b.FirstByteTimeout),
 			"max_conn":              int(b.MaxConn),
 			"port":                  int(b.Port),
-			"ssl_check_cert":        b.SSLCheckCert,
+			"shield":                b.Shield,
+			"ssl_check_cert":        gofastly.CBool(b.SSLCheckCert),
+			"ssl_hostname":          b.SSLHostname,
 			"weight":                int(b.Weight),
 		}
 
@@ -1566,7 +1582,7 @@ func buildHeader(headerMap interface{}) (*gofastly.CreateHeaderInput, error) {
 	df := headerMap.(map[string]interface{})
 	opts := gofastly.CreateHeaderInput{
 		Name:              df["name"].(string),
-		IgnoreIfSet:       gofastly.Compatibool(df["ignore_if_set"].(bool)),
+		IgnoreIfSet:       gofastly.CBool(df["ignore_if_set"].(bool)),
 		Destination:       df["destination"].(string),
 		Priority:          uint(df["priority"].(int)),
 		Source:            df["source"].(string),
@@ -1762,12 +1778,12 @@ func buildRequestSetting(requestSettingMap interface{}) (*gofastly.CreateRequest
 	opts := gofastly.CreateRequestSettingInput{
 		Name:             df["name"].(string),
 		MaxStaleAge:      uint(df["max_stale_age"].(int)),
-		ForceMiss:        gofastly.Compatibool(df["force_miss"].(bool)),
-		ForceSSL:         gofastly.Compatibool(df["force_ssl"].(bool)),
-		BypassBusyWait:   gofastly.Compatibool(df["bypass_busy_wait"].(bool)),
+		ForceMiss:        gofastly.CBool(df["force_miss"].(bool)),
+		ForceSSL:         gofastly.CBool(df["force_ssl"].(bool)),
+		BypassBusyWait:   gofastly.CBool(df["bypass_busy_wait"].(bool)),
 		HashKeys:         df["hash_keys"].(string),
-		TimerSupport:     gofastly.Compatibool(df["timer_support"].(bool)),
-		GeoHeaders:       gofastly.Compatibool(df["geo_headers"].(bool)),
+		TimerSupport:     gofastly.CBool(df["timer_support"].(bool)),
+		GeoHeaders:       gofastly.CBool(df["geo_headers"].(bool)),
 		DefaultHost:      df["default_host"].(string),
 		RequestCondition: df["request_condition"].(string),
 	}

@@ -42,12 +42,12 @@ func NewSubscriptionsClientWithBaseURI(baseURI string, subscriptionID string) Su
 	return SubscriptionsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate creates a topic subscription
+// CreateOrUpdate creates a topic subscription.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. topicName is the topicName name. subscriptionName is the
-// subscriptionName name. parameters is parameters supplied to create a
-// subscription Resource.
+// namespace name. topicName is the topic name. subscriptionName is the
+// subscription name. parameters is parameters supplied to create a
+// subscription resource.
 func (client SubscriptionsClient) CreateOrUpdate(resourceGroupName string, namespaceName string, topicName string, subscriptionName string, parameters SubscriptionCreateOrUpdateParameters) (result SubscriptionResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -248,7 +248,7 @@ func (client SubscriptionsClient) GetResponder(resp *http.Response) (result Subs
 	return
 }
 
-// ListAll lsit all the subscriptions under a specified topic
+// ListAll lsit all the subscriptions under a specified topic.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name. topicName is the topic name.

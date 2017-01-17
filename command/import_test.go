@@ -844,8 +844,53 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 }
 */
 
+func TestImport_customProvider(t *testing.T) {
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	p.ImportStateFn = nil
+	p.ImportStateReturn = []*terraform.InstanceState{
+		&terraform.InstanceState{
+			ID: "yay",
+			Ephemeral: terraform.EphemeralState{
+				Type: "test_instance",
+			},
+		},
+	}
+
+	args := []string{
+		"-provider", "test.alias",
+		"-state", statePath,
+		"test_instance.foo",
+		"bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if !p.ImportStateCalled {
+		t.Fatal("ImportState should be called")
+	}
+
+	testStateOutput(t, statePath, testImportCustomProviderStr)
+}
+
 const testImportStr = `
 test_instance.foo:
   ID = yay
   provider = test
+`
+
+const testImportCustomProviderStr = `
+test_instance.foo:
+  ID = yay
+  provider = test.alias
 `

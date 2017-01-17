@@ -8,7 +8,7 @@ description: |-
 
 # aws\_availability\_zone
 
-`aws_availability_zone` provides details about a specific availablity zone (AZ)
+`aws_availability_zone` provides details about a specific availability zone (AZ)
 in the current region.
 
 This can be used both to validate an availability zone given in a variable

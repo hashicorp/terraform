@@ -382,6 +382,59 @@ func TestRawConfig_sliceIndexLoss(t *testing.T) {
 	}
 }
 
+func TestRawConfigCopy(t *testing.T) {
+	raw := map[string]interface{}{
+		"foo": "${var.bar}",
+	}
+
+	rc, err := NewRawConfig(raw)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	rc.Key = "foo"
+	if rc.Value() != "${var.bar}" {
+		t.Fatalf("err: %#v", rc.Value())
+	}
+
+	// Interpolate the first one
+	vars := map[string]ast.Variable{
+		"var.bar": ast.Variable{
+			Value: "baz",
+			Type:  ast.TypeString,
+		},
+	}
+	if err := rc.Interpolate(vars); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if rc.Value() != "baz" {
+		t.Fatalf("bad: %#v", rc.Value())
+	}
+
+	// Copy and interpolate
+	{
+		rc2 := rc.Copy()
+		if rc2.Value() != "${var.bar}" {
+			t.Fatalf("err: %#v", rc2.Value())
+		}
+
+		vars := map[string]ast.Variable{
+			"var.bar": ast.Variable{
+				Value: "qux",
+				Type:  ast.TypeString,
+			},
+		}
+		if err := rc2.Interpolate(vars); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if rc2.Value() != "qux" {
+			t.Fatalf("bad: %#v", rc2.Value())
+		}
+	}
+}
+
 func TestRawConfigValue(t *testing.T) {
 	raw := map[string]interface{}{
 		"foo": "${var.bar}",

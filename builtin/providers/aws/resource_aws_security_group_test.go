@@ -1813,6 +1813,51 @@ resource "aws_security_group_rule" "allow_all-1" {
 }
 `
 
+const testAccAWSSecurityGroupConfig_importSourceSecurityGroup = `
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+
+  tags {
+    Name = "tf_sg_import_test"
+  }
+}
+
+resource "aws_security_group" "test_group_1" {
+  name        = "test group 1"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group" "test_group_2" {
+  name        = "test group 2"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group" "test_group_3" {
+  name        = "test group 3"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group_rule" "allow_test_group_2" {
+  type      = "ingress"
+  from_port = 0
+  to_port   = 0
+  protocol  = "tcp"
+
+  source_security_group_id = "${aws_security_group.test_group_1.id}"
+  security_group_id = "${aws_security_group.test_group_2.id}"
+}
+
+resource "aws_security_group_rule" "allow_test_group_3" {
+  type      = "ingress"
+  from_port = 0
+  to_port   = 0
+  protocol  = "tcp"
+
+  source_security_group_id = "${aws_security_group.test_group_1.id}"
+  security_group_id = "${aws_security_group.test_group_3.id}"
+}
+`
+
 const testAccAWSSecurityGroupConfigPrefixListEgress = `
 resource "aws_vpc" "tf_sg_prefix_list_egress_test" {
     cidr_block = "10.0.0.0/16"

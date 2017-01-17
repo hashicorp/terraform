@@ -52,7 +52,7 @@ Action Blocks (for `default_action`) support the following:
 * `target_group_arn` - (Required) The ARN of the Target Group to which to route traffic.
 * `type` - (Required) The type of routing action. The only valid value is `forward`.
 
-Condition Blocks (for `default_action`) support the following:
+Condition Blocks (for `default_condition`) support the following:
 
 * `field` - (Required) The name of the field. The only valid value is `path-pattern`. 
 * `values` - (Required) The path patterns to match. 

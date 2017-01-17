@@ -371,24 +371,6 @@ func testAccCheckDigitalOceanDropletRecreated(t *testing.T,
 	}
 }
 
-// Not sure if this check should remain here as the underlaying
-// function is changed and is tested indirectly by almost all
-// other test already
-//
-//func Test_new_droplet_state_refresh_func(t *testing.T) {
-//	droplet := godo.Droplet{
-//		Name: "foobar",
-//	}
-//	resourceMap, _ := resource_digitalocean_droplet_update_state(
-//		&terraform.InstanceState{Attributes: map[string]string{}}, &droplet)
-//
-//	// See if we can access our attribute
-//	if _, ok := resourceMap.Attributes["name"]; !ok {
-//		t.Fatalf("bad name: %s", resourceMap.Attributes)
-//	}
-//
-//}
-
 var testAccCheckDigitalOceanDropletConfig_basic = fmt.Sprintf(`
 resource "digitalocean_ssh_key" "foobar" {
   name       = "foobar"
@@ -468,6 +450,7 @@ resource "digitalocean_droplet" "foobar" {
   size     = "1gb"
   image    = "centos-7-x64"
   region   = "nyc3"
+  user_data = "foobar"
   ssh_keys = ["${digitalocean_ssh_key.foobar.id}"]
   resize_disk = false
 }

@@ -7,12 +7,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/redshift"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSRedshiftSubnetGroup_basic(t *testing.T) {
 	var v redshift.ClusterSubnetGroup
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -20,7 +22,7 @@ func TestAccAWSRedshiftSubnetGroup_basic(t *testing.T) {
 		CheckDestroy: testAccCheckRedshiftSubnetGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccRedshiftSubnetGroupConfig,
+				Config: testAccRedshiftSubnetGroupConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRedshiftSubnetGroupExists("aws_redshift_subnet_group.foo", &v),
 					resource.TestCheckResourceAttr(
@@ -35,6 +37,7 @@ func TestAccAWSRedshiftSubnetGroup_basic(t *testing.T) {
 
 func TestAccAWSRedshiftSubnetGroup_updateDescription(t *testing.T) {
 	var v redshift.ClusterSubnetGroup
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -42,7 +45,7 @@ func TestAccAWSRedshiftSubnetGroup_updateDescription(t *testing.T) {
 		CheckDestroy: testAccCheckRedshiftSubnetGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccRedshiftSubnetGroupConfig,
+				Config: testAccRedshiftSubnetGroupConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRedshiftSubnetGroupExists("aws_redshift_subnet_group.foo", &v),
 					resource.TestCheckResourceAttr(
@@ -51,7 +54,7 @@ func TestAccAWSRedshiftSubnetGroup_updateDescription(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccRedshiftSubnetGroup_updateDescription,
+				Config: testAccRedshiftSubnetGroup_updateDescription(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRedshiftSubnetGroupExists("aws_redshift_subnet_group.foo", &v),
 					resource.TestCheckResourceAttr(
@@ -64,6 +67,7 @@ func TestAccAWSRedshiftSubnetGroup_updateDescription(t *testing.T) {
 
 func TestAccAWSRedshiftSubnetGroup_updateSubnetIds(t *testing.T) {
 	var v redshift.ClusterSubnetGroup
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -71,7 +75,7 @@ func TestAccAWSRedshiftSubnetGroup_updateSubnetIds(t *testing.T) {
 		CheckDestroy: testAccCheckRedshiftSubnetGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccRedshiftSubnetGroupConfig,
+				Config: testAccRedshiftSubnetGroupConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRedshiftSubnetGroupExists("aws_redshift_subnet_group.foo", &v),
 					resource.TestCheckResourceAttr(
@@ -80,7 +84,7 @@ func TestAccAWSRedshiftSubnetGroup_updateSubnetIds(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccRedshiftSubnetGroupConfig_updateSubnetIds,
+				Config: testAccRedshiftSubnetGroupConfig_updateSubnetIds(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRedshiftSubnetGroupExists("aws_redshift_subnet_group.foo", &v),
 					resource.TestCheckResourceAttr(
@@ -93,6 +97,7 @@ func TestAccAWSRedshiftSubnetGroup_updateSubnetIds(t *testing.T) {
 
 func TestAccAWSRedshiftSubnetGroup_tags(t *testing.T) {
 	var v redshift.ClusterSubnetGroup
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -100,7 +105,7 @@ func TestAccAWSRedshiftSubnetGroup_tags(t *testing.T) {
 		CheckDestroy: testAccCheckRedshiftSubnetGroupDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRedshiftSubnetGroupConfigWithTags,
+				Config: testAccRedshiftSubnetGroupConfigWithTags(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRedshiftSubnetGroupExists("aws_redshift_subnet_group.foo", &v),
 					resource.TestCheckResourceAttr(
@@ -109,7 +114,7 @@ func TestAccAWSRedshiftSubnetGroup_tags(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccRedshiftSubnetGroupConfigWithTagsUpdated,
+				Config: testAccRedshiftSubnetGroupConfigWithTagsUpdated(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRedshiftSubnetGroupExists("aws_redshift_subnet_group.foo", &v),
 					resource.TestCheckResourceAttr(
@@ -221,7 +226,8 @@ func testAccCheckRedshiftSubnetGroupExists(n string, v *redshift.ClusterSubnetGr
 	}
 }
 
-const testAccRedshiftSubnetGroupConfig = `
+func testAccRedshiftSubnetGroupConfig(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 }
@@ -245,13 +251,15 @@ resource "aws_subnet" "bar" {
 }
 
 resource "aws_redshift_subnet_group" "foo" {
-	name = "foo"
+	name = "foo-%d"
 	description = "foo description"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 }
-`
+	`, rInt)
+}
 
-const testAccRedshiftSubnetGroup_updateDescription = `
+func testAccRedshiftSubnetGroup_updateDescription(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 }
@@ -275,13 +283,15 @@ resource "aws_subnet" "bar" {
 }
 
 resource "aws_redshift_subnet_group" "foo" {
-	name = "foo"
+	name = "foo-%d"
 	description = "foo description updated"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 }
-`
+`, rInt)
+}
 
-const testAccRedshiftSubnetGroupConfigWithTags = `
+func testAccRedshiftSubnetGroupConfigWithTags(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 }
@@ -305,15 +315,17 @@ resource "aws_subnet" "bar" {
 }
 
 resource "aws_redshift_subnet_group" "foo" {
-	name = "foo"
+	name = "foo-%d"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 	tags {
 		Name = "tf-redshift-subnetgroup"
 	}
 }
-`
+`, rInt)
+}
 
-const testAccRedshiftSubnetGroupConfigWithTagsUpdated = `
+func testAccRedshiftSubnetGroupConfigWithTagsUpdated(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 }
@@ -337,7 +349,7 @@ resource "aws_subnet" "bar" {
 }
 
 resource "aws_redshift_subnet_group" "foo" {
-	name = "foo"
+	name = "foo-%d"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 	tags {
 		Name = "tf-redshift-subnetgroup"
@@ -345,9 +357,11 @@ resource "aws_redshift_subnet_group" "foo" {
 		foo = "bar"
 	}
 }
-`
+`, rInt)
+}
 
-const testAccRedshiftSubnetGroupConfig_updateSubnetIds = `
+func testAccRedshiftSubnetGroupConfig_updateSubnetIds(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 }
@@ -380,7 +394,8 @@ resource "aws_subnet" "foobar" {
 }
 
 resource "aws_redshift_subnet_group" "foo" {
-	name = "foo"
+	name = "foo-%d"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}", "${aws_subnet.foobar.id}"]
 }
-`
+`, rInt)
+}

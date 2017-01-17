@@ -23,6 +23,9 @@ type ImportTarget struct {
 
 	// ID is the ID of the resource to import. This is resource-specific.
 	ID string
+
+	// Provider string
+	Provider string
 }
 
 // Import takes already-created external resources and brings them

@@ -64,7 +64,7 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 
 func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -122,7 +122,7 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 
 func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -138,13 +138,14 @@ func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) e
 	d.Set("admin_state_up", strconv.FormatBool(n.AdminStateUp))
 	d.Set("shared", strconv.FormatBool(n.Shared))
 	d.Set("tenant_id", n.TenantID)
+	d.Set("region", GetRegion(d))
 
 	return nil
 }
 
 func resourceNetworkingNetworkV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -186,7 +187,7 @@ func resourceNetworkingNetworkV2Update(d *schema.ResourceData, meta interface{})
 
 func resourceNetworkingNetworkV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}

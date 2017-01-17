@@ -25,6 +25,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the REST API
 * `description` - (Optional) The description of the REST API
+* `binary_media_types` - (Optional) The list of binary media types supported by the RestApi. By default, the RestApi supports only UTF-8-encoded text payloads.
 
 ## Attributes Reference
 

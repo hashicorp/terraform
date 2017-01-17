@@ -25,15 +25,15 @@ resource "softlayer_ssh_key" "test_ssh_key" {
 
 The following arguments are supported:
 
-* `name` - (Required) A descriptive name used to identify a ssh key.
-* `public_key` - (Required) The public ssh key.
-* `notes` - (Optional) A small note about a ssh key to use at your discretion.
+* `name` - (Required) A descriptive name used to identify an SSH key.
+* `public_key` - (Required) The public SSH key.
+* `notes` - (Optional) A small note about an SSH key to use at your discretion.
 
-Fields `name` and `notes` are editable.
+The `name` and `notes` fields are editable.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `id` - id of the new ssh key
-* `fingerprint` - sequence of bytes to authenticate or lookup a longer ssh key.
+* `id` - The ID of the new SSH key
+* `fingerprint` - sequence of bytes to authenticate or lookup a longer SSH key.

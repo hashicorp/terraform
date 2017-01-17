@@ -31,7 +31,7 @@ The `terraform` block configures the behavior of Terraform itself.
 
 The currently only allowed configuration within this block is
 `required_version`. This setting specifies a set of version constraints
-that must me bet to perform operations on this configuration. If the
+that must be met to perform operations on this configuration. If the
 running Terraform version doesn't meet these constraints, an error
 is shown. See the section below dedicated to this option.
 

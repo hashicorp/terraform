@@ -57,6 +57,7 @@ To make a resource importable, please see the
 * aws_glacier_vault
 * aws_iam_account_password_policy
 * aws_iam_group
+* aws_iam_instance_profile
 * aws_iam_saml_provider
 * aws_iam_user
 * aws_instance
@@ -82,6 +83,7 @@ To make a resource importable, please see the
 * aws_route53_health_check
 * aws_route53_zone
 * aws_route_table
+* aws_s3_bucket
 * aws_security_group
 * aws_ses_receipt_filter
 * aws_ses_receipt_rule_set
@@ -133,6 +135,7 @@ To make a resource importable, please see the
 * google_compute_instance_group_manager
 * google_compute_instance_template
 * google_compute_target_pool
+* google_project
 
 ### OpenStack
 
@@ -156,6 +159,9 @@ To make a resource importable, please see the
 * openstack_networking_secgroup_v2
 * openstack_networking_subnet_v2
 
+### PostgreSQL
+
+* postgresql_database
 
 ### Triton
 

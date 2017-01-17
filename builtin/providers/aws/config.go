@@ -45,12 +45,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/lightsail"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/ses"
+	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/simpledb"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -135,10 +137,12 @@ type AWSClient struct {
 	elasticbeanstalkconn  *elasticbeanstalk.ElasticBeanstalk
 	elastictranscoderconn *elastictranscoder.ElasticTranscoder
 	lambdaconn            *lambda.Lambda
+	lightsailconn         *lightsail.Lightsail
 	opsworksconn          *opsworks.OpsWorks
 	glacierconn           *glacier.Glacier
 	codedeployconn        *codedeploy.CodeDeploy
 	codecommitconn        *codecommit.CodeCommit
+	sfnconn               *sfn.SFN
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
 }
@@ -262,7 +266,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.cloudwatchconn = cloudwatch.New(sess)
 	client.cloudwatcheventsconn = cloudwatchevents.New(sess)
 	client.cloudwatchlogsconn = cloudwatchlogs.New(sess)
-	client.codecommitconn = codecommit.New(usEast1Sess)
+	client.codecommitconn = codecommit.New(sess)
 	client.codedeployconn = codedeploy.New(sess)
 	client.dsconn = directoryservice.New(sess)
 	client.dynamodbconn = dynamodb.New(dynamoSess)
@@ -282,6 +286,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.kinesisconn = kinesis.New(kinesisSess)
 	client.kmsconn = kms.New(sess)
 	client.lambdaconn = lambda.New(sess)
+	client.lightsailconn = lightsail.New(usEast1Sess)
 	client.opsworksconn = opsworks.New(usEast1Sess)
 	client.r53conn = route53.New(usEast1Sess)
 	client.rdsconn = rds.New(sess)
@@ -289,6 +294,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.simpledbconn = simpledb.New(sess)
 	client.s3conn = s3.New(awsS3Sess)
 	client.sesConn = ses.New(sess)
+	client.sfnconn = sfn.New(sess)
 	client.snsconn = sns.New(sess)
 	client.sqsconn = sqs.New(sess)
 	client.ssmconn = ssm.New(sess)
@@ -306,9 +312,11 @@ func (c *Config) ValidateRegion() error {
 		"ap-south-1",
 		"ap-southeast-1",
 		"ap-southeast-2",
+		"ca-central-1",
 		"cn-north-1",
 		"eu-central-1",
 		"eu-west-1",
+		"eu-west-2",
 		"sa-east-1",
 		"us-east-1",
 		"us-east-2",

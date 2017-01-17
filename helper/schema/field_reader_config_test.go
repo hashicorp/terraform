@@ -219,15 +219,27 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 			Type:     TypeMap,
 			Computed: true,
 		},
+		"listmap": &Schema{
+			Type:     TypeMap,
+			Computed: true,
+			Elem:     TypeList,
+		},
+		"maplist": &Schema{
+			Type:     TypeList,
+			Computed: true,
+			Elem:     TypeMap,
+		},
 	}
 
-	cases := map[string]struct {
+	cases := []struct {
+		Name   string
 		Addr   []string
 		Result FieldReadResult
 		Config *terraform.ResourceConfig
 		Err    bool
 	}{
-		"set, normal": {
+		{
+			"set, normal",
 			[]string{"map"},
 			FieldReadResult{
 				Value: map[string]interface{}{
@@ -244,7 +256,8 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 			false,
 		},
 
-		"computed element": {
+		{
+			"computed element",
 			[]string{"map"},
 			FieldReadResult{
 				Exists:   true,
@@ -263,7 +276,8 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 			false,
 		},
 
-		"native map": {
+		{
+			"native map",
 			[]string{"map"},
 			FieldReadResult{
 				Value: map[string]interface{}{
@@ -292,27 +306,147 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 			}),
 			false,
 		},
+
+		{
+			"map-from-list-of-maps",
+			[]string{"maplist", "0"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"key": "bar",
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"maplist": "${var.foo}",
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Type: ast.TypeList,
+					Value: []ast.Variable{
+						{
+							Type: ast.TypeMap,
+							Value: map[string]ast.Variable{
+								"key": ast.Variable{
+									Type:  ast.TypeString,
+									Value: "bar",
+								},
+							},
+						},
+					},
+				},
+			}),
+			false,
+		},
+
+		{
+			"value-from-list-of-maps",
+			[]string{"maplist", "0", "key"},
+			FieldReadResult{
+				Value:    "bar",
+				Exists:   true,
+				Computed: false,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"maplist": "${var.foo}",
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Type: ast.TypeList,
+					Value: []ast.Variable{
+						{
+							Type: ast.TypeMap,
+							Value: map[string]ast.Variable{
+								"key": ast.Variable{
+									Type:  ast.TypeString,
+									Value: "bar",
+								},
+							},
+						},
+					},
+				},
+			}),
+			false,
+		},
+
+		{
+			"list-from-map-of-lists",
+			[]string{"listmap", "key"},
+			FieldReadResult{
+				Value:    []interface{}{"bar"},
+				Exists:   true,
+				Computed: false,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"listmap": "${var.foo}",
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Type: ast.TypeMap,
+					Value: map[string]ast.Variable{
+						"key": ast.Variable{
+							Type: ast.TypeList,
+							Value: []ast.Variable{
+								ast.Variable{
+									Type:  ast.TypeString,
+									Value: "bar",
+								},
+							},
+						},
+					},
+				},
+			}),
+			false,
+		},
+
+		{
+			"value-from-map-of-lists",
+			[]string{"listmap", "key", "0"},
+			FieldReadResult{
+				Value:    "bar",
+				Exists:   true,
+				Computed: false,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"listmap": "${var.foo}",
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Type: ast.TypeMap,
+					Value: map[string]ast.Variable{
+						"key": ast.Variable{
+							Type: ast.TypeList,
+							Value: []ast.Variable{
+								ast.Variable{
+									Type:  ast.TypeString,
+									Value: "bar",
+								},
+							},
+						},
+					},
+				},
+			}),
+			false,
+		},
 	}
 
-	for name, tc := range cases {
-		r := &ConfigFieldReader{
-			Schema: schema,
-			Config: tc.Config,
-		}
-		out, err := r.ReadField(tc.Addr)
-		if err != nil != tc.Err {
-			t.Fatalf("%s: err: %s", name, err)
-		}
-		if s, ok := out.Value.(*Set); ok {
-			// If it is a set, convert to the raw map
-			out.Value = s.m
-			if len(s.m) == 0 {
-				out.Value = nil
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			r := &ConfigFieldReader{
+				Schema: schema,
+				Config: tc.Config,
 			}
-		}
-		if !reflect.DeepEqual(tc.Result, out) {
-			t.Fatalf("%s: bad: %#v", name, out)
-		}
+			out, err := r.ReadField(tc.Addr)
+			if err != nil != tc.Err {
+				t.Fatal(err)
+			}
+			if s, ok := out.Value.(*Set); ok {
+				// If it is a set, convert to the raw map
+				out.Value = s.m
+				if len(s.m) == 0 {
+					out.Value = nil
+				}
+			}
+			if !reflect.DeepEqual(tc.Result, out) {
+				t.Fatalf("\nexpected: %#v\ngot:      %#v", tc.Result, out)
+			}
+		})
 	}
 }
 

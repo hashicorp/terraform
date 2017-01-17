@@ -24,7 +24,8 @@ import (
 	"net/http"
 )
 
-// TagsClient is the client for the Tags methods of the Resources service.
+// TagsClient is the provides operations for working with resources and
+// resource groups.
 type TagsClient struct {
 	ManagementClient
 }
@@ -39,9 +40,11 @@ func NewTagsClientWithBaseURI(baseURI string, subscriptionID string) TagsClient 
 	return TagsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate create a subscription resource tag.
+// CreateOrUpdate the tag name can have a maximum of 512 characters and is
+// case insensitive. Tag names created by Azure have prefixes of microsoft,
+// azure, or windows. You cannot create tags with one of these prefixes.
 //
-// tagName is the name of the tag.
+// tagName is the name of the tag to create.
 func (client TagsClient) CreateOrUpdate(tagName string) (result TagDetails, err error) {
 	req, err := client.CreateOrUpdatePreparer(tagName)
 	if err != nil {
@@ -100,9 +103,10 @@ func (client TagsClient) CreateOrUpdateResponder(resp *http.Response) (result Ta
 	return
 }
 
-// CreateOrUpdateValue create a subscription resource tag value.
+// CreateOrUpdateValue creates a tag value. The name of the tag must already
+// exist.
 //
-// tagName is the name of the tag. tagValue is the value of the tag.
+// tagName is the name of the tag. tagValue is the value of the tag to create.
 func (client TagsClient) CreateOrUpdateValue(tagName string, tagValue string) (result TagValue, err error) {
 	req, err := client.CreateOrUpdateValuePreparer(tagName, tagValue)
 	if err != nil {
@@ -162,7 +166,8 @@ func (client TagsClient) CreateOrUpdateValueResponder(resp *http.Response) (resu
 	return
 }
 
-// Delete delete a subscription resource tag.
+// Delete you must remove all values from a resource tag before you can delete
+// it.
 //
 // tagName is the name of the tag.
 func (client TagsClient) Delete(tagName string) (result autorest.Response, err error) {
@@ -222,9 +227,9 @@ func (client TagsClient) DeleteResponder(resp *http.Response) (result autorest.R
 	return
 }
 
-// DeleteValue delete a subscription resource tag value.
+// DeleteValue deletes a tag value.
 //
-// tagName is the name of the tag. tagValue is the value of the tag.
+// tagName is the name of the tag. tagValue is the value of the tag to delete.
 func (client TagsClient) DeleteValue(tagName string, tagValue string) (result autorest.Response, err error) {
 	req, err := client.DeleteValuePreparer(tagName, tagValue)
 	if err != nil {
@@ -283,7 +288,8 @@ func (client TagsClient) DeleteValueResponder(resp *http.Response) (result autor
 	return
 }
 
-// List get a list of subscription resource tags.
+// List gets the names and values of all resource tags that are defined in a
+// subscription.
 func (client TagsClient) List() (result TagsListResult, err error) {
 	req, err := client.ListPreparer()
 	if err != nil {

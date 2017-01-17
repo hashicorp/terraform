@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/google/go-github/github"
@@ -13,15 +12,6 @@ import (
 const expectedPermission string = "admin"
 
 func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
-	testCollaborator := os.Getenv("GITHUB_TEST_COLLABORATOR")
-	testAccGithubRepositoryCollaboratorConfig := fmt.Sprintf(`
-		resource "github_repository_collaborator" "test_repo_collaborator" {
-			repository = "%s"
-			username = "%s"
-			permission = "%s"
-		}
-	`, testRepo, testCollaborator, expectedPermission)
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -33,6 +23,24 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 					testAccCheckGithubRepositoryCollaboratorExists("github_repository_collaborator.test_repo_collaborator"),
 					testAccCheckGithubRepositoryCollaboratorPermission("github_repository_collaborator.test_repo_collaborator"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccGithubRepositoryCollaborator_importBasic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccGithubRepositoryCollaboratorConfig,
+			},
+			resource.TestStep{
+				ResourceName:      "github_repository_collaborator.test_repo_collaborator",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -133,3 +141,11 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 		return fmt.Errorf("Repository collaborator did not appear in list of collaborators on repository")
 	}
 }
+
+var testAccGithubRepositoryCollaboratorConfig string = fmt.Sprintf(`
+  resource "github_repository_collaborator" "test_repo_collaborator" {
+    repository = "%s"
+    username = "%s"
+    permission = "%s"
+  }
+`, testRepo, testCollaborator, expectedPermission)

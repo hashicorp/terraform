@@ -2,6 +2,7 @@ package command
 
 import (
 	"flag"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -334,5 +335,69 @@ func testFixCwd(t *testing.T, tmp, cwd string) {
 
 	if err := os.RemoveAll(tmp); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+// testStdinPipe changes os.Stdin to be a pipe that sends the data from
+// the reader before closing the pipe.
+//
+// The returned function should be deferred to properly clean up and restore
+// the original stdin.
+func testStdinPipe(t *testing.T, src io.Reader) func() {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Modify stdin to point to our new pipe
+	old := os.Stdin
+	os.Stdin = r
+
+	// Copy the data from the reader to the pipe
+	go func() {
+		defer w.Close()
+		io.Copy(w, src)
+	}()
+
+	return func() {
+		// Close our read end
+		r.Close()
+
+		// Reset stdin
+		os.Stdin = old
+	}
+}
+
+// Modify os.Stdout to write to the given buffer. Note that this is generally
+// not useful since the commands are configured to write to a cli.Ui, not
+// Stdout directly. Commands like `console` though use the raw stdout.
+func testStdoutCapture(t *testing.T, dst io.Writer) func() {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Modify stdout
+	old := os.Stdout
+	os.Stdout = w
+
+	// Copy
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		defer r.Close()
+		io.Copy(dst, r)
+	}()
+
+	return func() {
+		// Close the writer end of the pipe
+		w.Sync()
+		w.Close()
+
+		// Reset stdout
+		os.Stdout = old
+
+		// Wait for the data copy to complete to avoid a race reading data
+		<-doneCh
 	}
 }

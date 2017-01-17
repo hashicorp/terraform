@@ -601,7 +601,15 @@ func (n *graphNodeExpandedResource) dataResourceEvalNodes(resource *Resource, in
 				// apply phases.)
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
+
 						if config.ComputedKeys != nil && len(config.ComputedKeys) > 0 {
+							return true, EvalEarlyExitError{}
+						}
+
+						// If the config explicitly has a depends_on for this
+						// data source, assume the intention is to prevent
+						// refreshing ahead of that dependency.
+						if len(n.Resource.DependsOn) > 0 {
 							return true, EvalEarlyExitError{}
 						}
 

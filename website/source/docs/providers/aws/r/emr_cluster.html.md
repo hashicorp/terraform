@@ -20,6 +20,9 @@ resource "aws_emr_cluster" "emr-test-cluster" {
   release_label = "emr-4.6.0"
   applications  = ["Spark"]
 
+  termination_protection = false
+  keep_job_flow_alive_when_no_steps = true
+
   ec2_attributes {
     subnet_id                         = "${aws_subnet.main.id}"
     emr_managed_master_security_group = "${aws_security_group.sg.id}"
@@ -63,18 +66,20 @@ The following arguments are supported:
 * `name` - (Required) The name of the job flow
 * `release_label` - (Required) The release label for the Amazon EMR release
 * `master_instance_type` - (Required) The EC2 instance type of the master node
+* `service_role` - (Required) IAM role that will be assumed by the Amazon EMR service to access AWS resources
 * `core_instance_type` - (Optional) The EC2 instance type of the slave nodes
 * `core_instance_count` - (Optional) Number of Amazon EC2 instances used to execute the job flow. EMR will use one node as the cluster's master node and use the remainder of the nodes (`core_instance_count`-1) as core nodes. Default `1`
 * `log_uri` - (Optional) S3 bucket to write the log files of the job flow. If a value
 	is not provided, logs are not created
 * `applications` - (Optional) A list of applications for the cluster. Valid values are: `Hadoop`, `Hive`,
+* `termination_protection` - (Optional) Switch on/off termination protection (default is off) 
+* `keep_job_flow_alive_when_no_steps` - (Optional) Switch on/off run cluster with no steps or when all steps are complete (default is on)
 	`Mahout`, `Pig`, and `Spark.` Case insensitive
 * `ec2_attributes` - (Optional) Attributes for the EC2 instances running the job
 flow. Defined below
 * `bootstrap_action` - (Optional) List of bootstrap actions that will be run before Hadoop is started on
 	the cluster nodes. Defined below
 * `configurations` - (Optional) List of configurations supplied for the EMR cluster you are creating
-* `service_role` - (Optional) IAM role that will be assumed by the Amazon EMR service to access AWS resources
 * `visible_to_all_users` - (Optional) Whether the job flow is visible to all IAM users of the AWS account associated with the job flow. Default `true`
 * `tags` - (Optional) list of tags to apply to the EMR Cluster
 
@@ -93,7 +98,7 @@ Cannot specify the `cc1.4xlarge` instance type for nodes of a job flow launched 
 * `emr_managed_master_security_group` - (Optional) Identifier of the Amazon EC2 security group for the master node
 * `emr_managed_slave_security_group` - (Optional) Identifier of the Amazon EC2 security group for the slave nodes
 * `service_access_security_group` - (Optional) Identifier of the Amazon EC2 service-access security group - required when the cluster runs on a private subnet
-* `instance_profile` - (Optional) Instance Profile for EC2 instances of the cluster assume this role
+* `instance_profile` - (Required) Instance Profile for EC2 instances of the cluster assume this role
 
 
 ## bootstrap\_action
@@ -107,19 +112,20 @@ Cannot specify the `cc1.4xlarge` instance type for nodes of a job flow launched 
 The following attributes are exported:
 
 * `id` - The ID of the EMR Cluster
-* `name`
-* `release_label`
-* `master_instance_type`
-* `core_instance_type`
-* `core_instance_count`
-* `log_uri`
-* `applications`
-* `ec2_attributes`
-* `bootstrap_action`
-* `configurations`
-* `service_role`
-* `visible_to_all_users`
-* `tags`
+* `name` - The name of the cluster.
+* `release_label` - The release label for the Amazon EMR release.
+* `master_instance_type` - The EC2 instance type of the master node.
+* `master_public_dns` - The public DNS name of the master EC2 instance.
+* `core_instance_type` - The EC2 instance type of the slave nodes.
+* `core_instance_count` The number of slave nodes, i.e. EC2 instance nodes.
+* `log_uri` - The path to the Amazon S3 location where logs for this cluster are stored.
+* `applications` - The applications installed on this cluster.
+* `ec2_attributes` - Provides information about the EC2 instances in a cluster grouped by category: key name, subnet ID, IAM instance profile, and so on.
+* `bootstrap_action` - A list of bootstrap actions that will be run before Hadoop is started on the cluster nodes.
+* `configurations` - The list of Configurations supplied to the EMR cluster.
+* `service_role` - The IAM role that will be assumed by the Amazon EMR service to access AWS resources on your behalf.
+* `visible_to_all_users` - Indicates whether the job flow is visible to all IAM users of the AWS account associated with the job flow.
+* `tags` - The list of tags associated with a cluster.
 
 
 ## Example bootable config

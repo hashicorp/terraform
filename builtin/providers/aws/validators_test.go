@@ -1,8 +1,11 @@
 package aws
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func TestValidateEcrRepositoryName(t *testing.T) {
@@ -186,6 +189,12 @@ func TestValidateAwsAccountId(t *testing.T) {
 }
 
 func TestValidateArn(t *testing.T) {
+	v := ""
+	_, errors := validateArn(v, "arn")
+	if len(errors) != 0 {
+		t.Fatalf("%q should not be validated as an ARN: %q", v, errors)
+	}
+
 	validNames := []string{
 		"arn:aws:elasticbeanstalk:us-east-1:123456789012:environment/My App/MyEnvironment", // Beanstalk
 		"arn:aws:iam::123456789012:user/David",                                             // IAM User
@@ -470,6 +479,111 @@ func TestValidateS3BucketLifecycleStorageClass(t *testing.T) {
 	}
 }
 
+func TestValidateS3BucketReplicationRuleId(t *testing.T) {
+	validId := []string{
+		"YadaHereAndThere",
+		"Valid-5Rule_ID",
+		"This . is also %% valid@!)+*(:ID",
+		"1234",
+		strings.Repeat("W", 255),
+	}
+	for _, v := range validId {
+		_, errors := validateS3BucketReplicationRuleId(v, "id")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid lifecycle rule id: %q", v, errors)
+		}
+	}
+
+	invalidId := []string{
+		// length > 255
+		strings.Repeat("W", 256),
+	}
+	for _, v := range invalidId {
+		_, errors := validateS3BucketReplicationRuleId(v, "id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid replication configuration rule id", v)
+		}
+	}
+}
+
+func TestValidateS3BucketReplicationRulePrefix(t *testing.T) {
+	validId := []string{
+		"YadaHereAndThere",
+		"Valid-5Rule_ID",
+		"This . is also %% valid@!)+*(:ID",
+		"1234",
+		strings.Repeat("W", 1024),
+	}
+	for _, v := range validId {
+		_, errors := validateS3BucketReplicationRulePrefix(v, "id")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid lifecycle rule id: %q", v, errors)
+		}
+	}
+
+	invalidId := []string{
+		// length > 1024
+		strings.Repeat("W", 1025),
+	}
+	for _, v := range invalidId {
+		_, errors := validateS3BucketReplicationRulePrefix(v, "id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid replication configuration rule id", v)
+		}
+	}
+}
+
+func TestValidateS3BucketReplicationDestinationStorageClass(t *testing.T) {
+	validStorageClass := []string{
+		s3.StorageClassStandard,
+		s3.StorageClassStandardIa,
+		s3.StorageClassReducedRedundancy,
+	}
+
+	for _, v := range validStorageClass {
+		_, errors := validateS3BucketReplicationDestinationStorageClass(v, "storage_class")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be valid storage class: %q", v, errors)
+		}
+	}
+
+	invalidStorageClass := []string{
+		"FOO",
+		"1234",
+	}
+	for _, v := range invalidStorageClass {
+		_, errors := validateS3BucketReplicationDestinationStorageClass(v, "storage_class")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be invalid storage class", v)
+		}
+	}
+}
+
+func TestValidateS3BucketReplicationRuleStatus(t *testing.T) {
+	validRuleStatuses := []string{
+		s3.ReplicationRuleStatusEnabled,
+		s3.ReplicationRuleStatusDisabled,
+	}
+
+	for _, v := range validRuleStatuses {
+		_, errors := validateS3BucketReplicationRuleStatus(v, "status")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be valid rule status: %q", v, errors)
+		}
+	}
+
+	invalidRuleStatuses := []string{
+		"FOO",
+		"1234",
+	}
+	for _, v := range invalidRuleStatuses {
+		_, errors := validateS3BucketReplicationRuleStatus(v, "status")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be invalid rule status", v)
+		}
+	}
+}
+
 func TestValidateS3BucketLifecycleRuleId(t *testing.T) {
 	validId := []string{
 		"YadaHereAndThere",
@@ -684,6 +798,248 @@ func TestValidateApiGatewayIntegrationType(t *testing.T) {
 		_, errors := validateApiGatewayIntegrationType(tc.Value, "types")
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
+func TestValidateSQSQueueName(t *testing.T) {
+	validNames := []string{
+		"valid-name",
+		"valid02-name",
+		"Valid-Name1",
+		"_",
+		"-",
+		strings.Repeat("W", 80),
+	}
+	for _, v := range validNames {
+		if errors := validateSQSQueueName(v, "name"); len(errors) > 0 {
+			t.Fatalf("%q should be a valid SQS queue Name", v)
+		}
+	}
+
+	invalidNames := []string{
+		"Here is a name with: colon",
+		"another * invalid name",
+		"also $ invalid",
+		"This . is also %% invalid@!)+(",
+		"*",
+		"",
+		" ",
+		".",
+		strings.Repeat("W", 81), // length > 80
+	}
+	for _, v := range invalidNames {
+		if errors := validateSQSQueueName(v, "name"); len(errors) == 0 {
+			t.Fatalf("%q should be an invalid SQS queue Name", v)
+		}
+	}
+}
+
+func TestValidateSQSFifoQueueName(t *testing.T) {
+	validNames := []string{
+		"valid-name.fifo",
+		"valid02-name.fifo",
+		"Valid-Name1.fifo",
+		"_.fifo",
+		"a.fifo",
+		"A.fifo",
+		"9.fifo",
+		"-.fifo",
+		fmt.Sprintf("%s.fifo", strings.Repeat("W", 75)),
+	}
+	for _, v := range validNames {
+		if errors := validateSQSFifoQueueName(v, "name"); len(errors) > 0 {
+			t.Fatalf("%q should be a valid SQS FIFO queue Name: %v", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"Here is a name with: colon",
+		"another * invalid name",
+		"also $ invalid",
+		"This . is also %% invalid@!)+(",
+		".fifo",
+		"*",
+		"",
+		" ",
+		".",
+		strings.Repeat("W", 81), // length > 80
+	}
+	for _, v := range invalidNames {
+		if errors := validateSQSFifoQueueName(v, "name"); len(errors) == 0 {
+			t.Fatalf("%q should be an invalid SQS FIFO queue Name: %v", v, errors)
+		}
+	}
+}
+
+func TestValidateSNSSubscriptionProtocol(t *testing.T) {
+	validProtocols := []string{
+		"lambda",
+		"sqs",
+		"sqs",
+		"application",
+		"http",
+		"https",
+	}
+	for _, v := range validProtocols {
+		if _, errors := validateSNSSubscriptionProtocol(v, "protocol"); len(errors) > 0 {
+			t.Fatalf("%q should be a valid SNS Subscription protocol: %v", v, errors)
+		}
+	}
+
+	invalidProtocols := []string{
+		"Email",
+		"email",
+		"Email-JSON",
+		"email-json",
+		"SMS",
+		"sms",
+	}
+	for _, v := range invalidProtocols {
+		if _, errors := validateSNSSubscriptionProtocol(v, "protocol"); len(errors) == 0 {
+			t.Fatalf("%q should be an invalid SNS Subscription protocol: %v", v, errors)
+		}
+	}
+}
+
+func TestValidateSecurityRuleType(t *testing.T) {
+	validTypes := []string{
+		"ingress",
+		"egress",
+	}
+	for _, v := range validTypes {
+		if _, errors := validateSecurityRuleType(v, "type"); len(errors) > 0 {
+			t.Fatalf("%q should be a valid Security Group Rule type: %v", v, errors)
+		}
+	}
+
+	invalidTypes := []string{
+		"foo",
+		"ingresss",
+	}
+	for _, v := range invalidTypes {
+		if _, errors := validateSecurityRuleType(v, "type"); len(errors) == 0 {
+			t.Fatalf("%q should be an invalid Security Group Rule type: %v", v, errors)
+		}
+	}
+}
+
+func TestValidateOnceAWeekWindowFormat(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			// once a day window format
+			Value:    "04:00-05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid day of week
+			Value:    "san:04:00-san:05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid hour
+			Value:    "sun:24:00-san:25:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid min
+			Value:    "sun:04:00-sun:04:60",
+			ErrCount: 1,
+		},
+		{
+			// valid format
+			Value:    "sun:04:00-sun:05:00",
+			ErrCount: 0,
+		},
+		{
+			// "Sun" can also be used
+			Value:    "Sun:04:00-Sun:05:00",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateOnceAWeekWindowFormat(tc.Value, "maintenance_window")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d validation errors, But got %d errors for \"%s\"", tc.ErrCount, len(errors), tc.Value)
+		}
+	}
+}
+
+func TestValidateOnceADayWindowFormat(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			// once a week window format
+			Value:    "sun:04:00-sun:05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid hour
+			Value:    "24:00-25:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid min
+			Value:    "04:00-04:60",
+			ErrCount: 1,
+		},
+		{
+			// valid format
+			Value:    "04:00-05:00",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateOnceADayWindowFormat(tc.Value, "backup_window")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d validation errors, But got %d errors for \"%s\"", tc.ErrCount, len(errors), tc.Value)
+		}
+	}
+}
+
+func TestValidateRoute53RecordType(t *testing.T) {
+	validTypes := []string{
+		"AAAA",
+		"SOA",
+		"A",
+		"TXT",
+		"CNAME",
+		"MX",
+		"NAPTR",
+		"PTR",
+		"SPF",
+		"SRV",
+		"NS",
+	}
+
+	invalidTypes := []string{
+		"a",
+		"alias",
+		"SpF",
+		"Txt",
+		"AaAA",
+	}
+
+	for _, v := range validTypes {
+		_, errors := validateRoute53RecordType(v, "route53_record")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Route53 record type: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidTypes {
+		_, errors := validateRoute53RecordType(v, "route53_record")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Route53 record type", v)
 		}
 	}
 }

@@ -11,6 +11,31 @@ func TestCountHook_impl(t *testing.T) {
 	var _ terraform.Hook = new(CountHook)
 }
 
+func TestCountHookPostDiff_DestroyDeposed(t *testing.T) {
+	h := new(CountHook)
+
+	resources := map[string]*terraform.InstanceDiff{
+		"lorem": &terraform.InstanceDiff{DestroyDeposed: true},
+	}
+
+	n := &terraform.InstanceInfo{} // TODO
+
+	for _, d := range resources {
+		h.PostDiff(n, d)
+	}
+
+	expected := new(CountHook)
+	expected.ToAdd = 0
+	expected.ToChange = 0
+	expected.ToRemoveAndAdd = 0
+	expected.ToRemove = 1
+
+	if !reflect.DeepEqual(expected, h) {
+		t.Fatalf("Expected %#v, got %#v instead.",
+			expected, h)
+	}
+}
+
 func TestCountHookPostDiff_DestroyOnly(t *testing.T) {
 	h := new(CountHook)
 

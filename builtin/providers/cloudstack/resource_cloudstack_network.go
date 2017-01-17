@@ -77,6 +77,12 @@ func resourceCloudStackNetwork() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"network_domain": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"network_offering": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -165,6 +171,11 @@ func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) e
 		p.SetEndip(endip)
 	}
 
+	// Set the network domain if we have one
+	if networkDomain, ok := d.GetOk("network_domain"); ok {
+		p.SetNetworkdomain(networkDomain.(string))
+	}
+
 	if vlan, ok := d.GetOk("vlan"); ok {
 		p.SetVlan(strconv.Itoa(vlan.(int)))
 	}
@@ -225,6 +236,7 @@ func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("display_text", n.Displaytext)
 	d.Set("cidr", n.Cidr)
 	d.Set("gateway", n.Gateway)
+	d.Set("network_domain", n.Networkdomain)
 	d.Set("vpc_id", n.Vpcid)
 
 	if n.Aclid == "" {
@@ -268,6 +280,11 @@ func resourceCloudStackNetworkUpdate(d *schema.ResourceData, meta interface{}) e
 	// Check if the cidr is changed
 	if d.HasChange("cidr") {
 		p.SetGuestvmcidr(d.Get("cidr").(string))
+	}
+
+	// Check if the network domain is changed
+	if d.HasChange("network_domain") {
+		p.SetNetworkdomain(d.Get("network_domain").(string))
 	}
 
 	// Check if the network offering is changed

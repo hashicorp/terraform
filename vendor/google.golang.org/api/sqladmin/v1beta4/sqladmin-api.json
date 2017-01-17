@@ -1,19 +1,19 @@
 {
  "kind": "discovery#restDescription",
- "etag": "\"C5oy1hgQsABtYOYIOXWcR3BgYqU/Bw6HlPfCUqTIhF647hFuWCHD0c8\"",
+ "etag": "\"tbys6C40o18GZwyMen5GMkdK-3s/0q1bgr0rR6WxzzPOS6Rfltu7D84\"",
  "discoveryVersion": "v1",
  "id": "sqladmin:v1beta4",
  "name": "sqladmin",
  "canonicalName": "SQL Admin",
  "version": "v1beta4",
- "revision": "20160712",
+ "revision": "20161115",
  "title": "Cloud SQL Administration API",
  "description": "Creates and configures Cloud SQL instances, which provide fully-managed MySQL databases.",
  "ownerDomain": "google.com",
  "ownerName": "Google",
  "icons": {
-  "x16": "http://www.google.com/images/icons/product/search-16.gif",
-  "x32": "http://www.google.com/images/icons/product/search-32.gif"
+  "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
+  "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
  },
  "documentationLink": "https://cloud.google.com/sql/docs/reference/latest",
  "protocol": "rest",
@@ -332,6 +332,10 @@
     "backendType": {
      "type": "string",
      "description": "FIRST_GEN: Basic Cloud SQL instance that runs in a Google-managed container.\nSECOND_GEN: A newer Cloud SQL backend that runs in a Compute Engine VM.\nEXTERNAL: A MySQL server that is not managed by Google."
+    },
+    "connectionName": {
+     "type": "string",
+     "description": "Connection name of the Cloud SQL instance used in connection strings."
     },
     "currentDiskSize": {
      "type": "string",
@@ -767,6 +771,10 @@
      "type": "string",
      "description": "The due time for this IP to be retired in RFC 3339 format, for example 2012-11-15T16:19:00.094Z. This field is only available when the IP is scheduled to be retired.",
      "format": "date-time"
+    },
+    "type": {
+     "type": "string",
+     "description": "The type of this IP address. A PRIMARY address is an address that can accept incoming connections. An OUTGOING address is the source address of connections originating from the instance, if supported."
     }
    }
   },
@@ -1307,7 +1315,7 @@
     },
     "region": {
      "type": "array",
-     "description": "The applicable regions for this tier. Can be us-east1, europe-west1 or asia-east1.",
+     "description": "The applicable regions for this tier.",
      "items": {
       "type": "string"
      }
@@ -1482,7 +1490,7 @@
      "id": "sql.backupRuns.insert",
      "path": "projects/{project}/instances/{instance}/backupRuns",
      "httpMethod": "POST",
-     "description": "Creates a new backup run on demand.",
+     "description": "Creates a new backup run on demand. This method is applicable only to Second Generation instances.",
      "parameters": {
       "instance": {
        "type": "string",
@@ -1506,7 +1514,11 @@
      },
      "response": {
       "$ref": "Operation"
-     }
+     },
+     "scopes": [
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/sqlservice.admin"
+     ]
     },
     "list": {
      "id": "sql.backupRuns.list",

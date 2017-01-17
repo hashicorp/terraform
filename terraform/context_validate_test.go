@@ -44,6 +44,28 @@ func TestContext2Validate_badVar(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_varMapOverrideOld(t *testing.T) {
+	m := testModule(t, "validate-module-pc-vars")
+	p := testProvider("aws")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]interface{}{
+			"foo.foo": "bar",
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %s", e)
+	}
+}
+
 func TestContext2Validate_varNoDefaultExplicitType(t *testing.T) {
 	m := testModule(t, "validate-var-no-default-explicit-type")
 	c := testContext2(t, &ContextOpts{
@@ -847,5 +869,48 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 	}
 	if e != nil {
 		t.Fatal("err:", e)
+	}
+}
+
+// Manually validate using the new PlanGraphBuilder
+func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
+	m := testModule(t, "apply-vars")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]interface{}{
+			"foo":       "us-west-2",
+			"test_list": []interface{}{"Hello", "World"},
+			"test_map": map[string]interface{}{
+				"Hello": "World",
+				"Foo":   "Bar",
+				"Baz":   "Foo",
+			},
+			"amis": []map[string]interface{}{
+				map[string]interface{}{
+					"us-east-1": "override",
+				},
+			},
+		},
+	})
+
+	graph, err := (&PlanGraphBuilder{
+		Module:    c.module,
+		State:     NewState(),
+		Providers: c.components.ResourceProviders(),
+		Targets:   c.targets,
+	}).Build(RootModulePath)
+
+	walker, err := c.walk(graph, graph, walkValidate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(walker.ValidationErrors) > 0 {
+		t.Fatal(walker.ValidationErrors)
 	}
 }

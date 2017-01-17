@@ -12,10 +12,10 @@ import (
 )
 
 func TestAccNetworkingV2SecGroupRule_basic(t *testing.T) {
-	var security_group_1 groups.SecGroup
-	var security_group_2 groups.SecGroup
-	var security_group_rule_1 rules.SecGroupRule
-	var security_group_rule_2 rules.SecGroupRule
+	var secgroup_1 groups.SecGroup
+	var secgroup_2 groups.SecGroup
+	var secgroup_rule_1 rules.SecGroupRule
+	var secgroup_rule_2 rules.SecGroupRule
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -25,10 +25,14 @@ func TestAccNetworkingV2SecGroupRule_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2SecGroupRule_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2SecGroupExists(t, "openstack_networking_secgroup_v2.sg_foo", &security_group_1),
-					testAccCheckNetworkingV2SecGroupExists(t, "openstack_networking_secgroup_v2.sg_bar", &security_group_2),
-					testAccCheckNetworkingV2SecGroupRuleExists(t, "openstack_networking_secgroup_rule_v2.sr_foo", &security_group_rule_1),
-					testAccCheckNetworkingV2SecGroupRuleExists(t, "openstack_networking_secgroup_rule_v2.sr_bar", &security_group_rule_2),
+					testAccCheckNetworkingV2SecGroupExists(
+						"openstack_networking_secgroup_v2.secgroup_1", &secgroup_1),
+					testAccCheckNetworkingV2SecGroupExists(
+						"openstack_networking_secgroup_v2.secgroup_2", &secgroup_2),
+					testAccCheckNetworkingV2SecGroupRuleExists(
+						"openstack_networking_secgroup_rule_v2.secgroup_rule_1", &secgroup_rule_1),
+					testAccCheckNetworkingV2SecGroupRuleExists(
+						"openstack_networking_secgroup_rule_v2.secgroup_rule_2", &secgroup_rule_2),
 				),
 			},
 		},
@@ -36,8 +40,8 @@ func TestAccNetworkingV2SecGroupRule_basic(t *testing.T) {
 }
 
 func TestAccNetworkingV2SecGroupRule_lowerCaseCIDR(t *testing.T) {
-	var security_group_1 groups.SecGroup
-	var security_group_rule_1 rules.SecGroupRule
+	var secgroup_1 groups.SecGroup
+	var secgroup_rule_1 rules.SecGroupRule
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -47,10 +51,12 @@ func TestAccNetworkingV2SecGroupRule_lowerCaseCIDR(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2SecGroupRule_lowerCaseCIDR,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2SecGroupExists(t, "openstack_networking_secgroup_v2.sg_foo", &security_group_1),
-					testAccCheckNetworkingV2SecGroupRuleExists(t, "openstack_networking_secgroup_rule_v2.sr_foo", &security_group_rule_1),
+					testAccCheckNetworkingV2SecGroupExists(
+						"openstack_networking_secgroup_v2.secgroup_1", &secgroup_1),
+					testAccCheckNetworkingV2SecGroupRuleExists(
+						"openstack_networking_secgroup_rule_v2.secgroup_rule_1", &secgroup_rule_1),
 					resource.TestCheckResourceAttr(
-						"openstack_networking_secgroup_rule_v2.sr_foo", "remote_ip_prefix", "2001:558:fc00::/39"),
+						"openstack_networking_secgroup_rule_v2.secgroup_rule_1", "remote_ip_prefix", "2001:558:fc00::/39"),
 				),
 			},
 		},
@@ -61,7 +67,7 @@ func testAccCheckNetworkingV2SecGroupRuleDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 	if err != nil {
-		return fmt.Errorf("(testAccCheckNetworkingV2SecGroupRuleDestroy) Error creating OpenStack networking client: %s", err)
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
 	for _, rs := range s.RootModule().Resources {
@@ -78,7 +84,7 @@ func testAccCheckNetworkingV2SecGroupRuleDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckNetworkingV2SecGroupRuleExists(t *testing.T, n string, security_group_rule *rules.SecGroupRule) resource.TestCheckFunc {
+func testAccCheckNetworkingV2SecGroupRuleExists(n string, security_group_rule *rules.SecGroupRule) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -92,7 +98,7 @@ func testAccCheckNetworkingV2SecGroupRuleExists(t *testing.T, n string, security
 		config := testAccProvider.Meta().(*Config)
 		networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 		if err != nil {
-			return fmt.Errorf("(testAccCheckNetworkingV2SecGroupRuleExists) Error creating OpenStack networking client: %s", err)
+			return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 		}
 
 		found, err := rules.Get(networkingClient, rs.Primary.ID).Extract()
@@ -110,45 +116,51 @@ func testAccCheckNetworkingV2SecGroupRuleExists(t *testing.T, n string, security
 	}
 }
 
-var testAccNetworkingV2SecGroupRule_basic = fmt.Sprintf(`
-  resource "openstack_networking_secgroup_v2" "sg_foo" {
-    name = "security_group_1"
-    description = "terraform security group rule acceptance test"
-  }
-  resource "openstack_networking_secgroup_v2" "sg_bar" {
-    name = "security_group_2"
-    description = "terraform security group rule acceptance test"
-  }
-  resource "openstack_networking_secgroup_rule_v2" "sr_foo" {
-    direction = "ingress"
-    ethertype = "IPv4"
-    port_range_max = 22
-    port_range_min = 22
-    protocol = "tcp"
-    remote_ip_prefix = "0.0.0.0/0"
-    security_group_id = "${openstack_networking_secgroup_v2.sg_foo.id}"
-  }
-  resource "openstack_networking_secgroup_rule_v2" "sr_bar" {
-    direction = "ingress"
-    ethertype = "IPv4"
-    port_range_max = 80
-    port_range_min = 80
-    protocol = "tcp"
-    remote_group_id = "${openstack_networking_secgroup_v2.sg_foo.id}"
-    security_group_id = "${openstack_networking_secgroup_v2.sg_bar.id}"
-  }`)
+const testAccNetworkingV2SecGroupRule_basic = `
+resource "openstack_networking_secgroup_v2" "secgroup_1" {
+  name = "secgroup_1"
+  description = "terraform security group rule acceptance test"
+}
 
-var testAccNetworkingV2SecGroupRule_lowerCaseCIDR = fmt.Sprintf(`
-  resource "openstack_networking_secgroup_v2" "sg_foo" {
-    name = "security_group_1"
-    description = "terraform security group rule acceptance test"
-  }
-  resource "openstack_networking_secgroup_rule_v2" "sr_foo" {
-    direction = "ingress"
-    ethertype = "IPv6"
-    port_range_max = 22
-    port_range_min = 22
-    protocol = "tcp"
-    remote_ip_prefix = "2001:558:FC00::/39"
-    security_group_id = "${openstack_networking_secgroup_v2.sg_foo.id}"
-  }`)
+resource "openstack_networking_secgroup_v2" "secgroup_2" {
+  name = "secgroup_2"
+  description = "terraform security group rule acceptance test"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_1" {
+  direction = "ingress"
+  ethertype = "IPv4"
+  port_range_max = 22
+  port_range_min = 22
+  protocol = "tcp"
+  remote_ip_prefix = "0.0.0.0/0"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_1.id}"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_2" {
+  direction = "ingress"
+  ethertype = "IPv4"
+  port_range_max = 80
+  port_range_min = 80
+  protocol = "tcp"
+  remote_group_id = "${openstack_networking_secgroup_v2.secgroup_1.id}"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_2.id}"
+}
+`
+
+const testAccNetworkingV2SecGroupRule_lowerCaseCIDR = `
+resource "openstack_networking_secgroup_v2" "secgroup_1" {
+  name = "secgroup_1"
+  description = "terraform security group rule acceptance test"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "secgroup_rule_1" {
+  direction = "ingress"
+  ethertype = "IPv6"
+  port_range_max = 22
+  port_range_min = 22
+  protocol = "tcp"
+  remote_ip_prefix = "2001:558:FC00::/39"
+  security_group_id = "${openstack_networking_secgroup_v2.secgroup_1.id}"
+}
+`

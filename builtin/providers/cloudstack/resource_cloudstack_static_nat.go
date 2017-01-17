@@ -23,13 +23,6 @@ func resourceCloudStackStaticNAT() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"network_id": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "network_id is deprecated and can be safely omitted",
-			},
-
 			"virtual_machine_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -73,10 +66,18 @@ func resourceCloudStackStaticNATCreate(d *schema.ResourceData, meta interface{})
 		p.SetVmguestip(vmGuestIP.(string))
 
 		// Set the network ID based on the guest IP, needed when the public IP address
-		// is not associated with any network yet (VPC case)
+		// is not associated with any network yet
+	NICS:
 		for _, nic := range vm.Nic {
 			if vmGuestIP.(string) == nic.Ipaddress {
 				p.SetNetworkid(nic.Networkid)
+				break NICS
+			}
+			for _, ip := range nic.Secondaryip {
+				if vmGuestIP.(string) == ip.Ipaddress {
+					p.SetNetworkid(nic.Networkid)
+					break NICS
+				}
 			}
 		}
 	} else {

@@ -14,6 +14,9 @@ func resourceGithubTeamMembership() *schema.Resource {
 		Read:   resourceGithubTeamMembershipRead,
 		// editing team memberships are not supported by github api so forcing new on any changes
 		Delete: resourceGithubTeamMembershipDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"team_id": &schema.Schema{
@@ -57,8 +60,7 @@ func resourceGithubTeamMembershipCreate(d *schema.ResourceData, meta interface{}
 
 func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	t := d.Get("team_id").(string)
-	n := d.Get("username").(string)
+	t, n := parseTwoPartID(d.Id())
 
 	membership, _, err := client.Organizations.GetTeamMembership(toGithubID(t), n)
 

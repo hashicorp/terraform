@@ -25,76 +25,77 @@ func resourceAwsS3BucketObject() *schema.Resource {
 		Delete: resourceAwsS3BucketObjectDelete,
 
 		Schema: map[string]*schema.Schema{
-			"bucket": &schema.Schema{
+			"bucket": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"acl": &schema.Schema{
+			"acl": {
 				Type:         schema.TypeString,
 				Default:      "private",
 				Optional:     true,
 				ValidateFunc: validateS3BucketObjectAclType,
 			},
 
-			"cache_control": &schema.Schema{
+			"cache_control": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"content_disposition": &schema.Schema{
+			"content_disposition": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"content_encoding": &schema.Schema{
+			"content_encoding": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"content_language": &schema.Schema{
+			"content_language": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"content_type": &schema.Schema{
+			"content_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"key": &schema.Schema{
+			"key": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"source": &schema.Schema{
+			"source": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"content"},
 			},
 
-			"content": &schema.Schema{
+			"content": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"source"},
 			},
 
-			"storage_class": &schema.Schema{
+			"storage_class": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				ValidateFunc: validateS3BucketObjectStorageClassType,
 			},
 
-			"kms_key_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+			"kms_key_id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateArn,
 			},
 
-			"etag": &schema.Schema{
+			"etag": {
 				Type: schema.TypeString,
 				// This will conflict with SSE-C and SSE-KMS encryption and multi-part upload
 				// if/when it's actually implemented. The Etag then won't match raw-file MD5.
@@ -104,7 +105,7 @@ func resourceAwsS3BucketObject() *schema.Resource {
 				ConflictsWith: []string{"kms_key_id"},
 			},
 
-			"version_id": &schema.Schema{
+			"version_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

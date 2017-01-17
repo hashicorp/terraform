@@ -19,13 +19,13 @@ resource "openstack_blockstorage_volume_v2" "volume_1" {
   size = 1
 }
 
-resource "openstack_blockstorage_instance_v2" "instance_1" {
+resource "openstack_compute_instance_v2" "instance_1" {
   name = "instance_1"
   security_groups = ["default"]
 }
 
 resource "openstack_blockstorage_volume_attach_v2" "va_1" {
-  instance_id = "${openstack_blockstorage_instance_v2.instance_1.id}"
+  instance_id = "${openstack_compute_instance_v2.instance_1.id}"
   volume_id = "${openstack_blockstorage_volume_v2.volume_1.id}"
   device = "auto"
   attach_mode = "rw"

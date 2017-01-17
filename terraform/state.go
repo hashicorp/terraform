@@ -108,6 +108,10 @@ func (s *State) Children(path []string) []*ModuleState {
 func (s *State) children(path []string) []*ModuleState {
 	result := make([]*ModuleState, 0)
 	for _, m := range s.Modules {
+		if m == nil {
+			continue
+		}
+
 		if len(m.Path) != len(path)+1 {
 			continue
 		}
@@ -161,6 +165,9 @@ func (s *State) ModuleByPath(path []string) *ModuleState {
 
 func (s *State) moduleByPath(path []string) *ModuleState {
 	for _, mod := range s.Modules {
+		if mod == nil {
+			continue
+		}
 		if mod.Path == nil {
 			panic("missing module path")
 		}
@@ -213,6 +220,10 @@ func (s *State) moduleOrphans(path []string, c *config.Config) [][]string {
 
 	// Find the orphans that are nested...
 	for _, m := range s.Modules {
+		if m == nil {
+			continue
+		}
+
 		// We only want modules that are at least grandchildren
 		if len(m.Path) < len(path)+2 {
 			continue
@@ -328,6 +339,10 @@ func (s *State) Validate() error {
 	{
 		found := make(map[string]struct{})
 		for _, ms := range s.Modules {
+			if ms == nil {
+				continue
+			}
+
 			key := strings.Join(ms.Path, ".")
 			if _, ok := found[key]; ok {
 				result = multierror.Append(result, fmt.Errorf(
@@ -644,12 +659,10 @@ func (s *State) init() {
 	}
 	s.ensureHasLineage()
 
-	// We can't trust that state read from a file doesn't have nil/empty
-	// modules
-	s.prune()
-
 	for _, mod := range s.Modules {
-		mod.init()
+		if mod != nil {
+			mod.init()
+		}
 	}
 
 	if s.Remote != nil {
@@ -726,7 +739,9 @@ func (s *State) sort() {
 
 	// Allow modules to be sorted
 	for _, m := range s.Modules {
-		m.sort()
+		if m != nil {
+			m.sort()
+		}
 	}
 }
 
@@ -1810,6 +1825,10 @@ func ReadState(src io.Reader) (*State, error) {
 		panic("resulting state in load not set, assertion failed")
 	}
 
+	// Prune the state when read it. Its possible to write unpruned states or
+	// for a user to make a state unpruned (nil-ing a module state for example).
+	result.prune()
+
 	// Validate the state file is valid
 	if err := result.Validate(); err != nil {
 		return nil, err
@@ -1967,6 +1986,11 @@ func (s moduleStateSort) Len() int {
 func (s moduleStateSort) Less(i, j int) bool {
 	a := s[i]
 	b := s[j]
+
+	// If either is nil, then the nil one is "less" than
+	if a == nil || b == nil {
+		return a == nil
+	}
 
 	// If the lengths are different, then the shorter one always wins
 	if len(a.Path) != len(b.Path) {

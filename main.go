@@ -60,6 +60,8 @@ func realMain() int {
 		wrapConfig.Handler = panicHandler(logTempFile)
 		wrapConfig.Writer = io.MultiWriter(logTempFile, logWriter)
 		wrapConfig.Stdout = outW
+		wrapConfig.IgnoreSignals = ignoreSignals
+		wrapConfig.ForwardSignals = forwardSignals
 		exitStatus, err := panicwrap.Wrap(&wrapConfig)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Couldn't start Terraform: %s", err)
@@ -103,6 +105,24 @@ func wrappedMain() int {
 		return 1
 	}
 
+	// Load the configuration file if we have one, that can be used to
+	// define extra providers and provisioners.
+	clicfgFile, err := cliConfigFile()
+	if err != nil {
+		Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
+		return 1
+	}
+
+	if clicfgFile != "" {
+		usrcfg, err := LoadConfig(clicfgFile)
+		if err != nil {
+			Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
+			return 1
+		}
+
+		config = *config.Merge(usrcfg)
+	}
+
 	// Run checkpoint
 	go runCheckpoint(&config)
 
@@ -127,24 +147,6 @@ func wrappedMain() int {
 		Commands:   Commands,
 		HelpFunc:   helpFunc,
 		HelpWriter: os.Stdout,
-	}
-
-	// Load the configuration file if we have one, that can be used to
-	// define extra providers and provisioners.
-	clicfgFile, err := cliConfigFile()
-	if err != nil {
-		Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
-		return 1
-	}
-
-	if clicfgFile != "" {
-		usrcfg, err := LoadConfig(clicfgFile)
-		if err != nil {
-			Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
-			return 1
-		}
-
-		config = *config.Merge(usrcfg)
 	}
 
 	// Initialize the TFConfig settings for the commands...

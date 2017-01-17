@@ -35,6 +35,12 @@ func init() {
 		Ui:          Ui,
 	}
 
+	// The command list is included in the terraform -help
+	// output, which is in turn included in the docs at
+	// website/source/docs/commands/index.html.markdown; if you
+	// add, remove or reclassify commands then consider updating
+	// that to match.
+
 	PlumbingCommands = map[string]struct{}{
 		"state": struct{}{}, // includes all subcommands
 		"debug": struct{}{}, // includes all subcommands
@@ -217,7 +223,8 @@ func makeShutdownCh() <-chan struct{} {
 	resultCh := make(chan struct{})
 
 	signalCh := make(chan os.Signal, 4)
-	signal.Notify(signalCh, os.Interrupt)
+	signal.Notify(signalCh, ignoreSignals...)
+	signal.Notify(signalCh, forwardSignals...)
 	go func() {
 		for {
 			<-signalCh

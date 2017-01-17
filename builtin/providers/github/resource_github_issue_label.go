@@ -11,6 +11,9 @@ func resourceGithubIssueLabel() *schema.Resource {
 		Read:   resourceGithubIssueLabelRead,
 		Update: resourceGithubIssueLabelUpdate,
 		Delete: resourceGithubIssueLabelDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"repository": &schema.Schema{
@@ -55,8 +58,7 @@ func resourceGithubIssueLabelCreate(d *schema.ResourceData, meta interface{}) er
 
 func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	r := d.Get("repository").(string)
-	n := d.Get("name").(string)
+	r, n := parseTwoPartID(d.Id())
 
 	githubLabel, _, err := client.Issues.GetLabel(meta.(*Organization).name, r, n)
 	if err != nil {
@@ -64,6 +66,8 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 		return nil
 	}
 
+	d.Set("repository", r)
+	d.Set("name", n)
 	d.Set("color", githubLabel.Color)
 	d.Set("url", githubLabel.URL)
 

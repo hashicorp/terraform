@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -291,6 +292,10 @@ func validateAwsAccountId(v interface{}, k string) (ws []string, errors []error)
 func validateArn(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 
+	if value == "" {
+		return
+	}
+
 	// http://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
 	pattern := `^arn:aws:([a-zA-Z0-9\-])+:([a-z]{2}-[a-z]+-\d{1})?:(\d{12})?:(.*)$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
@@ -443,6 +448,46 @@ func validateS3BucketLifecycleStorageClass(v interface{}, k string) (ws []string
 	return
 }
 
+func validateS3BucketReplicationRuleId(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 255 characters: %q", k, value))
+	}
+
+	return
+}
+
+func validateS3BucketReplicationRulePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 1024 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 1024 characters: %q", k, value))
+	}
+
+	return
+}
+
+func validateS3BucketReplicationDestinationStorageClass(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != s3.StorageClassStandard && value != s3.StorageClassStandardIa && value != s3.StorageClassReducedRedundancy {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of '%q', '%q' or '%q'", k, s3.StorageClassStandard, s3.StorageClassStandardIa, s3.StorageClassReducedRedundancy))
+	}
+
+	return
+}
+
+func validateS3BucketReplicationRuleStatus(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != s3.ReplicationRuleStatusEnabled && value != s3.ReplicationRuleStatusDisabled {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of '%q' or '%q'", k, s3.ReplicationRuleStatusEnabled, s3.ReplicationRuleStatusDisabled))
+	}
+
+	return
+}
+
 func validateS3BucketLifecycleRuleId(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if len(value) > 255 {
@@ -496,6 +541,135 @@ func validateApiGatewayIntegrationType(v interface{}, k string) (ws []string, er
 		errors = append(errors, fmt.Errorf(
 			"%q contains an invalid integration type %q. Valid types are either %q, %q, %q, %q, or %q.",
 			k, value, "AWS", "AWS_PROXY", "HTTP", "HTTP_PROXY", "MOCK"))
+	}
+	return
+}
+
+func validateApiGatewayIntegrationContentHandling(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	validTypes := map[string]bool{
+		"CONVERT_TO_BINARY": true,
+		"CONVERT_TO_TEXT":   true,
+	}
+
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid integration type %q. Valid types are either %q or %q.",
+			k, value, "CONVERT_TO_BINARY", "CONVERT_TO_TEXT"))
+	}
+	return
+}
+
+func validateSQSQueueName(v interface{}, k string) (errors []error) {
+	value := v.(string)
+	if len(value) > 80 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 80 characters", k))
+	}
+
+	if !regexp.MustCompile(`^[0-9A-Za-z-_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("only alphanumeric characters and hyphens allowed in %q", k))
+	}
+	return
+}
+
+func validateSQSFifoQueueName(v interface{}, k string) (errors []error) {
+	value := v.(string)
+
+	if len(value) > 80 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 80 characters", k))
+	}
+
+	if !regexp.MustCompile(`^[0-9A-Za-z-_.]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("only alphanumeric characters and hyphens allowed in %q", k))
+	}
+
+	if regexp.MustCompile(`^[^a-zA-Z0-9-_]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("FIFO queue name must start with one of these characters [a-zA-Z0-9-_]: %v", value))
+	}
+
+	if !regexp.MustCompile(`\.fifo$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("FIFO queue name should ends with \".fifo\": %v", value))
+	}
+
+	return
+}
+
+func validateSNSSubscriptionProtocol(v interface{}, k string) (ws []string, errors []error) {
+	value := strings.ToLower(v.(string))
+	forbidden := []string{"email", "sms"}
+	for _, f := range forbidden {
+		if strings.Contains(value, f) {
+			errors = append(
+				errors,
+				fmt.Errorf("Unsupported protocol (%s) for SNS Topic", value),
+			)
+		}
+	}
+	return
+}
+
+func validateSecurityRuleType(v interface{}, k string) (ws []string, errors []error) {
+	value := strings.ToLower(v.(string))
+
+	validTypes := map[string]bool{
+		"ingress": true,
+		"egress":  true,
+	}
+
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Security Group Rule type %q. Valid types are either %q or %q.",
+			k, value, "ingress", "egress"))
+	}
+	return
+}
+
+func validateOnceAWeekWindowFormat(v interface{}, k string) (ws []string, errors []error) {
+	// valid time format is "ddd:hh24:mi"
+	validTimeFormat := "(sun|mon|tue|wed|thu|fri|sat):([0-1][0-9]|2[0-3]):([0-5][0-9])"
+
+	value := strings.ToLower(v.(string))
+	if !regexp.MustCompile(validTimeFormat + "-" + validTimeFormat).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must satisfy the format of \"ddd:hh24:mi-ddd:hh24:mi\".", k))
+	}
+	return
+}
+
+func validateOnceADayWindowFormat(v interface{}, k string) (ws []string, errors []error) {
+	// valid time format is "hh24:mi"
+	validTimeFormat := "([0-1][0-9]|2[0-3]):([0-5][0-9])"
+
+	value := v.(string)
+	if !regexp.MustCompile(validTimeFormat + "-" + validTimeFormat).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must satisfy the format of \"hh24:mi-hh24:mi\".", k))
+	}
+	return
+}
+
+func validateRoute53RecordType(v interface{}, k string) (ws []string, errors []error) {
+	// Valid Record types
+	// SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA
+	validTypes := map[string]struct{}{
+		"SOA":   {},
+		"A":     {},
+		"TXT":   {},
+		"NS":    {},
+		"CNAME": {},
+		"MX":    {},
+		"NAPTR": {},
+		"PTR":   {},
+		"SRV":   {},
+		"SPF":   {},
+		"AAAA":  {},
+	}
+
+	value := v.(string)
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of [SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA]", k))
 	}
 	return
 }

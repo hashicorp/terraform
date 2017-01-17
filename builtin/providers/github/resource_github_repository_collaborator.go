@@ -11,6 +11,9 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 		Read:   resourceGithubRepositoryCollaboratorRead,
 		// editing repository collaborators are not supported by github api so forcing new on any changes
 		Delete: resourceGithubRepositoryCollaboratorDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"username": &schema.Schema{
@@ -54,8 +57,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 
 func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	u := d.Get("username").(string)
-	r := d.Get("repository").(string)
+	r, u := parseTwoPartID(d.Id())
 
 	isCollaborator, _, err := client.Repositories.IsCollaborator(meta.(*Organization).name, r, u)
 
@@ -79,6 +81,8 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 				return err
 			}
 
+			d.Set("repository", r)
+			d.Set("username", u)
 			d.Set("permission", permName)
 
 			return nil

@@ -26,18 +26,16 @@ func Provider() terraform.ResourceProvider {
 				Description: "Token to use to authenticate to Vault.",
 			},
 			"ca_cert_file": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ConflictsWith: []string{"ca_cert_dir"},
-				DefaultFunc:   schema.EnvDefaultFunc("VAULT_CACERT", nil),
-				Description:   "Path to a CA certificate file to validate the server's certificate.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VAULT_CACERT", ""),
+				Description: "Path to a CA certificate file to validate the server's certificate.",
 			},
 			"ca_cert_dir": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ConflictsWith: []string{"ca_cert_file"},
-				DefaultFunc:   schema.EnvDefaultFunc("VAULT_CAPATH", nil),
-				Description:   "Path to directory containing CA certificate files to validate the server's certificate.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("VAULT_CAPATH", ""),
+				Description: "Path to directory containing CA certificate files to validate the server's certificate.",
 			},
 			"client_auth": &schema.Schema{
 				Type:        schema.TypeList,
@@ -48,13 +46,13 @@ func Provider() terraform.ResourceProvider {
 						"cert_file": &schema.Schema{
 							Type:        schema.TypeString,
 							Required:    true,
-							DefaultFunc: schema.EnvDefaultFunc("VAULT_CLIENT_CERT", nil),
+							DefaultFunc: schema.EnvDefaultFunc("VAULT_CLIENT_CERT", ""),
 							Description: "Path to a file containing the client certificate.",
 						},
 						"key_file": &schema.Schema{
 							Type:        schema.TypeString,
 							Required:    true,
-							DefaultFunc: schema.EnvDefaultFunc("VAULT_CLIENT_KEY", nil),
+							DefaultFunc: schema.EnvDefaultFunc("VAULT_CLIENT_KEY", ""),
 							Description: "Path to a file containing the private key that the certificate was issued for.",
 						},
 					},
@@ -63,7 +61,7 @@ func Provider() terraform.ResourceProvider {
 			"skip_tls_verify": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("VAULT_SKIP_VERIFY", nil),
+				DefaultFunc: schema.EnvDefaultFunc("VAULT_SKIP_VERIFY", ""),
 				Description: "Set this to true only if the target Vault server is an insecure development instance.",
 			},
 			"max_lease_ttl_seconds": &schema.Schema{

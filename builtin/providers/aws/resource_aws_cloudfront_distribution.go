@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -490,6 +491,11 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"is_ipv6_enabled": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 
 			"tags": tagsSchema(),
 		},
@@ -522,6 +528,12 @@ func resourceAwsCloudFrontDistributionRead(d *schema.ResourceData, meta interfac
 
 	resp, err := conn.GetDistribution(params)
 	if err != nil {
+		if errcode, ok := err.(awserr.Error); ok && errcode.Code() == "NoSuchDistribution" {
+			log.Printf("[WARN] No Distribution found: %s", d.Id())
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 

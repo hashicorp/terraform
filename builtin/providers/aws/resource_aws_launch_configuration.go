@@ -3,7 +3,6 @@ package aws
 import (
 	"bytes"
 	"crypto/sha1"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -310,7 +309,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	}
 
 	if v, ok := d.GetOk("user_data"); ok {
-		userData := base64.StdEncoding.EncodeToString([]byte(v.(string)))
+		userData := base64Encode([]byte(v.(string)))
 		createLaunchConfigurationOpts.UserData = aws.String(userData)
 	}
 

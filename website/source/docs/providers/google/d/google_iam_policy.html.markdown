@@ -29,9 +29,13 @@ data "google_iam_policy" "admin" {
 }
 ```
 
-This data source is used to define IAM policies to apply to othe resources.
+This data source is used to define IAM policies to apply to other resources.
 Currently, defining a policy through a datasource and referencing that policy
 from another resource is the only way to apply an IAM policy to a resource.
+
+**Note:** Several restrictions apply when setting IAM policies through this API.
+See the [setIamPolicy docs](https://cloud.google.com/resource-manager/reference/rest/v1/projects/setIamPolicy)
+for a list of these restrictions.
 
 ## Argument Reference
 
