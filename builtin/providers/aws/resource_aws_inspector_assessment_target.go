@@ -112,7 +112,7 @@ func resourceAwsInspectorAssessmentTargetUpdate(d *schema.ResourceData, meta int
 func resourceAwsInspectorAssessmentTargetDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).inspectorconn
 
-	return resource.Retry(1*time.Minute, func() *resource.RetryError {
+	return resource.Retry(60*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteAssessmentTarget(&inspector.DeleteAssessmentTargetInput{
 			AssessmentTargetArn: aws.String(d.Id()),
 		})
