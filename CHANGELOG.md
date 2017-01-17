@@ -14,6 +14,7 @@ IMPROVEMENTS:
  * provider/cloudflare: Add verification for record types and content [GH-11197]
  * provider/google: Add subnetwork_project field to enable cross-project networking in instance templates [GH-11110]
  * provider/openstack: LoadBalancer Security Groups [GH-11074]
+ * provider/scaleway improve bootscript data source [GH-11183]
  * provider/statuscake: Add support for StatusCake confirmation servers [GH-11179]
 
 BUG FIXES:
