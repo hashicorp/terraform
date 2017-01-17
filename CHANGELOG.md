@@ -3,6 +3,9 @@
 FEATURES:
 
  * **New Data Source:**  `aws_elb_hosted_zone_id ` [GH-11027]
+ * **New Resource:**  `aws_inspector_assessment_target` [GH-11217]
+ * **New Resource:**  `aws_inspector_assessment_template` [GH-11217]
+ * **New Resource:**  `aws_inspector_resource_group` [GH-11217]
 
 IMPROVEMENTS:
 
