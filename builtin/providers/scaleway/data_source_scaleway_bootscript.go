@@ -80,12 +80,16 @@ func dataSourceScalewayBootscriptRead(d *schema.ResourceData, meta interface{}) 
 
 	var isMatch func(api.ScalewayBootscript) bool
 
+	architecture := d.Get("architecture")
 	if name, ok := d.GetOk("name"); ok {
 		isMatch = func(s api.ScalewayBootscript) bool {
-			return s.Title == name.(string)
+			architectureMatch := true
+			if architecture != "" {
+				architectureMatch = architecture == s.Arch
+			}
+			return s.Title == name.(string) && architectureMatch
 		}
 	} else if nameFilter, ok := d.GetOk("name_filter"); ok {
-		architecture := d.Get("architecture")
 		exp, err := regexp.Compile(nameFilter.(string))
 		if err != nil {
 			return err
