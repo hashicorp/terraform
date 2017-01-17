@@ -101,6 +101,27 @@ func resourceAwsEcsService() *schema.Resource {
 				},
 				Set: resourceAwsEcsLoadBalancerHash,
 			},
+
+			"placement_strategy": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 5,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": &schema.Schema{
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Required: true,
+						},
+						"field": &schema.Schema{
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Required: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -130,6 +151,19 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 	}
 	if v, ok := d.GetOk("iam_role"); ok {
 		input.Role = aws.String(v.(string))
+	}
+
+	strategies := d.Get("placement_strategy").(*schema.Set).List()
+	if len(strategies) > 0 {
+		var ps []*ecs.PlacementStrategy
+		for _, raw := range strategies {
+			p := raw.(map[string]interface{})
+			ps = append(ps, &ecs.PlacementStrategy{
+				Type:  aws.String(p["type"].(string)),
+				Field: aws.String(p["field"].(string)),
+			})
+		}
+		input.PlacementStrategy = ps
 	}
 
 	log.Printf("[DEBUG] Creating ECS service: %s", input)
@@ -240,7 +274,25 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("load_balancers", flattenEcsLoadBalancers(service.LoadBalancers))
 	}
 
+	if err := d.Set("placement_strategy", flattenPlacementStrategy(service.PlacementStrategy)); err != nil {
+		log.Printf("[ERR] Error setting placement_strategy for (%s): %s", d.Id(), err)
+	}
+
 	return nil
+}
+
+func flattenPlacementStrategy(pss []*ecs.PlacementStrategy) []map[string]interface{} {
+	if len(pss) == 0 {
+		return nil
+	}
+	results := make([]map[string]interface{}, 0)
+	for _, ps := range pss {
+		c := make(map[string]interface{})
+		c["type"] = *ps.Type
+		c["field"] = *ps.Field
+		results = append(results, c)
+	}
+	return results
 }
 
 func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error {
