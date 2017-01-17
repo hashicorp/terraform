@@ -23,6 +23,7 @@ BUG FIXES:
 
  * provider/aws: Fix panic when querying VPC's main route table via data source ([#11134](https://github.com/hashicorp/terraform/issues/11134))
  * provider/aws: Allow creating aws_codecommit repository outside of us-east-1 [GH-11177]
+ * provider/azurerm: use configured environment for storage clients [GH-11159]
  * provider/ignition: allowing empty systemd.content when a dropin is provided [GH-11216]
  * provider/scaleway: Rename Scaleway provider parameters to match more closely to the API [GH-10874]
  * provider/vault: Remove user input for optional vault provider fields [GH-11082]
