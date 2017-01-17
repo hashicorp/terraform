@@ -1649,3 +1649,11 @@ func normalizeJsonString(jsonString interface{}) (string, error) {
 	bytes, _ := json.Marshal(j)
 	return string(bytes[:]), nil
 }
+
+func flattenInspectorTags(cfTags []*cloudformation.Tag) map[string]string {
+	tags := make(map[string]string, len(cfTags))
+	for _, t := range cfTags {
+		tags[*t.Key] = *t.Value
+	}
+	return tags
+}

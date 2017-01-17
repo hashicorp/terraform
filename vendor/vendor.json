@@ -886,6 +886,12 @@
 			"versionExact": "v1.6.9"
 		},
 		{
+			"checksumSHA1": "lL1vgSAaM89zLB0QBCwm2FnTzTw=",
+			"path": "github.com/aws/aws-sdk-go/service/inspector",
+			"revision": "8649d278323ebf6bd20c9cd56ecb152b1c617375",
+			"revisionTime": "2017-01-04T18:16:48Z"
+		},
+		{
 			"checksumSHA1": "TR063wmYitpnw1vXbwSlslbUOAA=",
 			"path": "github.com/aws/aws-sdk-go/service/kinesis",
 			"revision": "36670f6ab1769ad77fa5f7e2c194398733503635",
