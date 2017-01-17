@@ -17,6 +17,7 @@ IMPROVEMENTS:
  * provider/openstack: LoadBalancer Security Groups [GH-11074]
  * provider/scaleway improve bootscript data source [GH-11183]
  * provider/statuscake: Add support for StatusCake confirmation servers [GH-11179]
+ * provider/statuscake: Add support for Updating StatusCake contact_ids [GH-7115]
 
 BUG FIXES:
 
