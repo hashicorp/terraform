@@ -13,6 +13,7 @@ IMPROVEMENTS:
  * provider/aws: Add Support for aws_cloudwatch_metric_alarm extended statistic [GH-11193]
  * provider/aws: Make the type of a route53_record modifiable without recreating the resource [GH-11164]
  * provider/aws: Add Placement Strategy to aws_ecs_service resource [GH-11201]
+ * provider/aws: Add support for placement_constraint to aws_ecs_service [GH-11242]
  * provider/azurerm: add caching support for virtual_machine data_disks [GH-11142]
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
  * provider/cloudflare: Add verification for record types and content [GH-11197]
