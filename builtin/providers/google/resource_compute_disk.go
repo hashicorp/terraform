@@ -29,9 +29,10 @@ func resourceComputeDisk() *schema.Resource {
 			},
 
 			"disk_encryption_key_raw": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				ForceNew:  true,
+				Sensitive: true,
 			},
 
 			"disk_encryption_key_sha256": &schema.Schema{
