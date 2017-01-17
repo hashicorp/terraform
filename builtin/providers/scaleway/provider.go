@@ -12,16 +12,18 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("SCALEWAY_ACCESS_KEY", nil),
 				Deprecated:  "Use `token` instead.",
 				Description: "The API key for Scaleway API operations.",
 			},
-
 			"token": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("SCALEWAY_TOKEN", nil),
+				Type:     schema.TypeString,
+				Required: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"SCALEWAY_TOKEN",
+					"SCALEWAY_ACCESS_KEY",
+				}, nil),
 				Description: "The API key for Scaleway API operations.",
 			},
 			"organization": &schema.Schema{
