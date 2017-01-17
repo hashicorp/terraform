@@ -53,6 +53,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
+* `id` - ID of the router.
 * `region` - See Argument Reference above.
 * `name` - See Argument Reference above.
 * `admin_state_up` - See Argument Reference above.
