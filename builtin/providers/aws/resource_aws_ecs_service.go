@@ -26,73 +26,73 @@ func resourceAwsEcsService() *schema.Resource {
 		Delete: resourceAwsEcsServiceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"cluster": &schema.Schema{
+			"cluster": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"task_definition": &schema.Schema{
+			"task_definition": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"desired_count": &schema.Schema{
+			"desired_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
 
-			"iam_role": &schema.Schema{
+			"iam_role": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
 			},
 
-			"deployment_maximum_percent": &schema.Schema{
+			"deployment_maximum_percent": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  200,
 			},
 
-			"deployment_minimum_healthy_percent": &schema.Schema{
+			"deployment_minimum_healthy_percent": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  100,
 			},
 
-			"load_balancer": &schema.Schema{
+			"load_balancer": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"elb_name": &schema.Schema{
+						"elb_name": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 
-						"target_group_arn": &schema.Schema{
+						"target_group_arn": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 
-						"container_name": &schema.Schema{
+						"container_name": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
 
-						"container_port": &schema.Schema{
+						"container_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 							ForceNew: true,
@@ -102,19 +102,39 @@ func resourceAwsEcsService() *schema.Resource {
 				Set: resourceAwsEcsLoadBalancerHash,
 			},
 
-			"placement_strategy": &schema.Schema{
+			"placement_strategy": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				MaxItems: 5,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							ForceNew: true,
 							Required: true,
 						},
-						"field": &schema.Schema{
+						"field": {
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Required: true,
+						},
+					},
+				},
+			},
+			"placement_constraints": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 10,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": { //TODO: Add a Validation for the types
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Required: true,
+						},
+						"expression": {
 							Type:     schema.TypeString,
 							ForceNew: true,
 							Required: true,
@@ -164,6 +184,19 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 			})
 		}
 		input.PlacementStrategy = ps
+	}
+
+	constraints := d.Get("placement_constraints").(*schema.Set).List()
+	if len(constraints) > 0 {
+		var pc []*ecs.PlacementConstraint
+		for _, raw := range constraints {
+			p := raw.(map[string]interface{})
+			pc = append(pc, &ecs.PlacementConstraint{
+				Type:       aws.String(p["type"].(string)),
+				Expression: aws.String(p["expression"].(string)),
+			})
+		}
+		input.PlacementConstraints = pc
 	}
 
 	log.Printf("[DEBUG] Creating ECS service: %s", input)
@@ -277,8 +310,25 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	if err := d.Set("placement_strategy", flattenPlacementStrategy(service.PlacementStrategy)); err != nil {
 		log.Printf("[ERR] Error setting placement_strategy for (%s): %s", d.Id(), err)
 	}
+	if err := d.Set("placement_constraints", flattenServicePlacementConstraints(service.PlacementConstraints)); err != nil {
+		log.Printf("[ERR] Error setting placement_constraints for (%s): %s", d.Id(), err)
+	}
 
 	return nil
+}
+
+func flattenServicePlacementConstraints(pcs []*ecs.PlacementConstraint) []map[string]interface{} {
+	if len(pcs) == 0 {
+		return nil
+	}
+	results := make([]map[string]interface{}, 0)
+	for _, pc := range pcs {
+		c := make(map[string]interface{})
+		c["type"] = *pc.Type
+		c["expression"] = *pc.Expression
+		results = append(results, c)
+	}
+	return results
 }
 
 func flattenPlacementStrategy(pss []*ecs.PlacementStrategy) []map[string]interface{} {
