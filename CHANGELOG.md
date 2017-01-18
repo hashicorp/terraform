@@ -18,6 +18,7 @@ IMPROVEMENTS:
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
  * provider/cloudflare: Add verification for record types and content [GH-11197]
  * provider/datadog: Add aggregator method to timeboard graph resource [GH-11206]
+ * provider/fastly Add request_condition to backend definition [GH-11238]
  * provider/google: Add subnetwork_project field to enable cross-project networking in instance templates [GH-11110]
  * provider/openstack: LoadBalancer Security Groups [GH-11074]
  * provider/scaleway improve bootscript data source [GH-11183]
