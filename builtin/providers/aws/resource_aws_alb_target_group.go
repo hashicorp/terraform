@@ -75,6 +75,11 @@ func resourceAwsAlbTargetGroup() *schema.Resource {
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
 						"type": {
 							Type:         schema.TypeString,
 							Required:     true,
@@ -251,6 +256,8 @@ func resourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) err
 	stickinessMap := map[string]interface{}{}
 	for _, attr := range attrResp.Attributes {
 		switch *attr.Key {
+		case "stickiness.enabled":
+			stickinessMap["enabled"] = *attr.Value
 		case "stickiness.type":
 			stickinessMap["type"] = *attr.Value
 		case "stickiness.lb_cookie.duration_seconds":
@@ -324,7 +331,7 @@ func resourceAwsAlbTargetGroupUpdate(d *schema.ResourceData, meta interface{}) e
 			attrs = append(attrs,
 				&elbv2.TargetGroupAttribute{
 					Key:   aws.String("stickiness.enabled"),
-					Value: aws.String("true"),
+					Value: aws.String(strconv.FormatBool(stickiness["enabled"].(bool))),
 				},
 				&elbv2.TargetGroupAttribute{
 					Key:   aws.String("stickiness.type"),
