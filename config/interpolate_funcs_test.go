@@ -8,8 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"path/filepath"
+
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
+	"github.com/mitchellh/go-homedir"
 )
 
 func TestInterpolateFuncZipMap(t *testing.T) {
@@ -1971,4 +1974,40 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 				i, tc.Input, result.Value, tc.Result)
 		}
 	}
+}
+
+func TestInterpolateFuncPathExpand(t *testing.T) {
+	homePath, err := homedir.Dir()
+	if err != nil {
+		t.Fatalf("Error getting home directory: %v", err)
+	}
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${pathexpand("~/test-file")}`,
+				filepath.Join(homePath, "test-file"),
+				false,
+			},
+			{
+				`${pathexpand("~/another/test/file")}`,
+				filepath.Join(homePath, "another/test/file"),
+				false,
+			},
+			{
+				`${pathexpand("/root/file")}`,
+				"/root/file",
+				false,
+			},
+			{
+				`${pathexpand("/")}`,
+				"/",
+				false,
+			},
+			{
+				`${pathexpand()}`,
+				nil,
+				true,
+			},
+		},
+	})
 }
