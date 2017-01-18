@@ -37,6 +37,7 @@ func resourceCloudFlarePageRule() *schema.Resource {
 
 			"actions": &schema.Schema{
 				Type:     schema.TypeList,
+				MinItems: 1,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
