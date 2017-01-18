@@ -297,8 +297,7 @@ const (
 
 const _URLBasicCheck _URLParseFlags = 0
 
-func validateHTTPURL(attrName _SchemaAttr, checkFlags _URLParseFlags) func(v interface{}, key string) (warnings []string, errors []error) {
-
+func _ValidateHTTPURL(attrName _SchemaAttr, checkFlags _URLParseFlags) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		u, err := url.Parse(v.(string))
 		switch {
@@ -329,7 +328,7 @@ func validateHTTPURL(attrName _SchemaAttr, checkFlags _URLParseFlags) func(v int
 	}
 }
 
-func validateStringIn(attrName _SchemaAttr, valid _ValidStringValues) func(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateStringIn(attrName _SchemaAttr, valid _ValidStringValues) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		s := v.(string)
 		var found bool
