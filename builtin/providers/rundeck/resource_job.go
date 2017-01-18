@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 
 	"github.com/apparentlymart/go-rundeck-api/rundeck"
 )
@@ -51,7 +52,7 @@ func resourceRundeckJob() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "INFO",
-				ValidateFunc: validateValueFunc([]string{"INFO", "DEBUG"}),
+				ValidateFunc: validation.StringInSlice([]string{"INFO", "DEBUG"}, false),
 			},
 
 			"allow_concurrent_executions": &schema.Schema{
@@ -77,7 +78,7 @@ func resourceRundeckJob() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "ascending",
-				ValidateFunc: validateValueFunc([]string{"ascending", "descending"}),
+				ValidateFunc: validation.StringInSlice([]string{"ascending", "descending"}, false),
 			},
 
 			"rank_attribute": &schema.Schema{
@@ -95,7 +96,7 @@ func resourceRundeckJob() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "node-first",
-				ValidateFunc: validateValueFunc([]string{"node-first", "step-first", "parallel"}),
+				ValidateFunc: validation.StringInSlice([]string{"node-first", "step-first", "parallel"}, false),
 			},
 
 			"node_filter_query": &schema.Schema{
