@@ -1,4 +1,4 @@
-package provider_profitbricks
+package main
 
 import (
 	"github.com/hashicorp/terraform/builtin/providers/profitbricks"
