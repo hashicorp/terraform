@@ -599,13 +599,12 @@ func (p *Provisioner) runChefClientFunc(
 		var cmd string
 
 		// Policyfiles do not support chef environments, so don't pass the `-E` flag.
-		if p.UsePolicyfile {
-			if p.NamedRunList == "" {
-				cmd = fmt.Sprintf("%s -j %q", chefCmd, fb)
-			} else {
-				cmd = fmt.Sprintf("%s -j %q -n %q", chefCmd, fb, p.NamedRunList)
-			}
-		} else {
+		switch {
+		case p.UsePolicyfile && p.NamedRunList == "":
+			cmd = fmt.Sprintf("%s -j %q", chefCmd, fb)
+		case p.UsePolicyfile && p.NamedRunList != "":
+			cmd = fmt.Sprintf("%s -j %q -n %q", chefCmd, fb, p.NamedRunList)
+		default:
 			cmd = fmt.Sprintf("%s -j %q -E %q", chefCmd, fb, p.Environment)
 		}
 
