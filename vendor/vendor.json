@@ -886,12 +886,6 @@
 			"versionExact": "v1.6.9"
 		},
 		{
-			"checksumSHA1": "lL1vgSAaM89zLB0QBCwm2FnTzTw=",
-			"path": "github.com/aws/aws-sdk-go/service/inspector",
-			"revision": "8649d278323ebf6bd20c9cd56ecb152b1c617375",
-			"revisionTime": "2017-01-04T18:16:48Z"
-		},
-		{
 			"checksumSHA1": "TR063wmYitpnw1vXbwSlslbUOAA=",
 			"path": "github.com/aws/aws-sdk-go/service/kinesis",
 			"revision": "36670f6ab1769ad77fa5f7e2c194398733503635",
@@ -1026,6 +1020,12 @@
 			"revisionTime": "2016-12-30T00:33:20Z",
 			"version": "v1.6.9",
 			"versionExact": "v1.6.9"
+		},
+		{
+			"checksumSHA1": "lRDDbi6XtUqJZMTZaT3EU4/djGI=",
+			"path": "github.com/aws/aws-sdk-go/service/wafregional",
+			"revision": "5e1afe1c0a077fb2da9b5f74232b790d99397ce8",
+			"revisionTime": "2017-01-12T17:52:23Z"
 		},
 		{
 			"checksumSHA1": "nqw2Qn5xUklssHTubS5HDvEL9L4=",
