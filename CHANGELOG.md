@@ -15,6 +15,7 @@ IMPROVEMENTS:
  * provider/aws: Add Placement Strategy to aws_ecs_service resource [GH-11201]
  * provider/aws: Add support for placement_constraint to aws_ecs_service [GH-11242]
  * provider/aws: allow ALB target group stickiness to be enabled/disabled [GH-11251]
+ * provider/aws: Add support for setting MSSQL Timezone in aws_db_instance [GH-11247]
  * provider/azurerm: add caching support for virtual_machine data_disks [GH-11142]
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
  * provider/cloudflare: Add verification for record types and content [GH-11197]
