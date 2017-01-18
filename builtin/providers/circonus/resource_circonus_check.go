@@ -5,6 +5,16 @@ package circonus
  * the check_bundle call.  check_bundle is an implementation detail that we mask
  * over and expose just a "check" even though the "check" is actually a
  * check_bundle.
+ *
+ * Style note: There are three directions that information flows:
+ *
+ * 1) Terraform Config file into API Objects.  *Attr named objects are Config or
+ *    Schema attribute names.  In this file, all config constants should be
+ *     named _Check*Attr.
+ *
+ * 2) API Objects into Statefile data.  _API*Attr named constants are parameters
+ *    that originate from the API and need to be mapped into the provider's
+ *    vernacular.
  */
 
 import (
@@ -19,7 +29,7 @@ import (
 )
 
 const (
-	// circonus_check.* resource attribute names
+	// circonus_check.* "global" resource attribute names
 	_CheckActiveAttr      _SchemaAttr = "active"
 	_CheckCollectorAttr   _SchemaAttr = "collector"
 	_CheckJSONAttr        _SchemaAttr = "json"
@@ -53,7 +63,7 @@ const (
 
 const (
 	// Circonus API constants from their API endpoints
-	_APICheckTypeJSON _APICheckType = "json"
+	_APICheckTypeJSONAttr       _APICheckType = "json"
 )
 
 var _CheckDescriptions = _AttrDescrs{
@@ -150,7 +160,7 @@ func _NewCheckResource() *schema.Resource {
 			_CheckStreamAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Set:      _CheckStreamJSON,
+				Set:      _CheckStreamChecksum,
 				MinItems: 1,
 				Elem: &schema.Resource{
 					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
@@ -183,7 +193,7 @@ func _NewCheckResource() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: validateHTTPURL(_CheckTargetAttr, _URLWithoutSchema|_URLWithoutPort),
+				ValidateFunc: _ValidateRegexp(_CheckTagsAttr, `.+`),
 			},
 			_CheckTimeoutAttr: &schema.Schema{
 				Type:      schema.TypeString,
@@ -274,6 +284,8 @@ func _CheckExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	return true, nil
 }
 
+// _CheckRead pulls data out of the CheckBundle object and stores it into the
+// appropriate place in the statefile.
 func _CheckRead(d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*_ProviderContext)
 
@@ -286,7 +298,7 @@ func _CheckRead(d *schema.ResourceData, meta interface{}) error {
 	// Global circonus_check attributes are saved first, followed by the check
 	// type specific attributes handled below in their respective _CheckRead*().
 
-	streams := schema.NewSet(_CheckStreamJSON, nil)
+	streams := schema.NewSet(_CheckStreamChecksum, nil)
 	for _, m := range c.Metrics {
 		streamAttrs := map[string]interface{}{
 			string(_MetricActiveAttr): _MetricAPIStatusToBool(m.Status),
@@ -317,13 +329,9 @@ func _CheckRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	_StateSet(d, _CheckTypeAttr, c.Type)
 
-	switch _APICheckType(c.Type) {
-	case _APICheckTypeJSON:
-		if err := c.ReadJSON(d); err != nil {
-			return errwrap.Wrapf("Unable to read JSON: {{err}}", err)
-		}
-	default:
-		panic(fmt.Sprintf("PROVIDER BUG: unsupported check type %s", c.Type))
+	// Last step: parse a check_bundle's config into the statefile.
+	if err := _ParseCheckTypeConfig(&c, d); err != nil {
+		return errwrap.Wrapf("Unable to parse check config: {{err}}", err)
 	}
 
 	// Out parameters
@@ -367,10 +375,123 @@ func _CheckDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func _CheckStreamJSON(v interface{}) int {
+func _CheckStreamChecksum(v interface{}) int {
 	m := v.(map[string]interface{})
 
 	ar := _NewMapReader(nil, m)
 	csum := _MetricChecksum(ar)
 	return csum
+}
+
+// ParseConfig reads Terraform config data and stores the information into a
+// Circonus CheckBundle object.
+func (c *_Check) ParseConfig(ar _AttrReader) error {
+	if status, ok := ar.GetBoolOK(_CheckActiveAttr); ok {
+		c.Status = _CheckActiveToAPIStatus(status)
+	}
+
+	if collectorsList, ok := ar.GetSetAsListOK(_CheckCollectorAttr); ok {
+		c.Brokers = collectorsList.CollectList(_CheckCollectorIDAttr)
+	}
+
+	if i, ok := ar.GetIntOK(_CheckMetricLimitAttr); ok {
+		c.MetricLimit = i
+	}
+
+	if name, ok := ar.GetStringOK(_CheckNameAttr); ok {
+		c.DisplayName = name
+	}
+
+	c.Notes = ar.GetStringPtr(_CheckNotesAttr)
+
+	if d, ok := ar.GetDurationOK(_CheckPeriodAttr); ok {
+		c.Period = uint(d.Seconds())
+	}
+
+	if streamList, ok := ar.GetSetAsListOK(_CheckStreamAttr); ok {
+		c.Metrics = make([]api.CheckBundleMetric, 0, len(streamList))
+
+		for _, metricListRaw := range streamList {
+			metricAttrs := _NewInterfaceMap(metricListRaw)
+
+			var id string
+			if v, ok := ar.GetStringOK(_MetricIDAttr); ok {
+				id = v
+			} else {
+				var err error
+				id, err = _NewMetricID()
+				if err != nil {
+					return errwrap.Wrapf("unable to create a new metric ID: {{err}}", err)
+				}
+			}
+
+			m := _NewMetric()
+			mr := _NewMapReader(ar.Context(), metricAttrs)
+			if err := m.ParseConfig(id, mr); err != nil {
+				return errwrap.Wrapf("unable to parse config: {{err}}", err)
+			}
+
+			c.Metrics = append(c.Metrics, m.CheckBundleMetric)
+		}
+	}
+
+	c.Tags = tagsToAPI(ar.GetTags(_CheckTagsAttr))
+
+	if s, ok := ar.GetStringOK(_CheckTargetAttr); ok {
+		c.Target = s
+	}
+
+	if d, ok := ar.GetDurationOK(_CheckTimeoutAttr); ok {
+		var t float32 = float32(d.Seconds())
+		c.Timeout = t
+	}
+
+	// Last step: parse the individual check types
+	if err := parsePerCheckTypeConfig(c, ar); err != nil {
+		return errwrap.Wrapf("unable to parse check type: {{err}}", err)
+	}
+
+	if err := c.Validate(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// parsePerCheckTypeConfig parses the Terraform config into the respective
+// per-check type api.Config attributes.
+func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
+	checkTypeParseMap := map[_SchemaAttr]func(*_Check, *_ProviderContext, _InterfaceList) error{
+		_CheckJSONAttr:       parseCheckConfigJSON,
+	}
+
+	for checkType, fn := range checkTypeParseMap {
+		if l, ok := ar.GetSetAsListOK(checkType); ok {
+			if err := fn(c, ar.Context(), l); err != nil {
+				return errwrap.Wrapf(fmt.Sprintf("Unable to parse type %q: {{err}}", string(checkType)), err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// _ParseCheckTypeConfig parses an API Config object and stores the result in the
+// statefile.
+func _ParseCheckTypeConfig(c *_Check, d *schema.ResourceData) error {
+	checkTypeConfigHandlers := map[_APICheckType]func(*_Check, *schema.ResourceData) error{
+		_APICheckTypeJSONAttr:       _ReadAPICheckConfigJSON,
+	}
+
+	var checkType _APICheckType = _APICheckType(c.Type)
+	fn, ok := checkTypeConfigHandlers[checkType]
+	if !ok {
+		return fmt.Errorf("check type %q not supported", c.Type)
+	}
+
+	if err := fn(c, d); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("unable to parse the API config for %q: {{err}}", c.Type), err)
+	}
+
+	return nil
 }

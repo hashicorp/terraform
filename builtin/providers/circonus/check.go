@@ -22,33 +22,13 @@ const (
 )
 
 const (
-	_CheckTypeJSON _CheckType = "json"
+	_CheckTypeJSON       _CheckType = "json"
 )
 
 func _NewCheck() _Check {
 	return _Check{
 		CheckBundle: *api.NewCheckBundle(),
 	}
-}
-
-func (c *_Check) Create(ctxt *_ProviderContext) error {
-	cb, err := ctxt.client.CreateCheckBundle(&c.CheckBundle)
-	if err != nil {
-		return err
-	}
-
-	c.CID = cb.CID
-
-	return nil
-}
-
-func (c *_Check) Update(ctxt *_ProviderContext) error {
-	_, err := ctxt.client.UpdateCheckBundle(&c.CheckBundle)
-	if err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("Unable to update check bundle %s: {{err}}", c.CID), err)
-	}
-
-	return nil
 }
 
 func _LoadCheck(ctxt *_ProviderContext, cid api.CIDType) (_Check, error) {
@@ -60,88 +40,6 @@ func _LoadCheck(ctxt *_ProviderContext, cid api.CIDType) (_Check, error) {
 	c.CheckBundle = *cb
 
 	return c, nil
-}
-
-func (c *_Check) ParseConfig(ar _AttrReader) error {
-	if status, ok := ar.GetBoolOK(_CheckActiveAttr); ok {
-		c.Status = _CheckActiveToAPIStatus(status)
-	}
-
-	if collectorsList, ok := ar.GetSetAsListOk(_CheckCollectorAttr); ok {
-		c.Brokers = collectorsList.CollectList(_CheckCollectorIDAttr)
-	}
-
-	if l, ok := ar.GetSetAsListOk(_CheckJSONAttr); ok {
-		if err := c.parseJSONCheck(ar.Context(), l); err != nil {
-			return err
-		}
-	}
-
-	if i, ok := ar.GetIntOK(_CheckMetricLimitAttr); ok {
-		c.MetricLimit = i
-	}
-
-	if name, ok := ar.GetStringOk(_CheckNameAttr); ok {
-		c.DisplayName = name
-	}
-
-	c.Notes = ar.GetStringPtr(_CheckNotesAttr)
-
-	if d, ok := ar.GetDurationOK(_CheckPeriodAttr); ok {
-		c.Period = uint(d.Seconds())
-	}
-
-	if streamList, ok := ar.GetSetAsListOk(_CheckStreamAttr); ok {
-		c.Metrics = make([]api.CheckBundleMetric, 0, len(streamList))
-
-		for _, metricListRaw := range streamList {
-			metricAttrs := _NewInterfaceMap(metricListRaw)
-
-			var id string
-			if v, ok := ar.GetStringOk(_MetricIDAttr); ok {
-				id = v
-			} else {
-				var err error
-				id, err = _NewMetricID()
-				if err != nil {
-					return errwrap.Wrapf("unable to create a new metric ID: {{err}}", err)
-				}
-			}
-
-			m := _NewMetric()
-			mr := _NewMapReader(ar.Context(), metricAttrs)
-			if err := m.ParseConfig(id, mr); err != nil {
-				return errwrap.Wrapf("unable to parse config: {{err}}", err)
-			}
-
-			c.Metrics = append(c.Metrics, m.CheckBundleMetric)
-		}
-	}
-
-	c.Tags = tagsToAPI(ar.GetTags(_CheckTagsAttr))
-
-	if s, ok := ar.GetStringOk(_CheckTargetAttr); ok {
-		c.Target = s
-	}
-
-	if d, ok := ar.GetDurationOK(_CheckTimeoutAttr); ok {
-		var t float32 = float32(d.Seconds())
-		c.Timeout = t
-	}
-
-	if err := c.Validate(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *_Check) Validate() error {
-	if c.Timeout > float32(c.Period) {
-		return fmt.Errorf("Timeout (%f) can not exceed period (%d)", c.Timeout, c.Period)
-	}
-
-	return nil
 }
 
 func _CheckAPIStatusToBool(s string) bool {
@@ -167,4 +65,32 @@ func _CheckActiveToAPIStatus(active bool) string {
 	}
 
 	panic("suppress Go error message")
+}
+
+func (c *_Check) Create(ctxt *_ProviderContext) error {
+	cb, err := ctxt.client.CreateCheckBundle(&c.CheckBundle)
+	if err != nil {
+		return err
+	}
+
+	c.CID = cb.CID
+
+	return nil
+}
+
+func (c *_Check) Update(ctxt *_ProviderContext) error {
+	_, err := ctxt.client.UpdateCheckBundle(&c.CheckBundle)
+	if err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to update check bundle %s: {{err}}", c.CID), err)
+	}
+
+	return nil
+}
+
+func (c *_Check) Validate() error {
+	if c.Timeout > float32(c.Period) {
+		return fmt.Errorf("Timeout (%f) can not exceed period (%d)", c.Timeout, c.Period)
+	}
+
+	return nil
 }

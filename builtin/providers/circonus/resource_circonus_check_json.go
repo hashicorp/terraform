@@ -137,8 +137,9 @@ var _SchemaCheckJSON = &schema.Schema{
 	},
 }
 
-// ReadJSON reads the Config data out of _Check.CheckBundle into the statefile.
-func (c *_Check) ReadJSON(d *schema.ResourceData) error {
+// _ReadAPICheckConfigJSON reads the Config data out of _Check.CheckBundle into the
+// statefile.
+func _ReadAPICheckConfigJSON(c *_Check, d *schema.ResourceData) error {
 	jsonConfig := make(map[string]interface{}, len(c.Config))
 
 	// swamp is a sanity check: it must be empty by the time this method returns
@@ -232,7 +233,7 @@ func hashCheckJSON(v interface{}) int {
 
 	writeString := func(attrName _SchemaAttr) {
 		if v, ok := m[string(attrName)]; ok && v.(string) != "" {
-			fmt.Fprint(b, v.(string))
+			fmt.Fprint(b, strings.TrimSpace(v.(string)))
 		}
 	}
 
