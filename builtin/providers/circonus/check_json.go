@@ -9,7 +9,7 @@ import (
 )
 
 func parseCheckConfigJSON(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
-	c.Type = string(_CheckTypeJSON)
+	c.Type = string(_APICheckTypeJSON)
 
 	// Iterate over all `json` attributes, even though we have a max of 1 in the
 	// schema.
