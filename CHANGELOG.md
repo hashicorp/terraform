@@ -24,6 +24,8 @@ IMPROVEMENTS:
  * provider/fastly Add request_condition to backend definition [GH-11238]
  * provider/google: Add subnetwork_project field to enable cross-project networking in instance templates [GH-11110]
  * provider/google: Add support for encrypting a disk [GH-11167]
+ * provider/google: Add support for session_affinity to google_compute_region_backend_service [GH-11228]
+ * provider/google: Allow additional zones to be configured in GKE [GH-11018]
  * provider/openstack: LoadBalancer Security Groups [GH-11074]
  * provider/scaleway improve bootscript data source [GH-11183]
  * provider/statuscake: Add support for StatusCake confirmation servers [GH-11179]
