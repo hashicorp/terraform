@@ -76,8 +76,10 @@ func testAccArchiveFileExists(filename string, fileSize *string) r.TestCheckFunc
 var testAccArchiveFileContentConfig = `
 data "archive_file" "foo" {
   type                    = "zip"
-  source_content          = "This is some content"
-  source_content_filename = "content.txt"
+  source_content {
+		content = "This is some content"
+		filename = "content.txt"
+  }
   output_path             = "zip_file_acc_test.zip"
 }
 `
@@ -86,8 +88,10 @@ var tmpDir = os.TempDir() + "/test"
 var testAccArchiveFileOutputPath = fmt.Sprintf(`
 data "archive_file" "foo" {
   type                    = "zip"
-  source_content          = "This is some content"
-  source_content_filename = "content.txt"
+	source_content {
+		content = "This is some content"
+		filename = "content.txt"
+  }
   output_path             = "%s/test.zip"
 }
 `, tmpDir)

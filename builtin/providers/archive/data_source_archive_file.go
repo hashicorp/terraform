@@ -1,6 +1,7 @@
 package archive
 
 import (
+	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -24,29 +26,44 @@ func dataSourceFile() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"source_content": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"source_file", "source_dir"},
-			},
-			"source_content_filename": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"source_file", "source_dir"},
-			},
 			"source_file": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"source_content", "source_content_filename", "source_dir"},
+				ConflictsWith: []string{"source_content", "source_dir"},
 			},
 			"source_dir": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"source_content", "source_content_filename", "source_file"},
+				ConflictsWith: []string{"source_content", "source_file"},
+			},
+			"source_content": &schema.Schema{
+				Type:          schema.TypeSet,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"source_file", "source_dir"},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"content": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"filename": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%s-", m["filename"].(string)))
+					return hashcode.String(buf.String())
+				},
 			},
 			"output_path": &schema.Schema{
 				Type:     schema.TypeString,
@@ -63,17 +80,17 @@ func dataSourceFile() *schema.Resource {
 				ForceNew:    true,
 				Description: "SHA1 checksum of output file",
 			},
+			"output_md5": &schema.Schema{
+				Type:        schema.TypeString,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "MD5 checksum of output file",
+			},
 			"output_base64sha256": &schema.Schema{
 				Type:        schema.TypeString,
 				Computed:    true,
 				ForceNew:    true,
 				Description: "Base64 Encoded SHA256 checksum of output file",
-			},
-			"output_md5": &schema.Schema{
-				Type:        schema.TypeString,
-				Computed:    true,
-				ForceNew:    true,
-				Description: "MD5 of output file",
 			},
 		},
 	}
@@ -101,13 +118,15 @@ func dataSourceFileRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	sha1, base64sha256, md5, err := genFileShas(outputPath)
+	sha1, base64sha256, md5, err := genFileHashes(outputPath)
 	if err != nil {
 
-		return fmt.Errorf("could not generate file checksum sha256: %s", err)
+		return fmt.Errorf("could not generate file checksum: %s", err)
 	}
 	d.Set("output_sha", sha1)
 	d.Set("output_base64sha256", base64sha256)
+	d.Set("output_md5", md5)
+
 	d.Set("output_md5", md5)
 
 	d.Set("output_size", fi.Size())
@@ -133,18 +152,23 @@ func archive(d *schema.ResourceData) error {
 		if err := archiver.ArchiveFile(file.(string)); err != nil {
 			return fmt.Errorf("error archiving file: %s", err)
 		}
-	} else if filename, ok := d.GetOk("source_content_filename"); ok {
-		content := d.Get("source_content").(string)
-		if err := archiver.ArchiveContent([]byte(content), filename.(string)); err != nil {
+	} else if c, ok := d.GetOk("source_content"); ok {
+		cL := c.(*schema.Set).List()
+		contents := make(map[string][]byte)
+		for _, c := range cL {
+			sc := c.(map[string]interface{})
+			contents[sc["filename"].(string)] = []byte(sc["content"].(string))
+		}
+		if err := archiver.ArchiveMultiple(contents); err != nil {
 			return fmt.Errorf("error archiving content: %s", err)
 		}
 	} else {
-		return fmt.Errorf("one of 'source_dir', 'source_file', 'source_content_filename' must be specified")
+		return fmt.Errorf("one of 'source_dir', 'source_file', 'source_content' must be specified")
 	}
 	return nil
 }
 
-func genFileShas(filename string) (string, string, string, error) {
+func genFileHashes(filename string) (string, string, string, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return "", "", "", fmt.Errorf("could not compute file '%s' checksum: %s", filename, err)

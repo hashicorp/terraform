@@ -24,20 +24,27 @@ data "archive_file" "init" {
 
 The following arguments are supported:
 
-NOTE: One of `source_content_filename` (with `source_content`), `source_file`, or `source_dir` must be specified.
+NOTE: One of `source_content`, `source_file`, or `source_dir` must be specified.
 
 * `type` - (required) The type of archive to generate.
   NOTE: `zip` is supported.
 
 * `output_path` - (required) The output of the archive file.
 
-* `source_content` - (optional) Add only this content to the archive with `source_content_filename` as the filename.
-
-* `source_content_filename` - (optional) Set this as the filename when using `source_content`.
+* `source_content` - (optional) See [Source Content](#source-content) below for details.
 
 * `source_file` - (optional) Package this file into the archive.
 
 * `source_dir` - (optional) Package entire contents of this directory into the archive.
+
+## Source Content
+
+Each `source_content` supports the following:
+
+* `content` - (required) The content of the file
+
+* `filename` - (required) The filename to store the content as
+
 
 ## Attributes Reference
 
