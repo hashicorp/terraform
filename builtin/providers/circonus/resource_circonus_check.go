@@ -36,6 +36,7 @@ const (
 	_CheckMetricLimitAttr _SchemaAttr = "metric_limit"
 	_CheckNameAttr        _SchemaAttr = "name"
 	_CheckNotesAttr       _SchemaAttr = "notes"
+	_CheckPostgreSQLAttr  _SchemaAttr = "postgresql"
 	_CheckPeriodAttr      _SchemaAttr = "period"
 	_CheckStreamAttr      _SchemaAttr = "stream"
 	_CheckTagsAttr        _SchemaAttr = "tags"
@@ -64,6 +65,7 @@ const (
 const (
 	// Circonus API constants from their API endpoints
 	_APICheckTypeJSONAttr       _APICheckType = "json"
+	_APICheckTypePostgreSQLAttr _APICheckType = "postgres"
 )
 
 var _CheckDescriptions = _AttrDescrs{
@@ -74,6 +76,7 @@ var _CheckDescriptions = _AttrDescrs{
 	_CheckNameAttr:        "The name of the check bundle that will be displayed in the web interface",
 	_CheckNotesAttr:       "Notes about this check bundle",
 	_CheckPeriodAttr:      "The period between each time the check is made",
+	_CheckPostgreSQLAttr:  "PostgreSQL check configuration",
 	_CheckStreamAttr:      "Configuration for a stream of metrics",
 	_CheckTagsAttr:        "A list of tags assigned to the check",
 	_CheckTargetAttr:      "The target of the check (e.g. hostname, URL, IP, etc)",
@@ -157,6 +160,7 @@ func _NewCheckResource() *schema.Resource {
 					validateDurationMax(_CheckPeriodAttr, defaultCirconusCheckPeriodMax),
 				),
 			},
+			_CheckPostgreSQLAttr: _SchemaCheckPostgreSQL,
 			_CheckStreamAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -463,6 +467,7 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
 	checkTypeParseMap := map[_SchemaAttr]func(*_Check, *_ProviderContext, _InterfaceList) error{
 		_CheckJSONAttr:       parseCheckConfigJSON,
+		_CheckPostgreSQLAttr: parseCheckConfigPostgreSQL,
 	}
 
 	for checkType, fn := range checkTypeParseMap {
@@ -481,6 +486,7 @@ func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
 func _ParseCheckTypeConfig(c *_Check, d *schema.ResourceData) error {
 	checkTypeConfigHandlers := map[_APICheckType]func(*_Check, *schema.ResourceData) error{
 		_APICheckTypeJSONAttr:       _ReadAPICheckConfigJSON,
+		_APICheckTypePostgreSQLAttr: _ReadAPICheckConfigPostgreSQL,
 	}
 
 	var checkType _APICheckType = _APICheckType(c.Type)

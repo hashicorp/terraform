@@ -23,6 +23,7 @@ const (
 
 const (
 	_CheckTypeJSON       _CheckType = "json"
+	_CheckTypePostgreSQL _CheckType = "postgres"
 )
 
 func _NewCheck() _Check {

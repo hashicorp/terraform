@@ -98,6 +98,9 @@ resource "circonus_metric" "used" {
 * `period` - (Optional) The period between each time the check is made in
   seconds.
 
+* `postgresql` - (Optional) A PostgreSQL check.  See below for details on how to
+  configure the `postgresql` check.
+
 * `stream` - (Required) A list of one or more `stream` configurations.  See
   below for a list of supported `stream` attrbutes.  A collection of known
   metrics are aggregated into a metric stream.
@@ -153,15 +156,12 @@ The `json` attribute conflicts with every other check type when present.
 
 * `version` - (Optional) The HTTP version to use.  Defaults to `1.1`.
 
-## Supported `stream` Attributes
+### `postgresql` Check Type Attributes
 
-The following attributes are available within a `metric`.
-
-* `active` - (Optional) Whether or not the metric is active or not.  Defaults to `true`.
-* `name` - (Optional) The name of the metric.  A string containing freeform text.
-* `tags` - (Optional) A list of tags assigned to the metric.
-* `type` - (Required) A string containing either `numeric`, `text`, `histogram`, `composite`, or `caql`.
-* `units` - (Optional) The unit of measurement the metric represents (e.g., bytes, seconds, milliseconds). A string containing freeform text.
+* `dsn` - (Required) The [PostgreSQL DSN/connect
+  string](https://www.postgresql.org/docs/current/static/libpq-connect.html) to
+  use to talk to PostgreSQL.
+* `query` - (Required) The SQL query to execute.
 
 ## Import Example
 
