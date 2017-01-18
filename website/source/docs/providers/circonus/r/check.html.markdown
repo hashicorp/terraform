@@ -149,8 +149,6 @@ The `icmp_ping` check requires the `target` top-level attribute to be set.
 
 ### `json` Check Type Attributes
 
-The `json` attribute conflicts with every other check type when present.
-
 * `headers` - (Optional) A map of the HTTP headers to be sent when executing the
   check.
 
@@ -171,6 +169,8 @@ The `json` attribute conflicts with every other check type when present.
 * `version` - (Optional) The HTTP version to use.  Defaults to `1.1`.
 
 ### `postgresql` Check Type Attributes
+
+The `postgresql` check requires the `target` top-level attribute to be set.
 
 * `dsn` - (Required) The [PostgreSQL DSN/connect
   string](https://www.postgresql.org/docs/current/static/libpq-connect.html) to
