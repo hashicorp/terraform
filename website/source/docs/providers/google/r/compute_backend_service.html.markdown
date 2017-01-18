@@ -89,9 +89,9 @@ The following arguments are supported:
 * `region` - (Optional) The Region in which the created address should reside.
     If it is not provided, the provider region is used.
 
-* `session_affinity` - (Optional) How to distribute load. Options are "NONE" (no
-    affinity), "CLIENT\_IP" (hash of the source/dest addresses / ports), and
-    "GENERATED\_COOKIE" (distribute load using a generated session cookie).
+* `session_affinity` - (Optional) How to distribute load. Options are `NONE` (no
+    affinity), `CLIENT_IP` (hash of the source/dest addresses / ports), and
+    `GENERATED_COOKIE` (distribute load using a generated session cookie).
 
 * `timeout_sec` - (Optional) The number of secs to wait for a backend to respond
     to a request before considering the request failed. Defaults to `30`.
