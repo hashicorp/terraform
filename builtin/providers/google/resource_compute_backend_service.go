@@ -117,6 +117,13 @@ func resourceComputeBackendService() *schema.Resource {
 				Computed: true,
 			},
 
+			"region": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "This parameter has been removed as it was never used",
+			},
+
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
