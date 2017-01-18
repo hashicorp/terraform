@@ -59,7 +59,7 @@ func _NewMetricResource() *schema.Resource {
 			_MetricTypeAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateStringIn(_MetricTypeAttr, _ValidMetricTypes),
+				ValidateFunc: _ValidateStringIn(_MetricTypeAttr, _ValidMetricTypes),
 			},
 			_MetricTagsAttr: _TagMakeConfigSchema(_MetricTagsAttr),
 			_MetricUnitAttr: &schema.Schema{

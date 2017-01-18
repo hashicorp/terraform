@@ -124,14 +124,14 @@ var _SchemaCheckJSON = &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: _ValidateFuncs(
-					validateHTTPURL(_CheckJSONURLAttr, _URLIsAbs),
+					_ValidateHTTPURL(_CheckJSONURLAttr, _URLIsAbs),
 				),
 			},
 			_CheckJSONVersionAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      defaultCheckJSONVersion,
-				ValidateFunc: validateStringIn(_CheckJSONVersionAttr, _SupportedHTTPVersions),
+				ValidateFunc: _ValidateStringIn(_CheckJSONVersionAttr, _SupportedHTTPVersions),
 			},
 		}, _CheckJSONDescriptions),
 	},
