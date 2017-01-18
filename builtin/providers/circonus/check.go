@@ -22,8 +22,9 @@ const (
 )
 
 const (
-	_CheckTypeJSON       _CheckType = "json"
-	_CheckTypePostgreSQL _CheckType = "postgres"
+	_APICheckTypeICMPPing   _CheckType = "ping_icmp"
+	_APICheckTypeJSON       _CheckType = "json"
+	_APICheckTypePostgreSQL _CheckType = "postgres"
 )
 
 func _NewCheck() _Check {
