@@ -139,16 +139,16 @@ func schemaGetSetAsListOk(d *schema.ResourceData, attrName _SchemaAttr) (_Interf
 // _ConfigGetString returns an attribute as a string.  If the attribute is not
 // found, return an empty string.
 func _ConfigGetString(d *schema.ResourceData, attrName _SchemaAttr) string {
-	if s, ok := schemaGetStringOk(d, attrName); ok {
+	if s, ok := schemaGetStringOK(d, attrName); ok {
 		return s
 	}
 
 	return ""
 }
 
-// schemaGetStringOk returns an attribute as a string and true if the attribute
+// schemaGetStringOK returns an attribute as a string and true if the attribute
 // was found.  If the attribute is not found, return an empty string.
-func schemaGetStringOk(d *schema.ResourceData, attrName _SchemaAttr) (string, bool) {
+func schemaGetStringOK(d *schema.ResourceData, attrName _SchemaAttr) (string, bool) {
 	if v, ok := d.GetOk(string(attrName)); ok {
 		return v.(string), ok
 	}
@@ -159,7 +159,7 @@ func schemaGetStringOk(d *schema.ResourceData, attrName _SchemaAttr) (string, bo
 // _ConfigGetStringPtr returns an attribute as a *string.  If the attribute is
 // not found, return a nil pointer.
 func _ConfigGetStringPtr(d *schema.ResourceData, attrName _SchemaAttr) *string {
-	if s, ok := schemaGetStringOk(d, attrName); ok {
+	if s, ok := schemaGetStringOK(d, attrName); ok {
 		return &s
 	}
 

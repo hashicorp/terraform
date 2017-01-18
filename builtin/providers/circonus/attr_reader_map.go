@@ -51,14 +51,14 @@ func (r *_MapReader) GetDurationOK(attrName _SchemaAttr) (time.Duration, bool) {
 }
 
 func (r *_MapReader) GetIntOK(attrName _SchemaAttr) (int, bool) {
-	if i, ok := r.m.GetIntOk(attrName); ok {
+	if i, ok := r.m.GetIntOK(attrName); ok {
 		return i, true
 	}
 
 	return 0, false
 }
 
-func (r *_MapReader) GetSetAsListOk(attrName _SchemaAttr) (_InterfaceList, bool) {
+func (r *_MapReader) GetSetAsListOK(attrName _SchemaAttr) (_InterfaceList, bool) {
 	if listRaw, ok := r.m[string(attrName)]; ok {
 		return listRaw.(*schema.Set).List(), true
 	}
@@ -66,7 +66,7 @@ func (r *_MapReader) GetSetAsListOk(attrName _SchemaAttr) (_InterfaceList, bool)
 }
 
 func (r *_MapReader) GetString(attrName _SchemaAttr) string {
-	if s, ok := r.m.GetStringOk(attrName); ok {
+	if s, ok := r.m.GetStringOK(attrName); ok {
 		return s
 	}
 
@@ -77,8 +77,8 @@ func (r *_MapReader) GetStringPtr(attrName _SchemaAttr) *string {
 	return r.m.GetStringPtr(attrName)
 }
 
-func (r *_MapReader) GetStringOk(attrName _SchemaAttr) (string, bool) {
-	if s, ok := r.m.GetStringOk(attrName); ok {
+func (r *_MapReader) GetStringOK(attrName _SchemaAttr) (string, bool) {
+	if s, ok := r.m.GetStringOK(attrName); ok {
 		return s, true
 	}
 

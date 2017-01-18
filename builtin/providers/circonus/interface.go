@@ -63,7 +63,7 @@ func (m _InterfaceMap) GetBoolOK(attrName _SchemaAttr) (b, ok bool) {
 	return false, false
 }
 
-func (m _InterfaceMap) GetIntOk(attrName _SchemaAttr) (int, bool) {
+func (m _InterfaceMap) GetIntOK(attrName _SchemaAttr) (int, bool) {
 	if v, ok := m[string(attrName)]; ok {
 		return v.(int), true
 	}
@@ -79,7 +79,7 @@ func (m _InterfaceMap) GetString(attrName _SchemaAttr) string {
 	return ""
 }
 
-func (m _InterfaceMap) GetStringOk(attrName _SchemaAttr) (string, bool) {
+func (m _InterfaceMap) GetStringOK(attrName _SchemaAttr) (string, bool) {
 	if v, ok := m[string(attrName)]; ok {
 		return v.(string), true
 	}
