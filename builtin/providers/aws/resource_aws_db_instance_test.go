@@ -270,6 +270,41 @@ func TestAccAWSDBInstance_portUpdate(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBInstance_MSSQL_TZ(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBMSSQL_timezone,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.mssql", &v),
+					testAccCheckAWSDBInstanceAttributes_MSSQL(&v, ""),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.mssql", "allocated_storage", "20"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.mssql", "engine", "sqlserver-ex"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSDBMSSQL_timezone_AKST,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.mssql", &v),
+					testAccCheckAWSDBInstanceAttributes_MSSQL(&v, "Alaskan Standard Time"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.mssql", "allocated_storage", "20"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.mssql", "engine", "sqlserver-ex"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
@@ -322,6 +357,26 @@ func testAccCheckAWSDBInstanceAttributes(v *rds.DBInstance) resource.TestCheckFu
 
 		if *v.BackupRetentionPeriod != 0 {
 			return fmt.Errorf("bad backup_retention_period: %#v", *v.BackupRetentionPeriod)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAWSDBInstanceAttributes_MSSQL(v *rds.DBInstance, tz string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if *v.Engine != "sqlserver-ex" {
+			return fmt.Errorf("bad engine: %#v", *v.Engine)
+		}
+
+		rtz := ""
+		if v.Timezone != nil {
+			rtz = *v.Timezone
+		}
+
+		if tz != rtz {
+			return fmt.Errorf("Expected (%s) Timezone for MSSQL test, got (%s)", tz, rtz)
 		}
 
 		return nil
@@ -923,3 +978,138 @@ resource "aws_db_instance" "bar" {
   apply_immediately = true
 }`, rName)
 }
+
+const testAccAWSDBMSSQL_timezone = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "foo" {
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+	tags {
+		Name = "tf-rds-mssql-timezone-test"
+	}
+}
+
+resource "aws_db_subnet_group" "rds_one" {
+  name        = "rds_one_db"
+  description = "db subnets for rds_one"
+
+  subnet_ids = ["${aws_subnet.main.id}", "${aws_subnet.other.id}"]
+}
+
+resource "aws_subnet" "main" {
+  vpc_id            = "${aws_vpc.foo.id}"
+  availability_zone = "us-west-2a"
+  cidr_block        = "10.1.1.0/24"
+}
+
+resource "aws_subnet" "other" {
+  vpc_id            = "${aws_vpc.foo.id}"
+  availability_zone = "us-west-2b"
+  cidr_block        = "10.1.2.0/24"
+}
+
+resource "aws_db_instance" "mssql" {
+  #identifier = "tf-test-mssql"
+
+  db_subnet_group_name = "${aws_db_subnet_group.rds_one.name}"
+
+  instance_class          = "db.t2.micro"
+  allocated_storage       = 20
+  username                = "somecrazyusername"
+  password                = "somecrazypassword"
+  engine                  = "sqlserver-ex"
+  backup_retention_period = 0
+
+  #publicly_accessible = true
+
+  vpc_security_group_ids = ["${aws_security_group.rds-mssql.id}"]
+}
+
+resource "aws_security_group" "rds-mssql" {
+  name = "tf-rds-mssql-test"
+
+  description = "TF Testing"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group_rule" "rds-mssql-1" {
+  type        = "egress"
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
+  cidr_blocks = ["0.0.0.0/0"]
+
+  security_group_id = "${aws_security_group.rds-mssql.id}"
+}
+`
+
+const testAccAWSDBMSSQL_timezone_AKST = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "foo" {
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+	tags {
+		Name = "tf-rds-mssql-timezone-test"
+	}
+}
+
+resource "aws_db_subnet_group" "rds_one" {
+  name        = "rds_one_db"
+  description = "db subnets for rds_one"
+
+  subnet_ids = ["${aws_subnet.main.id}", "${aws_subnet.other.id}"]
+}
+
+resource "aws_subnet" "main" {
+  vpc_id            = "${aws_vpc.foo.id}"
+  availability_zone = "us-west-2a"
+  cidr_block        = "10.1.1.0/24"
+}
+
+resource "aws_subnet" "other" {
+  vpc_id            = "${aws_vpc.foo.id}"
+  availability_zone = "us-west-2b"
+  cidr_block        = "10.1.2.0/24"
+}
+
+resource "aws_db_instance" "mssql" {
+  #identifier = "tf-test-mssql"
+
+  db_subnet_group_name = "${aws_db_subnet_group.rds_one.name}"
+
+  instance_class          = "db.t2.micro"
+  allocated_storage       = 20
+  username                = "somecrazyusername"
+  password                = "somecrazypassword"
+  engine                  = "sqlserver-ex"
+  backup_retention_period = 0
+
+  #publicly_accessible = true
+
+  vpc_security_group_ids = ["${aws_security_group.rds-mssql.id}"]
+  timezone               = "Alaskan Standard Time"
+}
+
+resource "aws_security_group" "rds-mssql" {
+  name = "tf-rds-mssql-test"
+
+  description = "TF Testing"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group_rule" "rds-mssql-1" {
+  type        = "egress"
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
+  cidr_blocks = ["0.0.0.0/0"]
+
+  security_group_id = "${aws_security_group.rds-mssql.id}"
+}
+`
