@@ -125,14 +125,13 @@ func TestResourceProvider_linuxInstallChefClient(t *testing.T) {
 		},
 	}
 
-	r := new(ResourceProvisioner)
 	o := new(terraform.MockUIOutput)
 	c := new(communicator.MockCommunicator)
 
 	for k, tc := range cases {
 		c.Commands = tc.Commands
 
-		p, err := r.decodeConfig(tc.Config)
+		p, err := decodeConfig(getTestResourceData(tc.Config))
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -264,7 +263,6 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 		},
 	}
 
-	r := new(ResourceProvisioner)
 	o := new(terraform.MockUIOutput)
 	c := new(communicator.MockCommunicator)
 
@@ -272,7 +270,7 @@ func TestResourceProvider_linuxCreateConfigFiles(t *testing.T) {
 		c.Commands = tc.Commands
 		c.Uploads = tc.Uploads
 
-		p, err := r.decodeConfig(tc.Config)
+		p, err := decodeConfig(getTestResourceData(tc.Config))
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}

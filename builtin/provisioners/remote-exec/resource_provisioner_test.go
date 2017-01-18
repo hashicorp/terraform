@@ -6,24 +6,31 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestResourceProvisioner_impl(t *testing.T) {
-	var _ terraform.ResourceProvisioner = new(ResourceProvisioner)
+	var _ terraform.ResourceProvisioner = ResourceProvisioner()
 }
 
-func TestResourceProvider_Validate_good(t *testing.T) {
+func TestProvisioner(t *testing.T) {
+	if err := ResourceProvisioner().(*schema.Provisioner).InternalValidate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestResourceProvider_Validate_bad_old_inline_as_string(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"inline": "echo foo",
 	})
-	p := new(ResourceProvisioner)
+	p := ResourceProvisioner()
 	warn, errs := p.Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
-	if len(errs) > 0 {
-		t.Fatalf("Errors: %v", errs)
+	if len(errs) == 0 {
+		t.Fatalf("Should have errors")
 	}
 }
 
@@ -31,7 +38,7 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"invalid": "nope",
 	})
-	p := new(ResourceProvisioner)
+	p := ResourceProvisioner()
 	warn, errs := p.Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
@@ -47,7 +54,6 @@ exit 0
 `
 
 func TestResourceProvider_generateScript(t *testing.T) {
-	p := new(ResourceProvisioner)
 	conf := testConfig(t, map[string]interface{}{
 		"inline": []interface{}{
 			"cd /tmp",
@@ -55,7 +61,7 @@ func TestResourceProvider_generateScript(t *testing.T) {
 			"exit 0",
 		},
 	})
-	out, err := p.generateScript(conf)
+	out, err := generateScript(getTestResourceData(conf))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -66,7 +72,6 @@ func TestResourceProvider_generateScript(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_inline(t *testing.T) {
-	p := new(ResourceProvisioner)
 	conf := testConfig(t, map[string]interface{}{
 		"inline": []interface{}{
 			"cd /tmp",
@@ -75,7 +80,7 @@ func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 		},
 	})
 
-	scripts, err := p.collectScripts(conf)
+	scripts, err := collectScripts(getTestResourceData(conf))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -96,12 +101,11 @@ func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_script(t *testing.T) {
-	p := new(ResourceProvisioner)
 	conf := testConfig(t, map[string]interface{}{
 		"script": "test-fixtures/script1.sh",
 	})
 
-	scripts, err := p.collectScripts(conf)
+	scripts, err := collectScripts(getTestResourceData(conf))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -122,7 +126,6 @@ func TestResourceProvider_CollectScripts_script(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
-	p := new(ResourceProvisioner)
 	conf := testConfig(t, map[string]interface{}{
 		"scripts": []interface{}{
 			"test-fixtures/script1.sh",
@@ -131,7 +134,7 @@ func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
 		},
 	})
 
-	scripts, err := p.collectScripts(conf)
+	scripts, err := collectScripts(getTestResourceData(conf))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -162,4 +165,8 @@ func testConfig(
 	}
 
 	return terraform.NewResourceConfig(r)
+}
+
+func getTestResourceData(c *terraform.ResourceConfig) *schema.ResourceData {
+	return ResourceProvisioner().(*schema.Provisioner).TestResourceData(c)
 }
