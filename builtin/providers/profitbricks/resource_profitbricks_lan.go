@@ -13,9 +13,6 @@ func resourceProfitBricksLan() *schema.Resource {
 		Read:   resourceProfitBricksLanRead,
 		Update: resourceProfitBricksLanUpdate,
 		Delete: resourceProfitBricksLanDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 		Schema: map[string]*schema.Schema{
 
 			"public": {

@@ -21,9 +21,6 @@ func resourceProfitBricksServer() *schema.Resource {
 		Read:   resourceProfitBricksServerRead,
 		Update: resourceProfitBricksServerUpdate,
 		Delete: resourceProfitBricksServerDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 		Schema: map[string]*schema.Schema{
 
 			//Server parameters

@@ -12,9 +12,6 @@ func resourceProfitBricksLoadbalancer() *schema.Resource {
 		Read:   resourceProfitBricksLoadbalancerRead,
 		Update: resourceProfitBricksLoadbalancerUpdate,
 		Delete: resourceProfitBricksLoadbalancerDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 		Schema: map[string]*schema.Schema{
 
 			"name": &schema.Schema{

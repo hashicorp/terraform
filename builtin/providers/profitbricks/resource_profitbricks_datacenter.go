@@ -16,9 +16,6 @@ func resourceProfitBricksDatacenter() *schema.Resource {
 		Read:   resourceProfitBricksDatacenterRead,
 		Update: resourceProfitBricksDatacenterUpdate,
 		Delete: resourceProfitBricksDatacenterDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 		Schema: map[string]*schema.Schema{
 
 			//Datacenter parameters

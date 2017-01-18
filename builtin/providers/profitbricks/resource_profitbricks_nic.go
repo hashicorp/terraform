@@ -14,9 +14,6 @@ func resourceProfitBricksNic() *schema.Resource {
 		Read:   resourceProfitBricksNicRead,
 		Update: resourceProfitBricksNicUpdate,
 		Delete: resourceProfitBricksNicDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 		Schema: map[string]*schema.Schema{
 
 			"lan": &schema.Schema{
