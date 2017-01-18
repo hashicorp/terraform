@@ -59,7 +59,7 @@ func init() {
 	}
 }
 
-func validateCheckType(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateCheckType(v interface{}, key string) (warnings []string, errors []error) {
 	if _, ok := knownCheckTypes[_CheckType(v.(string))]; !ok {
 		warnings = append(warnings, fmt.Sprintf("Possibly unsupported check type: %s", v.(string)))
 	}
@@ -67,7 +67,7 @@ func validateCheckType(v interface{}, key string) (warnings []string, errors []e
 	return warnings, errors
 }
 
-func validateContactMethod(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateContactMethod(v interface{}, key string) (warnings []string, errors []error) {
 	if _, ok := knownContactMethods[_ContactMethods(v.(string))]; !ok {
 		warnings = append(warnings, fmt.Sprintf("Possibly unsupported contact method: %s", v.(string)))
 	}
@@ -75,7 +75,7 @@ func validateContactMethod(v interface{}, key string) (warnings []string, errors
 	return warnings, errors
 }
 
-func validateContactGroup(cg *api.ContactGroup) error {
+func _ValidateContactGroup(cg *api.ContactGroup) error {
 	for i := range cg.Reminders {
 		if cg.Reminders[i] != 0 && cg.AggregationWindow > cg.Reminders[i] {
 			return fmt.Errorf("severity %d reminder (%ds) is shorter than the aggregation window (%ds)", i+1, cg.Reminders[i], cg.AggregationWindow)
@@ -94,7 +94,7 @@ func validateContactGroup(cg *api.ContactGroup) error {
 	return nil
 }
 
-func validateContactGroupCID(attrName string) func(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateContactGroupCID(attrName string) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		validContactGroupCID := regexp.MustCompile(config.ContactGroupCIDRegex)
 
@@ -106,7 +106,7 @@ func validateContactGroupCID(attrName string) func(v interface{}, key string) (w
 	}
 }
 
-func validateDurationMin(attrName _SchemaAttr, minDuration string) func(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateDurationMin(attrName _SchemaAttr, minDuration string) func(v interface{}, key string) (warnings []string, errors []error) {
 	var min time.Duration
 	{
 		var err error
@@ -129,7 +129,7 @@ func validateDurationMin(attrName _SchemaAttr, minDuration string) func(v interf
 	}
 }
 
-func validateDurationMax(attrName _SchemaAttr, maxDuration string) func(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateDurationMax(attrName _SchemaAttr, maxDuration string) func(v interface{}, key string) (warnings []string, errors []error) {
 	var max time.Duration
 	{
 		var err error
@@ -152,9 +152,9 @@ func validateDurationMax(attrName _SchemaAttr, maxDuration string) func(v interf
 	}
 }
 
-// validateFuncs takes a list of functions and runs them in serial until either
+// _ValidateFuncs takes a list of functions and runs them in serial until either
 // a warning or error is returned from the first validation function argument.
-func validateFuncs(fns ...func(v interface{}, key string) (warnings []string, errors []error)) func(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateFuncs(fns ...func(v interface{}, key string) (warnings []string, errors []error)) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		for _, fn := range fns {
 			warnings, errors = fn(v, key)
@@ -166,7 +166,7 @@ func validateFuncs(fns ...func(v interface{}, key string) (warnings []string, er
 	}
 }
 
-func validateHTTPHeaders(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateHTTPHeaders(v interface{}, key string) (warnings []string, errors []error) {
 	validHTTPHeader := regexp.MustCompile(`.+`)
 	validHTTPValue := regexp.MustCompile(`.+`)
 
@@ -186,7 +186,7 @@ func validateHTTPHeaders(v interface{}, key string) (warnings []string, errors [
 	return warnings, errors
 }
 
-func validateIntMin(attrName _SchemaAttr, min int) func(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateIntMin(attrName _SchemaAttr, min int) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		if v.(int) < min {
 			errors = append(errors, fmt.Errorf("Invalid %s specified (%d): minimum value must be %s", attrName, v.(int), min))
@@ -196,7 +196,7 @@ func validateIntMin(attrName _SchemaAttr, min int) func(v interface{}, key strin
 	}
 }
 
-func validateIntMax(attrName _SchemaAttr, max int) func(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateIntMax(attrName _SchemaAttr, max int) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		if v.(int) > max {
 			errors = append(errors, fmt.Errorf("Invalid %s specified (%d): maximum value must be %s", attrName, v.(int), max))
@@ -206,7 +206,7 @@ func validateIntMax(attrName _SchemaAttr, max int) func(v interface{}, key strin
 	}
 }
 
-func validateMetricType(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateMetricType(v interface{}, key string) (warnings []string, errors []error) {
 	value := v.(string)
 	switch value {
 	case "caql", "composite", "histogram", "numeric", "text":
@@ -229,7 +229,7 @@ func _ValidateRegexp(attrName _SchemaAttr, reString string) func(v interface{}, 
 	}
 }
 
-func validateTag(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateTag(v interface{}, key string) (warnings []string, errors []error) {
 	tag := v.(string)
 	if !strings.ContainsRune(tag, ':') {
 		errors = append(errors, fmt.Errorf("tag %q is missing a category", tag))
@@ -238,7 +238,7 @@ func validateTag(v interface{}, key string) (warnings []string, errors []error) 
 	return warnings, errors
 }
 
-func validateTags(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateTags(v interface{}, key string) (warnings []string, errors []error) {
 	for _, tagRaw := range v.([]interface{}) {
 		var s scanner.Scanner
 		s.Init(strings.NewReader(tagRaw.(string)))
@@ -264,7 +264,7 @@ func validateTags(v interface{}, key string) (warnings []string, errors []error)
 	return warnings, errors
 }
 
-func validateUserCID(attrName string) func(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateUserCID(attrName string) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		valid := regexp.MustCompile(config.UserCIDRegex)
 
@@ -276,7 +276,7 @@ func validateUserCID(attrName string) func(v interface{}, key string) (warnings 
 	}
 }
 
-func validateUUID(attrName _SchemaAttr) func(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateUUID(attrName _SchemaAttr) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		_, err := uuid.ParseUUID(v.(string))
 		if err != nil {

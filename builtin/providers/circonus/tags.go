@@ -18,7 +18,7 @@ func _TagMakeConfigSchema(tagAttrName _SchemaAttr) *schema.Schema {
 		Elem: &schema.Schema{
 			Type:             schema.TypeString,
 			DiffSuppressFunc: suppressAutoTag(tagAttrName),
-			ValidateFunc:     validateTag,
+			ValidateFunc:     _ValidateTag,
 		},
 	}
 }

@@ -133,8 +133,8 @@ func _NewCheckResource() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-				ValidateFunc: validateFuncs(
-					validateIntMin(_CheckMetricLimitAttr, -1),
+				ValidateFunc: _ValidateFuncs(
+					_ValidateIntMin(_CheckMetricLimitAttr, -1),
 				),
 			},
 			_CheckNameAttr: &schema.Schema{
@@ -155,9 +155,9 @@ func _NewCheckResource() *schema.Resource {
 				Optional:  true,
 				Computed:  true,
 				StateFunc: normalizeTimeDurationStringToSeconds,
-				ValidateFunc: validateFuncs(
-					validateDurationMin(_CheckPeriodAttr, defaultCirconusCheckPeriodMin),
-					validateDurationMax(_CheckPeriodAttr, defaultCirconusCheckPeriodMax),
+				ValidateFunc: _ValidateFuncs(
+					_ValidateDurationMin(_CheckPeriodAttr, defaultCirconusCheckPeriodMin),
+					_ValidateDurationMax(_CheckPeriodAttr, defaultCirconusCheckPeriodMax),
 				),
 			},
 			_CheckPostgreSQLAttr: _SchemaCheckPostgreSQL,
@@ -182,7 +182,7 @@ func _NewCheckResource() *schema.Resource {
 						_MetricTypeAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateMetricType,
+							ValidateFunc: _ValidateMetricType,
 						},
 						_MetricUnitAttr: &schema.Schema{
 							Type:         schema.TypeString,
@@ -204,9 +204,9 @@ func _NewCheckResource() *schema.Resource {
 				Optional:  true,
 				Computed:  true,
 				StateFunc: normalizeTimeDurationStringToSeconds,
-				ValidateFunc: validateFuncs(
-					validateDurationMin(_CheckTimeoutAttr, defaultCirconusTimeoutMin),
-					validateDurationMax(_CheckTimeoutAttr, defaultCirconusTimeoutMax),
+				ValidateFunc: _ValidateFuncs(
+					_ValidateDurationMin(_CheckTimeoutAttr, defaultCirconusTimeoutMin),
+					_ValidateDurationMax(_CheckTimeoutAttr, defaultCirconusTimeoutMax),
 				),
 			},
 			_CheckTypeAttr: &schema.Schema{
@@ -214,7 +214,7 @@ func _NewCheckResource() *schema.Resource {
 				Computed:     true,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: validateCheckType,
+				ValidateFunc: _ValidateCheckType,
 			},
 
 			// Out parameters

@@ -166,8 +166,8 @@ func resourceContactGroup() *schema.Resource {
 				Default:          defaultCirconusAggregationWindow,
 				DiffSuppressFunc: suppressEquivalentTimeDurations,
 				StateFunc:        normalizeTimeDurationStringToSeconds,
-				ValidateFunc: validateFuncs(
-					validateDurationMin(contactAggregationWindowAttr, "0s"),
+				ValidateFunc: _ValidateFuncs(
+					_ValidateDurationMin(contactAggregationWindowAttr, "0s"),
 				),
 				Description: contactDescription[contactAggregationWindowAttr],
 			},
@@ -182,15 +182,15 @@ func resourceContactGroup() *schema.Resource {
 							Optional:         true,
 							DiffSuppressFunc: suppressEquivalentTimeDurations,
 							StateFunc:        normalizeTimeDurationStringToSeconds,
-							ValidateFunc: validateFuncs(
-								validateDurationMin(contactEscalateAfterAttr, defaultCirconusAlertMinEscalateAfter),
+							ValidateFunc: _ValidateFuncs(
+								_ValidateDurationMin(contactEscalateAfterAttr, defaultCirconusAlertMinEscalateAfter),
 							),
 							Description: contactDescription[contactEscalateAfterAttr],
 						},
 						contactEscalateToAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateContactGroupCID(contactEscalateToAttr),
+							ValidateFunc: _ValidateContactGroupCID(contactEscalateToAttr),
 							Description:  contactDescription[contactEscalateToAttr],
 						},
 						contactReminderAttr: &schema.Schema{
@@ -198,17 +198,17 @@ func resourceContactGroup() *schema.Resource {
 							Optional:         true,
 							DiffSuppressFunc: suppressEquivalentTimeDurations,
 							StateFunc:        normalizeTimeDurationStringToSeconds,
-							ValidateFunc: validateFuncs(
-								validateDurationMin(contactReminderAttr, "0s"),
+							ValidateFunc: _ValidateFuncs(
+								_ValidateDurationMin(contactReminderAttr, "0s"),
 							),
 							Description: contactDescription[contactReminderAttr],
 						},
 						contactSeverityAttr: &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ValidateFunc: validateFuncs(
-								validateIntMin(contactSeverityAttr, minSeverity),
-								validateIntMax(contactSeverityAttr, maxSeverity),
+							ValidateFunc: _ValidateFuncs(
+								_ValidateIntMin(contactSeverityAttr, minSeverity),
+								_ValidateIntMax(contactSeverityAttr, maxSeverity),
 							),
 							Description: contactDescription[contactSeverityAttr],
 						},
@@ -228,7 +228,7 @@ func resourceContactGroup() *schema.Resource {
 						contactUserCIDAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
-							ValidateFunc:  validateUserCID(contactUserCIDAttr),
+							ValidateFunc:  _ValidateUserCID(contactUserCIDAttr),
 							ConflictsWith: []string{contactEmailAttr + "." + contactEmailAddressAttr},
 						},
 					}, _ContactEmailDescriptions),
@@ -267,7 +267,7 @@ func resourceContactGroup() *schema.Resource {
 						contactUserCIDAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateUserCID(contactUserCIDAttr),
+							ValidateFunc: _ValidateUserCID(contactUserCIDAttr),
 							Description:  contactDescription[contactUserCIDAttr],
 						},
 					},
@@ -310,7 +310,7 @@ func resourceContactGroup() *schema.Resource {
 						contactContactGroupFallbackAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateContactGroupCID(contactContactGroupFallbackAttr),
+							ValidateFunc: _ValidateContactGroupCID(contactContactGroupFallbackAttr),
 						},
 						contactPagerDutyIntegrationKeyAttr: &schema.Schema{
 							Type:         schema.TypeString,
@@ -350,7 +350,7 @@ func resourceContactGroup() *schema.Resource {
 						contactContactGroupFallbackAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateContactGroupCID(contactContactGroupFallbackAttr),
+							ValidateFunc: _ValidateContactGroupCID(contactContactGroupFallbackAttr),
 							Description:  contactDescription[contactContactGroupFallbackAttr],
 						},
 						contactSlackButtonsAttr: &schema.Schema{
@@ -363,7 +363,7 @@ func resourceContactGroup() *schema.Resource {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: contactDescription[contactSlackChannelAttr],
-							ValidateFunc: validateFuncs(
+							ValidateFunc: _ValidateFuncs(
 								_ValidateRegexp(contactSlackChannelAttr, `^#[\S]+$`),
 							),
 						},
@@ -376,7 +376,7 @@ func resourceContactGroup() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  defaultCirconusSlackUsername,
-							ValidateFunc: validateFuncs(
+							ValidateFunc: _ValidateFuncs(
 								_ValidateRegexp(contactSlackChannelAttr, `^[\S]+$`),
 							),
 							Description: contactDescription[contactSlackUsernameAttr],
@@ -398,7 +398,7 @@ func resourceContactGroup() *schema.Resource {
 						contactUserCIDAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
-							ValidateFunc:  validateUserCID(contactUserCIDAttr),
+							ValidateFunc:  _ValidateUserCID(contactUserCIDAttr),
 							ConflictsWith: []string{contactSMSAttr + "." + contactSMSAddressAttr},
 							Description:   contactDescription[contactUserCIDAttr],
 						},
@@ -414,7 +414,7 @@ func resourceContactGroup() *schema.Resource {
 						contactContactGroupFallbackAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateContactGroupCID(contactContactGroupFallbackAttr),
+							ValidateFunc: _ValidateContactGroupCID(contactContactGroupFallbackAttr),
 							Description:  contactDescription[contactContactGroupFallbackAttr],
 						},
 						contactVictorOpsAPIKeyAttr: &schema.Schema{
@@ -426,18 +426,18 @@ func resourceContactGroup() *schema.Resource {
 						contactVictorOpsCriticalAttr: &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ValidateFunc: validateFuncs(
-								validateIntMin(contactVictorOpsCriticalAttr, 1),
-								validateIntMax(contactVictorOpsCriticalAttr, 5),
+							ValidateFunc: _ValidateFuncs(
+								_ValidateIntMin(contactVictorOpsCriticalAttr, 1),
+								_ValidateIntMax(contactVictorOpsCriticalAttr, 5),
 							),
 							Description: contactDescription[contactVictorOpsCriticalAttr],
 						},
 						contactVictorOpsInfoAttr: &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ValidateFunc: validateFuncs(
-								validateIntMin(contactVictorOpsInfoAttr, 1),
-								validateIntMax(contactVictorOpsInfoAttr, 5),
+							ValidateFunc: _ValidateFuncs(
+								_ValidateIntMin(contactVictorOpsInfoAttr, 1),
+								_ValidateIntMax(contactVictorOpsInfoAttr, 5),
 							),
 							Description: contactDescription[contactVictorOpsCriticalAttr],
 						},
@@ -449,9 +449,9 @@ func resourceContactGroup() *schema.Resource {
 						contactVictorOpsWarningAttr: &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ValidateFunc: validateFuncs(
-								validateIntMin(contactVictorOpsWarningAttr, 1),
-								validateIntMax(contactVictorOpsWarningAttr, 5),
+							ValidateFunc: _ValidateFuncs(
+								_ValidateIntMin(contactVictorOpsWarningAttr, 1),
+								_ValidateIntMax(contactVictorOpsWarningAttr, 5),
 							),
 							Description: contactDescription[contactVictorOpsWarningAttr],
 						},
@@ -472,7 +472,7 @@ func resourceContactGroup() *schema.Resource {
 						contactUserCIDAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
-							ValidateFunc:  validateUserCID(contactUserCIDAttr),
+							ValidateFunc:  _ValidateUserCID(contactUserCIDAttr),
 							ConflictsWith: []string{contactXMPPAttr + "." + contactXMPPAddressAttr},
 							Description:   contactDescription[contactUserCIDAttr],
 						},
@@ -1047,7 +1047,7 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 	contactTags := _ConfigGetTags(ctxt, d, _CheckTagsAttr)
 	cg.Tags = tagsToAPI(contactTags)
 
-	if err := validateContactGroup(cg); err != nil {
+	if err := _ValidateContactGroup(cg); err != nil {
 		return nil, err
 	}
 

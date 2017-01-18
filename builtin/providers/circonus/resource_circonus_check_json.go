@@ -90,7 +90,7 @@ var _SchemaCheckJSON = &schema.Schema{
 				Type:         schema.TypeMap,
 				Elem:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: validateHTTPHeaders,
+				ValidateFunc: _ValidateHTTPHeaders,
 			},
 			_CheckJSONKeyFileAttr: &schema.Schema{
 				Type:         schema.TypeString,
@@ -116,14 +116,14 @@ var _SchemaCheckJSON = &schema.Schema{
 			_CheckJSONReadLimitAttr: &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				ValidateFunc: validateFuncs(
-					validateIntMin(_CheckJSONReadLimitAttr, 0),
+				ValidateFunc: _ValidateFuncs(
+					_ValidateIntMin(_CheckJSONReadLimitAttr, 0),
 				),
 			},
 			_CheckJSONURLAttr: &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ValidateFunc: validateFuncs(
+				ValidateFunc: _ValidateFuncs(
 					validateHTTPURL(_CheckJSONURLAttr, _URLIsAbs),
 				),
 			},
