@@ -196,7 +196,7 @@ func validateIntMin(attrName _SchemaAttr, min int) func(v interface{}, key strin
 	}
 }
 
-func validateIntMax(attrName string, max int) func(v interface{}, key string) (warnings []string, errors []error) {
+func validateIntMax(attrName _SchemaAttr, max int) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		if v.(int) > max {
 			errors = append(errors, fmt.Errorf("Invalid %s specified (%d): maximum value must be %s", attrName, v.(int), max))
@@ -242,6 +242,7 @@ func validateTags(v interface{}, key string) (warnings []string, errors []error)
 	for _, tagRaw := range v.([]interface{}) {
 		var s scanner.Scanner
 		s.Init(strings.NewReader(tagRaw.(string)))
+		s.Mode = scanner.ScanChars
 		var tok rune
 		permittedColons := 1
 	SCAN:

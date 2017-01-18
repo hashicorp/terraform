@@ -8,7 +8,7 @@ import (
 	"github.com/circonus-labs/circonus-gometrics/api/config"
 )
 
-func (c *_Check) parseJSONCheck(ctxt *_ProviderContext, l _InterfaceList) error {
+func parseCheckConfigJSON(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
 	c.Type = string(_CheckTypeJSON)
 
 	// Iterate over all `json` attributes, even though we have a max of 1 in the

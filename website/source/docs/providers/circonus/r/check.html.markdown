@@ -112,7 +112,25 @@ resource "circonus_metric" "used" {
 * `timeout` - (Optional) A floating point number representing the maximum number
   of seconds this check should wait for a result.  Defaults to `10.0`.
 
-## Supported `json` Attributes
+## Supported `stream` Attributes
+
+The following attributes are available within a `metric`.
+
+* `active` - (Optional) Whether or not the metric is active or not.  Defaults to `true`.
+* `name` - (Optional) The name of the metric.  A string containing freeform text.
+* `tags` - (Optional) A list of tags assigned to the metric.
+* `type` - (Required) A string containing either `numeric`, `text`, `histogram`, `composite`, or `caql`.
+* `units` - (Optional) The unit of measurement the metric represents (e.g., bytes, seconds, milliseconds). A string containing freeform text.
+
+## Supported Check Types
+
+Circonus supports a variety of different checks.  Each check type has its own
+set of options that must be configured.  Each check type conflicts with every
+other check type (i.e. a `circonus_check` configured for a `json` check will
+conflict with all other check types, therefore a `postgresql` check must be a
+different `circonus_check` resource).
+
+### `json` Check Type Attributes
 
 The `json` attribute conflicts with every other check type when present.
 
