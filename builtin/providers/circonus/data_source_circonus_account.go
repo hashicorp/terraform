@@ -60,7 +60,7 @@ func dataSourceCirconusAccount() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				// ConflictsWith: []string{accountCurrentAttr},
-				ValidateFunc: validateFuncs(
+				ValidateFunc: _ValidateFuncs(
 					_ValidateRegexp(accountIDAttr, config.AccountCIDRegex),
 				),
 				Description: accountDescription[accountIDAttr],
