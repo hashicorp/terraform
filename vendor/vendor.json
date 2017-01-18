@@ -1118,6 +1118,12 @@
 			"versionExact": "v1.8.10"
 		},
 		{
+			"checksumSHA1": "lRDDbi6XtUqJZMTZaT3EU4/djGI=",
+			"path": "github.com/aws/aws-sdk-go/service/wafregional",
+			"revision": "5e1afe1c0a077fb2da9b5f74232b790d99397ce8",
+			"revisionTime": "2017-01-12T17:52:23Z"
+		},
+		{
 			"checksumSHA1": "nqw2Qn5xUklssHTubS5HDvEL9L4=",
 			"path": "github.com/bgentry/go-netrc/netrc",
 			"revision": "9fd32a8b3d3d3f9d43c341bfe098430e07609480",
