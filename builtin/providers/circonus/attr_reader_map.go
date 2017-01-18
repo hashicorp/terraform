@@ -50,6 +50,14 @@ func (r *_MapReader) GetDurationOK(attrName _SchemaAttr) (time.Duration, bool) {
 	return time.Duration(0), false
 }
 
+func (r *_MapReader) GetFloat64OK(attrName _SchemaAttr) (float64, bool) {
+	if f, ok := r.m.GetFloat64OK(attrName); ok {
+		return f, true
+	}
+
+	return 0.0, false
+}
+
 func (r *_MapReader) GetIntOK(attrName _SchemaAttr) (int, bool) {
 	if i, ok := r.m.GetIntOK(attrName); ok {
 		return i, true

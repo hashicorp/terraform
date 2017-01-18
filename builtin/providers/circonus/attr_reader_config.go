@@ -54,6 +54,14 @@ func (r *_ConfigReader) GetDurationOK(attrName _SchemaAttr) (time.Duration, bool
 	return time.Duration(0), false
 }
 
+func (r *_ConfigReader) GetFloat64OK(attrName _SchemaAttr) (float64, bool) {
+	if v, ok := r.d.GetOk(string(attrName)); ok {
+		return v.(float64), true
+	}
+
+	return 0.0, false
+}
+
 func (r *_ConfigReader) GetIntOK(attrName _SchemaAttr) (int, bool) {
 	if v, ok := r.d.GetOk(string(attrName)); ok {
 		return v.(int), true
