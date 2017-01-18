@@ -267,6 +267,24 @@ func TestAccAWSS3BucketObject_kms(t *testing.T) {
 	})
 }
 
+func TestAccAWSS3BucketObject_sse(t *testing.T) {
+	rInt := acctest.RandInt()
+	var obj s3.GetObjectOutput
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				PreConfig: func() {},
+				Config:    testAccAWSS3BucketObjectConfig_withSSE(rInt),
+				Check:     testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object", &obj),
+			},
+		},
+	})
+}
+
 func TestAccAWSS3BucketObject_acl(t *testing.T) {
 	rInt := acctest.RandInt()
 	var obj s3.GetObjectOutput
@@ -557,6 +575,21 @@ resource "aws_s3_bucket_object" "object" {
 	key = "test-key"
 	content = "stuff"
 	kms_key_id = "${aws_kms_key.kms_key_1.arn}"
+}
+`, randInt)
+}
+
+func testAccAWSS3BucketObjectConfig_withSSE(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "object_bucket_2" {
+	bucket = "tf-object-test-bucket-%d"
+}
+
+resource "aws_s3_bucket_object" "object" {
+	bucket = "${aws_s3_bucket.object_bucket_2.bucket}"
+	key = "test-key"
+	content = "stuff"
+	server_side_encryption = "aws:kms"
 }
 `, randInt)
 }

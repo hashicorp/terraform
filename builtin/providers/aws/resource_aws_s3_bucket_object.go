@@ -89,6 +89,13 @@ func resourceAwsS3BucketObject() *schema.Resource {
 				ValidateFunc: validateS3BucketObjectStorageClassType,
 			},
 
+			"server_side_encryption": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ValidateFunc:  validateS3BucketObjectServerSideEncryption,
+				ConflictsWith: []string{"kms_key_id"},
+			},
+
 			"kms_key_id": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -171,9 +178,13 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		putInput.ContentDisposition = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("server_side_encryption"); ok {
+		putInput.ServerSideEncryption = aws.String(v.(string))
+	}
+
 	if v, ok := d.GetOk("kms_key_id"); ok {
 		putInput.SSEKMSKeyId = aws.String(v.(string))
-		putInput.ServerSideEncryption = aws.String("aws:kms")
+		putInput.ServerSideEncryption = aws.String(s3.ServerSideEncryptionAwsKms)
 	}
 
 	resp, err := s3conn.PutObject(putInput)
@@ -218,6 +229,7 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("content_language", resp.ContentLanguage)
 	d.Set("content_type", resp.ContentType)
 	d.Set("version_id", resp.VersionId)
+	d.Set("server_side_encryption", resp.ServerSideEncryption)
 	d.Set("kms_key_id", resp.SSEKMSKeyId)
 	d.Set("etag", strings.Trim(*resp.ETag, `"`))
 
@@ -325,6 +337,22 @@ func validateS3BucketObjectStorageClassType(v interface{}, k string) (ws []strin
 			"%q contains an invalid Storage Class type %q. Valid types are either %q, %q, or %q",
 			k, value, s3.StorageClassStandard, s3.StorageClassReducedRedundancy,
 			s3.StorageClassStandardIa))
+	}
+	return
+}
+
+func validateS3BucketObjectServerSideEncryption(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	serverSideEncryption := map[string]bool{
+		s3.ServerSideEncryptionAes256: true,
+		s3.ServerSideEncryptionAwsKms: true,
+	}
+
+	if _, ok := serverSideEncryption[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Server Side Encryption value %q. Valid values are %q and %q",
+			k, value, s3.ServerSideEncryptionAes256, s3.ServerSideEncryptionAwsKms))
 	}
 	return
 }
