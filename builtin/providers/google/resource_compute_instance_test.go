@@ -220,6 +220,30 @@ func TestAccComputeInstance_disksWithAutodelete(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_diskEncryption(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_disks_encryption(diskName, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceDisk(&instance, instanceName, true, true),
+					testAccCheckComputeInstanceDisk(&instance, diskName, true, false),
+					testAccCheckComputeInstanceDiskEncryptionKey("google_compute_instance.foobar", &instance),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeInstance_local_ssd(t *testing.T) {
 	var instance compute.Instance
 	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
@@ -636,6 +660,27 @@ func testAccCheckComputeInstanceDisk(instance *compute.Instance, source string, 
 	}
 }
 
+func testAccCheckComputeInstanceDiskEncryptionKey(n string, instance *compute.Instance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		for i, disk := range instance.Disks {
+			attr := rs.Primary.Attributes[fmt.Sprintf("disk.%d.disk_encryption_key_sha256", i)]
+			if disk.DiskEncryptionKey == nil && attr != "" {
+				return fmt.Errorf("Disk %d has mismatched encryption key.\nTF State: %+v\nGCP State: <empty>", i, attr)
+			}
+			if disk.DiskEncryptionKey != nil && attr != disk.DiskEncryptionKey.Sha256 {
+				return fmt.Errorf("Disk %d has mismatched encryption key.\nTF State: %+v\nGCP State: %+v",
+					i, attr, disk.DiskEncryptionKey.Sha256)
+			}
+		}
+		return nil
+	}
+}
+
 func testAccCheckComputeInstanceTag(instance *compute.Instance, n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if instance.Tags == nil {
@@ -981,6 +1026,39 @@ func testAccComputeInstance_disks(disk, instance string, autodelete bool) string
 			foo = "bar"
 		}
 	}`, disk, instance, autodelete)
+}
+
+func testAccComputeInstance_disks_encryption(disk, instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_disk" "foobar" {
+		name = "%s"
+		size = 10
+		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		disk {
+			image = "debian-8-jessie-v20160803"
+			disk_encryption_key_raw = "SGVsbG8gZnJvbSBHb29nbGUgQ2xvdWQgUGxhdGZvcm0="
+		}
+
+		disk {
+			disk = "${google_compute_disk.foobar.name}"
+		}
+
+		network_interface {
+			network = "default"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, disk, instance)
 }
 
 func testAccComputeInstance_local_ssd(instance string) string {
