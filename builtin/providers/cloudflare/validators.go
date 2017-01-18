@@ -100,10 +100,6 @@ func validatePageRuleActionID(v interface{}, k string) (ws []string, errors []er
 	return
 }
 
-func assertIsOnOrOff(value interface{}) error {
-	return assertIsOneOf("Action status", []interface{}{"on", "off"}, value)
-}
-
 func assertIsOneOf(setting string, acceptables []interface{}, value interface{}) error {
 	for _, acceptable := range acceptables {
 		if value == acceptable {
@@ -113,14 +109,10 @@ func assertIsOneOf(setting string, acceptables []interface{}, value interface{})
 	return fmt.Errorf("%q %q invalid: must be one of %q", setting, value, acceptables)
 }
 
-func assertIsUnitary(id string, value interface{}) error {
-	if value != (struct{}{}) {
-		return fmt.Errorf("Action %q does not take a value", id)
-	}
-	return nil
-}
+func validatePageRuleAction(v interface{}, k string) (ws []string, errors []error) {
+	id := v.(map[string]interface{})["action"].(string)
+	value := v.(map[string]interface{})["value"]
 
-func validatePageRuleActionValue(id string, value interface{}) error {
 	expectedTypeFor := map[string]reflect.Kind{
 		"always_online":       reflect.String,
 		"always_use_https":    reflect.Interface,
@@ -148,45 +140,71 @@ func validatePageRuleActionValue(id string, value interface{}) error {
 	actualType := reflect.TypeOf(value).Kind()
 	expectedType := expectedTypeFor[id]
 	if actualType != expectedType {
-		return fmt.Errorf("Value for %q action had type %q, expected %q", id, actualType, expectedType)
+		errors = append(errors, fmt.Errorf("Value for %q action had type %q, expected %q", id, actualType, expectedType))
 	}
 
 	switch id {
-	default:
-		return nil
-
 	case "always_online":
 	case "browser_check":
 	case "email_obfuscation":
 	case "ip_geolocation":
 	case "server_side_exclude":
 	case "smart_errors":
-		return assertIsOnOrOff(value)
+		if err := assertIsOneOf("Action status", []interface{}{"on", "off"}, value); err != nil {
+			errors = append(errors, err)
+		}
+		break
 
 	case "always_use_https":
 	case "disable_apps":
 	case "disable_performance":
 	case "disable_security":
-		return assertIsUnitary(id, value)
+		if value != (struct{}{}) {
+			ws = append(ws, fmt.Sprintf("Action %q does not take a value", id))
+		}
+		break
+
+	case "browser_cache_ttl":
+	case "edge_cache_ttl":
+		maxTTL := 31536000
+		if value.(int) > maxTTL {
+			errors = append(errors, fmt.Errorf("Cache TTL too long: max value is %q", maxTTL))
+		}
+		break
 
 	case "cache_level":
-		return assertIsOneOf("Cache level", []interface{}{"bypass", "basic", "simplified", "aggressive", "cache_everything"}, value)
+		if err := assertIsOneOf("Cache level", []interface{}{"bypass", "basic", "simplified", "aggressive", "cache_everything"}, value); err != nil {
+			errors = append(errors, err)
+		}
+		break
 
 	case "forwarding_url":
 		forwardAction := value.(map[string]interface{})
 		if reflect.TypeOf(forwardAction["url"]).Kind() != reflect.String {
-			return fmt.Errorf("Forwarding URL %q invalid: must be of type string", forwardAction["url"])
+			errors = append(errors, fmt.Errorf("Forwarding URL %q invalid: must be of type string", forwardAction["url"]))
 		}
-		return assertIsOneOf("Forwarding status code", []interface{}{301, 302}, forwardAction["status_code"])
+		if err := assertIsOneOf("Forwarding status code", []interface{}{301, 302}, forwardAction["status_code"]); err != nil {
+			errors = append(errors, err)
+		}
+		break
 
 	case "rocket_loader":
-		return assertIsOneOf("Rocket loader", []interface{}{"off", "manual", "automatic"}, value)
+		if err := assertIsOneOf("Rocket loader", []interface{}{"off", "manual", "automatic"}, value); err != nil {
+			errors = append(errors, err)
+		}
+		break
 
 	case "security_level":
-		return assertIsOneOf("Security level", []interface{}{"essentially_off", "low", "medium", "high", "under_attack"}, value)
+		if err := assertIsOneOf("Security level", []interface{}{"essentially_off", "low", "medium", "high", "under_attack"}, value); err != nil {
+			errors = append(errors, err)
+		}
+		break
 
 	case "ssl":
-		return assertIsOneOf("SSL setting", []interface{}{"off", "flexible", "full", "strict"}, value)
+		if err := assertIsOneOf("SSL setting", []interface{}{"off", "flexible", "full", "strict"}, value); err != nil {
+			errors = append(errors, err)
+		}
+		break
 
 		/* The following action IDs are not yet implemented by cloudflare-go
 		case "automatic_https_rewrites":
@@ -194,4 +212,5 @@ func validatePageRuleActionValue(id string, value interface{}) error {
 		case "opportunistic_encryption":
 			return assertIsOnOrOff(value)*/
 	}
+	return
 }

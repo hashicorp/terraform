@@ -31,19 +31,9 @@ func resourceCloudFlarePageRule() *schema.Resource {
 				Type:     schema.TypeList,
 				MinItems: 1,
 				Required: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"action": &schema.Schema{
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validatePageRuleActionID,
-						},
-
-						"value": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-					},
+				Elem: &schema.Schema{
+					Type:         schema.TypeMap,
+					ValidateFunc: validatePageRuleAction,
 				},
 			},
 
@@ -66,7 +56,7 @@ func resourceCloudFlarePageRule() *schema.Resource {
 func resourceCloudFlarePageRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*cloudflare.API)
 
-	actions := d.Get("actions").([]interface{})
+	actions := d.Get("actions").([]map[string]interface{})
 	newPageRuleActions := make([]cloudflare.PageRuleAction, 0, len(actions))
 
 	newPageRuleTargets := []cloudflare.PageRuleTarget{
@@ -84,13 +74,8 @@ func resourceCloudFlarePageRuleCreate(d *schema.ResourceData, meta interface{}) 
 
 	for _, action := range actions {
 		newPageRuleAction := cloudflare.PageRuleAction{
-			ID:    action.(schema.Resource).Schema["action"].Elem.(string),
-			Value: action.(schema.Resource).Schema["value"].Elem.(interface{}),
-		}
-
-		// Validate value based on ID
-		if err := validatePageRuleActionValue(newPageRuleAction.ID, newPageRuleAction.Value); err != nil {
-			return fmt.Errorf("Error validating page rule action valueq: %s", newPageRuleAction.Value, err)
+			ID:    action["action"].(string),
+			Value: action["value"].(interface{}),
 		}
 		newPageRuleActions = append(newPageRuleActions, newPageRuleAction)
 	}
