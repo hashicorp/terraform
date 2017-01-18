@@ -117,7 +117,7 @@ func hashCheckPostgreSQL(v interface{}) int {
 
 	// writeInt := func(attrName _SchemaAttr) {
 	// 	if v, ok := m[string(attrName)]; ok {
-	// 		fmt.Fprint(b, "%x", v.(int))
+	// 		fmt.Fprintf(b, "%x", v.(int))
 	// 	}
 	// }
 
@@ -143,7 +143,7 @@ func hashCheckPostgreSQL(v interface{}) int {
 }
 
 func parseCheckConfigPostgreSQL(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
-	c.Type = string(_CheckTypePostgreSQL)
+	c.Type = string(_APICheckTypePostgreSQL)
 
 	// Iterate over all `postgres` attributes, even though we have a max of 1 in
 	// the schema.
