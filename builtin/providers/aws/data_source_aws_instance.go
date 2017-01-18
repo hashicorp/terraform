@@ -14,8 +14,9 @@ func dataSourceAwsInstance() *schema.Resource {
 		Read: dataSourceAwsInstanceRead,
 
 		Schema: map[string]*schema.Schema{
-			"filter": dataSourceFiltersSchema(),
-			"tags":   dataSourceTagsSchema(),
+			"filter":        dataSourceFiltersSchema(),
+			"tags":          dataSourceTagsSchema(),
+			"instance_tags": tagsSchemaComputed(),
 			"instance_id": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -208,9 +209,10 @@ func dataSourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	filters, filtersOk := d.GetOk("filter")
 	instanceID, instanceIDOk := d.GetOk("instance_id")
+	tags, tagsOk := d.GetOk("instance_tags")
 
-	if filtersOk == false && instanceIDOk == false {
-		return fmt.Errorf("One of filters, or instance_id must be assigned")
+	if filtersOk == false && instanceIDOk == false && tagsOk == false {
+		return fmt.Errorf("One of filters, instance_tags, or instance_id must be assigned")
 	}
 
 	// Build up search parameters
@@ -220,6 +222,11 @@ func dataSourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	if instanceIDOk {
 		params.InstanceIds = []*string{aws.String(instanceID.(string))}
+	}
+	if tagsOk {
+		params.Filters = append(params.Filters, buildEC2TagFilterList(
+			tagsFromMap(tags.(map[string]interface{})),
+		)...)
 	}
 
 	// Perform the lookup

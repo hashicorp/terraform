@@ -29,13 +29,16 @@ data "aws_instance" "foo" {
 
 ## Argument Reference
 
-* `instance_id` - (Optional) Specify the exact Instance ID to populate the data source with.  
+* `instance_id` - (Optional) Specify the exact Instance ID to populate the data source with.
+
+* `instance_tags` - (Optional) A mapping of tags, each pair of which must 
+exactly match a pair on the desired Instance.
 
 * `filter` - (Optional) One or more name/value pairs to filter off of. There are
 several valid keys, for a full reference, check out
 [describe-instances in the AWS CLI reference][1].
 
-~> **NOTE:** At least one of `filter` or `instance_id` must be specified.
+~> **NOTE:** At least one of `filter`, `instance_tags`, or `instance_id` must be specified.
 
 ~> **NOTE:** If more or less than a single match is returned by the search,
 Terraform will fail. Ensure that your search is specific enough to return

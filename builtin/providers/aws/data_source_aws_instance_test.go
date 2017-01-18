@@ -26,6 +26,26 @@ func TestAccAWSInstanceDataSource_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstanceDataSource_tags(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceDataSourceConfig_Tags,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"data.aws_instance.web-instance", "ami", "ami-4fccb37f"),
+					resource.TestCheckResourceAttr(
+						"data.aws_instance.web-instance", "tags.#", "1"),
+					resource.TestCheckResourceAttr(
+						"data.aws_instance.web-instance", "instance_type", "m1.small"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstanceDataSource_AzUserData(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -255,6 +275,24 @@ data "aws_instance" "web-instance" {
   filter {
     name = "instance-id"
     values = ["${aws_instance.web.id}"]
+  }
+}
+`
+
+// Use the tags attribute to filter
+const testAccInstanceDataSourceConfig_Tags = `
+resource "aws_instance" "web" {
+	# us-west-2
+  ami = "ami-4fccb37f"
+  instance_type = "m1.small"
+  tags {
+    Name = "HelloWorld"
+  }
+}
+
+data "aws_instance" "web-instance" {
+  instance_tags {
+    Name = "${aws_instance.web.tags["Name"]}"
   }
 }
 `
