@@ -1,6 +1,10 @@
 package winrm
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -31,16 +35,17 @@ const (
 // only keys we look at. If a KeyFile is given, that is used instead
 // of a password.
 type connectionInfo struct {
-	User       string
-	Password   string
-	Host       string
-	Port       int
-	HTTPS      bool
-	Insecure   bool
-	CACert     *[]byte `mapstructure:"ca_cert"`
-	Timeout    string
-	ScriptPath string        `mapstructure:"script_path"`
-	TimeoutVal time.Duration `mapstructure:"-"`
+	User               string
+	Password           string
+	PasswordPrivateKey string `mapstructure:"password_private_key"`
+	Host               string
+	Port               int
+	HTTPS              bool
+	Insecure           bool
+	CACert             *[]byte `mapstructure:"ca_cert"`
+	Timeout            string
+	ScriptPath         string        `mapstructure:"script_path"`
+	TimeoutVal         time.Duration `mapstructure:"-"`
 }
 
 // parseConnectionInfo is used to convert the ConnInfo of the InstanceState into
@@ -120,4 +125,46 @@ func formatDuration(duration time.Duration) string {
 	}
 
 	return res
+}
+
+func readPrivateKey(pk string) ([]byte, error) {
+	block, _ := pem.Decode([]byte(pk))
+	if block == nil {
+		return nil, fmt.Errorf("Failed to read key %q: no key found", pk)
+	}
+	if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
+		return nil, fmt.Errorf(
+			"Failed to read key %q: password protected keys are\n"+
+				"not supported. Please decrypt the key prior to use.", pk)
+	}
+
+	return block.Bytes, nil
+}
+
+func decryptPassword(connInfo *connectionInfo) (string, error) {
+	if connInfo.Password == "" || connInfo.PasswordPrivateKey == "" {
+		return connInfo.Password, nil
+	}
+
+	password, err := base64.StdEncoding.DecodeString(connInfo.Password)
+	if err != nil {
+		return "", err
+	}
+
+	asn1Bytes, err := readPrivateKey(connInfo.PasswordPrivateKey)
+	if err != nil {
+		return "", err
+	}
+
+	key, err := x509.ParsePKCS1PrivateKey(asn1Bytes)
+	if err != nil {
+		return "", err
+	}
+
+	out, err := rsa.DecryptPKCS1v15(nil, key, password)
+	if err != nil {
+		return "", err
+	}
+
+	return string(out), nil
 }

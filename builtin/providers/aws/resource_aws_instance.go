@@ -72,6 +72,17 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"get_password_data": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
+			"password_data": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"subnet_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -605,6 +616,12 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.Get("get_password_data").(bool) {
+		if err := readPasswordData(d, instance, conn); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -1011,6 +1028,38 @@ func readBlockDeviceMappingsFromConfig(
 	}
 
 	return blockDevices, nil
+}
+
+func readPasswordData(d *schema.ResourceData, instance *ec2.Instance, conn *ec2.EC2) error {
+	log.Printf("[INFO] Reading password data for instance %s", d.Id())
+
+	timeout := time.Now().Add(15 * time.Minute)
+	for {
+		resp, err := conn.GetPasswordData(&ec2.GetPasswordDataInput{
+			InstanceId: instance.InstanceId,
+		})
+
+		if err != nil {
+			return err
+		}
+
+		if resp.PasswordData != nil && *resp.PasswordData != "" {
+			passwordData := strings.TrimSpace(*resp.PasswordData)
+			if err := d.Set("password_data", passwordData); err != nil {
+				return err
+			}
+
+			log.Printf("[INFO] Password data read for instance %s", d.Id())
+			return nil
+		}
+
+		if time.Now().After(timeout) {
+			return fmt.Errorf("Timeout exceeded waiting for password data to become available for instance %s", d.Id())
+		}
+
+		log.Printf("[TRACE] Password data is blank for instance %s, will retry in 5s...", d.Id())
+		time.Sleep(5 * time.Second)
+	}
 }
 
 type awsInstanceOpts struct {

@@ -86,6 +86,9 @@ provisioner "file" {
 
 * `cacert` - The CA certificate to validate against.
 
+* `password_private_key` - The contents of an RSA key to use to decrypt the password.
+  If specified, then `password` should be a base-64 encoded, RSA-encrypted value.
+
 <a id="bastion"></a>
 ## Connecting through a Bastion Host with SSH
 

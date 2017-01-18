@@ -60,6 +60,7 @@ instance. Amazon defaults this to `stop` for EBS-backed instances and
 instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/terminating-instances.html#Using_ChangingInstanceInitiatedShutdownBehavior) for more information.
 * `instance_type` - (Required) The type of instance to start
 * `key_name` - (Optional) The key name to use for the instance.
+* `get_password_data` - (Optional) If true, wait for password data to become available and retrieve it after creation.  The password data is exported to the `password_data` attribute.
 * `monitoring` - (Optional) If true, the launched EC2 instance will have detailed monitoring enabled. (Available since v0.6.0)
 * `security_groups` - (Optional) A list of security group names to associate with.
    If you are creating Instances in a VPC, use `vpc_security_group_ids` instead.
@@ -150,6 +151,9 @@ The following attributes are exported:
 * `availability_zone` - The availability zone of the instance.
 * `placement_group` - The placement group of the instance.
 * `key_name` - The key name of the instance
+* `password_data` - Base-64 encoded encrypted password data for the instance.
+  This attribute is only exported if `get_password_data` is true.
+  Note that this encrypted value will be stored in the state file, as with all exported attributes.
 * `public_dns` - The public DNS name assigned to the instance. For EC2-VPC, this 
   is only available if you've enabled DNS hostnames for your VPC
 * `public_ip` - The public IP address assigned to the instance, if applicable. **NOTE**: If you are using an [`aws_eip`](/docs/providers/aws/r/eip.html) with your instance, you should refer to the EIP's address directly and not use `public_ip`, as this field will change after the EIP is attached.
