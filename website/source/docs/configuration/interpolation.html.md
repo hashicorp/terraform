@@ -60,8 +60,6 @@ The syntax is `TYPE.NAME.ATTRIBUTE`. For example,
 attribute set, you can access individual attributes with a zero-based
 index, such as `${aws_instance.web.0.id}`. You can also use the splat
 syntax to get a list of all the attributes: `${aws_instance.web.*.id}`.
-This is documented in more detail in the [resource configuration
-page](/docs/configuration/resources.html).
 
 #### Outputs from a module
 

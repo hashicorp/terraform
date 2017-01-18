@@ -3,6 +3,7 @@
 FEATURES:
 
  * **New Data Source:**  `aws_elb_hosted_zone_id ` [GH-11027]
+ * **New Provider:**  `ProfitBricks` [GH-7943]
  * **New Resource:**  `aws_inspector_assessment_target` [GH-11217]
  * **New Resource:**  `aws_inspector_assessment_template` [GH-11217]
  * **New Resource:**  `aws_inspector_resource_group` [GH-11217]
@@ -14,11 +15,15 @@ IMPROVEMENTS:
  * provider/aws: Make the type of a route53_record modifiable without recreating the resource [GH-11164]
  * provider/aws: Add Placement Strategy to aws_ecs_service resource [GH-11201]
  * provider/aws: Add support for placement_constraint to aws_ecs_service [GH-11242]
+ * provider/aws: allow ALB target group stickiness to be enabled/disabled [GH-11251]
+ * provider/aws: Add support for setting MSSQL Timezone in aws_db_instance [GH-11247]
  * provider/azurerm: add caching support for virtual_machine data_disks [GH-11142]
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
  * provider/cloudflare: Add verification for record types and content [GH-11197]
  * provider/datadog: Add aggregator method to timeboard graph resource [GH-11206]
+ * provider/fastly Add request_condition to backend definition [GH-11238]
  * provider/google: Add subnetwork_project field to enable cross-project networking in instance templates [GH-11110]
+ * provider/google: Add support for encrypting a disk [GH-11167]
  * provider/openstack: LoadBalancer Security Groups [GH-11074]
  * provider/scaleway improve bootscript data source [GH-11183]
  * provider/statuscake: Add support for StatusCake confirmation servers [GH-11179]

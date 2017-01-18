@@ -32,6 +32,11 @@ The following arguments are supported:
 
 - - -
 
+* `disk_encryption_key_raw` - (Optional) A 256-bit [customer-supplied encryption key]
+    (https://cloud.google.com/compute/docs/disks/customer-supplied-encryption),
+    encoded in [RFC 4648 base64](https://tools.ietf.org/html/rfc4648#section-4)
+    to encrypt this disk.
+
 * `image` - (Optional) The image from which to initialize this disk. Either the
     full URL, a contraction of the form "project/name", or just a name (in which
     case the current project is used).
@@ -50,5 +55,10 @@ The following arguments are supported:
 
 In addition to the arguments listed above, the following computed attributes are
 exported:
+
+* `disk_encryption_key_sha256` - The [RFC 4648 base64]
+    (https://tools.ietf.org/html/rfc4648#section-4) encoded SHA-256 hash of the
+    [customer-supplied encryption key](https://cloud.google.com/compute/docs/disks/customer-supplied-encryption)
+    that protects this resource.
 
 * `self_link` - The URI of the created resource.

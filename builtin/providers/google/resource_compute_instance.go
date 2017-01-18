@@ -75,6 +75,18 @@ func resourceComputeInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+
+						"disk_encryption_key_raw": &schema.Schema{
+							Type:      schema.TypeString,
+							Optional:  true,
+							ForceNew:  true,
+							Sensitive: true,
+						},
+
+						"disk_encryption_key_sha256": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -437,6 +449,11 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			disk.DeviceName = v.(string)
 		}
 
+		if v, ok := d.GetOk(prefix + ".disk_encryption_key_raw"); ok {
+			disk.DiskEncryptionKey = &compute.CustomerEncryptionKey{}
+			disk.DiskEncryptionKey.RawKey = v.(string)
+		}
+
 		disks = append(disks, &disk)
 	}
 
@@ -769,6 +786,24 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	if instance.Tags != nil {
 		d.Set("tags_fingerprint", instance.Tags.Fingerprint)
 	}
+
+	disks := make([]map[string]interface{}, 0, 1)
+	for i, disk := range instance.Disks {
+		di := map[string]interface{}{
+			"disk":        d.Get(fmt.Sprintf("disk.%d.disk", i)),
+			"image":       d.Get(fmt.Sprintf("disk.%d.image", i)),
+			"type":        d.Get(fmt.Sprintf("disk.%d.type", i)),
+			"scratch":     d.Get(fmt.Sprintf("disk.%d.scratch", i)),
+			"auto_delete": d.Get(fmt.Sprintf("disk.%d.auto_delete", i)),
+			"size":        d.Get(fmt.Sprintf("disk.%d.size", i)),
+			"device_name": d.Get(fmt.Sprintf("disk.%d.device_name", i)),
+		}
+		if disk.DiskEncryptionKey != nil && disk.DiskEncryptionKey.Sha256 != "" {
+			di["disk_encryption_key_sha256"] = disk.DiskEncryptionKey.Sha256
+		}
+		disks = append(disks, di)
+	}
+	d.Set("disk", disks)
 
 	d.Set("self_link", instance.SelfLink)
 	d.SetId(instance.Name)
