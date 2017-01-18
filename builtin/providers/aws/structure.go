@@ -814,11 +814,14 @@ func flattenStepAdjustments(adjustments []*autoscaling.StepAdjustment) []map[str
 	return result
 }
 
-func flattenResourceRecords(recs []*route53.ResourceRecord) []string {
+func flattenResourceRecords(recs []*route53.ResourceRecord, typeStr string) []string {
 	strs := make([]string, 0, len(recs))
 	for _, r := range recs {
 		if r.Value != nil {
-			s := strings.Replace(*r.Value, "\"", "", 2)
+			s := *r.Value
+			if typeStr == "TXT" || typeStr == "SPF" {
+				s = strings.Replace(s, "\"", "", 2)
+			}
 			strs = append(strs, s)
 		}
 	}
@@ -829,13 +832,11 @@ func expandResourceRecords(recs []interface{}, typeStr string) []*route53.Resour
 	records := make([]*route53.ResourceRecord, 0, len(recs))
 	for _, r := range recs {
 		s := r.(string)
-		switch typeStr {
-		case "TXT", "SPF":
-			str := fmt.Sprintf("\"%s\"", s)
-			records = append(records, &route53.ResourceRecord{Value: aws.String(str)})
-		default:
-			records = append(records, &route53.ResourceRecord{Value: aws.String(s)})
+		if typeStr == "TXT" || typeStr == "SPF" {
+			// `flattenResourceRecords` removes quotes.  Add them back.
+			s = fmt.Sprintf("\"%s\"", s)
 		}
+		records = append(records, &route53.ResourceRecord{Value: aws.String(s)})
 	}
 	return records
 }
