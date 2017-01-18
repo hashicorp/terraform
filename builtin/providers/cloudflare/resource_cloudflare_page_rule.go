@@ -40,9 +40,8 @@ func resourceCloudFlarePageRule() *schema.Resource {
 						},
 
 						"value": &schema.Schema{
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: validatePageRuleActionValue,
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
@@ -84,10 +83,16 @@ func resourceCloudFlarePageRuleCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	for _, action := range actions {
-		newPageRuleActions = append(newPageRuleActions, cloudflare.PageRuleAction{
+		newPageRuleAction := cloudflare.PageRuleAction{
 			ID:    action.(schema.Resource).Schema["action"].Elem.(string),
-			Value: action.(schema.Resource).Schema["value"].Elem.(string),
-		})
+			Value: action.(schema.Resource).Schema["value"].Elem.(interface{}),
+		}
+
+		// Validate value based on ID
+		if err := validatePageRuleActionValue(newPageRuleAction.ID, newPageRuleAction.Value); err != nil {
+			return fmt.Errorf("Error validating page rule action valueq: %s", newPageRuleAction.Value, err)
+		}
+		newPageRuleActions = append(newPageRuleActions, newPageRuleAction)
 	}
 
 	newPageRule := cloudflare.PageRule{

@@ -3,6 +3,7 @@ package cloudflare
 import (
 	"fmt"
 	"net"
+	"reflect"
 	"strings"
 )
 
@@ -82,13 +83,14 @@ func validatePageRuleActionID(v interface{}, k string) (ws []string, errors []er
 		"email_obfuscation":   {},
 		"forwarding_url":      {},
 		"ip_geolocation":      {},
-		"mirage":              {},
 		"rocket_loader":       {},
 		"security_level":      {},
 		"server_side_exclude": {},
 		"smart_errors":        {},
 		"ssl":                 {},
-		"waf":                 {},
+		/* The following action IDs are not yet implemented by cloudflare-go
+		   "automatic_https_rewrites": reflect.String,
+		   "opportunistic_encryption": reflect.String,*/
 	}
 
 	if _, ok := validIDs[value]; !ok {
@@ -98,6 +100,98 @@ func validatePageRuleActionID(v interface{}, k string) (ws []string, errors []er
 	return
 }
 
-func validatePageRuleActionValue(v interface{}, k string) (ws []string, errors []error) {
-	return []string{}, []error{fmt.Errorf("Page Rule action value validation not implemented.")}
+func assertIsOnOrOff(value interface{}) error {
+	return assertIsOneOf("Action status", []interface{}{"on", "off"}, value)
+}
+
+func assertIsOneOf(setting string, acceptables []interface{}, value interface{}) error {
+	for _, acceptable := range acceptables {
+		if value == acceptable {
+			return nil
+		}
+	}
+	return fmt.Errorf("%q %q invalid: must be one of %q", setting, value, acceptables)
+}
+
+func assertIsUnitary(id string, value interface{}) error {
+	if value != (struct{}{}) {
+		return fmt.Errorf("Action %q does not take a value", id)
+	}
+	return nil
+}
+
+func validatePageRuleActionValue(id string, value interface{}) error {
+	expectedTypeFor := map[string]reflect.Kind{
+		"always_online":       reflect.String,
+		"always_use_https":    reflect.Interface,
+		"browser_cache_ttl":   reflect.Int,
+		"browser_check":       reflect.String,
+		"cache_level":         reflect.String,
+		"disable_apps":        reflect.Interface,
+		"disable_performance": reflect.Interface,
+		"disable_railgun":     reflect.String,
+		"disable_security":    reflect.Interface,
+		"edge_cache_ttl":      reflect.Int,
+		"email_obfuscation":   reflect.String,
+		"forwarding_url":      reflect.Map,
+		"ip_geolocation":      reflect.String,
+		"rocket_loader":       reflect.String,
+		"security_level":      reflect.String,
+		"server_side_exclude": reflect.String,
+		"smart_errors":        reflect.String,
+		"ssl":                 reflect.String,
+		/* The following action IDs are not yet implemented by cloudflare-go
+		   "automatic_https_rewrites": reflect.String,
+		   "opportunistic_encryption": reflect.String,*/
+	}
+
+	actualType := reflect.TypeOf(value).Kind()
+	expectedType := expectedTypeFor[id]
+	if actualType != expectedType {
+		return fmt.Errorf("Value for %q action had type %q, expected %q", id, actualType, expectedType)
+	}
+
+	switch id {
+	default:
+		return nil
+	case "always_online":
+		return assertIsOnOrOff(value)
+	case "always_use_https":
+		return assertIsUnitary(id, value)
+	case "browser_check":
+		return assertIsOnOrOff(value)
+	case "cache_level":
+		return assertIsOneOf("Cache level", []interface{}{"bypass", "basic", "simplified", "aggressive", "cache_everything"}, value)
+	case "disable_apps":
+		return assertIsUnitary(id, value)
+	case "disable_performance":
+		return assertIsUnitary(id, value)
+	case "disable_security":
+		return assertIsUnitary(id, value)
+	case "email_obfuscation":
+		return assertIsOnOrOff(value)
+	case "forwarding_url":
+		forwardAction := value.(map[string]interface{})
+		if reflect.TypeOf(forwardAction["url"]).Kind() != reflect.String {
+			return fmt.Errorf("Forwarding URL %q invalid: must be of type string", forwardAction["url"])
+		}
+		return assertIsOneOf("Forwarding status code", []interface{}{301, 302}, forwardAction["status_code"])
+	case "ip_geolocation":
+		return assertIsOnOrOff(value)
+	case "rocket_loader":
+		return assertIsOneOf("Rocket loader", []interface{}{"off", "manual", "automatic"}, value)
+	case "security_level":
+		return assertIsOneOf("Security level", []interface{}{"essentially_off", "low", "medium", "high", "under_attack"}, value)
+	case "server_side_exclude":
+		return assertIsOnOrOff(value)
+	case "smart_errors":
+		return assertIsOnOrOff(value)
+	case "ssl":
+		return assertIsOneOf("SSL setting", []interface{}{"off", "flexible", "full", "strict"}, value)
+		/* The following action IDs are not yet implemented by cloudflare-go
+		   case "automatic_https_rewrites":
+		       return assertIsOnOrOff(value)
+		   case "opportunistic_encryption":
+		       return assertIsOnOrOff(value)*/
+	}
 }
