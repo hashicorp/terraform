@@ -2,30 +2,29 @@ package team
 
 // Create team response structure
 type CreateTeamResponse struct {
-	Id string `json:"id"`
+	Id     string `json:"id"`
 	Status string `json:"status"`
-	Code int `json:"code"`
+	Code   int    `json:"code"`
 }
 
 // Update team response structure
 type UpdateTeamResponse struct {
 	Status string `json:"status"`
-        Code int `json:"code"`
+	Code   int    `json:"code"`
 }
 
 // Delete team response structure
 type DeleteTeamResponse struct {
 	Status string `json:"status"`
-        Code int `json:"code"`
+	Code   int    `json:"code"`
 }
 
 // Get team response structure
 type GetTeamResponse struct {
-	Id string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
+	Id      string   `json:"id,omitempty"`
+	Name    string   `json:"name,omitempty"`
 	Members []Member `json:"members,omitempty"`
 }
-
 
 // List teams response structure
 type ListTeamsResponse struct {
@@ -34,13 +33,13 @@ type ListTeamsResponse struct {
 
 // A single team log entry
 type TeamLogEntry struct {
-	Log string `json:"log"`
-	Owner string `json:"owner"`
-	CreatedAt uint `json:"createdAt"`
+	Log       string `json:"log"`
+	Owner     string `json:"owner"`
+	CreatedAt uint   `json:"createdAt"`
 }
 
 //List team logs response structure
 type ListTeamLogsResponse struct {
-	LastKey string `json:"lastKey,omitempty"`
-	Logs []TeamLogEntry `json:logs,omitempty`
+	LastKey string         `json:"lastKey,omitempty"`
+	Logs    []TeamLogEntry `json:logs,omitempty`
 }

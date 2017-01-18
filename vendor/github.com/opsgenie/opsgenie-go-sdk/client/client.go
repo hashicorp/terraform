@@ -275,9 +275,9 @@ func (cli *OpsGenieClient) buildGetRequest(uri string, request interface{}) gore
 		v, _ := goquery.Values(request)
 		req.Uri = uri + "?" + v.Encode()
 	} else {
-		req.Uri = uri 
+		req.Uri = uri
 	}
-	logging.Logger().Info("Executing OpsGenie request to ["+uri+"] with parameters: ")
+	logging.Logger().Info("Executing OpsGenie request to [" + uri + "] with parameters: ")
 	return req
 }
 

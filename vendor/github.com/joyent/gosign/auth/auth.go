@@ -33,9 +33,9 @@ type Endpoint struct {
 }
 
 type Auth struct {
-	User      string
+	User       string
 	PrivateKey PrivateKey
-	Algorithm string
+	Algorithm  string
 }
 
 type Credentials struct {
