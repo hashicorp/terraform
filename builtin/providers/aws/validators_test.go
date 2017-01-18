@@ -923,3 +923,123 @@ func TestValidateSecurityRuleType(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateOnceAWeekWindowFormat(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			// once a day window format
+			Value:    "04:00-05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid day of week
+			Value:    "san:04:00-san:05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid hour
+			Value:    "sun:24:00-san:25:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid min
+			Value:    "sun:04:00-sun:04:60",
+			ErrCount: 1,
+		},
+		{
+			// valid format
+			Value:    "sun:04:00-sun:05:00",
+			ErrCount: 0,
+		},
+		{
+			// "Sun" can also be used
+			Value:    "Sun:04:00-Sun:05:00",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateOnceAWeekWindowFormat(tc.Value, "maintenance_window")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d validation errors, But got %d errors for \"%s\"", tc.ErrCount, len(errors), tc.Value)
+		}
+	}
+}
+
+func TestValidateOnceADayWindowFormat(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			// once a week window format
+			Value:    "sun:04:00-sun:05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid hour
+			Value:    "24:00-25:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid min
+			Value:    "04:00-04:60",
+			ErrCount: 1,
+		},
+		{
+			// valid format
+			Value:    "04:00-05:00",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateOnceADayWindowFormat(tc.Value, "backup_window")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d validation errors, But got %d errors for \"%s\"", tc.ErrCount, len(errors), tc.Value)
+		}
+	}
+}
+
+func TestValidateRoute53RecordType(t *testing.T) {
+	validTypes := []string{
+		"AAAA",
+		"SOA",
+		"A",
+		"TXT",
+		"CNAME",
+		"MX",
+		"NAPTR",
+		"PTR",
+		"SPF",
+		"SRV",
+		"NS",
+	}
+
+	invalidTypes := []string{
+		"a",
+		"alias",
+		"SpF",
+		"Txt",
+		"AaAA",
+	}
+
+	for _, v := range validTypes {
+		_, errors := validateRoute53RecordType(v, "route53_record")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Route53 record type: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidTypes {
+		_, errors := validateRoute53RecordType(v, "route53_record")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Route53 record type", v)
+		}
+	}
+}

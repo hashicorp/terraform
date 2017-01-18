@@ -14,7 +14,7 @@ Provides an ElastiCache Replication Group resource.
 
 ```
 resource "aws_elasticache_replication_group" "bar" {
-  replication_group_id          = "tf-replication-group-1"
+  replication_group_id          = "tf-rep-group-1"
   replication_group_description = "test description"
   node_type                     = "cache.m1.small"
   number_cache_clusters         = 2

@@ -55,7 +55,7 @@ func resourceNetworkdUnitRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func buildNetworkdUnit(d *schema.ResourceData, c *cache) (string, error) {
-	if err := validateUnit(d.Get("content").(string)); err != nil {
+	if err := validateUnitContent(d.Get("content").(string)); err != nil {
 		return "", err
 	}
 

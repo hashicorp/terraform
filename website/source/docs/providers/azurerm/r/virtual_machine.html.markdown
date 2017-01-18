@@ -258,6 +258,7 @@ For more information on the different example configurations, please check out t
 * `vhd_uri` - (Required) Specifies the uri of the location in storage where the vhd for the virtual machine should be placed.
 * `create_option` - (Required) Specifies how the data disk should be created.
 * `disk_size_gb` - (Required) Specifies the size of the data disk in gigabytes.
+* `caching` - (Optional) Specifies the caching requirements.
 * `lun` - (Required) Specifies the logical unit number of the data disk.
 
 `os_profile` supports the following:

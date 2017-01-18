@@ -77,7 +77,7 @@ func resourcePostgreSQLRole() *schema.Resource {
 			roleConnLimitAttr: {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				Computed:     true,
+				Default:      -1,
 				Description:  "How many concurrent connections can be made with this role",
 				ValidateFunc: validateConnLimit,
 			},
@@ -484,7 +484,7 @@ func setRoleConnLimit(conn *sql.DB, d *schema.ResourceData) error {
 
 	connLimit := d.Get(roleConnLimitAttr).(int)
 	roleName := d.Get(roleNameAttr).(string)
-	query := fmt.Sprintf("ALTER ROLE %s CONNECTION LIMIT = %d", pq.QuoteIdentifier(roleName), connLimit)
+	query := fmt.Sprintf("ALTER ROLE %s CONNECTION LIMIT %d", pq.QuoteIdentifier(roleName), connLimit)
 	if _, err := conn.Query(query); err != nil {
 		return errwrap.Wrapf("Error updating role CONNECTION LIMIT: {{err}}", err)
 	}

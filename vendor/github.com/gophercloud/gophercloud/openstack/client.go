@@ -309,3 +309,15 @@ func NewDBV1(client *gophercloud.ProviderClient, eo gophercloud.EndpointOpts) (*
 	}
 	return &gophercloud.ServiceClient{ProviderClient: client, Endpoint: url}, nil
 }
+
+// NewImageServiceV2 creates a ServiceClient that may be used to access the v2 image service.
+func NewImageServiceV2(client *gophercloud.ProviderClient, eo gophercloud.EndpointOpts) (*gophercloud.ServiceClient, error) {
+	eo.ApplyDefaults("image")
+	url, err := client.EndpointLocator(eo)
+	if err != nil {
+		return nil, err
+	}
+	return &gophercloud.ServiceClient{ProviderClient: client,
+		Endpoint:     url,
+		ResourceBase: url + "v2/"}, nil
+}

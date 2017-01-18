@@ -120,9 +120,10 @@ func resourceAwsDbInstance() *schema.Resource {
 			},
 
 			"backup_window": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateOnceADayWindowFormat,
 			},
 
 			"iops": {
@@ -147,6 +148,7 @@ func resourceAwsDbInstance() *schema.Resource {
 					}
 					return ""
 				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
 			},
 
 			"multi_az": {
@@ -941,7 +943,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		req.DBPortNumber = aws.Int64(int64(d.Get("port").(int)))
 		requestUpdate = true
 	}
-	if d.HasChange("db_subnet_group_name") {
+	if d.HasChange("db_subnet_group_name") && !d.IsNewResource() {
 		d.SetPartial("db_subnet_group_name")
 		req.DBSubnetGroupName = aws.String(d.Get("db_subnet_group_name").(string))
 		requestUpdate = true

@@ -101,6 +101,7 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 					}
 					return strings.ToLower(val.(string))
 				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
 			},
 
 			"cluster_parameter_group_name": {
@@ -416,7 +417,7 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		Pending:    []string{"creating", "backing-up", "modifying", "restoring"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
-		Timeout:    40 * time.Minute,
+		Timeout:    75 * time.Minute,
 		MinTimeout: 10 * time.Second,
 	}
 

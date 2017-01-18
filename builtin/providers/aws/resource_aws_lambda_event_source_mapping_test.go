@@ -231,6 +231,7 @@ resource "aws_lambda_function" "lambda_function_test_create" {
     function_name = "example_lambda_name_create"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 
 resource "aws_lambda_function" "lambda_function_test_update" {
@@ -315,6 +316,7 @@ resource "aws_lambda_function" "lambda_function_test_create" {
     function_name = "example_lambda_name_create"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 
 resource "aws_lambda_function" "lambda_function_test_update" {

@@ -31,6 +31,11 @@ func resourceDatadogTimeboard() *schema.Resource {
 					Optional: true,
 					Default:  "line",
 				},
+				"aggregator": {
+					Type:         schema.TypeString,
+					Optional:     true,
+					ValidateFunc: validateAggregatorMethod,
+				},
 				"style": &schema.Schema{
 					Type:     schema.TypeMap,
 					Optional: true,
@@ -307,8 +312,9 @@ func appendRequests(datadogGraph *datadog.Graph, terraformRequests *[]interface{
 	for _, t_ := range *terraformRequests {
 		t := t_.(map[string]interface{})
 		d := datadog.GraphDefinitionRequest{
-			Query: t["q"].(string),
-			Type:  t["type"].(string),
+			Query:      t["q"].(string),
+			Type:       t["type"].(string),
+			Aggregator: t["aggregator"].(string),
 		}
 		if stacked, ok := t["stacked"]; ok {
 			d.Stacked = stacked.(bool)
@@ -702,4 +708,19 @@ func resourceDatadogTimeboardExists(d *schema.ResourceData, meta interface{}) (b
 		return false, err
 	}
 	return true, nil
+}
+
+func validateAggregatorMethod(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	validMethods := map[string]struct{}{
+		"average": {},
+		"max":     {},
+		"min":     {},
+		"sum":     {},
+	}
+	if _, ok := validMethods[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			`%q contains an invalid method %q. Valid methods are either "average", "max", "min", or "sum"`, k, value))
+	}
+	return
 }

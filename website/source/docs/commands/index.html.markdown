@@ -55,7 +55,7 @@ All other commands:
 ```
 
 To get help for any specific command, pass the -h flag to the relevant subcommand. For example,
-to see help about the members subcommand:
+to see help about the graph subcommand:
 
 ```
 $ terraform graph -h

@@ -42,6 +42,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/firehose"
 	"github.com/aws/aws-sdk-go/service/glacier"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/inspector"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/lambda"
@@ -52,6 +53,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/ses"
+	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/simpledb"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -132,6 +134,7 @@ type AWSClient struct {
 	kinesisconn           *kinesis.Kinesis
 	kmsconn               *kms.KMS
 	firehoseconn          *firehose.Firehose
+	inspectorconn         *inspector.Inspector
 	elasticacheconn       *elasticache.ElastiCache
 	elasticbeanstalkconn  *elasticbeanstalk.ElasticBeanstalk
 	elastictranscoderconn *elastictranscoder.ElasticTranscoder
@@ -141,6 +144,7 @@ type AWSClient struct {
 	glacierconn           *glacier.Glacier
 	codedeployconn        *codedeploy.CodeDeploy
 	codecommitconn        *codecommit.CodeCommit
+	sfnconn               *sfn.SFN
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
 }
@@ -264,7 +268,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.cloudwatchconn = cloudwatch.New(sess)
 	client.cloudwatcheventsconn = cloudwatchevents.New(sess)
 	client.cloudwatchlogsconn = cloudwatchlogs.New(sess)
-	client.codecommitconn = codecommit.New(usEast1Sess)
+	client.codecommitconn = codecommit.New(sess)
 	client.codedeployconn = codedeploy.New(sess)
 	client.dsconn = directoryservice.New(sess)
 	client.dynamodbconn = dynamodb.New(dynamoSess)
@@ -280,6 +284,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.emrconn = emr.New(sess)
 	client.esconn = elasticsearch.New(sess)
 	client.firehoseconn = firehose.New(sess)
+	client.inspectorconn = inspector.New(sess)
 	client.glacierconn = glacier.New(sess)
 	client.kinesisconn = kinesis.New(kinesisSess)
 	client.kmsconn = kms.New(sess)
@@ -292,6 +297,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.simpledbconn = simpledb.New(sess)
 	client.s3conn = s3.New(awsS3Sess)
 	client.sesConn = ses.New(sess)
+	client.sfnconn = sfn.New(sess)
 	client.snsconn = sns.New(sess)
 	client.sqsconn = sqs.New(sess)
 	client.ssmconn = ssm.New(sess)

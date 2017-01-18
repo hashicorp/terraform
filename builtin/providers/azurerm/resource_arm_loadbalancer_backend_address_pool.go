@@ -74,12 +74,15 @@ func resourceArmLoadBalancerBackendAddressPoolCreate(d *schema.ResourceData, met
 		return nil
 	}
 
-	_, _, exists = findLoadBalancerBackEndAddressPoolByName(loadBalancer, d.Get("name").(string))
+	backendAddressPools := append(*loadBalancer.LoadBalancerPropertiesFormat.BackendAddressPools, expandAzureRmLoadBalancerBackendAddressPools(d))
+	existingPool, existingPoolIndex, exists := findLoadBalancerBackEndAddressPoolByName(loadBalancer, d.Get("name").(string))
 	if exists {
-		return fmt.Errorf("A BackEnd Address Pool with name %q already exists.", d.Get("name").(string))
+		if d.Get("name").(string) == *existingPool.Name {
+			// this pool is being updated/reapplied remove old copy from the slice
+			backendAddressPools = append(backendAddressPools[:existingPoolIndex], backendAddressPools[existingPoolIndex+1:]...)
+		}
 	}
 
-	backendAddressPools := append(*loadBalancer.LoadBalancerPropertiesFormat.BackendAddressPools, expandAzureRmLoadBalancerBackendAddressPools(d))
 	loadBalancer.LoadBalancerPropertiesFormat.BackendAddressPools = &backendAddressPools
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {

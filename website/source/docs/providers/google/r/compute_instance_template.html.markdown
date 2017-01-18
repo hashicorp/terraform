@@ -138,7 +138,7 @@ The following arguments are supported:
 
 * `metadata_startup_script` - (Optional) An alternative to using the
     startup-script metadata key, mostly to match the compute_instance resource.
-    This replaces the startup-script metadata key on the created instance and 
+    This replaces the startup-script metadata key on the created instance and
     thus the two mechanisms are not allowed to be used simultaneously.
 
 * `network_interface` - (Required) Networks to attach to instances created from
@@ -207,6 +207,9 @@ The `network_interface` block supports:
 * `subnetwork` - (Optional) the name of the subnetwork to attach this interface
     to. The subnetwork must exist in the same `region` this instance will be
     created in. Either `network` or `subnetwork` must be provided.
+
+* `subnetwork_project` - (Optional) The project in which the subnetwork belongs.
+    If it is not provided, the provider project is used.
 
 * `access_config` - (Optional) Access configurations, i.e. IPs via which this
     instance can be accessed via the Internet. Omit to ensure that the instance

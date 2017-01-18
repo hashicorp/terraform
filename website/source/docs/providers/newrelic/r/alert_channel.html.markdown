@@ -27,7 +27,7 @@ resource "newrelic_alert_channel" "foo" {
 The following arguments are supported:
 
   * `name` - (Required) The name of the channel.
-  * `type` - (Required) The type of channel.  One of: `campfire`, `email`, `hipchat`, `opsgenie`, `pagerduty`, `slack`, `user`, `victorops`, or `webhook`.
+  * `type` - (Required) The type of channel.  One of: `campfire`, `email`, `hipchat`, `opsgenie`, `pagerduty`, `slack`, `victorops`, or `webhook`.
   * `configuration` - (Required) A map of key / value pairs with channel type specific values.
 
 ## Attributes Reference
