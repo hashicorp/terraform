@@ -166,6 +166,12 @@ func resourceServiceV1() *schema.Resource {
 							Default:     80,
 							Description: "The port number Backend responds on. Default 80",
 						},
+						"request_condition": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Condition, which if met, will select this backend during a request.",
+						},
 						"shield": &schema.Schema{
 							Type:        schema.TypeString,
 							Optional:    true,
@@ -833,6 +839,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					FirstByteTimeout:    uint(df["first_byte_timeout"].(int)),
 					MaxConn:             uint(df["max_conn"].(int)),
 					Weight:              uint(df["weight"].(int)),
+					RequestCondition:    df["request_condition"].(string),
 				}
 
 				log.Printf("[DEBUG] Create Backend Opts: %#v", opts)
@@ -1510,6 +1517,7 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 			"ssl_check_cert":        gofastly.CBool(b.SSLCheckCert),
 			"ssl_hostname":          b.SSLHostname,
 			"weight":                int(b.Weight),
+			"request_condition":     b.RequestCondition,
 		}
 
 		bl = append(bl, nb)
