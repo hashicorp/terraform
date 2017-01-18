@@ -526,52 +526,8 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("tags", tagsToMap(instance.Tags))
 
-	// Determine whether we're referring to security groups with
-	// IDs or names. We use a heuristic to figure this out. By default,
-	// we use IDs if we're in a VPC. However, if we previously had an
-	// all-name list of security groups, we use names. Or, if we had any
-	// IDs, we use IDs.
-	useID := instance.SubnetId != nil && *instance.SubnetId != ""
-	if v := d.Get("security_groups"); v != nil {
-		match := useID
-		sgs := v.(*schema.Set).List()
-		if len(sgs) > 0 {
-			match = false
-			for _, v := range v.(*schema.Set).List() {
-				if strings.HasPrefix(v.(string), "sg-") {
-					match = true
-					break
-				}
-			}
-		}
-
-		useID = match
-	}
-
-	// Build up the security groups
-	sgs := make([]string, 0, len(instance.SecurityGroups))
-	if useID {
-		for _, sg := range instance.SecurityGroups {
-			sgs = append(sgs, *sg.GroupId)
-		}
-		log.Printf("[DEBUG] Setting Security Group IDs: %#v", sgs)
-		if err := d.Set("vpc_security_group_ids", sgs); err != nil {
-			return err
-		}
-		if err := d.Set("security_groups", []string{}); err != nil {
-			return err
-		}
-	} else {
-		for _, sg := range instance.SecurityGroups {
-			sgs = append(sgs, *sg.GroupName)
-		}
-		log.Printf("[DEBUG] Setting Security Group Names: %#v", sgs)
-		if err := d.Set("security_groups", sgs); err != nil {
-			return err
-		}
-		if err := d.Set("vpc_security_group_ids", []string{}); err != nil {
-			return err
-		}
+	if err := readSecurityGroups(d, instance); err != nil {
+		return err
 	}
 
 	if err := readBlockDevices(d, instance, conn); err != nil {
@@ -1011,6 +967,57 @@ func readBlockDeviceMappingsFromConfig(
 	}
 
 	return blockDevices, nil
+}
+
+// Determine whether we're referring to security groups with
+// IDs or names. We use a heuristic to figure this out. By default,
+// we use IDs if we're in a VPC. However, if we previously had an
+// all-name list of security groups, we use names. Or, if we had any
+// IDs, we use IDs.
+func readSecurityGroups(d *schema.ResourceData, instance *ec2.Instance) error {
+	useID := instance.SubnetId != nil && *instance.SubnetId != ""
+	if v := d.Get("security_groups"); v != nil {
+		match := useID
+		sgs := v.(*schema.Set).List()
+		if len(sgs) > 0 {
+			match = false
+			for _, v := range v.(*schema.Set).List() {
+				if strings.HasPrefix(v.(string), "sg-") {
+					match = true
+					break
+				}
+			}
+		}
+
+		useID = match
+	}
+
+	// Build up the security groups
+	sgs := make([]string, 0, len(instance.SecurityGroups))
+	if useID {
+		for _, sg := range instance.SecurityGroups {
+			sgs = append(sgs, *sg.GroupId)
+		}
+		log.Printf("[DEBUG] Setting Security Group IDs: %#v", sgs)
+		if err := d.Set("vpc_security_group_ids", sgs); err != nil {
+			return err
+		}
+		if err := d.Set("security_groups", []string{}); err != nil {
+			return err
+		}
+	} else {
+		for _, sg := range instance.SecurityGroups {
+			sgs = append(sgs, *sg.GroupName)
+		}
+		log.Printf("[DEBUG] Setting Security Group Names: %#v", sgs)
+		if err := d.Set("security_groups", sgs); err != nil {
+			return err
+		}
+		if err := d.Set("vpc_security_group_ids", []string{}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type awsInstanceOpts struct {

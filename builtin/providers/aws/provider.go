@@ -161,6 +161,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_iam_account_alias":        dataSourceAwsIamAccountAlias(),
 			"aws_iam_policy_document":      dataSourceAwsIamPolicyDocument(),
 			"aws_iam_server_certificate":   dataSourceAwsIAMServerCertificate(),
+			"aws_instance":                 dataSourceAwsInstance(),
 			"aws_ip_ranges":                dataSourceAwsIPRanges(),
 			"aws_prefix_list":              dataSourceAwsPrefixList(),
 			"aws_redshift_service_account": dataSourceAwsRedshiftServiceAccount(),
