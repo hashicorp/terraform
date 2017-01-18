@@ -92,6 +92,13 @@ func resourceContainerCluster() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"additional_zones": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
 			"cluster_ipv4_cidr": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -282,6 +289,24 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 		cluster.InitialClusterVersion = v.(string)
 	}
 
+	if v, ok := d.GetOk("additional_zones"); ok {
+		locationsList := v.([]interface{})
+		locations := []string{}
+		zoneInLocations := false
+		for _, v := range locationsList {
+			location := v.(string)
+			locations = append(locations, location)
+			if location == zoneName {
+				zoneInLocations = true
+			}
+		}
+		if !zoneInLocations {
+			// zone must be in locations if specified separately
+			locations = append(locations, zoneName)
+		}
+		cluster.Locations = locations
+	}
+
 	if v, ok := d.GetOk("cluster_ipv4_cidr"); ok {
 		cluster.ClusterIpv4Cidr = v.(string)
 	}
@@ -419,6 +444,7 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("name", cluster.Name)
 	d.Set("zone", cluster.Zone)
+	d.Set("additional_zones", cluster.Locations)
 	d.Set("endpoint", cluster.Endpoint)
 
 	masterAuth := []map[string]interface{}{

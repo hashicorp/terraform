@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"strconv"
 )
 
 func TestAccContainerCluster_basic(t *testing.T) {
@@ -20,6 +21,25 @@ func TestAccContainerCluster_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckContainerClusterExists(
 						"google_container_cluster.primary"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainerCluster_withAdditionalZones(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_withAdditionalZones,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerClusterExists(
+						"google_container_cluster.with_additional_zones"),
+					testAccCheckContainerClusterAdditionalZonesExist(
+						"google_container_cluster.with_additional_zones"),
 				),
 			},
 		},
@@ -143,11 +163,51 @@ func testAccCheckContainerClusterExists(n string) resource.TestCheckFunc {
 	}
 }
 
+func testAccCheckContainerClusterAdditionalZonesExist(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		var (
+			additionalZonesSize int
+			err                 error
+		)
+
+		if additionalZonesSize, err = strconv.Atoi(rs.Primary.Attributes["additional_zones.#"]); err != nil {
+			return err
+		}
+		if additionalZonesSize != 2 {
+			return fmt.Errorf("number of additional zones did not match 2")
+		}
+
+		return nil
+	}
+}
+
 var testAccContainerCluster_basic = fmt.Sprintf(`
 resource "google_container_cluster" "primary" {
 	name = "cluster-test-%s"
 	zone = "us-central1-a"
 	initial_node_count = 3
+
+	master_auth {
+		username = "mr.yoda"
+		password = "adoy.rm"
+	}
+}`, acctest.RandString(10))
+
+var testAccContainerCluster_withAdditionalZones = fmt.Sprintf(`
+resource "google_container_cluster" "with_additional_zones" {
+	name = "cluster-test-%s"
+	zone = "us-central1-a"
+	initial_node_count = 1
+
+	additional_zones = [
+		"us-central1-b",
+		"us-central1-c"
+	]
 
 	master_auth {
 		username = "mr.yoda"
