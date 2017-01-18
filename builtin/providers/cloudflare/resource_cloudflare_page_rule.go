@@ -22,17 +22,9 @@ func resourceCloudFlarePageRule() *schema.Resource {
 				Required: true,
 			},
 
-			"targets": &schema.Schema{
-				Type:     schema.TypeList,
+			"target": &schema.Schema{
+				Type:     schema.TypeString,
 				Required: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"url_pattern": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
-					},
-				},
 			},
 
 			"actions": &schema.Schema{
@@ -75,24 +67,20 @@ func resourceCloudFlarePageRule() *schema.Resource {
 func resourceCloudFlarePageRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*cloudflare.API)
 
-	targets := d.Get("targets").([]interface{})
 	actions := d.Get("actions").([]interface{})
-
-	newPageRuleTargets := make([]cloudflare.PageRuleTarget, 0, len(targets))
 	newPageRuleActions := make([]cloudflare.PageRuleAction, 0, len(actions))
 
-	for _, target := range targets {
-		newPageRuleTarget := cloudflare.PageRuleTarget{
+	newPageRuleTargets := []cloudflare.PageRuleTarget{
+		cloudflare.PageRuleTarget{
 			Target: "url",
 			Constraint: struct {
 				Operator string `json:"operator"`
 				Value    string `json:"value"`
 			}{
 				Operator: "matches",
-				Value:    target.(schema.Resource).Schema["url_pattern"].Elem.(string),
+				Value:    d.Get("target").(string),
 			},
-		}
-		newPageRuleTargets = append(newPageRuleTargets, newPageRuleTarget)
+		},
 	}
 
 	for _, action := range actions {
