@@ -221,7 +221,7 @@ func (n *GraphNodeConfigResource) EvalTree() EvalNode {
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalInterpolate{Config: n.Resource.RawCount},
-			&EvalCountCheckComputed{Resource: n.Resource},
+			&EvalCountFixComputed{Resource: n.Resource},
 			&EvalOpFilter{
 				Ops:  []walkOperation{walkValidate},
 				Node: &EvalValidateCount{Resource: n.Resource},

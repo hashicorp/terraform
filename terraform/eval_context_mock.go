@@ -198,3 +198,7 @@ func (c *MockEvalContext) State() (*State, *sync.RWMutex) {
 	c.StateCalled = true
 	return c.StateState, c.StateLock
 }
+
+func (c *MockEvalContext) CanIgnoreMissingCountExpansion() bool {
+	return false
+}

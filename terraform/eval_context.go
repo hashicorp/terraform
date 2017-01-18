@@ -77,4 +77,11 @@ type EvalContext interface {
 	// State returns the global state as well as the lock that should
 	// be used to modify that state.
 	State() (*State, *sync.RWMutex)
+
+	// True if we can ignore missing computed values when interpolating
+	// the count variable
+	//
+	// This is useful as we don't have the full tree during walkInput
+	// or walkValidate
+	CanIgnoreMissingCountExpansion() bool
 }
