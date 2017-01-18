@@ -19,7 +19,7 @@ resource "aws_elasticache_replication_group" "bar" {
   node_type                     = "cache.m1.small"
   number_cache_clusters         = 2
   port                          = 6379
-  parameter_group_name          = "default.redis2.8"
+  parameter_group_name          = "default.redis3.2"
   availability_zones            = ["us-west-2a", "us-west-2b"]
   automatic_failover_enabled    = true
 }
