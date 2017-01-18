@@ -17,27 +17,27 @@ func (c *_Check) parseJSONCheck(ctxt *_ProviderContext, l _InterfaceList) error 
 		jsonConfig := _NewInterfaceMap(mapRaw)
 		ar := _NewMapReader(ctxt, jsonConfig)
 
-		if s, ok := ar.GetStringOk(_CheckJSONAuthMethodAttr); ok {
+		if s, ok := ar.GetStringOK(_CheckJSONAuthMethodAttr); ok {
 			c.Config[config.AuthMethod] = s
 		}
 
-		if s, ok := ar.GetStringOk(_CheckJSONAuthPasswordAttr); ok {
+		if s, ok := ar.GetStringOK(_CheckJSONAuthPasswordAttr); ok {
 			c.Config[config.AuthPassword] = s
 		}
 
-		if s, ok := ar.GetStringOk(_CheckJSONAuthUserAttr); ok {
+		if s, ok := ar.GetStringOK(_CheckJSONAuthUserAttr); ok {
 			c.Config[config.AuthUser] = s
 		}
 
-		if s, ok := ar.GetStringOk(_CheckJSONCAChainAttr); ok {
+		if s, ok := ar.GetStringOK(_CheckJSONCAChainAttr); ok {
 			c.Config[config.CAChain] = s
 		}
 
-		if s, ok := ar.GetStringOk(_CheckJSONCertFileAttr); ok {
+		if s, ok := ar.GetStringOK(_CheckJSONCertFileAttr); ok {
 			c.Config[config.CertFile] = s
 		}
 
-		if s, ok := ar.GetStringOk(_CheckJSONCiphersAttr); ok {
+		if s, ok := ar.GetStringOK(_CheckJSONCiphersAttr); ok {
 			c.Config[config.Ciphers] = s
 		}
 
@@ -48,27 +48,27 @@ func (c *_Check) parseJSONCheck(ctxt *_ProviderContext, l _InterfaceList) error 
 			}
 		}
 
-		if s, ok := ar.GetStringOk(_CheckJSONKeyFileAttr); ok {
+		if s, ok := ar.GetStringOK(_CheckJSONKeyFileAttr); ok {
 			c.Config[config.KeyFile] = s
 		}
 
-		if s, ok := ar.GetStringOk(_CheckJSONMethodAttr); ok {
+		if s, ok := ar.GetStringOK(_CheckJSONMethodAttr); ok {
 			c.Config[config.Method] = s
 		}
 
-		if s, ok := ar.GetStringOk(_CheckJSONPayloadAttr); ok {
+		if s, ok := ar.GetStringOK(_CheckJSONPayloadAttr); ok {
 			c.Config[config.Payload] = s
 		}
 
-		if s, ok := ar.GetStringOk(_CheckJSONPortAttr); ok {
+		if s, ok := ar.GetStringOK(_CheckJSONPortAttr); ok {
 			c.Config[config.Port] = s
 		}
 
-		if i, ok := ar.GetIntOk(_CheckJSONReadLimitAttr); ok {
+		if i, ok := ar.GetIntOK(_CheckJSONReadLimitAttr); ok {
 			c.Config[config.ReadLimit] = fmt.Sprintf("%d", i)
 		}
 
-		if s, ok := ar.GetStringOk(_CheckJSONURLAttr); ok {
+		if s, ok := ar.GetStringOK(_CheckJSONURLAttr); ok {
 			c.Config[config.URL] = s
 
 			u, _ := url.Parse(s)
@@ -86,7 +86,7 @@ func (c *_Check) parseJSONCheck(ctxt *_ProviderContext, l _InterfaceList) error 
 			}
 		}
 
-		if s, ok := ar.GetStringOk(_CheckJSONVersionAttr); ok {
+		if s, ok := ar.GetStringOK(_CheckJSONVersionAttr); ok {
 			c.Config[config.HTTPVersion] = s
 		}
 	}

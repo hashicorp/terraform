@@ -62,7 +62,7 @@ func (r *_ConfigReader) GetIntOK(attrName _SchemaAttr) (int, bool) {
 	return 0, false
 }
 
-func (r *_ConfigReader) GetSetAsListOk(attrName _SchemaAttr) (_InterfaceList, bool) {
+func (r *_ConfigReader) GetSetAsListOK(attrName _SchemaAttr) (_InterfaceList, bool) {
 	if listRaw, ok := r.d.GetOk(string(attrName)); ok {
 		return listRaw.(*schema.Set).List(), true
 	}
@@ -77,7 +77,7 @@ func (r *_ConfigReader) GetString(attrName _SchemaAttr) string {
 	return ""
 }
 
-func (r *_ConfigReader) GetStringOk(attrName _SchemaAttr) (string, bool) {
+func (r *_ConfigReader) GetStringOK(attrName _SchemaAttr) (string, bool) {
 	if v, ok := r.d.GetOk(string(attrName)); ok {
 		return v.(string), true
 	}
