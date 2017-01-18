@@ -152,6 +152,26 @@ func _ValidateDurationMax(attrName _SchemaAttr, maxDuration string) func(v inter
 	}
 }
 
+func _ValidateFloatMin(attrName _SchemaAttr, min float64) func(v interface{}, key string) (warnings []string, errors []error) {
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		if v.(float64) < min {
+			errors = append(errors, fmt.Errorf("Invalid %s specified (%d): minimum value must be %s", attrName, v.(float64), min))
+		}
+
+		return warnings, errors
+	}
+}
+
+func _ValidateFloatMax(attrName _SchemaAttr, max float64) func(v interface{}, key string) (warnings []string, errors []error) {
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		if v.(float64) > max {
+			errors = append(errors, fmt.Errorf("Invalid %s specified (%d): maximum value must be %s", attrName, v.(float64), max))
+		}
+
+		return warnings, errors
+	}
+}
+
 // _ValidateFuncs takes a list of functions and runs them in serial until either
 // a warning or error is returned from the first validation function argument.
 func _ValidateFuncs(fns ...func(v interface{}, key string) (warnings []string, errors []error)) func(v interface{}, key string) (warnings []string, errors []error) {
