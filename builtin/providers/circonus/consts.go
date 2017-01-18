@@ -23,6 +23,10 @@ const (
 	defaultCheckJSONMethod  = "GET"
 	defaultCheckJSONPort    = "443"
 	defaultCheckJSONVersion = "1.1"
+
+	defaultCheckICMPPingAvailability = 100.0
+	defaultCheckICMPPingCount        = 5
+	defaultCheckICMPPingInterval     = "2s"
 )
 
 // Consts and their close relative, Go pseudo-consts.

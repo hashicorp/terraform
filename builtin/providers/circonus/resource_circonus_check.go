@@ -33,6 +33,7 @@ const (
 	_CheckActiveAttr      _SchemaAttr = "active"
 	_CheckCollectorAttr   _SchemaAttr = "collector"
 	_CheckJSONAttr        _SchemaAttr = "json"
+	_CheckICMPPingAttr    _SchemaAttr = "icmp_ping"
 	_CheckMetricLimitAttr _SchemaAttr = "metric_limit"
 	_CheckNameAttr        _SchemaAttr = "name"
 	_CheckNotesAttr       _SchemaAttr = "notes"
@@ -65,6 +66,7 @@ const (
 const (
 	// Circonus API constants from their API endpoints
 	_APICheckTypeJSONAttr       _APICheckType = "json"
+	_APICheckTypeICMPPingAttr   _APICheckType = "ping_icmp"
 	_APICheckTypePostgreSQLAttr _APICheckType = "postgres"
 )
 
@@ -72,6 +74,7 @@ var _CheckDescriptions = _AttrDescrs{
 	_CheckActiveAttr:      "If the check is activate or disabled",
 	_CheckCollectorAttr:   "The collector(s) that are responsible for gathering the metrics",
 	_CheckJSONAttr:        "JSON check configuration",
+	_CheckICMPPingAttr:    "ICMP ping check configuration",
 	_CheckMetricLimitAttr: `Setting a metric_limit will enable all (-1), disable (0), or allow up to the specified limit of metrics for this check ("N+", where N is a positive integer)`,
 	_CheckNameAttr:        "The name of the check bundle that will be displayed in the web interface",
 	_CheckNotesAttr:       "Notes about this check bundle",
@@ -128,7 +131,8 @@ func _NewCheckResource() *schema.Resource {
 					}, _CheckCollectorDescriptions),
 				},
 			},
-			_CheckJSONAttr: _SchemaCheckJSON,
+			_CheckJSONAttr:     _SchemaCheckJSON,
+			_CheckICMPPingAttr: _SchemaCheckICMPPing,
 			_CheckMetricLimitAttr: &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -467,6 +471,7 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
 	checkTypeParseMap := map[_SchemaAttr]func(*_Check, *_ProviderContext, _InterfaceList) error{
 		_CheckJSONAttr:       parseCheckConfigJSON,
+		_CheckICMPPingAttr:   parseCheckConfigICMPPing,
 		_CheckPostgreSQLAttr: parseCheckConfigPostgreSQL,
 	}
 
@@ -486,6 +491,7 @@ func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
 func _ParseCheckTypeConfig(c *_Check, d *schema.ResourceData) error {
 	checkTypeConfigHandlers := map[_APICheckType]func(*_Check, *schema.ResourceData) error{
 		_APICheckTypeJSONAttr:       _ReadAPICheckConfigJSON,
+		_APICheckTypeICMPPingAttr:   _ReadAPICheckConfigICMPPing,
 		_APICheckTypePostgreSQLAttr: _ReadAPICheckConfigPostgreSQL,
 	}
 

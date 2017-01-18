@@ -83,6 +83,9 @@ resource "circonus_metric" "used" {
 * `json` - (Optional) A JSON check.  See below for details on how to configure
   the `json` check.
 
+* `icmp_ping` - (Optional) An ICMP ping check.  See below for details on how to
+  configure the `icmp_ping` check.
+
 * `metric_limit` - (Optional) Setting a metric limit will tell the Circonus
   backend to periodically look at the check to see if there are additional
   metrics the collector has seen that we should collect. It will not reactivate
@@ -132,6 +135,17 @@ set of options that must be configured.  Each check type conflicts with every
 other check type (i.e. a `circonus_check` configured for a `json` check will
 conflict with all other check types, therefore a `postgresql` check must be a
 different `circonus_check` resource).
+
+### `icmp_ping` Check Type Attributes
+
+The `icmp_ping` check requires the `target` top-level attribute to be set.
+
+* `availability` - (Optional) The percentage of ping packets that must be
+  returned for this measurement to be considered successful.  Defaults to
+  `100.0`.
+* `count` - (Optional) The number of ICMP ping packets to send.  Defaults to
+  `5`.
+* `interval` - (Optional) Interval between packets.  Defaults to `2s`.
 
 ### `json` Check Type Attributes
 
