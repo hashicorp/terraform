@@ -1,11 +1,14 @@
 package aws
 
 import (
+	"bytes"
+	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -46,8 +49,20 @@ func trustedSignersConf() []interface{} {
 	return []interface{}{"1234567890EX", "1234567891EX"}
 }
 
-func lambdaFunctionAssociationsConf() []interface{} {
-	s := []interface{}{
+func lambdaSetHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	if v, ok := m["event_type"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+	if v, ok := m["lambda_arn"]; ok {
+		buf.WriteString(fmt.Sprintf("%d-", v.(string)))
+	}
+	return hashcode.String(buf.String())
+}
+
+func lambdaFunctionAssociationsConf() *schema.Set {
+	x := []interface{}{
 		map[string]interface{}{
 			"event_type": "viewer-request",
 			"lambda_arn": "arn:aws:lambda:us-east-1:999999999:function1:alias",
@@ -57,6 +72,9 @@ func lambdaFunctionAssociationsConf() []interface{} {
 			"lambda_arn": "arn:aws:lambda:us-east-1:999999999:function2:alias",
 		},
 	}
+
+	s := schema.NewSet(lambdaSetHash, x)
+
 	return s
 }
 
@@ -454,7 +472,7 @@ func TestCloudFrontStructure_expandTrustedSigners_empty(t *testing.T) {
 
 func TestCloudFrontStructure_expandLambdaFunctionAssociations(t *testing.T) {
 	data := lambdaFunctionAssociationsConf()
-	lfa := expandLambdaFunctionAssociations(data)
+	lfa := expandLambdaFunctionAssociations(data.List())
 	if *lfa.Quantity != 2 {
 		t.Fatalf("Expected Quantity to be 2, got %v", *lfa.Quantity)
 	}
@@ -471,17 +489,17 @@ func TestCloudFrontStructure_expandLambdaFunctionAssociations(t *testing.T) {
 
 func TestCloudFrontStructure_flattenlambdaFunctionAssociations(t *testing.T) {
 	in := lambdaFunctionAssociationsConf()
-	lfa := expandLambdaFunctionAssociations(in)
+	lfa := expandLambdaFunctionAssociations(in.List())
 	out := flattenLambdaFunctionAssociations(lfa)
 
-	if reflect.DeepEqual(in, out) != true {
+	if reflect.DeepEqual(in.List(), out) != true {
 		t.Fatalf("Expected out to be %v, got %v", in, out)
 	}
 }
 
 func TestCloudFrontStructure_expandlambdaFunctionAssociations_empty(t *testing.T) {
-	data := []interface{}{}
-	lfa := expandLambdaFunctionAssociations(data)
+	data := new(schema.Set)
+	lfa := expandLambdaFunctionAssociations(data.List())
 	if *lfa.Quantity != 0 {
 		t.Fatalf("Expected Quantity to be 0, got %v", *lfa.Quantity)
 	}
