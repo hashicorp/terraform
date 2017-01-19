@@ -21,6 +21,11 @@ var knownContactMethods map[_ContactMethods]struct{}
 var userContactMethods map[_ContactMethods]struct{}
 var externalContactMethods map[_ContactMethods]struct{}
 var _SupportedHTTPVersions = _ValidStringValues{"0.9", "1.0", "1.1", "2.0"}
+var _SupportedStreamGroupTypes = _ValidStringValues{
+	"average", "count", "counter", "counter2", "counter2_stddev",
+	"counter_stddev", "derive", "derive2", "derive2_stddev", "derive_stddev",
+	"histogram", "stddev", "text",
+}
 
 func init() {
 	checkTypes := []_CheckType{

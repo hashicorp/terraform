@@ -86,6 +86,7 @@ func Provider() terraform.ResourceProvider {
 			"circonus_check":         _NewCheckResource(),
 			"circonus_contact_group": resourceContactGroup(),
 			"circonus_metric":        _NewMetricResource(),
+			"circonus_stream_group":  _NewStreamGroupResource(),
 		},
 
 		ConfigureFunc: providerConfigure,
