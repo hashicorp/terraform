@@ -79,6 +79,7 @@ func Funcs() map[string]ast.Function {
 		"md5":          interpolationFuncMd5(),
 		"merge":        interpolationFuncMerge(),
 		"min":          interpolationFuncMin(),
+		"pathexpand":   interpolationFuncPathExpand(),
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
@@ -427,6 +428,17 @@ func interpolationFuncMin() ast.Function {
 			}
 
 			return min, nil
+		},
+	}
+}
+
+// interpolationFuncPathExpand will expand any `~`'s found with the full file path
+func interpolationFuncPathExpand() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return homedir.Expand(args[0].(string))
 		},
 	}
 }

@@ -271,6 +271,8 @@ The supported built-in functions are:
   * `md5(string)` - Returns a (conventional) hexadecimal representation of the
     MD5 hash of the given string.
 
+  * `pathexpand(string)` - Returns a filepath string with `~` expanded to the home directory.
+  
   * `replace(string, search, replace)` - Does a search and replace on the
       given string. All instances of `search` are replaced with the value
       of `replace`. If `search` is wrapped in forward slashes, it is treated
