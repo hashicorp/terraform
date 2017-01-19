@@ -143,7 +143,9 @@ func resourceCloudFlarePageRuleCreate(d *schema.ResourceData, meta interface{}) 
 			ID: v["action"].(string),
 		}
 
-		setPageRuleActionValue(&newPageRuleAction, v)
+		if err := setPageRuleActionValue(&newPageRuleAction, v); err != nil {
+			return err
+		}
 		newPageRuleActions = append(newPageRuleActions, newPageRuleAction)
 	}
 
