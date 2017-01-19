@@ -31,6 +31,7 @@ IMPROVEMENTS:
  * provider/scaleway improve bootscript data source [GH-11183]
  * provider/statuscake: Add support for StatusCake confirmation servers [GH-11179]
  * provider/statuscake: Add support for Updating StatusCake contact_ids [GH-7115]
+ * provisioner/chef: Add support for named run-lists when using policyfiles [GH-11215]
 
 BUG FIXES:
 
