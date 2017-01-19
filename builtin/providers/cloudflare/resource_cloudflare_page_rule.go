@@ -185,8 +185,64 @@ func resourceCloudFlarePageRuleRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	d.SetId(pageRule.ID)
-	d.Set("targets", pageRule.Targets)
-	d.Set("actions", pageRule.Actions)
+
+	// Cloudflare presently only has one target type, and its Operator is always
+	// "matches"; so we can just read the first element's Value.
+	d.Set("target", pageRule.Targets[0].Constraint.Value)
+
+	actions := make([]map[string]interface{}, 0, len(pageRule.Actions))
+	for _, pageRuleAction := range pageRule.Actions {
+
+		// Initialise with the defaults/'empty' values
+		action := map[string]interface{}{
+			"enabled":        true,
+			"cache_mode":     "",
+			"forward_target": "",
+			"rocket_mode":    "",
+			"seconds":        0,
+			"security_mode":  "",
+			"ssl_mode":       "",
+		}
+
+		if subsettingName, err := getPageRuleActionSubsetting(pageRuleAction.ID); err != nil {
+			return err
+		} else {
+			switch subsettingName {
+			case "enabled":
+				action[subsettingName] = pageRuleAction.Value.(string) == "on"
+				break
+
+			case "none":
+				break
+
+			case "seconds":
+				action[subsettingName] = pageRuleAction.Value.(int)
+				break
+
+			case "cache_mode":
+			case "rocket_mode":
+			case "security_mode":
+			case "ssl_mode":
+				action[subsettingName] = pageRuleAction.Value.(string)
+				break
+
+			case "forward_target":
+				action[subsettingName] = map[string]interface{}{
+					"url":         pageRuleAction.Value.(string),
+					"status_code": pageRuleAction.Value.(int),
+				}
+				break
+
+			default:
+				return fmt.Errorf("Unimplemented action ID. This is always an internal error.")
+			}
+		}
+
+		action["action"] = pageRuleAction.ID
+		actions = append(actions, action)
+	}
+	d.Set("actions", actions)
+
 	d.Set("priority", pageRule.Priority)
 	d.Set("status", pageRule.Status)
 
@@ -272,8 +328,8 @@ func resourceCloudFlarePageRuleDelete(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func setPageRuleActionValue(pageRuleAction *cloudflare.PageRuleAction, v map[string]interface{}) (err error) {
-	switch pageRuleAction.ID {
+func getPageRuleActionSubsetting(actionID string) (subsettingName string, err error) {
+	switch actionID {
 	case "always_online":
 	case "automatic_https_rewrites":
 	case "browser_check":
@@ -282,22 +338,63 @@ func setPageRuleActionValue(pageRuleAction *cloudflare.PageRuleAction, v map[str
 	case "opportunistic_encryption":
 	case "server_side_exclude":
 	case "smart_errors":
-		if v["enabled"].(bool) {
-			pageRuleAction.Value = "on"
-		} else {
-			pageRuleAction.Value = "off"
-		}
+		subsettingName = "enabled"
 		break
 
 	case "always_use_https":
 	case "disable_apps":
 	case "disable_performance":
 	case "disable_security":
+		subsettingName = "none"
 		break
 
 	case "browser_cache_ttl":
 	case "edge_cache_ttl":
-		subsettingName := "seconds"
+		subsettingName = "seconds"
+		break
+
+	case "cache_level":
+		subsettingName = "cache_mode"
+		break
+
+	case "forwarding_url":
+		subsettingName = "forward_target"
+		break
+
+	case "rocket_loader":
+		subsettingName = "rocket_mode"
+		break
+
+	case "security_level":
+		subsettingName = "security_mode"
+		break
+
+	case "ssl":
+		subsettingName = "ssl_mode"
+		break
+	}
+	return
+}
+
+func setPageRuleActionValue(pageRuleAction *cloudflare.PageRuleAction, v map[string]interface{}) (err error) {
+	subsettingName, err := getPageRuleActionSubsetting(pageRuleAction.ID)
+	if err != nil {
+		return
+	}
+
+	switch subsettingName {
+	case "enabled":
+		if v[subsettingName].(bool) {
+			pageRuleAction.Value = "on"
+		} else {
+			pageRuleAction.Value = "off"
+		}
+		break
+
+	case "none":
+		break
+
+	case "seconds":
 		subsetting := v[subsettingName].(int)
 		if subsetting == 0 {
 			err = fmt.Errorf("Action value missing for %q, expected to find %q", pageRuleAction.ID, subsettingName)
@@ -306,8 +403,7 @@ func setPageRuleActionValue(pageRuleAction *cloudflare.PageRuleAction, v map[str
 		}
 		break
 
-	case "cache_level":
-		subsettingName := "cache_mode"
+	case "cache_mode":
 		subsetting := v[subsettingName].(string)
 		if subsetting == "" {
 			err = fmt.Errorf("Action value missing for %q, expected to find %q", pageRuleAction.ID, subsettingName)
@@ -316,16 +412,15 @@ func setPageRuleActionValue(pageRuleAction *cloudflare.PageRuleAction, v map[str
 		}
 		break
 
-	case "forwarding_url":
-		forwardAction := v["forward_target"].(map[string]interface{})
+	case "forward_target":
+		forwardAction := v[subsettingName].(map[string]interface{})
 		pageRuleAction.Value = struct {
 			URL        string
 			StatusCode int
 		}{forwardAction["url"].(string), forwardAction["status_code"].(int)}
 		break
 
-	case "rocket_loader":
-		subsettingName := "rocket_mode"
+	case "rocket_mode":
 		subsetting := v[subsettingName].(string)
 		if subsetting == "" {
 			err = fmt.Errorf("Action value missing for %q, expected to find %q", pageRuleAction.ID, subsettingName)
@@ -334,8 +429,7 @@ func setPageRuleActionValue(pageRuleAction *cloudflare.PageRuleAction, v map[str
 		}
 		break
 
-	case "security_level":
-		subsettingName := "security_mode"
+	case "security_mode":
 		subsetting := v[subsettingName].(string)
 		if subsetting == "" {
 			err = fmt.Errorf("Action value missing for %q, expected to find %q", pageRuleAction.ID, subsettingName)
@@ -344,8 +438,7 @@ func setPageRuleActionValue(pageRuleAction *cloudflare.PageRuleAction, v map[str
 		}
 		break
 
-	case "ssl":
-		subsettingName := "ssl_mode"
+	case "ssl_mode":
 		subsetting := v[subsettingName].(string)
 		if subsetting == "" {
 			err = fmt.Errorf("Action value missing for %q, expected to find %q", pageRuleAction.ID, subsettingName)
