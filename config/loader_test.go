@@ -334,6 +334,43 @@ func TestLoadFile_outputDependsOn(t *testing.T) {
 	}
 }
 
+func TestLoadFile_terraformBackend(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "terraform-backend.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	{
+		actual := terraformStr(c.Terraform)
+		expected := strings.TrimSpace(`
+backend (s3)
+  foo`)
+		if actual != expected {
+			t.Fatalf("bad:\n%s", actual)
+		}
+	}
+}
+
+func TestLoadFile_terraformBackendMulti(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "terraform-backend-multi.tf"))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	errorStr := err.Error()
+	if !strings.Contains(errorStr, "only one 'backend'") {
+		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
+	}
+}
+
 func TestLoadJSONBasic(t *testing.T) {
 	raw, err := ioutil.ReadFile(filepath.Join(fixtureDir, "basic.tf.json"))
 	if err != nil {
