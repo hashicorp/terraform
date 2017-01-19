@@ -74,6 +74,10 @@ resource "circonus_metric" "used" {
 * `active` - (Optional) Whether or not the check is enabled or not (default
   `true`).
 
+* `caql` - (Optional) A [Circonus Analytics Query Language
+  (CAQL)](https://login.circonus.com/user/docs/CAQL) check.  See below for
+  details on how to configure a `caql` check.
+
 * `collector` - (Required) A collector ID.  The collector(s) that are
   responsible for running a `circonus_check`. The `id` can be the Circonus ID
   for a Circonus collector (a.k.a. "broker") running in the cloud or an
@@ -135,6 +139,11 @@ set of options that must be configured.  Each check type conflicts with every
 other check type (i.e. a `circonus_check` configured for a `json` check will
 conflict with all other check types, therefore a `postgresql` check must be a
 different `circonus_check` resource).
+
+### `caql` Check Type Attributes
+
+* `query` - (Required) The [CAQL
+  Query](https://login.circonus.com/user/docs/caql_reference) to run.
 
 ### `icmp_ping` Check Type Attributes
 
