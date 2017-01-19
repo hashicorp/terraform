@@ -712,6 +712,10 @@ func TestRefresh_disableBackup(t *testing.T) {
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
 	}
+	_, err = os.Stat("-")
+	if err == nil || !os.IsNotExist(err) {
+		t.Fatalf("backup should not exist")
+	}
 }
 
 func TestRefresh_displaysOutputs(t *testing.T) {
