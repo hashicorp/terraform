@@ -129,12 +129,6 @@ func init() {
 			}, nil
 		},
 
-		"remote": func() (cli.Command, error) {
-			return &command.RemoteCommand{
-				Meta: meta,
-			}, nil
-		},
-
 		"show": func() (cli.Command, error) {
 			return &command.ShowCommand{
 				Meta: meta,
@@ -205,6 +199,18 @@ func init() {
 
 		"state mv": func() (cli.Command, error) {
 			return &command.StateMvCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state pull": func() (cli.Command, error) {
+			return &command.StatePullCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state push": func() (cli.Command, error) {
+			return &command.StatePushCommand{
 				Meta: meta,
 			}, nil
 		},
