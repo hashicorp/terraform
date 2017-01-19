@@ -34,7 +34,7 @@ resource "azurerm_network_security_group" "test" {
     	source_address_prefix = "*"
     	destination_address_prefix = "*"
     }
-    
+
     tags {
         environment = "Production"
     }
@@ -57,12 +57,12 @@ The following arguments are supported:
 * `security_rule` - (Optional) Can be specified multiple times to define multiple
                                    security rules. Each `security_rule` block supports fields documented below.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 
 The `security_rule` block supports:
 
-* `name` - (Required) The name of the security rule. 
+* `name` - (Required) The name of the security rule.
 
 * `description` - (Optional) A description for this rule. Restricted to 140 characters.
 
@@ -81,7 +81,7 @@ The `security_rule` block supports:
 * `priority` - (Required) Specifies the priority of the rule. The value can be between 100 and 4096. The priority number must be unique for each rule in the collection. The lower the priority number, the higher the priority of the rule.
 
 * `direction` - (Required) The direction specifies if rule will be evaluated on incoming or outgoing traffic. Possible values are “Inbound” and “Outbound”.
-    
+
 
 ## Attributes Reference
 
@@ -89,10 +89,12 @@ The following attributes are exported:
 
 * `id` - The Network Security Group ID.
 
+* `name` - The Network Security Group Name.
+
 
 ## Import
 
-Network Security Groups can be imported using the `resource id`, e.g. 
+Network Security Groups can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_network_security_group.group1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/networkSecurityGroups/mySecurityGroup
