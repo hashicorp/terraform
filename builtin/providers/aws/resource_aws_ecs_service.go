@@ -117,11 +117,12 @@ func resourceAwsEcsService() *schema.Resource {
 						"field": {
 							Type:     schema.TypeString,
 							ForceNew: true,
-							Required: true,
+							Optional: true,
 						},
 					},
 				},
 			},
+
 			"placement_constraints": {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -129,7 +130,7 @@ func resourceAwsEcsService() *schema.Resource {
 				MaxItems: 10,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": { //TODO: Add a Validation for the types
+						"type": {
 							Type:     schema.TypeString,
 							ForceNew: true,
 							Required: true,
@@ -137,7 +138,7 @@ func resourceAwsEcsService() *schema.Resource {
 						"expression": {
 							Type:     schema.TypeString,
 							ForceNew: true,
-							Required: true,
+							Optional: true,
 						},
 					},
 				},
@@ -178,6 +179,11 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		var ps []*ecs.PlacementStrategy
 		for _, raw := range strategies {
 			p := raw.(map[string]interface{})
+			t := p["type"].(string)
+			f := p["field"].(string)
+			if err := validateAwsEcsPlacementStrategy(t, f); err != nil {
+				return err
+			}
 			ps = append(ps, &ecs.PlacementStrategy{
 				Type:  aws.String(p["type"].(string)),
 				Field: aws.String(p["field"].(string)),
@@ -191,9 +197,14 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		var pc []*ecs.PlacementConstraint
 		for _, raw := range constraints {
 			p := raw.(map[string]interface{})
+			t := p["type"].(string)
+			e := p["expression"].(string)
+			if err := validateAwsEcsPlacementConstraint(t, e); err != nil {
+				return err
+			}
 			pc = append(pc, &ecs.PlacementConstraint{
-				Type:       aws.String(p["type"].(string)),
-				Expression: aws.String(p["expression"].(string)),
+				Type:       aws.String(t),
+				Expression: aws.String(e),
 			})
 		}
 		input.PlacementConstraints = pc
