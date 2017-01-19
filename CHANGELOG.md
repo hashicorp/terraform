@@ -9,6 +9,7 @@ FEATURES:
  * **New Resource:**  `aws_inspector_assessment_target` [GH-11217]
  * **New Resource:**  `aws_inspector_assessment_template` [GH-11217]
  * **New Resource:**  `aws_inspector_resource_group` [GH-11217]
+ * **New Interpolation Function:**  `pathexpand()` [GH-11277]
 
 IMPROVEMENTS:
 
