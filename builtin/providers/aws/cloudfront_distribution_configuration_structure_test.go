@@ -56,7 +56,7 @@ func lambdaSetHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 	if v, ok := m["lambda_arn"]; ok {
-		buf.WriteString(fmt.Sprintf("%d-", v.(string)))
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 	return hashcode.String(buf.String())
 }
