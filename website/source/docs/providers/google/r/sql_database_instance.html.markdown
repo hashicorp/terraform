@@ -60,8 +60,8 @@ The following arguments are supported:
 
 The required `settings` block supports:
 
-* `tier` - (Required) The machine tier to use. See
-    [pricing](https://cloud.google.com/sql/pricing) for more details and
+* `tier` - (Required) The machine tier (First Generation) or type (Second Generation) to use. See
+    [tiers](https://cloud.google.com/sql/docs/admin-api/v1beta4/tiers) for more details and
     supported versions.
 
 * `activation_policy` - (Optional) This specifies when the instance should be
