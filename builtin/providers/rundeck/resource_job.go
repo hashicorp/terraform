@@ -687,11 +687,15 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 		Description:               d.Get("description").(string),
 		LogLevel:                  d.Get("log_level").(string),
 		AllowConcurrentExecutions: d.Get("allow_concurrent_executions").(bool),
-		NodesSelectedByDefault:    d.Get("nodes_selected_by_default").(bool),
 		Timeout:                   d.Get("execution_timeout").(string),
 		Retry:                     d.Get("execution_retry").(string),
 		ExecutionEnabled:          d.Get("execution_enabled").(bool),
 		ScheduleEnabled:           d.Get("schedule_enabled").(bool),
+	}
+	if d.Get("nodes_selected_by_default") != nil {
+		job.NodesSelectedByDefault = &rundeck.Boolean{
+			Value: d.Get("nodes_selected_by_default").(bool),
+		}
 	}
 
 	// Element: Job>Notification
@@ -950,7 +954,9 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 	d.Set("description", job.Description)
 	d.Set("log_level", job.LogLevel)
 	d.Set("allow_concurrent_executions", job.AllowConcurrentExecutions)
-	d.Set("nodes_selected_by_default", job.NodesSelectedByDefault)
+	if job.NodesSelectedByDefault != nil {
+		d.Set("nodes_selected_by_default", job.NodesSelectedByDefault.Value)
+	}
 	d.Set("execution_timeout", job.Timeout)
 	d.Set("execution_retry", job.Retry)
 	d.Set("execution_enabled", job.ExecutionEnabled)

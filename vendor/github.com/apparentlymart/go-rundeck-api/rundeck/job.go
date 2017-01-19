@@ -45,9 +45,13 @@ type JobDetail struct {
 	 * by this reason omitempty cannot be present.
 	 * This has to be handle by the user.
 	 */
-	NodesSelectedByDefault    bool                `xml:"nodesSelectedByDefault"`
+	NodesSelectedByDefault    *Boolean            `xml:"nodesSelectedByDefault"`
 	Schedule                  *JobSchedule        `xml:"schedule,omitempty"`
 	ScheduleEnabled           bool                `xml:"scheduleEnabled"`
+}
+
+type Boolean struct {
+        Value bool   `xml:",bool"`
 }
 
 type JobNotification struct {
