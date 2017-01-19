@@ -268,6 +268,18 @@ func TestAccAWSS3BucketObject_kms(t *testing.T) {
 }
 
 func TestAccAWSS3BucketObject_sse(t *testing.T) {
+	tmpFile, err := ioutil.TempFile("", "tf-acc-s3-obj-source-sse")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	// first write some data to the tempfile just so it's not 0 bytes.
+	err = ioutil.WriteFile(tmpFile.Name(), []byte("{anything will do}"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	rInt := acctest.RandInt()
 	var obj s3.GetObjectOutput
 
@@ -278,8 +290,15 @@ func TestAccAWSS3BucketObject_sse(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				PreConfig: func() {},
-				Config:    testAccAWSS3BucketObjectConfig_withSSE(rInt),
-				Check:     testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object", &obj),
+				Config:    testAccAWSS3BucketObjectConfig_withSSE(rInt, tmpFile.Name()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketObjectExists(
+						"aws_s3_bucket_object.object",
+						&obj),
+					testAccCheckAWSS3BucketObjectSSE(
+						"aws_s3_bucket_object.object",
+						"aws:kms"),
+				),
 			},
 		},
 	})
@@ -485,6 +504,34 @@ func testAccCheckAWSS3BucketObjectStorageClass(n, expectedClass string) resource
 	}
 }
 
+func testAccCheckAWSS3BucketObjectSSE(n, expectedSSE string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, _ := s.RootModule().Resources[n]
+		s3conn := testAccProvider.Meta().(*AWSClient).s3conn
+
+		out, err := s3conn.HeadObject(&s3.HeadObjectInput{
+			Bucket: aws.String(rs.Primary.Attributes["bucket"]),
+			Key:    aws.String(rs.Primary.Attributes["key"]),
+		})
+
+		if err != nil {
+			return fmt.Errorf("HeadObject error: %v", err)
+		}
+
+		if out.ServerSideEncryption == nil {
+			return fmt.Errorf("Expected a non %v Server Side Encryption.", out.ServerSideEncryption)
+		}
+
+		sse := *out.ServerSideEncryption
+		if sse != expectedSSE {
+			return fmt.Errorf("Expected Server Side Encryption %v, got %v.",
+				expectedSSE, sse)
+		}
+
+		return nil
+	}
+}
+
 func testAccAWSS3BucketObjectConfigSource(randInt int, source string) string {
 	return fmt.Sprintf(`
 resource "aws_s3_bucket" "object_bucket" {
@@ -579,19 +626,19 @@ resource "aws_s3_bucket_object" "object" {
 `, randInt)
 }
 
-func testAccAWSS3BucketObjectConfig_withSSE(randInt int) string {
+func testAccAWSS3BucketObjectConfig_withSSE(randInt int, source string) string {
 	return fmt.Sprintf(`
-resource "aws_s3_bucket" "object_bucket_2" {
+resource "aws_s3_bucket" "object_bucket" {
 	bucket = "tf-object-test-bucket-%d"
 }
 
 resource "aws_s3_bucket_object" "object" {
-	bucket = "${aws_s3_bucket.object_bucket_2.bucket}"
+	bucket = "${aws_s3_bucket.object_bucket.bucket}"
 	key = "test-key"
-	content = "stuff"
+	source = "%s"
 	server_side_encryption = "aws:kms"
 }
-`, randInt)
+`, randInt, source)
 }
 
 func testAccAWSS3BucketObjectConfig_acl(randInt int, acl string) string {

@@ -229,8 +229,11 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("content_language", resp.ContentLanguage)
 	d.Set("content_type", resp.ContentType)
 	d.Set("version_id", resp.VersionId)
-	d.Set("server_side_encryption", resp.ServerSideEncryption)
-	d.Set("kms_key_id", resp.SSEKMSKeyId)
+	if _, ok := d.GetOk("server_side_encryption"); ok {
+		d.Set("server_side_encryption", resp.ServerSideEncryption)
+	} else if _, ok := d.GetOk("kms_key_id"); ok {
+		d.Set("kms_key_id", resp.SSEKMSKeyId)
+	}
 	d.Set("etag", strings.Trim(*resp.ETag, `"`))
 
 	// The "STANDARD" (which is also the default) storage
