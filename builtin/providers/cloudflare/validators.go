@@ -90,7 +90,16 @@ func validateForwardStatusCode(v interface{}, k string) (ws []string, errors []e
 
 func validateIsTrue(v interface{}, k string) (ws []string, errors []error) {
 	if !v.(bool) {
-		ws = append(ws, fmt.Sprintf("Action %q does not have a further setting; is still 'set' if marked `false`", k))
+		// We can't just ignore this, since if the action is *not set* by the
+		// user it will appear as `false` too.
+		errors = append(errors, fmt.Errorf("Action %q has no further setting; `true` is the only valid option.", k))
+	}
+	return
+}
+
+func validateOnOff(v interface{}, k string) (ws []string, errors []error) {
+	if err := assertIsOneOf(k, []interface{}{"on", "off"}, v.(string)); err != nil {
+		errors = append(errors, err)
 	}
 	return
 }
