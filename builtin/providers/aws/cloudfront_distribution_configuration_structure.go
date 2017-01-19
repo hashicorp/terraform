@@ -269,7 +269,7 @@ func expandCacheBehavior(m map[string]interface{}) *cloudfront.CacheBehavior {
 	}
 
 	if v, ok := m["lambda_function_association"]; ok {
-		cb.LambdaFunctionAssociations = expandLambdaFunctionAssociations(v)
+		cb.LambdaFunctionAssociations = expandLambdaFunctionAssociations(v.(*schema.Set).List())
 	}
 
 	if v, ok := m["smooth_streaming"]; ok {
