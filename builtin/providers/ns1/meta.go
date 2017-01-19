@@ -104,10 +104,10 @@ func makeMetaFields() []MetaField {
 		}
 		index := rf.Index[0]
 		fields[i] = MetaField{
-			MetaFieldSpec: spec,
-			StructIndex: index,
+			MetaFieldSpec:        spec,
+			StructIndex:          index,
 			NameInDynamicForFeed: spec.NameInDynamic + "_feed",
-			StructGoType: rf.Type,
+			StructGoType:         rf.Type,
 		}
 	}
 
@@ -121,8 +121,8 @@ func makeMetaSchema() *schema.Schema {
 
 	for _, f := range metaFields {
 		fieldSchema := &schema.Schema{
-			Optional: true,
-			ForceNew: true,
+			Optional:      true,
+			ForceNew:      true,
 			ConflictsWith: []string{f.NameInDynamicForFeed},
 		}
 		f.SchemaBuilder(fieldSchema)
@@ -131,10 +131,10 @@ func makeMetaSchema() *schema.Schema {
 
 		// Add an "_feed"-suffixed field for the {"feed":...} value.
 		fields[f.NameInDynamicForFeed] = &schema.Schema{
-			Optional: true,
-			ForceNew: true,
+			Optional:      true,
+			ForceNew:      true,
 			ConflictsWith: []string{f.NameInDynamic},
-			Type: schema.TypeString,
+			Type:          schema.TypeString,
 		}
 	}
 
@@ -144,10 +144,10 @@ func makeMetaSchema() *schema.Schema {
 
 	// Wrap it in a list because that seems to be the only way to have nested structs.
 	return &schema.Schema{
-		Type: schema.TypeList,
+		Type:     schema.TypeList,
 		Optional: true,
 		MaxItems: 1,
-		Elem: metaSchemaInner,
+		Elem:     metaSchemaInner,
 	}
 }
 

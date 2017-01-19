@@ -10,12 +10,12 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
+	"encoding/json"
+	"github.com/mitchellh/hashstructure"
 	nsone "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/filter"
-	"encoding/json"
-	"github.com/mitchellh/hashstructure"
 )
 
 var recordTypeStringEnum *StringEnum = NewStringEnum([]string{
@@ -342,10 +342,10 @@ func RecordRead(d *schema.ResourceData, meta interface{}) error {
 	//client := meta.(*nsone.Client)
 
 	/*
-	r, _, err := client.Records.Get(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
-	if err != nil {
-		return err
-	}
+		r, _, err := client.Records.Get(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
+		if err != nil {
+			return err
+		}
 	*/
 
 	var r dns.Record
