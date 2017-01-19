@@ -397,7 +397,8 @@
 		{
 			"checksumSHA1": "yicZ9OtLcy3iCgraWO015yeoO5E=",
 			"path": "github.com/apparentlymart/go-grafana-api",
-			"revision": "d49f95c81c580a4e7a15244b9b12dce8f60750f4"
+			"revision": "d49f95c81c580a4e7a15244b9b12dce8f60750f4",
+			"revisionTime": "2015-10-12T02:03:32Z"
 		},
 		{
 			"checksumSHA1": "+2yCNqbcf7VcavAptooQReTGiHY=",
