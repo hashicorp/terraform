@@ -1,14 +1,11 @@
 package aws
 
 import (
-	"bytes"
-	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -49,18 +46,6 @@ func trustedSignersConf() []interface{} {
 	return []interface{}{"1234567890EX", "1234567891EX"}
 }
 
-func lambdaSetHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	if v, ok := m["event_type"]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
-	}
-	if v, ok := m["lambda_arn"]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
-	}
-	return hashcode.String(buf.String())
-}
-
 func lambdaFunctionAssociationsConf() *schema.Set {
 	x := []interface{}{
 		map[string]interface{}{
@@ -73,9 +58,7 @@ func lambdaFunctionAssociationsConf() *schema.Set {
 		},
 	}
 
-	s := schema.NewSet(lambdaSetHash, x)
-
-	return s
+	return schema.NewSet(lambdaFunctionAssociationHash, x)
 }
 
 func forwardedValuesConf() map[string]interface{} {
@@ -270,6 +253,9 @@ func viewerCertificateConfSetACM() map[string]interface{} {
 func TestCloudFrontStructure_expandDefaultCacheBehavior(t *testing.T) {
 	data := defaultCacheBehaviorConf()
 	dcb := expandDefaultCacheBehavior(data)
+	if dcb == nil {
+		t.Fatalf("ExpandDefaultCacheBehavior returned nil")
+	}
 	if *dcb.Compress != true {
 		t.Fatalf("Expected Compress to be true, got %v", *dcb.Compress)
 	}

@@ -118,6 +118,7 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 									},
 								},
 							},
+							Set: lambdaFunctionAssociationHash,
 						},
 						"max_ttl": {
 							Type:     schema.TypeInt,
@@ -265,6 +266,7 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 									},
 								},
 							},
+							Set: lambdaFunctionAssociationHash,
 						},
 						"max_ttl": {
 							Type:     schema.TypeInt,
