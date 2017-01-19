@@ -65,39 +65,6 @@ func validatePageRuleStatus(v interface{}, k string) (ws []string, errors []erro
 	return
 }
 
-func validatePageRuleActionID(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	validIDs := map[string]struct{}{
-		"always_online":            {},
-		"always_use_https":         {},
-		"automatic_https_rewrites": {},
-		"browser_cache_ttl":        {},
-		"browser_check":            {},
-		"cache_level":              {},
-		"disable_apps":             {},
-		"disable_performance":      {},
-		"disable_railgun":          {},
-		"disable_security":         {},
-		"edge_cache_ttl":           {},
-		"email_obfuscation":        {},
-		"forwarding_url":           {},
-		"ip_geolocation":           {},
-		"opportunistic_encryption": {},
-		"rocket_loader":            {},
-		"security_level":           {},
-		"server_side_exclude":      {},
-		"smart_errors":             {},
-		"ssl":                      {},
-	}
-
-	if _, ok := validIDs[value]; !ok {
-		errors = append(errors, fmt.Errorf(
-			`%q contains an invalid action ID %q. Valid IDs are "always_online", "always_use_https", "automatic_https_rewrites", "browser_cache_ttl", "browser_check", "cache_level", "disable_apps", "disable_performance", "disable_railgun", "disable_security", "edge_cache_ttl", "email_obfuscation", "forwarding_url", "ip_geolocation", "opportunistic_encryption", "rocket_loader", "security_level", "server_side_exclude", "smart_errors", or "ssl"`, k, value))
-	}
-	return
-}
-
 func assertIsOneOf(setting string, acceptables []interface{}, value interface{}) error {
 	for _, acceptable := range acceptables {
 		if value == acceptable {
@@ -117,6 +84,13 @@ func validateCacheLevel(v interface{}, k string) (ws []string, errors []error) {
 func validateForwardStatusCode(v interface{}, k string) (ws []string, errors []error) {
 	if err := assertIsOneOf("Fowarding status code", []interface{}{301, 302}, v.(int)); err != nil {
 		errors = append(errors, err)
+	}
+	return
+}
+
+func validateIsTrue(v interface{}, k string) (ws []string, errors []error) {
+	if !v.(bool) {
+		ws = append(ws, fmt.Sprintf("Action %q does not have a further setting; is still 'set' if marked `false`", k))
 	}
 	return
 }
