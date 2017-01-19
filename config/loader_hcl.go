@@ -209,6 +209,14 @@ func loadTerraformHcl(list *ast.ObjectList) (*Terraform, error) {
 	// Get our one item
 	item := list.Items[0]
 
+	// We need the item value as an ObjectList
+	var listVal *ast.ObjectList
+	if ot, ok := item.Val.(*ast.ObjectType); ok {
+		listVal = ot.List
+	} else {
+		return nil, fmt.Errorf("terraform block: should be an object")
+	}
+
 	// NOTE: We purposely don't validate unknown HCL keys here so that
 	// we can potentially read _future_ Terraform version config (to
 	// still be able to validate the required version).
@@ -223,7 +231,60 @@ func loadTerraformHcl(list *ast.ObjectList) (*Terraform, error) {
 			err)
 	}
 
+	// If we have provisioners, then parse those out
+	if os := listVal.Filter("backend"); len(os.Items) > 0 {
+		var err error
+		config.Backend, err = loadTerraformBackendHcl(os)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"Error reading backend config for terraform block: %s",
+				err)
+		}
+	}
+
 	return &config, nil
+}
+
+// Loads the Backend configuration from an object list.
+func loadTerraformBackendHcl(list *ast.ObjectList) (*Backend, error) {
+	if len(list.Items) > 1 {
+		return nil, fmt.Errorf("only one 'backend' block allowed")
+	}
+
+	// Get our one item
+	item := list.Items[0]
+
+	// Verify the keys
+	if len(item.Keys) != 1 {
+		return nil, fmt.Errorf(
+			"position %s: 'backend' must be followed by exactly one string: a type",
+			item.Pos())
+	}
+
+	typ := item.Keys[0].Token.Value().(string)
+
+	// Decode the raw config
+	var config map[string]interface{}
+	if err := hcl.DecodeObject(&config, item.Val); err != nil {
+		return nil, fmt.Errorf(
+			"Error reading backend config: %s",
+			err)
+	}
+
+	rawConfig, err := NewRawConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Error reading backend config: %s",
+			err)
+	}
+
+	b := &Backend{
+		Type:      typ,
+		RawConfig: rawConfig,
+	}
+	b.Hash = b.Rehash()
+
+	return b, nil
 }
 
 // Given a handle to a HCL object, this transforms it into the Atlas

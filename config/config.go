@@ -41,12 +41,6 @@ type Config struct {
 	unknownKeys []string
 }
 
-// Terraform is the Terraform meta-configuration that can be present
-// in configuration files for configuring Terraform itself.
-type Terraform struct {
-	RequiredVersion string `hcl:"required_version"` // Required Terraform version (constraint)
-}
-
 // AtlasConfig is the configuration for building in HashiCorp's Atlas.
 type AtlasConfig struct {
 	Name    string
