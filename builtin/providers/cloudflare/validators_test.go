@@ -94,6 +94,7 @@ func TestValidatePageRuleActionIDs(t *testing.T) {
 	validActionIDs := []string{
 		"always_online",
 		"always_use_https",
+		"automatic_https_rewrites",
 		"browser_cache_ttl",
 		"browser_check",
 		"cache_level",
@@ -105,13 +106,12 @@ func TestValidatePageRuleActionIDs(t *testing.T) {
 		"email_obfuscation",
 		"forwarding_url",
 		"ip_geolocation",
-		"mirage",
+		"opportunistic_encryption",
 		"rocket_loader",
 		"security_level",
 		"server_side_exclude",
 		"smart_errors",
 		"ssl",
-		"waf",
 	}
 	for _, v := range validActionIDs {
 		_, errors := validatePageRuleActionID(v, "action")

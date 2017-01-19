@@ -28,12 +28,77 @@ func resourceCloudFlarePageRule() *schema.Resource {
 			},
 
 			"actions": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				MinItems: 1,
+				MaxItems: 2,
 				Required: true,
-				Elem: &schema.Schema{
-					Type:         schema.TypeMap,
-					ValidateFunc: validatePageRuleAction,
+				Elem: &schema.Resource{
+					SchemaVersion: 1,
+					Schema: map[string]*schema.Schema{
+						"action": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validatePageRuleActionID,
+						},
+
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
+
+						"seconds": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: validateTTL,
+						},
+
+						"cache_mode": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateCacheLevel,
+						},
+
+						"forward_target": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							MinItems: 2,
+							MaxItems: 2,
+							Elem: &schema.Resource{
+								SchemaVersion: 1,
+								Schema: map[string]*schema.Schema{
+									"url": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+
+									"status_code": {
+										Type:         schema.TypeInt,
+										Required:     true,
+										ValidateFunc: validateForwardStatusCode,
+									},
+								},
+							},
+						},
+
+						"rocket_mode": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateRocketLoader,
+						},
+
+						"security_mode": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateSecurityLevel,
+						},
+
+						"ssl_mode": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateSSL,
+						},
+					},
 				},
 			},
 
@@ -55,9 +120,7 @@ func resourceCloudFlarePageRule() *schema.Resource {
 
 func resourceCloudFlarePageRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*cloudflare.API)
-
-	actions := d.Get("actions").([]map[string]interface{})
-	newPageRuleActions := make([]cloudflare.PageRuleAction, 0, len(actions))
+	domain := d.Get("domain").(string)
 
 	newPageRuleTargets := []cloudflare.PageRuleTarget{
 		cloudflare.PageRuleTarget{
@@ -72,11 +135,15 @@ func resourceCloudFlarePageRuleCreate(d *schema.ResourceData, meta interface{}) 
 		},
 	}
 
-	for _, action := range actions {
+	actions := d.Get("actions").([]map[string]interface{})
+	newPageRuleActions := make([]cloudflare.PageRuleAction, 0, len(actions))
+
+	for _, v := range actions {
 		newPageRuleAction := cloudflare.PageRuleAction{
-			ID:    action["action"].(string),
-			Value: action["value"].(interface{}),
+			ID: v["action"].(string),
 		}
+
+		setPageRuleActionValue(&newPageRuleAction, v)
 		newPageRuleActions = append(newPageRuleActions, newPageRuleAction)
 	}
 
@@ -87,11 +154,9 @@ func resourceCloudFlarePageRuleCreate(d *schema.ResourceData, meta interface{}) 
 		Status:   d.Get("status").(string),
 	}
 
-	zoneName := d.Get("domain").(string)
-
-	zoneId, err := client.ZoneIDByName(zoneName)
+	zoneId, err := client.ZoneIDByName(domain)
 	if err != nil {
-		return fmt.Errorf("Error finding zone %q: %s", zoneName, err)
+		return fmt.Errorf("Error finding zone %q: %s", domain, err)
 	}
 
 	d.Set("zone_id", zoneId)
@@ -152,7 +217,19 @@ func resourceCloudFlarePageRuleUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if actions, ok := d.GetOk("actions"); ok {
-		updatePageRule.Actions = actions.([]cloudflare.PageRuleAction)
+		vs := actions.([]map[string]interface{})
+		newPageRuleActions := make([]cloudflare.PageRuleAction, 0, len(vs))
+
+		for _, v := range vs {
+			newPageRuleAction := cloudflare.PageRuleAction{
+				ID: v["action"].(string),
+			}
+
+			setPageRuleActionValue(&newPageRuleAction, v)
+			newPageRuleActions = append(newPageRuleActions, newPageRuleAction)
+		}
+
+		updatePageRule.Actions = newPageRuleActions
 	}
 
 	if priority, ok := d.GetOk("priority"); ok {
@@ -193,4 +270,93 @@ func resourceCloudFlarePageRuleDelete(d *schema.ResourceData, meta interface{}) 
 	}
 
 	return nil
+}
+
+func setPageRuleActionValue(pageRuleAction *cloudflare.PageRuleAction, v map[string]interface{}) (err error) {
+	switch pageRuleAction.ID {
+	case "always_online":
+	case "automatic_https_rewrites":
+	case "browser_check":
+	case "email_obfuscation":
+	case "ip_geolocation":
+	case "opportunistic_encryption":
+	case "server_side_exclude":
+	case "smart_errors":
+		if v["enabled"].(bool) {
+			pageRuleAction.Value = "on"
+		} else {
+			pageRuleAction.Value = "off"
+		}
+		break
+
+	case "always_use_https":
+	case "disable_apps":
+	case "disable_performance":
+	case "disable_security":
+		break
+
+	case "browser_cache_ttl":
+	case "edge_cache_ttl":
+		subsettingName := "seconds"
+		subsetting := v[subsettingName].(int)
+		if subsetting == 0 {
+			err = fmt.Errorf("Action value missing for %q, expected to find %q", pageRuleAction.ID, subsettingName)
+		} else {
+			pageRuleAction.Value = subsetting
+		}
+		break
+
+	case "cache_level":
+		subsettingName := "cache_mode"
+		subsetting := v[subsettingName].(string)
+		if subsetting == "" {
+			err = fmt.Errorf("Action value missing for %q, expected to find %q", pageRuleAction.ID, subsettingName)
+		} else {
+			pageRuleAction.Value = subsetting
+		}
+		break
+
+	case "forwarding_url":
+		forwardAction := v["forward_target"].(map[string]interface{})
+		pageRuleAction.Value = struct {
+			URL        string
+			StatusCode int
+		}{forwardAction["url"].(string), forwardAction["status_code"].(int)}
+		break
+
+	case "rocket_loader":
+		subsettingName := "rocket_mode"
+		subsetting := v[subsettingName].(string)
+		if subsetting == "" {
+			err = fmt.Errorf("Action value missing for %q, expected to find %q", pageRuleAction.ID, subsettingName)
+		} else {
+			pageRuleAction.Value = subsetting
+		}
+		break
+
+	case "security_level":
+		subsettingName := "security_mode"
+		subsetting := v[subsettingName].(string)
+		if subsetting == "" {
+			err = fmt.Errorf("Action value missing for %q, expected to find %q", pageRuleAction.ID, subsettingName)
+		} else {
+			pageRuleAction.Value = subsetting
+		}
+		break
+
+	case "ssl":
+		subsettingName := "ssl_mode"
+		subsetting := v[subsettingName].(string)
+		if subsetting == "" {
+			err = fmt.Errorf("Action value missing for %q, expected to find %q", pageRuleAction.ID, subsettingName)
+		} else {
+			pageRuleAction.Value = subsetting
+		}
+		break
+
+	default:
+		// User supplied ID is already validated, so this is always an internal error
+		err = fmt.Errorf("Unimplemented action ID. This is always an internal error.")
+	}
+	return
 }

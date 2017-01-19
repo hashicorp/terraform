@@ -3,7 +3,6 @@ package cloudflare
 import (
 	"fmt"
 	"net"
-	"reflect"
 	"strings"
 )
 
@@ -70,32 +69,31 @@ func validatePageRuleActionID(v interface{}, k string) (ws []string, errors []er
 	value := v.(string)
 
 	validIDs := map[string]struct{}{
-		"always_online":       {},
-		"always_use_https":    {},
-		"browser_cache_ttl":   {},
-		"browser_check":       {},
-		"cache_level":         {},
-		"disable_apps":        {},
-		"disable_performance": {},
-		"disable_railgun":     {},
-		"disable_security":    {},
-		"edge_cache_ttl":      {},
-		"email_obfuscation":   {},
-		"forwarding_url":      {},
-		"ip_geolocation":      {},
-		"rocket_loader":       {},
-		"security_level":      {},
-		"server_side_exclude": {},
-		"smart_errors":        {},
-		"ssl":                 {},
-		/* The following action IDs are not yet implemented by cloudflare-go
-		   "automatic_https_rewrites": reflect.String,
-		   "opportunistic_encryption": reflect.String,*/
+		"always_online":            {},
+		"always_use_https":         {},
+		"automatic_https_rewrites": {},
+		"browser_cache_ttl":        {},
+		"browser_check":            {},
+		"cache_level":              {},
+		"disable_apps":             {},
+		"disable_performance":      {},
+		"disable_railgun":          {},
+		"disable_security":         {},
+		"edge_cache_ttl":           {},
+		"email_obfuscation":        {},
+		"forwarding_url":           {},
+		"ip_geolocation":           {},
+		"opportunistic_encryption": {},
+		"rocket_loader":            {},
+		"security_level":           {},
+		"server_side_exclude":      {},
+		"smart_errors":             {},
+		"ssl":                      {},
 	}
 
 	if _, ok := validIDs[value]; !ok {
 		errors = append(errors, fmt.Errorf(
-			`%q contains an invalid action ID %q. Valid IDs are "always_online", "always_use_https", "browser_cache_ttl", "browser_check", "cache_level", "disable_apps", "disable_performance", "disable_railgun", "disable_security", "edge_cache_ttl", "email_obfuscation", "forwarding_url", "ip_geolocation", "mirage", "rocket_loader", "security_level", "server_side_exclude", "smart_errors", "ssl", or "waf"`, k, value))
+			`%q contains an invalid action ID %q. Valid IDs are "always_online", "always_use_https", "automatic_https_rewrites", "browser_cache_ttl", "browser_check", "cache_level", "disable_apps", "disable_performance", "disable_railgun", "disable_security", "edge_cache_ttl", "email_obfuscation", "forwarding_url", "ip_geolocation", "opportunistic_encryption", "rocket_loader", "security_level", "server_side_exclude", "smart_errors", or "ssl"`, k, value))
 	}
 	return
 }
@@ -109,108 +107,44 @@ func assertIsOneOf(setting string, acceptables []interface{}, value interface{})
 	return fmt.Errorf("%q %q invalid: must be one of %q", setting, value, acceptables)
 }
 
-func validatePageRuleAction(v interface{}, k string) (ws []string, errors []error) {
-	id := v.(map[string]interface{})["action"].(string)
-	value := v.(map[string]interface{})["value"]
-
-	expectedTypeFor := map[string]reflect.Kind{
-		"always_online":       reflect.String,
-		"always_use_https":    reflect.Interface,
-		"browser_cache_ttl":   reflect.Int,
-		"browser_check":       reflect.String,
-		"cache_level":         reflect.String,
-		"disable_apps":        reflect.Interface,
-		"disable_performance": reflect.Interface,
-		"disable_railgun":     reflect.String,
-		"disable_security":    reflect.Interface,
-		"edge_cache_ttl":      reflect.Int,
-		"email_obfuscation":   reflect.String,
-		"forwarding_url":      reflect.Map,
-		"ip_geolocation":      reflect.String,
-		"rocket_loader":       reflect.String,
-		"security_level":      reflect.String,
-		"server_side_exclude": reflect.String,
-		"smart_errors":        reflect.String,
-		"ssl":                 reflect.String,
-		/* The following action IDs are not yet implemented by cloudflare-go
-		"automatic_https_rewrites": reflect.String,
-		"opportunistic_encryption": reflect.String,*/
+func validateCacheLevel(v interface{}, k string) (ws []string, errors []error) {
+	if err := assertIsOneOf("Cache level", []interface{}{"bypass", "basic", "simplified", "aggressive", "cache_everything"}, v.(string)); err != nil {
+		errors = append(errors, err)
 	}
+	return
+}
 
-	actualType := reflect.TypeOf(value).Kind()
-	expectedType := expectedTypeFor[id]
-	if actualType != expectedType {
-		errors = append(errors, fmt.Errorf("Value for %q action had type %q, expected %q", id, actualType, expectedType))
+func validateForwardStatusCode(v interface{}, k string) (ws []string, errors []error) {
+	if err := assertIsOneOf("Fowarding status code", []interface{}{301, 302}, v.(int)); err != nil {
+		errors = append(errors, err)
 	}
+	return
+}
 
-	switch id {
-	case "always_online":
-	case "browser_check":
-	case "email_obfuscation":
-	case "ip_geolocation":
-	case "server_side_exclude":
-	case "smart_errors":
-		if err := assertIsOneOf("Action status", []interface{}{"on", "off"}, value); err != nil {
-			errors = append(errors, err)
-		}
-		break
+func validateRocketLoader(v interface{}, k string) (ws []string, errors []error) {
+	if err := assertIsOneOf("Rocket loader", []interface{}{"off", "manual", "automatic"}, v.(string)); err != nil {
+		errors = append(errors, err)
+	}
+	return
+}
 
-	case "always_use_https":
-	case "disable_apps":
-	case "disable_performance":
-	case "disable_security":
-		if value != (struct{}{}) {
-			ws = append(ws, fmt.Sprintf("Action %q does not take a value", id))
-		}
-		break
+func validateSecurityLevel(v interface{}, k string) (ws []string, errors []error) {
+	if err := assertIsOneOf("Security level", []interface{}{"essentially_off", "low", "medium", "high", "under_attack"}, v.(string)); err != nil {
+		errors = append(errors, err)
+	}
+	return
+}
 
-	case "browser_cache_ttl":
-	case "edge_cache_ttl":
-		maxTTL := 31536000
-		if value.(int) > maxTTL {
-			errors = append(errors, fmt.Errorf("Cache TTL too long: max value is %q", maxTTL))
-		}
-		break
+func validateSSL(v interface{}, k string) (ws []string, errors []error) {
+	if err := assertIsOneOf("SSL mode", []interface{}{"off", "flexible", "full", "strict"}, v.(string)); err != nil {
+		errors = append(errors, err)
+	}
+	return
+}
 
-	case "cache_level":
-		if err := assertIsOneOf("Cache level", []interface{}{"bypass", "basic", "simplified", "aggressive", "cache_everything"}, value); err != nil {
-			errors = append(errors, err)
-		}
-		break
-
-	case "forwarding_url":
-		forwardAction := value.(map[string]interface{})
-		if reflect.TypeOf(forwardAction["url"]).Kind() != reflect.String {
-			errors = append(errors, fmt.Errorf("Forwarding URL %q invalid: must be of type string", forwardAction["url"]))
-		}
-		if err := assertIsOneOf("Forwarding status code", []interface{}{301, 302}, forwardAction["status_code"]); err != nil {
-			errors = append(errors, err)
-		}
-		break
-
-	case "rocket_loader":
-		if err := assertIsOneOf("Rocket loader", []interface{}{"off", "manual", "automatic"}, value); err != nil {
-			errors = append(errors, err)
-		}
-		break
-
-	case "security_level":
-		if err := assertIsOneOf("Security level", []interface{}{"essentially_off", "low", "medium", "high", "under_attack"}, value); err != nil {
-			errors = append(errors, err)
-		}
-		break
-
-	case "ssl":
-		if err := assertIsOneOf("SSL setting", []interface{}{"off", "flexible", "full", "strict"}, value); err != nil {
-			errors = append(errors, err)
-		}
-		break
-
-		/* The following action IDs are not yet implemented by cloudflare-go
-		case "automatic_https_rewrites":
-			return assertIsOnOrOff(value)
-		case "opportunistic_encryption":
-			return assertIsOnOrOff(value)*/
+func validateTTL(v interface{}, k string) (ws []string, errors []error) {
+	if ttl, maxTTL := v.(int), 31536000; ttl > maxTTL {
+		errors = append(errors, fmt.Errorf("Cache TTL of %q too long: max value is %q", ttl, maxTTL))
 	}
 	return
 }
