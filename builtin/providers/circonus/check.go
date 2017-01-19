@@ -22,6 +22,7 @@ const (
 )
 
 const (
+	_APICheckTypeCAQL       _CheckType = "caql"
 	_APICheckTypeICMPPing   _CheckType = "ping_icmp"
 	_APICheckTypeJSON       _CheckType = "json"
 	_APICheckTypePostgreSQL _CheckType = "postgres"

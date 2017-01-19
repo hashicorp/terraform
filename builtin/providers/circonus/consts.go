@@ -27,6 +27,8 @@ const (
 	defaultCheckICMPPingAvailability = 100.0
 	defaultCheckICMPPingCount        = 5
 	defaultCheckICMPPingInterval     = "2s"
+
+	defaultCheckCAQLTarget = "q._caql"
 )
 
 // Consts and their close relative, Go pseudo-consts.

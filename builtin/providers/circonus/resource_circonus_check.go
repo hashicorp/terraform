@@ -31,6 +31,7 @@ import (
 const (
 	// circonus_check.* "global" resource attribute names
 	_CheckActiveAttr      _SchemaAttr = "active"
+	_CheckCAQLAttr        _SchemaAttr = "caql"
 	_CheckCollectorAttr   _SchemaAttr = "collector"
 	_CheckJSONAttr        _SchemaAttr = "json"
 	_CheckICMPPingAttr    _SchemaAttr = "icmp_ping"
@@ -65,6 +66,7 @@ const (
 
 const (
 	// Circonus API constants from their API endpoints
+	_APICheckTypeCAQLAttr       _APICheckType = "caql"
 	_APICheckTypeJSONAttr       _APICheckType = "json"
 	_APICheckTypeICMPPingAttr   _APICheckType = "ping_icmp"
 	_APICheckTypePostgreSQLAttr _APICheckType = "postgres"
@@ -72,6 +74,7 @@ const (
 
 var _CheckDescriptions = _AttrDescrs{
 	_CheckActiveAttr:      "If the check is activate or disabled",
+	_CheckCAQLAttr:        "CAQL check configuration",
 	_CheckCollectorAttr:   "The collector(s) that are responsible for gathering the metrics",
 	_CheckJSONAttr:        "JSON check configuration",
 	_CheckICMPPingAttr:    "ICMP ping check configuration",
@@ -117,6 +120,7 @@ func _NewCheckResource() *schema.Resource {
 				Optional: true,
 				Default:  true,
 			},
+			_CheckCAQLAttr: _SchemaCheckCAQL,
 			_CheckCollectorAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -470,6 +474,7 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 // per-check type api.Config attributes.
 func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
 	checkTypeParseMap := map[_SchemaAttr]func(*_Check, *_ProviderContext, _InterfaceList) error{
+		_CheckCAQLAttr:       parseCheckConfigCAQL,
 		_CheckJSONAttr:       parseCheckConfigJSON,
 		_CheckICMPPingAttr:   parseCheckConfigICMPPing,
 		_CheckPostgreSQLAttr: parseCheckConfigPostgreSQL,
@@ -490,6 +495,7 @@ func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
 // statefile.
 func _ParseCheckTypeConfig(c *_Check, d *schema.ResourceData) error {
 	checkTypeConfigHandlers := map[_APICheckType]func(*_Check, *schema.ResourceData) error{
+		_APICheckTypeCAQLAttr:       _ReadAPICheckConfigCAQL,
 		_APICheckTypeJSONAttr:       _ReadAPICheckConfigJSON,
 		_APICheckTypeICMPPingAttr:   _ReadAPICheckConfigICMPPing,
 		_APICheckTypePostgreSQLAttr: _ReadAPICheckConfigPostgreSQL,
