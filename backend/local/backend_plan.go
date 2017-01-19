@@ -51,7 +51,10 @@ func (b *Local) opPlan(
 	if op.PlanRefresh {
 		log.Printf("[INFO] backend/local: plan calling Refresh")
 
-		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(planRefreshing) + "\n"))
+		if b.CLI != nil {
+			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(planRefreshing) + "\n"))
+		}
+
 		_, err := tfCtx.Refresh()
 		if err != nil {
 			runningOp.Err = errwrap.Wrapf("Error refreshing state: {{err}}", err)
