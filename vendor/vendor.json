@@ -1122,6 +1122,30 @@
 			"revision": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
 		},
 		{
+			"checksumSHA1": "ADySw3nBHyzEHB6afBSeVRN2A4g=",
+			"path": "github.com/denverdino/aliyungo/common",
+			"revision": "d123f5d1fa71b211b70b2e9b56a62da21076884a",
+			"revisionTime": "2017-01-17T10:57:15Z"
+		},
+		{
+			"checksumSHA1": "9ZY3RlumKp5DAMfL08YwMoOOT2o=",
+			"path": "github.com/denverdino/aliyungo/ecs",
+			"revision": "d123f5d1fa71b211b70b2e9b56a62da21076884a",
+			"revisionTime": "2017-01-17T10:57:15Z"
+		},
+		{
+			"checksumSHA1": "QlA7zv05k7HWeR3tg4uHqIlFcg8=",
+			"path": "github.com/denverdino/aliyungo/slb",
+			"revision": "d123f5d1fa71b211b70b2e9b56a62da21076884a",
+			"revisionTime": "2017-01-17T10:57:15Z"
+		},
+		{
+			"checksumSHA1": "Lp0KtT7ycgq31ox3Uzhpxyw0U+Y=",
+			"path": "github.com/denverdino/aliyungo/util",
+			"revision": "d123f5d1fa71b211b70b2e9b56a62da21076884a",
+			"revisionTime": "2017-01-17T10:57:15Z"
+		},
+		{
 			"checksumSHA1": "yDQQpeUxwqB3C+4opweg6znWJQk=",
 			"comment": "v2.4.0-11-gf219341",
 			"path": "github.com/dgrijalva/jwt-go",
