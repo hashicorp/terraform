@@ -228,6 +228,12 @@ func defaultCacheBehaviorHash(v interface{}) int {
 			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
 		}
 	}
+	if d, ok := m["lambda_function_association"]; ok {
+		s := d.(*schema.Set)
+		for _, lfa := range s.List() {
+			buf.WriteString(fmt.Sprintf("%d-", lambdaFunctionAssociationHash(lfa.(map[string]interface{}))))
+		}
+	}
 	return hashcode.String(buf.String())
 }
 
@@ -360,6 +366,12 @@ func cacheBehaviorHash(v interface{}) int {
 	if d, ok := m["path_pattern"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", d))
 	}
+	if d, ok := m["lambda_function_association"]; ok {
+		s := d.(*schema.Set)
+		for _, lfa := range s.List() {
+			buf.WriteString(fmt.Sprintf("%d-", lambdaFunctionAssociationHash(lfa.(map[string]interface{}))))
+		}
+	}
 	return hashcode.String(buf.String())
 }
 
@@ -381,6 +393,14 @@ func flattenTrustedSigners(ts *cloudfront.TrustedSigners) []interface{} {
 		return flattenStringList(ts.Items)
 	}
 	return []interface{}{}
+}
+
+func lambdaFunctionAssociationHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["event_type"].(string)))
+	buf.WriteString(fmt.Sprintf("%s", m["lambda_arn"].(string)))
+	return hashcode.String(buf.String())
 }
 
 func expandLambdaFunctionAssociations(v interface{}) *cloudfront.LambdaFunctionAssociations {
