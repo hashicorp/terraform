@@ -1056,21 +1056,25 @@
 			"revisionTime": "2016-10-09T22:53:54Z"
 		},
 		{
+			"checksumSHA1": "iMU6SM/jawaCOJnyvR5/w8C/C1w=",
 			"path": "github.com/cihub/seelog/archive",
 			"revision": "175e6e3d439fe2e1cee7ab652b12eb546c145a13",
 			"revisionTime": "2016-10-09T22:53:54Z"
 		},
 		{
+			"checksumSHA1": "oSd7EVei192qS3uYyCAMx9zV3Y8=",
 			"path": "github.com/cihub/seelog/archive/gzip",
 			"revision": "175e6e3d439fe2e1cee7ab652b12eb546c145a13",
 			"revisionTime": "2016-10-09T22:53:54Z"
 		},
 		{
+			"checksumSHA1": "emesF9mCsIQC59VUE2lvjZYpAHU=",
 			"path": "github.com/cihub/seelog/archive/tar",
 			"revision": "175e6e3d439fe2e1cee7ab652b12eb546c145a13",
 			"revisionTime": "2016-10-09T22:53:54Z"
 		},
 		{
+			"checksumSHA1": "TXLSkZsRlMifg3mg9+6QgEZJ6m4=",
 			"path": "github.com/cihub/seelog/archive/zip",
 			"revision": "175e6e3d439fe2e1cee7ab652b12eb546c145a13",
 			"revisionTime": "2016-10-09T22:53:54Z"
@@ -2468,7 +2472,6 @@
 			"revision": "42fa80f2ac6ed17a977ce826074bd3009593fa9d"
 		},
 		{
-<<<<<<< HEAD
 			"checksumSHA1": "atkFfe1CrxF+Cz4p4Z78RMXC0Kg=",
 			"path": "github.com/profitbricks/profitbricks-sdk-go",
 			"revision": "ccbdd70b24ec5c6cd000a34aba264d708c106af9",
@@ -2487,14 +2490,12 @@
 			"revisionTime": "2016-06-23T23:57:31Z"
 		},
 		{
-			"checksumSHA1": "KXOy+EDMJgyZT0MoTXMhcFZVgNM=",
+			"checksumSHA1": "gmzAuay4zJhVck2kZaPgKGZ8rLU=",
 			"path": "github.com/rackspace/gophercloud/openstack/blockstorage/v1/volumes",
 			"revision": "d47105ce4ef90cea9a14b85c8dd172b760085828",
 			"revisionTime": "2016-06-03T22:34:01Z"
 		},
 		{
-=======
->>>>>>> upstream/master
 			"checksumSHA1": "uh4DrOO+91jmxNlamBoloURUPO0=",
 			"path": "github.com/rackspace/gophercloud/openstack/blockstorage/v1/volumes/testing",
 			"revision": "d47105ce4ef90cea9a14b85c8dd172b760085828",
