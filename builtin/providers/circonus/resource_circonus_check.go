@@ -421,9 +421,10 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 
 		for _, metricListRaw := range streamList {
 			metricAttrs := _NewInterfaceMap(metricListRaw)
+			mr := _NewMapReader(ar.Context(), metricAttrs)
 
 			var id string
-			if v, ok := ar.GetStringOK(_MetricIDAttr); ok {
+			if v, ok := mr.GetStringOK(_MetricIDAttr); ok {
 				id = v
 			} else {
 				var err error
@@ -434,7 +435,6 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 			}
 
 			m := _NewMetric()
-			mr := _NewMapReader(ar.Context(), metricAttrs)
 			if err := m.ParseConfig(id, mr); err != nil {
 				return errwrap.Wrapf("unable to parse config: {{err}}", err)
 			}
