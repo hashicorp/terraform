@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Data Source:**  `aws_autoscaling_groups` [GH-11303]
  * **New Data Source:**  `aws_elb_hosted_zone_id ` [GH-11027]
  * **New Data Source:**  `aws_instance` [GH-11272]
  * **New Provider:**  `ProfitBricks` [GH-7943]
@@ -20,6 +21,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for placement_constraint to aws_ecs_service [GH-11242]
  * provider/aws: allow ALB target group stickiness to be enabled/disabled [GH-11251]
  * provider/aws: Add support for setting MSSQL Timezone in aws_db_instance [GH-11247]
+ * provider/aws: CloudFormation YAML template support [GH-11121]
  * provider/azurerm: add caching support for virtual_machine data_disks [GH-11142]
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
  * provider/cloudflare: Add verification for record types and content [GH-11197]
@@ -46,6 +48,8 @@ BUG FIXES:
  * provider/openstack: Fix Instance Metadata Deletion [GH-11252]
  * provider/scaleway: Rename Scaleway provider parameters to match more closely to the API [GH-10874]
  * provider/vault: Remove user input for optional vault provider fields [GH-11082]
+ * provider/vsphere: Set deviceID to 0 if one 1 network interface in vsphere_virtual_machine [GH-8276]
+ * provisioner/remote-exec: fail on first inline script with bad exit code [GH-11155]
  
 ## 0.8.4 (January 11, 2017)
 
