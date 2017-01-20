@@ -32,6 +32,7 @@ const (
 	// circonus_check.* "global" resource attribute names
 	_CheckActiveAttr      _SchemaAttr = "active"
 	_CheckCAQLAttr        _SchemaAttr = "caql"
+	_CheckCloudWatchAttr  _SchemaAttr = "cloudwatch"
 	_CheckCollectorAttr   _SchemaAttr = "collector"
 	_CheckHTTPAttr        _SchemaAttr = "http"
 	_CheckICMPPingAttr    _SchemaAttr = "icmp_ping"
@@ -69,6 +70,7 @@ const (
 const (
 	// Circonus API constants from their API endpoints
 	_APICheckTypeCAQLAttr       _APICheckType = "caql"
+	_APICheckTypeCloudWatchAttr _APICheckType = "cloudwatch"
 	_APICheckTypeHTTPAttr       _APICheckType = "http"
 	_APICheckTypeICMPPingAttr   _APICheckType = "ping_icmp"
 	_APICheckTypeJSONAttr       _APICheckType = "json"
@@ -79,6 +81,7 @@ const (
 var _CheckDescriptions = _AttrDescrs{
 	_CheckActiveAttr:      "If the check is activate or disabled",
 	_CheckCAQLAttr:        "CAQL check configuration",
+	_CheckCloudWatchAttr:  "CloudWatch check configuration",
 	_CheckCollectorAttr:   "The collector(s) that are responsible for gathering the metrics",
 	_CheckHTTPAttr:        "HTTP check configuration",
 	_CheckICMPPingAttr:    "ICMP ping check configuration",
@@ -126,7 +129,8 @@ func _NewCheckResource() *schema.Resource {
 				Optional: true,
 				Default:  true,
 			},
-			_CheckCAQLAttr: _SchemaCheckCAQL,
+			_CheckCAQLAttr:       _SchemaCheckCAQL,
+			_CheckCloudWatchAttr: _SchemaCheckCloudWatch,
 			_CheckCollectorAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -471,6 +475,10 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 		return errwrap.Wrapf("unable to parse check type: {{err}}", err)
 	}
 
+	if err := c.Fixup(); err != nil {
+		return err
+	}
+
 	if err := c.Validate(); err != nil {
 		return err
 	}
@@ -483,6 +491,7 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
 	checkTypeParseMap := map[_SchemaAttr]func(*_Check, *_ProviderContext, _InterfaceList) error{
 		_CheckCAQLAttr:       parseCheckConfigCAQL,
+		_CheckCloudWatchAttr: parseCheckConfigCloudWatch,
 		_CheckHTTPAttr:       parseCheckConfigHTTP,
 		_CheckJSONAttr:       parseCheckConfigJSON,
 		_CheckICMPPingAttr:   parseCheckConfigICMPPing,
@@ -506,6 +515,7 @@ func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
 func _ParseCheckTypeConfig(c *_Check, d *schema.ResourceData) error {
 	checkTypeConfigHandlers := map[_APICheckType]func(*_Check, *schema.ResourceData) error{
 		_APICheckTypeCAQLAttr:       _ReadAPICheckConfigCAQL,
+		_APICheckTypeCloudWatchAttr: _ReadAPICheckConfigCloudWatch,
 		_APICheckTypeHTTPAttr:       _ReadAPICheckConfigHTTP,
 		_APICheckTypeJSONAttr:       _ReadAPICheckConfigJSON,
 		_APICheckTypeICMPPingAttr:   _ReadAPICheckConfigICMPPing,

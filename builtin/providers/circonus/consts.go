@@ -33,6 +33,8 @@ const (
 	defaultCheckHTTPCodeRegexp = `^200$`
 	defaultCheckHTTPMethod     = "GET"
 	defaultCheckHTTPVersion    = "1.1"
+
+	defaultCheckCloudWatchVersion = "2010-08-01"
 )
 
 // Consts and their close relative, Go pseudo-consts.

@@ -72,6 +72,26 @@ func _ValidateCheckType(v interface{}, key string) (warnings []string, errors []
 	return warnings, errors
 }
 
+func _ValidateCheckCloudWatchDimmensions(v interface{}, key string) (warnings []string, errors []error) {
+	validDimmensionName := regexp.MustCompile(`^[\S]+$`)
+	validDimmensionValue := regexp.MustCompile(`^[\S]+$`)
+
+	dimmensions := v.(map[string]interface{})
+	for k, vRaw := range dimmensions {
+		if !validDimmensionName.MatchString(k) {
+			errors = append(errors, fmt.Errorf("Invalid CloudWatch Dimmension Name specified: %q", k))
+			continue
+		}
+
+		v := vRaw.(string)
+		if !validDimmensionValue.MatchString(v) {
+			errors = append(errors, fmt.Errorf("Invalid value for CloudWatch Dimmension %q specified: %q", k, v))
+		}
+	}
+
+	return warnings, errors
+}
+
 func _ValidateContactMethod(v interface{}, key string) (warnings []string, errors []error) {
 	if _, ok := knownContactMethods[_ContactMethods(v.(string))]; !ok {
 		warnings = append(warnings, fmt.Sprintf("Possibly unsupported contact method: %s", v.(string)))

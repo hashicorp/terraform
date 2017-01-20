@@ -78,6 +78,10 @@ resource "circonus_metric" "used" {
   (CAQL)](https://login.circonus.com/user/docs/CAQL) check.  See below for
   details on how to configure a `caql` check.
 
+* `cloudwatch` - (Optional) A [CloudWatch
+  check](https://login.circonus.com/user/docs/Data/CheckTypes/CloudWatch) check.
+  See below for details on how to configure a `cloudwatch` check.
+
 * `collector` - (Required) A collector ID.  The collector(s) that are
   responsible for running a `circonus_check`. The `id` can be the Circonus ID
   for a Circonus collector (a.k.a. "broker") running in the cloud or an
@@ -154,6 +158,86 @@ different `circonus_check` resource).
 Available metrics depend on the payload returned in the `caql` check.  See the
 [`caql` check type](https://login.circonus.com/resources/api/calls/check_bundle) for
 additional details.
+
+### `cloudwatch` Check Type Attributes
+
+* `api_key` - (Required) The AWS access key.  If this value is not explicitly
+  set, this value is populated by the environment variable `AWS_ACCESS_KEY_ID`.
+
+* `api_secret` - (Required) The AWS secret key.  If this value is not explicitly
+  set, this value is populated by the environment variable `AWS_SECRET_ACCESS_KEY`.
+
+* `dimmensions` - (Required) A map of the CloudWatch dimmensions to include in
+  the check.
+
+* `metric` - (Required) A list of metric names to collect in this check.
+
+* `namespace` - (Required) The namespace to pull parameters from.
+
+* `url` - (Required) The AWS URL to pull from.  This should be set to the
+  region-specific endpoint (e.g. prefer
+  `https://monitoring.us-east-1.amazonaws.com` over
+  `https://monitoring.amazonaws.com`).
+
+* `version` - (Optional) The version of the Cloudwatch API to use.  Defaults to
+  `2010-08-01`.
+
+Available metrics depend on the payload returned in the `cloudwatch` check.  See the
+[`cloudwatch` check type](https://login.circonus.com/resources/api/calls/check_bundle) for
+additional details.  The `circonus_check` `period` attribute must be set to
+either `60s` or `300s` for CloudWatch metrics.
+
+Example CloudWatch check (partial metrics collection):
+
+```
+variable "cloudwatch_rds_tags" {
+  type = "list"
+  default = [
+    "app:postgresql",
+    "app:rds",
+    "source:cloudwatch",
+  ]
+}
+
+resource "circonus_check" "rds_metrics" {
+  active = true
+  name = "Terraform test: RDS Metrics via CloudWatch"
+  notes = "Collect RDS metrics"
+  period = "60s"
+
+  collector {
+    id = "/broker/1"
+  }
+
+  cloudwatch {
+    dimmensions = {
+      DBInstanceIdentifier = "my-db-name",
+    }
+
+    metric = [
+      "CPUUtilization",
+      "DatabaseConnections",
+    ]
+
+    namespace = "AWS/RDS"
+    url = "https://monitoring.us-east-1.amazonaws.com"
+  }
+
+  stream {
+    name = "CPUUtilization"
+    tags = [ "${var.cloudwatch_rds_tags}" ]
+    type = "numeric"
+    unit = "%"
+  }
+
+  stream {
+    name = "DatabaseConnections"
+    tags = [ "${var.cloudwatch_rds_tags}" ]
+    type = "numeric"
+    unit = "connections"
+  }
+}
+```
 
 ### `http` Check Type Attributes
 
