@@ -64,7 +64,7 @@ func (c *Client) CreateRecord(domain string, opts *ChangeRecord) (string, error)
 	if opts.Ttl != "" {
 		ttl, err := strconv.ParseInt(opts.Ttl, 0, 0)
 		if err != nil {
-			return "", nil
+			return "", fmt.Errorf("Error parsing ttl: %s", err.Error())
 		}
 		params["ttl"] = ttl
 	}
@@ -114,7 +114,7 @@ func (c *Client) UpdateRecord(domain string, id string, opts *ChangeRecord) (str
 	if opts.Ttl != "" {
 		ttl, err := strconv.ParseInt(opts.Ttl, 0, 0)
 		if err != nil {
-			return "", nil
+			return "", fmt.Errorf("Error parsing ttl: %s", err.Error())
 		}
 		params["ttl"] = ttl
 	}
