@@ -292,6 +292,50 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 				ValidateFunc: validateVirtualizationType,
 			},
 
+			"weekly_timer_schedule": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"monday": &schema.Schema{
+							Type:     schema.TypeMap,
+							Optional: true,
+						},
+
+						"tuesday": &schema.Schema{
+							Type:     schema.TypeMap,
+							Optional: true,
+						},
+
+						"wednesday": &schema.Schema{
+							Type:     schema.TypeMap,
+							Optional: true,
+						},
+
+						"thursday": &schema.Schema{
+							Type:     schema.TypeMap,
+							Optional: true,
+						},
+
+						"friday": &schema.Schema{
+							Type:     schema.TypeMap,
+							Optional: true,
+						},
+
+						"saturday": &schema.Schema{
+							Type:     schema.TypeMap,
+							Optional: true,
+						},
+
+						"sunday": &schema.Schema{
+							Type:     schema.TypeMap,
+							Optional: true,
+						},
+					},
+				},
+			},
+
 			"ebs_block_device": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -601,6 +645,14 @@ func resourceAwsOpsworksInstanceRead(d *schema.ResourceData, meta interface{}) e
 		d.Set("root_block_device", []interface{}{})
 	}
 
+	// Read weekly schedule for Time-based instances
+	if v, ok := d.GetOk("auto_scaling_type"); ok && v.(string) == "timer" {
+		err := describeOpsworksTimeBasedAutoScaling(d, meta)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Read Security Groups
 	sgs := make([]string, 0, len(instance.SecurityGroupIds))
 	for _, sg := range instance.SecurityGroupIds {
@@ -774,6 +826,13 @@ func resourceAwsOpsworksInstanceCreate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
+	if v, ok := d.GetOk("auto_scaling_type"); ok && v.(string) == "timer" {
+		err := setOpsworksTimeBasedAutoScaling(d, meta)
+		if err != nil {
+			return err
+		}
+	}
+
 	return resourceAwsOpsworksInstanceRead(d, meta)
 }
 
@@ -853,6 +912,13 @@ func resourceAwsOpsworksInstanceUpdate(d *schema.ResourceData, meta interface{})
 					return err
 				}
 			}
+		}
+	}
+
+	if v, ok := d.GetOk("auto_scaling_type"); ok && v.(string) == "timer" {
+		err := setOpsworksTimeBasedAutoScaling(d, meta)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -958,6 +1024,73 @@ func stopOpsworksInstance(d *schema.ResourceData, meta interface{}, wait bool) e
 				instanceId, err)
 		}
 	}
+
+	return nil
+}
+
+func setOpsworksTimeBasedAutoScaling(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*AWSClient).opsworksconn
+
+	instanceId := d.Get("id").(string)
+
+	req := &opsworks.SetTimeBasedAutoScalingInput{
+		InstanceId: aws.String(instanceId),
+		AutoScalingSchedule: &opsworks.WeeklyAutoScalingSchedule{
+			Friday:    stringMapToPointers(d.Get("weekly_timer_schedule.0.friday").(map[string]interface{})),
+			Monday:    stringMapToPointers(d.Get("weekly_timer_schedule.0.monday").(map[string]interface{})),
+			Saturday:  stringMapToPointers(d.Get("weekly_timer_schedule.0.saturday").(map[string]interface{})),
+			Sunday:    stringMapToPointers(d.Get("weekly_timer_schedule.0.sunday").(map[string]interface{})),
+			Thursday:  stringMapToPointers(d.Get("weekly_timer_schedule.0.thursday").(map[string]interface{})),
+			Tuesday:   stringMapToPointers(d.Get("weekly_timer_schedule.0.tuesday").(map[string]interface{})),
+			Wednesday: stringMapToPointers(d.Get("weekly_timer_schedule.0.wednesday").(map[string]interface{})),
+		},
+	}
+
+	log.Printf("[DEBUG] Setting on times for OpsWorks Time-based instance: %s", instanceId)
+
+	_, err := client.SetTimeBasedAutoScaling(req)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func describeOpsworksTimeBasedAutoScaling(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*AWSClient).opsworksconn
+
+	instanceId := d.Get("id").(string)
+
+	req := &opsworks.DescribeTimeBasedAutoScalingInput{
+		InstanceIds: []*string{aws.String(instanceId)},
+	}
+
+	log.Printf("[DEBUG] Getting on times for OpsWorks Time-based instance: %s", instanceId)
+
+	resp, err := client.DescribeTimeBasedAutoScaling(req)
+
+	if err != nil {
+		return err
+	}
+
+	// If nothing was found, then return no state
+	if len(resp.TimeBasedAutoScalingConfigurations) == 0 {
+		return nil
+	}
+	autoScalingSchedule := resp.TimeBasedAutoScalingConfigurations[0]
+
+	if autoScalingSchedule.InstanceId == nil {
+		return nil
+	}
+
+	d.Set("weekly_timer_schedule.0.friday", autoScalingSchedule.AutoScalingSchedule.Friday)
+	d.Set("weekly_timer_schedule.0.monday", autoScalingSchedule.AutoScalingSchedule.Monday)
+	d.Set("weekly_timer_schedule.0.saturday", autoScalingSchedule.AutoScalingSchedule.Saturday)
+	d.Set("weekly_timer_schedule.0.sunday", autoScalingSchedule.AutoScalingSchedule.Sunday)
+	d.Set("weekly_timer_schedule.0.thursday", autoScalingSchedule.AutoScalingSchedule.Thursday)
+	d.Set("weekly_timer_schedule.0.tuesday", autoScalingSchedule.AutoScalingSchedule.Tuesday)
+	d.Set("weekly_timer_schedule.0.wednesday", autoScalingSchedule.AutoScalingSchedule.Wednesday)
 
 	return nil
 }

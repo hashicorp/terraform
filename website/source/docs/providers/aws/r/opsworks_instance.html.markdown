@@ -36,6 +36,7 @@ The following arguments are supported:
 * `state` - (Optional) The desired state of the instance.  Can be either `"running"` or `"stopped"`.
 * `install_updates_on_boot` - (Optional) Controls where to install OS and package updates when the instance boots.  Defaults to `true`.
 * `auto_scaling_type` - (Optional) Creates load-based or time-based instances.  If set, can be either: `"load"` or `"timer"`.
+* `weekly_timer_schedule` - (Optional) Set the weekly schedule for time-based instances.
 * `availability_zone` - (Optional) Name of the availability zone where instances will be created
   by default. 
 * `ebs_optimized` - (Optional) If true, the launched EC2 instance will be EBS-optimized.
