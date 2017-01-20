@@ -452,6 +452,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_wafregional_web_acl":                  resourceAwsWafRegionalWebAcl(),
 			"aws_wafregional_xss_match_set":            resourceAwsWafRegionalXssMatchSet(),
 			"aws_wafregional_sql_injection_match_set":  resourceAwsWafRegionalSqlInjectionMatchSet(),
+			"aws_wafregional_web_acl_association":      resourceAwsWafRegionalWebAclAssociation(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
