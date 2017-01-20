@@ -758,6 +758,14 @@
 			"versionExact": "v1.6.9"
 		},
 		{
+			"checksumSHA1": "xYOrI6aomni/sT2qxcsAsEYhmk8=",
+			"path": "github.com/aws/aws-sdk-go/service/databasemigrationservice",
+			"revision": "36670f6ab1769ad77fa5f7e2c194398733503635",
+			"revisionTime": "2016-12-30T00:33:20Z",
+			"version": "v1.6.9",
+			"versionExact": "v1.6.9"
+		},
+		{
 			"checksumSHA1": "7MZKknL6W7gtRx1DphCgv3TK//0=",
 			"path": "github.com/aws/aws-sdk-go/service/directoryservice",
 			"revision": "36670f6ab1769ad77fa5f7e2c194398733503635",
