@@ -76,6 +76,12 @@ func binaryDecode(parameterStatus *parameterStatus, s []byte, typ oid.Oid) inter
 		return int64(int32(binary.BigEndian.Uint32(s)))
 	case oid.T_int2:
 		return int64(int16(binary.BigEndian.Uint16(s)))
+	case oid.T_uuid:
+		b, err := decodeUUIDBinary(s)
+		if err != nil {
+			panic(err)
+		}
+		return b
 
 	default:
 		errorf("don't know how to decode binary parameter of type %d", uint32(typ))
@@ -471,7 +477,7 @@ func FormatTimestamp(t time.Time) []byte {
 		t = t.AddDate((-t.Year())*2+1, 0, 0)
 		bc = true
 	}
-	b := []byte(t.Format(time.RFC3339Nano))
+	b := []byte(t.Format("2006-01-02 15:04:05.999999999Z07:00"))
 
 	_, offset := t.Zone()
 	offset = offset % 60

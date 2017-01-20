@@ -243,8 +243,16 @@ func (c *Client) Kill() {
 		return
 	}
 
-	// Kill the process
-	c.process.Kill()
+	// Close the client to cleanly exit the process
+	client, err := c.Client()
+	if err == nil {
+		err = client.Close()
+	}
+	if err != nil {
+		// If something went wrong somewhere gracefully quitting the
+		// plugin, we just force kill it.
+		c.process.Kill()
+	}
 
 	// Wait for the client to finish logging so we have a complete log
 	<-c.doneLogging
