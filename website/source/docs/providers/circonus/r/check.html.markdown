@@ -84,11 +84,14 @@ resource "circonus_metric" "used" {
   enterprise collector running in your datacenter.  One collection of metrics
   will be automatically created for each `collector` specified.
 
-* `json` - (Optional) A JSON check.  See below for details on how to configure
-  the `json` check.
+* `http` - (Optional) An HTTP check.  See below for details on how to configure
+  the `http` check.
 
 * `icmp_ping` - (Optional) An ICMP ping check.  See below for details on how to
   configure the `icmp_ping` check.
+
+* `json` - (Optional) A JSON check.  See below for details on how to configure
+  the `json` check.
 
 * `metric_limit` - (Optional) Setting a metric limit will tell the Circonus
   backend to periodically look at the check to see if there are additional
@@ -145,21 +148,83 @@ different `circonus_check` resource).
 * `query` - (Required) The [CAQL
   Query](https://login.circonus.com/user/docs/caql_reference) to run.
 
-### `icmp_ping` Check Type Attributes
+### `http` Check Type Attributes
 
-The `icmp_ping` check requires the `target` top-level attribute to be set.
+* `auth_method` - (Optional) HTTP Authentication method to use.  When set must
+  be one of the values `Basic`, `Digest`, or `Auto`.
 
-* `availability` - (Optional) The percentage of ping packets that must be
-  returned for this measurement to be considered successful.  Defaults to
-  `100.0`.
-* `count` - (Optional) The number of ICMP ping packets to send.  Defaults to
-  `5`.
-* `interval` - (Optional) Interval between packets.  Defaults to `2s`.
+* `auth_password` - (Optional) The password to use during authentication.
 
-### `json` Check Type Attributes
+* `auth_user` - (Optional) The user to authenticate as.
+
+* `body_regexp` - (Optional) This regular expression is matched against the body
+  of the response. If a match is not found, the check will be marked as "bad."
+
+* `ca_chain` - (Optional) A path to a file containing all the certificate
+  authorities that should be loaded to validate the remote certificate (for TLS
+  checks).
+
+* `certificate_file` - (Optional) A path to a file containing the client
+  certificate that will be presented to the remote server (for TLS checks).
+
+* `ciphers` - (Optional) A list of ciphers to be used in the TLS protocol (for
+  HTTPS checks).
+
+* `code` - (Optional) The HTTP code that is expected. If the code received does
+  not match this regular expression, the check is marked as "bad."
+
+* `extract` - (Optional) This regular expression is matched against the body of
+  the response globally. The first capturing match is the key and the second
+  capturing match is the value. Each key/value extracted is registered as a
+  metric for the check.
 
 * `headers` - (Optional) A map of the HTTP headers to be sent when executing the
   check.
+
+* `key_file` - (Optional) A path to a file containing key to be used in
+  conjunction with the cilent certificate (for TLS checks).
+
+* `method` - (Optional) The HTTP Method to use.  Defaults to `GET`.
+
+* `payload` - (Optional) The information transferred as the payload of an HTTP
+  request.
+
+* `read_limit` - (Optional) Sets an approximate limit on the data read (`0`
+  means no limit). Default `0`.
+
+* `redirects` - (Optional) The maximum number of HTTP `Location` header
+  redirects to follow. Default `0`.
+
+* `url` - (Required) The target for this `json` check.  The `url` must include
+  the scheme, host, port (optional), and path to use
+  (e.g. `https://app1.example.org/healthz`)
+
+* `version` - (Optional) The HTTP version to use.  Defaults to `1.1`.
+
+### `json` Check Type Attributes
+
+* `auth_method` - (Optional) HTTP Authentication method to use.  When set must
+  be one of the values `Basic`, `Digest`, or `Auto`.
+
+* `auth_password` - (Optional) The password to use during authentication.
+
+* `auth_user` - (Optional) The user to authenticate as.
+
+* `ca_chain` - (Optional) A path to a file containing all the certificate
+  authorities that should be loaded to validate the remote certificate (for TLS
+  checks).
+
+* `certificate_file` - (Optional) A path to a file containing the client
+  certificate that will be presented to the remote server (for TLS checks).
+
+* `ciphers` - (Optional) A list of ciphers to be used in the TLS protocol (for
+  HTTPS checks).
+
+* `headers` - (Optional) A map of the HTTP headers to be sent when executing the
+  check.
+
+* `key_file` - (Optional) A path to a file containing key to be used in
+  conjunction with the cilent certificate (for TLS checks).
 
 * `method` - (Optional) The HTTP Method to use.  Defaults to `GET`.
 
@@ -176,6 +241,17 @@ The `icmp_ping` check requires the `target` top-level attribute to be set.
   (e.g. `https://app1.example.org/healthz`)
 
 * `version` - (Optional) The HTTP version to use.  Defaults to `1.1`.
+
+### `icmp_ping` Check Type Attributes
+
+The `icmp_ping` check requires the `target` top-level attribute to be set.
+
+* `availability` - (Optional) The percentage of ping packets that must be
+  returned for this measurement to be considered successful.  Defaults to
+  `100.0`.
+* `count` - (Optional) The number of ICMP ping packets to send.  Defaults to
+  `5`.
+* `interval` - (Optional) Interval between packets.  Defaults to `2s`.
 
 ### `postgresql` Check Type Attributes
 
