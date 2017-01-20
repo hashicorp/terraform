@@ -31,10 +31,10 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: validateJsonString,
+				ValidateFunc: validateCloudFormationTemplate,
 				StateFunc: func(v interface{}) string {
-					json, _ := normalizeJsonString(v)
-					return json
+					template, _ := normalizeCloudFormationTemplate(v)
+					return template
 				},
 			},
 			"template_url": &schema.Schema{
@@ -108,9 +108,9 @@ func resourceAwsCloudFormationStackCreate(d *schema.ResourceData, meta interface
 		StackName: aws.String(d.Get("name").(string)),
 	}
 	if v, ok := d.GetOk("template_body"); ok {
-		template, err := normalizeJsonString(v)
+		template, err := normalizeCloudFormationTemplate(v)
 		if err != nil {
-			return errwrap.Wrapf("template body contains an invalid JSON: {{err}}", err)
+			return errwrap.Wrapf("template body contains an invalid JSON or YAML: {{err}}", err)
 		}
 		input.TemplateBody = aws.String(template)
 	}
@@ -286,9 +286,9 @@ func resourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	template, err := normalizeJsonString(*out.TemplateBody)
+	template, err := normalizeCloudFormationTemplate(*out.TemplateBody)
 	if err != nil {
-		return errwrap.Wrapf("template body contains an invalid JSON: {{err}}", err)
+		return errwrap.Wrapf("template body contains an invalid JSON or YAML: {{err}}", err)
 	}
 	d.Set("template_body", template)
 
@@ -353,9 +353,9 @@ func resourceAwsCloudFormationStackUpdate(d *schema.ResourceData, meta interface
 		input.TemplateURL = aws.String(v.(string))
 	}
 	if v, ok := d.GetOk("template_body"); ok && input.TemplateURL == nil {
-		template, err := normalizeJsonString(v)
+		template, err := normalizeCloudFormationTemplate(v)
 		if err != nil {
-			return errwrap.Wrapf("template body contains an invalid JSON: {{err}}", err)
+			return errwrap.Wrapf("template body contains an invalid JSON or YAML: {{err}}", err)
 		}
 		input.TemplateBody = aws.String(template)
 	}

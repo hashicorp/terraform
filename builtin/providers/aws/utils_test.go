@@ -20,3 +20,15 @@ func TestBase64Encode(t *testing.T) {
 		}
 	}
 }
+
+func TestLooksLikeJsonString(t *testing.T) {
+	looksLikeJson := ` {"abc":"1"} `
+	doesNotLookLikeJson := `abc: 1`
+
+	if !looksLikeJsonString(looksLikeJson) {
+		t.Errorf("Expected looksLikeJson to return true for %s", looksLikeJson)
+	}
+	if looksLikeJsonString(doesNotLookLikeJson) {
+		t.Errorf("Expected looksLikeJson to return false for %s", doesNotLookLikeJson)
+	}
+}
