@@ -42,7 +42,7 @@ func (p StringPtrSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 // Used by the aws_cloudfront_distribution Create and Update functions.
 func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionConfig {
 	distributionConfig := &cloudfront.DistributionConfig{
-		CacheBehaviors:       expandCacheBehaviors(d.Get("cache_behavior").(*schema.Set)),
+		CacheBehaviors:       expandCacheBehaviors(d.Get("cache_behavior").([]interface{})),
 		CustomErrorResponses: expandCustomErrorResponses(d.Get("custom_error_response").(*schema.Set)),
 		DefaultCacheBehavior: expandDefaultCacheBehavior(d.Get("default_cache_behavior").(*schema.Set).List()[0].(map[string]interface{})),
 		Enabled:              aws.Bool(d.Get("enabled").(bool)),
@@ -219,22 +219,22 @@ func defaultCacheBehaviorHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%d-", d.(int)))
 	}
 	if d, ok := m["allowed_methods"]; ok {
-		for _, e := range sortInterfaceSlice(d.([]interface{})) {
+		for _, e := range sortInterfaceSlice(d.(*schema.Set).List()) {
 			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
 		}
 	}
 	if d, ok := m["cached_methods"]; ok {
-		for _, e := range sortInterfaceSlice(d.([]interface{})) {
+		for _, e := range sortInterfaceSlice(d.(*schema.Set).List()) {
 			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
 		}
 	}
 	return hashcode.String(buf.String())
 }
 
-func expandCacheBehaviors(s *schema.Set) *cloudfront.CacheBehaviors {
+func expandCacheBehaviors(lst []interface{}) *cloudfront.CacheBehaviors {
 	var qty int64
 	var items []*cloudfront.CacheBehavior
-	for _, v := range s.List() {
+	for _, v := range lst {
 		items = append(items, expandCacheBehavior(v.(map[string]interface{})))
 		qty++
 	}
@@ -244,12 +244,12 @@ func expandCacheBehaviors(s *schema.Set) *cloudfront.CacheBehaviors {
 	}
 }
 
-func flattenCacheBehaviors(cbs *cloudfront.CacheBehaviors) *schema.Set {
-	s := []interface{}{}
+func flattenCacheBehaviors(cbs *cloudfront.CacheBehaviors) []interface{} {
+	lst := []interface{}{}
 	for _, v := range cbs.Items {
-		s = append(s, flattenCacheBehavior(v))
+		lst = append(lst, flattenCacheBehavior(v))
 	}
-	return schema.NewSet(cacheBehaviorHash, s)
+	return lst
 }
 
 func expandCacheBehavior(m map[string]interface{}) *cloudfront.CacheBehavior {
@@ -271,10 +271,10 @@ func expandCacheBehavior(m map[string]interface{}) *cloudfront.CacheBehavior {
 		cb.SmoothStreaming = aws.Bool(v.(bool))
 	}
 	if v, ok := m["allowed_methods"]; ok {
-		cb.AllowedMethods = expandAllowedMethods(v.([]interface{}))
+		cb.AllowedMethods = expandAllowedMethods(v.(*schema.Set))
 	}
 	if v, ok := m["cached_methods"]; ok {
-		cb.AllowedMethods.CachedMethods = expandCachedMethods(v.([]interface{}))
+		cb.AllowedMethods.CachedMethods = expandCachedMethods(v.(*schema.Set))
 	}
 	if v, ok := m["path_pattern"]; ok {
 		cb.PathPattern = aws.String(v.(string))
@@ -313,46 +313,6 @@ func flattenCacheBehavior(cb *cloudfront.CacheBehavior) map[string]interface{} {
 		m["path_pattern"] = *cb.PathPattern
 	}
 	return m
-}
-
-// Assemble the hash for the aws_cloudfront_distribution cache_behavior
-// TypeSet attribute.
-func cacheBehaviorHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%t-", m["compress"].(bool)))
-	buf.WriteString(fmt.Sprintf("%s-", m["viewer_protocol_policy"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["target_origin_id"].(string)))
-	buf.WriteString(fmt.Sprintf("%d-", forwardedValuesHash(m["forwarded_values"].(*schema.Set).List()[0].(map[string]interface{}))))
-	buf.WriteString(fmt.Sprintf("%d-", m["min_ttl"].(int)))
-	if d, ok := m["trusted_signers"]; ok {
-		for _, e := range sortInterfaceSlice(d.([]interface{})) {
-			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
-		}
-	}
-	if d, ok := m["max_ttl"]; ok {
-		buf.WriteString(fmt.Sprintf("%d-", d.(int)))
-	}
-	if d, ok := m["smooth_streaming"]; ok {
-		buf.WriteString(fmt.Sprintf("%t-", d.(bool)))
-	}
-	if d, ok := m["default_ttl"]; ok {
-		buf.WriteString(fmt.Sprintf("%d-", d.(int)))
-	}
-	if d, ok := m["allowed_methods"]; ok {
-		for _, e := range sortInterfaceSlice(d.([]interface{})) {
-			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
-		}
-	}
-	if d, ok := m["cached_methods"]; ok {
-		for _, e := range sortInterfaceSlice(d.([]interface{})) {
-			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
-		}
-	}
-	if d, ok := m["path_pattern"]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", d))
-	}
-	return hashcode.String(buf.String())
 }
 
 func expandTrustedSigners(s []interface{}) *cloudfront.TrustedSigners {
@@ -503,32 +463,32 @@ func flattenCookieNames(cn *cloudfront.CookieNames) []interface{} {
 	return []interface{}{}
 }
 
-func expandAllowedMethods(s []interface{}) *cloudfront.AllowedMethods {
+func expandAllowedMethods(s *schema.Set) *cloudfront.AllowedMethods {
 	return &cloudfront.AllowedMethods{
-		Quantity: aws.Int64(int64(len(s))),
-		Items:    expandStringList(s),
+		Quantity: aws.Int64(int64(s.Len())),
+		Items:    expandStringList(s.List()),
 	}
 }
 
-func flattenAllowedMethods(am *cloudfront.AllowedMethods) []interface{} {
+func flattenAllowedMethods(am *cloudfront.AllowedMethods) *schema.Set {
 	if am.Items != nil {
-		return flattenStringList(am.Items)
+		return schema.NewSet(schema.HashString, flattenStringList(am.Items))
 	}
-	return []interface{}{}
+	return nil
 }
 
-func expandCachedMethods(s []interface{}) *cloudfront.CachedMethods {
+func expandCachedMethods(s *schema.Set) *cloudfront.CachedMethods {
 	return &cloudfront.CachedMethods{
-		Quantity: aws.Int64(int64(len(s))),
-		Items:    expandStringList(s),
+		Quantity: aws.Int64(int64(s.Len())),
+		Items:    expandStringList(s.List()),
 	}
 }
 
-func flattenCachedMethods(cm *cloudfront.CachedMethods) []interface{} {
+func flattenCachedMethods(cm *cloudfront.CachedMethods) *schema.Set {
 	if cm.Items != nil {
-		return flattenStringList(cm.Items)
+		return schema.NewSet(schema.HashString, flattenStringList(cm.Items))
 	}
-	return []interface{}{}
+	return nil
 }
 
 func expandOrigins(s *schema.Set) *cloudfront.Origins {

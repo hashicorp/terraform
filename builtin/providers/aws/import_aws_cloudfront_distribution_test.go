@@ -9,6 +9,7 @@ import (
 )
 
 func TestAccAWSCloudFrontDistribution_importBasic(t *testing.T) {
+	t.Parallel()
 	ri := acctest.RandInt()
 	testConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionS3Config, ri, originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
 

@@ -20,6 +20,7 @@ import (
 // If you are testing manually and can't wait for deletion, set the
 // TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_S3Origin(t *testing.T) {
+	t.Parallel()
 	ri := acctest.RandInt()
 	testConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionS3Config, ri, originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
 	resource.Test(t, resource.TestCase{
@@ -45,6 +46,7 @@ func TestAccAWSCloudFrontDistribution_S3Origin(t *testing.T) {
 }
 
 func TestAccAWSCloudFrontDistribution_S3OriginWithTags(t *testing.T) {
+	t.Parallel()
 	ri := acctest.RandInt()
 	preConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionS3ConfigWithTags, ri, originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
 	postConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionS3ConfigWithTagsUpdated, ri, originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
@@ -90,6 +92,7 @@ func TestAccAWSCloudFrontDistribution_S3OriginWithTags(t *testing.T) {
 // If you are testing manually and can't wait for deletion, set the
 // TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_customOrigin(t *testing.T) {
+	t.Parallel()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -113,17 +116,65 @@ func TestAccAWSCloudFrontDistribution_customOrigin(t *testing.T) {
 // If you are testing manually and can't wait for deletion, set the
 // TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_multiOrigin(t *testing.T) {
+	t.Parallel()
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAWSCloudFrontDistributionMultiOriginConfig, ri, originBucket, logBucket, cacheBehavior0, cacheBehavior1, testAccAWSCloudFrontDistributionRetainConfig())
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCloudFrontDistributionMultiOriginConfig,
+				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.multi_origin_distribution",
 					),
+				),
+			},
+		},
+	})
+}
+
+// TestAccAWSCloudFrontDistribution_cacheBehaviorPrecedence runs an
+// aws_cloudfront_distribution acceptance test with multiple cache behaviors and checks their precedence.
+//
+// If you are testing manually and can't wait for deletion, set the
+// TF_TEST_CLOUDFRONT_RETAIN environment variable.
+func TestAccAWSCloudFrontDistribution_cacheBehaviorPrecedence(t *testing.T) {
+	t.Parallel()
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionMultiOriginConfig, ri, originBucket, logBucket, cacheBehavior0, cacheBehavior1, testAccAWSCloudFrontDistributionRetainConfig())
+	postConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionMultiOriginConfig, ri, originBucket, logBucket, cacheBehavior1, cacheBehavior0, testAccAWSCloudFrontDistributionRetainConfig())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFrontDistributionExistence(
+						"aws_cloudfront_distribution.multi_origin_distribution",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.multi_origin_distribution", "cache_behavior.0.path_pattern", "images0/*.jpg"),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.multi_origin_distribution", "cache_behavior.1.path_pattern", "images1/*.jpg"),
+				),
+			},
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFrontDistributionExistence(
+						"aws_cloudfront_distribution.multi_origin_distribution",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.multi_origin_distribution", "cache_behavior.0.path_pattern", "images1/*.jpg"),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.multi_origin_distribution", "cache_behavior.1.path_pattern", "images0/*.jpg"),
 				),
 			},
 		},
@@ -136,6 +187,7 @@ func TestAccAWSCloudFrontDistribution_multiOrigin(t *testing.T) {
 // If you are testing manually and can't wait for deletion, set the
 // TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_noOptionalItemsConfig(t *testing.T) {
+	t.Parallel()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -160,6 +212,7 @@ func TestAccAWSCloudFrontDistribution_noOptionalItemsConfig(t *testing.T) {
 // If you are testing manually and can't wait for deletion, set the
 // TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_HTTP11Config(t *testing.T) {
+	t.Parallel()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -198,6 +251,7 @@ func TestAccAWSCloudFrontDistribution_IsIPV6EnabledConfig(t *testing.T) {
 }
 
 func TestAccAWSCloudFrontDistribution_noCustomErrorResponseConfig(t *testing.T) {
+	t.Parallel()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -216,6 +270,7 @@ func TestAccAWSCloudFrontDistribution_noCustomErrorResponseConfig(t *testing.T) 
 }
 
 func TestResourceAWSCloudFrontDistribution_validateHTTP(t *testing.T) {
+	t.Parallel()
 	var value string
 	var errors []error
 
@@ -518,7 +573,7 @@ resource "aws_cloudfront_distribution" "custom_distribution" {
 }
 `, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), logBucket, testAccAWSCloudFrontDistributionRetainConfig())
 
-var testAccAWSCloudFrontDistributionMultiOriginConfig = fmt.Sprintf(`
+var testAccAWSCloudFrontDistributionMultiOriginConfig = `
 variable rand_id {
 	default = %d
 }
@@ -530,6 +585,120 @@ variable rand_id {
 %s
 
 resource "aws_cloudfront_distribution" "multi_origin_distribution" {
+	origin {
+		domain_name = "${aws_s3_bucket.s3_bucket_origin.id}.s3.amazonaws.com"
+		origin_id = "myS3Origin"
+	}
+	origin {
+		domain_name = "www.example.com"
+		origin_id = "myCustomOrigin"
+		custom_origin_config {
+			http_port = 80
+			https_port = 443
+			origin_protocol_policy = "http-only"
+			origin_ssl_protocols = [ "SSLv3", "TLSv1" ]
+		}
+	}
+	enabled = false
+	comment = "Some comment"
+	default_root_object = "index.html"
+	logging_config {
+		include_cookies = false
+		bucket = "${aws_s3_bucket.s3_bucket_logs.id}.s3.amazonaws.com"
+		prefix = "myprefix"
+	}
+	aliases = [ "mysite.${var.rand_id}.example.com", "*.yoursite.${var.rand_id}.example.com" ]
+	default_cache_behavior {
+		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
+		cached_methods = [ "GET", "HEAD" ]
+		target_origin_id = "myS3Origin"
+		smooth_streaming = true
+		forwarded_values {
+			query_string = false
+			cookies {
+				forward = "all"
+			}
+		}
+		min_ttl = 100
+		default_ttl = 100
+		max_ttl = 100
+		viewer_protocol_policy = "allow-all"
+	}
+	# cache behavior 1
+	%s
+
+	# cache behavior 2
+	%s
+
+	price_class = "PriceClass_All"
+	custom_error_response {
+		error_code = 404
+		response_page_path = "/error-pages/404.html"
+		response_code = 200
+		error_caching_min_ttl = 30
+	}
+	restrictions {
+		geo_restriction {
+			restriction_type = "none"
+		}
+	}
+	viewer_certificate {
+		cloudfront_default_certificate = true
+	}
+	%s
+}
+`
+
+var cacheBehavior0 = `
+	cache_behavior {
+		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
+		cached_methods = [ "GET", "HEAD" ]
+		target_origin_id = "myS3Origin"
+		forwarded_values {
+			query_string = true
+			cookies {
+				forward = "none"
+			}
+		}
+		min_ttl = 50
+		default_ttl = 50
+		max_ttl = 50
+		viewer_protocol_policy = "allow-all"
+		path_pattern = "images0/*.jpg"
+	}
+`
+
+var cacheBehavior1 = `
+	cache_behavior {
+		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
+		cached_methods = [ "GET", "HEAD" ]
+		target_origin_id = "myS3Origin"
+		forwarded_values {
+			query_string = true
+			cookies {
+				forward = "none"
+			}
+		}
+		min_ttl = 50
+		default_ttl = 50
+		max_ttl = 50
+		viewer_protocol_policy = "allow-all"
+		path_pattern = "images1/*.jpg"
+	}
+`
+
+var testAccAWSCloudFrontDistributionMultipleCacheBehaviorsBefore = fmt.Sprintf(`
+variable rand_id {
+	default = %d
+}
+
+# origin bucket
+%s
+
+# log bucket
+%s
+
+resource "aws_cloudfront_distribution" "multiple_cache_behaviors_distribution" {
 	origin {
 		domain_name = "${aws_s3_bucket.s3_bucket_origin.id}.s3.amazonaws.com"
 		origin_id = "myS3Origin"
@@ -569,39 +738,6 @@ resource "aws_cloudfront_distribution" "multi_origin_distribution" {
 		max_ttl = 100
 		viewer_protocol_policy = "allow-all"
 	}
-	cache_behavior {
-		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
-		cached_methods = [ "GET", "HEAD" ]
-		target_origin_id = "myS3Origin"
-		forwarded_values {
-			query_string = true
-			cookies {
-				forward = "none"
-			}
-		}
-		min_ttl = 50
-		default_ttl = 50
-		max_ttl = 50
-		viewer_protocol_policy = "allow-all"
-		path_pattern = "images1/*.jpg"
-	}
-	cache_behavior {
-		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
-		cached_methods = [ "GET", "HEAD" ]
-		target_origin_id = "myCustomOrigin"
-		forwarded_values {
-			query_string = true
-			cookies {
-				forward = "none"
-			}
-		}
-		min_ttl = 50
-		default_ttl = 50
-		max_ttl = 50
-		viewer_protocol_policy = "allow-all"
-		path_pattern = "images2/*.jpg"
-	}
-
 	price_class = "PriceClass_All"
 	custom_error_response {
 		error_code = 404

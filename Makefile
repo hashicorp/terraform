@@ -48,7 +48,7 @@ testacc: fmtcheck generate
 		echo "  make testacc TEST=./builtin/providers/aws"; \
 		exit 1; \
 	fi
-	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m -parallel=9
 
 test-compile: fmtcheck generate
 	@if [ "$(TEST)" = "./..." ]; then \
