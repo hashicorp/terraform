@@ -48,6 +48,7 @@ BUG FIXES:
  * provider/openstack: Fix Instance Metadata Deletion [GH-11252]
  * provider/scaleway: Rename Scaleway provider parameters to match more closely to the API [GH-10874]
  * provider/vault: Remove user input for optional vault provider fields [GH-11082]
+ * provider/vsphere: Set deviceID to 0 if one 1 network interface in vsphere_virtual_machine [GH-8276]
  * provisioner/remote-exec: fail on first inline script with bad exit code [GH-11155]
  
 ## 0.8.4 (January 11, 2017)
