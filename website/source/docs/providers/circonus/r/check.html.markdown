@@ -122,6 +122,9 @@ resource "circonus_metric" "used" {
   `http` check type this would be the URL you're checking. For a DNS check it
   would be the hostname you wanted to look up.
 
+* `tcp` - (Optional) A TCP check.  See below for details on how to configure the
+  `tcp` check (includes TLS support).
+
 * `timeout` - (Optional) A floating point number representing the maximum number
   of seconds this check should wait for a result.  Defaults to `10.0`.
 
@@ -261,6 +264,35 @@ The `postgresql` check requires the `target` top-level attribute to be set.
   string](https://www.postgresql.org/docs/current/static/libpq-connect.html) to
   use to talk to PostgreSQL.
 * `query` - (Required) The SQL query to execute.
+
+### `tcp` Check Type Attributes
+
+* `banner_regexp` - (Optional) This regular expression is matched against the
+  response banner. If a match is not found, the check will be marked as bad.
+
+* `ca_chain` - (Optional) A path to a file containing all the certificate
+  authorities that should be loaded to validate the remote certificate (for TLS
+  checks).
+
+* `certificate_file` - (Optional) A path to a file containing the client
+  certificate that will be presented to the remote server (for TLS checks).
+
+* `ciphers` - (Optional) A list of ciphers to be used in the TLS protocol (for
+  HTTPS checks).
+
+* `key_file` - (Optional) A path to a file containing key to be used in
+  conjunction with the cilent certificate (for TLS checks).
+
+* `port` - (Required) Integer specifying the port on which the management
+  interface can be reached.
+
+* `tls` - (Optional) When enabled establish a TLS connection.
+
+Available metrics include: `banner`, `banner_match`, `cert_end`, `cert_end_in`,
+`cert_error`, `cert_issuer`, `cert_start`, `cert_subject`, `duration`,
+`tt_connect`, `tt_firstbyte`.  See the
+[`tcp` check type](https://login.circonus.com/resources/api/calls/check_bundle)
+for additional details.
 
 ## Import Example
 

@@ -27,6 +27,7 @@ const (
 	_APICheckTypeHTTP       _CheckType = "http"
 	_APICheckTypeJSON       _CheckType = "json"
 	_APICheckTypePostgreSQL _CheckType = "postgres"
+	_APICheckTypeTCP        _CheckType = "tcp"
 )
 
 func _NewCheck() _Check {
