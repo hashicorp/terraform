@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_wafregional_web_acl"
-sidebar_current: "docs-aws-resource-wafregional-webacl"
+sidebar_current: "docs-aws-resource-wafregional-web-acl"
 description: |-
   Provides a AWS WAF Regional web access control group (ACL) resource for use with ALB.
 ---
@@ -31,7 +31,8 @@ resource "aws_wafregional_rule" "wafrule" {
     type = "IPMatch"
   }
 }
-resource "aws_wafregional_web_acl" "waf_acl" {
+
+resource "aws_wafregional_web_acl" "wafacl" {
   depends_on = ["aws_wafregional_ipset.ipset", "aws_wafregional_rule.wafrule"]
   name = "tfWebACL"
   metric_name = "tfWebACL"
@@ -42,7 +43,7 @@ resource "aws_wafregional_web_acl" "waf_acl" {
     action {
        type = "BLOCK"
     }
-    priority = 1 
+    priority = 1
     rule_id = "${aws_wafregional_rule.wafrule.id}"
   }
 }
