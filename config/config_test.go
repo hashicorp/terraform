@@ -168,6 +168,13 @@ func TestConfigValidate_table(t *testing.T) {
 			true,
 			"data sources cannot have",
 		},
+
+		{
+			"basic provisioners",
+			"validate-basic-provisioners",
+			false,
+			"",
+		},
 	}
 
 	for i, tc := range cases {
