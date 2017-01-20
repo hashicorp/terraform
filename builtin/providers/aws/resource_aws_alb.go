@@ -5,6 +5,7 @@ import (
 	"log"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elbv2"
@@ -169,8 +170,37 @@ func resourceAwsAlbCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("No load balancers returned following creation of %s", d.Get("name").(string))
 	}
 
-	d.SetId(*resp.LoadBalancers[0].LoadBalancerArn)
+	lb := resp.LoadBalancers[0]
+	d.SetId(*lb.LoadBalancerArn)
 	log.Printf("[INFO] ALB ID: %s", d.Id())
+
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"active", "provisioning", "failed"},
+		Target:  []string{"active"},
+		Refresh: func() (interface{}, string, error) {
+			describeResp, err := elbconn.DescribeLoadBalancers(&elbv2.DescribeLoadBalancersInput{
+				LoadBalancerArns: []*string{lb.LoadBalancerArn},
+			})
+			if err != nil {
+				return nil, "", err
+			}
+
+			if len(describeResp.LoadBalancers) != 1 {
+				return nil, "", fmt.Errorf("No load balancers returned for %s", *lb.LoadBalancerArn)
+			}
+			dLb := describeResp.LoadBalancers[0]
+
+			log.Printf("[INFO] ALB state: %s", *dLb.State.Code)
+
+			return describeResp, *dLb.State.Code, nil
+		},
+		Timeout:    5 * time.Minute,
+		MinTimeout: 3 * time.Second,
+	}
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return err
+	}
 
 	return resourceAwsAlbUpdate(d, meta)
 }
