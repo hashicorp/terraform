@@ -28,6 +28,12 @@ func resourceCloudStackIPAddress() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"zone_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -61,6 +67,11 @@ func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{})
 	if vpcid, ok := d.GetOk("vpc_id"); ok {
 		// Set the vpcid
 		p.SetVpcid(vpcid.(string))
+	}
+
+	if zoneid, ok := d.GetOk("zone_id"); ok {
+		// Set the vpcid
+		p.SetZoneid(zoneid.(string))
 	}
 
 	// If there is a project supplied, we retrieve and set the project id
@@ -109,6 +120,10 @@ func resourceCloudStackIPAddressRead(d *schema.ResourceData, meta interface{}) e
 		d.Set("vpc_id", ip.Vpcid)
 	}
 
+	if _, ok := d.GetOk("zone_id"); ok {
+		d.Set("zone_id", ip.Zoneid)
+	}
+
 	setValueOrID(d, "project", ip.Project, ip.Projectid)
 
 	return nil
@@ -138,8 +153,9 @@ func resourceCloudStackIPAddressDelete(d *schema.ResourceData, meta interface{})
 func verifyIPAddressParams(d *schema.ResourceData) error {
 	_, network := d.GetOk("network_id")
 	_, vpc := d.GetOk("vpc_id")
+	_, zone := d.GetOk("zone_id")
 
-	if (network && vpc) || (!network && !vpc) {
+	if (network && vpc) || (!network && !vpc && !zone) {
 		return fmt.Errorf(
 			"You must supply a value for either (so not both) the 'network_id' or 'vpc_id' parameter")
 	}
