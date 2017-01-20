@@ -160,7 +160,7 @@ type CreateOpts struct {
 
 	// Personality includes files to inject into the server at launch.
 	// Create will base64-encode file contents for you.
-	Personality Personality `json:"-"`
+	Personality Personality `json:"personality,omitempty"`
 
 	// ConfigDrive enables metadata injection through a configuration drive.
 	ConfigDrive *bool `json:"config_drive,omitempty"`
