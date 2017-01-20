@@ -3,6 +3,7 @@ package circonus
 import (
 	"bytes"
 	"fmt"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -34,11 +35,11 @@ var _CheckJSONDescriptions = _AttrDescrs{
 	_CheckJSONAuthMethodAttr:   "The HTTP Authentication method",
 	_CheckJSONAuthPasswordAttr: "The HTTP Authentication user password",
 	_CheckJSONAuthUserAttr:     "The HTTP Authentication user name",
-	_CheckJSONCAChainAttr:      "A path to a file containing all the certificate authorities that should be loaded to validate the remote certificate (for SSL checks)",
-	_CheckJSONCiphersAttr:      "A list of ciphers to be used in the SSL protocol (for SSL checks)",
+	_CheckJSONCAChainAttr:      "A path to a file containing all the certificate authorities that should be loaded to validate the remote certificate (for TLS checks)",
 	_CheckJSONCertFileAttr:     "A path to a file containing the client certificate that will be presented to the remote server (for TLS-enabled checks)",
+	_CheckJSONCiphersAttr:      "A list of ciphers to be used in the TLS protocol (for HTTPS checks)",
 	_CheckJSONHeadersAttr:      "Map of HTTP Headers to send along with HTTP Requests",
-	_CheckJSONKeyFileAttr:      "A path to a file containing key to be used in conjunction with the cilent certificate (for SSL checks)",
+	_CheckJSONKeyFileAttr:      "A path to a file containing key to be used in conjunction with the cilent certificate (for TLS checks)",
 	_CheckJSONMethodAttr:       "The HTTP method to use",
 	_CheckJSONPayloadAttr:      "The information transferred as the payload of an HTTP request",
 	_CheckJSONPortAttr:         "Specifies the port on which the management interface can be reached",
@@ -191,13 +192,13 @@ func _ReadAPICheckConfigJSON(c *_Check, d *schema.ResourceData) error {
 	}
 	jsonConfig[string(_CheckJSONHeadersAttr)] = headers
 
-	saveStringConfigToState(config.HTTPVersion, _CheckJSONVersionAttr)
 	saveStringConfigToState(config.KeyFile, _CheckJSONKeyFileAttr)
 	saveStringConfigToState(config.Method, _CheckJSONMethodAttr)
 	saveStringConfigToState(config.Payload, _CheckJSONPayloadAttr)
 	saveStringConfigToState(config.Port, _CheckJSONPortAttr)
 	saveIntConfigToState(config.ReadLimit, _CheckJSONReadLimitAttr)
 	saveStringConfigToState(config.URL, _CheckJSONURLAttr)
+	saveStringConfigToState(config.HTTPVersion, _CheckJSONVersionAttr)
 
 	whitelistedConfigKeys := map[config.Key]struct{}{
 		config.ReverseSecretKey: struct{}{},
@@ -270,4 +271,90 @@ func hashCheckJSON(v interface{}) int {
 
 	s := b.String()
 	return hashcode.String(s)
+}
+
+func parseCheckConfigJSON(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
+	c.Type = string(_APICheckTypeJSON)
+
+	// Iterate over all `json` attributes, even though we have a max of 1 in the
+	// schema.
+	for _, mapRaw := range l {
+		jsonConfig := _NewInterfaceMap(mapRaw)
+		ar := _NewMapReader(ctxt, jsonConfig)
+
+		if s, ok := ar.GetStringOK(_CheckJSONAuthMethodAttr); ok {
+			c.Config[config.AuthMethod] = s
+		}
+
+		if s, ok := ar.GetStringOK(_CheckJSONAuthPasswordAttr); ok {
+			c.Config[config.AuthPassword] = s
+		}
+
+		if s, ok := ar.GetStringOK(_CheckJSONAuthUserAttr); ok {
+			c.Config[config.AuthUser] = s
+		}
+
+		if s, ok := ar.GetStringOK(_CheckJSONCAChainAttr); ok {
+			c.Config[config.CAChain] = s
+		}
+
+		if s, ok := ar.GetStringOK(_CheckJSONCertFileAttr); ok {
+			c.Config[config.CertFile] = s
+		}
+
+		if s, ok := ar.GetStringOK(_CheckJSONCiphersAttr); ok {
+			c.Config[config.Ciphers] = s
+		}
+
+		if headers := jsonConfig.CollectMap(_CheckJSONHeadersAttr); headers != nil {
+			for k, v := range headers {
+				h := config.HeaderPrefix + config.Key(k)
+				c.Config[h] = v
+			}
+		}
+
+		if s, ok := ar.GetStringOK(_CheckJSONKeyFileAttr); ok {
+			c.Config[config.KeyFile] = s
+		}
+
+		if s, ok := ar.GetStringOK(_CheckJSONMethodAttr); ok {
+			c.Config[config.Method] = s
+		}
+
+		if s, ok := ar.GetStringOK(_CheckJSONPayloadAttr); ok {
+			c.Config[config.Payload] = s
+		}
+
+		if s, ok := ar.GetStringOK(_CheckJSONPortAttr); ok {
+			c.Config[config.Port] = s
+		}
+
+		if i, ok := ar.GetIntOK(_CheckJSONReadLimitAttr); ok {
+			c.Config[config.ReadLimit] = fmt.Sprintf("%d", i)
+		}
+
+		if s, ok := ar.GetStringOK(_CheckJSONURLAttr); ok {
+			c.Config[config.URL] = s
+
+			u, _ := url.Parse(s)
+			hostInfo := strings.SplitN(u.Host, ":", 2)
+			if len(c.Target) == 0 {
+				c.Target = hostInfo[0]
+			}
+
+			if len(hostInfo) == 2 {
+				// Only override the port if no port has been set.  The config option
+				// `port` takes precidence.
+				if _, ok := c.Config[config.Port]; !ok {
+					c.Config[config.Port] = hostInfo[1]
+				}
+			}
+		}
+
+		if s, ok := ar.GetStringOK(_CheckJSONVersionAttr); ok {
+			c.Config[config.HTTPVersion] = s
+		}
+	}
+
+	return nil
 }
