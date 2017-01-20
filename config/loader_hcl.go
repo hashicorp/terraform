@@ -849,8 +849,40 @@ func loadProvisionersHcl(list *ast.ObjectList, connInfo map[string]interface{}) 
 			return nil, err
 		}
 
-		// Delete the "connection" section, handle separately
+		// Parse the "when" value
+		when := ProvisionerWhenCreate
+		if v, ok := config["when"]; ok {
+			switch v {
+			case "create":
+				when = ProvisionerWhenCreate
+			case "destroy":
+				when = ProvisionerWhenDestroy
+			default:
+				return nil, fmt.Errorf(
+					"position %s: 'provisioner' when must be 'create' or 'destroy'",
+					item.Pos())
+			}
+		}
+
+		// Parse the "on_failure" value
+		onFailure := ProvisionerOnFailureFail
+		if v, ok := config["on_failure"]; ok {
+			switch v {
+			case "continue":
+				onFailure = ProvisionerOnFailureContinue
+			case "fail":
+				onFailure = ProvisionerOnFailureFail
+			default:
+				return nil, fmt.Errorf(
+					"position %s: 'provisioner' on_failure must be 'continue' or 'fail'",
+					item.Pos())
+			}
+		}
+
+		// Delete fields we special case
 		delete(config, "connection")
+		delete(config, "when")
+		delete(config, "on_failure")
 
 		rawConfig, err := NewRawConfig(config)
 		if err != nil {
@@ -889,6 +921,8 @@ func loadProvisionersHcl(list *ast.ObjectList, connInfo map[string]interface{}) 
 			Type:      n,
 			RawConfig: rawConfig,
 			ConnInfo:  connRaw,
+			When:      when,
+			OnFailure: onFailure,
 		})
 	}
 
