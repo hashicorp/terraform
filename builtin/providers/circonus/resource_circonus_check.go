@@ -44,6 +44,7 @@ const (
 	_CheckStreamAttr      _SchemaAttr = "stream"
 	_CheckTagsAttr        _SchemaAttr = "tags"
 	_CheckTargetAttr      _SchemaAttr = "target"
+	_CheckTCPAttr         _SchemaAttr = "tcp"
 	_CheckTimeoutAttr     _SchemaAttr = "timeout"
 	_CheckTypeAttr        _SchemaAttr = "type"
 
@@ -72,6 +73,7 @@ const (
 	_APICheckTypeICMPPingAttr   _APICheckType = "ping_icmp"
 	_APICheckTypeJSONAttr       _APICheckType = "json"
 	_APICheckTypePostgreSQLAttr _APICheckType = "postgres"
+	_APICheckTypeTCPAttr        _APICheckType = "tcp"
 )
 
 var _CheckDescriptions = _AttrDescrs{
@@ -89,6 +91,7 @@ var _CheckDescriptions = _AttrDescrs{
 	_CheckStreamAttr:      "Configuration for a stream of metrics",
 	_CheckTagsAttr:        "A list of tags assigned to the check",
 	_CheckTargetAttr:      "The target of the check (e.g. hostname, URL, IP, etc)",
+	_CheckTCPAttr:         "TCP check configuration",
 	_CheckTimeoutAttr:     "The length of time in seconds (and fractions of a second) before the check will timeout if no response is returned to the collector",
 	_CheckTypeAttr:        "The check type",
 
@@ -211,6 +214,7 @@ func _NewCheckResource() *schema.Resource {
 				Computed:     true,
 				ValidateFunc: _ValidateRegexp(_CheckTagsAttr, `.+`),
 			},
+			_CheckTCPAttr: _SchemaCheckTCP,
 			_CheckTimeoutAttr: &schema.Schema{
 				Type:      schema.TypeString,
 				Optional:  true,
@@ -483,6 +487,7 @@ func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
 		_CheckJSONAttr:       parseCheckConfigJSON,
 		_CheckICMPPingAttr:   parseCheckConfigICMPPing,
 		_CheckPostgreSQLAttr: parseCheckConfigPostgreSQL,
+		_CheckTCPAttr:        parseCheckConfigTCP,
 	}
 
 	for checkType, fn := range checkTypeParseMap {
@@ -505,6 +510,7 @@ func _ParseCheckTypeConfig(c *_Check, d *schema.ResourceData) error {
 		_APICheckTypeJSONAttr:       _ReadAPICheckConfigJSON,
 		_APICheckTypeICMPPingAttr:   _ReadAPICheckConfigICMPPing,
 		_APICheckTypePostgreSQLAttr: _ReadAPICheckConfigPostgreSQL,
+		_APICheckTypeTCPAttr:        _ReadAPICheckConfigTCP,
 	}
 
 	var checkType _APICheckType = _APICheckType(c.Type)
