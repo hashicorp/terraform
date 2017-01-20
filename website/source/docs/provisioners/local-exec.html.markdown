@@ -38,3 +38,7 @@ The following arguments are supported:
   It is evaluated in a shell, and can use environment variables or Terraform
   variables.
 
+* `verify` - (Optional) This is the command to verify if the above command
+needs to be executed or not. If the `verify` command exits with a `0` exit code
+the `command` command will not be executed. If the `verify` command fails, the
+`command` command will be ran.

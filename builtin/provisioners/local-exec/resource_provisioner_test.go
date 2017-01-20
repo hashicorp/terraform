@@ -65,6 +65,69 @@ func TestResourceProvider_Validate_missing(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_Verify(t *testing.T) {
+	// Setup the file, containing 'foo'
+	defer os.Remove("test_out")
+	check := []byte("foo")
+	if err := ioutil.WriteFile("test_out", check, 0644); err != nil {
+		t.Fatalf("error writing file: %v", err)
+	}
+	c := testConfig(t, map[string]interface{}{
+		"command": "echo bar > test_out",
+		"verify":  "grep -q foo test_out",
+	})
+
+	output := new(terraform.MockUIOutput)
+	p := new(ResourceProvisioner)
+	if err := p.Apply(output, nil, c); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check the file
+	raw, err := ioutil.ReadFile("test_out")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	actual := strings.TrimSpace(string(raw))
+	expected := "foo"
+	if actual != expected {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+// Not actually a failure, just forces execution
+func TestResourceProvider_VerifyFail(t *testing.T) {
+	// Setup the file, containing 'bar'
+	defer os.Remove("test_out")
+	check := []byte("bar")
+	if err := ioutil.WriteFile("test_out", check, 0644); err != nil {
+		t.Fatalf("error writing file: %v", err)
+	}
+	c := testConfig(t, map[string]interface{}{
+		"command": "echo bar > test_out",
+		"verify":  "grep -q foo test_out",
+	})
+
+	output := new(terraform.MockUIOutput)
+	p := new(ResourceProvisioner)
+	if err := p.Apply(output, nil, c); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check the file
+	raw, err := ioutil.ReadFile("test_out")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	actual := strings.TrimSpace(string(raw))
+	expected := "bar"
+	if actual != expected {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func testConfig(
 	t *testing.T,
 	c map[string]interface{}) *terraform.ResourceConfig {

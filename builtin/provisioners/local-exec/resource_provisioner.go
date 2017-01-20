@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"runtime"
 
+	"log"
+
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/terraform"
@@ -36,6 +38,61 @@ func (p *ResourceProvisioner) Apply(
 		return fmt.Errorf("local-exec provisioner command must be a string")
 	}
 
+	var verify string
+	verifyRaw, verifyRawOk := c.Config["verify"]
+	if verifyRawOk {
+		verify, ok = verifyRaw.(string)
+		if !ok {
+			return fmt.Errorf("local-exec provisioner verify must be a string")
+		}
+	}
+
+	// Verify the command if desired
+	if verify != "" {
+		if err := p.localExec(true, verify, o); err == nil {
+			log.Printf("[DEBUG] local-exec provisioner verified successfully, skipping execution")
+			return nil
+		} else {
+			log.Printf(
+				"[DEBUG] local-exec provisioner didn't verify successfully: %s", err)
+		}
+	}
+
+	// Execute the command
+	if err := p.localExec(false, command, o); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+	validator := config.Validator{
+		Required: []string{"command"},
+		Optional: []string{"verify"},
+	}
+	return validator.Validate(c)
+}
+
+func (p *ResourceProvisioner) copyOutput(
+	o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
+	defer close(doneCh)
+	lr := linereader.New(r)
+	for line := range lr.Ch {
+		o.Output(line)
+	}
+}
+
+func (p *ResourceProvisioner) localExec(
+	verify bool,
+	command string,
+	o terraform.UIOutput) error {
+
+	action := "Executing"
+	if verify {
+		action = "Verifying"
+	}
+
 	// Execute the command using a shell
 	var shell, flag string
 	if runtime.GOOS == "windows" {
@@ -59,8 +116,8 @@ func (p *ResourceProvisioner) Apply(
 
 	// Output what we're about to run
 	o.Output(fmt.Sprintf(
-		"Executing: %s %s \"%s\"",
-		shell, flag, command))
+		"%s: %s %s \"%s\"",
+		action, shell, flag, command))
 
 	// Run the command to completion
 	err := cmd.Run()
@@ -76,20 +133,4 @@ func (p *ResourceProvisioner) Apply(
 	}
 
 	return nil
-}
-
-func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	validator := config.Validator{
-		Required: []string{"command"},
-	}
-	return validator.Validate(c)
-}
-
-func (p *ResourceProvisioner) copyOutput(
-	o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
-	defer close(doneCh)
-	lr := linereader.New(r)
-	for line := range lr.Ch {
-		o.Output(line)
-	}
 }

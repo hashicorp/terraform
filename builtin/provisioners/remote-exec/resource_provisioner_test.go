@@ -16,6 +16,7 @@ func TestResourceProvisioner_impl(t *testing.T) {
 func TestResourceProvider_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"inline": "echo foo",
+		"verify": "echo foo",
 	})
 	p := new(ResourceProvisioner)
 	warn, errs := p.Validate(c)
@@ -47,7 +48,6 @@ exit 0
 `
 
 func TestResourceProvider_generateScript(t *testing.T) {
-	p := new(ResourceProvisioner)
 	conf := testConfig(t, map[string]interface{}{
 		"inline": []interface{}{
 			"cd /tmp",
@@ -55,7 +55,7 @@ func TestResourceProvider_generateScript(t *testing.T) {
 			"exit 0",
 		},
 	})
-	out, err := p.generateScript(conf)
+	out, err := joinLines(conf, "inline")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
