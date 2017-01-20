@@ -22,8 +22,8 @@ func dataSourceAwsCloudFormationStack() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 				StateFunc: func(v interface{}) string {
-					json, _ := normalizeJsonString(v)
-					return json
+					template, _ := normalizeCloudFormationTemplate(v)
+					return template
 				},
 			},
 			"capabilities": {
@@ -107,9 +107,9 @@ func dataSourceAwsCloudFormationStackRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	template, err := normalizeJsonString(*tOut.TemplateBody)
+	template, err := normalizeCloudFormationTemplate(*tOut.TemplateBody)
 	if err != nil {
-		return errwrap.Wrapf("template body contains an invalid JSON: {{err}}", err)
+		return errwrap.Wrapf("template body contains an invalid JSON or YAML: {{err}}", err)
 	}
 	d.Set("template_body", template)
 
