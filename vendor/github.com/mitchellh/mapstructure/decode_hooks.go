@@ -72,10 +72,7 @@ func ComposeDecodeHookFunc(fs ...DecodeHookFunc) DecodeHookFunc {
 			}
 
 			// Modify the from kind to be correct with the new data
-			f = nil
-			if val := reflect.ValueOf(data); val.IsValid() {
-				f = val.Type()
-			}
+			f = reflect.ValueOf(data).Type()
 		}
 
 		return data, nil
