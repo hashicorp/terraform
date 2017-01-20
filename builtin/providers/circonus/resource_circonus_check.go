@@ -33,13 +33,14 @@ const (
 	_CheckActiveAttr      _SchemaAttr = "active"
 	_CheckCAQLAttr        _SchemaAttr = "caql"
 	_CheckCollectorAttr   _SchemaAttr = "collector"
-	_CheckJSONAttr        _SchemaAttr = "json"
+	_CheckHTTPAttr        _SchemaAttr = "http"
 	_CheckICMPPingAttr    _SchemaAttr = "icmp_ping"
+	_CheckJSONAttr        _SchemaAttr = "json"
 	_CheckMetricLimitAttr _SchemaAttr = "metric_limit"
 	_CheckNameAttr        _SchemaAttr = "name"
 	_CheckNotesAttr       _SchemaAttr = "notes"
-	_CheckPostgreSQLAttr  _SchemaAttr = "postgresql"
 	_CheckPeriodAttr      _SchemaAttr = "period"
+	_CheckPostgreSQLAttr  _SchemaAttr = "postgresql"
 	_CheckStreamAttr      _SchemaAttr = "stream"
 	_CheckTagsAttr        _SchemaAttr = "tags"
 	_CheckTargetAttr      _SchemaAttr = "target"
@@ -67,8 +68,9 @@ const (
 const (
 	// Circonus API constants from their API endpoints
 	_APICheckTypeCAQLAttr       _APICheckType = "caql"
-	_APICheckTypeJSONAttr       _APICheckType = "json"
+	_APICheckTypeHTTPAttr       _APICheckType = "http"
 	_APICheckTypeICMPPingAttr   _APICheckType = "ping_icmp"
+	_APICheckTypeJSONAttr       _APICheckType = "json"
 	_APICheckTypePostgreSQLAttr _APICheckType = "postgres"
 )
 
@@ -76,8 +78,9 @@ var _CheckDescriptions = _AttrDescrs{
 	_CheckActiveAttr:      "If the check is activate or disabled",
 	_CheckCAQLAttr:        "CAQL check configuration",
 	_CheckCollectorAttr:   "The collector(s) that are responsible for gathering the metrics",
-	_CheckJSONAttr:        "JSON check configuration",
+	_CheckHTTPAttr:        "HTTP check configuration",
 	_CheckICMPPingAttr:    "ICMP ping check configuration",
+	_CheckJSONAttr:        "JSON check configuration",
 	_CheckMetricLimitAttr: `Setting a metric_limit will enable all (-1), disable (0), or allow up to the specified limit of metrics for this check ("N+", where N is a positive integer)`,
 	_CheckNameAttr:        "The name of the check bundle that will be displayed in the web interface",
 	_CheckNotesAttr:       "Notes about this check bundle",
@@ -135,6 +138,7 @@ func _NewCheckResource() *schema.Resource {
 					}, _CheckCollectorDescriptions),
 				},
 			},
+			_CheckHTTPAttr:     _SchemaCheckHTTP,
 			_CheckJSONAttr:     _SchemaCheckJSON,
 			_CheckICMPPingAttr: _SchemaCheckICMPPing,
 			_CheckMetricLimitAttr: &schema.Schema{
@@ -475,6 +479,7 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
 	checkTypeParseMap := map[_SchemaAttr]func(*_Check, *_ProviderContext, _InterfaceList) error{
 		_CheckCAQLAttr:       parseCheckConfigCAQL,
+		_CheckHTTPAttr:       parseCheckConfigHTTP,
 		_CheckJSONAttr:       parseCheckConfigJSON,
 		_CheckICMPPingAttr:   parseCheckConfigICMPPing,
 		_CheckPostgreSQLAttr: parseCheckConfigPostgreSQL,
@@ -496,6 +501,7 @@ func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
 func _ParseCheckTypeConfig(c *_Check, d *schema.ResourceData) error {
 	checkTypeConfigHandlers := map[_APICheckType]func(*_Check, *schema.ResourceData) error{
 		_APICheckTypeCAQLAttr:       _ReadAPICheckConfigCAQL,
+		_APICheckTypeHTTPAttr:       _ReadAPICheckConfigHTTP,
 		_APICheckTypeJSONAttr:       _ReadAPICheckConfigJSON,
 		_APICheckTypeICMPPingAttr:   _ReadAPICheckConfigICMPPing,
 		_APICheckTypePostgreSQLAttr: _ReadAPICheckConfigPostgreSQL,

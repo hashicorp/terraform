@@ -29,6 +29,10 @@ const (
 	defaultCheckICMPPingInterval     = "2s"
 
 	defaultCheckCAQLTarget = "q._caql"
+
+	defaultCheckHTTPCodeRegexp = `^200$`
+	defaultCheckHTTPMethod     = "GET"
+	defaultCheckHTTPVersion    = "1.1"
 )
 
 // Consts and their close relative, Go pseudo-consts.
