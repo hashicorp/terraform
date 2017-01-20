@@ -151,6 +151,10 @@ different `circonus_check` resource).
 * `query` - (Required) The [CAQL
   Query](https://login.circonus.com/user/docs/caql_reference) to run.
 
+Available metrics depend on the payload returned in the `caql` check.  See the
+[`caql` check type](https://login.circonus.com/resources/api/calls/check_bundle) for
+additional details.
+
 ### `http` Check Type Attributes
 
 * `auth_method` - (Optional) HTTP Authentication method to use.  When set must
@@ -204,6 +208,12 @@ different `circonus_check` resource).
 
 * `version` - (Optional) The HTTP version to use.  Defaults to `1.1`.
 
+Available metrics include: `body_match`, `bytes`, `cert_end`, `cert_end_in`,
+`cert_error`, `cert_issuer`, `cert_start`, `cert_subject`, `code`, `duration`,
+`truncated`, `tt_connect`, and `tt_firstbyte`.  See the
+[`http` check type](https://login.circonus.com/resources/api/calls/check_bundle) for
+additional details.
+
 ### `json` Check Type Attributes
 
 * `auth_method` - (Optional) HTTP Authentication method to use.  When set must
@@ -245,6 +255,10 @@ different `circonus_check` resource).
 
 * `version` - (Optional) The HTTP version to use.  Defaults to `1.1`.
 
+Available metrics depend on the payload returned in the `json` doc.  See the
+[`json` check type](https://login.circonus.com/resources/api/calls/check_bundle) for
+additional details.
+
 ### `icmp_ping` Check Type Attributes
 
 The `icmp_ping` check requires the `target` top-level attribute to be set.
@@ -256,6 +270,11 @@ The `icmp_ping` check requires the `target` top-level attribute to be set.
   `5`.
 * `interval` - (Optional) Interval between packets.  Defaults to `2s`.
 
+Available metrics include: `available`, `average`, `count`, `maximum`, and
+`minimum`.  See the
+[`ping_icmp` check type](https://login.circonus.com/resources/api/calls/check_bundle)
+for additional details.
+
 ### `postgresql` Check Type Attributes
 
 The `postgresql` check requires the `target` top-level attribute to be set.
@@ -264,6 +283,8 @@ The `postgresql` check requires the `target` top-level attribute to be set.
   string](https://www.postgresql.org/docs/current/static/libpq-connect.html) to
   use to talk to PostgreSQL.
 * `query` - (Required) The SQL query to execute.
+
+Available metric names are dependent on the output of the `query` being run.
 
 ### `tcp` Check Type Attributes
 
