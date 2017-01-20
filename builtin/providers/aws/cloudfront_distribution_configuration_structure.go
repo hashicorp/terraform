@@ -229,8 +229,14 @@ func defaultCacheBehaviorHash(v interface{}) int {
 		}
 	}
 	if d, ok := m["lambda_function_association"]; ok {
-		s := d.(*schema.Set)
-		for _, lfa := range s.List() {
+		var associations []interface{}
+		switch d.(type) {
+		case *schema.Set:
+			associations = d.(*schema.Set).List()
+		default:
+			associations = d.([]interface{})
+		}
+		for _, lfa := range associations {
 			buf.WriteString(fmt.Sprintf("%d-", lambdaFunctionAssociationHash(lfa.(map[string]interface{}))))
 		}
 	}
@@ -367,8 +373,14 @@ func cacheBehaviorHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", d))
 	}
 	if d, ok := m["lambda_function_association"]; ok {
-		s := d.(*schema.Set)
-		for _, lfa := range s.List() {
+		var associations []interface{}
+		switch d.(type) {
+		case *schema.Set:
+			associations = d.(*schema.Set).List()
+		default:
+			associations = d.([]interface{})
+		}
+		for _, lfa := range associations {
 			buf.WriteString(fmt.Sprintf("%d-", lambdaFunctionAssociationHash(lfa.(map[string]interface{}))))
 		}
 	}
