@@ -363,9 +363,27 @@ func TestCloudFrontStructure_flattenCacheBehavior(t *testing.T) {
 	if out["target_origin_id"] != "myS3Origin" {
 		t.Fatalf("Expected out[target_origin_id] to be myS3Origin, got %v", out["target_origin_id"])
 	}
-	if reflect.DeepEqual(out["lambda_function_associations"], in["lambda_function_associations"]) != true {
-		t.Fatalf("Expected out[lambda_function_associations] to be %v, got %v", in["lambda_function_associations"], out["lambda_function_associations"])
+
+	// the flattened lambda function associations are a slice of maps,
+	// where as the default cache behavior LFAs are a set. Here we double check
+	// that and conver the slice to a set, and use Set's Equal() method to check
+	// equality
+	var outSet *schema.Set
+	if outSlice, ok := out["lambda_function_association"].([]interface{}); ok {
+		outSet = schema.NewSet(lambdaFunctionAssociationHash, outSlice)
+	} else {
+		t.Fatalf("out['lambda_function_association'] is not a slice as expected: %#v", out["lambda_function_association"])
 	}
+
+	inSet, ok := in["lambda_function_association"].(*schema.Set)
+	if !ok {
+		t.Fatalf("in['lambda_function_association'] is not a set as expected: %#v", in["lambda_function_association"])
+	}
+
+	if !inSet.Equal(outSet) {
+		t.Fatalf("in / out sets are not equal, in: \n%#v\n\nout: \n%#v\n", inSet, outSet)
+	}
+
 	diff = out["forwarded_values"].(*schema.Set).Difference(in["forwarded_values"].(*schema.Set))
 	if len(diff.List()) > 0 {
 		t.Fatalf("Expected out[forwarded_values] to be %v, got %v, diff: %v", out["forwarded_values"], in["forwarded_values"], diff)
