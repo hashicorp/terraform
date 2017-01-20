@@ -27,6 +27,31 @@ func (l _InterfaceList) CollectList(attrName _SchemaAttr) []string {
 	return stringList
 }
 
+// List returns a list of values in a Set as a string slice
+func (l _InterfaceList) List() []string {
+	stringList := make([]string, 0, len(l))
+	for _, v := range l {
+		stringList = append(stringList, v.(string))
+	}
+	return stringList
+}
+
+// CollectList returns []string of values that matched the key attrName.
+// _InterfaceMap most likely came from a schema.TypeSet.
+func (m _InterfaceMap) CollectList(attrName _SchemaAttr) []string {
+	stringList := make([]string, 0, len(m))
+
+	for _, mapRaw := range m {
+		mapAttrs := mapRaw.(map[string]interface{})
+
+		if v, ok := mapAttrs[string(attrName)]; ok {
+			stringList = append(stringList, v.(string))
+		}
+	}
+
+	return stringList
+}
+
 // CollectMap returns map[string]string of values that matched the key attrName.
 // _InterfaceMap most likely came from a schema.TypeSet.
 func (m _InterfaceMap) CollectMap(attrName _SchemaAttr) map[string]string {

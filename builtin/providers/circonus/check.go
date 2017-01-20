@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/errwrap"
 )
 
@@ -92,9 +93,30 @@ func (c *_Check) Update(ctxt *_ProviderContext) error {
 	return nil
 }
 
+func (c *_Check) Fixup() error {
+	switch _APICheckType(c.Type) {
+	case _APICheckTypeCloudWatchAttr:
+		switch c.Period {
+		case 60:
+			c.Config[config.Granularity] = "1"
+		case 300:
+			c.Config[config.Granularity] = "5"
+		}
+	}
+
+	return nil
+}
+
 func (c *_Check) Validate() error {
 	if c.Timeout > float32(c.Period) {
 		return fmt.Errorf("Timeout (%f) can not exceed period (%d)", c.Timeout, c.Period)
+	}
+
+	switch _APICheckType(c.Type) {
+	case _APICheckTypeCloudWatchAttr:
+		if !(c.Period == 60 || c.Period == 300) {
+			return fmt.Errorf("Period must be either 1m or 5m for a %s check", _APICheckTypeCloudWatchAttr)
+		}
 	}
 
 	return nil

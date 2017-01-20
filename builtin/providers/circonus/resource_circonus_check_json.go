@@ -228,7 +228,7 @@ func hashCheckJSON(v interface{}) int {
 
 	writeInt := func(attrName _SchemaAttr) {
 		if v, ok := m[string(attrName)]; ok {
-			fmt.Fprint(b, "%x", v.(int))
+			fmt.Fprintf(b, "%x", v.(int))
 		}
 	}
 
