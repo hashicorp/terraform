@@ -17,7 +17,7 @@ func TestAccAWSEcrRepository_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcrRepositoryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEcrRepository,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcrRepositoryExists("aws_ecr_repository.default"),
