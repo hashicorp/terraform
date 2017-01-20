@@ -1,5 +1,9 @@
 ## 0.8.5 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * provider/aws: We no prefix an ECR repository address with `https://`
+
 FEATURES:
 
  * **New Data Source:**  `aws_autoscaling_groups` [GH-11303]
@@ -22,6 +26,7 @@ IMPROVEMENTS:
  * provider/aws: allow ALB target group stickiness to be enabled/disabled [GH-11251]
  * provider/aws: Add support for setting MSSQL Timezone in aws_db_instance [GH-11247]
  * provider/aws: CloudFormation YAML template support [GH-11121]
+ * provider/aws: Remove hardcoded https from the ecr repository [GH-11307]
  * provider/azurerm: add caching support for virtual_machine data_disks [GH-11142]
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
  * provider/cloudflare: Add verification for record types and content [GH-11197]
