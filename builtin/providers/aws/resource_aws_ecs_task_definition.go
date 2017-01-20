@@ -96,7 +96,7 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 						"expression": {
 							Type:     schema.TypeString,
 							ForceNew: true,
-							Required: true,
+							Optional: true,
 						},
 					},
 				},
@@ -154,9 +154,14 @@ func resourceAwsEcsTaskDefinitionCreate(d *schema.ResourceData, meta interface{}
 		var pc []*ecs.TaskDefinitionPlacementConstraint
 		for _, raw := range constraints {
 			p := raw.(map[string]interface{})
+			t := p["type"].(string)
+			e := p["expression"].(string)
+			if err := validateAwsEcsPlacementConstraint(t, e); err != nil {
+				return err
+			}
 			pc = append(pc, &ecs.TaskDefinitionPlacementConstraint{
-				Type:       aws.String(p["type"].(string)),
-				Expression: aws.String(p["expression"].(string)),
+				Type:       aws.String(t),
+				Expression: aws.String(e),
 			})
 		}
 		input.PlacementConstraints = pc
