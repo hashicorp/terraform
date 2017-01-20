@@ -82,9 +82,8 @@ func resourceAwsDmsReplicationSubnetGroupRead(d *schema.ResourceData, meta inter
 		}
 		return err
 	}
-	resourceAwsDmsReplicationSubnetGroupSetState(d, response.ReplicationSubnetGroups[0])
 
-	return nil
+	return resourceAwsDmsReplicationSubnetGroupSetState(d, response.ReplicationSubnetGroups[0])
 }
 
 func resourceAwsDmsReplicationSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) error {

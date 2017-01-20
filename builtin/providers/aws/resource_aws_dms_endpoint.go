@@ -238,7 +238,10 @@ func resourceAwsDmsEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if d.HasChange("tags") {
-		dmsSetTags(d.Get("endpoint_arn").(string), d, meta)
+		err := dmsSetTags(d.Get("endpoint_arn").(string), d, meta)
+		if err != nil {
+			return err
+		}
 	}
 
 	if hasChanges {

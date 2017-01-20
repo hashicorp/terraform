@@ -267,7 +267,10 @@ func resourceAwsDmsReplicationInstanceUpdate(d *schema.ResourceData, meta interf
 	}
 
 	if d.HasChange("tags") {
-		dmsSetTags(d.Get("replication_instance_arn").(string), d, meta)
+		err := dmsSetTags(d.Get("replication_instance_arn").(string), d, meta)
+		if err != nil {
+			return err
+		}
 	}
 
 	if hasChanges {

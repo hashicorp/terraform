@@ -189,7 +189,10 @@ func resourceAwsDmsReplicationTaskUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	if d.HasChange("tags") {
-		dmsSetTags(d.Get("replication_task_arn").(string), d, meta)
+		err := dmsSetTags(d.Get("replication_task_arn").(string), d, meta)
+		if err != nil {
+			return err
+		}
 	}
 
 	if hasChanges {
