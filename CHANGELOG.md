@@ -27,7 +27,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for setting MSSQL Timezone in aws_db_instance [GH-11247]
  * provider/aws: CloudFormation YAML template support [GH-11121]
  * provider/aws: Remove hardcoded https from the ecr repository [GH-11307]
- * provider/aws: Updated ECS Service and Task definitions [GH-11298]
+ * provider/aws: implement CloudFront Lambda Function Associations [GH-11291]
  * provider/azurerm: add caching support for virtual_machine data_disks [GH-11142]
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
  * provider/cloudflare: Add verification for record types and content [GH-11197]
@@ -47,6 +47,7 @@ BUG FIXES:
 
  * provider/aws: Fix panic when querying VPC's main route table via data source ([#11134](https://github.com/hashicorp/terraform/issues/11134))
  * provider/aws: Allow creating aws_codecommit repository outside of us-east-1 [GH-11177]
+ * provider/aws: Fix issue destroying or updating CloudFront due to missing Lambda Function Associations parameters [GH-11291]
  * provider/azurerm: use configured environment for storage clients [GH-11159]
  * provider/google: removes region param from google_compute_backend_service [GH-10903]
  * provider/ignition: allowing empty systemd.content when a dropin is provided [GH-11216]
