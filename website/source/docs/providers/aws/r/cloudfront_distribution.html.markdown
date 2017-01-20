@@ -174,7 +174,7 @@ of several sub-resources - these resources are laid out below.
   * `forwarded_values` (Required) - The [forwarded values configuration](#forwarded-values-arguments) that specifies how CloudFront
     handles query strings, cookies and headers (maximum one).
 
-  * `lambda_function_association` (Optional) - A complext config that triggers a lambda function with
+  * `lambda_function_association` (Optional) - A config block that triggers a lambda function with
   specific actions. Defined below, maximum 4. **Lambda@Edge is in technical
   Preview, and must be enabled on your AWS account to be used**
 
@@ -231,7 +231,7 @@ event. You can associate a single function per event type. See [What is
 Lambda@Edge](http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/what-is-lambda-at-edge.html) 
 for more information
 
-  * `event_type` (Required) - The specific event to trigger this functionon.
+  * `event_type` (Required) - The specific event to trigger this function.
   Valid values: `viewwer-request`, `origin-request`, `viewer-response`,
   `origin-response`
 
