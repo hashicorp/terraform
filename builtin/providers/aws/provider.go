@@ -147,6 +147,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_alb":                      dataSourceAwsAlb(),
 			"aws_alb_listener":             dataSourceAwsAlbListener(),
 			"aws_ami":                      dataSourceAwsAmi(),
+			"aws_autoscaling_groups":       dataSourceAwsAutoscalingGroups(),
 			"aws_availability_zone":        dataSourceAwsAvailabilityZone(),
 			"aws_availability_zones":       dataSourceAwsAvailabilityZones(),
 			"aws_billing_service_account":  dataSourceAwsBillingServiceAccount(),
