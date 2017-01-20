@@ -27,6 +27,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for setting MSSQL Timezone in aws_db_instance [GH-11247]
  * provider/aws: CloudFormation YAML template support [GH-11121]
  * provider/aws: Remove hardcoded https from the ecr repository [GH-11307]
+ * provider/aws: Updated ECS Service and Task definitions [GH-11298]
  * provider/azurerm: add caching support for virtual_machine data_disks [GH-11142]
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
  * provider/cloudflare: Add verification for record types and content [GH-11197]
