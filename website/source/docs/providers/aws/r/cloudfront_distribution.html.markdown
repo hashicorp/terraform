@@ -232,7 +232,7 @@ Lambda@Edge](http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/w
 for more information
 
   * `event_type` (Required) - The specific event to trigger this function.
-  Valid values: `viewwer-request`, `origin-request`, `viewer-response`,
+  Valid values: `viewer-request`, `origin-request`, `viewer-response`,
   `origin-response`
 
   * `lambda_function_arn` (Required) - ARN of the Lambda function.
