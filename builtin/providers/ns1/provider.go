@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -30,15 +30,15 @@ func Provider() terraform.ResourceProvider {
 			"ns1_apikey":        apikeyResource(),
 			"ns1_team":          teamResource(),
 		},
-		ConfigureFunc: nsoneConfigure,
+		ConfigureFunc: ns1Configure,
 	}
 }
 
-func nsoneConfigure(d *schema.ResourceData) (interface{}, error) {
+func ns1Configure(d *schema.ResourceData) (interface{}, error) {
 	httpClient := &http.Client{}
-	n := nsone.NewClient(httpClient, nsone.SetAPIKey(d.Get("apikey").(string)))
+	n := ns1.NewClient(httpClient, ns1.SetAPIKey(d.Get("apikey").(string)))
 	// FIXME: n.Debug()
-	// FIXME: n.RateLimitStrategySleep()
+	n.RateLimitStrategySleep()
 	return n, nil
 }
 

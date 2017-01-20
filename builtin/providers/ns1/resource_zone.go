@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 )
 
@@ -72,10 +72,11 @@ func zoneResource() *schema.Resource {
 				Computed: true,
 			},
 		},
-		Create: ZoneCreate,
-		Read:   ZoneRead,
-		Update: ZoneUpdate,
-		Delete: ZoneDelete,
+		Create:   ZoneCreate,
+		Read:     ZoneRead,
+		Update:   ZoneUpdate,
+		Delete:   ZoneDelete,
+		Importer: &schema.ResourceImporter{ZoneStateFunc},
 	}
 }
 
@@ -126,7 +127,7 @@ func resourceToZoneData(z *dns.Zone, d *schema.ResourceData) {
 
 // ZoneCreate creates the given zone in ns1
 func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	z := dns.NewZone(d.Get("zone").(string))
 	resourceToZoneData(z, d)
 	if _, err := client.Zones.Create(z); err != nil {
@@ -138,7 +139,7 @@ func ZoneCreate(d *schema.ResourceData, meta interface{}) error {
 
 // ZoneRead reads the given zone data from ns1
 func ZoneRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	z, _, err := client.Zones.Get(d.Get("zone").(string))
 	if err != nil {
 		return err
@@ -149,7 +150,7 @@ func ZoneRead(d *schema.ResourceData, meta interface{}) error {
 
 // ZoneDelete deteles the given zone from ns1
 func ZoneDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	_, err := client.Zones.Delete(d.Get("zone").(string))
 	d.SetId("")
 	return err
@@ -157,7 +158,7 @@ func ZoneDelete(d *schema.ResourceData, meta interface{}) error {
 
 // ZoneUpdate updates the zone with given params in ns1
 func ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	z := dns.NewZone(d.Get("zone").(string))
 	resourceToZoneData(z, d)
 	if _, err := client.Zones.Update(z); err != nil {
@@ -165,4 +166,9 @@ func ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	zoneToResourceData(d, z)
 	return nil
+}
+
+func ZoneStateFunc(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	d.Set("zone", d.Id())
+	return []*schema.ResourceData{d}, nil
 }

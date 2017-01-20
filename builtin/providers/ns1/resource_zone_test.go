@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 )
 
@@ -21,8 +21,8 @@ func TestAccZone_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccZoneBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckZoneState("zone", "terraform-test-zone.io"),
 					testAccCheckZoneExists("ns1_zone.it", &zone),
+					testAccCheckZoneName(&zone, "terraform-test-zone.io"),
 					testAccCheckZoneTTL(&zone, 3600),
 					testAccCheckZoneRefresh(&zone, 43200),
 					testAccCheckZoneRetry(&zone, 7200),
@@ -44,8 +44,8 @@ func TestAccZone_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccZoneBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckZoneState("zone", "terraform-test-zone.io"),
 					testAccCheckZoneExists("ns1_zone.it", &zone),
+					testAccCheckZoneName(&zone, "terraform-test-zone.io"),
 					testAccCheckZoneTTL(&zone, 3600),
 					testAccCheckZoneRefresh(&zone, 43200),
 					testAccCheckZoneRetry(&zone, 7200),
@@ -56,8 +56,8 @@ func TestAccZone_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccZoneUpdated,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckZoneState("zone", "terraform-test-zone.io"),
 					testAccCheckZoneExists("ns1_zone.it", &zone),
+					testAccCheckZoneName(&zone, "terraform-test-zone.io"),
 					testAccCheckZoneTTL(&zone, 10800),
 					testAccCheckZoneRefresh(&zone, 3600),
 					testAccCheckZoneRetry(&zone, 300),
@@ -67,27 +67,6 @@ func TestAccZone_updated(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccCheckZoneState(key, value string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources["ns1_zone.it"]
-		if !ok {
-			return fmt.Errorf("Not found: %s", "ns1_zone.it")
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
-		}
-
-		p := rs.Primary
-		if p.Attributes[key] != value {
-			return fmt.Errorf(
-				"%s != %s (actual: %s)", key, value, p.Attributes[key])
-		}
-
-		return nil
-	}
 }
 
 func testAccCheckZoneExists(n string, zone *dns.Zone) resource.TestCheckFunc {
@@ -102,7 +81,7 @@ func testAccCheckZoneExists(n string, zone *dns.Zone) resource.TestCheckFunc {
 			return fmt.Errorf("NoID is set")
 		}
 
-		client := testAccProvider.Meta().(*nsone.Client)
+		client := testAccProvider.Meta().(*ns1.Client)
 
 		foundZone, _, err := client.Zones.Get(rs.Primary.Attributes["zone"])
 
@@ -123,7 +102,7 @@ func testAccCheckZoneExists(n string, zone *dns.Zone) resource.TestCheckFunc {
 }
 
 func testAccCheckZoneDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*nsone.Client)
+	client := testAccProvider.Meta().(*ns1.Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "ns1_zone" {
@@ -133,11 +112,20 @@ func testAccCheckZoneDestroy(s *terraform.State) error {
 		zone, _, err := client.Zones.Get(rs.Primary.Attributes["zone"])
 
 		if err == nil {
-			return fmt.Errorf("Record still exists: %#v: %#v", err, zone)
+			return fmt.Errorf("Zone still exists: %#v: %#v", err, zone)
 		}
 	}
 
 	return nil
+}
+
+func testAccCheckZoneName(zone *dns.Zone, expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if zone.Zone != expected {
+			return fmt.Errorf("Zone: got: %s want: %s", zone.Zone, expected)
+		}
+		return nil
+	}
 }
 
 func testAccCheckZoneTTL(zone *dns.Zone, expected int) resource.TestCheckFunc {

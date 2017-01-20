@@ -3,7 +3,7 @@ package ns1
 import (
 	"github.com/hashicorp/terraform/helper/schema"
 
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/account"
 )
 
@@ -46,80 +46,6 @@ func apikeyToResourceData(d *schema.ResourceData, k *account.APIKey) error {
 	return nil
 }
 
-func resourceDataToPermissions(d *schema.ResourceData) account.PermissionsMap {
-	var p account.PermissionsMap
-	if v, ok := d.GetOk("dns_view_zones"); ok {
-		p.DNS.ViewZones = v.(bool)
-	}
-	if v, ok := d.GetOk("dns_manage_zones"); ok {
-		p.DNS.ManageZones = v.(bool)
-	}
-	if v, ok := d.GetOk("dns_zones_allow_by_default"); ok {
-		p.DNS.ZonesAllowByDefault = v.(bool)
-	}
-	if v, ok := d.GetOk("dns_zones_deny"); ok {
-		denyRaw := v.([]interface{})
-		p.DNS.ZonesDeny = make([]string, len(denyRaw))
-		for i, deny := range denyRaw {
-			p.DNS.ZonesDeny[i] = deny.(string)
-		}
-	} else {
-		p.DNS.ZonesDeny = make([]string, 0)
-	}
-	if v, ok := d.GetOk("dns_zones_allow"); ok {
-		allowRaw := v.([]interface{})
-		p.DNS.ZonesAllow = make([]string, len(allowRaw))
-		for i, allow := range allowRaw {
-			p.DNS.ZonesAllow[i] = allow.(string)
-		}
-	} else {
-		p.DNS.ZonesAllow = make([]string, 0)
-	}
-	if v, ok := d.GetOk("data_push_to_datafeeds"); ok {
-		p.Data.PushToDatafeeds = v.(bool)
-	}
-	if v, ok := d.GetOk("data_manage_datasources"); ok {
-		p.Data.ManageDatasources = v.(bool)
-	}
-	if v, ok := d.GetOk("data_manage_datafeeds"); ok {
-		p.Data.ManageDatafeeds = v.(bool)
-	}
-	if v, ok := d.GetOk("account_manage_users"); ok {
-		p.Account.ManageUsers = v.(bool)
-	}
-	if v, ok := d.GetOk("account_manage_payment_methods"); ok {
-		p.Account.ManagePaymentMethods = v.(bool)
-	}
-	if v, ok := d.GetOk("account_manage_plan"); ok {
-		p.Account.ManagePlan = v.(bool)
-	}
-	if v, ok := d.GetOk("account_manage_teams"); ok {
-		p.Account.ManageTeams = v.(bool)
-	}
-	if v, ok := d.GetOk("account_manage_apikeys"); ok {
-		p.Account.ManageApikeys = v.(bool)
-	}
-	if v, ok := d.GetOk("account_manage_account_settings"); ok {
-		p.Account.ManageAccountSettings = v.(bool)
-	}
-	if v, ok := d.GetOk("account_view_activity_log"); ok {
-		p.Account.ViewActivityLog = v.(bool)
-	}
-	if v, ok := d.GetOk("account_view_invoices"); ok {
-		p.Account.ViewInvoices = v.(bool)
-	}
-	if v, ok := d.GetOk("monitoring_manage_lists"); ok {
-		p.Monitoring.ManageLists = v.(bool)
-	}
-	if v, ok := d.GetOk("monitoring_manage_jobs"); ok {
-		p.Monitoring.ManageJobs = v.(bool)
-	}
-	if v, ok := d.GetOk("monitoring_view_jobs"); ok {
-		p.Monitoring.ViewJobs = v.(bool)
-	}
-	return p
-}
-
 func resourceDataToApikey(k *account.APIKey, d *schema.ResourceData) error {
 	k.ID = d.Id()
 	k.Name = d.Get("name").(string)
@@ -138,7 +64,7 @@ func resourceDataToApikey(k *account.APIKey, d *schema.ResourceData) error {
 
 // ApikeyCreate creates ns1 API key
 func ApikeyCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	k := account.APIKey{}
 	if err := resourceDataToApikey(&k, d); err != nil {
 		return err
@@ -151,7 +77,7 @@ func ApikeyCreate(d *schema.ResourceData, meta interface{}) error {
 
 // ApikeyRead reads API key from ns1
 func ApikeyRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	k, _, err := client.APIKeys.Get(d.Id())
 	if err != nil {
 		return err
@@ -161,7 +87,7 @@ func ApikeyRead(d *schema.ResourceData, meta interface{}) error {
 
 //ApikeyDelete deletes the given ns1 api key
 func ApikeyDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	_, err := client.APIKeys.Delete(d.Id())
 	d.SetId("")
 	return err
@@ -169,7 +95,7 @@ func ApikeyDelete(d *schema.ResourceData, meta interface{}) error {
 
 //ApikeyUpdate updates the given api key in ns1
 func ApikeyUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	k := account.APIKey{
 		ID: d.Id(),
 	}
