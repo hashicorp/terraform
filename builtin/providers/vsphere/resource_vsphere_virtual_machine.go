@@ -1059,6 +1059,9 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 						}
 						if gatewaySetting != "" {
 							deviceID, err := strconv.Atoi(route.Gateway.Device)
+							if len(networkInterfaces) == 1 {
+								deviceID = 0
+							}
 							if err != nil {
 								log.Printf("[WARN] error at processing %s of device id %#v: %#v", gatewaySetting, route.Gateway.Device, err)
 							} else {
