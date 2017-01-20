@@ -1668,18 +1668,25 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 	// Remove any now empty array, maps or sets because a parent structure
 	// won't include these entries in the count value.
 	isCount := regexp.MustCompile(`\.[%#]$`).MatchString
+	var deleted []string
+
 	for k, v := range result.Attributes {
 		if isCount(k) && v == "0" {
 			delete(result.Attributes, k)
+			deleted = append(deleted, k)
+		}
+	}
 
-			// Sanity check for invalid structures.
-			// If we removed the primary count key, there should have been no
-			// other keys left with this prefix.
-			base := k[:len(k)-2]
-			for k, _ := range result.Attributes {
-				if strings.HasPrefix(k, base) {
-					panic(fmt.Sprintf("empty structure %q has entry %q", base, k))
-				}
+	for _, k := range deleted {
+		// Sanity check for invalid structures.
+		// If we removed the primary count key, there should have been no
+		// other keys left with this prefix.
+
+		// this must have a "#" or "%" which we need to remove
+		base := k[:len(k)-1]
+		for k, _ := range result.Attributes {
+			if strings.HasPrefix(k, base) {
+				panic(fmt.Sprintf("empty structure %q has entry %q", base, k))
 			}
 		}
 	}
