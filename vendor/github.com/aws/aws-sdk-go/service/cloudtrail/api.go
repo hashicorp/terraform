@@ -49,9 +49,8 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 		input = &AddTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -160,9 +159,8 @@ func (c *CloudTrail) CreateTrailRequest(input *CreateTrailInput) (req *request.R
 		input = &CreateTrailInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateTrailOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -305,9 +303,8 @@ func (c *CloudTrail) DeleteTrailRequest(input *DeleteTrailInput) (req *request.R
 		input = &DeleteTrailInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteTrailOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -393,9 +390,8 @@ func (c *CloudTrail) DescribeTrailsRequest(input *DescribeTrailsInput) (req *req
 		input = &DescribeTrailsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTrailsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -463,9 +459,8 @@ func (c *CloudTrail) GetEventSelectorsRequest(input *GetEventSelectorsInput) (re
 		input = &GetEventSelectorsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetEventSelectorsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -562,9 +557,8 @@ func (c *CloudTrail) GetTrailStatusRequest(input *GetTrailStatusInput) (req *req
 		input = &GetTrailStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetTrailStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -648,9 +642,8 @@ func (c *CloudTrail) ListPublicKeysRequest(input *ListPublicKeysInput) (req *req
 		input = &ListPublicKeysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListPublicKeysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -731,9 +724,8 @@ func (c *CloudTrail) ListTagsRequest(input *ListTagsInput) (req *request.Request
 		input = &ListTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -838,9 +830,8 @@ func (c *CloudTrail) LookupEventsRequest(input *LookupEventsInput) (req *request
 		input = &LookupEventsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &LookupEventsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -963,9 +954,8 @@ func (c *CloudTrail) PutEventSelectorsRequest(input *PutEventSelectorsInput) (re
 		input = &PutEventSelectorsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutEventSelectorsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1094,9 +1084,8 @@ func (c *CloudTrail) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Req
 		input = &RemoveTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RemoveTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1196,9 +1185,8 @@ func (c *CloudTrail) StartLoggingRequest(input *StartLoggingInput) (req *request
 		input = &StartLoggingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StartLoggingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1286,9 +1274,8 @@ func (c *CloudTrail) StopLoggingRequest(input *StopLoggingInput) (req *request.R
 		input = &StopLoggingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StopLoggingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1378,9 +1365,8 @@ func (c *CloudTrail) UpdateTrailRequest(input *UpdateTrailInput) (req *request.R
 		input = &UpdateTrailInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateTrailOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

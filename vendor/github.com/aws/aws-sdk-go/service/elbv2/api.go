@@ -49,9 +49,8 @@ func (c *ELBV2) AddTagsRequest(input *AddTagsInput) (req *request.Request, outpu
 		input = &AddTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -131,9 +130,8 @@ func (c *ELBV2) CreateListenerRequest(input *CreateListenerInput) (req *request.
 		input = &CreateListenerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateListenerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -240,9 +238,8 @@ func (c *ELBV2) CreateLoadBalancerRequest(input *CreateLoadBalancerInput) (req *
 		input = &CreateLoadBalancerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateLoadBalancerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -345,9 +342,8 @@ func (c *ELBV2) CreateRuleRequest(input *CreateRuleInput) (req *request.Request,
 		input = &CreateRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -444,9 +440,8 @@ func (c *ELBV2) CreateTargetGroupRequest(input *CreateTargetGroupInput) (req *re
 		input = &CreateTargetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateTargetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -526,9 +521,8 @@ func (c *ELBV2) DeleteListenerRequest(input *DeleteListenerInput) (req *request.
 		input = &DeleteListenerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteListenerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -595,9 +589,8 @@ func (c *ELBV2) DeleteLoadBalancerRequest(input *DeleteLoadBalancerInput) (req *
 		input = &DeleteLoadBalancerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteLoadBalancerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -672,9 +665,8 @@ func (c *ELBV2) DeleteRuleRequest(input *DeleteRuleInput) (req *request.Request,
 		input = &DeleteRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -741,9 +733,8 @@ func (c *ELBV2) DeleteTargetGroupRequest(input *DeleteTargetGroupInput) (req *re
 		input = &DeleteTargetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteTargetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -810,9 +801,8 @@ func (c *ELBV2) DeregisterTargetsRequest(input *DeregisterTargetsInput) (req *re
 		input = &DeregisterTargetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeregisterTargetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -888,9 +878,8 @@ func (c *ELBV2) DescribeListenersRequest(input *DescribeListenersInput) (req *re
 		input = &DescribeListenersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeListenersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -983,9 +972,8 @@ func (c *ELBV2) DescribeLoadBalancerAttributesRequest(input *DescribeLoadBalance
 		input = &DescribeLoadBalancerAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeLoadBalancerAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1055,9 +1043,8 @@ func (c *ELBV2) DescribeLoadBalancersRequest(input *DescribeLoadBalancersInput) 
 		input = &DescribeLoadBalancersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeLoadBalancersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1150,9 +1137,8 @@ func (c *ELBV2) DescribeRulesRequest(input *DescribeRulesInput) (req *request.Re
 		input = &DescribeRulesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeRulesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1220,9 +1206,8 @@ func (c *ELBV2) DescribeSSLPoliciesRequest(input *DescribeSSLPoliciesInput) (req
 		input = &DescribeSSLPoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSSLPoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1288,9 +1273,8 @@ func (c *ELBV2) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Requ
 		input = &DescribeTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1363,9 +1347,8 @@ func (c *ELBV2) DescribeTargetGroupAttributesRequest(input *DescribeTargetGroupA
 		input = &DescribeTargetGroupAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTargetGroupAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1435,9 +1418,8 @@ func (c *ELBV2) DescribeTargetGroupsRequest(input *DescribeTargetGroupsInput) (r
 		input = &DescribeTargetGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTargetGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1535,9 +1517,8 @@ func (c *ELBV2) DescribeTargetHealthRequest(input *DescribeTargetHealthInput) (r
 		input = &DescribeTargetHealthInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTargetHealthOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1609,9 +1590,8 @@ func (c *ELBV2) ModifyListenerRequest(input *ModifyListenerInput) (req *request.
 		input = &ModifyListenerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyListenerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1714,9 +1694,8 @@ func (c *ELBV2) ModifyLoadBalancerAttributesRequest(input *ModifyLoadBalancerAtt
 		input = &ModifyLoadBalancerAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyLoadBalancerAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1787,9 +1766,8 @@ func (c *ELBV2) ModifyRuleRequest(input *ModifyRuleInput) (req *request.Request,
 		input = &ModifyRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1867,9 +1845,8 @@ func (c *ELBV2) ModifyTargetGroupRequest(input *ModifyTargetGroupInput) (req *re
 		input = &ModifyTargetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyTargetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1936,9 +1913,8 @@ func (c *ELBV2) ModifyTargetGroupAttributesRequest(input *ModifyTargetGroupAttri
 		input = &ModifyTargetGroupAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyTargetGroupAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2002,9 +1978,8 @@ func (c *ELBV2) RegisterTargetsRequest(input *RegisterTargetsInput) (req *reques
 		input = &RegisterTargetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RegisterTargetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2089,9 +2064,8 @@ func (c *ELBV2) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Request,
 		input = &RemoveTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RemoveTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2169,9 +2143,8 @@ func (c *ELBV2) SetRulePrioritiesRequest(input *SetRulePrioritiesInput) (req *re
 		input = &SetRulePrioritiesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetRulePrioritiesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2245,9 +2218,8 @@ func (c *ELBV2) SetSecurityGroupsRequest(input *SetSecurityGroupsInput) (req *re
 		input = &SetSecurityGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetSecurityGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2319,9 +2291,8 @@ func (c *ELBV2) SetSubnetsRequest(input *SetSubnetsInput) (req *request.Request,
 		input = &SetSubnetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetSubnetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

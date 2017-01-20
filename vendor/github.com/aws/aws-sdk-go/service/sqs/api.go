@@ -50,11 +50,10 @@ func (c *SQS) AddPermissionRequest(input *AddPermissionInput) (req *request.Requ
 		input = &AddPermissionInput{}
 	}
 
+	output = &AddPermissionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddPermissionOutput{}
-	req.Data = output
 	return
 }
 
@@ -140,11 +139,10 @@ func (c *SQS) ChangeMessageVisibilityRequest(input *ChangeMessageVisibilityInput
 		input = &ChangeMessageVisibilityInput{}
 	}
 
+	output = &ChangeMessageVisibilityOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ChangeMessageVisibilityOutput{}
-	req.Data = output
 	return
 }
 
@@ -247,9 +245,8 @@ func (c *SQS) ChangeMessageVisibilityBatchRequest(input *ChangeMessageVisibility
 		input = &ChangeMessageVisibilityBatchInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ChangeMessageVisibilityBatchOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -337,9 +334,8 @@ func (c *SQS) CreateQueueRequest(input *CreateQueueInput) (req *request.Request,
 		input = &CreateQueueInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateQueueOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -449,11 +445,10 @@ func (c *SQS) DeleteMessageRequest(input *DeleteMessageInput) (req *request.Requ
 		input = &DeleteMessageInput{}
 	}
 
+	output = &DeleteMessageOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteMessageOutput{}
-	req.Data = output
 	return
 }
 
@@ -539,9 +534,8 @@ func (c *SQS) DeleteMessageBatchRequest(input *DeleteMessageBatchInput) (req *re
 		input = &DeleteMessageBatchInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteMessageBatchOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -628,11 +622,10 @@ func (c *SQS) DeleteQueueRequest(input *DeleteQueueInput) (req *request.Request,
 		input = &DeleteQueueInput{}
 	}
 
+	output = &DeleteQueueOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteQueueOutput{}
-	req.Data = output
 	return
 }
 
@@ -703,9 +696,8 @@ func (c *SQS) GetQueueAttributesRequest(input *GetQueueAttributesInput) (req *re
 		input = &GetQueueAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetQueueAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -777,9 +769,8 @@ func (c *SQS) GetQueueUrlRequest(input *GetQueueUrlInput) (req *request.Request,
 		input = &GetQueueUrlInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetQueueUrlOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -850,9 +841,8 @@ func (c *SQS) ListDeadLetterSourceQueuesRequest(input *ListDeadLetterSourceQueue
 		input = &ListDeadLetterSourceQueuesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListDeadLetterSourceQueuesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -921,9 +911,8 @@ func (c *SQS) ListQueuesRequest(input *ListQueuesInput) (req *request.Request, o
 		input = &ListQueuesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListQueuesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -984,11 +973,10 @@ func (c *SQS) PurgeQueueRequest(input *PurgeQueueInput) (req *request.Request, o
 		input = &PurgeQueueInput{}
 	}
 
+	output = &PurgeQueueOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &PurgeQueueOutput{}
-	req.Data = output
 	return
 }
 
@@ -1066,9 +1054,8 @@ func (c *SQS) ReceiveMessageRequest(input *ReceiveMessageInput) (req *request.Re
 		input = &ReceiveMessageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReceiveMessageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1181,11 +1168,10 @@ func (c *SQS) RemovePermissionRequest(input *RemovePermissionInput) (req *reques
 		input = &RemovePermissionInput{}
 	}
 
+	output = &RemovePermissionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemovePermissionOutput{}
-	req.Data = output
 	return
 }
 
@@ -1245,9 +1231,8 @@ func (c *SQS) SendMessageRequest(input *SendMessageInput) (req *request.Request,
 		input = &SendMessageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SendMessageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1333,9 +1318,8 @@ func (c *SQS) SendMessageBatchRequest(input *SendMessageBatchInput) (req *reques
 		input = &SendMessageBatchInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SendMessageBatchOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1455,11 +1439,10 @@ func (c *SQS) SetQueueAttributesRequest(input *SetQueueAttributesInput) (req *re
 		input = &SetQueueAttributesInput{}
 	}
 
+	output = &SetQueueAttributesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetQueueAttributesOutput{}
-	req.Data = output
 	return
 }
 
