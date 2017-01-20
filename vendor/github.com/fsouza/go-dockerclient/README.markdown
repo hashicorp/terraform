@@ -13,7 +13,8 @@ passthrough to the libnetwork remote API.  Note that docker's network API is
 only available in docker 1.8 and above, and only enabled in docker if
 DOCKER_EXPERIMENTAL is defined during the docker build process.
 
-For more details, check the [remote API documentation](http://docs.docker.com/engine/reference/api/docker_remote_api/).
+For more details, check the [remote API
+documentation](http://docs.docker.com/engine/reference/api/docker_remote_api/).
 
 ## Example
 
@@ -28,8 +29,14 @@ import (
 
 func main() {
 	endpoint := "unix:///var/run/docker.sock"
-	client, _ := docker.NewClient(endpoint)
-	imgs, _ := client.ListImages(docker.ListImagesOptions{All: false})
+	client, err := docker.NewClient(endpoint)
+	if err != nil {
+		panic(err)
+	}
+	imgs, err := client.ListImages(docker.ListImagesOptions{All: false})
+	if err != nil {
+		panic(err)
+	}
 	for _, img := range imgs {
 		fmt.Println("ID: ", img.ID)
 		fmt.Println("RepoTags: ", img.RepoTags)
@@ -43,7 +50,9 @@ func main() {
 
 ## Using with TLS
 
-In order to instantiate the client for a TLS-enabled daemon, you should use NewTLSClient, passing the endpoint and path for key and certificates as parameters.
+In order to instantiate the client for a TLS-enabled daemon, you should use
+NewTLSClient, passing the endpoint and path for key and certificates as
+parameters.
 
 ```go
 package main
@@ -65,8 +74,9 @@ func main() {
 }
 ```
 
-If using [docker-machine](https://docs.docker.com/machine/), or another application that exports environment variables
-`DOCKER_HOST, DOCKER_TLS_VERIFY, DOCKER_CERT_PATH`, you can use NewClientFromEnv.
+If using [docker-machine](https://docs.docker.com/machine/), or another
+application that exports environment variables `DOCKER_HOST`,
+`DOCKER_TLS_VERIFY`, `DOCKER_CERT_PATH`, you can use NewClientFromEnv.
 
 
 ```go
@@ -97,4 +107,6 @@ Commited code must pass:
 * [gofmt](https://golang.org/cmd/gofmt)
 * [go test](https://golang.org/cmd/go/#hdr-Test_packages)
 
-Running `make test` will check all of these. If your editor does not automatically call gofmt, `make fmt` will format all go files in this repository.
+Running `make test` will check all of these. If your editor does not
+automatically call ``gofmt -s``, `make fmt` will format all go files in this
+repository.

@@ -188,14 +188,8 @@ func (s *connection) serverHandshake(config *ServerConfig) (*Permissions, error)
 	tr := newTransport(s.sshConn.conn, config.Rand, false /* not client */)
 	s.transport = newServerTransport(tr, s.clientVersion, s.serverVersion, config)
 
-	if err := s.transport.requestKeyChange(); err != nil {
+	if err := s.transport.waitSession(); err != nil {
 		return nil, err
-	}
-
-	if packet, err := s.transport.readPacket(); err != nil {
-		return nil, err
-	} else if packet[0] != msgNewKeys {
-		return nil, unexpectedMessageError(msgNewKeys, packet[0])
 	}
 
 	// We just did the key change, so the session ID is established.
@@ -230,7 +224,7 @@ func (s *connection) serverHandshake(config *ServerConfig) (*Permissions, error)
 
 func isAcceptableAlgo(algo string) bool {
 	switch algo {
-	case KeyAlgoRSA, KeyAlgoDSA, KeyAlgoECDSA256, KeyAlgoECDSA384, KeyAlgoECDSA521,
+	case KeyAlgoRSA, KeyAlgoDSA, KeyAlgoECDSA256, KeyAlgoECDSA384, KeyAlgoECDSA521, KeyAlgoED25519,
 		CertAlgoRSAv01, CertAlgoDSAv01, CertAlgoECDSA256v01, CertAlgoECDSA384v01, CertAlgoECDSA521v01:
 		return true
 	}
@@ -248,7 +242,7 @@ func checkSourceAddress(addr net.Addr, sourceAddr string) error {
 	}
 
 	if allowedIP := net.ParseIP(sourceAddr); allowedIP != nil {
-		if bytes.Equal(allowedIP, tcpAddr.IP) {
+		if allowedIP.Equal(tcpAddr.IP) {
 			return nil
 		}
 	} else {
@@ -266,7 +260,7 @@ func checkSourceAddress(addr net.Addr, sourceAddr string) error {
 }
 
 func (s *connection) serverAuthenticate(config *ServerConfig) (*Permissions, error) {
-	var err error
+	sessionID := s.transport.getSessionID()
 	var cache pubKeyCache
 	var perms *Permissions
 
@@ -290,7 +284,6 @@ userAuthLoop:
 		switch userAuthReq.Method {
 		case "none":
 			if config.NoClientAuth {
-				s.user = ""
 				authErr = nil
 			}
 		case "password":
@@ -392,7 +385,7 @@ userAuthLoop:
 				if !isAcceptableAlgo(sig.Format) {
 					break
 				}
-				signedData := buildDataSignedForAuth(s.transport.getSessionID(), userAuthReq, algoBytes, pubKeyData)
+				signedData := buildDataSignedForAuth(sessionID, userAuthReq, algoBytes, pubKeyData)
 
 				if err := pubKey.Verify(signedData, sig); err != nil {
 					return nil, err
@@ -428,12 +421,12 @@ userAuthLoop:
 			return nil, errors.New("ssh: no authentication methods configured but NoClientAuth is also false")
 		}
 
-		if err = s.transport.writePacket(Marshal(&failureMsg)); err != nil {
+		if err := s.transport.writePacket(Marshal(&failureMsg)); err != nil {
 			return nil, err
 		}
 	}
 
-	if err = s.transport.writePacket([]byte{msgUserAuthSuccess}); err != nil {
+	if err := s.transport.writePacket([]byte{msgUserAuthSuccess}); err != nil {
 		return nil, err
 	}
 	return perms, nil
