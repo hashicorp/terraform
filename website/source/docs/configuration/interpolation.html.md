@@ -272,7 +272,7 @@ The supported built-in functions are:
     MD5 hash of the given string.
 
   * `pathexpand(string)` - Returns a filepath string with `~` expanded to the home directory. Note:
-  This will create a plan diff between two different hosts, unless the filepaths are the same.
+    This will create a plan diff between two different hosts, unless the filepaths are the same.
   
   * `replace(string, search, replace)` - Does a search and replace on the
       given string. All instances of `search` are replaced with the value
