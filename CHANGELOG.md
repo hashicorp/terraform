@@ -2,7 +2,7 @@
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
- * provider/aws: We no prefix an ECR repository address with `https://`
+ * provider/aws: We no longer prefix an ECR repository address with `https://`
 
 FEATURES:
 
