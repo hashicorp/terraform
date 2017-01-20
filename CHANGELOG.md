@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Data Source:**  `aws_autoscaling_groups` [GH-11303]
  * **New Data Source:**  `aws_elb_hosted_zone_id ` [GH-11027]
  * **New Data Source:**  `aws_instance` [GH-11272]
  * **New Provider:**  `ProfitBricks` [GH-7943]
