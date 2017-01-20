@@ -295,7 +295,6 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 			"weekly_timer_schedule": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"monday": &schema.Schema{
