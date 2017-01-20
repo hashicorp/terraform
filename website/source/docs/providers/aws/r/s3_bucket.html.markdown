@@ -323,7 +323,7 @@ The `logging` object supports the following:
 * `target_bucket` - (Required) The name of the bucket that will receive the log objects.
 * `target_prefix` - (Optional) To specify a key prefix for log objects.
 
-The 'lifecycle_rule' object supports the following:
+The `lifecycle_rule` object supports the following:
 
 * `id` - (Optional) Unique identifier for the rule.
 * `prefix` - (Required) Object key prefix identifying one or more objects to which the rule applies.

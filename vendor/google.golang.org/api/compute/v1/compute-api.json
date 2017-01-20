@@ -1,11 +1,11 @@
 {
  "kind": "discovery#restDescription",
- "etag": "\"tbys6C40o18GZwyMen5GMkdK-3s/AtRtoI2wqhCu6Twyv23FyGvWiUE\"",
+ "etag": "\"tbys6C40o18GZwyMen5GMkdK-3s/BIPueDp4_YHmOXWnzCh7vT7JOHQ\"",
  "discoveryVersion": "v1",
  "id": "compute:v1",
  "name": "compute",
  "version": "v1",
- "revision": "20161115",
+ "revision": "20161123",
  "title": "Compute Engine API",
  "description": "Creates and runs virtual machines on Google Cloud Platform.",
  "ownerDomain": "google.com",
@@ -1090,6 +1090,10 @@
    "id": "CacheInvalidationRule",
    "type": "object",
    "properties": {
+    "host": {
+     "type": "string",
+     "description": "If set, this invalidation rule will only apply to requests with a Host header matching host."
+    },
     "path": {
      "type": "string"
     }
@@ -2166,7 +2170,7 @@
     },
     "type": {
      "type": "string",
-     "description": "Specifies the type of the healthCheck, either TCP, UDP, SSL, HTTP, HTTPS or HTTP2. If not specified, the default is TCP. Exactly one of the protocol-specific health check field must be specified, which must match type field.",
+     "description": "Specifies the type of the healthCheck, either TCP, SSL, HTTP or HTTPS. If not specified, the default is TCP. Exactly one of the protocol-specific health check field must be specified, which must match type field.",
      "enum": [
       "HTTP",
       "HTTPS",
@@ -4838,10 +4842,12 @@
       "TARGET_POOLS",
       "TARGET_SSL_PROXIES",
       "TARGET_VPN_GATEWAYS",
+      "TOTAL_CPUS",
       "URL_MAPS",
       "VPN_TUNNELS"
      ],
      "enumDescriptions": [
+      "",
       "",
       "",
       "",
@@ -6087,7 +6093,7 @@
     },
     "privateKey": {
      "type": "string",
-     "description": "A write-only private key in PEM format. Only insert RPCs will include this field."
+     "description": "A write-only private key in PEM format. Only insert requests will include this field."
     },
     "selfLink": {
      "type": "string",
@@ -11470,11 +11476,31 @@
      "httpMethod": "POST",
      "description": "Lists all of the instances in the managed instance group. Each instance in the list has a currentAction, which indicates the action that the managed instance group is performing on the instance. For example, if the group is still creating an instance, the currentAction is CREATING. If a previous action failed, the list displays the errors for that failed action.",
      "parameters": {
+      "filter": {
+       "type": "string",
+       "location": "query"
+      },
       "instanceGroupManager": {
        "type": "string",
        "description": "The name of the managed instance group.",
        "required": true,
        "location": "path"
+      },
+      "maxResults": {
+       "type": "integer",
+       "default": "500",
+       "format": "uint32",
+       "minimum": "0",
+       "maximum": "500",
+       "location": "query"
+      },
+      "order_by": {
+       "type": "string",
+       "location": "query"
+      },
+      "pageToken": {
+       "type": "string",
+       "location": "query"
       },
       "project": {
        "type": "string",
@@ -14493,11 +14519,31 @@
      "httpMethod": "POST",
      "description": "Lists the instances in the managed instance group and instances that are scheduled to be created. The list includes any current actions that the group has scheduled for its instances.",
      "parameters": {
+      "filter": {
+       "type": "string",
+       "location": "query"
+      },
       "instanceGroupManager": {
        "type": "string",
        "description": "The name of the managed instance group.",
        "required": true,
        "location": "path"
+      },
+      "maxResults": {
+       "type": "integer",
+       "default": "500",
+       "format": "uint32",
+       "minimum": "0",
+       "maximum": "500",
+       "location": "query"
+      },
+      "order_by": {
+       "type": "string",
+       "location": "query"
+      },
+      "pageToken": {
+       "type": "string",
+       "location": "query"
       },
       "project": {
        "type": "string",

@@ -3,7 +3,10 @@ package remoteexec
 import (
 	"bytes"
 	"io"
+	"strings"
 	"testing"
+
+	"reflect"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
@@ -46,7 +49,9 @@ wget http://foobar
 exit 0
 `
 
-func TestResourceProvider_generateScript(t *testing.T) {
+var expectedInlineScriptsOut = strings.Split(expectedScriptOut, "\n")
+
+func TestResourceProvider_generateScripts(t *testing.T) {
 	p := new(ResourceProvisioner)
 	conf := testConfig(t, map[string]interface{}{
 		"inline": []interface{}{
@@ -55,12 +60,12 @@ func TestResourceProvider_generateScript(t *testing.T) {
 			"exit 0",
 		},
 	})
-	out, err := p.generateScript(conf)
+	out, err := p.generateScripts(conf)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if out != expectedScriptOut {
+	if reflect.DeepEqual(out, expectedInlineScriptsOut) {
 		t.Fatalf("bad: %v", out)
 	}
 }
@@ -80,18 +85,20 @@ func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(scripts) != 1 {
+	if len(scripts) != 3 {
 		t.Fatalf("bad: %v", scripts)
 	}
 
-	var out bytes.Buffer
-	_, err = io.Copy(&out, scripts[0])
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	for i, script := range scripts {
+		var out bytes.Buffer
+		_, err = io.Copy(&out, script)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	if out.String() != expectedScriptOut {
-		t.Fatalf("bad: %v", out.String())
+		if out.String() != expectedInlineScriptsOut[i] {
+			t.Fatalf("bad: %v", out.String())
+		}
 	}
 }
 

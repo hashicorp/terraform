@@ -69,6 +69,7 @@ resource "aws_ebs_snapshot" "snapshot" {
 }
 
 data "aws_ebs_snapshot" "snapshot" {
+    most_recent = true
     snapshot_ids = ["${aws_ebs_snapshot.snapshot.id}"]
 }
 `
@@ -88,6 +89,7 @@ resource "aws_ebs_snapshot" "snapshot" {
 }
 
 data "aws_ebs_snapshot" "snapshot" {
+    most_recent = true
     snapshot_ids = ["${aws_ebs_snapshot.snapshot.id}"]
     filter {
 	name = "volume-size"

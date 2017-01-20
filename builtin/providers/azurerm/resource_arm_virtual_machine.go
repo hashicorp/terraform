@@ -197,6 +197,12 @@ func resourceArmVirtualMachine() *schema.Resource {
 							Required: true,
 						},
 
+						"caching": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+						},
+
 						"disk_size_gb": {
 							Type:     schema.TypeInt,
 							Optional: true,
@@ -864,6 +870,7 @@ func flattenAzureRmVirtualMachineDataDisk(disks *[]compute.DataDisk) interface{}
 		l["name"] = *disk.Name
 		l["vhd_uri"] = *disk.Vhd.URI
 		l["create_option"] = disk.CreateOption
+		l["caching"] = string(disk.Caching)
 		if disk.DiskSizeGB != nil {
 			l["disk_size_gb"] = *disk.DiskSizeGB
 		}
@@ -1195,6 +1202,10 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 			},
 			Lun:          &lun,
 			CreateOption: compute.DiskCreateOptionTypes(createOption),
+		}
+
+		if v := config["caching"].(string); v != "" {
+			data_disk.Caching = compute.CachingTypes(v)
 		}
 
 		if v := config["disk_size_gb"]; v != nil {

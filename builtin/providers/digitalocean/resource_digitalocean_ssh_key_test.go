@@ -19,7 +19,7 @@ func TestAccDigitalOceanSSHKey_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanSSHKeyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanSSHKeyConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanSSHKeyExists("digitalocean_ssh_key.foobar", &key),

@@ -48,6 +48,13 @@ func TestComputeInstanceMigrateState(t *testing.T) {
 				"service_account.0.scopes.3435931483": "https://www.googleapis.com/auth/datastore",
 			},
 		},
+		"add new create_timeout attribute": {
+			StateVersion: 2,
+			Attributes:   map[string]string{},
+			Expected: map[string]string{
+				"create_timeout": "4",
+			},
+		},
 	}
 
 	for tn, tc := range cases {

@@ -27,7 +27,6 @@ resource "consul_keys" "app" {
 
     # Set the CNAME of our load balancer as a key
     key {
-        name = "elb_cname"
         path = "service/app/elb_address"
         value = "${aws_elb.app.dns_name}"
     }

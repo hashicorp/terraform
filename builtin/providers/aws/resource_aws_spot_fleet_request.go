@@ -324,7 +324,7 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 
 	if v, ok := d["user_data"]; ok {
 		opts.UserData = aws.String(
-			base64.StdEncoding.EncodeToString([]byte(v.(string))))
+			base64Encode([]byte(v.(string))))
 	}
 
 	if v, ok := d["key_name"]; ok {
@@ -658,7 +658,7 @@ func resourceAwsSpotFleetRequestRead(d *schema.ResourceData, meta interface{}) e
 		// If the spot request was not found, return nil so that we can show
 		// that it is gone.
 		ec2err, ok := err.(awserr.Error)
-		if ok && ec2err.Code() == "InvalidSpotFleetRequestID.NotFound" {
+		if ok && ec2err.Code() == "InvalidSpotFleetRequestId.NotFound" {
 			d.SetId("")
 			return nil
 		}

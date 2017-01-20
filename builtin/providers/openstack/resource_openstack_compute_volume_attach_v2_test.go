@@ -21,7 +21,7 @@ func TestAccComputeV2VolumeAttach_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2VolumeAttach_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeV2VolumeAttachExists(t, "openstack_compute_volume_attach_v2.va_1", &va),
+					testAccCheckComputeV2VolumeAttachExists("openstack_compute_volume_attach_v2.va_1", &va),
 				),
 			},
 		},
@@ -54,7 +54,7 @@ func testAccCheckComputeV2VolumeAttachDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckComputeV2VolumeAttachExists(t *testing.T, n string, va *volumeattach.VolumeAttachment) resource.TestCheckFunc {
+func testAccCheckComputeV2VolumeAttachExists(n string, va *volumeattach.VolumeAttachment) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -68,7 +68,7 @@ func testAccCheckComputeV2VolumeAttachExists(t *testing.T, n string, va *volumea
 		config := testAccProvider.Meta().(*Config)
 		computeClient, err := config.computeV2Client(OS_REGION_NAME)
 		if err != nil {
-			return fmt.Errorf("(testAccCheckComputeV2VolumeAttachExists) Error creating OpenStack compute client: %s", err)
+			return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 		}
 
 		instanceId, volumeId, err := parseComputeVolumeAttachmentId(rs.Primary.ID)
@@ -91,19 +91,19 @@ func testAccCheckComputeV2VolumeAttachExists(t *testing.T, n string, va *volumea
 	}
 }
 
-var testAccComputeV2VolumeAttach_basic = `
-	resource "openstack_blockstorage_volume_v2" "volume_1" {
-		name = "volume_1"
-		size = 1
-	}
+const testAccComputeV2VolumeAttach_basic = `
+resource "openstack_blockstorage_volume_v2" "volume_1" {
+  name = "volume_1"
+  size = 1
+}
 
-	resource "openstack_compute_instance_v2" "instance_1" {
-		name = "instance_1"
-		security_groups = ["default"]
-	}
+resource "openstack_compute_instance_v2" "instance_1" {
+  name = "instance_1"
+  security_groups = ["default"]
+}
 
-	resource "openstack_compute_volume_attach_v2" "va_1" {
-		instance_id = "${openstack_compute_instance_v2.instance_1.id}"
-		volume_id = "${openstack_blockstorage_volume_v2.volume_1.id}"
-	}
+resource "openstack_compute_volume_attach_v2" "va_1" {
+  instance_id = "${openstack_compute_instance_v2.instance_1.id}"
+  volume_id = "${openstack_blockstorage_volume_v2.volume_1.id}"
+}
 `

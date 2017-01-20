@@ -662,6 +662,67 @@ func (v *VApp) AddMetadata(key, value string) (Task, error) {
 
 }
 
+func (v *VApp) SetOvf(parameters map[string]string) (Task, error) {
+	err := v.Refresh()
+	if err != nil {
+		return Task{}, fmt.Errorf("error refreshing vapp before running customization: %v", err)
+	}
+
+	if v.VApp.Children == nil {
+		return Task{}, fmt.Errorf("vApp doesn't contain any children, aborting customization")
+	}
+
+	if v.VApp.Children.VM[0].ProductSection == nil {
+		return Task{}, fmt.Errorf("vApp doesn't contain any children with ProductSection, aborting customization")
+	}
+
+	for key, value := range parameters {
+		for _, ovf_value := range v.VApp.Children.VM[0].ProductSection.Property {
+			if ovf_value.Key == key {
+				ovf_value.Value = &types.Value{Value: value}
+				break
+			}
+		}
+	}
+
+	newmetadata := &types.ProductSectionList{
+		Xmlns:          "http://www.vmware.com/vcloud/v1.5",
+		Ovf:            "http://schemas.dmtf.org/ovf/envelope/1",
+		ProductSection: v.VApp.Children.VM[0].ProductSection,
+	}
+
+	output, err := xml.MarshalIndent(newmetadata, "  ", "    ")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+
+	log.Printf("[DEBUG] NetworkXML: %s", output)
+
+	b := bytes.NewBufferString(xml.Header + string(output))
+
+	s, _ := url.ParseRequestURI(v.VApp.Children.VM[0].HREF)
+	s.Path += "/productSections"
+
+	req := v.c.NewRequest(map[string]string{}, "PUT", *s, b)
+
+	req.Header.Add("Content-Type", "application/vnd.vmware.vcloud.productSections+xml")
+
+	resp, err := checkResp(v.c.Http.Do(req))
+	if err != nil {
+		return Task{}, fmt.Errorf("error customizing VM Network: %s", err)
+	}
+
+	task := NewTask(v.c)
+
+	if err = decodeBody(resp, task.Task); err != nil {
+		return Task{}, fmt.Errorf("error decoding Task response: %s", err)
+	}
+
+	// The request was successful
+	return *task, nil
+
+}
+
 func (v *VApp) ChangeNetworkConfig(network, ip string) (Task, error) {
 	err := v.Refresh()
 	if err != nil {

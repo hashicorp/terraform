@@ -38,7 +38,6 @@ const opAddPermission = "AddPermission"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) AddPermissionRequest(input *AddPermissionInput) (req *request.Request, output *AddPermissionOutput) {
 	op := &request.Operation{
 		Name:       opAddPermission,
@@ -134,7 +133,6 @@ const opCreateAlias = "CreateAlias"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) CreateAliasRequest(input *CreateAliasInput) (req *request.Request, output *AliasConfiguration) {
 	op := &request.Operation{
 		Name:       opCreateAlias,
@@ -217,7 +215,6 @@ const opCreateEventSourceMapping = "CreateEventSourceMapping"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) CreateEventSourceMappingRequest(input *CreateEventSourceMappingInput) (req *request.Request, output *EventSourceMappingConfiguration) {
 	op := &request.Operation{
 		Name:       opCreateEventSourceMapping,
@@ -320,7 +317,6 @@ const opCreateFunction = "CreateFunction"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) CreateFunctionRequest(input *CreateFunctionInput) (req *request.Request, output *FunctionConfiguration) {
 	op := &request.Operation{
 		Name:       opCreateFunction,
@@ -411,7 +407,6 @@ const opDeleteAlias = "DeleteAlias"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) DeleteAliasRequest(input *DeleteAliasInput) (req *request.Request, output *DeleteAliasOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAlias,
@@ -488,7 +483,6 @@ const opDeleteEventSourceMapping = "DeleteEventSourceMapping"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) DeleteEventSourceMappingRequest(input *DeleteEventSourceMappingInput) (req *request.Request, output *EventSourceMappingConfiguration) {
 	op := &request.Operation{
 		Name:       opDeleteEventSourceMapping,
@@ -568,7 +562,6 @@ const opDeleteFunction = "DeleteFunction"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) DeleteFunctionRequest(input *DeleteFunctionInput) (req *request.Request, output *DeleteFunctionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteFunction,
@@ -661,7 +654,6 @@ const opGetAccountSettings = "GetAccountSettings"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) GetAccountSettingsRequest(input *GetAccountSettingsInput) (req *request.Request, output *GetAccountSettingsOutput) {
 	op := &request.Operation{
 		Name:       opGetAccountSettings,
@@ -734,7 +726,6 @@ const opGetAlias = "GetAlias"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) GetAliasRequest(input *GetAliasInput) (req *request.Request, output *AliasConfiguration) {
 	op := &request.Operation{
 		Name:       opGetAlias,
@@ -814,7 +805,6 @@ const opGetEventSourceMapping = "GetEventSourceMapping"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) GetEventSourceMappingRequest(input *GetEventSourceMappingInput) (req *request.Request, output *EventSourceMappingConfiguration) {
 	op := &request.Operation{
 		Name:       opGetEventSourceMapping,
@@ -893,7 +883,6 @@ const opGetFunction = "GetFunction"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) GetFunctionRequest(input *GetFunctionInput) (req *request.Request, output *GetFunctionOutput) {
 	op := &request.Operation{
 		Name:       opGetFunction,
@@ -981,7 +970,6 @@ const opGetFunctionConfiguration = "GetFunctionConfiguration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) GetFunctionConfigurationRequest(input *GetFunctionConfigurationInput) (req *request.Request, output *FunctionConfiguration) {
 	op := &request.Operation{
 		Name:       opGetFunctionConfiguration,
@@ -1069,7 +1057,6 @@ const opGetPolicy = "GetPolicy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, output *GetPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetPolicy,
@@ -1154,7 +1141,6 @@ const opInvoke = "Invoke"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) InvokeRequest(input *InvokeInput) (req *request.Request, output *InvokeOutput) {
 	op := &request.Operation{
 		Name:       opInvoke,
@@ -1298,7 +1284,6 @@ const opInvokeAsync = "InvokeAsync"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) InvokeAsyncRequest(input *InvokeAsyncInput) (req *request.Request, output *InvokeAsyncOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, InvokeAsync, has been deprecated")
@@ -1378,7 +1363,6 @@ const opListAliases = "ListAliases"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) ListAliasesRequest(input *ListAliasesInput) (req *request.Request, output *ListAliasesOutput) {
 	op := &request.Operation{
 		Name:       opListAliases,
@@ -1459,7 +1443,6 @@ const opListEventSourceMappings = "ListEventSourceMappings"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) ListEventSourceMappingsRequest(input *ListEventSourceMappingsInput) (req *request.Request, output *ListEventSourceMappingsOutput) {
 	op := &request.Operation{
 		Name:       opListEventSourceMappings,
@@ -1578,7 +1561,6 @@ const opListFunctions = "ListFunctions"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) ListFunctionsRequest(input *ListFunctionsInput) (req *request.Request, output *ListFunctionsOutput) {
 	op := &request.Operation{
 		Name:       opListFunctions,
@@ -1684,7 +1666,6 @@ const opListVersionsByFunction = "ListVersionsByFunction"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) ListVersionsByFunctionRequest(input *ListVersionsByFunctionInput) (req *request.Request, output *ListVersionsByFunctionOutput) {
 	op := &request.Operation{
 		Name:       opListVersionsByFunction,
@@ -1761,7 +1742,6 @@ const opPublishVersion = "PublishVersion"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) PublishVersionRequest(input *PublishVersionInput) (req *request.Request, output *FunctionConfiguration) {
 	op := &request.Operation{
 		Name:       opPublishVersion,
@@ -1844,7 +1824,6 @@ const opRemovePermission = "RemovePermission"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) RemovePermissionRequest(input *RemovePermissionInput) (req *request.Request, output *RemovePermissionOutput) {
 	op := &request.Operation{
 		Name:       opRemovePermission,
@@ -1934,7 +1913,6 @@ const opUpdateAlias = "UpdateAlias"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) UpdateAliasRequest(input *UpdateAliasInput) (req *request.Request, output *AliasConfiguration) {
 	op := &request.Operation{
 		Name:       opUpdateAlias,
@@ -2014,7 +1992,6 @@ const opUpdateEventSourceMapping = "UpdateEventSourceMapping"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) UpdateEventSourceMappingRequest(input *UpdateEventSourceMappingInput) (req *request.Request, output *EventSourceMappingConfiguration) {
 	op := &request.Operation{
 		Name:       opUpdateEventSourceMapping,
@@ -2109,7 +2086,6 @@ const opUpdateFunctionCode = "UpdateFunctionCode"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) UpdateFunctionCodeRequest(input *UpdateFunctionCodeInput) (req *request.Request, output *FunctionConfiguration) {
 	op := &request.Operation{
 		Name:       opUpdateFunctionCode,
@@ -2196,7 +2172,6 @@ const opUpdateFunctionConfiguration = "UpdateFunctionConfiguration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Lambda) UpdateFunctionConfigurationRequest(input *UpdateFunctionConfigurationInput) (req *request.Request, output *FunctionConfiguration) {
 	op := &request.Operation{
 		Name:       opUpdateFunctionConfiguration,

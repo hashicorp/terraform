@@ -292,6 +292,10 @@ func validateAwsAccountId(v interface{}, k string) (ws []string, errors []error)
 func validateArn(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 
+	if value == "" {
+		return
+	}
+
 	// http://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
 	pattern := `^arn:aws:([a-zA-Z0-9\-])+:([a-z]{2}-[a-z]+-\d{1})?:(\d{12})?:(.*)$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
@@ -522,6 +526,19 @@ func validateJsonString(v interface{}, k string) (ws []string, errors []error) {
 	return
 }
 
+func validateCloudFormationTemplate(v interface{}, k string) (ws []string, errors []error) {
+	if looksLikeJsonString(v) {
+		if _, err := normalizeJsonString(v); err != nil {
+			errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
+		}
+	} else {
+		if _, err := checkYamlString(v); err != nil {
+			errors = append(errors, fmt.Errorf("%q contains an invalid YAML: %s", k, err))
+		}
+	}
+	return
+}
+
 func validateApiGatewayIntegrationType(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 
@@ -537,6 +554,22 @@ func validateApiGatewayIntegrationType(v interface{}, k string) (ws []string, er
 		errors = append(errors, fmt.Errorf(
 			"%q contains an invalid integration type %q. Valid types are either %q, %q, %q, %q, or %q.",
 			k, value, "AWS", "AWS_PROXY", "HTTP", "HTTP_PROXY", "MOCK"))
+	}
+	return
+}
+
+func validateApiGatewayIntegrationContentHandling(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	validTypes := map[string]bool{
+		"CONVERT_TO_BINARY": true,
+		"CONVERT_TO_TEXT":   true,
+	}
+
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid integration type %q. Valid types are either %q or %q.",
+			k, value, "CONVERT_TO_BINARY", "CONVERT_TO_TEXT"))
 	}
 	return
 }
@@ -585,6 +618,71 @@ func validateSNSSubscriptionProtocol(v interface{}, k string) (ws []string, erro
 				fmt.Errorf("Unsupported protocol (%s) for SNS Topic", value),
 			)
 		}
+	}
+	return
+}
+
+func validateSecurityRuleType(v interface{}, k string) (ws []string, errors []error) {
+	value := strings.ToLower(v.(string))
+
+	validTypes := map[string]bool{
+		"ingress": true,
+		"egress":  true,
+	}
+
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Security Group Rule type %q. Valid types are either %q or %q.",
+			k, value, "ingress", "egress"))
+	}
+	return
+}
+
+func validateOnceAWeekWindowFormat(v interface{}, k string) (ws []string, errors []error) {
+	// valid time format is "ddd:hh24:mi"
+	validTimeFormat := "(sun|mon|tue|wed|thu|fri|sat):([0-1][0-9]|2[0-3]):([0-5][0-9])"
+
+	value := strings.ToLower(v.(string))
+	if !regexp.MustCompile(validTimeFormat + "-" + validTimeFormat).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must satisfy the format of \"ddd:hh24:mi-ddd:hh24:mi\".", k))
+	}
+	return
+}
+
+func validateOnceADayWindowFormat(v interface{}, k string) (ws []string, errors []error) {
+	// valid time format is "hh24:mi"
+	validTimeFormat := "([0-1][0-9]|2[0-3]):([0-5][0-9])"
+
+	value := v.(string)
+	if !regexp.MustCompile(validTimeFormat + "-" + validTimeFormat).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must satisfy the format of \"hh24:mi-hh24:mi\".", k))
+	}
+	return
+}
+
+func validateRoute53RecordType(v interface{}, k string) (ws []string, errors []error) {
+	// Valid Record types
+	// SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA
+	validTypes := map[string]struct{}{
+		"SOA":   {},
+		"A":     {},
+		"TXT":   {},
+		"NS":    {},
+		"CNAME": {},
+		"MX":    {},
+		"NAPTR": {},
+		"PTR":   {},
+		"SRV":   {},
+		"SPF":   {},
+		"AAAA":  {},
+	}
+
+	value := v.(string)
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of [SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA]", k))
 	}
 	return
 }

@@ -276,6 +276,14 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"tenancy": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				ValidateFunc: validateTenancy,
+			},
+
 			"virtualization_type": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -429,6 +437,15 @@ func validateArchitecture(v interface{}, k string) (ws []string, errors []error)
 	return
 }
 
+func validateTenancy(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != "dedicated" && value != "default" && value != "host" {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of \"dedicated\", \"default\" or \"host\"", k))
+	}
+	return
+}
+
 func validateAutoScalingType(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if value != "load" && value != "timer" {
@@ -561,6 +578,7 @@ func resourceAwsOpsworksInstanceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("stack_id", instance.StackId)
 	d.Set("status", instance.Status)
 	d.Set("subnet_id", instance.SubnetId)
+	d.Set("tenancy", instance.Tenancy)
 	d.Set("virtualization_type", instance.VirtualizationType)
 
 	// Read BlockDeviceMapping
@@ -644,6 +662,10 @@ func resourceAwsOpsworksInstanceCreate(d *schema.ResourceData, meta interface{})
 
 	if v, ok := d.GetOk("subnet_id"); ok {
 		req.SubnetId = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("tenancy"); ok {
+		req.Tenancy = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("virtualization_type"); ok {

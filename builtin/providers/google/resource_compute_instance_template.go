@@ -203,6 +203,12 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 							ForceNew: true,
 						},
 
+						"subnetwork_project": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
 						"access_config": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
@@ -406,14 +412,16 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) ([]*compute.Network
 	for i := 0; i < networksCount; i++ {
 		prefix := fmt.Sprintf("network_interface.%d", i)
 
-		var networkName, subnetworkName string
+		var networkName, subnetworkName, subnetworkProject string
 		if v, ok := d.GetOk(prefix + ".network"); ok {
 			networkName = v.(string)
 		}
 		if v, ok := d.GetOk(prefix + ".subnetwork"); ok {
 			subnetworkName = v.(string)
 		}
-
+		if v, ok := d.GetOk(prefix + ".subnetwork_project"); ok {
+			subnetworkProject = v.(string)
+		}
 		if networkName == "" && subnetworkName == "" {
 			return nil, fmt.Errorf("network or subnetwork must be provided")
 		}
@@ -435,8 +443,11 @@ func buildNetworks(d *schema.ResourceData, meta interface{}) ([]*compute.Network
 			if err != nil {
 				return nil, err
 			}
+			if subnetworkProject == "" {
+				subnetworkProject = project
+			}
 			subnetwork, err := config.clientCompute.Subnetworks.Get(
-				project, region, subnetworkName).Do()
+				subnetworkProject, region, subnetworkName).Do()
 			if err != nil {
 				return nil, fmt.Errorf(
 					"Error referencing subnetwork '%s' in region '%s': %s",
@@ -639,6 +650,7 @@ func flattenNetworkInterfaces(networkInterfaces []*compute.NetworkInterface) ([]
 			subnetworkUrl := strings.Split(networkInterface.Subnetwork, "/")
 			networkInterfaceMap["subnetwork"] = subnetworkUrl[len(subnetworkUrl)-1]
 			region = subnetworkUrl[len(subnetworkUrl)-3]
+			networkInterfaceMap["subnetwork_project"] = subnetworkUrl[len(subnetworkUrl)-5]
 		}
 
 		if networkInterface.AccessConfigs != nil {

@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -1661,6 +1662,25 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 			}
 
 			result.Attributes[k] = diff.New
+		}
+	}
+
+	// Remove any now empty array, maps or sets because a parent structure
+	// won't include these entries in the count value.
+	isCount := regexp.MustCompile(`\.[%#]$`).MatchString
+	for k, v := range result.Attributes {
+		if isCount(k) && v == "0" {
+			delete(result.Attributes, k)
+
+			// Sanity check for invalid structures.
+			// If we removed the primary count key, there should have been no
+			// other keys left with this prefix.
+			base := k[:len(k)-2]
+			for k, _ := range result.Attributes {
+				if strings.HasPrefix(k, base) {
+					panic(fmt.Sprintf("empty structure %q has entry %q", base, k))
+				}
+			}
 		}
 	}
 

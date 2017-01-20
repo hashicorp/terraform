@@ -59,7 +59,7 @@ resource "aws_lambda_function" "test_lambda" {
 * `role` - (Required) IAM role attached to the Lambda Function. This governs both who / what can invoke your Lambda Function, as well as what resources our Lambda Function has access to. See [Lambda Permission Model][4] for more details.
 * `description` - (Optional) Description of what your Lambda Function does.
 * `memory_size` - (Optional) Amount of memory in MB your Lambda Function can use at runtime. Defaults to `128`. See [Limits][5]
-* `runtime` - (Optional) Defaults to `nodejs`. See [Runtimes][6] for valid values.
+* `runtime` - (Required) See [Runtimes][6] for valid values.
 * `timeout` - (Optional) The amount of time your Lambda Function has to run in seconds. Defaults to `3`. See [Limits][5]
 * `publish` - (Optional) Whether to publish creation/change as new Lambda Function Version. Defaults to `false`.
 * `vpc_config` - (Optional) Provide this to allow your function to access your VPC. Fields documented below. See [Lambda in VPC][7]

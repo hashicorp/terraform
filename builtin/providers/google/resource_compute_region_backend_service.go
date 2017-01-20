@@ -82,6 +82,12 @@ func resourceComputeRegionBackendService() *schema.Resource {
 				Computed: true,
 			},
 
+			"session_affinity": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"region": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -127,6 +133,10 @@ func resourceComputeRegionBackendServiceCreate(d *schema.ResourceData, meta inte
 
 	if v, ok := d.GetOk("protocol"); ok {
 		service.Protocol = v.(string)
+	}
+
+	if v, ok := d.GetOk("session_affinity"); ok {
+		service.SessionAffinity = v.(string)
 	}
 
 	if v, ok := d.GetOk("timeout_sec"); ok {
@@ -192,6 +202,7 @@ func resourceComputeRegionBackendServiceRead(d *schema.ResourceData, meta interf
 
 	d.Set("description", service.Description)
 	d.Set("protocol", service.Protocol)
+	d.Set("session_affinity", service.SessionAffinity)
 	d.Set("timeout_sec", service.TimeoutSec)
 	d.Set("fingerprint", service.Fingerprint)
 	d.Set("self_link", service.SelfLink)
@@ -237,6 +248,9 @@ func resourceComputeRegionBackendServiceUpdate(d *schema.ResourceData, meta inte
 	}
 	if v, ok := d.GetOk("protocol"); ok {
 		service.Protocol = v.(string)
+	}
+	if v, ok := d.GetOk("session_affinity"); ok {
+		service.SessionAffinity = v.(string)
 	}
 	if v, ok := d.GetOk("timeout_sec"); ok {
 		service.TimeoutSec = int64(v.(int))

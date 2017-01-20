@@ -77,10 +77,10 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				Required: true,
 			},
 			"runtime": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Default:  "nodejs",
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateRuntime,
 			},
 			"timeout": {
 				Type:     schema.TypeInt,
@@ -574,4 +574,15 @@ func validateVPCConfig(v interface{}) (map[string]interface{}, error) {
 	}
 
 	return config, nil
+}
+
+func validateRuntime(v interface{}, k string) (ws []string, errors []error) {
+	runtime := v.(string)
+
+	if runtime == lambda.RuntimeNodejs {
+		errors = append(errors, fmt.Errorf(
+			"%s has reached end of life since October 2016 and has been deprecated in favor of %s.",
+			runtime, lambda.RuntimeNodejs43))
+	}
+	return
 }

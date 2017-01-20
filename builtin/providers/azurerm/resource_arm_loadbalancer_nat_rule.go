@@ -100,11 +100,9 @@ func resourceArmLoadBalancerNatRuleCreate(d *schema.ResourceData, meta interface
 
 	existingNatRule, existingNatRuleIndex, exists := findLoadBalancerNatRuleByName(loadBalancer, d.Get("name").(string))
 	if exists {
-		if d.Id() == *existingNatRule.ID {
-			// this probe is being updated remove old copy from the slice
+		if d.Get("name").(string) == *existingNatRule.Name {
+			// this probe is being updated/reapplied remove old copy from the slice
 			natRules = append(natRules[:existingNatRuleIndex], natRules[existingNatRuleIndex+1:]...)
-		} else {
-			return fmt.Errorf("A NAT Rule with name %q already exists.", d.Get("name").(string))
 		}
 	}
 

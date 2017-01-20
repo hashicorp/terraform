@@ -14,6 +14,7 @@ Use this data source to get information about an EBS Snapshot for use when provi
 
 ```
 data "aws_ebs_snapshot" "ebs_volume" {
+    most_recent = true
     owners = ["self"]
     filter {
         name = "volume-size"
@@ -29,6 +30,8 @@ data "aws_ebs_snapshot" "ebs_volume" {
 ## Argument Reference
 
 The following arguments are supported:
+
+* `most_recent` - (Optional) If more than one result is returned, use the most recent snapshot.
 
 * `owners` - (Optional) Returns the snapshots owned by the specified owner id. Multiple owners can be specified.
 

@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/helper/schema"
+	"gopkg.in/yaml.v2"
 )
 
 // Takes the result of flatmap.Expand for an array of listeners and
@@ -360,26 +361,28 @@ func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.Param
 func flattenAccessLog(l *elb.AccessLog) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
 
-	if l != nil && *l.Enabled {
-		r := make(map[string]interface{})
-		if l.S3BucketName != nil {
-			r["bucket"] = *l.S3BucketName
-		}
-
-		if l.S3BucketPrefix != nil {
-			r["bucket_prefix"] = *l.S3BucketPrefix
-		}
-
-		if l.EmitInterval != nil {
-			r["interval"] = *l.EmitInterval
-		}
-
-		if l.Enabled != nil {
-			r["enabled"] = *l.Enabled
-		}
-
-		result = append(result, r)
+	if l == nil {
+		return nil
 	}
+
+	r := make(map[string]interface{})
+	if l.S3BucketName != nil {
+		r["bucket"] = *l.S3BucketName
+	}
+
+	if l.S3BucketPrefix != nil {
+		r["bucket_prefix"] = *l.S3BucketPrefix
+	}
+
+	if l.EmitInterval != nil {
+		r["interval"] = *l.EmitInterval
+	}
+
+	if l.Enabled != nil {
+		r["enabled"] = *l.Enabled
+	}
+
+	result = append(result, r)
 
 	return result
 }
@@ -1646,4 +1649,40 @@ func normalizeJsonString(jsonString interface{}) (string, error) {
 
 	bytes, _ := json.Marshal(j)
 	return string(bytes[:]), nil
+}
+
+// Takes a value containing YAML string and passes it through
+// the YAML parser. Returns either a parsing
+// error or original YAML string.
+func checkYamlString(yamlString interface{}) (string, error) {
+	var y interface{}
+
+	if yamlString == nil || yamlString.(string) == "" {
+		return "", nil
+	}
+
+	s := yamlString.(string)
+
+	err := yaml.Unmarshal([]byte(s), &y)
+	if err != nil {
+		return s, err
+	}
+
+	return s, nil
+}
+
+func normalizeCloudFormationTemplate(templateString interface{}) (string, error) {
+	if looksLikeJsonString(templateString) {
+		return normalizeJsonString(templateString)
+	} else {
+		return checkYamlString(templateString)
+	}
+}
+
+func flattenInspectorTags(cfTags []*cloudformation.Tag) map[string]string {
+	tags := make(map[string]string, len(cfTags))
+	for _, t := range cfTags {
+		tags[*t.Key] = *t.Value
+	}
+	return tags
 }

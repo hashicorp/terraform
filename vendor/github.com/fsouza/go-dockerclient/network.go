@@ -153,9 +153,6 @@ func (c *Client) CreateNetwork(opts CreateNetworkOptions) (*Network, error) {
 		},
 	)
 	if err != nil {
-		if e, ok := err.(*Error); ok && e.Status == http.StatusConflict {
-			return nil, ErrNetworkAlreadyExists
-		}
 		return nil, err
 	}
 	defer resp.Body.Close()

@@ -594,10 +594,34 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if d.HasChange("metadata") {
-		var metadataOpts servers.MetadataOpts
-		metadataOpts = make(servers.MetadataOpts)
-		newMetadata := d.Get("metadata").(map[string]interface{})
-		for k, v := range newMetadata {
+		oldMetadata, newMetadata := d.GetChange("metadata")
+		var metadataToDelete []string
+
+		// Determine if any metadata keys were removed from the configuration.
+		// Then request those keys to be deleted.
+		for oldKey, _ := range oldMetadata.(map[string]interface{}) {
+			var found bool
+			for newKey, _ := range newMetadata.(map[string]interface{}) {
+				if oldKey == newKey {
+					found = true
+				}
+			}
+
+			if !found {
+				metadataToDelete = append(metadataToDelete, oldKey)
+			}
+		}
+
+		for _, key := range metadataToDelete {
+			err := servers.DeleteMetadatum(computeClient, d.Id(), key).ExtractErr()
+			if err != nil {
+				return fmt.Errorf("Error deleting metadata (%s) from server (%s): %s", key, d.Id(), err)
+			}
+		}
+
+		// Update existing metadata and add any new metadata.
+		metadataOpts := make(servers.MetadataOpts)
+		for k, v := range newMetadata.(map[string]interface{}) {
 			metadataOpts[k] = v.(string)
 		}
 

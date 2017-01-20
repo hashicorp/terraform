@@ -37,7 +37,6 @@ const opCreateApiKey = "CreateApiKey"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) CreateApiKeyRequest(input *CreateApiKeyInput) (req *request.Request, output *ApiKey) {
 	op := &request.Operation{
 		Name:       opCreateApiKey,
@@ -118,7 +117,6 @@ const opCreateAuthorizer = "CreateAuthorizer"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) CreateAuthorizerRequest(input *CreateAuthorizerInput) (req *request.Request, output *Authorizer) {
 	op := &request.Operation{
 		Name:       opCreateAuthorizer,
@@ -196,7 +194,6 @@ const opCreateBasePathMapping = "CreateBasePathMapping"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) CreateBasePathMappingRequest(input *CreateBasePathMappingInput) (req *request.Request, output *BasePathMapping) {
 	op := &request.Operation{
 		Name:       opCreateBasePathMapping,
@@ -272,7 +269,6 @@ const opCreateDeployment = "CreateDeployment"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) CreateDeploymentRequest(input *CreateDeploymentInput) (req *request.Request, output *Deployment) {
 	op := &request.Operation{
 		Name:       opCreateDeployment,
@@ -355,7 +351,6 @@ const opCreateDocumentationPart = "CreateDocumentationPart"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) CreateDocumentationPartRequest(input *CreateDocumentationPartInput) (req *request.Request, output *DocumentationPart) {
 	op := &request.Operation{
 		Name:       opCreateDocumentationPart,
@@ -432,7 +427,6 @@ const opCreateDocumentationVersion = "CreateDocumentationVersion"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) CreateDocumentationVersionRequest(input *CreateDocumentationVersionInput) (req *request.Request, output *DocumentationVersion) {
 	op := &request.Operation{
 		Name:       opCreateDocumentationVersion,
@@ -509,7 +503,6 @@ const opCreateDomainName = "CreateDomainName"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) CreateDomainNameRequest(input *CreateDomainNameInput) (req *request.Request, output *DomainName) {
 	op := &request.Operation{
 		Name:       opCreateDomainName,
@@ -582,7 +575,6 @@ const opCreateModel = "CreateModel"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) CreateModelRequest(input *CreateModelInput) (req *request.Request, output *Model) {
 	op := &request.Operation{
 		Name:       opCreateModel,
@@ -661,7 +653,6 @@ const opCreateResource = "CreateResource"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) CreateResourceRequest(input *CreateResourceInput) (req *request.Request, output *Resource) {
 	op := &request.Operation{
 		Name:       opCreateResource,
@@ -740,7 +731,6 @@ const opCreateRestApi = "CreateRestApi"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) CreateRestApiRequest(input *CreateRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opCreateRestApi,
@@ -813,7 +803,6 @@ const opCreateStage = "CreateStage"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) CreateStageRequest(input *CreateStageInput) (req *request.Request, output *Stage) {
 	op := &request.Operation{
 		Name:       opCreateStage,
@@ -893,7 +882,6 @@ const opCreateUsagePlan = "CreateUsagePlan"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) CreateUsagePlanRequest(input *CreateUsagePlanInput) (req *request.Request, output *UsagePlan) {
 	op := &request.Operation{
 		Name:       opCreateUsagePlan,
@@ -973,7 +961,6 @@ const opCreateUsagePlanKey = "CreateUsagePlanKey"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) CreateUsagePlanKeyRequest(input *CreateUsagePlanKeyInput) (req *request.Request, output *UsagePlanKey) {
 	op := &request.Operation{
 		Name:       opCreateUsagePlanKey,
@@ -1049,7 +1036,6 @@ const opDeleteApiKey = "DeleteApiKey"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteApiKeyRequest(input *DeleteApiKeyInput) (req *request.Request, output *DeleteApiKeyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteApiKey,
@@ -1121,7 +1107,6 @@ const opDeleteAuthorizer = "DeleteAuthorizer"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteAuthorizerRequest(input *DeleteAuthorizerInput) (req *request.Request, output *DeleteAuthorizerOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAuthorizer,
@@ -1201,7 +1186,6 @@ const opDeleteBasePathMapping = "DeleteBasePathMapping"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteBasePathMappingRequest(input *DeleteBasePathMappingInput) (req *request.Request, output *DeleteBasePathMappingOutput) {
 	op := &request.Operation{
 		Name:       opDeleteBasePathMapping,
@@ -1273,7 +1257,6 @@ const opDeleteClientCertificate = "DeleteClientCertificate"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteClientCertificateRequest(input *DeleteClientCertificateInput) (req *request.Request, output *DeleteClientCertificateOutput) {
 	op := &request.Operation{
 		Name:       opDeleteClientCertificate,
@@ -1348,7 +1331,6 @@ const opDeleteDeployment = "DeleteDeployment"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteDeploymentRequest(input *DeleteDeploymentInput) (req *request.Request, output *DeleteDeploymentOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDeployment,
@@ -1424,7 +1406,6 @@ const opDeleteDocumentationPart = "DeleteDocumentationPart"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteDocumentationPartRequest(input *DeleteDocumentationPartInput) (req *request.Request, output *DeleteDocumentationPartOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDocumentationPart,
@@ -1500,7 +1481,6 @@ const opDeleteDocumentationVersion = "DeleteDocumentationVersion"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteDocumentationVersionRequest(input *DeleteDocumentationVersionInput) (req *request.Request, output *DeleteDocumentationVersionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDocumentationVersion,
@@ -1576,7 +1556,6 @@ const opDeleteDomainName = "DeleteDomainName"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteDomainNameRequest(input *DeleteDomainNameInput) (req *request.Request, output *DeleteDomainNameOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDomainName,
@@ -1648,7 +1627,6 @@ const opDeleteIntegration = "DeleteIntegration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteIntegrationRequest(input *DeleteIntegrationInput) (req *request.Request, output *DeleteIntegrationOutput) {
 	op := &request.Operation{
 		Name:       opDeleteIntegration,
@@ -1723,7 +1701,6 @@ const opDeleteIntegrationResponse = "DeleteIntegrationResponse"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteIntegrationResponseRequest(input *DeleteIntegrationResponseInput) (req *request.Request, output *DeleteIntegrationResponseOutput) {
 	op := &request.Operation{
 		Name:       opDeleteIntegrationResponse,
@@ -1801,7 +1778,6 @@ const opDeleteMethod = "DeleteMethod"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteMethodRequest(input *DeleteMethodInput) (req *request.Request, output *DeleteMethodOutput) {
 	op := &request.Operation{
 		Name:       opDeleteMethod,
@@ -1876,7 +1852,6 @@ const opDeleteMethodResponse = "DeleteMethodResponse"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteMethodResponseRequest(input *DeleteMethodResponseInput) (req *request.Request, output *DeleteMethodResponseOutput) {
 	op := &request.Operation{
 		Name:       opDeleteMethodResponse,
@@ -1954,7 +1929,6 @@ const opDeleteModel = "DeleteModel"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteModelRequest(input *DeleteModelInput) (req *request.Request, output *DeleteModelOutput) {
 	op := &request.Operation{
 		Name:       opDeleteModel,
@@ -2032,7 +2006,6 @@ const opDeleteResource = "DeleteResource"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteResourceRequest(input *DeleteResourceInput) (req *request.Request, output *DeleteResourceOutput) {
 	op := &request.Operation{
 		Name:       opDeleteResource,
@@ -2110,7 +2083,6 @@ const opDeleteRestApi = "DeleteRestApi"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteRestApiRequest(input *DeleteRestApiInput) (req *request.Request, output *DeleteRestApiOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRestApi,
@@ -2185,7 +2157,6 @@ const opDeleteStage = "DeleteStage"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteStageRequest(input *DeleteStageInput) (req *request.Request, output *DeleteStageOutput) {
 	op := &request.Operation{
 		Name:       opDeleteStage,
@@ -2260,7 +2231,6 @@ const opDeleteUsagePlan = "DeleteUsagePlan"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteUsagePlanRequest(input *DeleteUsagePlanInput) (req *request.Request, output *DeleteUsagePlanOutput) {
 	op := &request.Operation{
 		Name:       opDeleteUsagePlan,
@@ -2335,7 +2305,6 @@ const opDeleteUsagePlanKey = "DeleteUsagePlanKey"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) DeleteUsagePlanKeyRequest(input *DeleteUsagePlanKeyInput) (req *request.Request, output *DeleteUsagePlanKeyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteUsagePlanKey,
@@ -2414,7 +2383,6 @@ const opFlushStageAuthorizersCache = "FlushStageAuthorizersCache"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) FlushStageAuthorizersCacheRequest(input *FlushStageAuthorizersCacheInput) (req *request.Request, output *FlushStageAuthorizersCacheOutput) {
 	op := &request.Operation{
 		Name:       opFlushStageAuthorizersCache,
@@ -2489,7 +2457,6 @@ const opFlushStageCache = "FlushStageCache"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) FlushStageCacheRequest(input *FlushStageCacheInput) (req *request.Request, output *FlushStageCacheOutput) {
 	op := &request.Operation{
 		Name:       opFlushStageCache,
@@ -2564,7 +2531,6 @@ const opGenerateClientCertificate = "GenerateClientCertificate"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GenerateClientCertificateRequest(input *GenerateClientCertificateInput) (req *request.Request, output *ClientCertificate) {
 	op := &request.Operation{
 		Name:       opGenerateClientCertificate,
@@ -2634,7 +2600,6 @@ const opGetAccount = "GetAccount"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetAccountRequest(input *GetAccountInput) (req *request.Request, output *Account) {
 	op := &request.Operation{
 		Name:       opGetAccount,
@@ -2704,7 +2669,6 @@ const opGetApiKey = "GetApiKey"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetApiKeyRequest(input *GetApiKeyInput) (req *request.Request, output *ApiKey) {
 	op := &request.Operation{
 		Name:       opGetApiKey,
@@ -2774,7 +2738,6 @@ const opGetApiKeys = "GetApiKeys"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetApiKeysRequest(input *GetApiKeysInput) (req *request.Request, output *GetApiKeysOutput) {
 	op := &request.Operation{
 		Name:       opGetApiKeys,
@@ -2875,7 +2838,6 @@ const opGetAuthorizer = "GetAuthorizer"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetAuthorizerRequest(input *GetAuthorizerInput) (req *request.Request, output *Authorizer) {
 	op := &request.Operation{
 		Name:       opGetAuthorizer,
@@ -2947,7 +2909,6 @@ const opGetAuthorizers = "GetAuthorizers"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetAuthorizersRequest(input *GetAuthorizersInput) (req *request.Request, output *GetAuthorizersOutput) {
 	op := &request.Operation{
 		Name:       opGetAuthorizers,
@@ -3022,7 +2983,6 @@ const opGetBasePathMapping = "GetBasePathMapping"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetBasePathMappingRequest(input *GetBasePathMappingInput) (req *request.Request, output *BasePathMapping) {
 	op := &request.Operation{
 		Name:       opGetBasePathMapping,
@@ -3092,7 +3052,6 @@ const opGetBasePathMappings = "GetBasePathMappings"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetBasePathMappingsRequest(input *GetBasePathMappingsInput) (req *request.Request, output *GetBasePathMappingsOutput) {
 	op := &request.Operation{
 		Name:       opGetBasePathMappings,
@@ -3193,7 +3152,6 @@ const opGetClientCertificate = "GetClientCertificate"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetClientCertificateRequest(input *GetClientCertificateInput) (req *request.Request, output *ClientCertificate) {
 	op := &request.Operation{
 		Name:       opGetClientCertificate,
@@ -3263,7 +3221,6 @@ const opGetClientCertificates = "GetClientCertificates"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetClientCertificatesRequest(input *GetClientCertificatesInput) (req *request.Request, output *GetClientCertificatesOutput) {
 	op := &request.Operation{
 		Name:       opGetClientCertificates,
@@ -3364,7 +3321,6 @@ const opGetDeployment = "GetDeployment"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetDeploymentRequest(input *GetDeploymentInput) (req *request.Request, output *Deployment) {
 	op := &request.Operation{
 		Name:       opGetDeployment,
@@ -3437,7 +3393,6 @@ const opGetDeployments = "GetDeployments"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetDeploymentsRequest(input *GetDeploymentsInput) (req *request.Request, output *GetDeploymentsOutput) {
 	op := &request.Operation{
 		Name:       opGetDeployments,
@@ -3541,7 +3496,6 @@ const opGetDocumentationPart = "GetDocumentationPart"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetDocumentationPartRequest(input *GetDocumentationPartInput) (req *request.Request, output *DocumentationPart) {
 	op := &request.Operation{
 		Name:       opGetDocumentationPart,
@@ -3609,7 +3563,6 @@ const opGetDocumentationParts = "GetDocumentationParts"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetDocumentationPartsRequest(input *GetDocumentationPartsInput) (req *request.Request, output *GetDocumentationPartsOutput) {
 	op := &request.Operation{
 		Name:       opGetDocumentationParts,
@@ -3680,7 +3633,6 @@ const opGetDocumentationVersion = "GetDocumentationVersion"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetDocumentationVersionRequest(input *GetDocumentationVersionInput) (req *request.Request, output *DocumentationVersion) {
 	op := &request.Operation{
 		Name:       opGetDocumentationVersion,
@@ -3748,7 +3700,6 @@ const opGetDocumentationVersions = "GetDocumentationVersions"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetDocumentationVersionsRequest(input *GetDocumentationVersionsInput) (req *request.Request, output *GetDocumentationVersionsOutput) {
 	op := &request.Operation{
 		Name:       opGetDocumentationVersions,
@@ -3819,7 +3770,6 @@ const opGetDomainName = "GetDomainName"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetDomainNameRequest(input *GetDomainNameInput) (req *request.Request, output *DomainName) {
 	op := &request.Operation{
 		Name:       opGetDomainName,
@@ -3893,7 +3843,6 @@ const opGetDomainNames = "GetDomainNames"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetDomainNamesRequest(input *GetDomainNamesInput) (req *request.Request, output *GetDomainNamesOutput) {
 	op := &request.Operation{
 		Name:       opGetDomainNames,
@@ -3994,7 +3943,6 @@ const opGetExport = "GetExport"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetExportRequest(input *GetExportInput) (req *request.Request, output *GetExportOutput) {
 	op := &request.Operation{
 		Name:       opGetExport,
@@ -4067,7 +4015,6 @@ const opGetIntegration = "GetIntegration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetIntegrationRequest(input *GetIntegrationInput) (req *request.Request, output *Integration) {
 	op := &request.Operation{
 		Name:       opGetIntegration,
@@ -4137,7 +4084,6 @@ const opGetIntegrationResponse = "GetIntegrationResponse"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetIntegrationResponseRequest(input *GetIntegrationResponseInput) (req *request.Request, output *IntegrationResponse) {
 	op := &request.Operation{
 		Name:       opGetIntegrationResponse,
@@ -4207,7 +4153,6 @@ const opGetMethod = "GetMethod"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetMethodRequest(input *GetMethodInput) (req *request.Request, output *Method) {
 	op := &request.Operation{
 		Name:       opGetMethod,
@@ -4277,7 +4222,6 @@ const opGetMethodResponse = "GetMethodResponse"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetMethodResponseRequest(input *GetMethodResponseInput) (req *request.Request, output *MethodResponse) {
 	op := &request.Operation{
 		Name:       opGetMethodResponse,
@@ -4347,7 +4291,6 @@ const opGetModel = "GetModel"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetModelRequest(input *GetModelInput) (req *request.Request, output *Model) {
 	op := &request.Operation{
 		Name:       opGetModel,
@@ -4417,7 +4360,6 @@ const opGetModelTemplate = "GetModelTemplate"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetModelTemplateRequest(input *GetModelTemplateInput) (req *request.Request, output *GetModelTemplateOutput) {
 	op := &request.Operation{
 		Name:       opGetModelTemplate,
@@ -4491,7 +4433,6 @@ const opGetModels = "GetModels"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetModelsRequest(input *GetModelsInput) (req *request.Request, output *GetModelsOutput) {
 	op := &request.Operation{
 		Name:       opGetModels,
@@ -4595,7 +4536,6 @@ const opGetResource = "GetResource"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetResourceRequest(input *GetResourceInput) (req *request.Request, output *Resource) {
 	op := &request.Operation{
 		Name:       opGetResource,
@@ -4665,7 +4605,6 @@ const opGetResources = "GetResources"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetResourcesRequest(input *GetResourcesInput) (req *request.Request, output *GetResourcesOutput) {
 	op := &request.Operation{
 		Name:       opGetResources,
@@ -4769,7 +4708,6 @@ const opGetRestApi = "GetRestApi"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetRestApiRequest(input *GetRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opGetRestApi,
@@ -4839,7 +4777,6 @@ const opGetRestApis = "GetRestApis"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetRestApisRequest(input *GetRestApisInput) (req *request.Request, output *GetRestApisOutput) {
 	op := &request.Operation{
 		Name:       opGetRestApis,
@@ -4940,7 +4877,6 @@ const opGetSdk = "GetSdk"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetSdkRequest(input *GetSdkInput) (req *request.Request, output *GetSdkOutput) {
 	op := &request.Operation{
 		Name:       opGetSdk,
@@ -4988,6 +4924,137 @@ func (c *APIGateway) GetSdk(input *GetSdkInput) (*GetSdkOutput, error) {
 	return out, err
 }
 
+const opGetSdkType = "GetSdkType"
+
+// GetSdkTypeRequest generates a "aws/request.Request" representing the
+// client's request for the GetSdkType operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetSdkType for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetSdkType method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetSdkTypeRequest method.
+//    req, resp := client.GetSdkTypeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *APIGateway) GetSdkTypeRequest(input *GetSdkTypeInput) (req *request.Request, output *SdkType) {
+	op := &request.Operation{
+		Name:       opGetSdkType,
+		HTTPMethod: "GET",
+		HTTPPath:   "/sdktypes/{sdktype_id}",
+	}
+
+	if input == nil {
+		input = &GetSdkTypeInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &SdkType{}
+	req.Data = output
+	return
+}
+
+// GetSdkType API operation for Amazon API Gateway.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetSdkType for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+func (c *APIGateway) GetSdkType(input *GetSdkTypeInput) (*SdkType, error) {
+	req, out := c.GetSdkTypeRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetSdkTypes = "GetSdkTypes"
+
+// GetSdkTypesRequest generates a "aws/request.Request" representing the
+// client's request for the GetSdkTypes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetSdkTypes for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetSdkTypes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetSdkTypesRequest method.
+//    req, resp := client.GetSdkTypesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *APIGateway) GetSdkTypesRequest(input *GetSdkTypesInput) (req *request.Request, output *GetSdkTypesOutput) {
+	op := &request.Operation{
+		Name:       opGetSdkTypes,
+		HTTPMethod: "GET",
+		HTTPPath:   "/sdktypes",
+	}
+
+	if input == nil {
+		input = &GetSdkTypesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetSdkTypesOutput{}
+	req.Data = output
+	return
+}
+
+// GetSdkTypes API operation for Amazon API Gateway.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetSdkTypes for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * TooManyRequestsException
+
+//
+func (c *APIGateway) GetSdkTypes(input *GetSdkTypesInput) (*GetSdkTypesOutput, error) {
+	req, out := c.GetSdkTypesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opGetStage = "GetStage"
 
 // GetStageRequest generates a "aws/request.Request" representing the
@@ -5013,7 +5080,6 @@ const opGetStage = "GetStage"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetStageRequest(input *GetStageInput) (req *request.Request, output *Stage) {
 	op := &request.Operation{
 		Name:       opGetStage,
@@ -5083,7 +5149,6 @@ const opGetStages = "GetStages"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetStagesRequest(input *GetStagesInput) (req *request.Request, output *GetStagesOutput) {
 	op := &request.Operation{
 		Name:       opGetStages,
@@ -5153,7 +5218,6 @@ const opGetUsage = "GetUsage"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetUsageRequest(input *GetUsageInput) (req *request.Request, output *Usage) {
 	op := &request.Operation{
 		Name:       opGetUsage,
@@ -5257,7 +5321,6 @@ const opGetUsagePlan = "GetUsagePlan"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetUsagePlanRequest(input *GetUsagePlanInput) (req *request.Request, output *UsagePlan) {
 	op := &request.Operation{
 		Name:       opGetUsagePlan,
@@ -5330,7 +5393,6 @@ const opGetUsagePlanKey = "GetUsagePlanKey"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetUsagePlanKeyRequest(input *GetUsagePlanKeyInput) (req *request.Request, output *UsagePlanKey) {
 	op := &request.Operation{
 		Name:       opGetUsagePlanKey,
@@ -5403,7 +5465,6 @@ const opGetUsagePlanKeys = "GetUsagePlanKeys"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetUsagePlanKeysRequest(input *GetUsagePlanKeysInput) (req *request.Request, output *GetUsagePlanKeysOutput) {
 	op := &request.Operation{
 		Name:       opGetUsagePlanKeys,
@@ -5508,7 +5569,6 @@ const opGetUsagePlans = "GetUsagePlans"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) GetUsagePlansRequest(input *GetUsagePlansInput) (req *request.Request, output *GetUsagePlansOutput) {
 	op := &request.Operation{
 		Name:       opGetUsagePlans,
@@ -5615,7 +5675,6 @@ const opImportApiKeys = "ImportApiKeys"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) ImportApiKeysRequest(input *ImportApiKeysInput) (req *request.Request, output *ImportApiKeysOutput) {
 	op := &request.Operation{
 		Name:       opImportApiKeys,
@@ -5694,7 +5753,6 @@ const opImportDocumentationParts = "ImportDocumentationParts"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) ImportDocumentationPartsRequest(input *ImportDocumentationPartsInput) (req *request.Request, output *ImportDocumentationPartsOutput) {
 	op := &request.Operation{
 		Name:       opImportDocumentationParts,
@@ -5768,7 +5826,6 @@ const opImportRestApi = "ImportRestApi"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) ImportRestApiRequest(input *ImportRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opImportRestApi,
@@ -5845,7 +5902,6 @@ const opPutIntegration = "PutIntegration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) PutIntegrationRequest(input *PutIntegrationInput) (req *request.Request, output *Integration) {
 	op := &request.Operation{
 		Name:       opPutIntegration,
@@ -5921,7 +5977,6 @@ const opPutIntegrationResponse = "PutIntegrationResponse"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) PutIntegrationResponseRequest(input *PutIntegrationResponseInput) (req *request.Request, output *IntegrationResponse) {
 	op := &request.Operation{
 		Name:       opPutIntegrationResponse,
@@ -6000,7 +6055,6 @@ const opPutMethod = "PutMethod"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) PutMethodRequest(input *PutMethodInput) (req *request.Request, output *Method) {
 	op := &request.Operation{
 		Name:       opPutMethod,
@@ -6079,7 +6133,6 @@ const opPutMethodResponse = "PutMethodResponse"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) PutMethodResponseRequest(input *PutMethodResponseInput) (req *request.Request, output *MethodResponse) {
 	op := &request.Operation{
 		Name:       opPutMethodResponse,
@@ -6158,7 +6211,6 @@ const opPutRestApi = "PutRestApi"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) PutRestApiRequest(input *PutRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opPutRestApi,
@@ -6240,7 +6292,6 @@ const opTestInvokeAuthorizer = "TestInvokeAuthorizer"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) TestInvokeAuthorizerRequest(input *TestInvokeAuthorizerInput) (req *request.Request, output *TestInvokeAuthorizerOutput) {
 	op := &request.Operation{
 		Name:       opTestInvokeAuthorizer,
@@ -6316,7 +6367,6 @@ const opTestInvokeMethod = "TestInvokeMethod"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) TestInvokeMethodRequest(input *TestInvokeMethodInput) (req *request.Request, output *TestInvokeMethodOutput) {
 	op := &request.Operation{
 		Name:       opTestInvokeMethod,
@@ -6390,7 +6440,6 @@ const opUpdateAccount = "UpdateAccount"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateAccountRequest(input *UpdateAccountInput) (req *request.Request, output *Account) {
 	op := &request.Operation{
 		Name:       opUpdateAccount,
@@ -6463,7 +6512,6 @@ const opUpdateApiKey = "UpdateApiKey"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateApiKeyRequest(input *UpdateApiKeyInput) (req *request.Request, output *ApiKey) {
 	op := &request.Operation{
 		Name:       opUpdateApiKey,
@@ -6539,7 +6587,6 @@ const opUpdateAuthorizer = "UpdateAuthorizer"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateAuthorizerRequest(input *UpdateAuthorizerInput) (req *request.Request, output *Authorizer) {
 	op := &request.Operation{
 		Name:       opUpdateAuthorizer,
@@ -6614,7 +6661,6 @@ const opUpdateBasePathMapping = "UpdateBasePathMapping"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateBasePathMappingRequest(input *UpdateBasePathMappingInput) (req *request.Request, output *BasePathMapping) {
 	op := &request.Operation{
 		Name:       opUpdateBasePathMapping,
@@ -6690,7 +6736,6 @@ const opUpdateClientCertificate = "UpdateClientCertificate"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateClientCertificateRequest(input *UpdateClientCertificateInput) (req *request.Request, output *ClientCertificate) {
 	op := &request.Operation{
 		Name:       opUpdateClientCertificate,
@@ -6763,7 +6808,6 @@ const opUpdateDeployment = "UpdateDeployment"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateDeploymentRequest(input *UpdateDeploymentInput) (req *request.Request, output *Deployment) {
 	op := &request.Operation{
 		Name:       opUpdateDeployment,
@@ -6839,7 +6883,6 @@ const opUpdateDocumentationPart = "UpdateDocumentationPart"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateDocumentationPartRequest(input *UpdateDocumentationPartInput) (req *request.Request, output *DocumentationPart) {
 	op := &request.Operation{
 		Name:       opUpdateDocumentationPart,
@@ -6916,7 +6959,6 @@ const opUpdateDocumentationVersion = "UpdateDocumentationVersion"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateDocumentationVersionRequest(input *UpdateDocumentationVersionInput) (req *request.Request, output *DocumentationVersion) {
 	op := &request.Operation{
 		Name:       opUpdateDocumentationVersion,
@@ -6990,7 +7032,6 @@ const opUpdateDomainName = "UpdateDomainName"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateDomainNameRequest(input *UpdateDomainNameInput) (req *request.Request, output *DomainName) {
 	op := &request.Operation{
 		Name:       opUpdateDomainName,
@@ -7066,7 +7107,6 @@ const opUpdateIntegration = "UpdateIntegration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateIntegrationRequest(input *UpdateIntegrationInput) (req *request.Request, output *Integration) {
 	op := &request.Operation{
 		Name:       opUpdateIntegration,
@@ -7142,7 +7182,6 @@ const opUpdateIntegrationResponse = "UpdateIntegrationResponse"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateIntegrationResponseRequest(input *UpdateIntegrationResponseInput) (req *request.Request, output *IntegrationResponse) {
 	op := &request.Operation{
 		Name:       opUpdateIntegrationResponse,
@@ -7218,7 +7257,6 @@ const opUpdateMethod = "UpdateMethod"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateMethodRequest(input *UpdateMethodInput) (req *request.Request, output *Method) {
 	op := &request.Operation{
 		Name:       opUpdateMethod,
@@ -7294,7 +7332,6 @@ const opUpdateMethodResponse = "UpdateMethodResponse"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateMethodResponseRequest(input *UpdateMethodResponseInput) (req *request.Request, output *MethodResponse) {
 	op := &request.Operation{
 		Name:       opUpdateMethodResponse,
@@ -7373,7 +7410,6 @@ const opUpdateModel = "UpdateModel"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateModelRequest(input *UpdateModelInput) (req *request.Request, output *Model) {
 	op := &request.Operation{
 		Name:       opUpdateModel,
@@ -7449,7 +7485,6 @@ const opUpdateResource = "UpdateResource"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateResourceRequest(input *UpdateResourceInput) (req *request.Request, output *Resource) {
 	op := &request.Operation{
 		Name:       opUpdateResource,
@@ -7525,7 +7560,6 @@ const opUpdateRestApi = "UpdateRestApi"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateRestApiRequest(input *UpdateRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opUpdateRestApi,
@@ -7601,7 +7635,6 @@ const opUpdateStage = "UpdateStage"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateStageRequest(input *UpdateStageInput) (req *request.Request, output *Stage) {
 	op := &request.Operation{
 		Name:       opUpdateStage,
@@ -7677,7 +7710,6 @@ const opUpdateUsage = "UpdateUsage"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateUsageRequest(input *UpdateUsageInput) (req *request.Request, output *Usage) {
 	op := &request.Operation{
 		Name:       opUpdateUsage,
@@ -7751,7 +7783,6 @@ const opUpdateUsagePlan = "UpdateUsagePlan"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *APIGateway) UpdateUsagePlanRequest(input *UpdateUsagePlanInput) (req *request.Request, output *UsagePlan) {
 	op := &request.Operation{
 		Name:       opUpdateUsagePlan,
@@ -13323,6 +13354,110 @@ func (s *GetSdkOutput) SetContentType(v string) *GetSdkOutput {
 	return s
 }
 
+// Get an SdkType instance.
+type GetSdkTypeInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the queried SdkType instance.
+	//
+	// Id is a required field
+	Id *string `location:"uri" locationName:"sdktype_id" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetSdkTypeInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetSdkTypeInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetSdkTypeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetSdkTypeInput"}
+	if s.Id == nil {
+		invalidParams.Add(request.NewErrParamRequired("Id"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetId sets the Id field's value.
+func (s *GetSdkTypeInput) SetId(v string) *GetSdkTypeInput {
+	s.Id = &v
+	return s
+}
+
+// Get the SdkTypes collection.
+type GetSdkTypesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of SdkType instances to be returned.
+	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
+
+	// The position of the last fetched element in the SdkTypes collection.
+	Position *string `location:"querystring" locationName:"position" type:"string"`
+}
+
+// String returns the string representation
+func (s GetSdkTypesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetSdkTypesInput) GoString() string {
+	return s.String()
+}
+
+// SetLimit sets the Limit field's value.
+func (s *GetSdkTypesInput) SetLimit(v int64) *GetSdkTypesInput {
+	s.Limit = &v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetSdkTypesInput) SetPosition(v string) *GetSdkTypesInput {
+	s.Position = &v
+	return s
+}
+
+// The collection of SdkType instances.
+type GetSdkTypesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The set of SdkType items that comprise this view of the SdkTypes collection.
+	Items []*SdkType `locationName:"item" type:"list"`
+
+	Position *string `locationName:"position" type:"string"`
+}
+
+// String returns the string representation
+func (s GetSdkTypesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetSdkTypesOutput) GoString() string {
+	return s.String()
+}
+
+// SetItems sets the Items field's value.
+func (s *GetSdkTypesOutput) SetItems(v []*SdkType) *GetSdkTypesOutput {
+	s.Items = v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetSdkTypesOutput) SetPosition(v string) *GetSdkTypesOutput {
+	s.Position = &v
+	return s
+}
+
 // Requests Amazon API Gateway to get information about a Stage resource.
 type GetStageInput struct {
 	_ struct{} `type:"structure"`
@@ -14100,7 +14235,7 @@ func (s *ImportRestApiInput) SetParameters(v map[string]*string) *ImportRestApiI
 //
 // In the API Gateway console, the built-in Lambda integration is an AWS integration.
 //
-// Creating an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html),
+// Creating an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type Integration struct {
 	_ struct{} `type:"structure"`
 
@@ -14205,8 +14340,8 @@ type Integration struct {
 
 	// Specifies the integration's Uniform Resource Identifier (URI). For HTTP integrations,
 	// the URI must be a fully formed, encoded HTTP(S) URL according to the RFC-3986
-	// specification (https://www.ietf.org/rfc/rfc3986.txt). For AWS integrations,
-	// the URI should be of the form arn:aws:apigateway:{region}:{subdomain.service|service}:{path|action}/{service_api}.
+	// specification (https://en.wikipedia.org/wiki/Uniform_Resource_Identifier).
+	// For AWS integrations, the URI should be of the form arn:aws:apigateway:{region}:{subdomain.service|service}:{path|action}/{service_api}.
 	// Region, subdomain and service are used to determine the right endpoint. For
 	// AWS services that use the Action= query string parameter, service_api should
 	// be a valid action for the desired service. For RESTful AWS service APIs,
@@ -14544,6 +14679,11 @@ type Method struct {
 	//    }
 	MethodResponses map[string]*MethodResponse `locationName:"methodResponses" type:"map"`
 
+	// A human-friendly operation identifier for the method. For example, you can
+	// assign the operationName of ListPets for the GET /pets method in PetStore
+	// (http://petstore-demo-endpoint.execute-api.com/petstore/pets) example.
+	OperationName *string `locationName:"operationName" type:"string"`
+
 	// A key-value map specifying data schemas, represented by Model resources,
 	// (as the mapped value) of the request payloads of given content types (as
 	// the mapping key).
@@ -14603,6 +14743,12 @@ func (s *Method) SetMethodIntegration(v *Integration) *Method {
 // SetMethodResponses sets the MethodResponses field's value.
 func (s *Method) SetMethodResponses(v map[string]*MethodResponse) *Method {
 	s.MethodResponses = v
+	return s
+}
+
+// SetOperationName sets the OperationName field's value.
+func (s *Method) SetOperationName(v string) *Method {
+	s.OperationName = &v
 	return s
 }
 
@@ -15352,6 +15498,11 @@ type PutMethodInput struct {
 	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
+	// A human-friendly operation identifier for the method. For example, you can
+	// assign the operationName of ListPets for the GET /pets method in PetStore
+	// (http://petstore-demo-endpoint.execute-api.com/petstore/pets) example.
+	OperationName *string `locationName:"operationName" type:"string"`
+
 	// Specifies the Model resources used for the request's content type. Request
 	// models are represented as a key/value map, with a content type as the key
 	// and a Model name as the value.
@@ -15431,6 +15582,12 @@ func (s *PutMethodInput) SetAuthorizerId(v string) *PutMethodInput {
 // SetHttpMethod sets the HttpMethod field's value.
 func (s *PutMethodInput) SetHttpMethod(v string) *PutMethodInput {
 	s.HttpMethod = &v
+	return s
+}
+
+// SetOperationName sets the OperationName field's value.
+func (s *PutMethodInput) SetOperationName(v string) *PutMethodInput {
+	s.OperationName = &v
 	return s
 }
 
@@ -15895,6 +16052,118 @@ func (s *RestApi) SetVersion(v string) *RestApi {
 // SetWarnings sets the Warnings field's value.
 func (s *RestApi) SetWarnings(v []*string) *RestApi {
 	s.Warnings = v
+	return s
+}
+
+// A configuration property of an SDK type.
+type SdkConfigurationProperty struct {
+	_ struct{} `type:"structure"`
+
+	// The default value of an SdkType configuration property.
+	DefaultValue *string `locationName:"defaultValue" type:"string"`
+
+	// The description of an SdkType configuration property.
+	Description *string `locationName:"description" type:"string"`
+
+	// The user-friendly name of an SdkType configuration property.
+	FriendlyName *string `locationName:"friendlyName" type:"string"`
+
+	// The name of a an SdkType configuration property.
+	Name *string `locationName:"name" type:"string"`
+
+	// A boolean flag of an SdkType configuration property to indicate if the associated
+	// SDK configuration property is required (true) or not (false).
+	Required *bool `locationName:"required" type:"boolean"`
+}
+
+// String returns the string representation
+func (s SdkConfigurationProperty) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SdkConfigurationProperty) GoString() string {
+	return s.String()
+}
+
+// SetDefaultValue sets the DefaultValue field's value.
+func (s *SdkConfigurationProperty) SetDefaultValue(v string) *SdkConfigurationProperty {
+	s.DefaultValue = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *SdkConfigurationProperty) SetDescription(v string) *SdkConfigurationProperty {
+	s.Description = &v
+	return s
+}
+
+// SetFriendlyName sets the FriendlyName field's value.
+func (s *SdkConfigurationProperty) SetFriendlyName(v string) *SdkConfigurationProperty {
+	s.FriendlyName = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *SdkConfigurationProperty) SetName(v string) *SdkConfigurationProperty {
+	s.Name = &v
+	return s
+}
+
+// SetRequired sets the Required field's value.
+func (s *SdkConfigurationProperty) SetRequired(v bool) *SdkConfigurationProperty {
+	s.Required = &v
+	return s
+}
+
+// A type of SDK that API Gateway can generate.
+type SdkType struct {
+	_ struct{} `type:"structure"`
+
+	// A list of configuration properties of an SdkType.
+	ConfigurationProperties []*SdkConfigurationProperty `locationName:"configurationProperties" type:"list"`
+
+	// The description of an SdkType.
+	Description *string `locationName:"description" type:"string"`
+
+	// The user-friendly name of an SdkType instance.
+	FriendlyName *string `locationName:"friendlyName" type:"string"`
+
+	// The identifier of an SdkType instance.
+	Id *string `locationName:"id" type:"string"`
+}
+
+// String returns the string representation
+func (s SdkType) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SdkType) GoString() string {
+	return s.String()
+}
+
+// SetConfigurationProperties sets the ConfigurationProperties field's value.
+func (s *SdkType) SetConfigurationProperties(v []*SdkConfigurationProperty) *SdkType {
+	s.ConfigurationProperties = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *SdkType) SetDescription(v string) *SdkType {
+	s.Description = &v
+	return s
+}
+
+// SetFriendlyName sets the FriendlyName field's value.
+func (s *SdkType) SetFriendlyName(v string) *SdkType {
+	s.FriendlyName = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *SdkType) SetId(v string) *SdkType {
+	s.Id = &v
 	return s
 }
 

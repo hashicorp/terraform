@@ -19,7 +19,7 @@ func TestAccDigitalOceanDroplet_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
@@ -48,7 +48,7 @@ func TestAccDigitalOceanDroplet_Update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
@@ -56,7 +56,7 @@ func TestAccDigitalOceanDroplet_Update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_RenameAndResize,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
@@ -81,7 +81,7 @@ func TestAccDigitalOceanDroplet_ResizeWithOutDisk(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
@@ -89,7 +89,7 @@ func TestAccDigitalOceanDroplet_ResizeWithOutDisk(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_resize_without_disk,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
@@ -112,7 +112,7 @@ func TestAccDigitalOceanDroplet_UpdateUserData(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterCreate),
@@ -120,7 +120,7 @@ func TestAccDigitalOceanDroplet_UpdateUserData(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_userdata_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterUpdate),
@@ -144,7 +144,7 @@ func TestAccDigitalOceanDroplet_UpdateTags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterCreate),
@@ -152,7 +152,7 @@ func TestAccDigitalOceanDroplet_UpdateTags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_tag_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterUpdate),
@@ -178,7 +178,7 @@ func TestAccDigitalOceanDroplet_PrivateNetworkingIpv6(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_PrivateNetworkingIpv6,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
@@ -450,6 +450,7 @@ resource "digitalocean_droplet" "foobar" {
   size     = "1gb"
   image    = "centos-7-x64"
   region   = "nyc3"
+  user_data = "foobar"
   ssh_keys = ["${digitalocean_ssh_key.foobar.id}"]
   resize_disk = false
 }

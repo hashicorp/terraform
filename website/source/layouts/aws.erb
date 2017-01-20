@@ -20,12 +20,14 @@
                         <li<%= sidebar_current("docs-aws-datasource-alb") %>>
                             <a href="/docs/providers/aws/d/alb.html">aws_alb</a>
                         </li>
-
+                        <li<%= sidebar_current("docs-aws-datasource-alb-listener") %>>
+                            <a href="/docs/providers/aws/d/alb_listener.html">aws_alb_listener</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-ami") %>>
                             <a href="/docs/providers/aws/d/ami.html">aws_ami</a>
                         </li>
-                        <li<%= sidebar_current("docs-aws-datasource-alb-listener") %>>
-                            <a href="/docs/providers/aws/d/alb_listener.html">aws_alb_listener</a>
+                        <li<%= sidebar_current("docs-aws-datasource-autoscaling-groups") %>>
+                            <a href="/docs/providers/aws/d/autoscaling_groups.html">aws_autoscaling_groups</a>
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-availability-zone") %>>
                             <a href="/docs/providers/aws/d/availability_zone.html">aws_availability_zone</a>
@@ -48,11 +50,14 @@
                         <li<%= sidebar_current("docs-aws-datasource-ecs-container-definition") %>>
                             <a href="/docs/providers/aws/d/ecs_container_definition.html">aws_ecs_container_definition</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-datasource-elb-hosted-zone-id") %>>
+                            <a href="/docs/providers/aws/d/elb_hosted_zone_id.html">aws_elb_hosted_zone_id</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-elb-service-account") %>>
                             <a href="/docs/providers/aws/d/elb_service_account.html">aws_elb_service_account</a>
                         </li>
-                        <li<%= sidebar_current("docs-aws-datasource-hosted-zone") %>>
-                          <a href="/docs/providers/aws/d/hosted_zone.html">aws_hosted_zone</a>
+                        <li<%= sidebar_current("docs-aws-datasource-iam-account-alias") %>>
+                            <a href="/docs/providers/aws/d/iam_account_alias.html">aws_iam_account_alias</a>
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-iam-policy-document") %>>
                             <a href="/docs/providers/aws/d/iam_policy_document.html">aws_iam_policy_document</a>
@@ -72,6 +77,9 @@
                         <li<%= sidebar_current("docs-aws-datasource-region") %>>
                             <a href="/docs/providers/aws/d/region.html">aws_region</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-datasource-route53-zone") %>>
+                          <a href="/docs/providers/aws/d/route53_zone.html">aws_route53_zone</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-route-table") %>>
                           <a href="/docs/providers/aws/d/route_table.html">aws_route_table</a>
                         </li>
@@ -89,6 +97,9 @@
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-vpc-endpoint-service") %>>
                             <a href="/docs/providers/aws/d/vpc_endpoint_service.html">aws_vpc_endpoint_service</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-datasource-vpc-peering-connection") %>>
+                            <a href="/docs/providers/aws/d/vpc_peering_connection.html">aws_vpc_peering_connection</a>
                         </li>
                     </ul>
                 </li>
@@ -241,6 +252,10 @@
                             <a href="/docs/providers/aws/r/codedeploy_app.html">aws_codedeploy_app</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-codedeploy-deployment-config") %>>
+                            <a href="/docs/providers/aws/r/codedeploy_deployment_config.html">aws_codedeploy_deployment_config</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-aws-resource-codedeploy-deployment-group") %>>
                             <a href="/docs/providers/aws/r/codedeploy_deployment_group.html">aws_codedeploy_deployment_group</a>
                         </li>
@@ -314,6 +329,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-app-cookie-stickiness-policy") %>>
                             <a href="/docs/providers/aws/r/app_cookie_stickiness_policy.html">aws_app_cookie_stickiness_policy</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-autoscaling-attachment") %>>
+                          <a href="/docs/providers/aws/r/autoscaling_attachment.html">aws_autoscaling_attachment</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-autoscaling-group") %>>
@@ -643,6 +662,25 @@
                     </ul>
                 </li>
 
+                <li<%= sidebar_current(/^docs-aws-resource-inspector/) %>>
+                  <a href="#">Inspector Resources</a>
+                  <ul class="nav nav-visible">
+
+                    <li<%= sidebar_current("docs-aws-resource-inspector-assessment-target") %>>
+                      <a href="/docs/providers/aws/r/inspector_assessment_target.html">aws_inspector_assessment_target</a>
+                    </li>
+
+                    <li<%= sidebar_current("docs-aws-resource-inspector-assessment-template") %>>
+                      <a href="/docs/providers/aws/r/inspector_assessment_template.html">aws_inspector_assessment_template</a>
+                    </li>
+
+                    <li<%= sidebar_current("docs-aws-resource-inspector-resource-group") %>>
+                      <a href="/docs/providers/aws/r/inspector_resource_group.html">aws_inspector_resource_group</a>
+                    </li>
+
+                  </ul>
+                </li>
+
 
                 <li<%= sidebar_current(/^docs-aws-resource-kinesis/) %>>
                     <a href="#">Kinesis Resources</a>
@@ -962,6 +1000,14 @@
                             <a href="/docs/providers/aws/r/ses_receipt_rule_set.html">aws_ses_receipt_rule_set</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-ses-configuration-set") %>>
+                            <a href="/docs/providers/aws/r/ses_configuration_set.html">aws_ses_configuration_set</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-ses-event-destination") %>>
+                            <a href="/docs/providers/aws/r/ses_event_destination.html">aws_ses_event_destination</a>
+                        </li>
+
                     </ul>
                 </li>
 
@@ -1111,7 +1157,7 @@
                         <li<%= sidebar_current("docs-aws-resource-vpc-endpoint") %>>
                             <a href="/docs/providers/aws/r/vpc_endpoint.html">aws_vpc_endpoint</a>
                         </li>
-                        
+
                         <li<%= sidebar_current("docs-aws-resource-vpc-endpoint-route-table-association") %>>
                             <a href="/docs/providers/aws/r/vpc_endpoint_route_table_association.html">aws_vpc_endpoint_route_table_association</a>
                         </li>

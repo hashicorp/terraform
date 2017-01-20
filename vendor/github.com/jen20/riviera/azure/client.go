@@ -12,7 +12,8 @@ import (
 type Client struct {
 	logger *log.Logger
 
-	subscriptionID string
+	subscriptionID          string
+	resourceManagerEndpoint string
 
 	tokenRequester *tokenRequester
 	httpClient     *retryablehttp.Client
@@ -24,13 +25,21 @@ func NewClient(creds *AzureResourceManagerCredentials) (*Client, error) {
 	httpClient := retryablehttp.NewClient()
 	httpClient.Logger = defaultLogger
 
-	tr := newTokenRequester(httpClient, creds.ClientID, creds.ClientSecret, creds.TenantID)
+	if creds.ResourceManagerEndpoint == "" {
+		creds.ResourceManagerEndpoint = defaultResourceManagerEndpoint
+	}
+	if creds.ActiveDirectoryEndpoint == "" {
+		creds.ActiveDirectoryEndpoint = defaultActiveDirectoryEndpoint
+	}
+
+	tr := newTokenRequester(httpClient, creds)
 
 	return &Client{
-		subscriptionID: creds.SubscriptionID,
-		httpClient:     httpClient,
-		tokenRequester: tr,
-		logger:         defaultLogger,
+		subscriptionID:          creds.SubscriptionID,
+		resourceManagerEndpoint: creds.ResourceManagerEndpoint,
+		httpClient:              httpClient,
+		tokenRequester:          tr,
+		logger:                  defaultLogger,
 	}, nil
 }
 

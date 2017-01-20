@@ -87,8 +87,9 @@ const (
 var ignoredHeaders = rules{
 	blacklist{
 		mapRule{
-			"Authorization": struct{}{},
-			"User-Agent":    struct{}{},
+			"Authorization":   struct{}{},
+			"User-Agent":      struct{}{},
+			"X-Amzn-Trace-Id": struct{}{},
 		},
 	},
 }

@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator"
@@ -63,32 +62,30 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 	return
 }
 
-// generateScript takes the configuration and creates a script to be executed
-// from the inline configs
-func (p *ResourceProvisioner) generateScript(c *terraform.ResourceConfig) (string, error) {
-	var lines []string
+// generateScripts takes the configuration and creates a script from each inline config
+func (p *ResourceProvisioner) generateScripts(c *terraform.ResourceConfig) ([]string, error) {
+	var scripts []string
 	command, ok := c.Config["inline"]
 	if ok {
 		switch cmd := command.(type) {
 		case string:
-			lines = append(lines, cmd)
+			scripts = append(scripts, cmd)
 		case []string:
-			lines = append(lines, cmd...)
+			scripts = append(scripts, cmd...)
 		case []interface{}:
 			for _, l := range cmd {
 				lStr, ok := l.(string)
 				if ok {
-					lines = append(lines, lStr)
+					scripts = append(scripts, lStr)
 				} else {
-					return "", fmt.Errorf("Unsupported 'inline' type! Must be string, or list of strings.")
+					return nil, fmt.Errorf("Unsupported 'inline' type! Must be string, or list of strings.")
 				}
 			}
 		default:
-			return "", fmt.Errorf("Unsupported 'inline' type! Must be string, or list of strings.")
+			return nil, fmt.Errorf("Unsupported 'inline' type! Must be string, or list of strings.")
 		}
 	}
-	lines = append(lines, "")
-	return strings.Join(lines, "\n"), nil
+	return scripts, nil
 }
 
 // collectScripts is used to collect all the scripts we need
@@ -97,12 +94,17 @@ func (p *ResourceProvisioner) collectScripts(c *terraform.ResourceConfig) ([]io.
 	// Check if inline
 	_, ok := c.Config["inline"]
 	if ok {
-		script, err := p.generateScript(c)
+		scripts, err := p.generateScripts(c)
 		if err != nil {
 			return nil, err
 		}
-		rc := ioutil.NopCloser(bytes.NewReader([]byte(script)))
-		return []io.ReadCloser{rc}, nil
+
+		r := []io.ReadCloser{}
+		for _, script := range scripts {
+			r = append(r, ioutil.NopCloser(bytes.NewReader([]byte(script))))
+		}
+
+		return r, nil
 	}
 
 	// Collect scripts
