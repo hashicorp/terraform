@@ -2755,16 +2755,6 @@
 			"revision": "b667a5000b082e49c6c6d16867d376a12e9490cd"
 		},
 		{
-			"checksumSHA1": "QneJE5GLhQlbsB03OMBxxHI8w18=",
-			"path": "google.golang.org/cloud/compute/metadata",
-			"revision": "fb10e8da373d97f6ba5e648299a10b3b91f14cd5"
-		},
-		{
-			"checksumSHA1": "U7dGDNwEHORvJFMoNSXErKE7ITg=",
-			"path": "google.golang.org/cloud/internal",
-			"revision": "fb10e8da373d97f6ba5e648299a10b3b91f14cd5"
-		},
-		{
 			"checksumSHA1": "v0plVTBSyu5TvzfwHWNBe5/eZZo=",
 			"comment": "v1.8.5",
 			"path": "gopkg.in/ini.v1",
