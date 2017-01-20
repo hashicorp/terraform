@@ -1086,3 +1086,33 @@ func TestValidateRoute53RecordType(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateDmsReplicationSubnetGroupId(t *testing.T) {
+	validIds := []string{
+		"tf-test-replication-subnet-group-1",
+		"tf_test_replication_subnet_group_1",
+		"tf.test.replication.subnet.group.1",
+		"tf test replication subnet group 1",
+		"tfTestReplicationSubnetGroup",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsReplicationSubnetGroupId(s, "name")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid replication subnet group id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"default",
+		"tf-test-replication-subnet-group-1!",
+		"tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsReplicationSubnetGroupId(s, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid replication subnet group id: %v", s, errors)
+		}
+	}
+}

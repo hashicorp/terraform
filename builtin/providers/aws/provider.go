@@ -236,6 +236,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_directory_service_directory":              resourceAwsDirectoryServiceDirectory(),
 			"aws_dms_endpoint":                             resourceAwsDmsEndpoint(),
 			"aws_dms_replication_instance":                 resourceAwsDmsReplicationInstance(),
+			"aws_dms_replication_subnet_group":             resourceAwsDmsReplicationSubnetGroup(),
 			"aws_dynamodb_table":                           resourceAwsDynamoDbTable(),
 			"aws_ebs_snapshot":                             resourceAwsEbsSnapshot(),
 			"aws_ebs_volume":                               resourceAwsEbsVolume(),
