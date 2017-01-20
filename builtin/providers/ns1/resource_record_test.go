@@ -27,7 +27,7 @@ func TestAccRecord_basic(t *testing.T) {
 					testAccCheckRecordDomain(&record, "test.terraform-record-test.io"),
 					testAccCheckRecordTTL(&record, 60),
 					testAccCheckRecordRegionName(&record, []string{"cal"}),
-					testAccCheckRecordAnswerMetaWeight(&record, 10),
+					// testAccCheckRecordAnswerMetaWeight(&record, 10),
 					testAccCheckRecordAnswerRdata(&record, "test1.terraform-record-test.io"),
 				),
 			},
@@ -49,7 +49,7 @@ func TestAccRecord_updated(t *testing.T) {
 					testAccCheckRecordDomain(&record, "test.terraform-record-test.io"),
 					testAccCheckRecordTTL(&record, 60),
 					testAccCheckRecordRegionName(&record, []string{"cal"}),
-					testAccCheckRecordAnswerMetaWeight(&record, 10),
+					// testAccCheckRecordAnswerMetaWeight(&record, 10),
 					testAccCheckRecordAnswerRdata(&record, "test1.terraform-record-test.io"),
 				),
 			},
@@ -60,7 +60,7 @@ func TestAccRecord_updated(t *testing.T) {
 					testAccCheckRecordDomain(&record, "test.terraform-record-test.io"),
 					testAccCheckRecordTTL(&record, 120),
 					testAccCheckRecordRegionName(&record, []string{"ny", "wa"}),
-					testAccCheckRecordAnswerMetaWeight(&record, 5),
+					// testAccCheckRecordAnswerMetaWeight(&record, 5),
 					testAccCheckRecordAnswerRdata(&record, "test2.terraform-record-test.io"),
 				),
 			},
@@ -191,28 +191,28 @@ resource "ns1_record" "it" {
   type              = "CNAME"
   ttl               = 60
 
-  meta {
-    weight = 5
-    connections = 3
-    // up = false // Ignored by d.GetOk("meta.0.up") due to known issue
-  }
+  // meta {
+  //   weight = 5
+  //   connections = 3
+  //   // up = false // Ignored by d.GetOk("meta.0.up") due to known issue
+  // }
 
   answers {
     answer = "test1.terraform-record-test.io"
     region = "cal"
 
-    meta {
-      weight = 10
-      up = true
-    }
+    // meta {
+    //   weight = 10
+    //   up = true
+    // }
   }
 
   regions {
     name = "cal"
-    meta {
-      up = true
-      us_state = ["CA"]
-    }
+    // meta {
+    //   up = true
+    //   us_state = ["CA"]
+    // }
   }
 
   filters {
@@ -237,34 +237,34 @@ resource "ns1_record" "it" {
   ttl               = 120
   use_client_subnet = true
 
-  meta {
-    weight = 5
-    connections = 3
-    // up = false // Ignored by d.GetOk("meta.0.up") due to known issue
-  }
+  // meta {
+  //   weight = 5
+  //   connections = 3
+  //   // up = false // Ignored by d.GetOk("meta.0.up") due to known issue
+  // }
 
   answers {
     answer = "test2.terraform-record-test.io"
     region = "ny"
 
-    meta {
-      weight = 5
-      up = true
-    }
+    // meta {
+    //   weight = 5
+    //   up = true
+    // }
   }
 
   regions {
     name = "wa"
-    meta {
-      us_state = ["WA"]
-    }
+    // meta {
+    //   us_state = ["WA"]
+    // }
   }
 
   regions {
     name = "ny"
-    meta {
-      us_state = ["NY"]
-    }
+    // meta {
+    //   us_state = ["NY"]
+    // }
   }
 
   filters {

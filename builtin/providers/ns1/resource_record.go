@@ -60,7 +60,7 @@ func recordResource() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
-			"meta": metaSchema,
+			// "meta": metaSchema,
 			"link": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -84,7 +84,7 @@ func recordResource() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"meta": metaSchema,
+						// "meta": metaSchema,
 					},
 				},
 				Set: genericHasher,
@@ -98,7 +98,7 @@ func recordResource() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"meta": metaSchema,
+						// "meta": metaSchema,
 					},
 				},
 				Set: genericHasher,
@@ -154,11 +154,11 @@ func recordToResourceData(d *schema.ResourceData, r *dns.Record) error {
 	if r.Link != "" {
 		d.Set("link", r.Link)
 	}
-	if r.Meta != nil {
-		d.State()
-		t := metaStructToDynamic(r.Meta)
-		d.Set("meta", t)
-	}
+	// if r.Meta != nil {
+	// 	d.State()
+	// 	t := metaStructToDynamic(r.Meta)
+	// 	d.Set("meta", t)
+	// }
 	if len(r.Filters) > 0 {
 		filters := make([]map[string]interface{}, len(r.Filters))
 		for i, f := range r.Filters {
@@ -190,10 +190,10 @@ func recordToResourceData(d *schema.ResourceData, r *dns.Record) error {
 	}
 	if len(r.Regions) > 0 {
 		regions := make([]map[string]interface{}, 0, len(r.Regions))
-		for regionName, region := range r.Regions {
+		for regionName, _ := range r.Regions {
 			newRegion := make(map[string]interface{})
 			newRegion["name"] = regionName
-			newRegion["meta"] = metaStructToDynamic(&region.Meta)
+			// newRegion["meta"] = metaStructToDynamic(&region.Meta)
 			regions = append(regions, newRegion)
 		}
 		log.Printf("Setting regions %+v", regions)
@@ -211,9 +211,9 @@ func answerToMap(a dns.Answer) map[string]interface{} {
 	if a.RegionName != "" {
 		m["region"] = a.RegionName
 	}
-	if a.Meta != nil {
-		m["meta"] = metaStructToDynamic(a.Meta)
-	}
+	// if a.Meta != nil {
+	// 	m["meta"] = metaStructToDynamic(a.Meta)
+	// }
 	return m
 }
 
@@ -242,9 +242,9 @@ func resourceDataToRecord(r *dns.Record, d *schema.ResourceData) error {
 				a.RegionName = v.(string)
 			}
 
-			if v, ok := answer["meta"]; ok {
-				metaDynamicToStruct(a.Meta, v)
-			}
+			// if v, ok := answer["meta"]; ok {
+			// 	metaDynamicToStruct(a.Meta, v)
+			// }
 			al[i] = a
 		}
 		r.Answers = al
@@ -258,9 +258,9 @@ func resourceDataToRecord(r *dns.Record, d *schema.ResourceData) error {
 	if v, ok := d.GetOk("link"); ok {
 		r.LinkTo(v.(string))
 	}
-	if v, ok := d.GetOk("meta"); ok {
-		metaDynamicToStruct(r.Meta, v)
-	}
+	// if v, ok := d.GetOk("meta"); ok {
+	// 	metaDynamicToStruct(r.Meta, v)
+	// }
 	useClientSubnetVal := d.Get("use_client_subnet").(bool)
 	if v := strconv.FormatBool(useClientSubnetVal); v != "" {
 		r.UseClientSubnet = &useClientSubnetVal
@@ -297,9 +297,9 @@ func resourceDataToRecord(r *dns.Record, d *schema.ResourceData) error {
 			ns1R := data.Region{
 				Meta: data.Meta{},
 			}
-			if v, ok := region["meta"]; ok {
-				metaDynamicToStruct(&ns1R.Meta, v)
-			}
+			// if v, ok := region["meta"]; ok {
+			// 	metaDynamicToStruct(&ns1R.Meta, v)
+			// }
 
 			r.Regions[region["name"].(string)] = ns1R
 		}
