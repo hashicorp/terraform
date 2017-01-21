@@ -233,6 +233,15 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 			Validate: opts.Validate,
 		}).Build(RootModulePath)
 
+	case GraphTypeRefresh:
+		return (&RefreshGraphBuilder{
+			Module:    c.module,
+			State:     c.state,
+			Providers: c.components.ResourceProviders(),
+			Targets:   c.targets,
+			Validate:  opts.Validate,
+		}).Build(RootModulePath)
+
 	case GraphTypeLegacy:
 		return c.graphBuilder(opts).Build(RootModulePath)
 	}
@@ -569,8 +578,15 @@ func (c *Context) Refresh() (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
-	// Build the graph
-	graph, err := c.Graph(GraphTypeLegacy, nil)
+	// Used throughout below
+	X_legacyGraph := experiment.Enabled(experiment.X_legacyGraph)
+
+	// Build the graph.
+	graphType := GraphTypeLegacy
+	if !X_legacyGraph {
+		graphType = GraphTypeRefresh
+	}
+	graph, err := c.Graph(graphType, nil)
 	if err != nil {
 		return nil, err
 	}
