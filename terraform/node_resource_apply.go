@@ -321,6 +321,7 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 				InterpResource: resource,
 				CreateNew:      &createNew,
 				Error:          &err,
+				When:           config.ProvisionerWhenCreate,
 			},
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {
