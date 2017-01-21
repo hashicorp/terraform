@@ -306,8 +306,18 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*config.Provision
 
 		// Invoke the Provisioner
 		output := CallbackUIOutput{OutputFn: outputFn}
-		if err := provisioner.Apply(&output, state, provConfig); err != nil {
-			return err
+		applyErr := provisioner.Apply(&output, state, provConfig)
+		if applyErr != nil {
+			// Determine failure behavior
+			switch prov.OnFailure {
+			case config.ProvisionerOnFailureContinue:
+				log.Printf(
+					"[INFO] apply: %s [%s]: error during provision, continue requested",
+					n.Info.Id, prov.Type)
+
+			case config.ProvisionerOnFailureFail:
+				return applyErr
+			}
 		}
 
 		{
