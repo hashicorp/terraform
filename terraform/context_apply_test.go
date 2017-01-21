@@ -4043,6 +4043,46 @@ aws_instance.foo:
 	}
 }
 
+// Verify that a normal provisioner with on_failure "continue" records
+// the error with the hook.
+func TestContext2Apply_provisionerFailContinueHook(t *testing.T) {
+	h := new(MockHook)
+	m := testModule(t, "apply-provisioner-fail-continue")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		return fmt.Errorf("provisioner error")
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Hooks:  []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !h.PostProvisionCalled {
+		t.Fatal("PostProvision not called")
+	}
+	if h.PostProvisionErrorArg == nil {
+		t.Fatal("should have error")
+	}
+}
+
 func TestContext2Apply_provisionerDestroy(t *testing.T) {
 	m := testModule(t, "apply-provisioner-destroy")
 	p := testProvider("aws")
