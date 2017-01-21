@@ -192,6 +192,20 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 					},
 				},
 
+				// If we have a provisioning error, then we just call
+				// the post-apply hook now.
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						return err != nil, nil
+					},
+
+					Then: &EvalApplyPost{
+						Info:  info,
+						State: &state,
+						Error: &err,
+					},
+				},
+
 				// Make sure we handle data sources properly.
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {

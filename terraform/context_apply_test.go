@@ -4058,6 +4058,65 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 	}
 }
 
+// Verify that on destroy provisioner failure, nothing happens to the instance
+func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		return fmt.Errorf("provisioner error")
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module:  m,
+		State:   state,
+		Destroy: true,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err == nil {
+		t.Fatal("should error")
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo:
+  ID = bar
+	`)
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+}
+
 // Verify destroy provisioners are not run for tainted instances.
 func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
 	m := testModule(t, "apply-provisioner-destroy")

@@ -160,9 +160,13 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
+	// taint tells us whether to enable tainting.
+	taint := n.When == config.ProvisionerWhenCreate
+
 	if n.Error != nil && *n.Error != nil {
-		// We're already errored creating, so mark as tainted and continue
-		state.Tainted = true
+		if taint {
+			state.Tainted = true
+		}
 
 		// We're already tainted, so just return out
 		return nil, nil
@@ -182,8 +186,9 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 	// if we have one, otherwise we just output it.
 	err := n.apply(ctx, provs)
 	if err != nil {
-		// Provisioning failed, so mark the resource as tainted
-		state.Tainted = true
+		if taint {
+			state.Tainted = true
+		}
 
 		if n.Error != nil {
 			*n.Error = multierror.Append(*n.Error, err)
