@@ -140,18 +140,22 @@ type EvalApplyProvisioners struct {
 	InterpResource *Resource
 	CreateNew      *bool
 	Error          *error
+
+	// When is the type of provisioner to run at this point
+	When config.ProvisionerWhen
 }
 
 // TODO: test
 func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 	state := *n.State
 
-	if !*n.CreateNew {
+	if n.CreateNew != nil && !*n.CreateNew {
 		// If we're not creating a new resource, then don't run provisioners
 		return nil, nil
 	}
 
-	if len(n.Resource.Provisioners) == 0 {
+	provs := n.filterProvisioners()
+	if len(provs) == 0 {
 		// We have no provisioners, so don't do anything
 		return nil, nil
 	}
@@ -176,7 +180,7 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 
 	// If there are no errors, then we append it to our output error
 	// if we have one, otherwise we just output it.
-	err := n.apply(ctx)
+	err := n.apply(ctx, provs)
 	if err != nil {
 		// Provisioning failed, so mark the resource as tainted
 		state.Tainted = true
@@ -201,7 +205,29 @@ func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 	return nil, nil
 }
 
-func (n *EvalApplyProvisioners) apply(ctx EvalContext) error {
+// filterProvisioners filters the provisioners on the resource to only
+// the provisioners specified by the "when" option.
+func (n *EvalApplyProvisioners) filterProvisioners() []*config.Provisioner {
+	// Fast path the zero case
+	if n.Resource == nil {
+		return nil
+	}
+
+	if len(n.Resource.Provisioners) == 0 {
+		return nil
+	}
+
+	result := make([]*config.Provisioner, 0, len(n.Resource.Provisioners))
+	for _, p := range n.Resource.Provisioners {
+		if p.When == n.When {
+			result = append(result, p)
+		}
+	}
+
+	return result
+}
+
+func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*config.Provisioner) error {
 	state := *n.State
 
 	// Store the original connection info, restore later
@@ -210,7 +236,7 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext) error {
 		state.Ephemeral.ConnInfo = origConnInfo
 	}()
 
-	for _, prov := range n.Resource.Provisioners {
+	for _, prov := range provs {
 		// Get the provisioner
 		provisioner := ctx.Provisioner(prov.Type)
 

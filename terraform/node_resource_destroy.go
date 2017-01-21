@@ -107,6 +107,17 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 		uniqueExtra: "destroy",
 	}
 
+	// Build the resource for eval
+	addr := n.Addr
+	resource := &Resource{
+		Name:       addr.Name,
+		Type:       addr.Type,
+		CountIndex: addr.Index,
+	}
+	if resource.CountIndex < 0 {
+		resource.CountIndex = 0
+	}
+
 	// Get our state
 	rs := n.ResourceState
 	if rs == nil {
@@ -160,6 +171,27 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 				&EvalRequireState{
 					State: &state,
 				},
+
+				// Run destroy provisioners if not tainted
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						if state != nil && state.Tainted {
+							return false, nil
+						}
+
+						return true, nil
+					},
+
+					Then: &EvalApplyProvisioners{
+						Info:           info,
+						State:          &state,
+						Resource:       n.Config,
+						InterpResource: resource,
+						Error:          &err,
+						When:           config.ProvisionerWhenDestroy,
+					},
+				},
+
 				// Make sure we handle data sources properly.
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
