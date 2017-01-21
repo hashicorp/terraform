@@ -307,6 +307,13 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*config.Provision
 		// Invoke the Provisioner
 		output := CallbackUIOutput{OutputFn: outputFn}
 		applyErr := provisioner.Apply(&output, state, provConfig)
+
+		// Call post hook
+		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostProvision(n.Info, prov.Type, applyErr)
+		})
+
+		// Handle the error before we deal with the hook
 		if applyErr != nil {
 			// Determine failure behavior
 			switch prov.OnFailure {
@@ -320,14 +327,9 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext, provs []*config.Provision
 			}
 		}
 
-		{
-			// Call post hook
-			err := ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PostProvision(n.Info, prov.Type)
-			})
-			if err != nil {
-				return err
-			}
+		// Deal with the hook
+		if hookErr != nil {
+			return hookErr
 		}
 	}
 
