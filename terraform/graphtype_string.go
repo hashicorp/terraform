@@ -4,9 +4,9 @@ package terraform
 
 import "fmt"
 
-const _GraphType_name = "GraphTypeInvalidGraphTypeLegacyGraphTypePlanGraphTypePlanDestroyGraphTypeApply"
+const _GraphType_name = "GraphTypeInvalidGraphTypeLegacyGraphTypeRefreshGraphTypePlanGraphTypePlanDestroyGraphTypeApply"
 
-var _GraphType_index = [...]uint8{0, 16, 31, 44, 64, 78}
+var _GraphType_index = [...]uint8{0, 16, 31, 47, 60, 80, 94}
 
 func (i GraphType) String() string {
 	if i >= GraphType(len(_GraphType_index)-1) {

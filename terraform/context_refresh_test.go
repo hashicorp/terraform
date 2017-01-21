@@ -520,7 +520,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 	}
 }
 
-func TestContext2Refresh_state(t *testing.T) {
+func TestContext2Refresh_stateBasic(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
 	state := &State{
@@ -529,6 +529,7 @@ func TestContext2Refresh_state(t *testing.T) {
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
 					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
 						Primary: &InstanceState{
 							ID: "bar",
 						},
@@ -737,6 +738,21 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Module:    m,
 		Providers: map[string]ResourceProviderFactory{},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.web": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
 	})
 
 	if _, err := ctx.Refresh(); err == nil {
