@@ -52,16 +52,6 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 		*n.CreateNew = state.ID == "" && !diff.GetDestroy() || diff.RequiresNew()
 	}
 
-	{
-		// Call pre-apply hook
-		err := ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreApply(n.Info, state, diff)
-		})
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// With the completed diff, apply!
 	log.Printf("[DEBUG] apply: %s: executing Apply", n.Info.Id)
 	state, err := provider.Apply(n.Info, state, diff)
@@ -97,6 +87,37 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 			helpfulErr := fmt.Errorf("%s: %s", n.Info.Id, err.Error())
 			*n.Error = multierror.Append(*n.Error, helpfulErr)
 		} else {
+			return nil, err
+		}
+	}
+
+	return nil, nil
+}
+
+// EvalApplyPre is an EvalNode implementation that does the pre-Apply work
+type EvalApplyPre struct {
+	Info  *InstanceInfo
+	State **InstanceState
+	Diff  **InstanceDiff
+}
+
+// TODO: test
+func (n *EvalApplyPre) Eval(ctx EvalContext) (interface{}, error) {
+	state := *n.State
+	diff := *n.Diff
+
+	// If the state is nil, make it non-nil
+	if state == nil {
+		state = new(InstanceState)
+	}
+	state.init()
+
+	{
+		// Call post-apply hook
+		err := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PreApply(n.Info, state, diff)
+		})
+		if err != nil {
 			return nil, err
 		}
 	}
