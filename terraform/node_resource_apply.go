@@ -298,6 +298,12 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 				Name:   stateId,
 				Output: &state,
 			},
+			// Call pre-apply hook
+			&EvalApplyPre{
+				Info:  info,
+				State: &state,
+				Diff:  &diffApply,
+			},
 			&EvalApply{
 				Info:      info,
 				State:     &state,

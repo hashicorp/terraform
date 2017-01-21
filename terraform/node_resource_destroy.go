@@ -172,6 +172,13 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 					State: &state,
 				},
 
+				// Call pre-apply hook
+				&EvalApplyPre{
+					Info:  info,
+					State: &state,
+					Diff:  &diffApply,
+				},
+
 				// Run destroy provisioners if not tainted
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {

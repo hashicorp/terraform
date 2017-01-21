@@ -500,6 +500,11 @@ func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource,
 					Name:   n.stateId(),
 					Output: &state,
 				},
+				&EvalApplyPre{
+					Info:  info,
+					State: &state,
+					Diff:  &diffApply,
+				},
 				&EvalApply{
 					Info:      info,
 					State:     &state,
