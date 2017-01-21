@@ -3998,6 +3998,51 @@ aws_instance.web:
 	`)
 }
 
+// Verify that a normal provisioner with on_failure "continue" set won't
+// taint the resource and continues executing.
+func TestContext2Apply_provisionerFailContinue(t *testing.T) {
+	m := testModule(t, "apply-provisioner-fail-continue")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		return fmt.Errorf("provisioner error")
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo:
+  ID = foo
+  foo = bar
+  type = aws_instance
+  `)
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+}
+
 func TestContext2Apply_provisionerDestroy(t *testing.T) {
 	m := testModule(t, "apply-provisioner-destroy")
 	p := testProvider("aws")
