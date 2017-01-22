@@ -81,8 +81,6 @@ official [Developer Guide](https://docs.aws.amazon.com/AmazonECS/latest/develope
 * `volume` - (Optional) A volume block. See below for details about what arguments are supported.
 * `placement_constraints` - (Optional) rules that are taken into consideration during task placement. Maximum number of 
 `placement_constraints` is `10`. Defined below.
-* `placement_strategy` - (Optional) an algorithm for selecting instances for task placement or tasks for termination. Maximum
-number of `placement_strategy` blocks is `5`. Defined below.
 
 Volume block supports the following arguments:
 
@@ -100,17 +98,6 @@ for the `distinctInstance` type.
 For more information, see [Cluster Query Language in the Amazon EC2 Container
 Service Developer
 Guide](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-query-language.html).
-
-## placement_strategy
-
-`placement_strategy` supports the following:
-
-* `type` - (Required) The type of placement strategy. Must be one of: `binpack`, `random`, or `spread`
-* `field` - (Optional) For the `spread` placement strategy, valid values are instanceId (or host,
- which has the same effect), or any platform or custom attribute that is applied to a container instance.
- For the `binpack` type, valid values are `memory` and `cpu`. For the `random` type, this attribute is not
- needed. For more information, see [Placement Strategy](http://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_PlacementStrategy.html).
-
 
 
 ## Attributes Reference
