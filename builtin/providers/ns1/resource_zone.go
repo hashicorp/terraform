@@ -76,7 +76,7 @@ func zoneResource() *schema.Resource {
 		Read:     ZoneRead,
 		Update:   ZoneUpdate,
 		Delete:   ZoneDelete,
-		Importer: &schema.ResourceImporter{ZoneStateFunc},
+		Importer: &schema.ResourceImporter{State: ZoneStateFunc},
 	}
 }
 

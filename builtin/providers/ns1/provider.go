@@ -37,7 +37,6 @@ func Provider() terraform.ResourceProvider {
 func ns1Configure(d *schema.ResourceData) (interface{}, error) {
 	httpClient := &http.Client{}
 	n := ns1.NewClient(httpClient, ns1.SetAPIKey(d.Get("apikey").(string)))
-	// FIXME: n.Debug()
 	n.RateLimitStrategySleep()
 	return n, nil
 }

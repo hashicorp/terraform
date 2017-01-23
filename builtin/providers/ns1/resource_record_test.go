@@ -222,6 +222,11 @@ resource "ns1_record" "it" {
   filters {
     filter = "geotarget_country"
   }
+
+  filters {
+    filter = "select_first_n"
+    config = {N=1}
+  }
 }
 
 resource "ns1_zone" "test" {

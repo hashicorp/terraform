@@ -133,7 +133,7 @@ func recordResource() *schema.Resource {
 		Read:     RecordRead,
 		Update:   RecordUpdate,
 		Delete:   RecordDelete,
-		Importer: &schema.ResourceImporter{RecordStateFunc},
+		Importer: &schema.ResourceImporter{State: RecordStateFunc},
 	}
 }
 
