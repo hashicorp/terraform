@@ -49,9 +49,8 @@ func (c *ELB) AddTagsRequest(input *AddTagsInput) (req *request.Request, output 
 		input = &AddTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -129,9 +128,8 @@ func (c *ELB) ApplySecurityGroupsToLoadBalancerRequest(input *ApplySecurityGroup
 		input = &ApplySecurityGroupsToLoadBalancerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApplySecurityGroupsToLoadBalancerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -206,9 +204,8 @@ func (c *ELB) AttachLoadBalancerToSubnetsRequest(input *AttachLoadBalancerToSubn
 		input = &AttachLoadBalancerToSubnetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AttachLoadBalancerToSubnetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -287,9 +284,8 @@ func (c *ELB) ConfigureHealthCheckRequest(input *ConfigureHealthCheckInput) (req
 		input = &ConfigureHealthCheckInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ConfigureHealthCheckOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -358,9 +354,8 @@ func (c *ELB) CreateAppCookieStickinessPolicyRequest(input *CreateAppCookieStick
 		input = &CreateAppCookieStickinessPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateAppCookieStickinessPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -447,9 +442,8 @@ func (c *ELB) CreateLBCookieStickinessPolicyRequest(input *CreateLBCookieStickin
 		input = &CreateLBCookieStickinessPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateLBCookieStickinessPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -538,9 +532,8 @@ func (c *ELB) CreateLoadBalancerRequest(input *CreateLoadBalancerInput) (req *re
 		input = &CreateLoadBalancerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateLoadBalancerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -651,9 +644,8 @@ func (c *ELB) CreateLoadBalancerListenersRequest(input *CreateLoadBalancerListen
 		input = &CreateLoadBalancerListenersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateLoadBalancerListenersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -739,9 +731,8 @@ func (c *ELB) CreateLoadBalancerPolicyRequest(input *CreateLoadBalancerPolicyInp
 		input = &CreateLoadBalancerPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateLoadBalancerPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -821,9 +812,8 @@ func (c *ELB) DeleteLoadBalancerRequest(input *DeleteLoadBalancerInput) (req *re
 		input = &DeleteLoadBalancerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteLoadBalancerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -891,9 +881,8 @@ func (c *ELB) DeleteLoadBalancerListenersRequest(input *DeleteLoadBalancerListen
 		input = &DeleteLoadBalancerListenersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteLoadBalancerListenersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -957,9 +946,8 @@ func (c *ELB) DeleteLoadBalancerPolicyRequest(input *DeleteLoadBalancerPolicyInp
 		input = &DeleteLoadBalancerPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteLoadBalancerPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1027,9 +1015,8 @@ func (c *ELB) DeregisterInstancesFromLoadBalancerRequest(input *DeregisterInstan
 		input = &DeregisterInstancesFromLoadBalancerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeregisterInstancesFromLoadBalancerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1104,9 +1091,8 @@ func (c *ELB) DescribeInstanceHealthRequest(input *DescribeInstanceHealthInput) 
 		input = &DescribeInstanceHealthInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstanceHealthOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1178,9 +1164,8 @@ func (c *ELB) DescribeLoadBalancerAttributesRequest(input *DescribeLoadBalancerA
 		input = &DescribeLoadBalancerAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeLoadBalancerAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1247,9 +1232,8 @@ func (c *ELB) DescribeLoadBalancerPoliciesRequest(input *DescribeLoadBalancerPol
 		input = &DescribeLoadBalancerPoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeLoadBalancerPoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1323,9 +1307,8 @@ func (c *ELB) DescribeLoadBalancerPolicyTypesRequest(input *DescribeLoadBalancer
 		input = &DescribeLoadBalancerPolicyTypesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeLoadBalancerPolicyTypesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1406,9 +1389,8 @@ func (c *ELB) DescribeLoadBalancersRequest(input *DescribeLoadBalancersInput) (r
 		input = &DescribeLoadBalancersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeLoadBalancersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1501,9 +1483,8 @@ func (c *ELB) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Reques
 		input = &DescribeTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1567,9 +1548,8 @@ func (c *ELB) DetachLoadBalancerFromSubnetsRequest(input *DetachLoadBalancerFrom
 		input = &DetachLoadBalancerFromSubnetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DetachLoadBalancerFromSubnetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1641,9 +1621,8 @@ func (c *ELB) DisableAvailabilityZonesForLoadBalancerRequest(input *DisableAvail
 		input = &DisableAvailabilityZonesForLoadBalancerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisableAvailabilityZonesForLoadBalancerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1720,9 +1699,8 @@ func (c *ELB) EnableAvailabilityZonesForLoadBalancerRequest(input *EnableAvailab
 		input = &EnableAvailabilityZonesForLoadBalancerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnableAvailabilityZonesForLoadBalancerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1793,9 +1771,8 @@ func (c *ELB) ModifyLoadBalancerAttributesRequest(input *ModifyLoadBalancerAttri
 		input = &ModifyLoadBalancerAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyLoadBalancerAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1880,9 +1857,8 @@ func (c *ELB) RegisterInstancesWithLoadBalancerRequest(input *RegisterInstancesW
 		input = &RegisterInstancesWithLoadBalancerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RegisterInstancesWithLoadBalancerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1971,9 +1947,8 @@ func (c *ELB) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Request, o
 		input = &RemoveTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RemoveTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2037,9 +2012,8 @@ func (c *ELB) SetLoadBalancerListenerSSLCertificateRequest(input *SetLoadBalance
 		input = &SetLoadBalancerListenerSSLCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetLoadBalancerListenerSSLCertificateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2124,9 +2098,8 @@ func (c *ELB) SetLoadBalancerPoliciesForBackendServerRequest(input *SetLoadBalan
 		input = &SetLoadBalancerPoliciesForBackendServerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetLoadBalancerPoliciesForBackendServerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2211,9 +2184,8 @@ func (c *ELB) SetLoadBalancerPoliciesOfListenerRequest(input *SetLoadBalancerPol
 		input = &SetLoadBalancerPoliciesOfListenerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetLoadBalancerPoliciesOfListenerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

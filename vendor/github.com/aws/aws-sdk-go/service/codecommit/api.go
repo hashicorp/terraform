@@ -50,9 +50,8 @@ func (c *CodeCommit) BatchGetRepositoriesRequest(input *BatchGetRepositoriesInpu
 		input = &BatchGetRepositoriesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BatchGetRepositoriesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -148,11 +147,10 @@ func (c *CodeCommit) CreateBranchRequest(input *CreateBranchInput) (req *request
 		input = &CreateBranchInput{}
 	}
 
+	output = &CreateBranchOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateBranchOutput{}
-	req.Data = output
 	return
 }
 
@@ -263,9 +261,8 @@ func (c *CodeCommit) CreateRepositoryRequest(input *CreateRepositoryInput) (req 
 		input = &CreateRepositoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateRepositoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -360,9 +357,8 @@ func (c *CodeCommit) DeleteRepositoryRequest(input *DeleteRepositoryInput) (req 
 		input = &DeleteRepositoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteRepositoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -453,9 +449,8 @@ func (c *CodeCommit) GetBranchRequest(input *GetBranchInput) (req *request.Reque
 		input = &GetBranchInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetBranchOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -554,9 +549,8 @@ func (c *CodeCommit) GetCommitRequest(input *GetCommitInput) (req *request.Reque
 		input = &GetCommitInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetCommitOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -655,9 +649,8 @@ func (c *CodeCommit) GetRepositoryRequest(input *GetRepositoryInput) (req *reque
 		input = &GetRepositoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetRepositoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -752,9 +745,8 @@ func (c *CodeCommit) GetRepositoryTriggersRequest(input *GetRepositoryTriggersIn
 		input = &GetRepositoryTriggersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetRepositoryTriggersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -849,9 +841,8 @@ func (c *CodeCommit) ListBranchesRequest(input *ListBranchesInput) (req *request
 		input = &ListBranchesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListBranchesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -974,9 +965,8 @@ func (c *CodeCommit) ListRepositoriesRequest(input *ListRepositoriesInput) (req 
 		input = &ListRepositoriesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListRepositoriesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1071,9 +1061,8 @@ func (c *CodeCommit) PutRepositoryTriggersRequest(input *PutRepositoryTriggersIn
 		input = &PutRepositoryTriggersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutRepositoryTriggersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1208,9 +1197,8 @@ func (c *CodeCommit) TestRepositoryTriggersRequest(input *TestRepositoryTriggers
 		input = &TestRepositoryTriggersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &TestRepositoryTriggersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1347,11 +1335,10 @@ func (c *CodeCommit) UpdateDefaultBranchRequest(input *UpdateDefaultBranchInput)
 		input = &UpdateDefaultBranchInput{}
 	}
 
+	output = &UpdateDefaultBranchOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateDefaultBranchOutput{}
-	req.Data = output
 	return
 }
 
@@ -1453,11 +1440,10 @@ func (c *CodeCommit) UpdateRepositoryDescriptionRequest(input *UpdateRepositoryD
 		input = &UpdateRepositoryDescriptionInput{}
 	}
 
+	output = &UpdateRepositoryDescriptionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateRepositoryDescriptionOutput{}
-	req.Data = output
 	return
 }
 
@@ -1555,11 +1541,10 @@ func (c *CodeCommit) UpdateRepositoryNameRequest(input *UpdateRepositoryNameInpu
 		input = &UpdateRepositoryNameInput{}
 	}
 
+	output = &UpdateRepositoryNameOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateRepositoryNameOutput{}
-	req.Data = output
 	return
 }
 

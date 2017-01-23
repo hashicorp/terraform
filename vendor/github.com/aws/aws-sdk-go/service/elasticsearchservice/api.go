@@ -51,11 +51,10 @@ func (c *ElasticsearchService) AddTagsRequest(input *AddTagsInput) (req *request
 		input = &AddTagsInput{}
 	}
 
+	output = &AddTagsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddTagsOutput{}
-	req.Data = output
 	return
 }
 
@@ -134,9 +133,8 @@ func (c *ElasticsearchService) CreateElasticsearchDomainRequest(input *CreateEla
 		input = &CreateElasticsearchDomainInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateElasticsearchDomainOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -227,9 +225,8 @@ func (c *ElasticsearchService) DeleteElasticsearchDomainRequest(input *DeleteEla
 		input = &DeleteElasticsearchDomainInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteElasticsearchDomainOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -307,9 +304,8 @@ func (c *ElasticsearchService) DescribeElasticsearchDomainRequest(input *Describ
 		input = &DescribeElasticsearchDomainInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeElasticsearchDomainOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -387,9 +383,8 @@ func (c *ElasticsearchService) DescribeElasticsearchDomainConfigRequest(input *D
 		input = &DescribeElasticsearchDomainConfigInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeElasticsearchDomainConfigOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -468,9 +463,8 @@ func (c *ElasticsearchService) DescribeElasticsearchDomainsRequest(input *Descri
 		input = &DescribeElasticsearchDomainsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeElasticsearchDomainsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -544,9 +538,8 @@ func (c *ElasticsearchService) ListDomainNamesRequest(input *ListDomainNamesInpu
 		input = &ListDomainNamesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListDomainNamesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -615,9 +608,8 @@ func (c *ElasticsearchService) ListTagsRequest(input *ListTagsInput) (req *reque
 		input = &ListTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -694,11 +686,10 @@ func (c *ElasticsearchService) RemoveTagsRequest(input *RemoveTagsInput) (req *r
 		input = &RemoveTagsInput{}
 	}
 
+	output = &RemoveTagsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemoveTagsOutput{}
-	req.Data = output
 	return
 }
 
@@ -771,9 +762,8 @@ func (c *ElasticsearchService) UpdateElasticsearchDomainConfigRequest(input *Upd
 		input = &UpdateElasticsearchDomainConfigInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateElasticsearchDomainConfigOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

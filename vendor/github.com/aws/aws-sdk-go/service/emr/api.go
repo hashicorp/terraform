@@ -51,9 +51,8 @@ func (c *EMR) AddInstanceGroupsRequest(input *AddInstanceGroupsInput) (req *requ
 		input = &AddInstanceGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddInstanceGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -118,9 +117,8 @@ func (c *EMR) AddJobFlowStepsRequest(input *AddJobFlowStepsInput) (req *request.
 		input = &AddJobFlowStepsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddJobFlowStepsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -207,9 +205,8 @@ func (c *EMR) AddTagsRequest(input *AddTagsInput) (req *request.Request, output 
 		input = &AddTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -279,9 +276,8 @@ func (c *EMR) CancelStepsRequest(input *CancelStepsInput) (req *request.Request,
 		input = &CancelStepsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelStepsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -353,9 +349,8 @@ func (c *EMR) CreateSecurityConfigurationRequest(input *CreateSecurityConfigurat
 		input = &CreateSecurityConfigurationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSecurityConfigurationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -423,9 +418,8 @@ func (c *EMR) DeleteSecurityConfigurationRequest(input *DeleteSecurityConfigurat
 		input = &DeleteSecurityConfigurationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteSecurityConfigurationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -492,9 +486,8 @@ func (c *EMR) DescribeClusterRequest(input *DescribeClusterInput) (req *request.
 		input = &DescribeClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -565,9 +558,8 @@ func (c *EMR) DescribeJobFlowsRequest(input *DescribeJobFlowsInput) (req *reques
 		input = &DescribeJobFlowsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeJobFlowsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -651,9 +643,8 @@ func (c *EMR) DescribeSecurityConfigurationRequest(input *DescribeSecurityConfig
 		input = &DescribeSecurityConfigurationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSecurityConfigurationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -721,9 +712,8 @@ func (c *EMR) DescribeStepRequest(input *DescribeStepInput) (req *request.Reques
 		input = &DescribeStepInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeStepOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -796,9 +786,8 @@ func (c *EMR) ListBootstrapActionsRequest(input *ListBootstrapActionsInput) (req
 		input = &ListBootstrapActionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListBootstrapActionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -896,9 +885,8 @@ func (c *EMR) ListClustersRequest(input *ListClustersInput) (req *request.Reques
 		input = &ListClustersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListClustersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1000,9 +988,8 @@ func (c *EMR) ListInstanceGroupsRequest(input *ListInstanceGroupsInput) (req *re
 		input = &ListInstanceGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListInstanceGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1100,9 +1087,8 @@ func (c *EMR) ListInstancesRequest(input *ListInstancesInput) (req *request.Requ
 		input = &ListInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1198,9 +1184,8 @@ func (c *EMR) ListSecurityConfigurationsRequest(input *ListSecurityConfiguration
 		input = &ListSecurityConfigurationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListSecurityConfigurationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1276,9 +1261,8 @@ func (c *EMR) ListStepsRequest(input *ListStepsInput) (req *request.Request, out
 		input = &ListStepsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListStepsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1371,11 +1355,10 @@ func (c *EMR) ModifyInstanceGroupsRequest(input *ModifyInstanceGroupsInput) (req
 		input = &ModifyInstanceGroupsInput{}
 	}
 
+	output = &ModifyInstanceGroupsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyInstanceGroupsOutput{}
-	req.Data = output
 	return
 }
 
@@ -1443,9 +1426,8 @@ func (c *EMR) PutAutoScalingPolicyRequest(input *PutAutoScalingPolicyInput) (req
 		input = &PutAutoScalingPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutAutoScalingPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1507,9 +1489,8 @@ func (c *EMR) RemoveAutoScalingPolicyRequest(input *RemoveAutoScalingPolicyInput
 		input = &RemoveAutoScalingPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RemoveAutoScalingPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1569,9 +1550,8 @@ func (c *EMR) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Request, o
 		input = &RemoveTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RemoveTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1643,9 +1623,8 @@ func (c *EMR) RunJobFlowRequest(input *RunJobFlowInput) (req *request.Request, o
 		input = &RunJobFlowInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RunJobFlowOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1732,11 +1711,10 @@ func (c *EMR) SetTerminationProtectionRequest(input *SetTerminationProtectionInp
 		input = &SetTerminationProtectionInput{}
 	}
 
+	output = &SetTerminationProtectionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetTerminationProtectionOutput{}
-	req.Data = output
 	return
 }
 
@@ -1817,11 +1795,10 @@ func (c *EMR) SetVisibleToAllUsersRequest(input *SetVisibleToAllUsersInput) (req
 		input = &SetVisibleToAllUsersInput{}
 	}
 
+	output = &SetVisibleToAllUsersOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetVisibleToAllUsersOutput{}
-	req.Data = output
 	return
 }
 
@@ -1891,11 +1868,10 @@ func (c *EMR) TerminateJobFlowsRequest(input *TerminateJobFlowsInput) (req *requ
 		input = &TerminateJobFlowsInput{}
 	}
 
+	output = &TerminateJobFlowsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &TerminateJobFlowsOutput{}
-	req.Data = output
 	return
 }
 

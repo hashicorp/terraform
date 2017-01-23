@@ -51,11 +51,10 @@ func (c *ElasticBeanstalk) AbortEnvironmentUpdateRequest(input *AbortEnvironment
 		input = &AbortEnvironmentUpdateInput{}
 	}
 
+	output = &AbortEnvironmentUpdateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AbortEnvironmentUpdateOutput{}
-	req.Data = output
 	return
 }
 
@@ -121,9 +120,8 @@ func (c *ElasticBeanstalk) ApplyEnvironmentManagedActionRequest(input *ApplyEnvi
 		input = &ApplyEnvironmentManagedActionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApplyEnvironmentManagedActionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -192,9 +190,8 @@ func (c *ElasticBeanstalk) CheckDNSAvailabilityRequest(input *CheckDNSAvailabili
 		input = &CheckDNSAvailabilityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CheckDNSAvailabilityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -253,9 +250,8 @@ func (c *ElasticBeanstalk) ComposeEnvironmentsRequest(input *ComposeEnvironments
 		input = &ComposeEnvironmentsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnvironmentDescriptionsMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -329,9 +325,8 @@ func (c *ElasticBeanstalk) CreateApplicationRequest(input *CreateApplicationInpu
 		input = &CreateApplicationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApplicationDescriptionMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -396,9 +391,8 @@ func (c *ElasticBeanstalk) CreateApplicationVersionRequest(input *CreateApplicat
 		input = &CreateApplicationVersionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApplicationVersionDescriptionMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -498,9 +492,8 @@ func (c *ElasticBeanstalk) CreateConfigurationTemplateRequest(input *CreateConfi
 		input = &CreateConfigurationTemplateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ConfigurationSettingsDescription{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -581,9 +574,8 @@ func (c *ElasticBeanstalk) CreateEnvironmentRequest(input *CreateEnvironmentInpu
 		input = &CreateEnvironmentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnvironmentDescription{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -652,9 +644,8 @@ func (c *ElasticBeanstalk) CreateStorageLocationRequest(input *CreateStorageLoca
 		input = &CreateStorageLocationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateStorageLocationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -727,11 +718,10 @@ func (c *ElasticBeanstalk) DeleteApplicationRequest(input *DeleteApplicationInpu
 		input = &DeleteApplicationInput{}
 	}
 
+	output = &DeleteApplicationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteApplicationOutput{}
-	req.Data = output
 	return
 }
 
@@ -800,11 +790,10 @@ func (c *ElasticBeanstalk) DeleteApplicationVersionRequest(input *DeleteApplicat
 		input = &DeleteApplicationVersionInput{}
 	}
 
+	output = &DeleteApplicationVersionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteApplicationVersionOutput{}
-	req.Data = output
 	return
 }
 
@@ -890,11 +879,10 @@ func (c *ElasticBeanstalk) DeleteConfigurationTemplateRequest(input *DeleteConfi
 		input = &DeleteConfigurationTemplateInput{}
 	}
 
+	output = &DeleteConfigurationTemplateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteConfigurationTemplateOutput{}
-	req.Data = output
 	return
 }
 
@@ -963,11 +951,10 @@ func (c *ElasticBeanstalk) DeleteEnvironmentConfigurationRequest(input *DeleteEn
 		input = &DeleteEnvironmentConfigurationInput{}
 	}
 
+	output = &DeleteEnvironmentConfigurationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteEnvironmentConfigurationOutput{}
-	req.Data = output
 	return
 }
 
@@ -1033,9 +1020,8 @@ func (c *ElasticBeanstalk) DescribeApplicationVersionsRequest(input *DescribeApp
 		input = &DescribeApplicationVersionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeApplicationVersionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1094,9 +1080,8 @@ func (c *ElasticBeanstalk) DescribeApplicationsRequest(input *DescribeApplicatio
 		input = &DescribeApplicationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeApplicationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1155,9 +1140,8 @@ func (c *ElasticBeanstalk) DescribeConfigurationOptionsRequest(input *DescribeCo
 		input = &DescribeConfigurationOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeConfigurationOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1225,9 +1209,8 @@ func (c *ElasticBeanstalk) DescribeConfigurationSettingsRequest(input *DescribeC
 		input = &DescribeConfigurationSettingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeConfigurationSettingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1303,9 +1286,8 @@ func (c *ElasticBeanstalk) DescribeEnvironmentHealthRequest(input *DescribeEnvir
 		input = &DescribeEnvironmentHealthInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEnvironmentHealthOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1375,9 +1357,8 @@ func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionHistoryRequest(input 
 		input = &DescribeEnvironmentManagedActionHistoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEnvironmentManagedActionHistoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1441,9 +1422,8 @@ func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionsRequest(input *Descr
 		input = &DescribeEnvironmentManagedActionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEnvironmentManagedActionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1507,9 +1487,8 @@ func (c *ElasticBeanstalk) DescribeEnvironmentResourcesRequest(input *DescribeEn
 		input = &DescribeEnvironmentResourcesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEnvironmentResourcesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1574,9 +1553,8 @@ func (c *ElasticBeanstalk) DescribeEnvironmentsRequest(input *DescribeEnvironmen
 		input = &DescribeEnvironmentsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnvironmentDescriptionsMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1641,9 +1619,8 @@ func (c *ElasticBeanstalk) DescribeEventsRequest(input *DescribeEventsInput) (re
 		input = &DescribeEventsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEventsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1729,9 +1706,8 @@ func (c *ElasticBeanstalk) DescribeInstancesHealthRequest(input *DescribeInstanc
 		input = &DescribeInstancesHealthInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstancesHealthOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1800,9 +1776,8 @@ func (c *ElasticBeanstalk) ListAvailableSolutionStacksRequest(input *ListAvailab
 		input = &ListAvailableSolutionStacksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListAvailableSolutionStacksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1861,11 +1836,10 @@ func (c *ElasticBeanstalk) RebuildEnvironmentRequest(input *RebuildEnvironmentIn
 		input = &RebuildEnvironmentInput{}
 	}
 
+	output = &RebuildEnvironmentOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RebuildEnvironmentOutput{}
-	req.Data = output
 	return
 }
 
@@ -1931,11 +1905,10 @@ func (c *ElasticBeanstalk) RequestEnvironmentInfoRequest(input *RequestEnvironme
 		input = &RequestEnvironmentInfoInput{}
 	}
 
+	output = &RequestEnvironmentInfoOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RequestEnvironmentInfoOutput{}
-	req.Data = output
 	return
 }
 
@@ -2008,11 +1981,10 @@ func (c *ElasticBeanstalk) RestartAppServerRequest(input *RestartAppServerInput)
 		input = &RestartAppServerInput{}
 	}
 
+	output = &RestartAppServerOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RestartAppServerOutput{}
-	req.Data = output
 	return
 }
 
@@ -2072,9 +2044,8 @@ func (c *ElasticBeanstalk) RetrieveEnvironmentInfoRequest(input *RetrieveEnviron
 		input = &RetrieveEnvironmentInfoInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RetrieveEnvironmentInfoOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2137,11 +2108,10 @@ func (c *ElasticBeanstalk) SwapEnvironmentCNAMEsRequest(input *SwapEnvironmentCN
 		input = &SwapEnvironmentCNAMEsInput{}
 	}
 
+	output = &SwapEnvironmentCNAMEsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SwapEnvironmentCNAMEsOutput{}
-	req.Data = output
 	return
 }
 
@@ -2200,9 +2170,8 @@ func (c *ElasticBeanstalk) TerminateEnvironmentRequest(input *TerminateEnvironme
 		input = &TerminateEnvironmentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnvironmentDescription{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2267,9 +2236,8 @@ func (c *ElasticBeanstalk) UpdateApplicationRequest(input *UpdateApplicationInpu
 		input = &UpdateApplicationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApplicationDescriptionMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2331,9 +2299,8 @@ func (c *ElasticBeanstalk) UpdateApplicationResourceLifecycleRequest(input *Upda
 		input = &UpdateApplicationResourceLifecycleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateApplicationResourceLifecycleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2398,9 +2365,8 @@ func (c *ElasticBeanstalk) UpdateApplicationVersionRequest(input *UpdateApplicat
 		input = &UpdateApplicationVersionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApplicationVersionDescriptionMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2462,9 +2428,8 @@ func (c *ElasticBeanstalk) UpdateConfigurationTemplateRequest(input *UpdateConfi
 		input = &UpdateConfigurationTemplateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ConfigurationSettingsDescription{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2540,9 +2505,8 @@ func (c *ElasticBeanstalk) UpdateEnvironmentRequest(input *UpdateEnvironmentInpu
 		input = &UpdateEnvironmentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnvironmentDescription{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2620,9 +2584,8 @@ func (c *ElasticBeanstalk) ValidateConfigurationSettingsRequest(input *ValidateC
 		input = &ValidateConfigurationSettingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ValidateConfigurationSettingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

@@ -24,9 +24,13 @@ IMPROVEMENTS:
  * provider/aws: Add Placement Strategy to aws_ecs_service resource [GH-11201]
  * provider/aws: Add support for placement_constraint to aws_ecs_service [GH-11242]
  * provider/aws: allow ALB target group stickiness to be enabled/disabled [GH-11251]
+ * provider/aws: ALBs now wait for provisioning to complete before proceeding [GH-11333]
  * provider/aws: Add support for setting MSSQL Timezone in aws_db_instance [GH-11247]
  * provider/aws: CloudFormation YAML template support [GH-11121]
  * provider/aws: Remove hardcoded https from the ecr repository [GH-11307]
+ * provider/aws: Implement CloudFront Lambda Function Associations [GH-11291]
+ * provider/aws: Remove MaxFrameRate default on ElasticTranscoderPreset [GH-11340]
+ * provider/aws: Allow ARN Identifier to be set for different partitions [GH-11359]
  * provider/azurerm: add caching support for virtual_machine data_disks [GH-11142]
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
  * provider/cloudflare: Add verification for record types and content [GH-11197]
@@ -41,11 +45,14 @@ IMPROVEMENTS:
  * provider/statuscake: Add support for StatusCake confirmation servers [GH-11179]
  * provider/statuscake: Add support for Updating StatusCake contact_ids [GH-7115]
  * provisioner/chef: Add support for named run-lists when using policyfiles [GH-11215]
+ * core: Add basic HTTP Auth for remote state backend [GH-11301]
 
 BUG FIXES:
 
  * provider/aws: Fix panic when querying VPC's main route table via data source ([#11134](https://github.com/hashicorp/terraform/issues/11134))
  * provider/aws: Allow creating aws_codecommit repository outside of us-east-1 [GH-11177]
+ * provider/aws: Fix issue destroying or updating CloudFront due to missing Lambda Function Associations parameters [GH-11291]
+ * provider/aws: Correct error messages are now returned if an `aws_autoscaling_lifecycle_hook` fails during creation [GH-11360]
  * provider/azurerm: use configured environment for storage clients [GH-11159]
  * provider/google: removes region param from google_compute_backend_service [GH-10903]
  * provider/ignition: allowing empty systemd.content when a dropin is provided [GH-11216]

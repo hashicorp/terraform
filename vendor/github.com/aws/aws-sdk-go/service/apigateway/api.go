@@ -48,9 +48,8 @@ func (c *APIGateway) CreateApiKeyRequest(input *CreateApiKeyInput) (req *request
 		input = &CreateApiKeyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApiKey{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -128,9 +127,8 @@ func (c *APIGateway) CreateAuthorizerRequest(input *CreateAuthorizerInput) (req 
 		input = &CreateAuthorizerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Authorizer{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -205,9 +203,8 @@ func (c *APIGateway) CreateBasePathMappingRequest(input *CreateBasePathMappingIn
 		input = &CreateBasePathMappingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BasePathMapping{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -280,9 +277,8 @@ func (c *APIGateway) CreateDeploymentRequest(input *CreateDeploymentInput) (req 
 		input = &CreateDeploymentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Deployment{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -362,9 +358,8 @@ func (c *APIGateway) CreateDocumentationPartRequest(input *CreateDocumentationPa
 		input = &CreateDocumentationPartInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DocumentationPart{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -438,9 +433,8 @@ func (c *APIGateway) CreateDocumentationVersionRequest(input *CreateDocumentatio
 		input = &CreateDocumentationVersionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DocumentationVersion{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -514,9 +508,8 @@ func (c *APIGateway) CreateDomainNameRequest(input *CreateDomainNameInput) (req 
 		input = &CreateDomainNameInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DomainName{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -586,9 +579,8 @@ func (c *APIGateway) CreateModelRequest(input *CreateModelInput) (req *request.R
 		input = &CreateModelInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Model{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -664,9 +656,8 @@ func (c *APIGateway) CreateResourceRequest(input *CreateResourceInput) (req *req
 		input = &CreateResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Resource{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -742,9 +733,8 @@ func (c *APIGateway) CreateRestApiRequest(input *CreateRestApiInput) (req *reque
 		input = &CreateRestApiInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestApi{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -814,9 +804,8 @@ func (c *APIGateway) CreateStageRequest(input *CreateStageInput) (req *request.R
 		input = &CreateStageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Stage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -893,9 +882,8 @@ func (c *APIGateway) CreateUsagePlanRequest(input *CreateUsagePlanInput) (req *r
 		input = &CreateUsagePlanInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UsagePlan{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -972,9 +960,8 @@ func (c *APIGateway) CreateUsagePlanKeyRequest(input *CreateUsagePlanKeyInput) (
 		input = &CreateUsagePlanKeyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UsagePlanKey{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1047,11 +1034,10 @@ func (c *APIGateway) DeleteApiKeyRequest(input *DeleteApiKeyInput) (req *request
 		input = &DeleteApiKeyInput{}
 	}
 
+	output = &DeleteApiKeyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteApiKeyOutput{}
-	req.Data = output
 	return
 }
 
@@ -1118,11 +1104,10 @@ func (c *APIGateway) DeleteAuthorizerRequest(input *DeleteAuthorizerInput) (req 
 		input = &DeleteAuthorizerInput{}
 	}
 
+	output = &DeleteAuthorizerOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteAuthorizerOutput{}
-	req.Data = output
 	return
 }
 
@@ -1197,11 +1182,10 @@ func (c *APIGateway) DeleteBasePathMappingRequest(input *DeleteBasePathMappingIn
 		input = &DeleteBasePathMappingInput{}
 	}
 
+	output = &DeleteBasePathMappingOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteBasePathMappingOutput{}
-	req.Data = output
 	return
 }
 
@@ -1268,11 +1252,10 @@ func (c *APIGateway) DeleteClientCertificateRequest(input *DeleteClientCertifica
 		input = &DeleteClientCertificateInput{}
 	}
 
+	output = &DeleteClientCertificateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteClientCertificateOutput{}
-	req.Data = output
 	return
 }
 
@@ -1342,11 +1325,10 @@ func (c *APIGateway) DeleteDeploymentRequest(input *DeleteDeploymentInput) (req 
 		input = &DeleteDeploymentInput{}
 	}
 
+	output = &DeleteDeploymentOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDeploymentOutput{}
-	req.Data = output
 	return
 }
 
@@ -1417,11 +1399,10 @@ func (c *APIGateway) DeleteDocumentationPartRequest(input *DeleteDocumentationPa
 		input = &DeleteDocumentationPartInput{}
 	}
 
+	output = &DeleteDocumentationPartOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDocumentationPartOutput{}
-	req.Data = output
 	return
 }
 
@@ -1492,11 +1473,10 @@ func (c *APIGateway) DeleteDocumentationVersionRequest(input *DeleteDocumentatio
 		input = &DeleteDocumentationVersionInput{}
 	}
 
+	output = &DeleteDocumentationVersionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDocumentationVersionOutput{}
-	req.Data = output
 	return
 }
 
@@ -1567,11 +1547,10 @@ func (c *APIGateway) DeleteDomainNameRequest(input *DeleteDomainNameInput) (req 
 		input = &DeleteDomainNameInput{}
 	}
 
+	output = &DeleteDomainNameOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDomainNameOutput{}
-	req.Data = output
 	return
 }
 
@@ -1638,11 +1617,10 @@ func (c *APIGateway) DeleteIntegrationRequest(input *DeleteIntegrationInput) (re
 		input = &DeleteIntegrationInput{}
 	}
 
+	output = &DeleteIntegrationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteIntegrationOutput{}
-	req.Data = output
 	return
 }
 
@@ -1712,11 +1690,10 @@ func (c *APIGateway) DeleteIntegrationResponseRequest(input *DeleteIntegrationRe
 		input = &DeleteIntegrationResponseInput{}
 	}
 
+	output = &DeleteIntegrationResponseOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteIntegrationResponseOutput{}
-	req.Data = output
 	return
 }
 
@@ -1789,11 +1766,10 @@ func (c *APIGateway) DeleteMethodRequest(input *DeleteMethodInput) (req *request
 		input = &DeleteMethodInput{}
 	}
 
+	output = &DeleteMethodOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteMethodOutput{}
-	req.Data = output
 	return
 }
 
@@ -1863,11 +1839,10 @@ func (c *APIGateway) DeleteMethodResponseRequest(input *DeleteMethodResponseInpu
 		input = &DeleteMethodResponseInput{}
 	}
 
+	output = &DeleteMethodResponseOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteMethodResponseOutput{}
-	req.Data = output
 	return
 }
 
@@ -1940,11 +1915,10 @@ func (c *APIGateway) DeleteModelRequest(input *DeleteModelInput) (req *request.R
 		input = &DeleteModelInput{}
 	}
 
+	output = &DeleteModelOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteModelOutput{}
-	req.Data = output
 	return
 }
 
@@ -2017,11 +1991,10 @@ func (c *APIGateway) DeleteResourceRequest(input *DeleteResourceInput) (req *req
 		input = &DeleteResourceInput{}
 	}
 
+	output = &DeleteResourceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteResourceOutput{}
-	req.Data = output
 	return
 }
 
@@ -2094,11 +2067,10 @@ func (c *APIGateway) DeleteRestApiRequest(input *DeleteRestApiInput) (req *reque
 		input = &DeleteRestApiInput{}
 	}
 
+	output = &DeleteRestApiOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteRestApiOutput{}
-	req.Data = output
 	return
 }
 
@@ -2168,11 +2140,10 @@ func (c *APIGateway) DeleteStageRequest(input *DeleteStageInput) (req *request.R
 		input = &DeleteStageInput{}
 	}
 
+	output = &DeleteStageOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteStageOutput{}
-	req.Data = output
 	return
 }
 
@@ -2242,11 +2213,10 @@ func (c *APIGateway) DeleteUsagePlanRequest(input *DeleteUsagePlanInput) (req *r
 		input = &DeleteUsagePlanInput{}
 	}
 
+	output = &DeleteUsagePlanOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteUsagePlanOutput{}
-	req.Data = output
 	return
 }
 
@@ -2316,11 +2286,10 @@ func (c *APIGateway) DeleteUsagePlanKeyRequest(input *DeleteUsagePlanKeyInput) (
 		input = &DeleteUsagePlanKeyInput{}
 	}
 
+	output = &DeleteUsagePlanKeyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteUsagePlanKeyOutput{}
-	req.Data = output
 	return
 }
 
@@ -2394,11 +2363,10 @@ func (c *APIGateway) FlushStageAuthorizersCacheRequest(input *FlushStageAuthoriz
 		input = &FlushStageAuthorizersCacheInput{}
 	}
 
+	output = &FlushStageAuthorizersCacheOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &FlushStageAuthorizersCacheOutput{}
-	req.Data = output
 	return
 }
 
@@ -2468,11 +2436,10 @@ func (c *APIGateway) FlushStageCacheRequest(input *FlushStageCacheInput) (req *r
 		input = &FlushStageCacheInput{}
 	}
 
+	output = &FlushStageCacheOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &FlushStageCacheOutput{}
-	req.Data = output
 	return
 }
 
@@ -2542,9 +2509,8 @@ func (c *APIGateway) GenerateClientCertificateRequest(input *GenerateClientCerti
 		input = &GenerateClientCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ClientCertificate{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2611,9 +2577,8 @@ func (c *APIGateway) GetAccountRequest(input *GetAccountInput) (req *request.Req
 		input = &GetAccountInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Account{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2680,9 +2645,8 @@ func (c *APIGateway) GetApiKeyRequest(input *GetApiKeyInput) (req *request.Reque
 		input = &GetApiKeyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApiKey{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2755,9 +2719,8 @@ func (c *APIGateway) GetApiKeysRequest(input *GetApiKeysInput) (req *request.Req
 		input = &GetApiKeysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetApiKeysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2849,9 +2812,8 @@ func (c *APIGateway) GetAuthorizerRequest(input *GetAuthorizerInput) (req *reque
 		input = &GetAuthorizerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Authorizer{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2920,9 +2882,8 @@ func (c *APIGateway) GetAuthorizersRequest(input *GetAuthorizersInput) (req *req
 		input = &GetAuthorizersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetAuthorizersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2994,9 +2955,8 @@ func (c *APIGateway) GetBasePathMappingRequest(input *GetBasePathMappingInput) (
 		input = &GetBasePathMappingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BasePathMapping{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3069,9 +3029,8 @@ func (c *APIGateway) GetBasePathMappingsRequest(input *GetBasePathMappingsInput)
 		input = &GetBasePathMappingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetBasePathMappingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3163,9 +3122,8 @@ func (c *APIGateway) GetClientCertificateRequest(input *GetClientCertificateInpu
 		input = &GetClientCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ClientCertificate{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3238,9 +3196,8 @@ func (c *APIGateway) GetClientCertificatesRequest(input *GetClientCertificatesIn
 		input = &GetClientCertificatesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetClientCertificatesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3332,9 +3289,8 @@ func (c *APIGateway) GetDeploymentRequest(input *GetDeploymentInput) (req *reque
 		input = &GetDeploymentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Deployment{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3410,9 +3366,8 @@ func (c *APIGateway) GetDeploymentsRequest(input *GetDeploymentsInput) (req *req
 		input = &GetDeploymentsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDeploymentsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3507,9 +3462,8 @@ func (c *APIGateway) GetDocumentationPartRequest(input *GetDocumentationPartInpu
 		input = &GetDocumentationPartInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DocumentationPart{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3574,9 +3528,8 @@ func (c *APIGateway) GetDocumentationPartsRequest(input *GetDocumentationPartsIn
 		input = &GetDocumentationPartsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDocumentationPartsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3644,9 +3597,8 @@ func (c *APIGateway) GetDocumentationVersionRequest(input *GetDocumentationVersi
 		input = &GetDocumentationVersionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DocumentationVersion{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3711,9 +3663,8 @@ func (c *APIGateway) GetDocumentationVersionsRequest(input *GetDocumentationVers
 		input = &GetDocumentationVersionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDocumentationVersionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3781,9 +3732,8 @@ func (c *APIGateway) GetDomainNameRequest(input *GetDomainNameInput) (req *reque
 		input = &GetDomainNameInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DomainName{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3860,9 +3810,8 @@ func (c *APIGateway) GetDomainNamesRequest(input *GetDomainNamesInput) (req *req
 		input = &GetDomainNamesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDomainNamesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3954,9 +3903,8 @@ func (c *APIGateway) GetExportRequest(input *GetExportInput) (req *request.Reque
 		input = &GetExportInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetExportOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4026,9 +3974,8 @@ func (c *APIGateway) GetIntegrationRequest(input *GetIntegrationInput) (req *req
 		input = &GetIntegrationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Integration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4095,9 +4042,8 @@ func (c *APIGateway) GetIntegrationResponseRequest(input *GetIntegrationResponse
 		input = &GetIntegrationResponseInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &IntegrationResponse{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4164,9 +4110,8 @@ func (c *APIGateway) GetMethodRequest(input *GetMethodInput) (req *request.Reque
 		input = &GetMethodInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Method{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4233,9 +4178,8 @@ func (c *APIGateway) GetMethodResponseRequest(input *GetMethodResponseInput) (re
 		input = &GetMethodResponseInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &MethodResponse{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4302,9 +4246,8 @@ func (c *APIGateway) GetModelRequest(input *GetModelInput) (req *request.Request
 		input = &GetModelInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Model{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4371,9 +4314,8 @@ func (c *APIGateway) GetModelTemplateRequest(input *GetModelTemplateInput) (req 
 		input = &GetModelTemplateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetModelTemplateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4450,9 +4392,8 @@ func (c *APIGateway) GetModelsRequest(input *GetModelsInput) (req *request.Reque
 		input = &GetModelsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetModelsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4547,9 +4488,8 @@ func (c *APIGateway) GetResourceRequest(input *GetResourceInput) (req *request.R
 		input = &GetResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Resource{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4622,9 +4562,8 @@ func (c *APIGateway) GetResourcesRequest(input *GetResourcesInput) (req *request
 		input = &GetResourcesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetResourcesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4719,9 +4658,8 @@ func (c *APIGateway) GetRestApiRequest(input *GetRestApiInput) (req *request.Req
 		input = &GetRestApiInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestApi{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4794,9 +4732,8 @@ func (c *APIGateway) GetRestApisRequest(input *GetRestApisInput) (req *request.R
 		input = &GetRestApisInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetRestApisOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4888,9 +4825,8 @@ func (c *APIGateway) GetSdkRequest(input *GetSdkInput) (req *request.Request, ou
 		input = &GetSdkInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSdkOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4960,9 +4896,8 @@ func (c *APIGateway) GetSdkTypeRequest(input *GetSdkTypeInput) (req *request.Req
 		input = &GetSdkTypeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SdkType{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5027,9 +4962,8 @@ func (c *APIGateway) GetSdkTypesRequest(input *GetSdkTypesInput) (req *request.R
 		input = &GetSdkTypesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSdkTypesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5091,9 +5025,8 @@ func (c *APIGateway) GetStageRequest(input *GetStageInput) (req *request.Request
 		input = &GetStageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Stage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5160,9 +5093,8 @@ func (c *APIGateway) GetStagesRequest(input *GetStagesInput) (req *request.Reque
 		input = &GetStagesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetStagesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5235,9 +5167,8 @@ func (c *APIGateway) GetUsageRequest(input *GetUsageInput) (req *request.Request
 		input = &GetUsageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Usage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5332,9 +5263,8 @@ func (c *APIGateway) GetUsagePlanRequest(input *GetUsagePlanInput) (req *request
 		input = &GetUsagePlanInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UsagePlan{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5404,9 +5334,8 @@ func (c *APIGateway) GetUsagePlanKeyRequest(input *GetUsagePlanKeyInput) (req *r
 		input = &GetUsagePlanKeyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UsagePlanKey{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5482,9 +5411,8 @@ func (c *APIGateway) GetUsagePlanKeysRequest(input *GetUsagePlanKeysInput) (req 
 		input = &GetUsagePlanKeysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetUsagePlanKeysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5586,9 +5514,8 @@ func (c *APIGateway) GetUsagePlansRequest(input *GetUsagePlansInput) (req *reque
 		input = &GetUsagePlansInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetUsagePlansOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5686,9 +5613,8 @@ func (c *APIGateway) ImportApiKeysRequest(input *ImportApiKeysInput) (req *reque
 		input = &ImportApiKeysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportApiKeysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5764,9 +5690,8 @@ func (c *APIGateway) ImportDocumentationPartsRequest(input *ImportDocumentationP
 		input = &ImportDocumentationPartsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportDocumentationPartsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5837,9 +5762,8 @@ func (c *APIGateway) ImportRestApiRequest(input *ImportRestApiInput) (req *reque
 		input = &ImportRestApiInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestApi{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5913,9 +5837,8 @@ func (c *APIGateway) PutIntegrationRequest(input *PutIntegrationInput) (req *req
 		input = &PutIntegrationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Integration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5988,9 +5911,8 @@ func (c *APIGateway) PutIntegrationResponseRequest(input *PutIntegrationResponse
 		input = &PutIntegrationResponseInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &IntegrationResponse{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6066,9 +5988,8 @@ func (c *APIGateway) PutMethodRequest(input *PutMethodInput) (req *request.Reque
 		input = &PutMethodInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Method{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6144,9 +6065,8 @@ func (c *APIGateway) PutMethodResponseRequest(input *PutMethodResponseInput) (re
 		input = &PutMethodResponseInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &MethodResponse{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6222,9 +6142,8 @@ func (c *APIGateway) PutRestApiRequest(input *PutRestApiInput) (req *request.Req
 		input = &PutRestApiInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestApi{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6303,9 +6222,8 @@ func (c *APIGateway) TestInvokeAuthorizerRequest(input *TestInvokeAuthorizerInpu
 		input = &TestInvokeAuthorizerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &TestInvokeAuthorizerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6378,9 +6296,8 @@ func (c *APIGateway) TestInvokeMethodRequest(input *TestInvokeMethodInput) (req 
 		input = &TestInvokeMethodInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &TestInvokeMethodOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6451,9 +6368,8 @@ func (c *APIGateway) UpdateAccountRequest(input *UpdateAccountInput) (req *reque
 		input = &UpdateAccountInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Account{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6523,9 +6439,8 @@ func (c *APIGateway) UpdateApiKeyRequest(input *UpdateApiKeyInput) (req *request
 		input = &UpdateApiKeyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApiKey{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6598,9 +6513,8 @@ func (c *APIGateway) UpdateAuthorizerRequest(input *UpdateAuthorizerInput) (req 
 		input = &UpdateAuthorizerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Authorizer{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6672,9 +6586,8 @@ func (c *APIGateway) UpdateBasePathMappingRequest(input *UpdateBasePathMappingIn
 		input = &UpdateBasePathMappingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BasePathMapping{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6747,9 +6660,8 @@ func (c *APIGateway) UpdateClientCertificateRequest(input *UpdateClientCertifica
 		input = &UpdateClientCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ClientCertificate{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6819,9 +6731,8 @@ func (c *APIGateway) UpdateDeploymentRequest(input *UpdateDeploymentInput) (req 
 		input = &UpdateDeploymentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Deployment{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6894,9 +6805,8 @@ func (c *APIGateway) UpdateDocumentationPartRequest(input *UpdateDocumentationPa
 		input = &UpdateDocumentationPartInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DocumentationPart{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6970,9 +6880,8 @@ func (c *APIGateway) UpdateDocumentationVersionRequest(input *UpdateDocumentatio
 		input = &UpdateDocumentationVersionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DocumentationVersion{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7043,9 +6952,8 @@ func (c *APIGateway) UpdateDomainNameRequest(input *UpdateDomainNameInput) (req 
 		input = &UpdateDomainNameInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DomainName{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7118,9 +7026,8 @@ func (c *APIGateway) UpdateIntegrationRequest(input *UpdateIntegrationInput) (re
 		input = &UpdateIntegrationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Integration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7193,9 +7100,8 @@ func (c *APIGateway) UpdateIntegrationResponseRequest(input *UpdateIntegrationRe
 		input = &UpdateIntegrationResponseInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &IntegrationResponse{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7268,9 +7174,8 @@ func (c *APIGateway) UpdateMethodRequest(input *UpdateMethodInput) (req *request
 		input = &UpdateMethodInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Method{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7343,9 +7248,8 @@ func (c *APIGateway) UpdateMethodResponseRequest(input *UpdateMethodResponseInpu
 		input = &UpdateMethodResponseInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &MethodResponse{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7421,9 +7325,8 @@ func (c *APIGateway) UpdateModelRequest(input *UpdateModelInput) (req *request.R
 		input = &UpdateModelInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Model{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7496,9 +7399,8 @@ func (c *APIGateway) UpdateResourceRequest(input *UpdateResourceInput) (req *req
 		input = &UpdateResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Resource{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7571,9 +7473,8 @@ func (c *APIGateway) UpdateRestApiRequest(input *UpdateRestApiInput) (req *reque
 		input = &UpdateRestApiInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestApi{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7646,9 +7547,8 @@ func (c *APIGateway) UpdateStageRequest(input *UpdateStageInput) (req *request.R
 		input = &UpdateStageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Stage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7721,9 +7621,8 @@ func (c *APIGateway) UpdateUsageRequest(input *UpdateUsageInput) (req *request.R
 		input = &UpdateUsageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Usage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7794,9 +7693,8 @@ func (c *APIGateway) UpdateUsagePlanRequest(input *UpdateUsagePlanInput) (req *r
 		input = &UpdateUsagePlanInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UsagePlan{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

@@ -51,9 +51,8 @@ func (c *EC2) AcceptReservedInstancesExchangeQuoteRequest(input *AcceptReservedI
 		input = &AcceptReservedInstancesExchangeQuoteInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AcceptReservedInstancesExchangeQuoteOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -113,9 +112,8 @@ func (c *EC2) AcceptVpcPeeringConnectionRequest(input *AcceptVpcPeeringConnectio
 		input = &AcceptVpcPeeringConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AcceptVpcPeeringConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -177,9 +175,8 @@ func (c *EC2) AllocateAddressRequest(input *AllocateAddressInput) (req *request.
 		input = &AllocateAddressInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AllocateAddressOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -242,9 +239,8 @@ func (c *EC2) AllocateHostsRequest(input *AllocateHostsInput) (req *request.Requ
 		input = &AllocateHostsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AllocateHostsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -305,9 +301,8 @@ func (c *EC2) AssignIpv6AddressesRequest(input *AssignIpv6AddressesInput) (req *
 		input = &AssignIpv6AddressesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssignIpv6AddressesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -373,11 +368,10 @@ func (c *EC2) AssignPrivateIpAddressesRequest(input *AssignPrivateIpAddressesInp
 		input = &AssignPrivateIpAddressesInput{}
 	}
 
+	output = &AssignPrivateIpAddressesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AssignPrivateIpAddressesOutput{}
-	req.Data = output
 	return
 }
 
@@ -446,9 +440,8 @@ func (c *EC2) AssociateAddressRequest(input *AssociateAddressInput) (req *reques
 		input = &AssociateAddressInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssociateAddressOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -525,11 +518,10 @@ func (c *EC2) AssociateDhcpOptionsRequest(input *AssociateDhcpOptionsInput) (req
 		input = &AssociateDhcpOptionsInput{}
 	}
 
+	output = &AssociateDhcpOptionsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AssociateDhcpOptionsOutput{}
-	req.Data = output
 	return
 }
 
@@ -599,9 +591,8 @@ func (c *EC2) AssociateRouteTableRequest(input *AssociateRouteTableInput) (req *
 		input = &AssociateRouteTableInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssociateRouteTableOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -667,9 +658,8 @@ func (c *EC2) AssociateSubnetCidrBlockRequest(input *AssociateSubnetCidrBlockInp
 		input = &AssociateSubnetCidrBlockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssociateSubnetCidrBlockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -730,9 +720,8 @@ func (c *EC2) AssociateVpcCidrBlockRequest(input *AssociateVpcCidrBlockInput) (r
 		input = &AssociateVpcCidrBlockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssociateVpcCidrBlockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -792,9 +781,8 @@ func (c *EC2) AttachClassicLinkVpcRequest(input *AttachClassicLinkVpcInput) (req
 		input = &AttachClassicLinkVpcInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AttachClassicLinkVpcOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -864,11 +852,10 @@ func (c *EC2) AttachInternetGatewayRequest(input *AttachInternetGatewayInput) (r
 		input = &AttachInternetGatewayInput{}
 	}
 
+	output = &AttachInternetGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AttachInternetGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -929,9 +916,8 @@ func (c *EC2) AttachNetworkInterfaceRequest(input *AttachNetworkInterfaceInput) 
 		input = &AttachNetworkInterfaceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AttachNetworkInterfaceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -990,9 +976,8 @@ func (c *EC2) AttachVolumeRequest(input *AttachVolumeInput) (req *request.Reques
 		input = &AttachVolumeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &VolumeAttachment{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1080,9 +1065,8 @@ func (c *EC2) AttachVpnGatewayRequest(input *AttachVpnGatewayInput) (req *reques
 		input = &AttachVpnGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AttachVpnGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1143,11 +1127,10 @@ func (c *EC2) AuthorizeSecurityGroupEgressRequest(input *AuthorizeSecurityGroupE
 		input = &AuthorizeSecurityGroupEgressInput{}
 	}
 
+	output = &AuthorizeSecurityGroupEgressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AuthorizeSecurityGroupEgressOutput{}
-	req.Data = output
 	return
 }
 
@@ -1222,11 +1205,10 @@ func (c *EC2) AuthorizeSecurityGroupIngressRequest(input *AuthorizeSecurityGroup
 		input = &AuthorizeSecurityGroupIngressInput{}
 	}
 
+	output = &AuthorizeSecurityGroupIngressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AuthorizeSecurityGroupIngressOutput{}
-	req.Data = output
 	return
 }
 
@@ -1301,9 +1283,8 @@ func (c *EC2) BundleInstanceRequest(input *BundleInstanceInput) (req *request.Re
 		input = &BundleInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BundleInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1370,9 +1351,8 @@ func (c *EC2) CancelBundleTaskRequest(input *CancelBundleTaskInput) (req *reques
 		input = &CancelBundleTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelBundleTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1431,11 +1411,10 @@ func (c *EC2) CancelConversionTaskRequest(input *CancelConversionTaskInput) (req
 		input = &CancelConversionTaskInput{}
 	}
 
+	output = &CancelConversionTaskOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CancelConversionTaskOutput{}
-	req.Data = output
 	return
 }
 
@@ -1501,11 +1480,10 @@ func (c *EC2) CancelExportTaskRequest(input *CancelExportTaskInput) (req *reques
 		input = &CancelExportTaskInput{}
 	}
 
+	output = &CancelExportTaskOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CancelExportTaskOutput{}
-	req.Data = output
 	return
 }
 
@@ -1567,9 +1545,8 @@ func (c *EC2) CancelImportTaskRequest(input *CancelImportTaskInput) (req *reques
 		input = &CancelImportTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelImportTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1628,9 +1605,8 @@ func (c *EC2) CancelReservedInstancesListingRequest(input *CancelReservedInstanc
 		input = &CancelReservedInstancesListingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelReservedInstancesListingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1693,9 +1669,8 @@ func (c *EC2) CancelSpotFleetRequestsRequest(input *CancelSpotFleetRequestsInput
 		input = &CancelSpotFleetRequestsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelSpotFleetRequestsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1761,9 +1736,8 @@ func (c *EC2) CancelSpotInstanceRequestsRequest(input *CancelSpotInstanceRequest
 		input = &CancelSpotInstanceRequestsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelSpotInstanceRequestsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1830,9 +1804,8 @@ func (c *EC2) ConfirmProductInstanceRequest(input *ConfirmProductInstanceInput) 
 		input = &ConfirmProductInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ConfirmProductInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1894,9 +1867,8 @@ func (c *EC2) CopyImageRequest(input *CopyImageInput) (req *request.Request, out
 		input = &CopyImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CopyImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1960,9 +1932,8 @@ func (c *EC2) CopySnapshotRequest(input *CopySnapshotInput) (req *request.Reques
 		input = &CopySnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CopySnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2040,9 +2011,8 @@ func (c *EC2) CreateCustomerGatewayRequest(input *CreateCustomerGatewayInput) (r
 		input = &CreateCustomerGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateCustomerGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2125,9 +2095,8 @@ func (c *EC2) CreateDhcpOptionsRequest(input *CreateDhcpOptionsInput) (req *requ
 		input = &CreateDhcpOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDhcpOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2225,9 +2194,8 @@ func (c *EC2) CreateEgressOnlyInternetGatewayRequest(input *CreateEgressOnlyInte
 		input = &CreateEgressOnlyInternetGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateEgressOnlyInternetGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2289,9 +2257,8 @@ func (c *EC2) CreateFlowLogsRequest(input *CreateFlowLogsInput) (req *request.Re
 		input = &CreateFlowLogsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateFlowLogsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2359,9 +2326,8 @@ func (c *EC2) CreateImageRequest(input *CreateImageInput) (req *request.Request,
 		input = &CreateImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2429,9 +2395,8 @@ func (c *EC2) CreateInstanceExportTaskRequest(input *CreateInstanceExportTaskInp
 		input = &CreateInstanceExportTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateInstanceExportTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2495,9 +2460,8 @@ func (c *EC2) CreateInternetGatewayRequest(input *CreateInternetGatewayInput) (r
 		input = &CreateInternetGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateInternetGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2560,9 +2524,8 @@ func (c *EC2) CreateKeyPairRequest(input *CreateKeyPairInput) (req *request.Requ
 		input = &CreateKeyPairInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateKeyPairOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2632,9 +2595,8 @@ func (c *EC2) CreateNatGatewayRequest(input *CreateNatGatewayInput) (req *reques
 		input = &CreateNatGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateNatGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2698,9 +2660,8 @@ func (c *EC2) CreateNetworkAclRequest(input *CreateNetworkAclInput) (req *reques
 		input = &CreateNetworkAclInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateNetworkAclOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2763,11 +2724,10 @@ func (c *EC2) CreateNetworkAclEntryRequest(input *CreateNetworkAclEntryInput) (r
 		input = &CreateNetworkAclEntryInput{}
 	}
 
+	output = &CreateNetworkAclEntryOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateNetworkAclEntryOutput{}
-	req.Data = output
 	return
 }
 
@@ -2842,9 +2802,8 @@ func (c *EC2) CreateNetworkInterfaceRequest(input *CreateNetworkInterfaceInput) 
 		input = &CreateNetworkInterfaceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateNetworkInterfaceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2907,11 +2866,10 @@ func (c *EC2) CreatePlacementGroupRequest(input *CreatePlacementGroupInput) (req
 		input = &CreatePlacementGroupInput{}
 	}
 
+	output = &CreatePlacementGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreatePlacementGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -2975,9 +2933,8 @@ func (c *EC2) CreateReservedInstancesListingRequest(input *CreateReservedInstanc
 		input = &CreateReservedInstancesListingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateReservedInstancesListingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2987,6 +2944,10 @@ func (c *EC2) CreateReservedInstancesListingRequest(input *CreateReservedInstanc
 // the Reserved Instance Marketplace. You can submit one Standard Reserved Instance
 // listing at a time. To get a list of your Standard Reserved Instances, you
 // can use the DescribeReservedInstances operation.
+//
+// Only Standard Reserved Instances with a capacity reservation can be sold
+// in the Reserved Instance Marketplace. Convertible Reserved Instances and
+// Standard Reserved Instances with a regional benefit cannot be sold.
 //
 // The Reserved Instance Marketplace matches sellers who want to resell Standard
 // Reserved Instance capacity that they no longer need with buyers who want
@@ -3055,9 +3016,8 @@ func (c *EC2) CreateRouteRequest(input *CreateRouteInput) (req *request.Request,
 		input = &CreateRouteInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateRouteOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3135,9 +3095,8 @@ func (c *EC2) CreateRouteTableRequest(input *CreateRouteTableInput) (req *reques
 		input = &CreateRouteTableInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateRouteTableOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3200,9 +3159,8 @@ func (c *EC2) CreateSecurityGroupRequest(input *CreateSecurityGroupInput) (req *
 		input = &CreateSecurityGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSecurityGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3287,9 +3245,8 @@ func (c *EC2) CreateSnapshotRequest(input *CreateSnapshotInput) (req *request.Re
 		input = &CreateSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Snapshot{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3375,9 +3332,8 @@ func (c *EC2) CreateSpotDatafeedSubscriptionRequest(input *CreateSpotDatafeedSub
 		input = &CreateSpotDatafeedSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSpotDatafeedSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3439,9 +3395,8 @@ func (c *EC2) CreateSubnetRequest(input *CreateSubnetInput) (req *request.Reques
 		input = &CreateSubnetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSubnetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3527,11 +3482,10 @@ func (c *EC2) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, o
 		input = &CreateTagsInput{}
 	}
 
+	output = &CreateTagsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateTagsOutput{}
-	req.Data = output
 	return
 }
 
@@ -3598,9 +3552,8 @@ func (c *EC2) CreateVolumeRequest(input *CreateVolumeInput) (req *request.Reques
 		input = &CreateVolumeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Volume{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3674,9 +3627,8 @@ func (c *EC2) CreateVpcRequest(input *CreateVpcInput) (req *request.Request, out
 		input = &CreateVpcInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpcOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3699,8 +3651,8 @@ func (c *EC2) CreateVpcRequest(input *CreateVpcInput) (req *request.Request, out
 //
 // You can specify the instance tenancy value for the VPC when you create it.
 // You can't change this value for the VPC after you create it. For more information,
-// see Dedicated Instances (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/dedicated-instance.html.html)
-// in the Amazon Virtual Private Cloud User Guide.
+// see Dedicated Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/dedicated-instance.html)
+// in the Amazon Elastic Compute Cloud User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3753,9 +3705,8 @@ func (c *EC2) CreateVpcEndpointRequest(input *CreateVpcEndpointInput) (req *requ
 		input = &CreateVpcEndpointInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpcEndpointOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3767,7 +3718,7 @@ func (c *EC2) CreateVpcEndpointRequest(input *CreateVpcEndpointInput) (req *requ
 // that will control access to the service from your VPC. You can also specify
 // the VPC route tables that use the endpoint.
 //
-// Currently, only endpoints to Amazon S3 are supported.
+// Use DescribeVpcEndpointServices to get a list of supported AWS services.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3820,9 +3771,8 @@ func (c *EC2) CreateVpcPeeringConnectionRequest(input *CreateVpcPeeringConnectio
 		input = &CreateVpcPeeringConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpcPeeringConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3891,9 +3841,8 @@ func (c *EC2) CreateVpnConnectionRequest(input *CreateVpnConnectionInput) (req *
 		input = &CreateVpnConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpnConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3971,11 +3920,10 @@ func (c *EC2) CreateVpnConnectionRouteRequest(input *CreateVpnConnectionRouteInp
 		input = &CreateVpnConnectionRouteInput{}
 	}
 
+	output = &CreateVpnConnectionRouteOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateVpnConnectionRouteOutput{}
-	req.Data = output
 	return
 }
 
@@ -4041,9 +3989,8 @@ func (c *EC2) CreateVpnGatewayRequest(input *CreateVpnGatewayInput) (req *reques
 		input = &CreateVpnGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpnGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4108,11 +4055,10 @@ func (c *EC2) DeleteCustomerGatewayRequest(input *DeleteCustomerGatewayInput) (r
 		input = &DeleteCustomerGatewayInput{}
 	}
 
+	output = &DeleteCustomerGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteCustomerGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -4172,11 +4118,10 @@ func (c *EC2) DeleteDhcpOptionsRequest(input *DeleteDhcpOptionsInput) (req *requ
 		input = &DeleteDhcpOptionsInput{}
 	}
 
+	output = &DeleteDhcpOptionsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDhcpOptionsOutput{}
-	req.Data = output
 	return
 }
 
@@ -4238,9 +4183,8 @@ func (c *EC2) DeleteEgressOnlyInternetGatewayRequest(input *DeleteEgressOnlyInte
 		input = &DeleteEgressOnlyInternetGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteEgressOnlyInternetGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4299,9 +4243,8 @@ func (c *EC2) DeleteFlowLogsRequest(input *DeleteFlowLogsInput) (req *request.Re
 		input = &DeleteFlowLogsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteFlowLogsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4360,11 +4303,10 @@ func (c *EC2) DeleteInternetGatewayRequest(input *DeleteInternetGatewayInput) (r
 		input = &DeleteInternetGatewayInput{}
 	}
 
+	output = &DeleteInternetGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteInternetGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -4424,11 +4366,10 @@ func (c *EC2) DeleteKeyPairRequest(input *DeleteKeyPairInput) (req *request.Requ
 		input = &DeleteKeyPairInput{}
 	}
 
+	output = &DeleteKeyPairOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteKeyPairOutput{}
-	req.Data = output
 	return
 }
 
@@ -4487,9 +4428,8 @@ func (c *EC2) DeleteNatGatewayRequest(input *DeleteNatGatewayInput) (req *reques
 		input = &DeleteNatGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteNatGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4550,11 +4490,10 @@ func (c *EC2) DeleteNetworkAclRequest(input *DeleteNetworkAclInput) (req *reques
 		input = &DeleteNetworkAclInput{}
 	}
 
+	output = &DeleteNetworkAclOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteNetworkAclOutput{}
-	req.Data = output
 	return
 }
 
@@ -4614,11 +4553,10 @@ func (c *EC2) DeleteNetworkAclEntryRequest(input *DeleteNetworkAclEntryInput) (r
 		input = &DeleteNetworkAclEntryInput{}
 	}
 
+	output = &DeleteNetworkAclEntryOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteNetworkAclEntryOutput{}
-	req.Data = output
 	return
 }
 
@@ -4678,11 +4616,10 @@ func (c *EC2) DeleteNetworkInterfaceRequest(input *DeleteNetworkInterfaceInput) 
 		input = &DeleteNetworkInterfaceInput{}
 	}
 
+	output = &DeleteNetworkInterfaceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteNetworkInterfaceOutput{}
-	req.Data = output
 	return
 }
 
@@ -4742,11 +4679,10 @@ func (c *EC2) DeletePlacementGroupRequest(input *DeletePlacementGroupInput) (req
 		input = &DeletePlacementGroupInput{}
 	}
 
+	output = &DeletePlacementGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeletePlacementGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -4808,11 +4744,10 @@ func (c *EC2) DeleteRouteRequest(input *DeleteRouteInput) (req *request.Request,
 		input = &DeleteRouteInput{}
 	}
 
+	output = &DeleteRouteOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteRouteOutput{}
-	req.Data = output
 	return
 }
 
@@ -4871,11 +4806,10 @@ func (c *EC2) DeleteRouteTableRequest(input *DeleteRouteTableInput) (req *reques
 		input = &DeleteRouteTableInput{}
 	}
 
+	output = &DeleteRouteTableOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteRouteTableOutput{}
-	req.Data = output
 	return
 }
 
@@ -4936,11 +4870,10 @@ func (c *EC2) DeleteSecurityGroupRequest(input *DeleteSecurityGroupInput) (req *
 		input = &DeleteSecurityGroupInput{}
 	}
 
+	output = &DeleteSecurityGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSecurityGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -5003,11 +4936,10 @@ func (c *EC2) DeleteSnapshotRequest(input *DeleteSnapshotInput) (req *request.Re
 		input = &DeleteSnapshotInput{}
 	}
 
+	output = &DeleteSnapshotOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSnapshotOutput{}
-	req.Data = output
 	return
 }
 
@@ -5080,11 +5012,10 @@ func (c *EC2) DeleteSpotDatafeedSubscriptionRequest(input *DeleteSpotDatafeedSub
 		input = &DeleteSpotDatafeedSubscriptionInput{}
 	}
 
+	output = &DeleteSpotDatafeedSubscriptionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSpotDatafeedSubscriptionOutput{}
-	req.Data = output
 	return
 }
 
@@ -5143,11 +5074,10 @@ func (c *EC2) DeleteSubnetRequest(input *DeleteSubnetInput) (req *request.Reques
 		input = &DeleteSubnetInput{}
 	}
 
+	output = &DeleteSubnetOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSubnetOutput{}
-	req.Data = output
 	return
 }
 
@@ -5207,11 +5137,10 @@ func (c *EC2) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, o
 		input = &DeleteTagsInput{}
 	}
 
+	output = &DeleteTagsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteTagsOutput{}
-	req.Data = output
 	return
 }
 
@@ -5274,11 +5203,10 @@ func (c *EC2) DeleteVolumeRequest(input *DeleteVolumeInput) (req *request.Reques
 		input = &DeleteVolumeInput{}
 	}
 
+	output = &DeleteVolumeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVolumeOutput{}
-	req.Data = output
 	return
 }
 
@@ -5343,11 +5271,10 @@ func (c *EC2) DeleteVpcRequest(input *DeleteVpcInput) (req *request.Request, out
 		input = &DeleteVpcInput{}
 	}
 
+	output = &DeleteVpcOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVpcOutput{}
-	req.Data = output
 	return
 }
 
@@ -5410,9 +5337,8 @@ func (c *EC2) DeleteVpcEndpointsRequest(input *DeleteVpcEndpointsInput) (req *re
 		input = &DeleteVpcEndpointsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteVpcEndpointsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5472,9 +5398,8 @@ func (c *EC2) DeleteVpcPeeringConnectionRequest(input *DeleteVpcPeeringConnectio
 		input = &DeleteVpcPeeringConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteVpcPeeringConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5536,11 +5461,10 @@ func (c *EC2) DeleteVpnConnectionRequest(input *DeleteVpnConnectionInput) (req *
 		input = &DeleteVpnConnectionInput{}
 	}
 
+	output = &DeleteVpnConnectionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVpnConnectionOutput{}
-	req.Data = output
 	return
 }
 
@@ -5608,11 +5532,10 @@ func (c *EC2) DeleteVpnConnectionRouteRequest(input *DeleteVpnConnectionRouteInp
 		input = &DeleteVpnConnectionRouteInput{}
 	}
 
+	output = &DeleteVpnConnectionRouteOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVpnConnectionRouteOutput{}
-	req.Data = output
 	return
 }
 
@@ -5674,11 +5597,10 @@ func (c *EC2) DeleteVpnGatewayRequest(input *DeleteVpnGatewayInput) (req *reques
 		input = &DeleteVpnGatewayInput{}
 	}
 
+	output = &DeleteVpnGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVpnGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -5741,11 +5663,10 @@ func (c *EC2) DeregisterImageRequest(input *DeregisterImageInput) (req *request.
 		input = &DeregisterImageInput{}
 	}
 
+	output = &DeregisterImageOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeregisterImageOutput{}
-	req.Data = output
 	return
 }
 
@@ -5807,9 +5728,8 @@ func (c *EC2) DescribeAccountAttributesRequest(input *DescribeAccountAttributesI
 		input = &DescribeAccountAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAccountAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5886,9 +5806,8 @@ func (c *EC2) DescribeAddressesRequest(input *DescribeAddressesInput) (req *requ
 		input = &DescribeAddressesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAddressesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5951,9 +5870,8 @@ func (c *EC2) DescribeAvailabilityZonesRequest(input *DescribeAvailabilityZonesI
 		input = &DescribeAvailabilityZonesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAvailabilityZonesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6018,9 +5936,8 @@ func (c *EC2) DescribeBundleTasksRequest(input *DescribeBundleTasksInput) (req *
 		input = &DescribeBundleTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeBundleTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6084,9 +6001,8 @@ func (c *EC2) DescribeClassicLinkInstancesRequest(input *DescribeClassicLinkInst
 		input = &DescribeClassicLinkInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClassicLinkInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6148,9 +6064,8 @@ func (c *EC2) DescribeConversionTasksRequest(input *DescribeConversionTasksInput
 		input = &DescribeConversionTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeConversionTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6213,9 +6128,8 @@ func (c *EC2) DescribeCustomerGatewaysRequest(input *DescribeCustomerGatewaysInp
 		input = &DescribeCustomerGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeCustomerGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6278,9 +6192,8 @@ func (c *EC2) DescribeDhcpOptionsRequest(input *DescribeDhcpOptionsInput) (req *
 		input = &DescribeDhcpOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDhcpOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6342,9 +6255,8 @@ func (c *EC2) DescribeEgressOnlyInternetGatewaysRequest(input *DescribeEgressOnl
 		input = &DescribeEgressOnlyInternetGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEgressOnlyInternetGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6403,9 +6315,8 @@ func (c *EC2) DescribeExportTasksRequest(input *DescribeExportTasksInput) (req *
 		input = &DescribeExportTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeExportTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6464,9 +6375,8 @@ func (c *EC2) DescribeFlowLogsRequest(input *DescribeFlowLogsInput) (req *reques
 		input = &DescribeFlowLogsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeFlowLogsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6527,9 +6437,8 @@ func (c *EC2) DescribeHostReservationOfferingsRequest(input *DescribeHostReserva
 		input = &DescribeHostReservationOfferingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeHostReservationOfferingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6596,9 +6505,8 @@ func (c *EC2) DescribeHostReservationsRequest(input *DescribeHostReservationsInp
 		input = &DescribeHostReservationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeHostReservationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6658,9 +6566,8 @@ func (c *EC2) DescribeHostsRequest(input *DescribeHostsInput) (req *request.Requ
 		input = &DescribeHostsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeHostsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6723,9 +6630,8 @@ func (c *EC2) DescribeIdFormatRequest(input *DescribeIdFormatInput) (req *reques
 		input = &DescribeIdFormatInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeIdFormatOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6797,9 +6703,8 @@ func (c *EC2) DescribeIdentityIdFormatRequest(input *DescribeIdentityIdFormatInp
 		input = &DescribeIdentityIdFormatInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeIdentityIdFormatOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6869,9 +6774,8 @@ func (c *EC2) DescribeImageAttributeRequest(input *DescribeImageAttributeInput) 
 		input = &DescribeImageAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeImageAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6931,9 +6835,8 @@ func (c *EC2) DescribeImagesRequest(input *DescribeImagesInput) (req *request.Re
 		input = &DescribeImagesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeImagesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6998,9 +6901,8 @@ func (c *EC2) DescribeImportImageTasksRequest(input *DescribeImportImageTasksInp
 		input = &DescribeImportImageTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeImportImageTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7060,9 +6962,8 @@ func (c *EC2) DescribeImportSnapshotTasksRequest(input *DescribeImportSnapshotTa
 		input = &DescribeImportSnapshotTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeImportSnapshotTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7121,9 +7022,8 @@ func (c *EC2) DescribeInstanceAttributeRequest(input *DescribeInstanceAttributeI
 		input = &DescribeInstanceAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstanceAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7192,9 +7092,8 @@ func (c *EC2) DescribeInstanceStatusRequest(input *DescribeInstanceStatusInput) 
 		input = &DescribeInstanceStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstanceStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7304,9 +7203,8 @@ func (c *EC2) DescribeInstancesRequest(input *DescribeInstancesInput) (req *requ
 		input = &DescribeInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7405,9 +7303,8 @@ func (c *EC2) DescribeInternetGatewaysRequest(input *DescribeInternetGatewaysInp
 		input = &DescribeInternetGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInternetGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7466,9 +7363,8 @@ func (c *EC2) DescribeKeyPairsRequest(input *DescribeKeyPairsInput) (req *reques
 		input = &DescribeKeyPairsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeKeyPairsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7530,9 +7426,8 @@ func (c *EC2) DescribeMovingAddressesRequest(input *DescribeMovingAddressesInput
 		input = &DescribeMovingAddressesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeMovingAddressesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7593,9 +7488,8 @@ func (c *EC2) DescribeNatGatewaysRequest(input *DescribeNatGatewaysInput) (req *
 		input = &DescribeNatGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeNatGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7654,9 +7548,8 @@ func (c *EC2) DescribeNetworkAclsRequest(input *DescribeNetworkAclsInput) (req *
 		input = &DescribeNetworkAclsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeNetworkAclsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7718,9 +7611,8 @@ func (c *EC2) DescribeNetworkInterfaceAttributeRequest(input *DescribeNetworkInt
 		input = &DescribeNetworkInterfaceAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeNetworkInterfaceAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7780,9 +7672,8 @@ func (c *EC2) DescribeNetworkInterfacesRequest(input *DescribeNetworkInterfacesI
 		input = &DescribeNetworkInterfacesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeNetworkInterfacesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7841,9 +7732,8 @@ func (c *EC2) DescribePlacementGroupsRequest(input *DescribePlacementGroupsInput
 		input = &DescribePlacementGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribePlacementGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7904,9 +7794,8 @@ func (c *EC2) DescribePrefixListsRequest(input *DescribePrefixListsInput) (req *
 		input = &DescribePrefixListsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribePrefixListsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7969,9 +7858,8 @@ func (c *EC2) DescribeRegionsRequest(input *DescribeRegionsInput) (req *request.
 		input = &DescribeRegionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeRegionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8033,9 +7921,8 @@ func (c *EC2) DescribeReservedInstancesRequest(input *DescribeReservedInstancesI
 		input = &DescribeReservedInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8097,9 +7984,8 @@ func (c *EC2) DescribeReservedInstancesListingsRequest(input *DescribeReservedIn
 		input = &DescribeReservedInstancesListingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedInstancesListingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8185,9 +8071,8 @@ func (c *EC2) DescribeReservedInstancesModificationsRequest(input *DescribeReser
 		input = &DescribeReservedInstancesModificationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedInstancesModificationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8283,9 +8168,8 @@ func (c *EC2) DescribeReservedInstancesOfferingsRequest(input *DescribeReservedI
 		input = &DescribeReservedInstancesOfferingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedInstancesOfferingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8380,9 +8264,8 @@ func (c *EC2) DescribeRouteTablesRequest(input *DescribeRouteTablesInput) (req *
 		input = &DescribeRouteTablesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeRouteTablesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8449,9 +8332,8 @@ func (c *EC2) DescribeScheduledInstanceAvailabilityRequest(input *DescribeSchedu
 		input = &DescribeScheduledInstanceAvailabilityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeScheduledInstanceAvailabilityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8518,9 +8400,8 @@ func (c *EC2) DescribeScheduledInstancesRequest(input *DescribeScheduledInstance
 		input = &DescribeScheduledInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeScheduledInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8579,9 +8460,8 @@ func (c *EC2) DescribeSecurityGroupReferencesRequest(input *DescribeSecurityGrou
 		input = &DescribeSecurityGroupReferencesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSecurityGroupReferencesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8641,9 +8521,8 @@ func (c *EC2) DescribeSecurityGroupsRequest(input *DescribeSecurityGroupsInput) 
 		input = &DescribeSecurityGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSecurityGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8709,9 +8588,8 @@ func (c *EC2) DescribeSnapshotAttributeRequest(input *DescribeSnapshotAttributeI
 		input = &DescribeSnapshotAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSnapshotAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8780,9 +8658,8 @@ func (c *EC2) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (req *requ
 		input = &DescribeSnapshotsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSnapshotsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8911,9 +8788,8 @@ func (c *EC2) DescribeSpotDatafeedSubscriptionRequest(input *DescribeSpotDatafee
 		input = &DescribeSpotDatafeedSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotDatafeedSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8974,9 +8850,8 @@ func (c *EC2) DescribeSpotFleetInstancesRequest(input *DescribeSpotFleetInstance
 		input = &DescribeSpotFleetInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotFleetInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9035,9 +8910,8 @@ func (c *EC2) DescribeSpotFleetRequestHistoryRequest(input *DescribeSpotFleetReq
 		input = &DescribeSpotFleetRequestHistoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotFleetRequestHistoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9107,9 +8981,8 @@ func (c *EC2) DescribeSpotFleetRequestsRequest(input *DescribeSpotFleetRequestsI
 		input = &DescribeSpotFleetRequestsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotFleetRequestsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9196,9 +9069,8 @@ func (c *EC2) DescribeSpotInstanceRequestsRequest(input *DescribeSpotInstanceReq
 		input = &DescribeSpotInstanceRequestsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotInstanceRequestsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9277,9 +9149,8 @@ func (c *EC2) DescribeSpotPriceHistoryRequest(input *DescribeSpotPriceHistoryInp
 		input = &DescribeSpotPriceHistoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotPriceHistoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9370,9 +9241,8 @@ func (c *EC2) DescribeStaleSecurityGroupsRequest(input *DescribeStaleSecurityGro
 		input = &DescribeStaleSecurityGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeStaleSecurityGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9434,9 +9304,8 @@ func (c *EC2) DescribeSubnetsRequest(input *DescribeSubnetsInput) (req *request.
 		input = &DescribeSubnetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSubnetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9504,9 +9373,8 @@ func (c *EC2) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Reques
 		input = &DescribeTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9593,9 +9461,8 @@ func (c *EC2) DescribeVolumeAttributeRequest(input *DescribeVolumeAttributeInput
 		input = &DescribeVolumeAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVolumeAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9664,9 +9531,8 @@ func (c *EC2) DescribeVolumeStatusRequest(input *DescribeVolumeStatusInput) (req
 		input = &DescribeVolumeStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVolumeStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9790,9 +9656,8 @@ func (c *EC2) DescribeVolumesRequest(input *DescribeVolumesInput) (req *request.
 		input = &DescribeVolumesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVolumesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9886,9 +9751,8 @@ func (c *EC2) DescribeVpcAttributeRequest(input *DescribeVpcAttributeInput) (req
 		input = &DescribeVpcAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9948,9 +9812,8 @@ func (c *EC2) DescribeVpcClassicLinkRequest(input *DescribeVpcClassicLinkInput) 
 		input = &DescribeVpcClassicLinkInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcClassicLinkOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10009,9 +9872,8 @@ func (c *EC2) DescribeVpcClassicLinkDnsSupportRequest(input *DescribeVpcClassicL
 		input = &DescribeVpcClassicLinkDnsSupportInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcClassicLinkDnsSupportOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10076,9 +9938,8 @@ func (c *EC2) DescribeVpcEndpointServicesRequest(input *DescribeVpcEndpointServi
 		input = &DescribeVpcEndpointServicesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcEndpointServicesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10138,9 +9999,8 @@ func (c *EC2) DescribeVpcEndpointsRequest(input *DescribeVpcEndpointsInput) (req
 		input = &DescribeVpcEndpointsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcEndpointsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10199,9 +10059,8 @@ func (c *EC2) DescribeVpcPeeringConnectionsRequest(input *DescribeVpcPeeringConn
 		input = &DescribeVpcPeeringConnectionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcPeeringConnectionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10260,9 +10119,8 @@ func (c *EC2) DescribeVpcsRequest(input *DescribeVpcsInput) (req *request.Reques
 		input = &DescribeVpcsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10321,9 +10179,8 @@ func (c *EC2) DescribeVpnConnectionsRequest(input *DescribeVpnConnectionsInput) 
 		input = &DescribeVpnConnectionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpnConnectionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10386,9 +10243,8 @@ func (c *EC2) DescribeVpnGatewaysRequest(input *DescribeVpnGatewaysInput) (req *
 		input = &DescribeVpnGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpnGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10451,9 +10307,8 @@ func (c *EC2) DetachClassicLinkVpcRequest(input *DetachClassicLinkVpcInput) (req
 		input = &DetachClassicLinkVpcInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DetachClassicLinkVpcOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10514,11 +10369,10 @@ func (c *EC2) DetachInternetGatewayRequest(input *DetachInternetGatewayInput) (r
 		input = &DetachInternetGatewayInput{}
 	}
 
+	output = &DetachInternetGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DetachInternetGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -10579,11 +10433,10 @@ func (c *EC2) DetachNetworkInterfaceRequest(input *DetachNetworkInterfaceInput) 
 		input = &DetachNetworkInterfaceInput{}
 	}
 
+	output = &DetachNetworkInterfaceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DetachNetworkInterfaceOutput{}
-	req.Data = output
 	return
 }
 
@@ -10642,9 +10495,8 @@ func (c *EC2) DetachVolumeRequest(input *DetachVolumeInput) (req *request.Reques
 		input = &DetachVolumeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &VolumeAttachment{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10716,11 +10568,10 @@ func (c *EC2) DetachVpnGatewayRequest(input *DetachVpnGatewayInput) (req *reques
 		input = &DetachVpnGatewayInput{}
 	}
 
+	output = &DetachVpnGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DetachVpnGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -10786,11 +10637,10 @@ func (c *EC2) DisableVgwRoutePropagationRequest(input *DisableVgwRoutePropagatio
 		input = &DisableVgwRoutePropagationInput{}
 	}
 
+	output = &DisableVgwRoutePropagationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DisableVgwRoutePropagationOutput{}
-	req.Data = output
 	return
 }
 
@@ -10850,9 +10700,8 @@ func (c *EC2) DisableVpcClassicLinkRequest(input *DisableVpcClassicLinkInput) (r
 		input = &DisableVpcClassicLinkInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisableVpcClassicLinkOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10912,9 +10761,8 @@ func (c *EC2) DisableVpcClassicLinkDnsSupportRequest(input *DisableVpcClassicLin
 		input = &DisableVpcClassicLinkDnsSupportInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisableVpcClassicLinkDnsSupportOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10977,11 +10825,10 @@ func (c *EC2) DisassociateAddressRequest(input *DisassociateAddressInput) (req *
 		input = &DisassociateAddressInput{}
 	}
 
+	output = &DisassociateAddressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DisassociateAddressOutput{}
-	req.Data = output
 	return
 }
 
@@ -11048,11 +10895,10 @@ func (c *EC2) DisassociateRouteTableRequest(input *DisassociateRouteTableInput) 
 		input = &DisassociateRouteTableInput{}
 	}
 
+	output = &DisassociateRouteTableOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DisassociateRouteTableOutput{}
-	req.Data = output
 	return
 }
 
@@ -11116,9 +10962,8 @@ func (c *EC2) DisassociateSubnetCidrBlockRequest(input *DisassociateSubnetCidrBl
 		input = &DisassociateSubnetCidrBlockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisassociateSubnetCidrBlockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11179,9 +11024,8 @@ func (c *EC2) DisassociateVpcCidrBlockRequest(input *DisassociateVpcCidrBlockInp
 		input = &DisassociateVpcCidrBlockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisassociateVpcCidrBlockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11242,11 +11086,10 @@ func (c *EC2) EnableVgwRoutePropagationRequest(input *EnableVgwRoutePropagationI
 		input = &EnableVgwRoutePropagationInput{}
 	}
 
+	output = &EnableVgwRoutePropagationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &EnableVgwRoutePropagationOutput{}
-	req.Data = output
 	return
 }
 
@@ -11306,11 +11149,10 @@ func (c *EC2) EnableVolumeIORequest(input *EnableVolumeIOInput) (req *request.Re
 		input = &EnableVolumeIOInput{}
 	}
 
+	output = &EnableVolumeIOOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &EnableVolumeIOOutput{}
-	req.Data = output
 	return
 }
 
@@ -11370,9 +11212,8 @@ func (c *EC2) EnableVpcClassicLinkRequest(input *EnableVpcClassicLinkInput) (req
 		input = &EnableVpcClassicLinkInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnableVpcClassicLinkOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11437,9 +11278,8 @@ func (c *EC2) EnableVpcClassicLinkDnsSupportRequest(input *EnableVpcClassicLinkD
 		input = &EnableVpcClassicLinkDnsSupportInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnableVpcClassicLinkDnsSupportOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11504,9 +11344,8 @@ func (c *EC2) GetConsoleOutputRequest(input *GetConsoleOutputInput) (req *reques
 		input = &GetConsoleOutputInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetConsoleOutputOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11582,9 +11421,8 @@ func (c *EC2) GetConsoleScreenshotRequest(input *GetConsoleScreenshotInput) (req
 		input = &GetConsoleScreenshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetConsoleScreenshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11645,9 +11483,8 @@ func (c *EC2) GetHostReservationPurchasePreviewRequest(input *GetHostReservation
 		input = &GetHostReservationPurchasePreviewInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetHostReservationPurchasePreviewOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11711,9 +11548,8 @@ func (c *EC2) GetPasswordDataRequest(input *GetPasswordDataInput) (req *request.
 		input = &GetPasswordDataInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetPasswordDataOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11785,9 +11621,8 @@ func (c *EC2) GetReservedInstancesExchangeQuoteRequest(input *GetReservedInstanc
 		input = &GetReservedInstancesExchangeQuoteInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetReservedInstancesExchangeQuoteOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11848,9 +11683,8 @@ func (c *EC2) ImportImageRequest(input *ImportImageInput) (req *request.Request,
 		input = &ImportImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11912,9 +11746,8 @@ func (c *EC2) ImportInstanceRequest(input *ImportInstanceInput) (req *request.Re
 		input = &ImportInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11979,9 +11812,8 @@ func (c *EC2) ImportKeyPairRequest(input *ImportKeyPairInput) (req *request.Requ
 		input = &ImportKeyPairInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportKeyPairOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12047,9 +11879,8 @@ func (c *EC2) ImportSnapshotRequest(input *ImportSnapshotInput) (req *request.Re
 		input = &ImportSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12108,9 +11939,8 @@ func (c *EC2) ImportVolumeRequest(input *ImportVolumeInput) (req *request.Reques
 		input = &ImportVolumeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportVolumeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12173,9 +12003,8 @@ func (c *EC2) ModifyHostsRequest(input *ModifyHostsInput) (req *request.Request,
 		input = &ModifyHostsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyHostsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12240,11 +12069,10 @@ func (c *EC2) ModifyIdFormatRequest(input *ModifyIdFormatInput) (req *request.Re
 		input = &ModifyIdFormatInput{}
 	}
 
+	output = &ModifyIdFormatOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyIdFormatOutput{}
-	req.Data = output
 	return
 }
 
@@ -12317,11 +12145,10 @@ func (c *EC2) ModifyIdentityIdFormatRequest(input *ModifyIdentityIdFormatInput) 
 		input = &ModifyIdentityIdFormatInput{}
 	}
 
+	output = &ModifyIdentityIdFormatOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyIdentityIdFormatOutput{}
-	req.Data = output
 	return
 }
 
@@ -12394,11 +12221,10 @@ func (c *EC2) ModifyImageAttributeRequest(input *ModifyImageAttributeInput) (req
 		input = &ModifyImageAttributeInput{}
 	}
 
+	output = &ModifyImageAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyImageAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12466,11 +12292,10 @@ func (c *EC2) ModifyInstanceAttributeRequest(input *ModifyInstanceAttributeInput
 		input = &ModifyInstanceAttributeInput{}
 	}
 
+	output = &ModifyInstanceAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyInstanceAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12534,9 +12359,8 @@ func (c *EC2) ModifyInstancePlacementRequest(input *ModifyInstancePlacementInput
 		input = &ModifyInstancePlacementInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyInstancePlacementOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12613,11 +12437,10 @@ func (c *EC2) ModifyNetworkInterfaceAttributeRequest(input *ModifyNetworkInterfa
 		input = &ModifyNetworkInterfaceAttributeInput{}
 	}
 
+	output = &ModifyNetworkInterfaceAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyNetworkInterfaceAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12677,9 +12500,8 @@ func (c *EC2) ModifyReservedInstancesRequest(input *ModifyReservedInstancesInput
 		input = &ModifyReservedInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyReservedInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12744,11 +12566,10 @@ func (c *EC2) ModifySnapshotAttributeRequest(input *ModifySnapshotAttributeInput
 		input = &ModifySnapshotAttributeInput{}
 	}
 
+	output = &ModifySnapshotAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifySnapshotAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12819,9 +12640,8 @@ func (c *EC2) ModifySpotFleetRequestRequest(input *ModifySpotFleetRequestInput) 
 		input = &ModifySpotFleetRequestInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifySpotFleetRequestOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12899,11 +12719,10 @@ func (c *EC2) ModifySubnetAttributeRequest(input *ModifySubnetAttributeInput) (r
 		input = &ModifySubnetAttributeInput{}
 	}
 
+	output = &ModifySubnetAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifySubnetAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12962,11 +12781,10 @@ func (c *EC2) ModifyVolumeAttributeRequest(input *ModifyVolumeAttributeInput) (r
 		input = &ModifyVolumeAttributeInput{}
 	}
 
+	output = &ModifyVolumeAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyVolumeAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -13034,11 +12852,10 @@ func (c *EC2) ModifyVpcAttributeRequest(input *ModifyVpcAttributeInput) (req *re
 		input = &ModifyVpcAttributeInput{}
 	}
 
+	output = &ModifyVpcAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyVpcAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -13097,9 +12914,8 @@ func (c *EC2) ModifyVpcEndpointRequest(input *ModifyVpcEndpointInput) (req *requ
 		input = &ModifyVpcEndpointInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyVpcEndpointOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13160,9 +12976,8 @@ func (c *EC2) ModifyVpcPeeringConnectionOptionsRequest(input *ModifyVpcPeeringCo
 		input = &ModifyVpcPeeringConnectionOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyVpcPeeringConnectionOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13240,9 +13055,8 @@ func (c *EC2) MonitorInstancesRequest(input *MonitorInstancesInput) (req *reques
 		input = &MonitorInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &MonitorInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13306,9 +13120,8 @@ func (c *EC2) MoveAddressToVpcRequest(input *MoveAddressToVpcInput) (req *reques
 		input = &MoveAddressToVpcInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &MoveAddressToVpcOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13373,9 +13186,8 @@ func (c *EC2) PurchaseHostReservationRequest(input *PurchaseHostReservationInput
 		input = &PurchaseHostReservationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseHostReservationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13437,9 +13249,8 @@ func (c *EC2) PurchaseReservedInstancesOfferingRequest(input *PurchaseReservedIn
 		input = &PurchaseReservedInstancesOfferingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseReservedInstancesOfferingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13507,9 +13318,8 @@ func (c *EC2) PurchaseScheduledInstancesRequest(input *PurchaseScheduledInstance
 		input = &PurchaseScheduledInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseScheduledInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13577,11 +13387,10 @@ func (c *EC2) RebootInstancesRequest(input *RebootInstancesInput) (req *request.
 		input = &RebootInstancesInput{}
 	}
 
+	output = &RebootInstancesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RebootInstancesOutput{}
-	req.Data = output
 	return
 }
 
@@ -13650,9 +13459,8 @@ func (c *EC2) RegisterImageRequest(input *RegisterImageInput) (req *request.Requ
 		input = &RegisterImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RegisterImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13743,9 +13551,8 @@ func (c *EC2) RejectVpcPeeringConnectionRequest(input *RejectVpcPeeringConnectio
 		input = &RejectVpcPeeringConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RejectVpcPeeringConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13808,11 +13615,10 @@ func (c *EC2) ReleaseAddressRequest(input *ReleaseAddressInput) (req *request.Re
 		input = &ReleaseAddressInput{}
 	}
 
+	output = &ReleaseAddressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ReleaseAddressOutput{}
-	req.Data = output
 	return
 }
 
@@ -13885,9 +13691,8 @@ func (c *EC2) ReleaseHostsRequest(input *ReleaseHostsInput) (req *request.Reques
 		input = &ReleaseHostsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReleaseHostsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13957,9 +13762,8 @@ func (c *EC2) ReplaceNetworkAclAssociationRequest(input *ReplaceNetworkAclAssoci
 		input = &ReplaceNetworkAclAssociationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReplaceNetworkAclAssociationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14021,11 +13825,10 @@ func (c *EC2) ReplaceNetworkAclEntryRequest(input *ReplaceNetworkAclEntryInput) 
 		input = &ReplaceNetworkAclEntryInput{}
 	}
 
+	output = &ReplaceNetworkAclEntryOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ReplaceNetworkAclEntryOutput{}
-	req.Data = output
 	return
 }
 
@@ -14086,11 +13889,10 @@ func (c *EC2) ReplaceRouteRequest(input *ReplaceRouteInput) (req *request.Reques
 		input = &ReplaceRouteInput{}
 	}
 
+	output = &ReplaceRouteOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ReplaceRouteOutput{}
-	req.Data = output
 	return
 }
 
@@ -14155,9 +13957,8 @@ func (c *EC2) ReplaceRouteTableAssociationRequest(input *ReplaceRouteTableAssoci
 		input = &ReplaceRouteTableAssociationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReplaceRouteTableAssociationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14224,11 +14025,10 @@ func (c *EC2) ReportInstanceStatusRequest(input *ReportInstanceStatusInput) (req
 		input = &ReportInstanceStatusInput{}
 	}
 
+	output = &ReportInstanceStatusOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ReportInstanceStatusOutput{}
-	req.Data = output
 	return
 }
 
@@ -14293,9 +14093,8 @@ func (c *EC2) RequestSpotFleetRequest(input *RequestSpotFleetInput) (req *reques
 		input = &RequestSpotFleetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RequestSpotFleetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14370,9 +14169,8 @@ func (c *EC2) RequestSpotInstancesRequest(input *RequestSpotInstancesInput) (req
 		input = &RequestSpotInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RequestSpotInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14436,11 +14234,10 @@ func (c *EC2) ResetImageAttributeRequest(input *ResetImageAttributeInput) (req *
 		input = &ResetImageAttributeInput{}
 	}
 
+	output = &ResetImageAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ResetImageAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -14501,11 +14298,10 @@ func (c *EC2) ResetInstanceAttributeRequest(input *ResetInstanceAttributeInput) 
 		input = &ResetInstanceAttributeInput{}
 	}
 
+	output = &ResetInstanceAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ResetInstanceAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -14572,11 +14368,10 @@ func (c *EC2) ResetNetworkInterfaceAttributeRequest(input *ResetNetworkInterface
 		input = &ResetNetworkInterfaceAttributeInput{}
 	}
 
+	output = &ResetNetworkInterfaceAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ResetNetworkInterfaceAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -14636,11 +14431,10 @@ func (c *EC2) ResetSnapshotAttributeRequest(input *ResetSnapshotAttributeInput) 
 		input = &ResetSnapshotAttributeInput{}
 	}
 
+	output = &ResetSnapshotAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ResetSnapshotAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -14703,9 +14497,8 @@ func (c *EC2) RestoreAddressToClassicRequest(input *RestoreAddressToClassicInput
 		input = &RestoreAddressToClassicInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestoreAddressToClassicOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14767,11 +14560,10 @@ func (c *EC2) RevokeSecurityGroupEgressRequest(input *RevokeSecurityGroupEgressI
 		input = &RevokeSecurityGroupEgressInput{}
 	}
 
+	output = &RevokeSecurityGroupEgressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RevokeSecurityGroupEgressOutput{}
-	req.Data = output
 	return
 }
 
@@ -14841,11 +14633,10 @@ func (c *EC2) RevokeSecurityGroupIngressRequest(input *RevokeSecurityGroupIngres
 		input = &RevokeSecurityGroupIngressInput{}
 	}
 
+	output = &RevokeSecurityGroupIngressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RevokeSecurityGroupIngressOutput{}
-	req.Data = output
 	return
 }
 
@@ -14914,9 +14705,8 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 		input = &RunInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Reservation{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -15023,9 +14813,8 @@ func (c *EC2) RunScheduledInstancesRequest(input *RunScheduledInstancesInput) (r
 		input = &RunScheduledInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RunScheduledInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -15094,9 +14883,8 @@ func (c *EC2) StartInstancesRequest(input *StartInstancesInput) (req *request.Re
 		input = &StartInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StartInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -15173,9 +14961,8 @@ func (c *EC2) StopInstancesRequest(input *StopInstancesInput) (req *request.Requ
 		input = &StopInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StopInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -15263,9 +15050,8 @@ func (c *EC2) TerminateInstancesRequest(input *TerminateInstancesInput) (req *re
 		input = &TerminateInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &TerminateInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -15348,9 +15134,8 @@ func (c *EC2) UnassignIpv6AddressesRequest(input *UnassignIpv6AddressesInput) (r
 		input = &UnassignIpv6AddressesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UnassignIpv6AddressesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -15409,11 +15194,10 @@ func (c *EC2) UnassignPrivateIpAddressesRequest(input *UnassignPrivateIpAddresse
 		input = &UnassignPrivateIpAddressesInput{}
 	}
 
+	output = &UnassignPrivateIpAddressesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UnassignPrivateIpAddressesOutput{}
-	req.Data = output
 	return
 }
 
@@ -15472,9 +15256,8 @@ func (c *EC2) UnmonitorInstancesRequest(input *UnmonitorInstancesInput) (req *re
 		input = &UnmonitorInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UnmonitorInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -24693,6 +24476,9 @@ type DescribeCustomerGatewaysInput struct {
 	//    is ipsec.1.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -24785,6 +24571,9 @@ type DescribeDhcpOptionsInput struct {
 	//    * value - The value for one of the options.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -25101,8 +24890,7 @@ type DescribeHostReservationOfferingsInput struct {
 	//
 	//    * instance-family - The instance family of the offering (e.g., m4).
 	//
-	//    * payment-option - The payment option (No Upfront | Partial Upfront |
-	//    All Upfront).
+	//    * payment-option - The payment option (NoUpfront | PartialUpfront | AllUpfront).
 	Filter []*Filter `locationNameList:"Filter" type:"list"`
 
 	// This is the maximum duration of the reservation you'd like to purchase, specified
@@ -25220,8 +25008,7 @@ type DescribeHostReservationsInput struct {
 	//
 	//    * instance-family - The instance family (e.g., m4).
 	//
-	//    * payment-option - The payment option (No Upfront | Partial Upfront |
-	//    All Upfront).
+	//    * payment-option - The payment option (NoUpfront | PartialUpfront | AllUpfront).
 	//
 	//    * state - The state of the reservation (payment-pending | payment-failed
 	//    | active | retired).
@@ -25778,6 +25565,9 @@ type DescribeImagesInput struct {
 	//    * state-reason-message - The message for the state change.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -26678,8 +26468,10 @@ type DescribeInstancesInput struct {
 	//
 	//    * subnet-id - The ID of the subnet for the instance.
 	//
-	//    * tag:key=value - The key/value combination of a tag assigned to the resource,
-	//    where tag:key is the tag's key.
+	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -26811,6 +26603,9 @@ type DescribeInternetGatewaysInput struct {
 	//    * internet-gateway-id - The ID of the Internet gateway.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -27218,6 +27013,9 @@ type DescribeNetworkAclsInput struct {
 	//    * network-acl-id - The ID of the network ACL.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -27520,6 +27318,9 @@ type DescribeNetworkInterfacesInput struct {
 	//    * subnet-id - The ID of the subnet for the network interface.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -27905,6 +27706,9 @@ type DescribeReservedInstancesInput struct {
 	//    | payment-failed | retired).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -28490,6 +28294,9 @@ type DescribeRouteTablesInput struct {
 	//    specified in a route in the table.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -29193,6 +29000,9 @@ type DescribeSnapshotsInput struct {
 	//    * status - The status of the snapshot (pending | completed | error).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -29867,6 +29677,9 @@ type DescribeSpotInstanceRequestsInput struct {
 	//    request.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -30254,6 +30067,9 @@ type DescribeSubnetsInput struct {
 	//    * subnet-id - The ID of the subnet.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -30717,6 +30533,9 @@ type DescribeVolumesInput struct {
 	//    | deleted | error).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -31060,6 +30879,9 @@ type DescribeVpcClassicLinkInput struct {
 	//    (true | false).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -31366,6 +31188,9 @@ type DescribeVpcPeeringConnectionsInput struct {
 	//    status of the VPC peering connection, if applicable.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -31474,6 +31299,9 @@ type DescribeVpcsInput struct {
 	//    * state - The state of the VPC (pending | available).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -31581,6 +31409,9 @@ type DescribeVpnConnectionsInput struct {
 	//    device.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -31686,6 +31517,9 @@ type DescribeVpnGatewaysInput struct {
 	//    | deleting | deleted).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -39606,6 +39440,10 @@ type ModifySubnetAttributeInput struct {
 	// subnet should be assigned an IPv6 address. This includes a network interface
 	// that's created when launching an instance into the subnet (the instance therefore
 	// receives an IPv6 address).
+	//
+	// If you enable the IPv6 addressing feature for your subnet, your network interface
+	// or instance only receives an IPv6 address if it's created using version 2016-11-15
+	// or later of the Amazon EC2 API.
 	AssignIpv6AddressOnCreation *AttributeBooleanValue `type:"structure"`
 
 	// Specify true to indicate that network interfaces created in the specified
@@ -41269,8 +41107,8 @@ type Placement struct {
 	// The name of the placement group the instance is in (for cluster compute instances).
 	GroupName *string `locationName:"groupName" type:"string"`
 
-	// The ID of the Dedicted host on which the instance resides. This parameter
-	// is not support for the ImportInstance command.
+	// The ID of the Dedicated Host on which the instance resides. This parameter
+	// is not supported for the ImportInstance command.
 	HostId *string `locationName:"hostId" type:"string"`
 
 	// The tenancy of the instance (if the instance is running in a VPC). An instance
@@ -48832,6 +48670,11 @@ type SpotPlacement struct {
 
 	// The name of the placement group (for cluster instances).
 	GroupName *string `locationName:"groupName" type:"string"`
+
+	// The tenancy of the instance (if the instance is running in a VPC). An instance
+	// with a tenancy of dedicated runs on single-tenant hardware. The host tenancy
+	// is not supported for Spot instances.
+	Tenancy *string `locationName:"tenancy" type:"string" enum:"Tenancy"`
 }
 
 // String returns the string representation
@@ -48853,6 +48696,12 @@ func (s *SpotPlacement) SetAvailabilityZone(v string) *SpotPlacement {
 // SetGroupName sets the GroupName field's value.
 func (s *SpotPlacement) SetGroupName(v string) *SpotPlacement {
 	s.GroupName = &v
+	return s
+}
+
+// SetTenancy sets the Tenancy field's value.
+func (s *SpotPlacement) SetTenancy(v string) *SpotPlacement {
+	s.Tenancy = &v
 	return s
 }
 
