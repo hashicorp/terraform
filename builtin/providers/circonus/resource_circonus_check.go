@@ -471,7 +471,7 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 	}
 
 	// Last step: parse the individual check types
-	if err := parsePerCheckTypeConfig(c, ar); err != nil {
+	if err := _CheckConfigToAPI(c, ar); err != nil {
 		return errwrap.Wrapf("unable to parse check type: {{err}}", err)
 	}
 
@@ -486,9 +486,9 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 	return nil
 }
 
-// parsePerCheckTypeConfig parses the Terraform config into the respective
-// per-check type api.Config attributes.
-func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
+// _CheckConfigToAPI parses the Terraform config into the respective per-check
+// type api.Config attributes.
+func _CheckConfigToAPI(c *_Check, ar _AttrReader) error {
 	checkTypeParseMap := map[_SchemaAttr]func(*_Check, *_ProviderContext, _InterfaceList) error{
 		_CheckCAQLAttr:       _CheckConfigToAPICAQL,
 		_CheckCloudWatchAttr: _CheckConfigToAPICloudWatch,
