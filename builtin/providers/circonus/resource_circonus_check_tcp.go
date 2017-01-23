@@ -82,9 +82,9 @@ var _SchemaCheckTCP = &schema.Schema{
 	},
 }
 
-// _ReadAPICheckConfigTCP reads the Config data out of _Check.CheckBundle into the
+// _CheckAPIToStateTCP reads the Config data out of _Check.CheckBundle into the
 // statefile.
-func _ReadAPICheckConfigTCP(c *_Check, d *schema.ResourceData) error {
+func _CheckAPIToStateTCP(c *_Check, d *schema.ResourceData) error {
 	tcpConfig := make(map[string]interface{}, len(c.Config))
 
 	// swamp is a sanity check: it must be empty by the time this method returns
@@ -180,7 +180,7 @@ func hashCheckTCP(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func parseCheckConfigTCP(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
+func _CheckConfigToAPITCP(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
 	c.Type = string(_APICheckTypeTCP)
 
 	// Iterate over all `tcp` attributes, even though we have a max of 1 in the

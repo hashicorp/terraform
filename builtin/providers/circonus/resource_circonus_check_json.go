@@ -53,7 +53,7 @@ var _SchemaCheckJSON = &schema.Schema{
 	Optional: true,
 	MaxItems: 1,
 	MinItems: 1,
-	Set:      hashCheckJSON,
+	Set:      _CheckJSONConfigChecksum,
 	Elem: &schema.Resource{
 		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
 			_CheckJSONAuthMethodAttr: &schema.Schema{
@@ -138,9 +138,9 @@ var _SchemaCheckJSON = &schema.Schema{
 	},
 }
 
-// _ReadAPICheckConfigJSON reads the Config data out of _Check.CheckBundle into the
-// statefile.
-func _ReadAPICheckConfigJSON(c *_Check, d *schema.ResourceData) error {
+// _CheckAPIToStateJSON reads the Config data out of _Check.CheckBundle into
+// the statefile.
+func _CheckAPIToStateJSON(c *_Check, d *schema.ResourceData) error {
 	jsonConfig := make(map[string]interface{}, len(c.Config))
 
 	// swamp is a sanity check: it must be empty by the time this method returns
@@ -215,13 +215,14 @@ func _ReadAPICheckConfigJSON(c *_Check, d *schema.ResourceData) error {
 		}
 	}
 
-	_StateSet(d, _CheckJSONAttr, schema.NewSet(hashCheckJSON, []interface{}{jsonConfig}))
+	_StateSet(d, _CheckJSONAttr, schema.NewSet(_CheckJSONConfigChecksum, []interface{}{jsonConfig}))
 
 	return nil
 }
 
-// hashCheckJSON creates a stable hash of the normalized values
-func hashCheckJSON(v interface{}) int {
+// _CheckJSONConfigChecksum creates a stable hash of the normalized values found
+// in a user's Terraform config.
+func _CheckJSONConfigChecksum(v interface{}) int {
 	m := v.(map[string]interface{})
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
@@ -273,7 +274,7 @@ func hashCheckJSON(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func parseCheckConfigJSON(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
+func _CheckConfigToAPIJSON(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
 	c.Type = string(_APICheckTypeJSON)
 
 	// Iterate over all `json` attributes, even though we have a max of 1 in the

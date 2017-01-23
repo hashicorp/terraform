@@ -153,9 +153,9 @@ var _SchemaCheckHTTP = &schema.Schema{
 	},
 }
 
-// _ReadAPICheckConfigHTTP reads the Config data out of _Check.CheckBundle into the
+// _CheckAPIToStateHTTP reads the Config data out of _Check.CheckBundle into the
 // statefile.
-func _ReadAPICheckConfigHTTP(c *_Check, d *schema.ResourceData) error {
+func _CheckAPIToStateHTTP(c *_Check, d *schema.ResourceData) error {
 	httpConfig := make(map[string]interface{}, len(c.Config))
 
 	// swamp is a sanity check: it must be empty by the time this method returns
@@ -292,7 +292,7 @@ func hashCheckHTTP(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func parseCheckConfigHTTP(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
+func _CheckConfigToAPIHTTP(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
 	c.Type = string(_APICheckTypeHTTP)
 
 	// Iterate over all `http` attributes, even though we have a max of 1 in the

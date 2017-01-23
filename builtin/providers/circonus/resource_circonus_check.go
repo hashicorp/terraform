@@ -490,13 +490,13 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 // per-check type api.Config attributes.
 func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
 	checkTypeParseMap := map[_SchemaAttr]func(*_Check, *_ProviderContext, _InterfaceList) error{
-		_CheckCAQLAttr:       parseCheckConfigCAQL,
-		_CheckCloudWatchAttr: parseCheckConfigCloudWatch,
-		_CheckHTTPAttr:       parseCheckConfigHTTP,
-		_CheckJSONAttr:       parseCheckConfigJSON,
-		_CheckICMPPingAttr:   parseCheckConfigICMPPing,
-		_CheckPostgreSQLAttr: parseCheckConfigPostgreSQL,
-		_CheckTCPAttr:        parseCheckConfigTCP,
+		_CheckCAQLAttr:       _CheckConfigToAPICAQL,
+		_CheckCloudWatchAttr: _CheckConfigToAPICloudWatch,
+		_CheckHTTPAttr:       _CheckConfigToAPIHTTP,
+		_CheckICMPPingAttr:   _CheckConfigToAPIICMPPing,
+		_CheckJSONAttr:       _CheckConfigToAPIJSON,
+		_CheckPostgreSQLAttr: _CheckConfigToAPIPostgreSQL,
+		_CheckTCPAttr:        _CheckConfigToAPITCP,
 	}
 
 	for checkType, fn := range checkTypeParseMap {
@@ -514,13 +514,13 @@ func parsePerCheckTypeConfig(c *_Check, ar _AttrReader) error {
 // statefile.
 func _ParseCheckTypeConfig(c *_Check, d *schema.ResourceData) error {
 	checkTypeConfigHandlers := map[_APICheckType]func(*_Check, *schema.ResourceData) error{
-		_APICheckTypeCAQLAttr:       _ReadAPICheckConfigCAQL,
-		_APICheckTypeCloudWatchAttr: _ReadAPICheckConfigCloudWatch,
-		_APICheckTypeHTTPAttr:       _ReadAPICheckConfigHTTP,
-		_APICheckTypeJSONAttr:       _ReadAPICheckConfigJSON,
-		_APICheckTypeICMPPingAttr:   _ReadAPICheckConfigICMPPing,
-		_APICheckTypePostgreSQLAttr: _ReadAPICheckConfigPostgreSQL,
-		_APICheckTypeTCPAttr:        _ReadAPICheckConfigTCP,
+		_APICheckTypeCAQLAttr:       _CheckAPIToStateCAQL,
+		_APICheckTypeCloudWatchAttr: _CheckAPIToStateCloudWatch,
+		_APICheckTypeHTTPAttr:       _CheckAPIToStateHTTP,
+		_APICheckTypeICMPPingAttr:   _CheckAPIToStateICMPPing,
+		_APICheckTypeJSONAttr:       _CheckAPIToStateJSON,
+		_APICheckTypePostgreSQLAttr: _CheckAPIToStatePostgreSQL,
+		_APICheckTypeTCPAttr:        _CheckAPIToStateTCP,
 	}
 
 	var checkType _APICheckType = _APICheckType(c.Type)
