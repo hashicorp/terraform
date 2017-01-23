@@ -385,6 +385,8 @@ Available metric names are dependent on the output of the `query` being run.
 * `ciphers` - (Optional) A list of ciphers to be used in the TLS protocol (for
   HTTPS checks).
 
+* `host` - (Required) Hostname or IP address of the host to connect to.
+
 * `key_file` - (Optional) A path to a file containing key to be used in
   conjunction with the cilent certificate (for TLS checks).
 
@@ -398,6 +400,42 @@ Available metrics include: `banner`, `banner_match`, `cert_end`, `cert_end_in`,
 `tt_connect`, `tt_firstbyte`.  See the
 [`tcp` check type](https://login.circonus.com/resources/api/calls/check_bundle)
 for additional details.
+
+Sample `tcp` check:
+
+```
+resource "circonus_check" "tcp_check" {
+  name = "TCP and TLS check"
+  notes = "Obtains the connect time and TTL for the TLS cert"
+  period = "60s"
+
+  collector {
+    id = "/broker/1"
+  }
+
+  tcp {
+    host = "127.0.0.1"
+    port = 443
+    tls = true
+  }
+
+  stream {
+    name = "cert_end_in"
+    tags = [ "${var.tcp_check_tags}" ]
+    type = "numeric"
+    unit = "seconds"
+  }
+
+  stream {
+    name = "tt_connect"
+    tags = [ "${var.tcp_check_tags}" ]
+    type = "numeric"
+    unit = "miliseconds"
+  }
+
+  tags = [ "${var.tcp_check_tags}" ]
+}
+```
 
 ## Import Example
 

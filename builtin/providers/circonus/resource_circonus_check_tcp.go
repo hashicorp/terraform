@@ -17,6 +17,7 @@ const (
 	_CheckTCPCAChainAttr      _SchemaAttr = "ca_chain"
 	_CheckTCPCertFileAttr     _SchemaAttr = "certificate_file"
 	_CheckTCPCiphersAttr      _SchemaAttr = "ciphers"
+	_CheckTCPHostAttr         _SchemaAttr = "host"
 	_CheckTCPKeyFileAttr      _SchemaAttr = "key_file"
 	_CheckTCPPortAttr         _SchemaAttr = "port"
 	_CheckTCPTLSAttr          _SchemaAttr = "tls"
@@ -26,7 +27,8 @@ var _CheckTCPDescriptions = _AttrDescrs{
 	_CheckTCPBannerRegexpAttr: `This regular expression is matched against the response banner. If a match is not found, the check will be marked as bad.`,
 	_CheckTCPCAChainAttr:      "A path to a file containing all the certificate authorities that should be loaded to validate the remote certificate (for TLS checks).",
 	_CheckTCPCertFileAttr:     "A path to a file containing the client certificate that will be presented to the remote server (for TLS checks).",
-	_CheckTCPCiphersAttr:      "A list of ciphers to be used in the TLS protocol (for TCPS checks)",
+	_CheckTCPCiphersAttr:      "A list of ciphers to be used when establishing a TLS connection",
+	_CheckTCPHostAttr:         "Specifies the host name or IP address to connect to for this TCP check",
 	_CheckTCPKeyFileAttr:      "A path to a file containing key to be used in conjunction with the cilent certificate (for TLS checks)",
 	_CheckTCPPortAttr:         "Specifies the port on which the management interface can be reached.",
 	_CheckTCPTLSAttr:          "Upgrade TCP connection to use TLS.",
@@ -59,6 +61,11 @@ var _SchemaCheckTCP = &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: _ValidateRegexp(_CheckTCPCiphersAttr, `.+`),
+			},
+			_CheckTCPHostAttr: &schema.Schema{
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: _ValidateRegexp(_CheckTCPHostAttr, `.+`),
 			},
 			_CheckTCPKeyFileAttr: &schema.Schema{
 				Type:         schema.TypeString,
@@ -93,9 +100,16 @@ func _CheckAPIToStateTCP(c *_Check, d *schema.ResourceData) error {
 		swamp[k] = v
 	}
 
-	saveStringConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
-		if v, ok := c.Config[apiKey]; ok {
-			tcpConfig[string(attrName)] = v
+	saveBoolConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
+		if s, ok := c.Config[apiKey]; ok {
+			switch strings.ToLower(s) {
+			case "1", "true", "t", "yes", "y":
+				tcpConfig[string(attrName)] = true
+			case "0", "false", "f", "no", "n":
+				tcpConfig[string(attrName)] = false
+			default:
+				panic(fmt.Sprintf("PROVIDER BUG: unsupported boolean: %q for API Config Key %q", s, string(apiKey)))
+			}
 		}
 
 		delete(swamp, apiKey)
@@ -114,13 +128,22 @@ func _CheckAPIToStateTCP(c *_Check, d *schema.ResourceData) error {
 		delete(swamp, apiKey)
 	}
 
+	saveStringConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
+		if v, ok := c.Config[apiKey]; ok {
+			tcpConfig[string(attrName)] = v
+		}
+
+		delete(swamp, apiKey)
+	}
+
 	saveStringConfigToState(config.BannerMatch, _CheckTCPBannerRegexpAttr)
 	saveStringConfigToState(config.CAChain, _CheckTCPCAChainAttr)
 	saveStringConfigToState(config.CertFile, _CheckTCPCertFileAttr)
 	saveStringConfigToState(config.Ciphers, _CheckTCPCiphersAttr)
+	tcpConfig[string(_CheckTCPHostAttr)] = c.Target
 	saveStringConfigToState(config.KeyFile, _CheckTCPKeyFileAttr)
 	saveIntConfigToState(config.Port, _CheckTCPPortAttr)
-	saveStringConfigToState(config.UseSSL, _CheckTCPTLSAttr)
+	saveBoolConfigToState(config.UseSSL, _CheckTCPTLSAttr)
 
 	whitelistedConfigKeys := map[config.Key]struct{}{
 		config.ReverseSecretKey: struct{}{},
@@ -172,6 +195,7 @@ func hashCheckTCP(v interface{}) int {
 	writeString(_CheckTCPCAChainAttr)
 	writeString(_CheckTCPCertFileAttr)
 	writeString(_CheckTCPCiphersAttr)
+	writeString(_CheckTCPHostAttr)
 	writeString(_CheckTCPKeyFileAttr)
 	writeInt(_CheckTCPPortAttr)
 	writeBool(_CheckTCPTLSAttr)
@@ -203,6 +227,10 @@ func _CheckConfigToAPITCP(c *_Check, ctxt *_ProviderContext, l _InterfaceList) e
 
 		if s, ok := ar.GetStringOK(_CheckTCPCiphersAttr); ok {
 			c.Config[config.Ciphers] = s
+		}
+
+		if s, ok := ar.GetStringOK(_CheckTCPHostAttr); ok {
+			c.Target = s
 		}
 
 		if s, ok := ar.GetStringOK(_CheckTCPKeyFileAttr); ok {
