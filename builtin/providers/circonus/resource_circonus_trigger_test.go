@@ -28,8 +28,8 @@ func TestAccCirconusTrigger_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_trigger.icmp-latency-alarm", "if.#", "4"),
 
 					resource.TestCheckResourceAttr("circonus_trigger.icmp-latency-alarm", "if.0.value.#", "1"),
-					resource.TestCheckResourceAttr("circonus_trigger.icmp-latency-alarm", "if.0.value.557638532.absent", "60s"),
-					resource.TestCheckResourceAttr("circonus_trigger.icmp-latency-alarm", "if.0.value.557638532.over.#", "0"),
+					resource.TestCheckResourceAttr("circonus_trigger.icmp-latency-alarm", "if.0.value.4211424620.absent", "70s"),
+					resource.TestCheckResourceAttr("circonus_trigger.icmp-latency-alarm", "if.0.value.4211424620.over.#", "0"),
 					resource.TestCheckResourceAttr("circonus_trigger.icmp-latency-alarm", "if.0.then.#", "1"),
 					// Computed:
 					// resource.TestCheckResourceAttr("circonus_trigger.icmp-latency-alarm", "if.0.then.<computed>.notify.#", "1"),
@@ -191,7 +191,7 @@ EOF
 
   if {
     value {
-      absent = "60s"
+      absent = "70s"
     }
 
     then {
