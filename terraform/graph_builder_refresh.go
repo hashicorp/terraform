@@ -62,6 +62,14 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
+	concreteDataResource := func(a *NodeAbstractResource) dag.Vertex {
+		return &NodeRefreshableDataResource{
+			NodeAbstractCountResource: &NodeAbstractCountResource{
+				NodeAbstractResource: a,
+			},
+		}
+	}
+
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the state
 		&StateTransformer{
@@ -71,7 +79,7 @@ func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 
 		// Creates all the data resources that aren't in the state
 		&ConfigTransformer{
-			Concrete:   concreteResource,
+			Concrete:   concreteDataResource,
 			Module:     b.Module,
 			Unique:     true,
 			ModeFilter: true,
