@@ -92,6 +92,7 @@ type Config struct {
 	Insecure         bool
 
 	SkipCredsValidation     bool
+	SkipRegionValidation    bool
 	SkipRequestingAccountId bool
 	SkipMetadataApiCheck    bool
 	S3ForcePathStyle        bool
@@ -153,10 +154,14 @@ type AWSClient struct {
 func (c *Config) Client() (interface{}, error) {
 	// Get the auth and region. This can fail if keys/regions were not
 	// specified and we're attempting to use the environment.
-	log.Println("[INFO] Building AWS region structure")
-	err := c.ValidateRegion()
-	if err != nil {
-		return nil, err
+	if c.SkipRegionValidation {
+		log.Println("[INFO] Skipping region validation")
+	} else {
+		log.Println("[INFO] Building AWS region structure")
+		err := c.ValidateRegion()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var client AWSClient
