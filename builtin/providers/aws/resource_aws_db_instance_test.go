@@ -27,7 +27,7 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBInstanceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
@@ -65,7 +65,7 @@ func TestAccAWSDBInstance_kmsKey(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
@@ -115,7 +115,7 @@ func TestAccAWSDBInstance_optionGroup(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBInstanceConfigWithOptionGroup,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
@@ -136,7 +136,7 @@ func TestAccAWSDBInstanceReplica(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccReplicaInstanceConfig(rand.New(rand.NewSource(time.Now().UnixNano())).Int()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &s),
@@ -158,7 +158,7 @@ func TestAccAWSDBInstanceSnapshot(t *testing.T) {
 		// created, and subequently deletes it
 		CheckDestroy: testAccCheckAWSDBInstanceSnapshot,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccSnapshotInstanceConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.snapshot", &snap),
@@ -176,7 +176,7 @@ func TestAccAWSDBInstanceNoSnapshot(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceNoSnapshot,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNoSnapshotInstanceConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.no_snapshot", &nosnap),
@@ -195,7 +195,7 @@ func TestAccAWSDBInstance_enhancedMonitoring(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceNoSnapshot,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccSnapshotInstanceConfig_enhancedMonitoring(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.enhanced_monitoring", &dbInstance),
@@ -220,7 +220,7 @@ func TestAccAWS_separate_DBInstance_iops_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccSnapshotInstanceConfig_iopsUpdate(rName, 1000),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
@@ -228,7 +228,7 @@ func TestAccAWS_separate_DBInstance_iops_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccSnapshotInstanceConfig_iopsUpdate(rName, 2000),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
@@ -249,7 +249,7 @@ func TestAccAWSDBInstance_portUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccSnapshotInstanceConfig_mysqlPort(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
@@ -258,7 +258,7 @@ func TestAccAWSDBInstance_portUpdate(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccSnapshotInstanceConfig_updateMysqlPort(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
@@ -278,7 +278,7 @@ func TestAccAWSDBInstance_MSSQL_TZ(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBMSSQL_timezone,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.mssql", &v),
@@ -290,7 +290,7 @@ func TestAccAWSDBInstance_MSSQL_TZ(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSDBMSSQL_timezone_AKST,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.mssql", &v),
@@ -299,6 +299,24 @@ func TestAccAWSDBInstance_MSSQL_TZ(t *testing.T) {
 						"aws_db_instance.mssql", "allocated_storage", "20"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.mssql", "engine", "sqlserver-ex"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstance_MinorVersion(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBInstanceConfigAutoMinorVersion,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
 				),
 			},
 		},
@@ -1088,7 +1106,7 @@ resource "aws_db_instance" "mssql" {
   username                = "somecrazyusername"
   password                = "somecrazypassword"
   engine                  = "sqlserver-ex"
-  backup_retention_period = 0
+  backup_retention_period =
 
   #publicly_accessible = true
 
@@ -1113,3 +1131,16 @@ resource "aws_security_group_rule" "rds-mssql-1" {
   security_group_id = "${aws_security_group.rds-mssql.id}"
 }
 `
+
+var testAccAWSDBInstanceConfigAutoMinorVersion = fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+  identifier = "foobarbaz-test-terraform-%d"
+	allocated_storage = 10
+	engine = "MySQL"
+	engine_version = "5.6"
+	instance_class = "db.t1.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+}
+`, acctest.RandInt())
