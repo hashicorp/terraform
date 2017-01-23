@@ -10,6 +10,7 @@ FEATURES:
  * **New Data Source:**  `aws_elb_hosted_zone_id ` [GH-11027]
  * **New Data Source:**  `aws_instance` [GH-11272]
  * **New Data Source:**  `aws_canonical_user_id` [GH-11332]
+ * **New Data Source:**  `aws_vpc_endpoint` [GH-11323]
  * **New Provider:**  `profitbricks` [GH-7943]
  * **New Provider:**  `alicloud` [GH-11235]
  * **New Provider:**  `ns1` [GH-10782]
