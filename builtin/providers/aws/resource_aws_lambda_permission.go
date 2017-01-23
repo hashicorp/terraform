@@ -216,7 +216,7 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Save Lambda function name in the same format
-	if regexp.MustCompile(`^arn:[\w-]+:lambda:`).MatchString(d.Get("function_name").(string)) {
+	if strings.HasPrefix(d.Get("function_name").(string), "arn:"+meta.(*AWSClient).partition+":lambda:") {
 		// Strip qualifier off
 		trimmedArn := strings.TrimSuffix(statement.Resource, ":"+qualifier)
 		d.Set("function_name", trimmedArn)
