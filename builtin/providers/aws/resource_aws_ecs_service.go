@@ -282,7 +282,7 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", service.ServiceName)
 
 	// Save task definition in the same format
-	if regexp.MustCompile(`^arn:[\w-]+:ecs:`).MatchString(d.Get("task_definition").(string)) {
+	if strings.HasPrefix(d.Get("task_definition").(string), "arn:"+meta.(*AWSClient).partition+":ecs:") {
 		d.Set("task_definition", service.TaskDefinition)
 	} else {
 		taskDefinition := buildFamilyAndRevisionFromARN(*service.TaskDefinition)
@@ -292,7 +292,7 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("desired_count", service.DesiredCount)
 
 	// Save cluster in the same format
-	if regexp.MustCompile(`^arn:[\w-]+:ecs:`).MatchString(d.Get("cluster").(string)) {
+	if strings.HasPrefix(d.Get("cluster").(string), "arn:"+meta.(*AWSClient).partition+":ecs:") {
 		d.Set("cluster", service.ClusterArn)
 	} else {
 		clusterARN := getNameFromARN(*service.ClusterArn)
@@ -301,7 +301,7 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Save IAM role in the same format
 	if service.RoleArn != nil {
-		if regexp.MustCompile(`^arn:[\w-]+:iam:`).MatchString(d.Get("iam_role").(string)) {
+		if strings.HasPrefix(d.Get("iam_role").(string), "arn:"+meta.(*AWSClient).partition+":iam:") {
 			d.Set("iam_role", service.RoleArn)
 		} else {
 			roleARN := getNameFromARN(*service.RoleArn)
