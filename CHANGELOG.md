@@ -40,6 +40,7 @@ IMPROVEMENTS:
  * provider/google: Add support for encrypting a disk [GH-11167]
  * provider/google: Add support for session_affinity to google_compute_region_backend_service [GH-11228]
  * provider/google: Allow additional zones to be configured in GKE [GH-11018]
+ * provider/ignition: Allow empty dropin and content for systemd_units [GH-11327]
  * provider/openstack: LoadBalancer Security Groups [GH-11074]
  * provider/scaleway improve bootscript data source [GH-11183]
  * provider/statuscake: Add support for StatusCake confirmation servers [GH-11179]
