@@ -1,6 +1,10 @@
 package circonus
 
-import "github.com/hashicorp/terraform/helper/schema"
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform/helper/schema"
+)
 
 type _InterfaceList []interface{}
 type _InterfaceMap map[string]interface{}
@@ -31,8 +35,15 @@ func (l _InterfaceList) CollectList(attrName _SchemaAttr) []string {
 func (l _InterfaceList) List() []string {
 	stringList := make([]string, 0, len(l))
 	for _, e := range l {
-		for _, v := range e.([]interface{}) {
-			stringList = append(stringList, v.(string))
+		switch e.(type) {
+		case string:
+			stringList = append(stringList, e.(string))
+		case []interface{}:
+			for _, v := range e.([]interface{}) {
+				stringList = append(stringList, v.(string))
+			}
+		default:
+			panic(fmt.Sprintf("PROVIDER BUG: unable to convert %#v to list", e))
 		}
 	}
 	return stringList
