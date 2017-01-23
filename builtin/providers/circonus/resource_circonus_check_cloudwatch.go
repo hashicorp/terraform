@@ -9,7 +9,6 @@ import (
 	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/y0ssar1an/q"
 )
 
 const (
@@ -123,7 +122,6 @@ func _CheckAPIToStateCloudWatch(c *_Check, d *schema.ResourceData) error {
 		if strings.Compare(string(k[:dimmensionPrefixLen]), string(config.DimPrefix)) == 0 {
 			key := k[dimmensionPrefixLen:]
 			dimmensions[string(key)] = v
-			q.Q(dimmensions)
 		}
 		delete(swamp, k)
 	}
@@ -155,7 +153,6 @@ func _CheckAPIToStateCloudWatch(c *_Check, d *schema.ResourceData) error {
 		}
 	}
 
-	q.Q(cloudwatchConfig)
 	_StateSet(d, _CheckCloudWatchAttr, schema.NewSet(hashCheckCloudWatch, []interface{}{cloudwatchConfig}))
 
 	return nil
