@@ -56,7 +56,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
 		return &NodePlannableResource{
-			NodeAbstractResource: a,
+			NodeAbstractCountResource: &NodeAbstractCountResource{
+				NodeAbstractResource: a,
+			},
 		}
 	}
 
