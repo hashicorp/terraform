@@ -24,6 +24,7 @@ IMPROVEMENTS:
  * provider/aws: Add Placement Strategy to aws_ecs_service resource [GH-11201]
  * provider/aws: Add support for placement_constraint to aws_ecs_service [GH-11242]
  * provider/aws: allow ALB target group stickiness to be enabled/disabled [GH-11251]
+ * provider/aws: ALBs now wait for provisioning to complete before proceeding [GH-11333]
  * provider/aws: Add support for setting MSSQL Timezone in aws_db_instance [GH-11247]
  * provider/aws: CloudFormation YAML template support [GH-11121]
  * provider/aws: Remove hardcoded https from the ecr repository [GH-11307]
