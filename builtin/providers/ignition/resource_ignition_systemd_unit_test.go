@@ -94,3 +94,35 @@ func TestIngnitionSystemdUnitEmptyContentWithDropIn(t *testing.T) {
 		return nil
 	})
 }
+
+// #11325
+func TestIgnitionSystemdUnit_emptyContent(t *testing.T) {
+	testIgnition(t, `
+		resource "ignition_systemd_unit" "foo" {
+			name = "foo.service"
+      enable = true
+		}
+
+		resource "ignition_config" "test" {
+			systemd = [
+				"${ignition_systemd_unit.foo.id}",
+			]
+		}
+	`, func(c *types.Config) error {
+		if len(c.Systemd.Units) != 1 {
+			return fmt.Errorf("systemd, found %d", len(c.Systemd.Units))
+		}
+
+		u := c.Systemd.Units[0]
+		if u.Name != "foo.service" {
+			return fmt.Errorf("name, expected 'foo.service', found %q", u.Name)
+		}
+		if u.Contents != "" {
+			return fmt.Errorf("expected empty content, found %q", u.Contents)
+		}
+		if len(u.DropIns) != 0 {
+			return fmt.Errorf("expected 0 dropins, found %q", u.DropIns)
+		}
+		return nil
+	})
+}
