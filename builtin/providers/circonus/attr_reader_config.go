@@ -70,6 +70,24 @@ func (r *_ConfigReader) GetIntOK(attrName _SchemaAttr) (int, bool) {
 	return 0, false
 }
 
+func (r *_ConfigReader) GetListOK(attrName _SchemaAttr) (_InterfaceList, bool) {
+	if listRaw, ok := r.d.GetOk(string(attrName)); ok {
+		return _InterfaceList{listRaw.([]interface{})}, true
+	}
+	return nil, false
+}
+
+func (r *_ConfigReader) GetMap(attrName _SchemaAttr) _InterfaceMap {
+	if listRaw, ok := r.d.GetOk(string(attrName)); ok {
+		m := make(map[string]interface{}, len(listRaw.(map[string]interface{})))
+		for k, v := range listRaw.(map[string]interface{}) {
+			m[k] = v
+		}
+		return _InterfaceMap(m)
+	}
+	return nil
+}
+
 func (r *_ConfigReader) GetSetAsListOK(attrName _SchemaAttr) (_InterfaceList, bool) {
 	if listRaw, ok := r.d.GetOk(string(attrName)); ok {
 		return listRaw.(*schema.Set).List(), true
@@ -104,6 +122,13 @@ func (r *_ConfigReader) GetStringPtr(attrName _SchemaAttr) *string {
 		}
 	}
 
+	return nil
+}
+
+func (r *_ConfigReader) GetStringSlice(attrName _SchemaAttr) []string {
+	if listRaw, ok := r.d.GetOk(string(attrName)); ok {
+		return listRaw.([]string)
+	}
 	return nil
 }
 

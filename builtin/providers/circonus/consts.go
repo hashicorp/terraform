@@ -35,6 +35,14 @@ const (
 	defaultCheckHTTPVersion    = "1.1"
 
 	defaultCheckCloudWatchVersion = "2010-08-01"
+
+	defaultTriggerAbsentBuffer = 10.0
+	defaultTriggerAfter        = "0m"
+	defaultTriggerLast         = "300s"
+	defaultTriggerMetricType   = "numeric"
+	defaultTriggerRuleLen      = 4
+	defaultTriggerSeverity     = 1
+	defaultTriggerWindowFunc   = "average"
 )
 
 // Consts and their close relative, Go pseudo-consts.
@@ -46,4 +54,31 @@ var _ValidMetricTypes = _ValidStringValues{
 	`histogram`,
 	`numeric`,
 	`text`,
+}
+
+// _ValidTriggerWindowFuncs: See `derive` or `windowing_func`: https://login.circonus.com/resources/api/calls/rule_set
+var _ValidTriggerWindowFuncs = _ValidStringValues{
+	`average`,
+	`stddev`,
+	`derive`,
+	`derive_stddev`,
+	`counter`,
+	`counter_stddev`,
+	`derive_2`,
+	`derive_2_stddev`,
+	`counter_2`,
+	`counter_2_stddev`,
+}
+
+const (
+	// Supported circonus_trigger.metric_types.  See `metric_type`:
+	// https://login.circonus.com/resources/api/calls/rule_set
+	_TriggerMetricTypeNumeric = "numeric"
+	_TriggerMetricTypeText    = "text"
+)
+
+// _ValidTriggerMetricTypes: See `metric_type`: https://login.circonus.com/resources/api/calls/rule_set
+var _ValidTriggerMetricTypes = _ValidStringValues{
+	_TriggerMetricTypeNumeric,
+	_TriggerMetricTypeText,
 }

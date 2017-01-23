@@ -219,7 +219,6 @@ resource "circonus_contact_group" "staging-sev3" {
     escalate_to = "/contact_group/2529"
   }
 
-
   alert_option {
     severity = 2
     reminder = "2m"
