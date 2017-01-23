@@ -36,9 +36,9 @@ var _SchemaCheckCAQL = &schema.Schema{
 	},
 }
 
-// _ReadAPICheckConfigCAQL reads the Config data out of _Check.CheckBundle
+// _CheckAPIToStateCAQL reads the Config data out of _Check.CheckBundle
 // into the statefile.
-func _ReadAPICheckConfigCAQL(c *_Check, d *schema.ResourceData) error {
+func _CheckAPIToStateCAQL(c *_Check, d *schema.ResourceData) error {
 	caqlConfig := make(map[string]interface{}, len(c.Config))
 
 	caqlConfig[string(_CheckCAQLQueryAttr)] = c.Config[config.Query]
@@ -68,7 +68,7 @@ func hashCheckCAQL(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func parseCheckConfigCAQL(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
+func _CheckConfigToAPICAQL(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
 	c.Type = string(_APICheckTypeCAQL)
 	c.Target = defaultCheckCAQLTarget
 

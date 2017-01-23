@@ -64,9 +64,9 @@ var _SchemaCheckICMPPing = &schema.Schema{
 	},
 }
 
-// _ReadAPICheckConfigICMPPing reads the Config data out of _Check.CheckBundle
+// _CheckAPIToStateICMPPing reads the Config data out of _Check.CheckBundle
 // into the statefile.
-func _ReadAPICheckConfigICMPPing(c *_Check, d *schema.ResourceData) error {
+func _CheckAPIToStateICMPPing(c *_Check, d *schema.ResourceData) error {
 	icmpPingConfig := make(map[string]interface{}, len(c.Config))
 
 	availNeeded, err := strconv.ParseFloat(c.Config[config.AvailNeeded], 64)
@@ -128,7 +128,7 @@ func hashCheckICMPPing(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func parseCheckConfigICMPPing(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
+func _CheckConfigToAPIICMPPing(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
 	c.Type = string(_APICheckTypeICMPPing)
 
 	// Iterate over all `icmp_ping` attributes, even though we have a max of 1 in

@@ -95,9 +95,9 @@ var _SchemaCheckPostgreSQL = &schema.Schema{
 	},
 }
 
-// _ReadAPICheckConfigPostgreSQL reads the Config data out of _Check.CheckBundle into the
+// _CheckAPIToStatePostgreSQL reads the Config data out of _Check.CheckBundle into the
 // statefile.
-func _ReadAPICheckConfigPostgreSQL(c *_Check, d *schema.ResourceData) error {
+func _CheckAPIToStatePostgreSQL(c *_Check, d *schema.ResourceData) error {
 	postgresqlConfig := make(map[string]interface{}, len(c.Config))
 
 	// TODO(sean@): Parse out the DSN into individual PostgreSQL connect options
@@ -142,7 +142,7 @@ func hashCheckPostgreSQL(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func parseCheckConfigPostgreSQL(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
+func _CheckConfigToAPIPostgreSQL(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
 	c.Type = string(_APICheckTypePostgreSQL)
 
 	// Iterate over all `postgres` attributes, even though we have a max of 1 in

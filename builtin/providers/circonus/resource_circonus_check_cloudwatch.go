@@ -91,9 +91,9 @@ var _SchemaCheckCloudWatch = &schema.Schema{
 	},
 }
 
-// _ReadAPICheckConfigCloudWatch reads the Config data out of _Check.CheckBundle into the
+// _CheckAPIToStateCloudWatch reads the Config data out of _Check.CheckBundle into the
 // statefile.
-func _ReadAPICheckConfigCloudWatch(c *_Check, d *schema.ResourceData) error {
+func _CheckAPIToStateCloudWatch(c *_Check, d *schema.ResourceData) error {
 	cloudwatchConfig := make(map[string]interface{}, len(c.Config))
 
 	// swamp is a sanity check: it must be empty by the time this method returns
@@ -209,7 +209,7 @@ func hashCheckCloudWatch(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func parseCheckConfigCloudWatch(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
+func _CheckConfigToAPICloudWatch(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
 	c.Type = string(_APICheckTypeCloudWatchAttr)
 
 	// Iterate over all `cloudwatch` attributes, even though we have a max of 1 in the
