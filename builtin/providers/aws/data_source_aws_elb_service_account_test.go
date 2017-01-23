@@ -11,14 +11,14 @@ func TestAccAWSElbServiceAccount_basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckAwsElbServiceAccountConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.aws_elb_service_account.main", "id", "797873946194"),
 					resource.TestCheckResourceAttr("data.aws_elb_service_account.main", "arn", "arn:aws:iam::797873946194:root"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckAwsElbServiceAccountExplicitRegionConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.aws_elb_service_account.regional", "id", "156460612806"),

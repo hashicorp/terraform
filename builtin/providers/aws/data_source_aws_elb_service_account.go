@@ -31,11 +31,11 @@ func dataSourceAwsElbServiceAccount() *schema.Resource {
 		Read: dataSourceAwsElbServiceAccountRead,
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -52,7 +52,7 @@ func dataSourceAwsElbServiceAccountRead(d *schema.ResourceData, meta interface{}
 	if accid, ok := elbAccountIdPerRegionMap[region]; ok {
 		d.SetId(accid)
 
-		d.Set("arn", "arn:aws:iam::"+accid+":root")
+		d.Set("arn", fmt.Sprintf("arn:%s:iam::%s:root", meta.(*AWSClient).partition, accid))
 
 		return nil
 	}

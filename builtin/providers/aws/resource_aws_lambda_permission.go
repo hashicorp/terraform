@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-var LambdaFunctionRegexp = `^(arn:aws:lambda:)?([a-z]{2}-[a-z]+-\d{1}:)?(\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\$LATEST|[a-zA-Z0-9-_]+))?$`
+var LambdaFunctionRegexp = `^(arn:[\w-]+:lambda:)?([a-z]{2}-[a-z]+-\d{1}:)?(\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\$LATEST|[a-zA-Z0-9-_]+))?$`
 
 func resourceAwsLambdaPermission() *schema.Resource {
 	return &schema.Resource{
@@ -24,42 +24,42 @@ func resourceAwsLambdaPermission() *schema.Resource {
 		Delete: resourceAwsLambdaPermissionDelete,
 
 		Schema: map[string]*schema.Schema{
-			"action": &schema.Schema{
+			"action": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateLambdaPermissionAction,
 			},
-			"function_name": &schema.Schema{
+			"function_name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateLambdaFunctionName,
 			},
-			"principal": &schema.Schema{
+			"principal": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"qualifier": &schema.Schema{
+			"qualifier": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validateLambdaQualifier,
 			},
-			"source_account": &schema.Schema{
+			"source_account": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validateAwsAccountId,
 			},
-			"source_arn": &schema.Schema{
+			"source_arn": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validateArn,
 			},
-			"statement_id": &schema.Schema{
+			"statement_id": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
@@ -216,7 +216,7 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Save Lambda function name in the same format
-	if strings.HasPrefix(d.Get("function_name").(string), "arn:aws:lambda:") {
+	if strings.HasPrefix(d.Get("function_name").(string), "arn:"+meta.(*AWSClient).partition+":lambda:") {
 		// Strip qualifier off
 		trimmedArn := strings.TrimSuffix(statement.Resource, ":"+qualifier)
 		d.Set("function_name", trimmedArn)
