@@ -159,6 +159,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_availability_zones":       dataSourceAwsAvailabilityZones(),
 			"aws_billing_service_account":  dataSourceAwsBillingServiceAccount(),
 			"aws_caller_identity":          dataSourceAwsCallerIdentity(),
+			"aws_canonical_user_id":        dataSourceAwsCanonicalUserId(),
 			"aws_cloudformation_stack":     dataSourceAwsCloudFormationStack(),
 			"aws_ebs_snapshot":             dataSourceAwsEbsSnapshot(),
 			"aws_ebs_volume":               dataSourceAwsEbsVolume(),
