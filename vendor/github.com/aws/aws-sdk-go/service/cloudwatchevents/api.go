@@ -51,11 +51,10 @@ func (c *CloudWatchEvents) DeleteRuleRequest(input *DeleteRuleInput) (req *reque
 		input = &DeleteRuleInput{}
 	}
 
+	output = &DeleteRuleOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteRuleOutput{}
-	req.Data = output
 	return
 }
 
@@ -127,9 +126,8 @@ func (c *CloudWatchEvents) DescribeRuleRequest(input *DescribeRuleInput) (req *r
 		input = &DescribeRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -196,11 +194,10 @@ func (c *CloudWatchEvents) DisableRuleRequest(input *DisableRuleInput) (req *req
 		input = &DisableRuleInput{}
 	}
 
+	output = &DisableRuleOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DisableRuleOutput{}
-	req.Data = output
 	return
 }
 
@@ -275,11 +272,10 @@ func (c *CloudWatchEvents) EnableRuleRequest(input *EnableRuleInput) (req *reque
 		input = &EnableRuleInput{}
 	}
 
+	output = &EnableRuleOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &EnableRuleOutput{}
-	req.Data = output
 	return
 }
 
@@ -353,9 +349,8 @@ func (c *CloudWatchEvents) ListRuleNamesByTargetRequest(input *ListRuleNamesByTa
 		input = &ListRuleNamesByTargetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListRuleNamesByTargetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -424,9 +419,8 @@ func (c *CloudWatchEvents) ListRulesRequest(input *ListRulesInput) (req *request
 		input = &ListRulesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListRulesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -494,9 +488,8 @@ func (c *CloudWatchEvents) ListTargetsByRuleRequest(input *ListTargetsByRuleInpu
 		input = &ListTargetsByRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTargetsByRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -563,9 +556,8 @@ func (c *CloudWatchEvents) PutEventsRequest(input *PutEventsInput) (req *request
 		input = &PutEventsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutEventsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -630,9 +622,8 @@ func (c *CloudWatchEvents) PutRuleRequest(input *PutRuleInput) (req *request.Req
 		input = &PutRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -722,9 +713,8 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 		input = &PutTargetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutTargetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -823,9 +813,8 @@ func (c *CloudWatchEvents) RemoveTargetsRequest(input *RemoveTargetsInput) (req 
 		input = &RemoveTargetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RemoveTargetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -900,9 +889,8 @@ func (c *CloudWatchEvents) TestEventPatternRequest(input *TestEventPatternInput)
 		input = &TestEventPatternInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &TestEventPatternOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

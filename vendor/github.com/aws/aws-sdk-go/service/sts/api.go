@@ -48,9 +48,8 @@ func (c *STS) AssumeRoleRequest(input *AssumeRoleInput) (req *request.Request, o
 		input = &AssumeRoleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssumeRoleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -215,9 +214,8 @@ func (c *STS) AssumeRoleWithSAMLRequest(input *AssumeRoleWithSAMLInput) (req *re
 		input = &AssumeRoleWithSAMLInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssumeRoleWithSAMLOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -375,9 +373,8 @@ func (c *STS) AssumeRoleWithWebIdentityRequest(input *AssumeRoleWithWebIdentityI
 		input = &AssumeRoleWithWebIdentityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssumeRoleWithWebIdentityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -564,9 +561,8 @@ func (c *STS) DecodeAuthorizationMessageRequest(input *DecodeAuthorizationMessag
 		input = &DecodeAuthorizationMessageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DecodeAuthorizationMessageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -663,9 +659,8 @@ func (c *STS) GetCallerIdentityRequest(input *GetCallerIdentityInput) (req *requ
 		input = &GetCallerIdentityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetCallerIdentityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -725,9 +720,8 @@ func (c *STS) GetFederationTokenRequest(input *GetFederationTokenInput) (req *re
 		input = &GetFederationTokenInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetFederationTokenOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -881,9 +875,8 @@ func (c *STS) GetSessionTokenRequest(input *GetSessionTokenInput) (req *request.
 		input = &GetSessionTokenInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSessionTokenOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

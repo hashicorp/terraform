@@ -51,9 +51,8 @@ func (c *CloudFront) CreateCloudFrontOriginAccessIdentityRequest(input *CreateCl
 		input = &CreateCloudFrontOriginAccessIdentityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateCloudFrontOriginAccessIdentityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -139,9 +138,8 @@ func (c *CloudFront) CreateDistributionRequest(input *CreateDistributionInput) (
 		input = &CreateDistributionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDistributionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -331,9 +329,8 @@ func (c *CloudFront) CreateDistributionWithTagsRequest(input *CreateDistribution
 		input = &CreateDistributionWithTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDistributionWithTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -525,9 +522,8 @@ func (c *CloudFront) CreateInvalidationRequest(input *CreateInvalidationInput) (
 		input = &CreateInvalidationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateInvalidationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -611,9 +607,8 @@ func (c *CloudFront) CreateStreamingDistributionRequest(input *CreateStreamingDi
 		input = &CreateStreamingDistributionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateStreamingDistributionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -740,9 +735,8 @@ func (c *CloudFront) CreateStreamingDistributionWithTagsRequest(input *CreateStr
 		input = &CreateStreamingDistributionWithTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateStreamingDistributionWithTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -845,11 +839,10 @@ func (c *CloudFront) DeleteCloudFrontOriginAccessIdentityRequest(input *DeleteCl
 		input = &DeleteCloudFrontOriginAccessIdentityInput{}
 	}
 
+	output = &DeleteCloudFrontOriginAccessIdentityOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteCloudFrontOriginAccessIdentityOutput{}
-	req.Data = output
 	return
 }
 
@@ -926,11 +919,10 @@ func (c *CloudFront) DeleteDistributionRequest(input *DeleteDistributionInput) (
 		input = &DeleteDistributionInput{}
 	}
 
+	output = &DeleteDistributionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDistributionOutput{}
-	req.Data = output
 	return
 }
 
@@ -1007,11 +999,10 @@ func (c *CloudFront) DeleteStreamingDistributionRequest(input *DeleteStreamingDi
 		input = &DeleteStreamingDistributionInput{}
 	}
 
+	output = &DeleteStreamingDistributionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteStreamingDistributionOutput{}
-	req.Data = output
 	return
 }
 
@@ -1123,9 +1114,8 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentityRequest(input *GetCloudFro
 		input = &GetCloudFrontOriginAccessIdentityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetCloudFrontOriginAccessIdentityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1192,9 +1182,8 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfigRequest(input *GetCl
 		input = &GetCloudFrontOriginAccessIdentityConfigInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetCloudFrontOriginAccessIdentityConfigOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1261,9 +1250,8 @@ func (c *CloudFront) GetDistributionRequest(input *GetDistributionInput) (req *r
 		input = &GetDistributionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDistributionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1330,9 +1318,8 @@ func (c *CloudFront) GetDistributionConfigRequest(input *GetDistributionConfigIn
 		input = &GetDistributionConfigInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDistributionConfigOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1399,9 +1386,8 @@ func (c *CloudFront) GetInvalidationRequest(input *GetInvalidationInput) (req *r
 		input = &GetInvalidationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetInvalidationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1471,9 +1457,8 @@ func (c *CloudFront) GetStreamingDistributionRequest(input *GetStreamingDistribu
 		input = &GetStreamingDistributionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetStreamingDistributionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1541,9 +1526,8 @@ func (c *CloudFront) GetStreamingDistributionConfigRequest(input *GetStreamingDi
 		input = &GetStreamingDistributionConfigInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetStreamingDistributionConfigOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1616,9 +1600,8 @@ func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesRequest(input *ListClou
 		input = &ListCloudFrontOriginAccessIdentitiesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListCloudFrontOriginAccessIdentitiesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1713,9 +1696,8 @@ func (c *CloudFront) ListDistributionsRequest(input *ListDistributionsInput) (re
 		input = &ListDistributionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListDistributionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1804,9 +1786,8 @@ func (c *CloudFront) ListDistributionsByWebACLIdRequest(input *ListDistributions
 		input = &ListDistributionsByWebACLIdInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListDistributionsByWebACLIdOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1879,9 +1860,8 @@ func (c *CloudFront) ListInvalidationsRequest(input *ListInvalidationsInput) (re
 		input = &ListInvalidationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListInvalidationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1982,9 +1962,8 @@ func (c *CloudFront) ListStreamingDistributionsRequest(input *ListStreamingDistr
 		input = &ListStreamingDistributionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListStreamingDistributionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2073,9 +2052,8 @@ func (c *CloudFront) ListTagsForResourceRequest(input *ListTagsForResourceInput)
 		input = &ListTagsForResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsForResourceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2148,11 +2126,10 @@ func (c *CloudFront) TagResourceRequest(input *TagResourceInput) (req *request.R
 		input = &TagResourceInput{}
 	}
 
+	output = &TagResourceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &TagResourceOutput{}
-	req.Data = output
 	return
 }
 
@@ -2225,11 +2202,10 @@ func (c *CloudFront) UntagResourceRequest(input *UntagResourceInput) (req *reque
 		input = &UntagResourceInput{}
 	}
 
+	output = &UntagResourceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restxml.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UntagResourceOutput{}
-	req.Data = output
 	return
 }
 
@@ -2302,9 +2278,8 @@ func (c *CloudFront) UpdateCloudFrontOriginAccessIdentityRequest(input *UpdateCl
 		input = &UpdateCloudFrontOriginAccessIdentityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateCloudFrontOriginAccessIdentityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2391,9 +2366,8 @@ func (c *CloudFront) UpdateDistributionRequest(input *UpdateDistributionInput) (
 		input = &UpdateDistributionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateDistributionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2579,9 +2553,8 @@ func (c *CloudFront) UpdateStreamingDistributionRequest(input *UpdateStreamingDi
 		input = &UpdateStreamingDistributionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateStreamingDistributionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

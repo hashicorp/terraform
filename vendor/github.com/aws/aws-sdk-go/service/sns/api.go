@@ -50,11 +50,10 @@ func (c *SNS) AddPermissionRequest(input *AddPermissionInput) (req *request.Requ
 		input = &AddPermissionInput{}
 	}
 
+	output = &AddPermissionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddPermissionOutput{}
-	req.Data = output
 	return
 }
 
@@ -128,9 +127,8 @@ func (c *SNS) CheckIfPhoneNumberIsOptedOutRequest(input *CheckIfPhoneNumberIsOpt
 		input = &CheckIfPhoneNumberIsOptedOutInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CheckIfPhoneNumberIsOptedOutOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -209,9 +207,8 @@ func (c *SNS) ConfirmSubscriptionRequest(input *ConfirmSubscriptionInput) (req *
 		input = &ConfirmSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ConfirmSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -291,9 +288,8 @@ func (c *SNS) CreatePlatformApplicationRequest(input *CreatePlatformApplicationI
 		input = &CreatePlatformApplicationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreatePlatformApplicationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -388,9 +384,8 @@ func (c *SNS) CreatePlatformEndpointRequest(input *CreatePlatformEndpointInput) 
 		input = &CreatePlatformEndpointInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreatePlatformEndpointOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -476,9 +471,8 @@ func (c *SNS) CreateTopicRequest(input *CreateTopicInput) (req *request.Request,
 		input = &CreateTopicInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateTopicOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -555,11 +549,10 @@ func (c *SNS) DeleteEndpointRequest(input *DeleteEndpointInput) (req *request.Re
 		input = &DeleteEndpointInput{}
 	}
 
+	output = &DeleteEndpointOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteEndpointOutput{}
-	req.Data = output
 	return
 }
 
@@ -634,11 +627,10 @@ func (c *SNS) DeletePlatformApplicationRequest(input *DeletePlatformApplicationI
 		input = &DeletePlatformApplicationInput{}
 	}
 
+	output = &DeletePlatformApplicationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeletePlatformApplicationOutput{}
-	req.Data = output
 	return
 }
 
@@ -710,11 +702,10 @@ func (c *SNS) DeleteTopicRequest(input *DeleteTopicInput) (req *request.Request,
 		input = &DeleteTopicInput{}
 	}
 
+	output = &DeleteTopicOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteTopicOutput{}
-	req.Data = output
 	return
 }
 
@@ -790,9 +781,8 @@ func (c *SNS) GetEndpointAttributesRequest(input *GetEndpointAttributesInput) (r
 		input = &GetEndpointAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetEndpointAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -867,9 +857,8 @@ func (c *SNS) GetPlatformApplicationAttributesRequest(input *GetPlatformApplicat
 		input = &GetPlatformApplicationAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetPlatformApplicationAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -944,9 +933,8 @@ func (c *SNS) GetSMSAttributesRequest(input *GetSMSAttributesInput) (req *reques
 		input = &GetSMSAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSMSAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1022,9 +1010,8 @@ func (c *SNS) GetSubscriptionAttributesRequest(input *GetSubscriptionAttributesI
 		input = &GetSubscriptionAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSubscriptionAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1097,9 +1084,8 @@ func (c *SNS) GetTopicAttributesRequest(input *GetTopicAttributesInput) (req *re
 		input = &GetTopicAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetTopicAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1179,9 +1165,8 @@ func (c *SNS) ListEndpointsByPlatformApplicationRequest(input *ListEndpointsByPl
 		input = &ListEndpointsByPlatformApplicationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListEndpointsByPlatformApplicationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1286,9 +1271,8 @@ func (c *SNS) ListPhoneNumbersOptedOutRequest(input *ListPhoneNumbersOptedOutInp
 		input = &ListPhoneNumbersOptedOutInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListPhoneNumbersOptedOutOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1376,9 +1360,8 @@ func (c *SNS) ListPlatformApplicationsRequest(input *ListPlatformApplicationsInp
 		input = &ListPlatformApplicationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListPlatformApplicationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1486,9 +1469,8 @@ func (c *SNS) ListSubscriptionsRequest(input *ListSubscriptionsInput) (req *requ
 		input = &ListSubscriptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListSubscriptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1592,9 +1574,8 @@ func (c *SNS) ListSubscriptionsByTopicRequest(input *ListSubscriptionsByTopicInp
 		input = &ListSubscriptionsByTopicInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListSubscriptionsByTopicOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1701,9 +1682,8 @@ func (c *SNS) ListTopicsRequest(input *ListTopicsInput) (req *request.Request, o
 		input = &ListTopicsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTopicsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1800,9 +1780,8 @@ func (c *SNS) OptInPhoneNumberRequest(input *OptInPhoneNumberInput) (req *reques
 		input = &OptInPhoneNumberInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &OptInPhoneNumberOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1879,9 +1858,8 @@ func (c *SNS) PublishRequest(input *PublishInput) (req *request.Request, output 
 		input = &PublishInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PublishOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1974,11 +1952,10 @@ func (c *SNS) RemovePermissionRequest(input *RemovePermissionInput) (req *reques
 		input = &RemovePermissionInput{}
 	}
 
+	output = &RemovePermissionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemovePermissionOutput{}
-	req.Data = output
 	return
 }
 
@@ -2051,11 +2028,10 @@ func (c *SNS) SetEndpointAttributesRequest(input *SetEndpointAttributesInput) (r
 		input = &SetEndpointAttributesInput{}
 	}
 
+	output = &SetEndpointAttributesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetEndpointAttributesOutput{}
-	req.Data = output
 	return
 }
 
@@ -2130,11 +2106,10 @@ func (c *SNS) SetPlatformApplicationAttributesRequest(input *SetPlatformApplicat
 		input = &SetPlatformApplicationAttributesInput{}
 	}
 
+	output = &SetPlatformApplicationAttributesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetPlatformApplicationAttributesOutput{}
-	req.Data = output
 	return
 }
 
@@ -2211,9 +2186,8 @@ func (c *SNS) SetSMSAttributesRequest(input *SetSMSAttributesInput) (req *reques
 		input = &SetSMSAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetSMSAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2293,11 +2267,10 @@ func (c *SNS) SetSubscriptionAttributesRequest(input *SetSubscriptionAttributesI
 		input = &SetSubscriptionAttributesInput{}
 	}
 
+	output = &SetSubscriptionAttributesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetSubscriptionAttributesOutput{}
-	req.Data = output
 	return
 }
 
@@ -2370,11 +2343,10 @@ func (c *SNS) SetTopicAttributesRequest(input *SetTopicAttributesInput) (req *re
 		input = &SetTopicAttributesInput{}
 	}
 
+	output = &SetTopicAttributesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetTopicAttributesOutput{}
-	req.Data = output
 	return
 }
 
@@ -2447,9 +2419,8 @@ func (c *SNS) SubscribeRequest(input *SubscribeInput) (req *request.Request, out
 		input = &SubscribeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SubscribeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2528,11 +2499,10 @@ func (c *SNS) UnsubscribeRequest(input *UnsubscribeInput) (req *request.Request,
 		input = &UnsubscribeInput{}
 	}
 
+	output = &UnsubscribeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UnsubscribeOutput{}
-	req.Data = output
 	return
 }
 

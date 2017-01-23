@@ -50,9 +50,8 @@ func (c *ElastiCache) AddTagsToResourceRequest(input *AddTagsToResourceInput) (r
 		input = &AddTagsToResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &TagListMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -137,9 +136,8 @@ func (c *ElastiCache) AuthorizeCacheSecurityGroupIngressRequest(input *Authorize
 		input = &AuthorizeCacheSecurityGroupIngressInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AuthorizeCacheSecurityGroupIngressOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -222,9 +220,8 @@ func (c *ElastiCache) CopySnapshotRequest(input *CopySnapshotInput) (req *reques
 		input = &CopySnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CopySnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -369,9 +366,8 @@ func (c *ElastiCache) CreateCacheClusterRequest(input *CreateCacheClusterInput) 
 		input = &CreateCacheClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateCacheClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -488,9 +484,8 @@ func (c *ElastiCache) CreateCacheParameterGroupRequest(input *CreateCacheParamet
 		input = &CreateCacheParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateCacheParameterGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -569,9 +564,8 @@ func (c *ElastiCache) CreateCacheSecurityGroupRequest(input *CreateCacheSecurity
 		input = &CreateCacheSecurityGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateCacheSecurityGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -651,9 +645,8 @@ func (c *ElastiCache) CreateCacheSubnetGroupRequest(input *CreateCacheSubnetGrou
 		input = &CreateCacheSubnetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateCacheSubnetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -732,9 +725,8 @@ func (c *ElastiCache) CreateReplicationGroupRequest(input *CreateReplicationGrou
 		input = &CreateReplicationGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateReplicationGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -869,9 +861,8 @@ func (c *ElastiCache) CreateSnapshotRequest(input *CreateSnapshotInput) (req *re
 		input = &CreateSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -971,9 +962,8 @@ func (c *ElastiCache) DeleteCacheClusterRequest(input *DeleteCacheClusterInput) 
 		input = &DeleteCacheClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteCacheClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1077,11 +1067,10 @@ func (c *ElastiCache) DeleteCacheParameterGroupRequest(input *DeleteCacheParamet
 		input = &DeleteCacheParameterGroupInput{}
 	}
 
+	output = &DeleteCacheParameterGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteCacheParameterGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -1157,11 +1146,10 @@ func (c *ElastiCache) DeleteCacheSecurityGroupRequest(input *DeleteCacheSecurity
 		input = &DeleteCacheSecurityGroupInput{}
 	}
 
+	output = &DeleteCacheSecurityGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteCacheSecurityGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -1238,11 +1226,10 @@ func (c *ElastiCache) DeleteCacheSubnetGroupRequest(input *DeleteCacheSubnetGrou
 		input = &DeleteCacheSubnetGroupInput{}
 	}
 
+	output = &DeleteCacheSubnetGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteCacheSubnetGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -1313,9 +1300,8 @@ func (c *ElastiCache) DeleteReplicationGroupRequest(input *DeleteReplicationGrou
 		input = &DeleteReplicationGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteReplicationGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1416,9 +1402,8 @@ func (c *ElastiCache) DeleteSnapshotRequest(input *DeleteSnapshotInput) (req *re
 		input = &DeleteSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1502,9 +1487,8 @@ func (c *ElastiCache) DescribeCacheClustersRequest(input *DescribeCacheClustersI
 		input = &DescribeCacheClustersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeCacheClustersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1626,9 +1610,8 @@ func (c *ElastiCache) DescribeCacheEngineVersionsRequest(input *DescribeCacheEng
 		input = &DescribeCacheEngineVersionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeCacheEngineVersionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1718,9 +1701,8 @@ func (c *ElastiCache) DescribeCacheParameterGroupsRequest(input *DescribeCachePa
 		input = &DescribeCacheParameterGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeCacheParameterGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1824,9 +1806,8 @@ func (c *ElastiCache) DescribeCacheParametersRequest(input *DescribeCacheParamet
 		input = &DescribeCacheParametersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeCacheParametersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1928,9 +1909,8 @@ func (c *ElastiCache) DescribeCacheSecurityGroupsRequest(input *DescribeCacheSec
 		input = &DescribeCacheSecurityGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeCacheSecurityGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2033,9 +2013,8 @@ func (c *ElastiCache) DescribeCacheSubnetGroupsRequest(input *DescribeCacheSubne
 		input = &DescribeCacheSubnetGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeCacheSubnetGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2132,9 +2111,8 @@ func (c *ElastiCache) DescribeEngineDefaultParametersRequest(input *DescribeEngi
 		input = &DescribeEngineDefaultParametersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEngineDefaultParametersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2233,9 +2211,8 @@ func (c *ElastiCache) DescribeEventsRequest(input *DescribeEventsInput) (req *re
 		input = &DescribeEventsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEventsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2339,9 +2316,8 @@ func (c *ElastiCache) DescribeReplicationGroupsRequest(input *DescribeReplicatio
 		input = &DescribeReplicationGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReplicationGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2446,9 +2422,8 @@ func (c *ElastiCache) DescribeReservedCacheNodesRequest(input *DescribeReservedC
 		input = &DescribeReservedCacheNodesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedCacheNodesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2550,9 +2525,8 @@ func (c *ElastiCache) DescribeReservedCacheNodesOfferingsRequest(input *Describe
 		input = &DescribeReservedCacheNodesOfferingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedCacheNodesOfferingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2653,9 +2627,8 @@ func (c *ElastiCache) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (r
 		input = &DescribeSnapshotsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSnapshotsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2758,9 +2731,8 @@ func (c *ElastiCache) ListAllowedNodeTypeModificationsRequest(input *ListAllowed
 		input = &ListAllowedNodeTypeModificationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListAllowedNodeTypeModificationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2838,9 +2810,8 @@ func (c *ElastiCache) ListTagsForResourceRequest(input *ListTagsForResourceInput
 		input = &ListTagsForResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &TagListMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2917,9 +2888,8 @@ func (c *ElastiCache) ModifyCacheClusterRequest(input *ModifyCacheClusterInput) 
 		input = &ModifyCacheClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyCacheClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3020,9 +2990,8 @@ func (c *ElastiCache) ModifyCacheParameterGroupRequest(input *ModifyCacheParamet
 		input = &ModifyCacheParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CacheParameterGroupNameMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3099,9 +3068,8 @@ func (c *ElastiCache) ModifyCacheSubnetGroupRequest(input *ModifyCacheSubnetGrou
 		input = &ModifyCacheSubnetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyCacheSubnetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3176,9 +3144,8 @@ func (c *ElastiCache) ModifyReplicationGroupRequest(input *ModifyReplicationGrou
 		input = &ModifyReplicationGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyReplicationGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3289,9 +3256,8 @@ func (c *ElastiCache) PurchaseReservedCacheNodesOfferingRequest(input *PurchaseR
 		input = &PurchaseReservedCacheNodesOfferingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseReservedCacheNodesOfferingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3368,9 +3334,8 @@ func (c *ElastiCache) RebootCacheClusterRequest(input *RebootCacheClusterInput) 
 		input = &RebootCacheClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RebootCacheClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3446,9 +3411,8 @@ func (c *ElastiCache) RemoveTagsFromResourceRequest(input *RemoveTagsFromResourc
 		input = &RemoveTagsFromResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &TagListMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3521,9 +3485,8 @@ func (c *ElastiCache) ResetCacheParameterGroupRequest(input *ResetCacheParameter
 		input = &ResetCacheParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CacheParameterGroupNameMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3601,9 +3564,8 @@ func (c *ElastiCache) RevokeCacheSecurityGroupIngressRequest(input *RevokeCacheS
 		input = &RevokeCacheSecurityGroupIngressInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RevokeCacheSecurityGroupIngressOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4832,7 +4794,7 @@ type CreateCacheClusterInput struct {
 	// assumes single-az mode.
 	AZMode *string `type:"string" enum:"AZMode"`
 
-	// The password used to access a password protected server.
+	// Reserved parameter. The password used to access a password protected server.
 	//
 	// Password constraints:
 	//
@@ -5553,7 +5515,7 @@ func (s *CreateCacheSubnetGroupOutput) SetCacheSubnetGroup(v *CacheSubnetGroup) 
 type CreateReplicationGroupInput struct {
 	_ struct{} `type:"structure"`
 
-	// The password used to access a password protected server.
+	// Reserved parameter. The password used to access a password protected server.
 	//
 	// Password constraints:
 	//

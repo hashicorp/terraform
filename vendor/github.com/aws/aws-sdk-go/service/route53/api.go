@@ -49,9 +49,8 @@ func (c *Route53) AssociateVPCWithHostedZoneRequest(input *AssociateVPCWithHoste
 		input = &AssociateVPCWithHostedZoneInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssociateVPCWithHostedZoneOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -154,9 +153,8 @@ func (c *Route53) ChangeResourceRecordSetsRequest(input *ChangeResourceRecordSet
 		input = &ChangeResourceRecordSetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ChangeResourceRecordSetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -328,9 +326,8 @@ func (c *Route53) ChangeTagsForResourceRequest(input *ChangeTagsForResourceInput
 		input = &ChangeTagsForResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ChangeTagsForResourceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -415,9 +412,8 @@ func (c *Route53) CreateHealthCheckRequest(input *CreateHealthCheckInput) (req *
 		input = &CreateHealthCheckInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateHealthCheckOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -523,9 +519,8 @@ func (c *Route53) CreateHostedZoneRequest(input *CreateHostedZoneInput) (req *re
 		input = &CreateHostedZoneInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateHostedZoneOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -665,9 +660,8 @@ func (c *Route53) CreateReusableDelegationSetRequest(input *CreateReusableDelega
 		input = &CreateReusableDelegationSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateReusableDelegationSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -765,9 +759,8 @@ func (c *Route53) CreateTrafficPolicyRequest(input *CreateTrafficPolicyInput) (r
 		input = &CreateTrafficPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateTrafficPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -850,9 +843,8 @@ func (c *Route53) CreateTrafficPolicyInstanceRequest(input *CreateTrafficPolicyI
 		input = &CreateTrafficPolicyInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateTrafficPolicyInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -940,9 +932,8 @@ func (c *Route53) CreateTrafficPolicyVersionRequest(input *CreateTrafficPolicyVe
 		input = &CreateTrafficPolicyVersionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateTrafficPolicyVersionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1029,9 +1020,8 @@ func (c *Route53) CreateVPCAssociationAuthorizationRequest(input *CreateVPCAssoc
 		input = &CreateVPCAssociationAuthorizationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVPCAssociationAuthorizationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1122,9 +1112,8 @@ func (c *Route53) DeleteHealthCheckRequest(input *DeleteHealthCheckInput) (req *
 		input = &DeleteHealthCheckInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteHealthCheckOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1206,9 +1195,8 @@ func (c *Route53) DeleteHostedZoneRequest(input *DeleteHostedZoneInput) (req *re
 		input = &DeleteHostedZoneInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteHostedZoneOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1296,9 +1284,8 @@ func (c *Route53) DeleteReusableDelegationSetRequest(input *DeleteReusableDelega
 		input = &DeleteReusableDelegationSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteReusableDelegationSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1380,9 +1367,8 @@ func (c *Route53) DeleteTrafficPolicyRequest(input *DeleteTrafficPolicyInput) (r
 		input = &DeleteTrafficPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteTrafficPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1459,9 +1445,8 @@ func (c *Route53) DeleteTrafficPolicyInstanceRequest(input *DeleteTrafficPolicyI
 		input = &DeleteTrafficPolicyInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteTrafficPolicyInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1542,9 +1527,8 @@ func (c *Route53) DeleteVPCAssociationAuthorizationRequest(input *DeleteVPCAssoc
 		input = &DeleteVPCAssociationAuthorizationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteVPCAssociationAuthorizationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1632,9 +1616,8 @@ func (c *Route53) DisassociateVPCFromHostedZoneRequest(input *DisassociateVPCFro
 		input = &DisassociateVPCFromHostedZoneInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisassociateVPCFromHostedZoneOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1723,9 +1706,8 @@ func (c *Route53) GetChangeRequest(input *GetChangeInput) (req *request.Request,
 		input = &GetChangeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetChangeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1800,9 +1782,8 @@ func (c *Route53) GetCheckerIpRangesRequest(input *GetCheckerIpRangesInput) (req
 		input = &GetCheckerIpRangesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetCheckerIpRangesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1865,9 +1846,8 @@ func (c *Route53) GetGeoLocationRequest(input *GetGeoLocationInput) (req *reques
 		input = &GetGeoLocationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetGeoLocationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1936,9 +1916,8 @@ func (c *Route53) GetHealthCheckRequest(input *GetHealthCheckInput) (req *reques
 		input = &GetHealthCheckInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetHealthCheckOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2014,9 +1993,8 @@ func (c *Route53) GetHealthCheckCountRequest(input *GetHealthCheckCountInput) (r
 		input = &GetHealthCheckCountInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetHealthCheckCountOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2076,9 +2054,8 @@ func (c *Route53) GetHealthCheckLastFailureReasonRequest(input *GetHealthCheckLa
 		input = &GetHealthCheckLastFailureReasonInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetHealthCheckLastFailureReasonOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2149,9 +2126,8 @@ func (c *Route53) GetHealthCheckStatusRequest(input *GetHealthCheckStatusInput) 
 		input = &GetHealthCheckStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetHealthCheckStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2221,9 +2197,8 @@ func (c *Route53) GetHostedZoneRequest(input *GetHostedZoneInput) (req *request.
 		input = &GetHostedZoneInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetHostedZoneOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2292,9 +2267,8 @@ func (c *Route53) GetHostedZoneCountRequest(input *GetHostedZoneCountInput) (req
 		input = &GetHostedZoneCountInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetHostedZoneCountOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2359,9 +2333,8 @@ func (c *Route53) GetReusableDelegationSetRequest(input *GetReusableDelegationSe
 		input = &GetReusableDelegationSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetReusableDelegationSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2432,9 +2405,8 @@ func (c *Route53) GetTrafficPolicyRequest(input *GetTrafficPolicyInput) (req *re
 		input = &GetTrafficPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetTrafficPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2503,9 +2475,8 @@ func (c *Route53) GetTrafficPolicyInstanceRequest(input *GetTrafficPolicyInstanc
 		input = &GetTrafficPolicyInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetTrafficPolicyInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2583,9 +2554,8 @@ func (c *Route53) GetTrafficPolicyInstanceCountRequest(input *GetTrafficPolicyIn
 		input = &GetTrafficPolicyInstanceCountInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetTrafficPolicyInstanceCountOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2648,9 +2618,8 @@ func (c *Route53) ListGeoLocationsRequest(input *ListGeoLocationsInput) (req *re
 		input = &ListGeoLocationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListGeoLocationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2727,9 +2696,8 @@ func (c *Route53) ListHealthChecksRequest(input *ListHealthChecksInput) (req *re
 		input = &ListHealthChecksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListHealthChecksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2836,9 +2804,8 @@ func (c *Route53) ListHostedZonesRequest(input *ListHostedZonesInput) (req *requ
 		input = &ListHostedZonesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListHostedZonesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2958,9 +2925,8 @@ func (c *Route53) ListHostedZonesByNameRequest(input *ListHostedZonesByNameInput
 		input = &ListHostedZonesByNameInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListHostedZonesByNameOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3083,9 +3049,8 @@ func (c *Route53) ListResourceRecordSetsRequest(input *ListResourceRecordSetsInp
 		input = &ListResourceRecordSetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListResourceRecordSetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3215,9 +3180,8 @@ func (c *Route53) ListReusableDelegationSetsRequest(input *ListReusableDelegatio
 		input = &ListReusableDelegationSetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListReusableDelegationSetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3290,9 +3254,8 @@ func (c *Route53) ListTagsForResourceRequest(input *ListTagsForResourceInput) (r
 		input = &ListTagsForResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsForResourceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3377,9 +3340,8 @@ func (c *Route53) ListTagsForResourcesRequest(input *ListTagsForResourcesInput) 
 		input = &ListTagsForResourcesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsForResourcesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3464,9 +3426,8 @@ func (c *Route53) ListTrafficPoliciesRequest(input *ListTrafficPoliciesInput) (r
 		input = &ListTrafficPoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTrafficPoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3563,9 +3524,8 @@ func (c *Route53) ListTrafficPolicyInstancesRequest(input *ListTrafficPolicyInst
 		input = &ListTrafficPolicyInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTrafficPolicyInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3671,9 +3631,8 @@ func (c *Route53) ListTrafficPolicyInstancesByHostedZoneRequest(input *ListTraff
 		input = &ListTrafficPolicyInstancesByHostedZoneInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTrafficPolicyInstancesByHostedZoneOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3782,9 +3741,8 @@ func (c *Route53) ListTrafficPolicyInstancesByPolicyRequest(input *ListTrafficPo
 		input = &ListTrafficPolicyInstancesByPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTrafficPolicyInstancesByPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3892,9 +3850,8 @@ func (c *Route53) ListTrafficPolicyVersionsRequest(input *ListTrafficPolicyVersi
 		input = &ListTrafficPolicyVersionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTrafficPolicyVersionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3994,9 +3951,8 @@ func (c *Route53) ListVPCAssociationAuthorizationsRequest(input *ListVPCAssociat
 		input = &ListVPCAssociationAuthorizationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListVPCAssociationAuthorizationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4086,9 +4042,8 @@ func (c *Route53) TestDNSAnswerRequest(input *TestDNSAnswerInput) (req *request.
 		input = &TestDNSAnswerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &TestDNSAnswerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4157,9 +4112,8 @@ func (c *Route53) UpdateHealthCheckRequest(input *UpdateHealthCheckInput) (req *
 		input = &UpdateHealthCheckInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateHealthCheckOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4237,9 +4191,8 @@ func (c *Route53) UpdateHostedZoneCommentRequest(input *UpdateHostedZoneCommentI
 		input = &UpdateHostedZoneCommentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateHostedZoneCommentOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4307,9 +4260,8 @@ func (c *Route53) UpdateTrafficPolicyCommentRequest(input *UpdateTrafficPolicyCo
 		input = &UpdateTrafficPolicyCommentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateTrafficPolicyCommentOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4385,9 +4337,8 @@ func (c *Route53) UpdateTrafficPolicyInstanceRequest(input *UpdateTrafficPolicyI
 		input = &UpdateTrafficPolicyInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateTrafficPolicyInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12698,11 +12649,17 @@ const (
 	// CloudWatchRegionUsWest2 is a CloudWatchRegion enum value
 	CloudWatchRegionUsWest2 = "us-west-2"
 
+	// CloudWatchRegionCaCentral1 is a CloudWatchRegion enum value
+	CloudWatchRegionCaCentral1 = "ca-central-1"
+
 	// CloudWatchRegionEuCentral1 is a CloudWatchRegion enum value
 	CloudWatchRegionEuCentral1 = "eu-central-1"
 
 	// CloudWatchRegionEuWest1 is a CloudWatchRegion enum value
 	CloudWatchRegionEuWest1 = "eu-west-1"
+
+	// CloudWatchRegionEuWest2 is a CloudWatchRegion enum value
+	CloudWatchRegionEuWest2 = "eu-west-2"
 
 	// CloudWatchRegionApSouth1 is a CloudWatchRegion enum value
 	CloudWatchRegionApSouth1 = "ap-south-1"
