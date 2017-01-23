@@ -148,7 +148,7 @@ func _NewTriggerResource() *schema.Resource {
 										Optional:         true,
 										DiffSuppressFunc: suppressEquivalentTimeDurations,
 										ValidateFunc: _ValidateFuncs(
-											_ValidateDurationMin(_TriggerAbsentAttr, "0s"),
+											_ValidateDurationMin(_TriggerAfterAttr, "0s"),
 										),
 									},
 									_TriggerNotifyAttr: &schema.Schema{
