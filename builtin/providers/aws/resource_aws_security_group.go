@@ -273,7 +273,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 
 	}
 
-	return resourceAwsSecurityGroupUpdate(d, meta)
+	return resourceAwsSecurityGroupUpdateExisting(group, d, meta)
 }
 
 func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
@@ -329,10 +329,12 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		d.SetId("")
 		return nil
 	}
-
 	group := sgRaw.(*ec2.SecurityGroup)
+	return resourceAwsSecurityGroupUpdateExisting(group, d, meta)
+}
 
-	err = resourceAwsSecurityGroupUpdateRules(d, "ingress", meta, group)
+func resourceAwsSecurityGroupUpdateExisting(group *ec2.SecurityGroup, d *schema.ResourceData, meta interface{}) error {
+	err := resourceAwsSecurityGroupUpdateRules(d, "ingress", meta, group)
 	if err != nil {
 		return err
 	}
@@ -345,6 +347,7 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if !d.IsNewResource() {
+		conn := meta.(*AWSClient).ec2conn
 		if err := setTags(conn, d); err != nil {
 			return err
 		}
