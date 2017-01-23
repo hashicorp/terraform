@@ -11,6 +11,7 @@ FEATURES:
  * **New Data Source:**  `aws_instance` [GH-11272]
  * **New Provider:**  `profitbricks` [GH-7943]
  * **New Provider:**  `alicloud` [GH-11235]
+ * **New Provider:**  `ns1` [GH-10782]
  * **New Resource:**  `aws_inspector_assessment_target` [GH-11217]
  * **New Resource:**  `aws_inspector_assessment_template` [GH-11217]
  * **New Resource:**  `aws_inspector_resource_group` [GH-11217]
