@@ -115,7 +115,7 @@ type contactPagerDutyInfo struct {
 }
 
 type contactSlackInfo struct {
-	Buttons          int    `json:"buttons"`
+	Buttons          int    `json:"buttons,string"`
 	Channel          string `json:"channel"`
 	FallbackGroupCID int    `json:"failover_group,string"`
 	Team             string `json:"team"`
