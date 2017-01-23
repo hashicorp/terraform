@@ -49,9 +49,8 @@ func (c *Lambda) AddPermissionRequest(input *AddPermissionInput) (req *request.R
 		input = &AddPermissionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddPermissionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -144,9 +143,8 @@ func (c *Lambda) CreateAliasRequest(input *CreateAliasInput) (req *request.Reque
 		input = &CreateAliasInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AliasConfiguration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -226,9 +224,8 @@ func (c *Lambda) CreateEventSourceMappingRequest(input *CreateEventSourceMapping
 		input = &CreateEventSourceMappingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EventSourceMappingConfiguration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -242,7 +239,7 @@ func (c *Lambda) CreateEventSourceMappingRequest(input *CreateEventSourceMapping
 // the event source mapping.
 //
 // This event source mapping is relevant only in the AWS Lambda pull model,
-// where AWS Lambda invokes the function. For more information, go to AWS Lambda:
+// where AWS Lambda invokes the function. For more information, see AWS Lambda:
 // How it Works (http://docs.aws.amazon.com/lambda/latest/dg/lambda-introduction.html)
 // in the AWS Lambda Developer Guide.
 //
@@ -328,9 +325,8 @@ func (c *Lambda) CreateFunctionRequest(input *CreateFunctionInput) (req *request
 		input = &CreateFunctionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &FunctionConfiguration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -418,11 +414,10 @@ func (c *Lambda) DeleteAliasRequest(input *DeleteAliasInput) (req *request.Reque
 		input = &DeleteAliasInput{}
 	}
 
+	output = &DeleteAliasOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteAliasOutput{}
-	req.Data = output
 	return
 }
 
@@ -494,9 +489,8 @@ func (c *Lambda) DeleteEventSourceMappingRequest(input *DeleteEventSourceMapping
 		input = &DeleteEventSourceMappingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EventSourceMappingConfiguration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -573,11 +567,10 @@ func (c *Lambda) DeleteFunctionRequest(input *DeleteFunctionInput) (req *request
 		input = &DeleteFunctionInput{}
 	}
 
+	output = &DeleteFunctionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteFunctionOutput{}
-	req.Data = output
 	return
 }
 
@@ -665,9 +658,8 @@ func (c *Lambda) GetAccountSettingsRequest(input *GetAccountSettingsInput) (req 
 		input = &GetAccountSettingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetAccountSettingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -675,11 +667,11 @@ func (c *Lambda) GetAccountSettingsRequest(input *GetAccountSettingsInput) (req 
 //
 // Returns a customer's account settings.
 //
-// You can use this operation to retrieve Lambda limit information such as code
-// size and concurrency limits. For more information on limits, see AWS Lambda
-// Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html). You can
-// also retrieve resource usage statistics such as code storage usage and function
-// count.
+// You can use this operation to retrieve Lambda limits information, such as
+// code size and concurrency limits. For more information about limits, see
+// AWS Lambda Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html).
+// You can also retrieve resource usage statistics, such as code storage usage
+// and function count.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -737,9 +729,8 @@ func (c *Lambda) GetAliasRequest(input *GetAliasInput) (req *request.Request, ou
 		input = &GetAliasInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AliasConfiguration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -816,9 +807,8 @@ func (c *Lambda) GetEventSourceMappingRequest(input *GetEventSourceMappingInput)
 		input = &GetEventSourceMappingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EventSourceMappingConfiguration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -894,9 +884,8 @@ func (c *Lambda) GetFunctionRequest(input *GetFunctionInput) (req *request.Reque
 		input = &GetFunctionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetFunctionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -981,9 +970,8 @@ func (c *Lambda) GetFunctionConfigurationRequest(input *GetFunctionConfiguration
 		input = &GetFunctionConfigurationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &FunctionConfiguration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1068,9 +1056,8 @@ func (c *Lambda) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, 
 		input = &GetPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1152,9 +1139,8 @@ func (c *Lambda) InvokeRequest(input *InvokeInput) (req *request.Request, output
 		input = &InvokeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &InvokeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1238,20 +1224,19 @@ func (c *Lambda) InvokeRequest(input *InvokeInput) (req *request.Request, output
 //
 //   * KMSDisabledException
 //   Lambda was unable to decrypt the environment variables because the KMS key
-//   used is disabled. Please check the Lambda function's KMS key settings.
+//   used is disabled. Check the Lambda function's KMS key settings.
 //
 //   * KMSInvalidStateException
 //   Lambda was unable to decrypt the environment variables because the KMS key
-//   used is in an invalid state for Decrypt. Please check the function's KMS
-//   key settings.
+//   used is in an invalid state for Decrypt. Check the function's KMS key settings.
 //
 //   * KMSAccessDeniedException
 //   Lambda was unable to decrypt the environment variables because KMS access
-//   was denied. Please check the Lambda function's KMS permissions.
+//   was denied. Check the Lambda function's KMS permissions.
 //
 //   * KMSNotFoundException
 //   Lambda was unable to decrypt the environment variables because the KMS key
-//   was not found. Please check the function's KMS key settings.
+//   was not found. Check the function's KMS key settings.
 //
 func (c *Lambda) Invoke(input *InvokeInput) (*InvokeOutput, error) {
 	req, out := c.InvokeRequest(input)
@@ -1298,9 +1283,8 @@ func (c *Lambda) InvokeAsyncRequest(input *InvokeAsyncInput) (req *request.Reque
 		input = &InvokeAsyncInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &InvokeAsyncOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1374,9 +1358,8 @@ func (c *Lambda) ListAliasesRequest(input *ListAliasesInput) (req *request.Reque
 		input = &ListAliasesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListAliasesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1460,9 +1443,8 @@ func (c *Lambda) ListEventSourceMappingsRequest(input *ListEventSourceMappingsIn
 		input = &ListEventSourceMappingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListEventSourceMappingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1578,9 +1560,8 @@ func (c *Lambda) ListFunctionsRequest(input *ListFunctionsInput) (req *request.R
 		input = &ListFunctionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListFunctionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1677,9 +1658,8 @@ func (c *Lambda) ListVersionsByFunctionRequest(input *ListVersionsByFunctionInpu
 		input = &ListVersionsByFunctionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListVersionsByFunctionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1753,9 +1733,8 @@ func (c *Lambda) PublishVersionRequest(input *PublishVersionInput) (req *request
 		input = &PublishVersionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &FunctionConfiguration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1835,11 +1814,10 @@ func (c *Lambda) RemovePermissionRequest(input *RemovePermissionInput) (req *req
 		input = &RemovePermissionInput{}
 	}
 
+	output = &RemovePermissionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemovePermissionOutput{}
-	req.Data = output
 	return
 }
 
@@ -1924,9 +1902,8 @@ func (c *Lambda) UpdateAliasRequest(input *UpdateAliasInput) (req *request.Reque
 		input = &UpdateAliasInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AliasConfiguration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2003,9 +1980,8 @@ func (c *Lambda) UpdateEventSourceMappingRequest(input *UpdateEventSourceMapping
 		input = &UpdateEventSourceMappingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EventSourceMappingConfiguration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2097,9 +2073,8 @@ func (c *Lambda) UpdateFunctionCodeRequest(input *UpdateFunctionCodeInput) (req 
 		input = &UpdateFunctionCodeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &FunctionConfiguration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2183,9 +2158,8 @@ func (c *Lambda) UpdateFunctionConfigurationRequest(input *UpdateFunctionConfigu
 		input = &UpdateFunctionConfigurationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &FunctionConfiguration{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2242,7 +2216,7 @@ type AccountLimit struct {
 	CodeSizeUnzipped *int64 `type:"long"`
 
 	// Size, in bytes, of a single zipped code/dependencies package you can upload
-	// for your Lambda function(.zip/.jar file). Try using AWS S3 for uploading
+	// for your Lambda function(.zip/.jar file). Try using Amazon S3 for uploading
 	// larger files. Default limit is 50 MB.
 	CodeSizeZipped *int64 `type:"long"`
 
@@ -2299,7 +2273,7 @@ type AccountUsage struct {
 	// The number of your account's existing functions per region.
 	FunctionCount *int64 `type:"long"`
 
-	// Total size, in megabytes, of the account's deployment packages per region.
+	// Total size, in bytes, of the account's deployment packages per region.
 	TotalCodeSize *int64 `type:"long"`
 }
 
@@ -2699,7 +2673,7 @@ type CreateEventSourceMappingInput struct {
 	FunctionName *string `min:"1" type:"string" required:"true"`
 
 	// The position in the stream where AWS Lambda should start reading. Valid only
-	// for Kinesis streams. For more information, go to ShardIteratorType (http://docs.aws.amazon.com/kinesis/latest/APIReference/API_GetShardIterator.html#Kinesis-GetShardIterator-request-ShardIteratorType)
+	// for Kinesis streams. For more information, see ShardIteratorType (http://docs.aws.amazon.com/kinesis/latest/APIReference/API_GetShardIterator.html#Kinesis-GetShardIterator-request-ShardIteratorType)
 	// in the Amazon Kinesis API Reference.
 	//
 	// StartingPosition is a required field
@@ -2793,7 +2767,7 @@ type CreateFunctionInput struct {
 	// Code is a required field
 	Code *FunctionCode `type:"structure" required:"true"`
 
-	// The parent object that contains the target ARN (Amazon Resource Name) of
+	// The parent object that contains the target Amazon Resource Name (ARN) of
 	// an Amazon SQS queue or Amazon SNS topic.
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
@@ -2806,7 +2780,8 @@ type CreateFunctionInput struct {
 
 	// The name you want to assign to the function you are uploading. The function
 	// names appear in the console and are returned in the ListFunctions API. Function
-	// names are used to specify functions to other AWS Lambda APIs, such as Invoke.
+	// names are used to specify functions to other AWS Lambda API operations, such
+	// as Invoke.
 	//
 	// FunctionName is a required field
 	FunctionName *string `min:"1" type:"string" required:"true"`
@@ -2849,7 +2824,7 @@ type CreateFunctionInput struct {
 	// runtime (v0.10.42), set the value to "nodejs".
 	//
 	// You can no longer create functions using the v0.10.42 runtime version as
-	// of November, 2016. Existing functions will be supported until early 2017
+	// of November, 2016. Existing functions will be supported until early 2017,
 	// but we recommend you migrate them to nodejs4.3 runtime version as soon as
 	// possible.
 	//
@@ -2995,12 +2970,12 @@ func (s *CreateFunctionInput) SetVpcConfig(v *VpcConfig) *CreateFunctionInput {
 	return s
 }
 
-// The parent object that contains the target ARN (Amazon Resource Name) of
+// The parent object that contains the target Amazon Resource Name (ARN) of
 // an Amazon SQS queue or Amazon SNS topic.
 type DeadLetterConfig struct {
 	_ struct{} `type:"structure"`
 
-	// The ARN (Amazon Resource Value) of an Amazon SQS queue or Amazon SNS topic
+	// The Amazon Resource Name (ARN) of an Amazon SQS queue or Amazon SNS topic
 	// you specify as your Dead Letter Queue (DLQ).
 	TargetArn *string `type:"string"`
 }
@@ -3425,8 +3400,8 @@ type FunctionCode struct {
 	// The contents of your zip file containing your deployment package. If you
 	// are using the web API directly, the contents of the zip file must be base64-encoded.
 	// If you are using the AWS SDKs or the AWS CLI, the SDKs or CLI will do the
-	// encoding for you. For more information about creating a .zip file, go to
-	// Execution Permissions (http://docs.aws.amazon.com/lambda/latest/dg/intro-permission-model.html#lambda-intro-execution-role.html)
+	// encoding for you. For more information about creating a .zip file, see Execution
+	// Permissions (http://docs.aws.amazon.com/lambda/latest/dg/intro-permission-model.html#lambda-intro-execution-role.html)
 	// in the AWS Lambda Developer Guide.
 	//
 	// ZipFile is automatically base64 encoded/decoded by the SDK.
@@ -3530,7 +3505,7 @@ type FunctionConfiguration struct {
 	// The size, in bytes, of the function .zip file you uploaded.
 	CodeSize *int64 `type:"long"`
 
-	// The parent object that contains the target ARN (Amazon Resource Name) of
+	// The parent object that contains the target Amazon Resource Name (ARN) of
 	// an Amazon SQS queue or Amazon SNS topic.
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
@@ -5100,7 +5075,7 @@ type UpdateFunctionCodeInput struct {
 	Publish *bool `type:"boolean"`
 
 	// Amazon S3 bucket name where the .zip file containing your deployment package
-	// is stored. This bucket must reside in the same AWS region where you are creating
+	// is stored. This bucket must reside in the same AWS Region where you are creating
 	// the Lambda function.
 	S3Bucket *string `min:"3" type:"string"`
 
@@ -5113,8 +5088,8 @@ type UpdateFunctionCodeInput struct {
 	// The contents of your zip file containing your deployment package. If you
 	// are using the web API directly, the contents of the zip file must be base64-encoded.
 	// If you are using the AWS SDKs or the AWS CLI, the SDKs or CLI will do the
-	// encoding for you. For more information about creating a .zip file, go to
-	// Execution Permissions (http://docs.aws.amazon.com/lambda/latest/dg/intro-permission-model.html#lambda-intro-execution-role.html)
+	// encoding for you. For more information about creating a .zip file, see Execution
+	// Permissions (http://docs.aws.amazon.com/lambda/latest/dg/intro-permission-model.html#lambda-intro-execution-role.html)
 	// in the AWS Lambda Developer Guide.
 	//
 	// ZipFile is automatically base64 encoded/decoded by the SDK.
@@ -5195,7 +5170,7 @@ func (s *UpdateFunctionCodeInput) SetZipFile(v []byte) *UpdateFunctionCodeInput 
 type UpdateFunctionConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
-	// The parent object that contains the target ARN (Amazon Resource Name) of
+	// The parent object that contains the target Amazon Resource Name (ARN) of
 	// an Amazon SQS queue or Amazon SNS topic.
 	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
