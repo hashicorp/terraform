@@ -60,7 +60,7 @@ func TestAccAWSALB_basic(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSALBExists("aws_alb.alb_test", &conf),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "name", albName),
-					resource.TestCheckResourceAttr("aws_alb.alb_test", "internal", "false"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "internal", "true"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "subnets.#", "2"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "security_groups.#", "1"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "tags.%", "1"),
@@ -197,7 +197,7 @@ func TestAccAWSALB_noSecurityGroup(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSALBExists("aws_alb.alb_test", &conf),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "name", albName),
-					resource.TestCheckResourceAttr("aws_alb.alb_test", "internal", "false"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "internal", "true"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "subnets.#", "2"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "security_groups.#", "1"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "tags.%", "1"),
@@ -229,7 +229,7 @@ func TestAccAWSALB_accesslogs(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSALBExists("aws_alb.alb_test", &conf),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "name", albName),
-					resource.TestCheckResourceAttr("aws_alb.alb_test", "internal", "false"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "internal", "true"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "subnets.#", "2"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "security_groups.#", "1"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "tags.%", "1"),
@@ -247,7 +247,7 @@ func TestAccAWSALB_accesslogs(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSALBExists("aws_alb.alb_test", &conf),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "name", albName),
-					resource.TestCheckResourceAttr("aws_alb.alb_test", "internal", "false"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "internal", "true"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "subnets.#", "2"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "security_groups.#", "1"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "tags.%", "1"),
@@ -269,7 +269,7 @@ func TestAccAWSALB_accesslogs(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSALBExists("aws_alb.alb_test", &conf),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "name", albName),
-					resource.TestCheckResourceAttr("aws_alb.alb_test", "internal", "false"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "internal", "true"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "subnets.#", "2"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "security_groups.#", "1"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "tags.%", "1"),
@@ -362,7 +362,7 @@ func testAccCheckAWSALBDestroy(s *terraform.State) error {
 func testAccAWSALBConfig_basic(albName string) string {
 	return fmt.Sprintf(`resource "aws_alb" "alb_test" {
   name            = "%s"
-  internal        = false
+  internal        = true
   security_groups = ["${aws_security_group.alb_test.id}"]
   subnets         = ["${aws_subnet.alb_test.*.id}"]
 
@@ -429,7 +429,7 @@ resource "aws_security_group" "alb_test" {
 func testAccAWSALBConfig_generatedName() string {
 	return fmt.Sprintf(`
 resource "aws_alb" "alb_test" {
-  internal        = false
+  internal        = true
   security_groups = ["${aws_security_group.alb_test.id}"]
   subnets         = ["${aws_subnet.alb_test.*.id}"]
 
@@ -453,6 +453,14 @@ resource "aws_vpc" "alb_test" {
 
   tags {
     TestName = "TestAccAWSALB_basic"
+  }
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.alb_test.id}"
+
+  tags {
+    Name = "TestAccAWSALB_basic"
   }
 }
 
@@ -497,7 +505,7 @@ func testAccAWSALBConfig_namePrefix() string {
 	return fmt.Sprintf(`
 resource "aws_alb" "alb_test" {
   name_prefix     = "tf-lb"
-  internal        = false
+  internal        = true
   security_groups = ["${aws_security_group.alb_test.id}"]
   subnets         = ["${aws_subnet.alb_test.*.id}"]
 
@@ -563,7 +571,7 @@ resource "aws_security_group" "alb_test" {
 func testAccAWSALBConfig_updatedTags(albName string) string {
 	return fmt.Sprintf(`resource "aws_alb" "alb_test" {
   name            = "%s"
-  internal        = false
+  internal        = true
   security_groups = ["${aws_security_group.alb_test.id}"]
   subnets         = ["${aws_subnet.alb_test.*.id}"]
 
@@ -631,7 +639,7 @@ resource "aws_security_group" "alb_test" {
 func testAccAWSALBConfig_accessLogs(enabled bool, albName, bucketName string) string {
 	return fmt.Sprintf(`resource "aws_alb" "alb_test" {
   name            = "%s"
-  internal        = false
+  internal        = true
   security_groups = ["${aws_security_group.alb_test.id}"]
   subnets         = ["${aws_subnet.alb_test.*.id}"]
 
@@ -742,7 +750,7 @@ resource "aws_security_group" "alb_test" {
 func testAccAWSALBConfig_nosg(albName string) string {
 	return fmt.Sprintf(`resource "aws_alb" "alb_test" {
   name            = "%s"
-  internal        = false
+  internal        = true
   subnets         = ["${aws_subnet.alb_test.*.id}"]
 
   idle_timeout = 30
@@ -784,7 +792,7 @@ resource "aws_subnet" "alb_test" {
 func testAccAWSALBConfig_updateSecurityGroups(albName string) string {
 	return fmt.Sprintf(`resource "aws_alb" "alb_test" {
   name            = "%s"
-  internal        = false
+  internal        = true
   security_groups = ["${aws_security_group.alb_test.id}", "${aws_security_group.alb_test_2.id}"]
   subnets         = ["${aws_subnet.alb_test.*.id}"]
 
