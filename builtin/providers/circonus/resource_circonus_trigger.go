@@ -183,7 +183,7 @@ func _NewTriggerResource() *schema.Resource {
 										Optional:         true,
 										DiffSuppressFunc: suppressEquivalentTimeDurations,
 										ValidateFunc: _ValidateFuncs(
-											_ValidateDurationMin(_TriggerAbsentAttr, "0s"),
+											_ValidateDurationMin(_TriggerAbsentAttr, _TriggerAbsentMin),
 										),
 										ConflictsWith: makeConflictsWith(_TriggerChangedAttr, _TriggerContainsAttr, _TriggerEqualsAttr, _TriggerExcludesAttr, _TriggerLessAttr, _TriggerMissingAttr, _TriggerMoreAttr, _TriggerOverAttr),
 									},
@@ -354,7 +354,7 @@ func _TriggerRead(d *schema.ResourceData, meta interface{}) error {
 
 		switch rule.Criteria {
 		case _APIRulesetAbsent:
-			d, _ := time.ParseDuration(fmt.Sprintf("%fs", rule.Value.(float64)-defaultTriggerAbsentBuffer))
+			d, _ := time.ParseDuration(fmt.Sprintf("%fs", rule.Value.(float64)))
 			valueAttrs[string(_TriggerAbsentAttr)] = fmt.Sprintf("%ds", int(d.Seconds()))
 		case _APIRulesetChanged:
 			valueAttrs[string(_TriggerChangedAttr)] = true

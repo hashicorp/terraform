@@ -36,13 +36,13 @@ const (
 
 	defaultCheckCloudWatchVersion = "2010-08-01"
 
-	defaultTriggerAbsentBuffer = 10.0
-	defaultTriggerAfter        = "0m"
-	defaultTriggerLast         = "300s"
-	defaultTriggerMetricType   = "numeric"
-	defaultTriggerRuleLen      = 4
-	defaultTriggerSeverity     = 1
-	defaultTriggerWindowFunc   = "average"
+	defaultTriggerAfter      = "0m"
+	defaultTriggerLast       = "300s"
+	defaultTriggerMetricType = "numeric"
+	defaultTriggerRuleLen    = 4
+	defaultTriggerSeverity   = 1
+	defaultTriggerWindowFunc = "average"
+	_TriggerAbsentMin        = "70s"
 )
 
 // Consts and their close relative, Go pseudo-consts.
