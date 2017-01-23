@@ -115,7 +115,7 @@ func testAccCheckTeamDestroy(s *terraform.State) error {
 func testAccCheckTeamName(team *account.Team, expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if team.Name != expected {
-			return fmt.Errorf("Name: got: %d want: %d", team.Name, expected)
+			return fmt.Errorf("Name: got: %s want: %s", team.Name, expected)
 		}
 		return nil
 	}
@@ -128,15 +128,15 @@ func testAccCheckTeamDNSPermission(team *account.Team, perm string, expected boo
 		switch perm {
 		case "view_zones":
 			if dns.ViewZones != expected {
-				return fmt.Errorf("DNS.ViewZones: got: %d want: %d", dns.ViewZones, expected)
+				return fmt.Errorf("DNS.ViewZones: got: %t want: %t", dns.ViewZones, expected)
 			}
 		case "manage_zones":
 			if dns.ManageZones != expected {
-				return fmt.Errorf("DNS.ManageZones: got: %d want: %d", dns.ManageZones, expected)
+				return fmt.Errorf("DNS.ManageZones: got: %t want: %t", dns.ManageZones, expected)
 			}
 		case "zones_allow_by_default":
 			if dns.ZonesAllowByDefault != expected {
-				return fmt.Errorf("DNS.ZonesAllowByDefault: got: %d want: %d", dns.ZonesAllowByDefault, expected)
+				return fmt.Errorf("DNS.ZonesAllowByDefault: got: %t want: %t", dns.ZonesAllowByDefault, expected)
 			}
 		}
 
@@ -151,15 +151,15 @@ func testAccCheckTeamDataPermission(team *account.Team, perm string, expected bo
 		switch perm {
 		case "push_to_datafeeds":
 			if data.PushToDatafeeds != expected {
-				return fmt.Errorf("Data.PushToDatafeeds: got: %d want: %d", data.PushToDatafeeds, expected)
+				return fmt.Errorf("Data.PushToDatafeeds: got: %t want: %t", data.PushToDatafeeds, expected)
 			}
 		case "manage_datasources":
 			if data.ManageDatasources != expected {
-				return fmt.Errorf("Data.ManageDatasources: got: %d want: %d", data.ManageDatasources, expected)
+				return fmt.Errorf("Data.ManageDatasources: got: %t want: %t", data.ManageDatasources, expected)
 			}
 		case "manage_datafeeds":
 			if data.ManageDatafeeds != expected {
-				return fmt.Errorf("Data.ManageDatafeeds: got: %d want: %d", data.ManageDatafeeds, expected)
+				return fmt.Errorf("Data.ManageDatafeeds: got: %t want: %t", data.ManageDatafeeds, expected)
 			}
 		}
 
@@ -174,11 +174,11 @@ func testAccCheckTeamDNSPermissionZones(team *account.Team, perm string, expecte
 		switch perm {
 		case "zones_allow":
 			if !reflect.DeepEqual(dns.ZonesAllow, expected) {
-				return fmt.Errorf("DNS.ZonesAllow: got: %d want: %d", dns.ZonesAllow, expected)
+				return fmt.Errorf("DNS.ZonesAllow: got: %v want: %v", dns.ZonesAllow, expected)
 			}
 		case "zones_deny":
 			if !reflect.DeepEqual(dns.ZonesDeny, expected) {
-				return fmt.Errorf("DNS.ZonesDeny: got: %d want: %d", dns.ZonesDeny, expected)
+				return fmt.Errorf("DNS.ZonesDeny: got: %v want: %v", dns.ZonesDeny, expected)
 			}
 		}
 
