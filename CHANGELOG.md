@@ -30,6 +30,7 @@ IMPROVEMENTS:
  * provider/aws: Remove hardcoded https from the ecr repository [GH-11307]
  * provider/aws: Implement CloudFront Lambda Function Associations [GH-11291]
  * provider/aws: Remove MaxFrameRate default on ElasticTranscoderPreset [GH-11340]
+ * provider/aws: Allow ARN Identifier to be set for different partitions [GH-11359]
  * provider/azurerm: add caching support for virtual_machine data_disks [GH-11142]
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
  * provider/cloudflare: Add verification for record types and content [GH-11197]
