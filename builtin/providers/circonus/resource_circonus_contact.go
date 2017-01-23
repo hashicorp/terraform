@@ -18,7 +18,6 @@ const (
 	// circonus_contact attributes
 	contactAggregationWindowAttr = "aggregation_window"
 	contactAlertOptionAttr       = "alert_option"
-	contactCIDAttr               = "cid"
 	contactEmailAttr             = "email"
 	contactHTTPAttr              = "http"
 	contactIRCAttr               = "irc"
@@ -479,6 +478,16 @@ func resourceContactGroup() *schema.Resource {
 					},
 				},
 			},
+
+			// OUT parameters
+			contactLastModifiedAttr: &schema.Schema{
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			contactLastModifiedByAttr: &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -550,23 +559,22 @@ func contactGroupRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set(contactAggregationWindowAttr, fmt.Sprintf("%ds", cg.AggregationWindow))
-	d.Set(contactAlertOptionAttr, contactGroupAlertOptionsToState(cg))
-	d.Set(contactCIDAttr, cg.CID)
-	d.Set(contactEmailAttr, contactGroupEmailToState(cg))
-	d.Set(contactHTTPAttr, httpState)
-	d.Set(contactIRCAttr, contactGroupIRCToState(cg))
-	d.Set(contactLastModifiedAttr, cg.LastModified)
-	d.Set(contactLastModifiedByAttr, cg.LastModifiedBy)
-	d.Set(contactLongMessageAttr, cg.AlertFormats.LongMessage)
-	d.Set(contactLongSubjectAttr, cg.AlertFormats.LongSubject)
-	d.Set(contactLongSummaryAttr, cg.AlertFormats.LongSummary)
-	d.Set(contactNameAttr, cg.Name)
-	d.Set(contactPagerDutyAttr, pagerDutyState)
-	d.Set(contactShortMessageAttr, cg.AlertFormats.ShortMessage)
-	d.Set(contactShortSummaryAttr, cg.AlertFormats.ShortSummary)
-	d.Set(contactSlackAttr, slackState)
-	d.Set(contactTagsAttr, cg.Tags)
+	_StateSet(d, contactAggregationWindowAttr, fmt.Sprintf("%ds", cg.AggregationWindow))
+	_StateSet(d, contactAlertOptionAttr, contactGroupAlertOptionsToState(cg))
+	_StateSet(d, contactEmailAttr, contactGroupEmailToState(cg))
+	_StateSet(d, contactHTTPAttr, httpState)
+	_StateSet(d, contactIRCAttr, contactGroupIRCToState(cg))
+	_StateSet(d, contactLastModifiedAttr, cg.LastModified)
+	_StateSet(d, contactLastModifiedByAttr, cg.LastModifiedBy)
+	_StateSet(d, contactLongMessageAttr, cg.AlertFormats.LongMessage)
+	_StateSet(d, contactLongSubjectAttr, cg.AlertFormats.LongSubject)
+	_StateSet(d, contactLongSummaryAttr, cg.AlertFormats.LongSummary)
+	_StateSet(d, contactNameAttr, cg.Name)
+	_StateSet(d, contactPagerDutyAttr, pagerDutyState)
+	_StateSet(d, contactShortMessageAttr, cg.AlertFormats.ShortMessage)
+	_StateSet(d, contactShortSummaryAttr, cg.AlertFormats.ShortSummary)
+	_StateSet(d, contactSlackAttr, slackState)
+	_StateSet(d, contactTagsAttr, cg.Tags)
 
 	d.SetId(cg.CID)
 	return nil
@@ -705,7 +713,7 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 	if v, ok := d.GetOk(contactAggregationWindowAttr); ok {
 		aggWindow, _ := time.ParseDuration(v.(string))
 		cg.AggregationWindow = uint(aggWindow.Seconds())
-		d.Set(contactAggregationWindowAttr, fmt.Sprintf("%ds", cg.AggregationWindow))
+		_StateSet(d, contactAggregationWindowAttr, fmt.Sprintf("%ds", cg.AggregationWindow))
 	}
 
 	if v, ok := d.GetOk(contactAlertOptionAttr); ok {
