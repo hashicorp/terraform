@@ -18,12 +18,12 @@ import (
 
 // RuleSetRule defines a ruleset rule
 type RuleSetRule struct {
-	Criteria          string  `json:"criteria"`                     // string
-	Severity          uint    `json:"severity"`                     // uint
-	Value             string  `json:"value"`                        // string
-	Wait              uint    `json:"wait,omitempty"`               // uint
-	WindowingDuration uint    `json:"windowing_duration,omitempty"` // uint
-	WindowingFunction *string `json:"windowing_function,omitempty"` // string or null
+	Criteria          string      `json:"criteria"`                     // string
+	Severity          uint        `json:"severity"`                     // uint
+	Value             interface{} `json:"value"`                        // string when the metric type is text, float64 or int when the value is numeric.
+	Wait              uint        `json:"wait"`                         // uint
+	WindowingDuration uint        `json:"windowing_duration,omitempty"` // uint
+	WindowingFunction *string     `json:"windowing_function,omitempty"` // string or null
 }
 
 // RuleSet defines a ruleset. See https://login.circonus.com/resources/api/calls/rule_set for more information.

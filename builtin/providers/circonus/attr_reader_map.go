@@ -66,6 +66,24 @@ func (r *_MapReader) GetIntOK(attrName _SchemaAttr) (int, bool) {
 	return 0, false
 }
 
+func (r *_MapReader) GetListOK(attrName _SchemaAttr) (_InterfaceList, bool) {
+	if listRaw, ok := r.m[string(attrName)]; ok {
+		return _InterfaceList{listRaw.([]interface{})}, true
+	}
+	return nil, false
+}
+
+func (r *_MapReader) GetMap(attrName _SchemaAttr) _InterfaceMap {
+	if listRaw, ok := r.m[string(attrName)]; ok {
+		m := make(map[string]interface{}, len(listRaw.(map[string]interface{})))
+		for k, v := range listRaw.(map[string]interface{}) {
+			m[k] = v
+		}
+		return _InterfaceMap(m)
+	}
+	return nil
+}
+
 func (r *_MapReader) GetSetAsListOK(attrName _SchemaAttr) (_InterfaceList, bool) {
 	if listRaw, ok := r.m[string(attrName)]; ok {
 		return listRaw.(*schema.Set).List(), true
@@ -91,6 +109,13 @@ func (r *_MapReader) GetStringOK(attrName _SchemaAttr) (string, bool) {
 	}
 
 	return "", false
+}
+
+func (r *_MapReader) GetStringSlice(attrName _SchemaAttr) []string {
+	if listRaw, ok := r.m[string(attrName)]; ok {
+		return listRaw.([]string)
+	}
+	return nil
 }
 
 func (r *_MapReader) GetTags(attrName _SchemaAttr) _Tags {

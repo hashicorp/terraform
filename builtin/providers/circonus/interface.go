@@ -30,8 +30,10 @@ func (l _InterfaceList) CollectList(attrName _SchemaAttr) []string {
 // List returns a list of values in a Set as a string slice
 func (l _InterfaceList) List() []string {
 	stringList := make([]string, 0, len(l))
-	for _, v := range l {
-		stringList = append(stringList, v.(string))
+	for _, e := range l {
+		for _, v := range e.([]interface{}) {
+			stringList = append(stringList, v.(string))
+		}
 	}
 	return stringList
 }

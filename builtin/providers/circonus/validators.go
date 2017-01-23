@@ -119,7 +119,7 @@ func _ValidateContactGroup(cg *api.ContactGroup) error {
 	return nil
 }
 
-func _ValidateContactGroupCID(attrName string) func(v interface{}, key string) (warnings []string, errors []error) {
+func _ValidateContactGroupCID(attrName _SchemaAttr) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		validContactGroupCID := regexp.MustCompile(config.ContactGroupCIDRegex)
 

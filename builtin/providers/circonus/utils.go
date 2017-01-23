@@ -26,7 +26,7 @@ func _CastSchemaToTF(in map[_SchemaAttr]*schema.Schema, descrs _AttrDescrs) map[
 
 			v.Description = string(descr)
 		} else {
-			panic(fmt.Sprintf("PROVIDER BUG: Unable to find description for attr %s", k))
+			panic(fmt.Sprintf("PROVIDER BUG: Unable to find description for attr %q", k))
 		}
 
 		out[string(k)] = v
@@ -198,7 +198,7 @@ func _Indirect(v interface{}) interface{} {
 // failed.
 func _StateSet(d *schema.ResourceData, attrName _SchemaAttr, v interface{}) {
 	if err := d.Set(string(attrName), _Indirect(v)); err != nil {
-		panic(fmt.Sprintf("Provider Bug: failed set schema attribute %s to value %#v: %v", attrName, v, err))
+		panic(fmt.Sprintf("PROVIDER BUG: failed set schema attribute %s to value %#v: %v", attrName, v, err))
 	}
 }
 
