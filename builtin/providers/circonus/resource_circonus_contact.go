@@ -732,11 +732,13 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 				}
 
 				d, _ := time.ParseDuration(optRaw.(string))
-				ensureEscalationSeverity(severityIndex)
-				cg.Escalations[severityIndex].After = uint(d.Seconds())
+				if d != 0 {
+					ensureEscalationSeverity(severityIndex)
+					cg.Escalations[severityIndex].After = uint(d.Seconds())
+				}
 			}
 
-			if optRaw, ok := alertOptionsMap[contactEscalateToAttr]; ok {
+			if optRaw, ok := alertOptionsMap[contactEscalateToAttr]; ok && optRaw.(string) != "" {
 				ensureEscalationSeverity(severityIndex)
 				cg.Escalations[severityIndex].ContactGroupCID = optRaw.(string)
 			}
