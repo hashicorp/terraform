@@ -1106,7 +1106,7 @@ resource "aws_db_instance" "mssql" {
   username                = "somecrazyusername"
   password                = "somecrazypassword"
   engine                  = "sqlserver-ex"
-  backup_retention_period =
+  backup_retention_period = 0
 
   #publicly_accessible = true
 
