@@ -23,18 +23,18 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"image": &schema.Schema{
+			"image": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -44,7 +44,7 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 				},
 			},
 
-			"size": &schema.Schema{
+			"size": {
 				Type:     schema.TypeString,
 				Required: true,
 				StateFunc: func(val interface{}) string {
@@ -53,43 +53,43 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 				},
 			},
 
-			"disk": &schema.Schema{
+			"disk": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
 
-			"vcpus": &schema.Schema{
+			"vcpus": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
 
-			"resize_disk": &schema.Schema{
+			"resize_disk": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"locked": &schema.Schema{
+			"locked": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"backups": &schema.Schema{
+			"backups": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"ipv6": &schema.Schema{
+			"ipv6": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"ipv6_address": &schema.Schema{
+			"ipv6_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 				StateFunc: func(val interface{}) string {
@@ -97,45 +97,45 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 				},
 			},
 
-			"ipv6_address_private": &schema.Schema{
+			"ipv6_address_private": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"private_networking": &schema.Schema{
+			"private_networking": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"ipv4_address": &schema.Schema{
+			"ipv4_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"ipv4_address_private": &schema.Schema{
+			"ipv4_address_private": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"ssh_keys": &schema.Schema{
+			"ssh_keys": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"tags": &schema.Schema{
+			"tags": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"user_data": &schema.Schema{
+			"user_data": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"volume_ids": &schema.Schema{
+			"volume_ids": {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,

@@ -49,9 +49,8 @@ func (c *Firehose) CreateDeliveryStreamRequest(input *CreateDeliveryStreamInput)
 		input = &CreateDeliveryStreamInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDeliveryStreamOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -165,9 +164,8 @@ func (c *Firehose) DeleteDeliveryStreamRequest(input *DeleteDeliveryStreamInput)
 		input = &DeleteDeliveryStreamInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteDeliveryStreamOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -245,9 +243,8 @@ func (c *Firehose) DescribeDeliveryStreamRequest(input *DescribeDeliveryStreamIn
 		input = &DescribeDeliveryStreamInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDeliveryStreamOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -314,9 +311,8 @@ func (c *Firehose) ListDeliveryStreamsRequest(input *ListDeliveryStreamsInput) (
 		input = &ListDeliveryStreamsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListDeliveryStreamsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -383,9 +379,8 @@ func (c *Firehose) PutRecordRequest(input *PutRecordInput) (req *request.Request
 		input = &PutRecordInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutRecordOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -490,9 +485,8 @@ func (c *Firehose) PutRecordBatchRequest(input *PutRecordBatchInput) (req *reque
 		input = &PutRecordBatchInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutRecordBatchOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -621,9 +615,8 @@ func (c *Firehose) UpdateDestinationRequest(input *UpdateDestinationInput) (req 
 		input = &UpdateDestinationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateDestinationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

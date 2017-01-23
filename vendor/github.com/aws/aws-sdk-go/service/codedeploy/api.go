@@ -50,11 +50,10 @@ func (c *CodeDeploy) AddTagsToOnPremisesInstancesRequest(input *AddTagsToOnPremi
 		input = &AddTagsToOnPremisesInstancesInput{}
 	}
 
+	output = &AddTagsToOnPremisesInstancesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddTagsToOnPremisesInstancesOutput{}
-	req.Data = output
 	return
 }
 
@@ -134,9 +133,8 @@ func (c *CodeDeploy) BatchGetApplicationRevisionsRequest(input *BatchGetApplicat
 		input = &BatchGetApplicationRevisionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BatchGetApplicationRevisionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -215,9 +213,8 @@ func (c *CodeDeploy) BatchGetApplicationsRequest(input *BatchGetApplicationsInpu
 		input = &BatchGetApplicationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BatchGetApplicationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -290,9 +287,8 @@ func (c *CodeDeploy) BatchGetDeploymentGroupsRequest(input *BatchGetDeploymentGr
 		input = &BatchGetDeploymentGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BatchGetDeploymentGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -371,9 +367,8 @@ func (c *CodeDeploy) BatchGetDeploymentInstancesRequest(input *BatchGetDeploymen
 		input = &BatchGetDeploymentInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BatchGetDeploymentInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -453,9 +448,8 @@ func (c *CodeDeploy) BatchGetDeploymentsRequest(input *BatchGetDeploymentsInput)
 		input = &BatchGetDeploymentsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BatchGetDeploymentsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -525,9 +519,8 @@ func (c *CodeDeploy) BatchGetOnPremisesInstancesRequest(input *BatchGetOnPremise
 		input = &BatchGetOnPremisesInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BatchGetOnPremisesInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -597,9 +590,8 @@ func (c *CodeDeploy) CreateApplicationRequest(input *CreateApplicationInput) (re
 		input = &CreateApplicationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateApplicationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -673,9 +665,8 @@ func (c *CodeDeploy) CreateDeploymentRequest(input *CreateDeploymentInput) (req 
 		input = &CreateDeploymentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDeploymentOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -782,9 +773,8 @@ func (c *CodeDeploy) CreateDeploymentConfigRequest(input *CreateDeploymentConfig
 		input = &CreateDeploymentConfigInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDeploymentConfigOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -861,9 +851,8 @@ func (c *CodeDeploy) CreateDeploymentGroupRequest(input *CreateDeploymentGroupIn
 		input = &CreateDeploymentGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDeploymentGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1000,11 +989,10 @@ func (c *CodeDeploy) DeleteApplicationRequest(input *DeleteApplicationInput) (re
 		input = &DeleteApplicationInput{}
 	}
 
+	output = &DeleteApplicationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteApplicationOutput{}
-	req.Data = output
 	return
 }
 
@@ -1071,11 +1059,10 @@ func (c *CodeDeploy) DeleteDeploymentConfigRequest(input *DeleteDeploymentConfig
 		input = &DeleteDeploymentConfigInput{}
 	}
 
+	output = &DeleteDeploymentConfigOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDeploymentConfigOutput{}
-	req.Data = output
 	return
 }
 
@@ -1151,9 +1138,8 @@ func (c *CodeDeploy) DeleteDeploymentGroupRequest(input *DeleteDeploymentGroupIn
 		input = &DeleteDeploymentGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteDeploymentGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1231,11 +1217,10 @@ func (c *CodeDeploy) DeregisterOnPremisesInstanceRequest(input *DeregisterOnPrem
 		input = &DeregisterOnPremisesInstanceInput{}
 	}
 
+	output = &DeregisterOnPremisesInstanceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeregisterOnPremisesInstanceOutput{}
-	req.Data = output
 	return
 }
 
@@ -1302,9 +1287,8 @@ func (c *CodeDeploy) GetApplicationRequest(input *GetApplicationInput) (req *req
 		input = &GetApplicationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetApplicationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1374,9 +1358,8 @@ func (c *CodeDeploy) GetApplicationRevisionRequest(input *GetApplicationRevision
 		input = &GetApplicationRevisionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetApplicationRevisionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1455,9 +1438,8 @@ func (c *CodeDeploy) GetDeploymentRequest(input *GetDeploymentInput) (req *reque
 		input = &GetDeploymentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDeploymentOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1527,9 +1509,8 @@ func (c *CodeDeploy) GetDeploymentConfigRequest(input *GetDeploymentConfigInput)
 		input = &GetDeploymentConfigInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDeploymentConfigOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1600,9 +1581,8 @@ func (c *CodeDeploy) GetDeploymentGroupRequest(input *GetDeploymentGroupInput) (
 		input = &GetDeploymentGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDeploymentGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1682,9 +1662,8 @@ func (c *CodeDeploy) GetDeploymentInstanceRequest(input *GetDeploymentInstanceIn
 		input = &GetDeploymentInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDeploymentInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1763,9 +1742,8 @@ func (c *CodeDeploy) GetOnPremisesInstanceRequest(input *GetOnPremisesInstanceIn
 		input = &GetOnPremisesInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetOnPremisesInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1841,9 +1819,8 @@ func (c *CodeDeploy) ListApplicationRevisionsRequest(input *ListApplicationRevis
 		input = &ListApplicationRevisionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListApplicationRevisionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1966,9 +1943,8 @@ func (c *CodeDeploy) ListApplicationsRequest(input *ListApplicationsInput) (req 
 		input = &ListApplicationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListApplicationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2063,9 +2039,8 @@ func (c *CodeDeploy) ListDeploymentConfigsRequest(input *ListDeploymentConfigsIn
 		input = &ListDeploymentConfigsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListDeploymentConfigsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2160,9 +2135,8 @@ func (c *CodeDeploy) ListDeploymentGroupsRequest(input *ListDeploymentGroupsInpu
 		input = &ListDeploymentGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListDeploymentGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2267,9 +2241,8 @@ func (c *CodeDeploy) ListDeploymentInstancesRequest(input *ListDeploymentInstanc
 		input = &ListDeploymentInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListDeploymentInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2380,9 +2353,8 @@ func (c *CodeDeploy) ListDeploymentsRequest(input *ListDeploymentsInput) (req *r
 		input = &ListDeploymentsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListDeploymentsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2497,9 +2469,8 @@ func (c *CodeDeploy) ListOnPremisesInstancesRequest(input *ListOnPremisesInstanc
 		input = &ListOnPremisesInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListOnPremisesInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2573,11 +2544,10 @@ func (c *CodeDeploy) RegisterApplicationRevisionRequest(input *RegisterApplicati
 		input = &RegisterApplicationRevisionInput{}
 	}
 
+	output = &RegisterApplicationRevisionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RegisterApplicationRevisionOutput{}
-	req.Data = output
 	return
 }
 
@@ -2656,11 +2626,10 @@ func (c *CodeDeploy) RegisterOnPremisesInstanceRequest(input *RegisterOnPremises
 		input = &RegisterOnPremisesInstanceInput{}
 	}
 
+	output = &RegisterOnPremisesInstanceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RegisterOnPremisesInstanceOutput{}
-	req.Data = output
 	return
 }
 
@@ -2757,11 +2726,10 @@ func (c *CodeDeploy) RemoveTagsFromOnPremisesInstancesRequest(input *RemoveTagsF
 		input = &RemoveTagsFromOnPremisesInstancesInput{}
 	}
 
+	output = &RemoveTagsFromOnPremisesInstancesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemoveTagsFromOnPremisesInstancesOutput{}
-	req.Data = output
 	return
 }
 
@@ -2841,9 +2809,8 @@ func (c *CodeDeploy) StopDeploymentRequest(input *StopDeploymentInput) (req *req
 		input = &StopDeploymentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StopDeploymentOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2916,11 +2883,10 @@ func (c *CodeDeploy) UpdateApplicationRequest(input *UpdateApplicationInput) (re
 		input = &UpdateApplicationInput{}
 	}
 
+	output = &UpdateApplicationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateApplicationOutput{}
-	req.Data = output
 	return
 }
 
@@ -2994,9 +2960,8 @@ func (c *CodeDeploy) UpdateDeploymentGroupRequest(input *UpdateDeploymentGroupIn
 		input = &UpdateDeploymentGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateDeploymentGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

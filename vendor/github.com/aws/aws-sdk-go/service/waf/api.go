@@ -49,9 +49,8 @@ func (c *WAF) CreateByteMatchSetRequest(input *CreateByteMatchSetInput) (req *re
 		input = &CreateByteMatchSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateByteMatchSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -180,9 +179,8 @@ func (c *WAF) CreateIPSetRequest(input *CreateIPSetInput) (req *request.Request,
 		input = &CreateIPSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateIPSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -311,9 +309,8 @@ func (c *WAF) CreateRuleRequest(input *CreateRuleInput) (req *request.Request, o
 		input = &CreateRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -452,9 +449,8 @@ func (c *WAF) CreateSizeConstraintSetRequest(input *CreateSizeConstraintSetInput
 		input = &CreateSizeConstraintSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSizeConstraintSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -584,9 +580,8 @@ func (c *WAF) CreateSqlInjectionMatchSetRequest(input *CreateSqlInjectionMatchSe
 		input = &CreateSqlInjectionMatchSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSqlInjectionMatchSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -712,9 +707,8 @@ func (c *WAF) CreateWebACLRequest(input *CreateWebACLInput) (req *request.Reques
 		input = &CreateWebACLInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateWebACLOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -852,9 +846,8 @@ func (c *WAF) CreateXssMatchSetRequest(input *CreateXssMatchSetInput) (req *requ
 		input = &CreateXssMatchSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateXssMatchSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -981,9 +974,8 @@ func (c *WAF) DeleteByteMatchSetRequest(input *DeleteByteMatchSetInput) (req *re
 		input = &DeleteByteMatchSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteByteMatchSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1095,9 +1087,8 @@ func (c *WAF) DeleteIPSetRequest(input *DeleteIPSetInput) (req *request.Request,
 		input = &DeleteIPSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteIPSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1208,9 +1199,8 @@ func (c *WAF) DeleteRuleRequest(input *DeleteRuleInput) (req *request.Request, o
 		input = &DeleteRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1321,9 +1311,8 @@ func (c *WAF) DeleteSizeConstraintSetRequest(input *DeleteSizeConstraintSetInput
 		input = &DeleteSizeConstraintSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteSizeConstraintSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1435,9 +1424,8 @@ func (c *WAF) DeleteSqlInjectionMatchSetRequest(input *DeleteSqlInjectionMatchSe
 		input = &DeleteSqlInjectionMatchSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteSqlInjectionMatchSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1550,9 +1538,8 @@ func (c *WAF) DeleteWebACLRequest(input *DeleteWebACLInput) (req *request.Reques
 		input = &DeleteWebACLInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteWebACLOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1660,9 +1647,8 @@ func (c *WAF) DeleteXssMatchSetRequest(input *DeleteXssMatchSetInput) (req *requ
 		input = &DeleteXssMatchSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteXssMatchSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1774,9 +1760,8 @@ func (c *WAF) GetByteMatchSetRequest(input *GetByteMatchSetInput) (req *request.
 		input = &GetByteMatchSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetByteMatchSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1848,9 +1833,8 @@ func (c *WAF) GetChangeTokenRequest(input *GetChangeTokenInput) (req *request.Re
 		input = &GetChangeTokenInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetChangeTokenOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1929,9 +1913,8 @@ func (c *WAF) GetChangeTokenStatusRequest(input *GetChangeTokenStatusInput) (req
 		input = &GetChangeTokenStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetChangeTokenStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2009,9 +1992,8 @@ func (c *WAF) GetIPSetRequest(input *GetIPSetInput) (req *request.Request, outpu
 		input = &GetIPSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetIPSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2083,9 +2065,8 @@ func (c *WAF) GetRuleRequest(input *GetRuleInput) (req *request.Request, output 
 		input = &GetRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2158,9 +2139,8 @@ func (c *WAF) GetSampledRequestsRequest(input *GetSampledRequestsInput) (req *re
 		input = &GetSampledRequestsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSampledRequestsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2238,9 +2218,8 @@ func (c *WAF) GetSizeConstraintSetRequest(input *GetSizeConstraintSetInput) (req
 		input = &GetSizeConstraintSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSizeConstraintSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2312,9 +2291,8 @@ func (c *WAF) GetSqlInjectionMatchSetRequest(input *GetSqlInjectionMatchSetInput
 		input = &GetSqlInjectionMatchSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSqlInjectionMatchSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2386,9 +2364,8 @@ func (c *WAF) GetWebACLRequest(input *GetWebACLInput) (req *request.Request, out
 		input = &GetWebACLInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetWebACLOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2460,9 +2437,8 @@ func (c *WAF) GetXssMatchSetRequest(input *GetXssMatchSetInput) (req *request.Re
 		input = &GetXssMatchSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetXssMatchSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2534,9 +2510,8 @@ func (c *WAF) ListByteMatchSetsRequest(input *ListByteMatchSetsInput) (req *requ
 		input = &ListByteMatchSetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListByteMatchSetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2605,9 +2580,8 @@ func (c *WAF) ListIPSetsRequest(input *ListIPSetsInput) (req *request.Request, o
 		input = &ListIPSetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListIPSetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2676,9 +2650,8 @@ func (c *WAF) ListRulesRequest(input *ListRulesInput) (req *request.Request, out
 		input = &ListRulesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListRulesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2747,9 +2720,8 @@ func (c *WAF) ListSizeConstraintSetsRequest(input *ListSizeConstraintSetsInput) 
 		input = &ListSizeConstraintSetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListSizeConstraintSetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2818,9 +2790,8 @@ func (c *WAF) ListSqlInjectionMatchSetsRequest(input *ListSqlInjectionMatchSetsI
 		input = &ListSqlInjectionMatchSetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListSqlInjectionMatchSetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2889,9 +2860,8 @@ func (c *WAF) ListWebACLsRequest(input *ListWebACLsInput) (req *request.Request,
 		input = &ListWebACLsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListWebACLsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2960,9 +2930,8 @@ func (c *WAF) ListXssMatchSetsRequest(input *ListXssMatchSetsInput) (req *reques
 		input = &ListXssMatchSetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListXssMatchSetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3031,9 +3000,8 @@ func (c *WAF) UpdateByteMatchSetRequest(input *UpdateByteMatchSetInput) (req *re
 		input = &UpdateByteMatchSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateByteMatchSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3214,9 +3182,8 @@ func (c *WAF) UpdateIPSetRequest(input *UpdateIPSetInput) (req *request.Request,
 		input = &UpdateIPSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateIPSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3417,9 +3384,8 @@ func (c *WAF) UpdateRuleRequest(input *UpdateRuleInput) (req *request.Request, o
 		input = &UpdateRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3604,9 +3570,8 @@ func (c *WAF) UpdateSizeConstraintSetRequest(input *UpdateSizeConstraintSetInput
 		input = &UpdateSizeConstraintSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateSizeConstraintSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3797,9 +3762,8 @@ func (c *WAF) UpdateSqlInjectionMatchSetRequest(input *UpdateSqlInjectionMatchSe
 		input = &UpdateSqlInjectionMatchSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateSqlInjectionMatchSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3975,9 +3939,8 @@ func (c *WAF) UpdateWebACLRequest(input *UpdateWebACLInput) (req *request.Reques
 		input = &UpdateWebACLInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateWebACLOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4174,9 +4137,8 @@ func (c *WAF) UpdateXssMatchSetRequest(input *UpdateXssMatchSetInput) (req *requ
 		input = &UpdateXssMatchSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateXssMatchSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

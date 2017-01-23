@@ -451,6 +451,7 @@ type BuildImageOptions struct {
 	CPUQuota            int64              `qs:"cpuquota"`
 	CPUPeriod           int64              `qs:"cpuperiod"`
 	CPUSetCPUs          string             `qs:"cpusetcpus"`
+	Labels              map[string]string  `qs:"labels"`
 	InputStream         io.Reader          `qs:"-"`
 	OutputStream        io.Writer          `qs:"-"`
 	Remote              string             `qs:"remote"`

@@ -1,6 +1,7 @@
 # UUID package for Go language
 
 [![Build Status](https://travis-ci.org/satori/go.uuid.png?branch=master)](https://travis-ci.org/satori/go.uuid)
+[![Coverage Status](https://coveralls.io/repos/github/satori/go.uuid/badge.svg?branch=master)](https://coveralls.io/github/satori/go.uuid)
 [![GoDoc](http://godoc.org/github.com/satori/go.uuid?status.png)](http://godoc.org/github.com/satori/go.uuid)
 
 This package provides pure Go implementation of Universally Unique Identifier (UUID). Supported both creation and parsing of UUIDs.
@@ -22,9 +23,7 @@ Use the `go` command:
 
 ## Requirements
 
-UUID package requires any stable version of Go Programming Language.
-
-It is tested against following versions of Go: 1.0-1.5
+UUID package requires Go >= 1.2.
 
 ## Example
 
@@ -60,7 +59,7 @@ func main() {
 
 ## Copyright
 
-Copyright (C) 2013-2015 by Maxim Bublis <b@codemonkey.ru>.
+Copyright (C) 2013-2016 by Maxim Bublis <b@codemonkey.ru>.
 
 UUID package released under MIT License.
 See [LICENSE](https://github.com/satori/go.uuid/blob/master/LICENSE) for details.

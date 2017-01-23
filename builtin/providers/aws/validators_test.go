@@ -78,6 +78,7 @@ func TestValidateCloudWatchEventRuleName(t *testing.T) {
 func TestValidateLambdaFunctionName(t *testing.T) {
 	validNames := []string{
 		"arn:aws:lambda:us-west-2:123456789012:function:ThumbNail",
+		"arn:aws-us-gov:lambda:us-west-2:123456789012:function:ThumbNail",
 		"FunctionName",
 		"function-name",
 	}
@@ -203,6 +204,7 @@ func TestValidateArn(t *testing.T) {
 		"arn:aws:events:us-east-1:319201112229:rule/rule_name",                             // CloudWatch Rule
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction",                  // Lambda function
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction:Qualifier",        // Lambda func qualifier
+		"arn:aws-us-gov:s3:::corp_bucket/object.png",                                       // GovCloud ARN
 	}
 	for _, v := range validNames {
 		_, errors := validateArn(v, "arn")
@@ -1084,6 +1086,90 @@ func TestValidateRoute53RecordType(t *testing.T) {
 		if len(errors) == 0 {
 			t.Fatalf("%q should not be a valid Route53 record type", v)
 		}
+	}
+}
+
+func TestValidateEcsPlacementConstraint(t *testing.T) {
+	cases := []struct {
+		constType string
+		constExpr string
+		Err       bool
+	}{
+		{
+			constType: "distinctInstance",
+			constExpr: "",
+			Err:       false,
+		},
+		{
+			constType: "memberOf",
+			constExpr: "",
+			Err:       true,
+		},
+		{
+			constType: "distinctInstance",
+			constExpr: "expression",
+			Err:       false,
+		},
+		{
+			constType: "memberOf",
+			constExpr: "expression",
+			Err:       false,
+		},
+	}
+
+	for _, tc := range cases {
+		if err := validateAwsEcsPlacementConstraint(tc.constType, tc.constExpr); err != nil && !tc.Err {
+			t.Fatalf("Unexpected validation error for \"%s:%s\": %s",
+				tc.constType, tc.constExpr, err)
+		}
+
+	}
+}
+
+func TestValidateEcsPlacementStrategy(t *testing.T) {
+	cases := []struct {
+		stratType  string
+		stratField string
+		Err        bool
+	}{
+		{
+			stratType:  "random",
+			stratField: "",
+			Err:        false,
+		},
+		{
+			stratType:  "spread",
+			stratField: "instanceID",
+			Err:        false,
+		},
+		{
+			stratType:  "binpack",
+			stratField: "cpu",
+			Err:        false,
+		},
+		{
+			stratType:  "binpack",
+			stratField: "memory",
+			Err:        false,
+		},
+		{
+			stratType:  "binpack",
+			stratField: "disk",
+			Err:        true,
+		},
+		{
+			stratType:  "fakeType",
+			stratField: "",
+			Err:        true,
+		},
+	}
+
+	for _, tc := range cases {
+		if err := validateAwsEcsPlacementStrategy(tc.stratType, tc.stratField); err != nil && !tc.Err {
+			t.Fatalf("Unexpected validation error for \"%s:%s\": %s",
+				tc.stratType, tc.stratField, err)
+		}
+
 	}
 }
 
