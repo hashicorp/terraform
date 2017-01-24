@@ -63,9 +63,10 @@ func resourceAwsDbInstance() *schema.Resource {
 			},
 
 			"engine_version": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				DiffSuppressFunc: suppressAwsDbEngineVersionDiffs,
 			},
 
 			"character_set_name": {
