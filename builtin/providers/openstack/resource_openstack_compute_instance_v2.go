@@ -32,6 +32,9 @@ func resourceComputeInstanceV2() *schema.Resource {
 		Read:   resourceComputeInstanceV2Read,
 		Update: resourceComputeInstanceV2Update,
 		Delete: resourceComputeInstanceV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
