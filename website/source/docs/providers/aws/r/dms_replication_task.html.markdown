@@ -38,7 +38,7 @@ The following arguments are supported:
 * `replication_instance_arn` - (Required) The Amazon Resource Name (ARN) of the replication instance.
 * `replication_task_id` - (Required) The replication task identifier.
 
-    - Must contain from 1 to 63 alphanumeric characters or hyphens.
+    - Must contain from 1 to 255 alphanumeric characters or hyphens.
     - First character must be a letter.
     - Cannot end with a hyphen.
     - Cannot contain two consecutive hyphens.

@@ -40,8 +40,9 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 				Computed: true,
 			},
 			"endpoint_id": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateDmsEndpointId,
 			},
 			"endpoint_type": {
 				Type:     schema.TypeString,
@@ -54,7 +55,16 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 			"engine_name": {
 				Type:     schema.TypeString,
 				Required: true,
-				// Valid Values: mysql, oracle, postgres, mariadb, aurora, redshift, sybase, sqlserver
+				ValidateFunc: validation.StringInSlice([]string{
+					"mysql",
+					"oracle",
+					"postgres",
+					"mariadb",
+					"aurora",
+					"redshift",
+					"sybase",
+					"sqlserver",
+				}, false),
 			},
 			"extra_connection_attributes": {
 				Type:     schema.TypeString,

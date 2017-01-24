@@ -81,12 +81,9 @@ func resourceAwsDmsReplicationInstance() *schema.Resource {
 				// dms.c4.xlarge | dms.c4.2xlarge | dms.c4.4xlarge
 			},
 			"replication_instance_id": {
-				Type:     schema.TypeString,
-				Required: true,
-				// Constraints:
-				// - Must contain from 1 to 63 alphanumeric characters or hyphens.
-				// - First character must be a letter.
-				// - Cannot end with a hyphen or contain two consecutive hyphens.
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateDmsReplicationInstanceId,
 			},
 			"replication_instance_private_ips": {
 				Type:     schema.TypeList,

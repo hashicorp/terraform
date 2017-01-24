@@ -50,8 +50,9 @@ func resourceAwsDmsReplicationTask() *schema.Resource {
 				Computed: true,
 			},
 			"replication_task_id": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateDmsReplicationTaskId,
 			},
 			"replication_task_settings": {
 				Type:         schema.TypeString,
