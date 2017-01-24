@@ -50,6 +50,7 @@ import (
 	opsgenieprovider "github.com/hashicorp/terraform/builtin/providers/opsgenie"
 	packetprovider "github.com/hashicorp/terraform/builtin/providers/packet"
 	pagerdutyprovider "github.com/hashicorp/terraform/builtin/providers/pagerduty"
+	passprovider "github.com/hashicorp/terraform/builtin/providers/pass"
 	postgresqlprovider "github.com/hashicorp/terraform/builtin/providers/postgresql"
 	powerdnsprovider "github.com/hashicorp/terraform/builtin/providers/powerdns"
 	profitbricksprovider "github.com/hashicorp/terraform/builtin/providers/profitbricks"
@@ -126,6 +127,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"opsgenie":     opsgenieprovider.Provider,
 	"packet":       packetprovider.Provider,
 	"pagerduty":    pagerdutyprovider.Provider,
+	"pass":         passprovider.Provider,
 	"postgresql":   postgresqlprovider.Provider,
 	"powerdns":     powerdnsprovider.Provider,
 	"profitbricks": profitbricksprovider.Provider,
