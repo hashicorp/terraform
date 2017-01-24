@@ -13,6 +13,7 @@ const (
 	GraphTypePlan
 	GraphTypePlanDestroy
 	GraphTypeApply
+	GraphTypeInput
 )
 
 // GraphTypeMap is a mapping of human-readable string to GraphType. This
@@ -20,6 +21,7 @@ const (
 // graph types.
 var GraphTypeMap = map[string]GraphType{
 	"apply":        GraphTypeApply,
+	"input":        GraphTypeInput,
 	"plan":         GraphTypePlan,
 	"plan-destroy": GraphTypePlanDestroy,
 	"legacy":       GraphTypeLegacy,
