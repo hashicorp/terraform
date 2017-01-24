@@ -277,8 +277,8 @@ func TestAccAWSAutoScalingGroup_enablingMetrics(t *testing.T) {
 				Config: testAccAWSAutoScalingGroupConfig(randName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
-					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "enabled_metrics.#", ""),
+					resource.TestCheckNoResourceAttr(
+						"aws_autoscaling_group.bar", "enabled_metrics"),
 				),
 			},
 
