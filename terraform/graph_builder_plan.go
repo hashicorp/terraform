@@ -34,6 +34,14 @@ type PlanGraphBuilder struct {
 
 	// Validate will do structural validation of the graph.
 	Validate bool
+
+	// Input, if true, modifies this graph for inputs. There isn't a
+	// dedicated input graph because asking for input is identical to
+	// planning except for the operations done. You still need to know WHAT
+	// you're going to plan since you only need to ask for input for things
+	// that are necessary for planning. This requirement makes the graphs
+	// very similar.
+	Input bool
 }
 
 // See GraphBuilder
@@ -54,17 +62,18 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
-	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodePlannableResource{
-			NodeAbstractCountResource: &NodeAbstractCountResource{
+	var concreteResource, concreteResourceOrphan ConcreteResourceNodeFunc
+	if !b.Input {
+		concreteResource = func(a *NodeAbstractResource) dag.Vertex {
+			return &NodePlannableResource{
 				NodeAbstractResource: a,
-			},
+			}
 		}
-	}
 
-	concreteResourceOrphan := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodePlannableResourceOrphan{
-			NodeAbstractResource: a,
+		concreteResourceOrphan = func(a *NodeAbstractResource) dag.Vertex {
+			return &NodePlannableResourceOrphan{
+				NodeAbstractResource: a,
+			}
 		}
 	}
 

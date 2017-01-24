@@ -216,6 +216,9 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 			Validate:     opts.Validate,
 		}).Build(RootModulePath)
 
+	case GraphTypeInput:
+		// The input graph is just a slightly modified plan graph
+		fallthrough
 	case GraphTypePlan:
 		return (&PlanGraphBuilder{
 			Module:    c.module,
@@ -223,6 +226,7 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 			Providers: c.components.ResourceProviders(),
 			Targets:   c.targets,
 			Validate:  opts.Validate,
+			Input:     typ == GraphTypeInput,
 		}).Build(RootModulePath)
 
 	case GraphTypePlanDestroy:
@@ -411,7 +415,7 @@ func (c *Context) Input(mode InputMode) error {
 
 	if mode&InputModeProvider != 0 {
 		// Build the graph
-		graph, err := c.Graph(GraphTypeLegacy, nil)
+		graph, err := c.Graph(GraphTypeInput, nil)
 		if err != nil {
 			return err
 		}
