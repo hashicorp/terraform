@@ -4,7 +4,6 @@ var (
 	accountDescription     map[string]string
 	checkMetricDescription map[string]string
 	collectorDescription   map[string]string
-	contactDescription     map[string]string
 	providerDescription    map[string]string
 )
 
@@ -21,11 +20,6 @@ func init() {
 	collectorDescription = map[string]string{
 		collectorDetailsAttr: "Details associated with individual collectors (a.k.a. broker)",
 		collectorTagsAttr:    "Tags assigned to a collector",
-	}
-
-	// NOTE(sean@): needs to be completed
-	contactDescription = map[string]string{
-		contactSlackUsernameAttr: "Username Slackbot uses in Slack",
 	}
 
 	providerDescription = map[string]string{

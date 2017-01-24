@@ -229,7 +229,7 @@ func resourceContactGroup() *schema.Resource {
 			contactAlertOptionAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Set:      hashAlertOptions,
+				Set:      _ContactGroupAlertOptionsChecksum,
 				Elem: &schema.Resource{
 					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
 						contactEscalateAfterAttr: &schema.Schema{
@@ -641,53 +641,50 @@ func contactGroupDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func contactGroupAlertOptionsToState(cg *api.ContactGroup) []interface{} {
-	var alertOptionsRaw []interface{}
-
-	type alertOption struct {
-		reminder      uint
-		escalateAfter uint
-		escalateTo    string
-	}
-	alertOptions := make([]alertOption, config.NumSeverityLevels)
-
 	if config.NumSeverityLevels != len(cg.Reminders) {
 		panic("Need to update constants")
 	}
+	if config.NumSeverityLevels != len(cg.Escalations) {
+		panic("Need to update constants")
+	}
+
+	alertOptions := make([]*map[string]interface{}, config.NumSeverityLevels)
+
+	const defaultNumAlertOptions = 4
 
 	for severityIndex, reminder := range cg.Reminders {
-		alertOptions[severityIndex].reminder = reminder
-	}
-
-	if cg.Escalations != nil {
-		if config.NumSeverityLevels != len(cg.Escalations) {
-			panic("Need to update constants")
+		if alertOptions[severityIndex] == nil {
+			v := make(map[string]interface{}, defaultNumAlertOptions)
+			alertOptions[severityIndex] = &v
 		}
 
-		for severityIndex, escalate := range cg.Escalations {
-			if escalate == nil {
-				continue
-			}
-
-			alertOptions[severityIndex].escalateAfter = escalate.After
-			alertOptions[severityIndex].escalateTo = escalate.ContactGroupCID
-		}
+		(*alertOptions[severityIndex])[string(contactSeverityAttr)] = severityIndex + 1
+		(*alertOptions[severityIndex])[string(contactReminderAttr)] = fmt.Sprintf("%ds", reminder)
 	}
 
-	alertOptionsRaw = make([]interface{}, 0, len(alertOptions))
-	for severityIndex, ao := range alertOptions {
-		if ao.escalateAfter == 0 && ao.escalateTo == "" && ao.reminder == 0 {
+	for severityIndex, escalate := range cg.Escalations {
+		if escalate == nil {
 			continue
-		} else {
-			alertOptionsRaw = append(alertOptionsRaw, map[string]interface{}{
-				contactSeverityAttr:      severityIndex + 1,
-				contactEscalateAfterAttr: fmt.Sprintf("%ds", ao.escalateAfter),
-				contactEscalateToAttr:    ao.escalateTo,
-				contactReminderAttr:      fmt.Sprintf("%ds", ao.reminder),
-			})
+		}
+
+		if alertOptions[severityIndex] == nil {
+			v := make(map[string]interface{}, defaultNumAlertOptions)
+			alertOptions[severityIndex] = &v
+		}
+
+		(*alertOptions[severityIndex])[string(contactSeverityAttr)] = severityIndex + 1
+		(*alertOptions[severityIndex])[string(contactEscalateAfterAttr)] = fmt.Sprintf("%ds", escalate.After)
+		(*alertOptions[severityIndex])[string(contactEscalateToAttr)] = escalate.ContactGroupCID
+	}
+
+	alertOptionsList := make([]interface{}, 0, config.NumSeverityLevels)
+	for i := 0; i < config.NumSeverityLevels; i++ {
+		if alertOptions[i] != nil {
+			alertOptionsList = append(alertOptionsList, *alertOptions[i])
 		}
 	}
 
-	return alertOptionsRaw
+	return alertOptionsList
 }
 
 func contactGroupEmailToState(cg *api.ContactGroup) []interface{} {
@@ -765,14 +762,12 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 			}
 
 			if optRaw, ok := alertOptionsMap[contactEscalateAfterAttr]; ok {
-				if optRaw.(string) == "" {
-					optRaw = "0s"
-				}
-
-				d, _ := time.ParseDuration(optRaw.(string))
-				if d != 0 {
-					ensureEscalationSeverity(severityIndex)
-					cg.Escalations[severityIndex].After = uint(d.Seconds())
+				if optRaw.(string) != "" {
+					d, _ := time.ParseDuration(optRaw.(string))
+					if d != 0 {
+						ensureEscalationSeverity(severityIndex)
+						cg.Escalations[severityIndex].After = uint(d.Seconds())
+					}
 				}
 			}
 
@@ -1204,8 +1199,8 @@ func contactGroupVictorOpsToState(cg *api.ContactGroup) ([]interface{}, error) {
 	return victorOpsContacts, nil
 }
 
-// hashAlertOptions creates a stable hash of the normalized values
-func hashAlertOptions(v interface{}) int {
+// _ContactGroupAlertOptionsChecksum creates a stable hash of the normalized values
+func _ContactGroupAlertOptionsChecksum(v interface{}) int {
 	m := v.(map[string]interface{})
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)

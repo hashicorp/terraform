@@ -110,7 +110,11 @@ var _SchemaCheckJSON = &schema.Schema{
 				ValidateFunc: _ValidateRegexp(_CheckJSONPayloadAttr, `\S+`),
 			},
 			_CheckJSONPortAttr: &schema.Schema{
-				Type:     schema.TypeString, // NOTE(sean@): Why isn't this an Int on Circonus's side?  Are they doing an /etc/services lookup?  TODO: convert this to a TypeInt and force users in TF to do a map lookup.
+				// NOTE(sean@): Why isn't this an Int on Circonus's side?  Are they
+				// doing an /etc/services lookup?  TODO: convert this to a TypeInt and
+				// force users in TF to do a map lookup.  Moving this to a `TypeInt`
+				// would match the `tcp` check.
+				Type:     schema.TypeString,
 				Default:  defaultCheckJSONPort,
 				Optional: true,
 			},
