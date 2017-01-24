@@ -99,6 +99,16 @@ func dmsReplicationInstanceDestroy(s *terraform.State) error {
 
 func dmsReplicationInstanceConfig(randId string) string {
 	return fmt.Sprintf(`
+resource "aws_iam_role" "dms_iam_role" {
+  name = "dms-vpc-role"
+  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"dms.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+}
+
+resource "aws_iam_role_policy_attachment" "dms_iam_role_policy" {
+  role = "${aws_iam_role.dms_iam_role.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole"
+}
+
 resource "aws_vpc" "dms_vpc" {
 	cidr_block = "10.1.0.0/16"
 	tags {
@@ -149,6 +159,16 @@ resource "aws_dms_replication_instance" "dms_replication_instance" {
 
 func dmsReplicationInstanceConfigUpdate(randId string) string {
 	return fmt.Sprintf(`
+resource "aws_iam_role" "dms_iam_role" {
+  name = "dms-vpc-role"
+  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"dms.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+}
+
+resource "aws_iam_role_policy_attachment" "dms_iam_role_policy" {
+  role = "${aws_iam_role.dms_iam_role.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole"
+}
+
 resource "aws_vpc" "dms_vpc" {
 	cidr_block = "10.1.0.0/16"
 	tags {
