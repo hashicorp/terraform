@@ -129,9 +129,11 @@ func resourceAwsInstance() *schema.Resource {
 			},
 
 			"network_interface_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
+
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"vpc_security_group_ids", "subnet_id", "associate_public_ip_address"},
 			},
 
 			"public_ip": &schema.Schema{
@@ -1059,7 +1061,14 @@ func buildAwsInstanceOpts(
 
 	user_data := d.Get("user_data").(string)
 
-	opts.UserData64 = aws.String(base64Encode([]byte(user_data)))
+	// Check whether the user_data is already Base64 encoded; don't double-encode
+	_, base64DecodeError := base64.StdEncoding.DecodeString(user_data)
+
+	if base64DecodeError == nil {
+		opts.UserData64 = aws.String(user_data)
+	} else {
+		opts.UserData64 = aws.String(base64.StdEncoding.EncodeToString([]byte(user_data)))
+	}
 
 	// Placement is used for aws_instance; SpotPlacement is used for
 	// aws_spot_instance_request. They represent the same data. :-|
