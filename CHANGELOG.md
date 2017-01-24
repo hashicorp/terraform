@@ -36,6 +36,7 @@ IMPROVEMENTS:
  * provider/aws: Allow ARN Identifier to be set for different partitions [GH-11359]
  * provider/aws: Allow bypassing region validation [GH-11358]
  * provider/aws: Added a s3_bucket domain name attribute [GH-10088]
+ * provider/aws: Add DiffSupressFunction to aws_db_instance's engine_version [GH-11369]
  * provider/archive: Adding support for multiple source contents [GH-11271]
  * provider/azurerm: add caching support for virtual_machine data_disks [GH-11142]
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
