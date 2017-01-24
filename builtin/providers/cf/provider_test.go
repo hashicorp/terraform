@@ -95,6 +95,13 @@ func assertEquals(attributes map[string]string,
 	return nil
 }
 
+func assertSame(actual interface{}, expected interface{}) error {
+	if actual != expected {
+		return fmt.Errorf("expected '%s' found '%s' ", expected, actual)
+	}
+	return nil
+}
+
 func assertListEquals(attributes map[string]string,
 	key string, actualLen int,
 	match func(map[string]string, int) bool) (err error) {
