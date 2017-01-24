@@ -238,7 +238,8 @@ resource "opsgenie_user" "test" {
 }
 
 resource "opsgenie_team" "test" {
-  name  = "acctest%d"
+  name        = "acctest%d"
+  description = "Some exmaple description"
   member {
     username = "${opsgenie_user.test.username}"
     role     = "user"
@@ -259,7 +260,8 @@ resource "opsgenie_user" "second" {
 }
 
 resource "opsgenie_team" "test" {
-  name  = "acctest%d"
+  name        = "acctest%d"
+  description = "Some exmaple description"
   member {
     username = "${opsgenie_user.first.username}"
   }
