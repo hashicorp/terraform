@@ -112,6 +112,7 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		disk.SourceImage = imageUrl
+		log.Printf("[DEBUG] Image name resolved to: %s", imageUrl)
 	}
 
 	if v, ok := d.GetOk("type"); ok {
