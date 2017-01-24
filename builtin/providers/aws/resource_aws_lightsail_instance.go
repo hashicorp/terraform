@@ -35,7 +35,12 @@ func resourceAwsLightsailInstance() *schema.Resource {
 			},
 			"blueprint_id": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				ForceNew: true,
+			},
+			"instance_snapshot_name": {
+				Type:     schema.TypeString,
+				Optional: true,
 				ForceNew: true,
 			},
 			"bundle_id": {
@@ -107,9 +112,8 @@ func resourceAwsLightsailInstance() *schema.Resource {
 	}
 }
 
-func resourceAwsLightsailInstanceCreate(d *schema.ResourceData, meta interface{}) error {
+func createInstanceFromBlueprint(d *schema.ResourceData, meta interface{}) ([]*lightsail.Operation, error) {
 	conn := meta.(*AWSClient).lightsailconn
-
 	iName := d.Get("name").(string)
 
 	req := lightsail.CreateInstancesInput{
@@ -127,15 +131,54 @@ func resourceAwsLightsailInstanceCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	resp, err := conn.CreateInstances(&req)
+
+	return resp.Operations, err
+}
+
+func createInstanceFromSnapshot(d *schema.ResourceData, meta interface{}) ([]*lightsail.Operation, error) {
+	conn := meta.(*AWSClient).lightsailconn
+	iName := d.Get("name").(string)
+
+	req := lightsail.CreateInstancesFromSnapshotInput{
+		AvailabilityZone:     aws.String(d.Get("availability_zone").(string)),
+		InstanceSnapshotName: aws.String(d.Get("instance_snapshot_name").(string)),
+		BundleId:             aws.String(d.Get("bundle_id").(string)),
+		InstanceNames:        aws.StringSlice([]string{iName}),
+	}
+
+	if v, ok := d.GetOk("key_pair_name"); ok {
+		req.KeyPairName = aws.String(v.(string))
+	}
+	if v, ok := d.GetOk("user_data"); ok {
+		req.UserData = aws.String(v.(string))
+	}
+
+	resp, err := conn.CreateInstancesFromSnapshot(&req)
+
+	return resp.Operations, err
+}
+
+func resourceAwsLightsailInstanceCreate(d *schema.ResourceData, meta interface{}) error {
+	var operations []*lightsail.Operation
+	var err error
+
+	if _, ok := d.GetOk("blueprint_id"); ok {
+		operations, err = createInstanceFromBlueprint(d, meta)
+	} else if _, ok := d.GetOk("instance_snapshot_name"); ok {
+		operations, err = createInstanceFromSnapshot(d, meta)
+	} else {
+		return fmt.Errorf("[ERR] Lightsail requires either a blueprint_id or a snapshot_id")
+	}
+
 	if err != nil {
 		return err
 	}
 
-	if len(resp.Operations) == 0 {
+	if len(operations) == 0 {
 		return fmt.Errorf("[ERR] No operations found for CreateInstance request")
 	}
 
-	op := resp.Operations[0]
+	op := operations[0]
 	d.SetId(d.Get("name").(string))
 
 	stateConf := &resource.StateChangeConf{

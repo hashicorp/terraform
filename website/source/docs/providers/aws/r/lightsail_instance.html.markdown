@@ -34,13 +34,16 @@ The following arguments are supported:
 * `name` - (Required) The name of the Lightsail Instance
 * `availability_zone` - (Required) The Availability Zone in which to create your 
 instance. At this time, must be in `us-east-1` region
-* `blueprint_id` - (Required) The ID for a virtual private server image 
+* `blueprint_id` - (Optional) The ID for a virtual private server image
 (see list below)
+* `instance_snapshot_name` - (Optional) The name of the snapshot image
 * `bundle_id` - (Required) The bundle of specification information (see list below)
 * `key_pair_name` - (Required) The name of your key pair. Created in the
 Lightsail console (cannot use `aws_key_pair` at this time)
 * `user_data` - (Optional) launch script to configure server with additional user data
 
+You must provide either a `blueprint_id` or a `instance_snapshot_name`.
+If you provide both, only the `blueprint_id` will be used.
 
 ## Blueprints
 
@@ -58,6 +61,10 @@ Lightsail currently supports the following Blueprint IDs:
 - `gitlab_8_12_6`
 - `redmine_3_3_1`
 - `nginx_1_10_2`
+
+## Instance Snapshot Names
+
+You can find Instance Snapshot Names by looking at WRITEME
 
 ## Bundles
 
