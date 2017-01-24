@@ -111,6 +111,8 @@ func TestValidateLambdaQualifier(t *testing.T) {
 		"prod",
 		"PROD",
 		"MyTestEnv",
+		"contains-dashes",
+		"contains_underscores",
 		"$LATEST",
 	}
 	for _, v := range validNames {
