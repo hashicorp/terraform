@@ -107,6 +107,7 @@ func resourceRundeckJob() *schema.Resource {
 			"node_filter_exclude_precedence": &schema.Schema{
 				Type:       schema.TypeBool,
 				Optional:   true,
+				Default:    true,
 				Deprecated: "Set in config rundeck-config.properties to enable: rundeck.nodefilters.showPrecedenceOption=true",
 			},
 
@@ -115,7 +116,6 @@ func resourceRundeckJob() *schema.Resource {
 			"nodes_selected_by_default": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
 			},
 
 			"schedule": &schema.Schema{
@@ -692,11 +692,6 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 		ExecutionEnabled:          d.Get("execution_enabled").(bool),
 		ScheduleEnabled:           d.Get("schedule_enabled").(bool),
 	}
-	if d.Get("nodes_selected_by_default") != nil {
-		job.NodesSelectedByDefault = &rundeck.Boolean{
-			Value: d.Get("nodes_selected_by_default").(bool),
-		}
-	}
 
 	// Element: Job>Notification
 	notificationConfigI := d.Get("notification").([]interface{})
@@ -729,11 +724,22 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 	if len(dispatchConfigI) > 0 {
 		dispatchMap := dispatchConfigI[0].(map[string]interface{})
 		job.Dispatch = &rundeck.JobDispatch{
-			ExcludePrecedence: d.Get("node_filter_exclude_precedence").(bool),
-			MaxThreadCount:    d.Get("max_thread_count").(int),
-			ContinueOnError:   dispatchMap["continue_on_error"].(bool),
-			RankAttribute:     d.Get("rank_attribute").(string),
-			RankOrder:         d.Get("rank_order").(string),
+			MaxThreadCount:  d.Get("max_thread_count").(int),
+			ContinueOnError: dispatchMap["continue_on_error"].(bool),
+			RankAttribute:   d.Get("rank_attribute").(string),
+			RankOrder:       d.Get("rank_order").(string),
+		}
+
+		if d.Get("node_filter_exclude_precedence") != nil {
+			job.Dispatch.ExcludePrecedence = &rundeck.Boolean{
+				Value: d.Get("node_filter_exclude_precedence").(bool),
+			}
+		}
+
+		if d.Get("nodes_selected_by_default") != nil {
+			job.NodesSelectedByDefault = &rundeck.Boolean{
+				Value: d.Get("nodes_selected_by_default").(bool),
+			}
 		}
 	}
 
@@ -954,9 +960,6 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 	d.Set("description", job.Description)
 	d.Set("log_level", job.LogLevel)
 	d.Set("allow_concurrent_executions", job.AllowConcurrentExecutions)
-	if job.NodesSelectedByDefault != nil {
-		d.Set("nodes_selected_by_default", job.NodesSelectedByDefault.Value)
-	}
 	d.Set("execution_timeout", job.Timeout)
 	d.Set("execution_retry", job.Retry)
 	d.Set("execution_enabled", job.ExecutionEnabled)
@@ -1064,7 +1067,10 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 
 	// Element: Job>Dispatch
 	if job.Dispatch != nil {
-		d.Set("node_filter_exclude_precedence", job.Dispatch.ExcludePrecedence)
+		if job.Dispatch.ExcludePrecedence != nil {
+			d.Set("node_filter_exclude_precedence", job.Dispatch.ExcludePrecedence.Value)
+		}
+
 		d.Set("max_thread_count", job.Dispatch.MaxThreadCount)
 		d.Set("rank_attribute", job.Dispatch.RankAttribute)
 		d.Set("rank_order", job.Dispatch.RankOrder)
@@ -1074,5 +1080,12 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 		d.Set("dispatch", dispatchConfigI)
 	}
 
-	return nil
+	// Element: NodesSelectedByDefault
+	d.Set("nodes_selected_by_default", nil)
+	if job.NodesSelectedByDefault != nil {
+		d.Set("nodes_selected_by_default", job.NodesSelectedByDefault.Value)
+	}
+
+	return fmt.Errorf("value: %+v", d.Get("nodes_selected_by_default"))
+	//return nil
 }

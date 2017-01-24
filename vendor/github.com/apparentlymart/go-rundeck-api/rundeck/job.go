@@ -51,7 +51,7 @@ type JobDetail struct {
 }
 
 type Boolean struct {
-        Value bool   `xml:",bool"`
+	Value bool `xml:",chardata"`
 }
 
 type JobNotification struct {
@@ -61,9 +61,9 @@ type JobNotification struct {
 }
 
 type Notification struct {
-	Email	*EmailNotification   `xml:"email,omitempty"`
+	Email   *EmailNotification   `xml:"email,omitempty"`
 	WebHook *WebHookNotification `xml:"webhook,omitempty"`
-        Plugin  *JobPlugin           `xml:"plugin"`
+	Plugin  *JobPlugin           `xml:"plugin"`
 }
 
 type EmailNotification struct {
@@ -106,7 +106,7 @@ type JobScheduleYear struct {
 
 type JobScheduleWeekDay struct {
 	XMLName xml.Name `xml:"weekday"`
-	Day string   `xml:"day,attr"`
+	Day     string   `xml:"day,attr"`
 }
 
 type JobScheduleTime struct {
@@ -176,7 +176,6 @@ type JobOption struct {
 	Description string `xml:"description,omitempty"`
 }
 
-
 // JobValueChoices is a specialization of []string representing a sequence of predefined values
 // for a job option.
 type JobValueChoices []string
@@ -206,7 +205,7 @@ type JobCommand struct {
 	XMLName xml.Name
 
 	// If the Workflow keepgoing is false, this allows the Workflow to continue when the Error Handler is successful.
-	ContinueOnError bool     `xml:"keepgoingOnSuccess,attr,omitempty"`
+	ContinueOnError bool `xml:"keepgoingOnSuccess,attr,omitempty"`
 
 	// Description
 	Description string `xml:"description,omitempty"`
@@ -277,7 +276,7 @@ type JobPluginConfig map[string]string
 // JobNodeFilter describes which nodes from the project's resource list will run the configured
 // commands.
 type JobNodeFilter struct {
-	Query             string `xml:"filter,omitempty"`
+	Query string `xml:"filter,omitempty"`
 }
 
 type jobImportResults struct {
@@ -300,11 +299,11 @@ type jobImportResult struct {
 }
 
 type JobDispatch struct {
-	ExcludePrecedence bool   `xml:"excludePrecedence"`
-	MaxThreadCount    int    `xml:"threadcount,omitempty"`
-	ContinueOnError   bool   `xml:"keepgoing"`
-	RankAttribute     string `xml:"rankAttribute,omitempty"`
-	RankOrder         string `xml:"rankOrder,omitempty"`
+	ExcludePrecedence *Boolean `xml:"excludePrecedence"`
+	MaxThreadCount    int      `xml:"threadcount,omitempty"`
+	ContinueOnError   bool     `xml:"keepgoing"`
+	RankAttribute     string   `xml:"rankAttribute,omitempty"`
+	RankOrder         string   `xml:"rankOrder,omitempty"`
 }
 
 // GetJobSummariesForProject returns summaries of the jobs belonging to the named project.
