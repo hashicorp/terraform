@@ -32,7 +32,7 @@ func TestAccAwsDmsEndpointBasic(t *testing.T) {
 				Config: dmsEndpointConfigUpdate(randId),
 				Check: resource.ComposeTestCheckFunc(
 					checkDmsEndpointExists(resourceName),
-					resource.TestCheckResourceAttr(resourceName, "database_name", "tftest"),
+					resource.TestCheckResourceAttr(resourceName, "database_name", "tf-test-dms-db-updated"),
 					resource.TestCheckResourceAttr(resourceName, "extra_connection_attributes", "extra"),
 					resource.TestCheckResourceAttr(resourceName, "password", "tftestupdate"),
 					resource.TestCheckResourceAttr(resourceName, "port", "3303"),
@@ -104,7 +104,7 @@ func checkDmsEndpointExistsWithProviders(n string, providers *[]*schema.Provider
 func dmsEndpointConfig(randId string) string {
 	return fmt.Sprintf(`
 resource "aws_dms_endpoint" "dms_endpoint" {
-	database_name = ""
+	database_name = "tf-test-dms-db"
 	endpoint_id = "tf-test-dms-endpoint-%[1]s"
 	endpoint_type = "source"
 	engine_name = "aurora"
@@ -115,8 +115,8 @@ resource "aws_dms_endpoint" "dms_endpoint" {
 	ssl_mode = "none"
 	tags {
 		Name = "tf-test-dms-endpoint-%[1]s"
-		Update = ""
-		Remove = ""
+		Update = "to-update"
+		Remove = "to-remove"
 	}
 	username = "tftest"
 }
@@ -126,7 +126,7 @@ resource "aws_dms_endpoint" "dms_endpoint" {
 func dmsEndpointConfigUpdate(randId string) string {
 	return fmt.Sprintf(`
 resource "aws_dms_endpoint" "dms_endpoint" {
-	database_name = "tftest"
+	database_name = "tf-test-dms-db-updated"
 	endpoint_id = "tf-test-dms-endpoint-%[1]s"
 	endpoint_type = "source"
 	engine_name = "aurora"

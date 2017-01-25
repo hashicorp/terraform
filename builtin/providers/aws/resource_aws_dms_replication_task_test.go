@@ -132,7 +132,7 @@ resource "aws_subnet" "dms_subnet_2" {
 }
 
 resource "aws_dms_endpoint" "dms_endpoint_source" {
-	database_name = ""
+	database_name = "tf-test-dms-db"
 	endpoint_id = "tf-test-dms-endpoint-source-%[1]s"
 	endpoint_type = "source"
 	engine_name = "aurora"
@@ -143,7 +143,7 @@ resource "aws_dms_endpoint" "dms_endpoint_source" {
 }
 
 resource "aws_dms_endpoint" "dms_endpoint_target" {
-	database_name = ""
+	database_name = "tf-test-dms-db"
 	endpoint_id = "tf-test-dms-endpoint-target-%[1]s"
 	endpoint_type = "target"
 	engine_name = "aurora"
@@ -178,8 +178,8 @@ resource "aws_dms_replication_task" "dms_replication_task" {
 	table_mappings = "{\"rules\":[{\"rule-type\":\"selection\",\"rule-id\":\"1\",\"rule-name\":\"1\",\"object-locator\":{\"schema-name\":\"%%\",\"table-name\":\"%%\"},\"rule-action\":\"include\"}]}"
 	tags {
 		Name = "tf-test-dms-replication-task-%[1]s"
-		Update = ""
-		Remove = ""
+		Update = "to-update"
+		Remove = "to-remove"
 	}
 	target_endpoint_arn = "${aws_dms_endpoint.dms_endpoint_target.endpoint_arn}"
 }
@@ -224,7 +224,7 @@ resource "aws_subnet" "dms_subnet_2" {
 }
 
 resource "aws_dms_endpoint" "dms_endpoint_source" {
-	database_name = ""
+	database_name = "tf-test-dms-db"
 	endpoint_id = "tf-test-dms-endpoint-source-%[1]s"
 	endpoint_type = "source"
 	engine_name = "aurora"
@@ -235,7 +235,7 @@ resource "aws_dms_endpoint" "dms_endpoint_source" {
 }
 
 resource "aws_dms_endpoint" "dms_endpoint_target" {
-	database_name = ""
+	database_name = "tf-test-dms-db"
 	endpoint_id = "tf-test-dms-endpoint-target-%[1]s"
 	endpoint_type = "target"
 	engine_name = "aurora"

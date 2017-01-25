@@ -215,11 +215,15 @@ func resourceAwsDmsReplicationInstanceRead(d *schema.ResourceData, meta interfac
 
 func resourceAwsDmsReplicationInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	request := &dms.ModifyReplicationInstanceInput{
-		ApplyImmediately:        aws.Bool(d.Get("apply_immediately").(bool)),
-		AutoMinorVersionUpgrade: aws.Bool(d.Get("auto_minor_version_upgrade").(bool)),
-		ReplicationInstanceArn:  aws.String(d.Get("replication_instance_arn").(string)),
+		ApplyImmediately:       aws.Bool(d.Get("apply_immediately").(bool)),
+		ReplicationInstanceArn: aws.String(d.Get("replication_instance_arn").(string)),
 	}
-	hasChanges := true
+	hasChanges := false
+
+	if d.HasChange("auto_minor_version_upgrade") {
+		request.AutoMinorVersionUpgrade = aws.Bool(d.Get("auto_minor_version_upgrade").(bool))
+		hasChanges = true
+	}
 
 	if d.HasChange("allocated_storage") {
 		if v, ok := d.GetOk("allocated_storage"); ok {

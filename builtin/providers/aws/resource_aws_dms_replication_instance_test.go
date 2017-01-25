@@ -150,8 +150,8 @@ resource "aws_dms_replication_instance" "dms_replication_instance" {
 	replication_subnet_group_id = "${aws_dms_replication_subnet_group.dms_replication_subnet_group.replication_subnet_group_id}"
 	tags {
 		Name = "tf-test-dms-replication-instance-%[1]s"
-		Update = ""
-		Remove = ""
+		Update = "to-update"
+		Remove = "to-remove"
 	}
 }
 `, randId)

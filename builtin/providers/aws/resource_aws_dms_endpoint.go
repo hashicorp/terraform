@@ -32,8 +32,7 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 			},
 			"database_name": {
 				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
+				Required: true,
 			},
 			"endpoint_arn": {
 				Type:     schema.TypeString,
@@ -79,7 +78,7 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 			},
 			"password": {
 				Type:      schema.TypeString,
-				Optional:  true,
+				Required:  true,
 				Sensitive: true,
 			},
 			"port": {
@@ -107,7 +106,7 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 			},
 			"username": {
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 			},
 		},
 	}
@@ -117,6 +116,7 @@ func resourceAwsDmsEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 	conn := meta.(*AWSClient).dmsconn
 
 	request := &dms.CreateEndpointInput{
+		DatabaseName:       aws.String(d.Get("database_name").(string)),
 		EndpointIdentifier: aws.String(d.Get("endpoint_id").(string)),
 		EndpointType:       aws.String(d.Get("endpoint_type").(string)),
 		EngineName:         aws.String(d.Get("engine_name").(string)),
@@ -129,9 +129,6 @@ func resourceAwsDmsEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 
 	if v, ok := d.GetOk("certificate_arn"); ok {
 		request.CertificateArn = aws.String(v.(string))
-	}
-	if v, ok := d.GetOk("database_name"); ok {
-		request.DatabaseName = aws.String(v.(string))
 	}
 	if v, ok := d.GetOk("extra_connection_attributes"); ok {
 		request.ExtraConnectionAttributes = aws.String(v.(string))

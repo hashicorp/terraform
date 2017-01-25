@@ -29,7 +29,7 @@ func resourceAwsDmsReplicationTask() *schema.Resource {
 			"cdc_start_time": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				// Unix timestamp 1484346880
+				// Requires a Unix timestamp in seconds. Example 1484346880
 			},
 			"migration_type": {
 				Type:     schema.TypeString,
@@ -89,7 +89,6 @@ func resourceAwsDmsReplicationTaskCreate(d *schema.ResourceData, meta interface{
 		MigrationType:             aws.String(d.Get("migration_type").(string)),
 		ReplicationInstanceArn:    aws.String(d.Get("replication_instance_arn").(string)),
 		ReplicationTaskIdentifier: aws.String(d.Get("replication_task_id").(string)),
-		ReplicationTaskSettings:   aws.String(d.Get("replication_task_settings").(string)),
 		SourceEndpointArn:         aws.String(d.Get("source_endpoint_arn").(string)),
 		TableMappings:             aws.String(d.Get("table_mappings").(string)),
 		Tags:                      dmsTagsFromMap(d.Get("tags").(map[string]interface{})),
@@ -102,6 +101,10 @@ func resourceAwsDmsReplicationTaskCreate(d *schema.ResourceData, meta interface{
 			return fmt.Errorf("[ERROR] DMS create replication task. Invalid CDC Unix timestamp: %s", err)
 		}
 		request.CdcStartTime = aws.Time(time.Unix(seconds, 0))
+	}
+
+	if v, ok := d.GetOk("replication_task_settings"); ok {
+		request.ReplicationTaskSettings = aws.String(v.(string))
 	}
 
 	log.Println("[DEBUG] DMS create replication task:", request)
