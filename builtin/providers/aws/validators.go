@@ -727,3 +727,19 @@ func validateAwsEcsPlacementStrategy(stratType, stratField string) error {
 	}
 	return nil
 }
+
+func validateAwsEmrEbsVolumeType(v interface{}, k string) (ws []string, errors []error) {
+	validTypes := map[string]struct{}{
+		"gp2":      {},
+		"io1":      {},
+		"standard": {},
+	}
+
+	value := v.(string)
+
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of ['gp2', 'io1', 'standard']", k))
+	}
+	return
+}
