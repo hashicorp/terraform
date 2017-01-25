@@ -3,6 +3,7 @@ package circonus
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -393,6 +394,7 @@ func _TriggerRead(d *schema.ResourceData, meta interface{}) error {
 		valueAttrs[string(_TriggerOverAttr)] = valueOverSet
 
 		if contactGroups, ok := t.ContactGroups[uint8(rule.Severity)]; ok {
+			sort.Strings(contactGroups)
 			thenAttrs[string(_TriggerNotifyAttr)] = contactGroups
 		}
 		thenSet := schema.NewSet(_TriggerThenChecksum, nil)
@@ -513,7 +515,7 @@ func _TriggerThenChecksum(v interface{}) int {
 	b.Grow(defaultHashBufSize)
 
 	writeInt := func(ar _AttrReader, attrName _SchemaAttr) {
-		if i, ok := ar.GetIntOK(attrName); ok {
+		if i, ok := ar.GetIntOK(attrName); ok && i != 0 {
 			fmt.Fprintf(b, "%x", i)
 		}
 	}
@@ -526,6 +528,7 @@ func _TriggerThenChecksum(v interface{}) int {
 
 	writeStringArray := func(ar _AttrReader, attrName _SchemaAttr) {
 		if a := ar.GetStringSlice(attrName); a != nil {
+			sort.Strings(a)
 			for _, s := range a {
 				fmt.Fprint(b, strings.TrimSpace(s))
 			}
