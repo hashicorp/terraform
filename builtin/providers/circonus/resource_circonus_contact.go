@@ -648,18 +648,20 @@ func contactGroupAlertOptionsToState(cg *api.ContactGroup) []interface{} {
 		panic("Need to update constants")
 	}
 
-	alertOptions := make([]*map[string]interface{}, config.NumSeverityLevels)
-
+	// Populate all alert options for every severity level.  We'll prune empty
+	// values at the end of this function.
 	const defaultNumAlertOptions = 4
+	alertOptions := make([]*map[string]interface{}, config.NumSeverityLevels)
+	for severityIndex := 0; severityIndex < config.NumSeverityLevels; severityIndex++ {
+		sevAction := make(map[string]interface{}, defaultNumAlertOptions)
+		sevAction[string(contactSeverityAttr)] = severityIndex + 1
+		alertOptions[severityIndex] = &sevAction
+	}
 
 	for severityIndex, reminder := range cg.Reminders {
-		if alertOptions[severityIndex] == nil {
-			v := make(map[string]interface{}, defaultNumAlertOptions)
-			alertOptions[severityIndex] = &v
+		if reminder != 0 {
+			(*alertOptions[severityIndex])[string(contactReminderAttr)] = fmt.Sprintf("%ds", reminder)
 		}
-
-		(*alertOptions[severityIndex])[string(contactSeverityAttr)] = severityIndex + 1
-		(*alertOptions[severityIndex])[string(contactReminderAttr)] = fmt.Sprintf("%ds", reminder)
 	}
 
 	for severityIndex, escalate := range cg.Escalations {
@@ -667,19 +669,15 @@ func contactGroupAlertOptionsToState(cg *api.ContactGroup) []interface{} {
 			continue
 		}
 
-		if alertOptions[severityIndex] == nil {
-			v := make(map[string]interface{}, defaultNumAlertOptions)
-			alertOptions[severityIndex] = &v
-		}
-
-		(*alertOptions[severityIndex])[string(contactSeverityAttr)] = severityIndex + 1
 		(*alertOptions[severityIndex])[string(contactEscalateAfterAttr)] = fmt.Sprintf("%ds", escalate.After)
 		(*alertOptions[severityIndex])[string(contactEscalateToAttr)] = escalate.ContactGroupCID
 	}
 
 	alertOptionsList := make([]interface{}, 0, config.NumSeverityLevels)
 	for i := 0; i < config.NumSeverityLevels; i++ {
-		if alertOptions[i] != nil {
+		// NOTE: the 1 is from the always-populated contactSeverityAttr which is
+		// always set.
+		if len(*alertOptions[i]) > 1 {
 			alertOptionsList = append(alertOptionsList, *alertOptions[i])
 		}
 	}
