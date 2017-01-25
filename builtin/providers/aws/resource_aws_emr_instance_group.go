@@ -22,36 +22,98 @@ func resourceAwsEMRInstanceGroup() *schema.Resource {
 		Update: resourceAwsEMRInstanceGroupUpdate,
 		Delete: resourceAwsEMRInstanceGroupDelete,
 		Schema: map[string]*schema.Schema{
-			"cluster_id": &schema.Schema{
+			"cluster_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"instance_type": &schema.Schema{
+			"instance_type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"instance_count": &schema.Schema{
+			"instance_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  0,
 			},
-			"running_instance_count": &schema.Schema{
+			"running_instance_count": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
+			"ebs_optimized": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
+			"ebs_config": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"iops": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"size": {
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"type": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateAwsEmrEbsVolumeType,
+						},
+						"volumes_per_instance": {
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+					},
+				},
+			},
 		},
 	}
+}
+
+// Populates an emr.EbsConfiguration struct
+func readEmrEBSConfig(d *schema.ResourceData) *emr.EbsConfiguration {
+	result := &emr.EbsConfiguration{}
+	if v, ok := d.GetOk("ebs_optimized"); ok {
+		result.EbsOptimized = aws.Bool(v.(bool))
+	}
+
+	ebsConfigs := make([]*emr.EbsBlockDeviceConfig, 0)
+	if rawConfig, ok := d.GetOk("ebs_config"); ok {
+		configList := rawConfig.(*schema.Set).List()
+		for _, config := range configList {
+			conf := config.(map[string]interface{})
+			ebs := &emr.EbsBlockDeviceConfig{}
+			volumeSpec := &emr.VolumeSpecification{
+				SizeInGB:   aws.Int64(int64(conf["size"].(int))),
+				VolumeType: aws.String(conf["type"].(string)),
+			}
+			if v, ok := conf["iops"].(int); ok && v != 0 {
+				volumeSpec.Iops = aws.Int64(int64(v))
+			}
+			if v, ok := conf["volumes_per_instance"].(int); ok && v != 0 {
+				ebs.VolumesPerInstance = aws.Int64(int64(v))
+			}
+			ebs.VolumeSpecification = volumeSpec
+			ebsConfigs = append(ebsConfigs, ebs)
+		}
+	}
+	result.EbsBlockDeviceConfigs = ebsConfigs
+	return result
 }
 
 func resourceAwsEMRInstanceGroupCreate(d *schema.ResourceData, meta interface{}) error {
@@ -62,13 +124,16 @@ func resourceAwsEMRInstanceGroupCreate(d *schema.ResourceData, meta interface{})
 	instanceCount := d.Get("instance_count").(int)
 	groupName := d.Get("name").(string)
 
+	ebsConfig := readEmrEBSConfig(d)
+
 	params := &emr.AddInstanceGroupsInput{
 		InstanceGroups: []*emr.InstanceGroupConfig{
 			{
-				InstanceRole:  aws.String("TASK"),
-				InstanceCount: aws.Int64(int64(instanceCount)),
-				InstanceType:  aws.String(instanceType),
-				Name:          aws.String(groupName),
+				InstanceRole:     aws.String("TASK"),
+				InstanceCount:    aws.Int64(int64(instanceCount)),
+				InstanceType:     aws.String(instanceType),
+				Name:             aws.String(groupName),
+				EbsConfiguration: ebsConfig,
 			},
 		},
 		JobFlowId: aws.String(clusterId),
