@@ -1,6 +1,7 @@
 package command
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -181,5 +182,77 @@ func TestShow_state(t *testing.T) {
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+}
+
+func TestShow_planJSON(t *testing.T) {
+	planPath := testPlanFile(t, &terraform.Plan{
+		Module: new(module.Tree),
+		State:  testState(),
+	})
+
+	ui := new(cli.MockUi)
+	c := &ShowCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-format=json",
+		planPath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	output := ui.OutputWriter.Bytes()
+	data := make(map[string]interface{})
+	err := json.Unmarshal(output, &data)
+	if err != nil {
+		t.Fatalf("not valid JSON: %s", err)
+	}
+	// Sniff to make sure this looks like a plan rather than a state
+	if _, ok := data["module"]; !ok {
+		t.Fatalf("JSON does not contain 'module' key")
+	}
+	if _, ok := data["state"]; !ok {
+		t.Fatalf("JSON does not contain 'state' key")
+	}
+}
+
+func TestShow_stateJSON(t *testing.T) {
+	originalState := testState()
+	statePath := testStateFile(t, originalState)
+
+	ui := new(cli.MockUi)
+	c := &ShowCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-format=json",
+		statePath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	output := ui.OutputWriter.Bytes()
+	data := make(map[string]interface{})
+	err := json.Unmarshal(output, &data)
+	if err != nil {
+		t.Fatalf("not valid JSON: %s", err)
+	}
+	// Sniff to make sure this looks like a state rather than a plan
+	if _, ok := data["modules"]; !ok {
+		t.Fatalf("JSON does not contain 'modules' key")
+	}
+	if _, ok := data["lineage"]; !ok {
+		t.Fatalf("JSON does not contain 'lineage' key")
 	}
 }

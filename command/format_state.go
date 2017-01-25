@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -149,4 +150,16 @@ func formatStateModuleSingle(
 
 	// Now just write how many resources are in here.
 	buf.WriteString(fmt.Sprintf("  %d resource(s)\n", len(m.Resources)))
+}
+
+func FormatStateJSON(state *terraform.State) string {
+	dst := bytes.NewBuffer(make([]byte, 0, 64))
+	enc := json.NewEncoder(dst)
+	enc.SetIndent("", "  ")
+	err := enc.Encode(state)
+	if err != nil {
+		// should never happen
+		panic(err)
+	}
+	return dst.String()
 }

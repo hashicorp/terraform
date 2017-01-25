@@ -20,8 +20,11 @@ func (c *ShowCommand) Run(args []string) int {
 
 	args = c.Meta.process(args, false)
 
+	var format string
+
 	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
+	cmdFlags.StringVar(&format, "format", "ui", "format-mode")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -91,21 +94,37 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
-	if plan != nil {
-		c.Ui.Output(FormatPlan(&FormatPlanOpts{
-			Plan:        plan,
+	switch format {
+	case "ui": // the default, if no -format option is specified
+		if plan != nil {
+			c.Ui.Output(FormatPlan(&FormatPlanOpts{
+				Plan:        plan,
+				Color:       c.Colorize(),
+				ModuleDepth: moduleDepth,
+			}))
+			return 0
+		}
+
+		c.Ui.Output(FormatState(&FormatStateOpts{
+			State:       state,
 			Color:       c.Colorize(),
 			ModuleDepth: moduleDepth,
 		}))
 		return 0
-	}
 
-	c.Ui.Output(FormatState(&FormatStateOpts{
-		State:       state,
-		Color:       c.Colorize(),
-		ModuleDepth: moduleDepth,
-	}))
-	return 0
+	case "json":
+		if plan != nil {
+			c.Ui.Output(FormatPlanJSON(plan))
+			return 0
+		}
+
+		c.Ui.Output(FormatStateJSON(state))
+		return 0
+
+	default:
+		c.Ui.Error(fmt.Sprintf("%q is not a supported output format", format))
+		return 1
+	}
 }
 
 func (c *ShowCommand) Help() string {
@@ -117,10 +136,23 @@ Usage: terraform show [options] [path]
 
 Options:
 
+  -format=name        Specifies the output format. By default, human-readable
+                      output is produced. Set -format=json for a
+                      machine-readable JSON data structure. The remaining
+                      options are ignored for JSON output.
+
   -module-depth=n     Specifies the depth of modules to show in the output.
                       By default this is -1, which will expand all.
 
   -no-color           If specified, output won't contain any color.
+
+WARNING: JSON output is provided as a convenience for lightweight integrations
+with external tools, but the JSON format is *not* frozen and may change in
+future versions of Terraform.
+
+JSON output is also more detailed than the standard human-readable output and
+may contain sensitive information that is not normally included, including
+the values of any outputs that are marked as sensitive.
 
 `
 	return strings.TrimSpace(helpText)

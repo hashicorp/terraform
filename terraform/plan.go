@@ -21,11 +21,11 @@ func init() {
 // Plan represents a single Terraform execution plan, which contains
 // all the information necessary to make an infrastructure change.
 type Plan struct {
-	Diff    *Diff
-	Module  *module.Tree
-	State   *State
-	Vars    map[string]interface{}
-	Targets []string
+	Diff    *Diff                  `json:"diff"`
+	Module  *module.Tree           `json:"module"`
+	State   *State                 `json:"state"`
+	Vars    map[string]interface{} `json:"variables"`
+	Targets []string               `json:"targets,omitempty"`
 
 	once sync.Once
 }
