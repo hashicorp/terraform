@@ -1,6 +1,4 @@
-// +build !windows
-// +build !linux !cgo
-// +build !solaris !cgo
+// +build !windows !linux !cgo !solaris !cgo
 
 package term
 
