@@ -65,6 +65,7 @@ BUG FIXES:
  * provider/aws: Allow creating aws_codecommit repository outside of us-east-1 [GH-11177]
  * provider/aws: Fix issue destroying or updating CloudFront due to missing Lambda Function Associations parameters [GH-11291]
  * provider/aws: Correct error messages are now returned if an `aws_autoscaling_lifecycle_hook` fails during creation [GH-11360]
+ * provider/aws: Fix issue updating/destroying Spot Fleet requests when using `terminate_instances_with_expiration` [GH-10953]
  * provider/azurerm: use configured environment for storage clients [GH-11159]
  * provider/google: removes region param from google_compute_backend_service [GH-10903]
  * provider/ignition: allowing empty systemd.content when a dropin is provided [GH-11216]
