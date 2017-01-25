@@ -144,6 +144,11 @@ resource "aws_dms_replication_subnet_group" "dms_replication_subnet_group" {
 	replication_subnet_group_id = "tf-test-dms-replication-subnet-group-%[1]s"
 	replication_subnet_group_description = "terraform test for replication subnet group"
 	subnet_ids = ["${aws_subnet.dms_subnet_1.id}", "${aws_subnet.dms_subnet_2.id}"]
+	tags {
+		Name = "tf-test-dms-replication-subnet-group-%[1]s"
+		Update = "to-update"
+		Remove = "to-remove"
+	}
 }
 `, randId)
 }
@@ -198,6 +203,11 @@ resource "aws_dms_replication_subnet_group" "dms_replication_subnet_group" {
 	replication_subnet_group_id = "tf-test-dms-replication-subnet-group-%[1]s"
 	replication_subnet_group_description = "terraform test for replication subnet group"
 	subnet_ids = ["${aws_subnet.dms_subnet_1.id}", "${aws_subnet.dms_subnet_3.id}"]
+	tags {
+		Name = "tf-test-dms-replication-subnet-group-%[1]s"
+		Update = "updated"
+		Add = "added"
+	}
 }
 `, randId)
 }

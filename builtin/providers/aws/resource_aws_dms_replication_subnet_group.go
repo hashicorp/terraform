@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -21,6 +22,10 @@ func resourceAwsDmsReplicationSubnetGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"replication_subnet_group_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"replication_subnet_group_description": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -36,6 +41,10 @@ func resourceAwsDmsReplicationSubnetGroup() *schema.Resource {
 				Set:      schema.HashString,
 				Required: true,
 			},
+			"tags": {
+				Type:     schema.TypeMap,
+				Optional: true,
+			},
 			"vpc_id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -47,21 +56,22 @@ func resourceAwsDmsReplicationSubnetGroup() *schema.Resource {
 func resourceAwsDmsReplicationSubnetGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).dmsconn
 
-	// NOTE: Even though "tags" is an allowed parameter there is no way to retrieve the tags currently.
 	request := &dms.CreateReplicationSubnetGroupInput{
 		ReplicationSubnetGroupIdentifier:  aws.String(d.Get("replication_subnet_group_id").(string)),
 		ReplicationSubnetGroupDescription: aws.String(d.Get("replication_subnet_group_description").(string)),
 		SubnetIds:                         expandStringList(d.Get("subnet_ids").(*schema.Set).List()),
+		Tags:                              dmsTagsFromMap(d.Get("tags").(map[string]interface{})),
 	}
 
 	log.Println("[DEBUG] DMS create replication subnet group:", request)
 
-	response, err := conn.CreateReplicationSubnetGroup(request)
+	_, err := conn.CreateReplicationSubnetGroup(request)
 	if err != nil {
 		return err
 	}
 
-	return resourceAwsDmsReplicationSubnetGroupSetState(d, response.ReplicationSubnetGroup)
+	d.SetId(d.Get("replication_subnet_group_id").(string))
+	return resourceAwsDmsReplicationSubnetGroupRead(d, meta)
 }
 
 func resourceAwsDmsReplicationSubnetGroupRead(d *schema.ResourceData, meta interface{}) error {
@@ -83,24 +93,56 @@ func resourceAwsDmsReplicationSubnetGroupRead(d *schema.ResourceData, meta inter
 		return err
 	}
 
-	return resourceAwsDmsReplicationSubnetGroupSetState(d, response.ReplicationSubnetGroups[0])
+	// The AWS API for DMS subnet groups does not return the ARN which is required to
+	// retrieve tags. This ARN can be built.
+	d.Set("replication_subnet_group_arn", fmt.Sprintf("arn:aws:dms:%s:%s:subgrp:%s",
+		meta.(*AWSClient).region, meta.(*AWSClient).accountid, d.Id()))
+
+	err = resourceAwsDmsReplicationSubnetGroupSetState(d, response.ReplicationSubnetGroups[0])
+	if err != nil {
+		return err
+	}
+
+	tagsResp, err := conn.ListTagsForResource(&dms.ListTagsForResourceInput{
+		ResourceArn: aws.String(d.Get("replication_subnet_group_arn").(string)),
+	})
+	if err != nil {
+		return err
+	}
+	d.Set("tags", dmsTagsToMap(tagsResp.TagList))
+
+	return nil
 }
 
 func resourceAwsDmsReplicationSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).dmsconn
 
+	// Updates to subnet groups are only valid when sending SubnetIds even if there are no
+	// changes to SubnetIds.
 	request := &dms.ModifyReplicationSubnetGroupInput{
-		ReplicationSubnetGroupIdentifier:  aws.String(d.Get("replication_subnet_group_id").(string)),
-		ReplicationSubnetGroupDescription: aws.String(d.Get("replication_subnet_group_description").(string)),
-		SubnetIds:                         expandStringList(d.Get("subnet_ids").(*schema.Set).List()),
+		ReplicationSubnetGroupIdentifier: aws.String(d.Get("replication_subnet_group_id").(string)),
+		SubnetIds:                        expandStringList(d.Get("subnet_ids").(*schema.Set).List()),
 	}
 
-	response, err := conn.ModifyReplicationSubnetGroup(request)
+	if d.HasChange("replication_subnet_group_description") {
+		request.ReplicationSubnetGroupDescription = aws.String(d.Get("replication_subnet_group_description").(string))
+	}
+
+	if d.HasChange("tags") {
+		err := dmsSetTags(d.Get("replication_subnet_group_arn").(string), d, meta)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Println("[DEBUG] DMS update replication subnet group:", request)
+
+	_, err := conn.ModifyReplicationSubnetGroup(request)
 	if err != nil {
 		return err
 	}
 
-	return resourceAwsDmsReplicationSubnetGroupSetState(d, response.ReplicationSubnetGroup)
+	return resourceAwsDmsReplicationSubnetGroupRead(d, meta)
 }
 
 func resourceAwsDmsReplicationSubnetGroupDelete(d *schema.ResourceData, meta interface{}) error {
