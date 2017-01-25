@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccGoogleProject_importBasic(t *testing.T) {
 	resourceName := "google_project.acceptance"
-	conf := fmt.Sprintf(testAccGoogleProject_basic, projectId)
+	projectId := "terraform-" + acctest.RandString(10)
+	conf := testAccGoogleProject_import(projectId, org, pname)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
@@ -26,4 +28,13 @@ func TestAccGoogleProject_importBasic(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccGoogleProject_import(pid, orgId, projectName string) string {
+	return fmt.Sprintf(`
+resource "google_project" "acceptance" {
+    project_id = "%s"
+    org_id = "%s"
+    name = "%s"
+}`, pid, orgId, projectName)
 }

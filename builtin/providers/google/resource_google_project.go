@@ -13,9 +13,7 @@ import (
 )
 
 // resourceGoogleProject returns a *schema.Resource that allows a customer
-// to declare a Google Cloud Project resource. //
-// Only the 'policy' property of a project may be updated. All other properties
-// are computed.
+// to declare a Google Cloud Project resource.
 //
 // This example shows a project with a policy declared in config:
 //
@@ -25,27 +23,64 @@ import (
 // }
 func resourceGoogleProject() *schema.Resource {
 	return &schema.Resource{
+		SchemaVersion: 1,
+
 		Create: resourceGoogleProjectCreate,
 		Read:   resourceGoogleProjectRead,
 		Update: resourceGoogleProjectUpdate,
 		Delete: resourceGoogleProjectDelete,
+
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
+		MigrateState: resourceGoogleProjectMigrateState,
 
 		Schema: map[string]*schema.Schema{
 			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:       schema.TypeString,
+				Optional:   true,
+				Computed:   true,
+				Deprecated: "The id field has unexpected behaviour and probably doesn't do what you expect. See https://www.terraform.io/docs/providers/google/r/google_project.html#id-field for more information. Please use project_id instead; future versions of Terraform will remove the id field.",
 			},
-			"policy_data": &schema.Schema{
+			"project_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// This suppresses the diff if project_id is not set
+					if new == "" {
+						return true
+					}
+					return false
+				},
+			},
+			"skip_delete": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
+			},
+			"org_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+			"policy_data": &schema.Schema{
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				Deprecated:       "Use the 'google_project_iam_policy' resource to define policies for a Google Project",
+				DiffSuppressFunc: jsonPolicyDiffSuppress,
+			},
+			"policy_etag": &schema.Schema{
+				Type:       schema.TypeString,
+				Computed:   true,
+				Deprecated: "Use the the 'google_project_iam_policy' resource to define policies for a Google Project",
 			},
 			"number": &schema.Schema{
 				Type:     schema.TypeString,
@@ -55,20 +90,55 @@ func resourceGoogleProject() *schema.Resource {
 	}
 }
 
-// This resource supports creation, but not in the traditional sense.
-// A new Google Cloud Project can not be created. Instead, an existing Project
-// is initialized and made available as a Terraform resource.
 func resourceGoogleProjectCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	project, err := getProject(d, config)
-	if err != nil {
-		return err
+	var pid string
+	var err error
+	pid = d.Get("project_id").(string)
+	if pid == "" {
+		pid, err = getProject(d, config)
+		if err != nil {
+			return fmt.Errorf("Error getting project ID: %v", err)
+		}
+		if pid == "" {
+			return fmt.Errorf("'project_id' must be set in the config")
+		}
 	}
 
-	d.SetId(project)
-	if err := resourceGoogleProjectRead(d, meta); err != nil {
-		return err
+	// we need to check if name and org_id are set, and throw an error if they aren't
+	// we can't just set these as required on the object, however, as that would break
+	// all configs that used previous iterations of the resource.
+	// TODO(paddy): remove this for 0.9 and set these attributes as required.
+	name, org_id := d.Get("name").(string), d.Get("org_id").(string)
+	if name == "" {
+		return fmt.Errorf("`name` must be set in the config if you're creating a project.")
+	}
+	if org_id == "" {
+		return fmt.Errorf("`org_id` must be set in the config if you're creating a project.")
+	}
+
+	log.Printf("[DEBUG]: Creating new project %q", pid)
+	project := &cloudresourcemanager.Project{
+		ProjectId: pid,
+		Name:      d.Get("name").(string),
+		Parent: &cloudresourcemanager.ResourceId{
+			Id:   d.Get("org_id").(string),
+			Type: "organization",
+		},
+	}
+
+	op, err := config.clientResourceManager.Projects.Create(project).Do()
+	if err != nil {
+		return fmt.Errorf("Error creating project %s (%s): %s.", project.ProjectId, project.Name, err)
+	}
+
+	d.SetId(pid)
+
+	// Wait for the operation to complete
+	waitErr := resourceManagerOperationWait(config, op, "project to create")
+	if waitErr != nil {
+		return waitErr
 	}
 
 	// Apply the IAM policy if it is set
@@ -76,15 +146,14 @@ func resourceGoogleProjectCreate(d *schema.ResourceData, meta interface{}) error
 		// The policy string is just a marshaled cloudresourcemanager.Policy.
 		// Unmarshal it to a struct.
 		var policy cloudresourcemanager.Policy
-		if err = json.Unmarshal([]byte(pString.(string)), &policy); err != nil {
+		if err := json.Unmarshal([]byte(pString.(string)), &policy); err != nil {
 			return err
 		}
+		log.Printf("[DEBUG] Got policy from config: %#v", policy.Bindings)
 
 		// Retrieve existing IAM policy from project. This will be merged
 		// with the policy defined here.
-		// TODO(evanbrown): Add an 'authoritative' flag that allows policy
-		// in manifest to overwrite existing policy.
-		p, err := getProjectIamPolicy(project, config)
+		p, err := getProjectIamPolicy(pid, config)
 		if err != nil {
 			return err
 		}
@@ -95,47 +164,98 @@ func resourceGoogleProjectCreate(d *schema.ResourceData, meta interface{}) error
 
 		// Apply the merged policy
 		log.Printf("[DEBUG] Setting new policy for project: %#v", p)
-		_, err = config.clientResourceManager.Projects.SetIamPolicy(project,
+		_, err = config.clientResourceManager.Projects.SetIamPolicy(pid,
 			&cloudresourcemanager.SetIamPolicyRequest{Policy: p}).Do()
 
 		if err != nil {
-			return fmt.Errorf("Error applying IAM policy for project %q: %s", project, err)
+			return fmt.Errorf("Error applying IAM policy for project %q: %s", pid, err)
 		}
 	}
-	return nil
+
+	return resourceGoogleProjectRead(d, meta)
 }
 
 func resourceGoogleProjectRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	project, err := getProject(d, config)
+	pid := d.Id()
+
+	// Read the project
+	p, err := config.clientResourceManager.Projects.Get(pid).Do()
+	if err != nil {
+		if v, ok := err.(*googleapi.Error); ok && v.Code == http.StatusNotFound {
+			return fmt.Errorf("Project %q does not exist.", pid)
+		}
+		return fmt.Errorf("Error checking project %q: %s", pid, err)
+	}
+
+	d.Set("project_id", pid)
+	d.Set("number", strconv.FormatInt(int64(p.ProjectNumber), 10))
+	d.Set("name", p.Name)
+
+	if p.Parent != nil {
+		d.Set("org_id", p.Parent.Id)
+	}
+
+	// Read the IAM policy
+	pol, err := getProjectIamPolicy(pid, config)
 	if err != nil {
 		return err
 	}
-	d.SetId(project)
 
-	// Confirm the project exists.
-	// TODO(evanbrown): Support project creation
-	p, err := config.clientResourceManager.Projects.Get(project).Do()
+	polBytes, err := json.Marshal(pol)
 	if err != nil {
-		if v, ok := err.(*googleapi.Error); ok && v.Code == http.StatusNotFound {
-			return fmt.Errorf("Project %q does not exist. The Google provider does not currently support new project creation.", project)
-		}
-		return fmt.Errorf("Error checking project %q: %s", project, err)
+		return err
 	}
 
-	d.Set("number", strconv.FormatInt(int64(p.ProjectNumber), 10))
-	d.Set("name", p.Name)
+	d.Set("policy_etag", pol.Etag)
+	d.Set("policy_data", string(polBytes))
 
 	return nil
 }
 
 func resourceGoogleProjectUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	project, err := getProject(d, config)
+	pid := d.Id()
+
+	// Read the project
+	// we need the project even though refresh has already been called
+	// because the API doesn't support patch, so we need the actual object
+	p, err := config.clientResourceManager.Projects.Get(pid).Do()
 	if err != nil {
-		return err
+		if v, ok := err.(*googleapi.Error); ok && v.Code == http.StatusNotFound {
+			return fmt.Errorf("Project %q does not exist.", pid)
+		}
+		return fmt.Errorf("Error checking project %q: %s", pid, err)
 	}
 
+	// Project name has changed
+	if ok := d.HasChange("name"); ok {
+		p.Name = d.Get("name").(string)
+		// Do update on project
+		p, err = config.clientResourceManager.Projects.Update(p.ProjectId, p).Do()
+		if err != nil {
+			return fmt.Errorf("Error updating project %q: %s", p.Name, err)
+		}
+	}
+
+	return updateProjectIamPolicy(d, config, pid)
+}
+
+func resourceGoogleProjectDelete(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+	// Only delete projects if skip_delete isn't set
+	if !d.Get("skip_delete").(bool) {
+		pid := d.Id()
+		_, err := config.clientResourceManager.Projects.Delete(pid).Do()
+		if err != nil {
+			return fmt.Errorf("Error deleting project %q: %s", pid, err)
+		}
+	}
+	d.SetId("")
+	return nil
+}
+
+func updateProjectIamPolicy(d *schema.ResourceData, config *Config, pid string) error {
 	// Policy has changed
 	if ok := d.HasChange("policy_data"); ok {
 		// The policy string is just a marshaled cloudresourcemanager.Policy.
@@ -152,15 +272,13 @@ func resourceGoogleProjectUpdate(d *schema.ResourceData, meta interface{}) error
 			newPString = "{}"
 		}
 
-		oldPStringf, _ := json.MarshalIndent(oldPString, "", "   ")
-		newPStringf, _ := json.MarshalIndent(newPString, "", "   ")
-		log.Printf("[DEBUG]: Old policy: %v\nNew policy: %v", string(oldPStringf), string(newPStringf))
+		log.Printf("[DEBUG]: Old policy: %q\nNew policy: %q", oldPString, newPString)
 
 		var oldPolicy, newPolicy cloudresourcemanager.Policy
-		if err = json.Unmarshal([]byte(newPString), &newPolicy); err != nil {
+		if err := json.Unmarshal([]byte(newPString), &newPolicy); err != nil {
 			return err
 		}
-		if err = json.Unmarshal([]byte(oldPString), &oldPolicy); err != nil {
+		if err := json.Unmarshal([]byte(oldPString), &oldPolicy); err != nil {
 			return err
 		}
 
@@ -199,7 +317,7 @@ func resourceGoogleProjectUpdate(d *schema.ResourceData, meta interface{}) error
 		// with the policy in the current state
 		// TODO(evanbrown): Add an 'authoritative' flag that allows policy
 		// in manifest to overwrite existing policy.
-		p, err := getProjectIamPolicy(project, config)
+		p, err := getProjectIamPolicy(pid, config)
 		if err != nil {
 			return err
 		}
@@ -218,86 +336,15 @@ func resourceGoogleProjectUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		p.Bindings = rolesToMembersBinding(mergedBindingsMap)
-		log.Printf("[DEBUG] Setting new policy for project: %#v", p)
-
 		dump, _ := json.MarshalIndent(p.Bindings, " ", "  ")
-		log.Printf(string(dump))
-		_, err = config.clientResourceManager.Projects.SetIamPolicy(project,
+		log.Printf("[DEBUG] Setting new policy for project: %#v:\n%s", p, string(dump))
+
+		_, err = config.clientResourceManager.Projects.SetIamPolicy(pid,
 			&cloudresourcemanager.SetIamPolicyRequest{Policy: p}).Do()
 
 		if err != nil {
-			return fmt.Errorf("Error applying IAM policy for project %q: %s", project, err)
+			return fmt.Errorf("Error applying IAM policy for project %q: %s", pid, err)
 		}
 	}
-
 	return nil
-}
-
-func resourceGoogleProjectDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
-	return nil
-}
-
-// Retrieve the existing IAM Policy for a Project
-func getProjectIamPolicy(project string, config *Config) (*cloudresourcemanager.Policy, error) {
-	p, err := config.clientResourceManager.Projects.GetIamPolicy(project,
-		&cloudresourcemanager.GetIamPolicyRequest{}).Do()
-
-	if err != nil {
-		return nil, fmt.Errorf("Error retrieving IAM policy for project %q: %s", project, err)
-	}
-	return p, nil
-}
-
-// Convert a map of roles->members to a list of Binding
-func rolesToMembersBinding(m map[string]map[string]bool) []*cloudresourcemanager.Binding {
-	bindings := make([]*cloudresourcemanager.Binding, 0)
-	for role, members := range m {
-		b := cloudresourcemanager.Binding{
-			Role:    role,
-			Members: make([]string, 0),
-		}
-		for m, _ := range members {
-			b.Members = append(b.Members, m)
-		}
-		bindings = append(bindings, &b)
-	}
-	return bindings
-}
-
-// Map a role to a map of members, allowing easy merging of multiple bindings.
-func rolesToMembersMap(bindings []*cloudresourcemanager.Binding) map[string]map[string]bool {
-	bm := make(map[string]map[string]bool)
-	// Get each binding
-	for _, b := range bindings {
-		// Initialize members map
-		if _, ok := bm[b.Role]; !ok {
-			bm[b.Role] = make(map[string]bool)
-		}
-		// Get each member (user/principal) for the binding
-		for _, m := range b.Members {
-			// Add the member
-			bm[b.Role][m] = true
-		}
-	}
-	return bm
-}
-
-// Merge multiple Bindings such that Bindings with the same Role result in
-// a single Binding with combined Members
-func mergeBindings(bindings []*cloudresourcemanager.Binding) []*cloudresourcemanager.Binding {
-	bm := rolesToMembersMap(bindings)
-	rb := make([]*cloudresourcemanager.Binding, 0)
-
-	for role, members := range bm {
-		var b cloudresourcemanager.Binding
-		b.Role = role
-		b.Members = make([]string, 0)
-		for m, _ := range members {
-			b.Members = append(b.Members, m)
-		}
-		rb = append(rb, &b)
-	}
-
-	return rb
 }
