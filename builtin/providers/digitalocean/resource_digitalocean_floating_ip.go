@@ -21,19 +21,19 @@ func resourceDigitalOceanFloatingIp() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"ip_address": &schema.Schema{
+			"ip_address": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"droplet_id": &schema.Schema{
+			"droplet_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},

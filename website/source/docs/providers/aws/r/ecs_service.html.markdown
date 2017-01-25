@@ -56,8 +56,7 @@ The following arguments are supported:
 * `deployment_minimum_healthy_percent` - (Optional) The lower limit (as a percentage of the service's desiredCount) of the number of running tasks that must remain running and healthy in a service during a deployment.
 * `placement_strategy` - (Optional) Service level strategy rules that are taken
 into consideration during task placement. The maximum number of
-`placement_strategy` blocks is `5`. See [the related docs](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-placement-strategies.html) for
-details on attributes.
+`placement_strategy` blocks is `5`. Defined below.
 * `load_balancer` - (Optional) A load balancer block. Load balancers documented below.
 * `placement_constraints` - (Optional) rules that are taken into consideration during task placement. Maximum number of
 `placement_constraints` is `10`. Defined below.
@@ -71,15 +70,27 @@ Load balancers support the following:
 * `container_name` - (Required) The name of the container to associate with the load balancer (as it appears in a container definition).
 * `container_port` - (Required) The port on the container to associate with the load balancer.
 
+## placement_strategy
+
+`placement_strategy` supports the following:
+
+* `type` - (Required) The type of placement strategy. Must be one of: `binpack`, `random`, or `spread`
+* `field` - (Optional) For the `spread` placement strategy, valid values are instanceId (or host,
+ which has the same effect), or any platform or custom attribute that is applied to a container instance.
+ For the `binpack` type, valid values are `memory` and `cpu`. For the `random` type, this attribute is not
+ needed. For more information, see [Placement Strategy](http://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_PlacementStrategy.html).
+
 ## placement_constraints
 
 `placement_constraints` support the following:
 
-* `expression` -  Cluster Query Language expression to apply to the constraint.
+* `type` - (Required) The type of constraint. The only valid values at this time are `memberOf` and `distinctInstance`.
+* `expression` -  (Optional) Cluster Query Language expression to apply to the constraint. Does not need to be specified
+for the `distinctInstance` type.
 For more information, see [Cluster Query Language in the Amazon EC2 Container
 Service Developer
 Guide](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-query-language.html).
-* `type` - The type of constraint. The only valid values at this time are `memberOf` and `distinctInstance`.
+
 
 
 ## Attributes Reference

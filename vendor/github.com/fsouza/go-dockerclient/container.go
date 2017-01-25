@@ -1252,7 +1252,20 @@ func (c *Client) CopyFromContainer(opts CopyFromContainerOptions) error {
 //
 // See https://goo.gl/4AGweZ for more details.
 func (c *Client) WaitContainer(id string) (int, error) {
-	resp, err := c.do("POST", "/containers/"+id+"/wait", doOptions{})
+	return c.waitContainer(id, doOptions{})
+}
+
+// WaitContainerWithContext blocks until the given container stops, return the exit code
+// of the container status. The context object can be used to cancel the
+// inspect request.
+//
+// See https://goo.gl/4AGweZ for more details.
+func (c *Client) WaitContainerWithContext(id string, ctx context.Context) (int, error) {
+	return c.waitContainer(id, doOptions{context: ctx})
+}
+
+func (c *Client) waitContainer(id string, opts doOptions) (int, error) {
+	resp, err := c.do("POST", "/containers/"+id+"/wait", opts)
 	if err != nil {
 		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
 			return 0, &NoSuchContainer{ID: id}
@@ -1391,6 +1404,14 @@ type LogsOptions struct {
 }
 
 // Logs gets stdout and stderr logs from the specified container.
+//
+// When LogsOptions.RawTerminal is set to false, go-dockerclient will multiplex
+// the streams and send the containers stdout to LogsOptions.OutputStream, and
+// stderr to LogsOptions.ErrorStream.
+//
+// When LogsOptions.RawTerminal is true, callers will get the raw stream on
+// LogOptions.OutputStream. The caller can use libraries such as dlog
+// (github.com/ahmetalpbalkan/dlog).
 //
 // See https://goo.gl/krK0ZH for more details.
 func (c *Client) Logs(opts LogsOptions) error {

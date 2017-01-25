@@ -1404,6 +1404,15 @@ func TestInstanceState_MergeDiffRemoveCounts(t *testing.T) {
 			"all.1234.0":   "a",
 			"all.5678.%":   "1",
 			"all.5678.key": "val",
+
+			// nested empty lists need to be removed cleanly
+			"all.nested.#":         "0",
+			"all.nested.0.empty.#": "0",
+			"all.nested.1.empty.#": "0",
+
+			// the value has a prefix that matches another key
+			// and ntohing should happen to this.
+			"all.nested_value": "y",
 		},
 	}
 
@@ -1433,8 +1442,9 @@ func TestInstanceState_MergeDiffRemoveCounts(t *testing.T) {
 	is2 := is.MergeDiff(diff)
 
 	expected := map[string]string{
-		"all.#":    "1",
-		"all.1111": "x",
+		"all.#":            "1",
+		"all.1111":         "x",
+		"all.nested_value": "y",
 	}
 
 	if !reflect.DeepEqual(expected, is2.Attributes) {

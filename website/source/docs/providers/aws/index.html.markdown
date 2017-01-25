@@ -188,6 +188,10 @@ The following arguments are supported in the `provider` block:
   validation via the STS API. Useful for AWS API implementations that do
   not have STS available or implemented.
 
+* `skip_region_validation` - (Optional) Skip validation of provided region name.
+  Useful for AWS-like implementations that use their own region names
+  or to bypass the validation for regions that aren't publicly available yet.
+
 * `skip_requesting_account_id` - (Optional) Skip requesting the account
   ID.  Useful for AWS API implementations that do not have the IAM, STS
   API, or metadata API.  When set to `true`, prevents you from managing

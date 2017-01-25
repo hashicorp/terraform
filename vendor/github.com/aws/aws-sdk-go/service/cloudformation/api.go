@@ -50,11 +50,10 @@ func (c *CloudFormation) CancelUpdateStackRequest(input *CancelUpdateStackInput)
 		input = &CancelUpdateStackInput{}
 	}
 
+	output = &CancelUpdateStackOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CancelUpdateStackOutput{}
-	req.Data = output
 	return
 }
 
@@ -116,9 +115,8 @@ func (c *CloudFormation) ContinueUpdateRollbackRequest(input *ContinueUpdateRoll
 		input = &ContinueUpdateRollbackInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ContinueUpdateRollbackOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -189,9 +187,8 @@ func (c *CloudFormation) CreateChangeSetRequest(input *CreateChangeSetInput) (re
 		input = &CreateChangeSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateChangeSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -275,9 +272,8 @@ func (c *CloudFormation) CreateStackRequest(input *CreateStackInput) (req *reque
 		input = &CreateStackInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateStackOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -350,9 +346,8 @@ func (c *CloudFormation) DeleteChangeSetRequest(input *DeleteChangeSetInput) (re
 		input = &DeleteChangeSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteChangeSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -422,11 +417,10 @@ func (c *CloudFormation) DeleteStackRequest(input *DeleteStackInput) (req *reque
 		input = &DeleteStackInput{}
 	}
 
+	output = &DeleteStackOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteStackOutput{}
-	req.Data = output
 	return
 }
 
@@ -487,9 +481,8 @@ func (c *CloudFormation) DescribeAccountLimitsRequest(input *DescribeAccountLimi
 		input = &DescribeAccountLimitsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAccountLimitsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -549,9 +542,8 @@ func (c *CloudFormation) DescribeChangeSetRequest(input *DescribeChangeSetInput)
 		input = &DescribeChangeSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeChangeSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -625,9 +617,8 @@ func (c *CloudFormation) DescribeStackEventsRequest(input *DescribeStackEventsIn
 		input = &DescribeStackEventsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeStackEventsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -716,9 +707,8 @@ func (c *CloudFormation) DescribeStackResourceRequest(input *DescribeStackResour
 		input = &DescribeStackResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeStackResourceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -780,9 +770,8 @@ func (c *CloudFormation) DescribeStackResourcesRequest(input *DescribeStackResou
 		input = &DescribeStackResourcesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeStackResourcesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -864,9 +853,8 @@ func (c *CloudFormation) DescribeStacksRequest(input *DescribeStacksInput) (req 
 		input = &DescribeStacksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeStacksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -953,9 +941,8 @@ func (c *CloudFormation) EstimateTemplateCostRequest(input *EstimateTemplateCost
 		input = &EstimateTemplateCostInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EstimateTemplateCostOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1016,9 +1003,8 @@ func (c *CloudFormation) ExecuteChangeSetRequest(input *ExecuteChangeSetInput) (
 		input = &ExecuteChangeSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ExecuteChangeSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1103,9 +1089,8 @@ func (c *CloudFormation) GetStackPolicyRequest(input *GetStackPolicyInput) (req 
 		input = &GetStackPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetStackPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1165,9 +1150,8 @@ func (c *CloudFormation) GetTemplateRequest(input *GetTemplateInput) (req *reque
 		input = &GetTemplateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetTemplateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1238,9 +1222,8 @@ func (c *CloudFormation) GetTemplateSummaryRequest(input *GetTemplateSummaryInpu
 		input = &GetTemplateSummaryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetTemplateSummaryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1308,9 +1291,8 @@ func (c *CloudFormation) ListChangeSetsRequest(input *ListChangeSetsInput) (req 
 		input = &ListChangeSetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListChangeSetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1371,9 +1353,8 @@ func (c *CloudFormation) ListExportsRequest(input *ListExportsInput) (req *reque
 		input = &ListExportsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListExportsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1438,9 +1419,8 @@ func (c *CloudFormation) ListImportsRequest(input *ListImportsInput) (req *reque
 		input = &ListImportsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListImportsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1511,9 +1491,8 @@ func (c *CloudFormation) ListStackResourcesRequest(input *ListStackResourcesInpu
 		input = &ListStackResourcesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListStackResourcesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1606,9 +1585,8 @@ func (c *CloudFormation) ListStacksRequest(input *ListStacksInput) (req *request
 		input = &ListStacksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListStacksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1696,11 +1674,10 @@ func (c *CloudFormation) SetStackPolicyRequest(input *SetStackPolicyInput) (req 
 		input = &SetStackPolicyInput{}
 	}
 
+	output = &SetStackPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetStackPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -1759,11 +1736,10 @@ func (c *CloudFormation) SignalResourceRequest(input *SignalResourceInput) (req 
 		input = &SignalResourceInput{}
 	}
 
+	output = &SignalResourceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SignalResourceOutput{}
-	req.Data = output
 	return
 }
 
@@ -1827,9 +1803,8 @@ func (c *CloudFormation) UpdateStackRequest(input *UpdateStackInput) (req *reque
 		input = &UpdateStackInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateStackOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1902,9 +1877,8 @@ func (c *CloudFormation) ValidateTemplateRequest(input *ValidateTemplateInput) (
 		input = &ValidateTemplateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ValidateTemplateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

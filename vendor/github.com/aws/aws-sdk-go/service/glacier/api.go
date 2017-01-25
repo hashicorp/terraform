@@ -48,11 +48,10 @@ func (c *Glacier) AbortMultipartUploadRequest(input *AbortMultipartUploadInput) 
 		input = &AbortMultipartUploadInput{}
 	}
 
+	output = &AbortMultipartUploadOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AbortMultipartUploadOutput{}
-	req.Data = output
 	return
 }
 
@@ -142,11 +141,10 @@ func (c *Glacier) AbortVaultLockRequest(input *AbortVaultLockInput) (req *reques
 		input = &AbortVaultLockInput{}
 	}
 
+	output = &AbortVaultLockOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AbortVaultLockOutput{}
-	req.Data = output
 	return
 }
 
@@ -232,11 +230,10 @@ func (c *Glacier) AddTagsToVaultRequest(input *AddTagsToVaultInput) (req *reques
 		input = &AddTagsToVaultInput{}
 	}
 
+	output = &AddTagsToVaultOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddTagsToVaultOutput{}
-	req.Data = output
 	return
 }
 
@@ -315,9 +312,8 @@ func (c *Glacier) CompleteMultipartUploadRequest(input *CompleteMultipartUploadI
 		input = &CompleteMultipartUploadInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ArchiveCreationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -431,11 +427,10 @@ func (c *Glacier) CompleteVaultLockRequest(input *CompleteVaultLockInput) (req *
 		input = &CompleteVaultLockInput{}
 	}
 
+	output = &CompleteVaultLockOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CompleteVaultLockOutput{}
-	req.Data = output
 	return
 }
 
@@ -520,9 +515,8 @@ func (c *Glacier) CreateVaultRequest(input *CreateVaultInput) (req *request.Requ
 		input = &CreateVaultInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVaultOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -615,11 +609,10 @@ func (c *Glacier) DeleteArchiveRequest(input *DeleteArchiveInput) (req *request.
 		input = &DeleteArchiveInput{}
 	}
 
+	output = &DeleteArchiveOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteArchiveOutput{}
-	req.Data = output
 	return
 }
 
@@ -714,11 +707,10 @@ func (c *Glacier) DeleteVaultRequest(input *DeleteVaultInput) (req *request.Requ
 		input = &DeleteVaultInput{}
 	}
 
+	output = &DeleteVaultOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVaultOutput{}
-	req.Data = output
 	return
 }
 
@@ -811,11 +803,10 @@ func (c *Glacier) DeleteVaultAccessPolicyRequest(input *DeleteVaultAccessPolicyI
 		input = &DeleteVaultAccessPolicyInput{}
 	}
 
+	output = &DeleteVaultAccessPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVaultAccessPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -895,11 +886,10 @@ func (c *Glacier) DeleteVaultNotificationsRequest(input *DeleteVaultNotification
 		input = &DeleteVaultNotificationsInput{}
 	}
 
+	output = &DeleteVaultNotificationsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVaultNotificationsOutput{}
-	req.Data = output
 	return
 }
 
@@ -984,9 +974,8 @@ func (c *Glacier) DescribeJobRequest(input *DescribeJobInput) (req *request.Requ
 		input = &DescribeJobInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &JobDescription{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1078,9 +1067,8 @@ func (c *Glacier) DescribeVaultRequest(input *DescribeVaultInput) (req *request.
 		input = &DescribeVaultInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVaultOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1170,9 +1158,8 @@ func (c *Glacier) GetDataRetrievalPolicyRequest(input *GetDataRetrievalPolicyInp
 		input = &GetDataRetrievalPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDataRetrievalPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1241,9 +1228,8 @@ func (c *Glacier) GetJobOutputRequest(input *GetJobOutputInput) (req *request.Re
 		input = &GetJobOutputInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetJobOutputOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1357,9 +1343,8 @@ func (c *Glacier) GetVaultAccessPolicyRequest(input *GetVaultAccessPolicyInput) 
 		input = &GetVaultAccessPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetVaultAccessPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1435,9 +1420,8 @@ func (c *Glacier) GetVaultLockRequest(input *GetVaultLockInput) (req *request.Re
 		input = &GetVaultLockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetVaultLockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1527,9 +1511,8 @@ func (c *Glacier) GetVaultNotificationsRequest(input *GetVaultNotificationsInput
 		input = &GetVaultNotificationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetVaultNotificationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1618,9 +1601,8 @@ func (c *Glacier) InitiateJobRequest(input *InitiateJobInput) (req *request.Requ
 		input = &InitiateJobInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &InitiateJobOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1835,9 +1817,8 @@ func (c *Glacier) InitiateMultipartUploadRequest(input *InitiateMultipartUploadI
 		input = &InitiateMultipartUploadInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &InitiateMultipartUploadOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1942,9 +1923,8 @@ func (c *Glacier) InitiateVaultLockRequest(input *InitiateVaultLockInput) (req *
 		input = &InitiateVaultLockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &InitiateVaultLockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2049,9 +2029,8 @@ func (c *Glacier) ListJobsRequest(input *ListJobsInput) (req *request.Request, o
 		input = &ListJobsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListJobsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2192,9 +2171,8 @@ func (c *Glacier) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) 
 		input = &ListMultipartUploadsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListMultipartUploadsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2325,9 +2303,8 @@ func (c *Glacier) ListPartsRequest(input *ListPartsInput) (req *request.Request,
 		input = &ListPartsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListPartsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2446,9 +2423,8 @@ func (c *Glacier) ListProvisionedCapacityRequest(input *ListProvisionedCapacityI
 		input = &ListProvisionedCapacityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListProvisionedCapacityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2515,9 +2491,8 @@ func (c *Glacier) ListTagsForVaultRequest(input *ListTagsForVaultInput) (req *re
 		input = &ListTagsForVaultInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsForVaultOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2596,9 +2571,8 @@ func (c *Glacier) ListVaultsRequest(input *ListVaultsInput) (req *request.Reques
 		input = &ListVaultsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListVaultsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2714,9 +2688,8 @@ func (c *Glacier) PurchaseProvisionedCapacityRequest(input *PurchaseProvisionedC
 		input = &PurchaseProvisionedCapacityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseProvisionedCapacityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2786,11 +2759,10 @@ func (c *Glacier) RemoveTagsFromVaultRequest(input *RemoveTagsFromVaultInput) (r
 		input = &RemoveTagsFromVaultInput{}
 	}
 
+	output = &RemoveTagsFromVaultOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemoveTagsFromVaultOutput{}
-	req.Data = output
 	return
 }
 
@@ -2865,11 +2837,10 @@ func (c *Glacier) SetDataRetrievalPolicyRequest(input *SetDataRetrievalPolicyInp
 		input = &SetDataRetrievalPolicyInput{}
 	}
 
+	output = &SetDataRetrievalPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetDataRetrievalPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -2942,11 +2913,10 @@ func (c *Glacier) SetVaultAccessPolicyRequest(input *SetVaultAccessPolicyInput) 
 		input = &SetVaultAccessPolicyInput{}
 	}
 
+	output = &SetVaultAccessPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetVaultAccessPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -3023,11 +2993,10 @@ func (c *Glacier) SetVaultNotificationsRequest(input *SetVaultNotificationsInput
 		input = &SetVaultNotificationsInput{}
 	}
 
+	output = &SetVaultNotificationsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetVaultNotificationsOutput{}
-	req.Data = output
 	return
 }
 
@@ -3129,9 +3098,8 @@ func (c *Glacier) UploadArchiveRequest(input *UploadArchiveInput) (req *request.
 		input = &UploadArchiveInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ArchiveCreationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3241,9 +3209,8 @@ func (c *Glacier) UploadMultipartPartRequest(input *UploadMultipartPartInput) (r
 		input = &UploadMultipartPartInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UploadMultipartPartOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

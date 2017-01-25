@@ -133,7 +133,7 @@ for the variable.
 <a id="lists"></a>
 ## Lists
 
-Lists are defined either explicitly or implicity
+Lists are defined either explicitly or implicitly
 
 ```
 # implicitly by using brackets [...]

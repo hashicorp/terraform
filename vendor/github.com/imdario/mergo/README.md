@@ -11,10 +11,15 @@ Also a lovely [comune](http://en.wikipedia.org/wiki/Mergo) (municipality) in the
 It is ready for production use. It works fine after extensive use in the wild.
 
 [![Build Status][1]][2]
-[![GoDoc](https://godoc.org/github.com/imdario/mergo?status.svg)](https://godoc.org/github.com/imdario/mergo)
+[![GoDoc][3]][4]
+[![GoCard][5]][6]
 
 [1]: https://travis-ci.org/imdario/mergo.png
 [2]: https://travis-ci.org/imdario/mergo
+[3]: https://godoc.org/github.com/imdario/mergo?status.svg
+[4]: https://godoc.org/github.com/imdario/mergo
+[5]: https://goreportcard.com/badge/imdario/mergo
+[6]: https://goreportcard.com/report/github.com/imdario/mergo
 
 ### Important note
 
@@ -24,8 +29,9 @@ If you were using Mergo **before** April 6th 2015, please check your project wor
 
 ### Mergo in the wild
 
+- [docker/docker](https://github.com/docker/docker/)
+- [kubernetes/kubernetes](https://github.com/kubernetes/kubernetes)
 - [imdario/zas](https://github.com/imdario/zas)
-- [GoogleCloudPlatform/kubernetes](https://github.com/GoogleCloudPlatform/kubernetes)
 - [soniah/dnsmadeeasy](https://github.com/soniah/dnsmadeeasy)
 - [EagerIO/Stout](https://github.com/EagerIO/Stout)
 - [lynndylanhurley/defsynth-api](https://github.com/lynndylanhurley/defsynth-api)
@@ -44,6 +50,7 @@ If you were using Mergo **before** April 6th 2015, please check your project wor
 - [thoas/picfit](https://github.com/thoas/picfit)
 - [mantasmatelis/whooplist-server](https://github.com/mantasmatelis/whooplist-server)
 - [jnuthong/item_search](https://github.com/jnuthong/item_search)
+- [Iris Web Framework](https://github.com/kataras/iris)
 
 ## Installation
 
