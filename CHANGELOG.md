@@ -3,6 +3,7 @@
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/aws: We no longer prefix an ECR repository address with `https://`
+ * provider/google: `google_project` has undergone significant changes. Existing configs and state should continue to work as they always have, but new configs and state will exhibit some new behaviour, including actually creating and deleting projects, instead of just referencing them. See https://www.terraform.io/docs/providers/google/r/google_project.html for more details.
 
 FEATURES:
 
@@ -17,6 +18,8 @@ FEATURES:
  * **New Resource:**  `aws_inspector_assessment_target` [GH-11217]
  * **New Resource:**  `aws_inspector_assessment_template` [GH-11217]
  * **New Resource:**  `aws_inspector_resource_group` [GH-11217]
+ * **New Resource:**  `google_project_iam_policy` [GH-10425]
+ * **New Resource:**  `google_project_services` [GH-10425]
  * **New Interpolation Function:**  `pathexpand()` [GH-11277]
 
 IMPROVEMENTS:
