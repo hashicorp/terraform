@@ -219,15 +219,32 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 	case GraphTypeInput:
 		// The input graph is just a slightly modified plan graph
 		fallthrough
+	case GraphTypeValidate:
+		// The validate graph is just a slightly modified plan graph
+		fallthrough
 	case GraphTypePlan:
-		return (&PlanGraphBuilder{
+		// Create the plan graph builder
+		p := &PlanGraphBuilder{
 			Module:    c.module,
 			State:     c.state,
 			Providers: c.components.ResourceProviders(),
 			Targets:   c.targets,
 			Validate:  opts.Validate,
-			Input:     typ == GraphTypeInput,
-		}).Build(RootModulePath)
+		}
+
+		// Some special cases for other graph types shared with plan currently
+		var b GraphBuilder = p
+		switch typ {
+		case GraphTypeInput:
+			b = InputGraphBuilder(p)
+		case GraphTypeValidate:
+			// We need to set the provisioners so those can be validated
+			p.Provisioners = c.components.ResourceProvisioners()
+
+			b = ValidateGraphBuilder(p)
+		}
+
+		return b.Build(RootModulePath)
 
 	case GraphTypePlanDestroy:
 		return (&DestroyPlanGraphBuilder{
@@ -661,7 +678,7 @@ func (c *Context) Validate() ([]string, []error) {
 	// We also validate the graph generated here, but this graph doesn't
 	// necessarily match the graph that Plan will generate, so we'll validate the
 	// graph again later after Planning.
-	graph, err := c.Graph(GraphTypeLegacy, nil)
+	graph, err := c.Graph(GraphTypeValidate, nil)
 	if err != nil {
 		return nil, []error{err}
 	}
