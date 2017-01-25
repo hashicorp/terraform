@@ -51,9 +51,8 @@ func (c *SES) CloneReceiptRuleSetRequest(input *CloneReceiptRuleSetInput) (req *
 		input = &CloneReceiptRuleSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CloneReceiptRuleSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -131,9 +130,8 @@ func (c *SES) CreateConfigurationSetRequest(input *CreateConfigurationSetInput) 
 		input = &CreateConfigurationSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateConfigurationSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -211,9 +209,8 @@ func (c *SES) CreateConfigurationSetEventDestinationRequest(input *CreateConfigu
 		input = &CreateConfigurationSetEventDestinationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateConfigurationSetEventDestinationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -303,9 +300,8 @@ func (c *SES) CreateReceiptFilterRequest(input *CreateReceiptFilterInput) (req *
 		input = &CreateReceiptFilterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateReceiptFilterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -378,9 +374,8 @@ func (c *SES) CreateReceiptRuleRequest(input *CreateReceiptRuleInput) (req *requ
 		input = &CreateReceiptRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateReceiptRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -476,9 +471,8 @@ func (c *SES) CreateReceiptRuleSetRequest(input *CreateReceiptRuleSetInput) (req
 		input = &CreateReceiptRuleSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateReceiptRuleSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -551,9 +545,8 @@ func (c *SES) DeleteConfigurationSetRequest(input *DeleteConfigurationSetInput) 
 		input = &DeleteConfigurationSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteConfigurationSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -622,9 +615,8 @@ func (c *SES) DeleteConfigurationSetEventDestinationRequest(input *DeleteConfigu
 		input = &DeleteConfigurationSetEventDestinationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteConfigurationSetEventDestinationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -697,9 +689,8 @@ func (c *SES) DeleteIdentityRequest(input *DeleteIdentityInput) (req *request.Re
 		input = &DeleteIdentityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteIdentityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -761,9 +752,8 @@ func (c *SES) DeleteIdentityPolicyRequest(input *DeleteIdentityPolicyInput) (req
 		input = &DeleteIdentityPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteIdentityPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -833,9 +823,8 @@ func (c *SES) DeleteReceiptFilterRequest(input *DeleteReceiptFilterInput) (req *
 		input = &DeleteReceiptFilterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteReceiptFilterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -899,9 +888,8 @@ func (c *SES) DeleteReceiptRuleRequest(input *DeleteReceiptRuleInput) (req *requ
 		input = &DeleteReceiptRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteReceiptRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -970,9 +958,8 @@ func (c *SES) DeleteReceiptRuleSetRequest(input *DeleteReceiptRuleSetInput) (req
 		input = &DeleteReceiptRuleSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteReceiptRuleSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1043,11 +1030,10 @@ func (c *SES) DeleteVerifiedEmailAddressRequest(input *DeleteVerifiedEmailAddres
 		input = &DeleteVerifiedEmailAddressInput{}
 	}
 
+	output = &DeleteVerifiedEmailAddressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVerifiedEmailAddressOutput{}
-	req.Data = output
 	return
 }
 
@@ -1111,9 +1097,8 @@ func (c *SES) DescribeActiveReceiptRuleSetRequest(input *DescribeActiveReceiptRu
 		input = &DescribeActiveReceiptRuleSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeActiveReceiptRuleSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1178,9 +1163,8 @@ func (c *SES) DescribeConfigurationSetRequest(input *DescribeConfigurationSetInp
 		input = &DescribeConfigurationSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeConfigurationSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1249,9 +1233,8 @@ func (c *SES) DescribeReceiptRuleRequest(input *DescribeReceiptRuleInput) (req *
 		input = &DescribeReceiptRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReceiptRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1323,9 +1306,8 @@ func (c *SES) DescribeReceiptRuleSetRequest(input *DescribeReceiptRuleSetInput) 
 		input = &DescribeReceiptRuleSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReceiptRuleSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1394,9 +1376,8 @@ func (c *SES) GetIdentityDkimAttributesRequest(input *GetIdentityDkimAttributesI
 		input = &GetIdentityDkimAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetIdentityDkimAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1476,9 +1457,8 @@ func (c *SES) GetIdentityMailFromDomainAttributesRequest(input *GetIdentityMailF
 		input = &GetIdentityMailFromDomainAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetIdentityMailFromDomainAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1541,9 +1521,8 @@ func (c *SES) GetIdentityNotificationAttributesRequest(input *GetIdentityNotific
 		input = &GetIdentityNotificationAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetIdentityNotificationAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1609,9 +1588,8 @@ func (c *SES) GetIdentityPoliciesRequest(input *GetIdentityPoliciesInput) (req *
 		input = &GetIdentityPoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetIdentityPoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1682,9 +1660,8 @@ func (c *SES) GetIdentityVerificationAttributesRequest(input *GetIdentityVerific
 		input = &GetIdentityVerificationAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetIdentityVerificationAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1748,9 +1725,8 @@ func (c *SES) GetSendQuotaRequest(input *GetSendQuotaInput) (req *request.Reques
 		input = &GetSendQuotaInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSendQuotaOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1811,9 +1787,8 @@ func (c *SES) GetSendStatisticsRequest(input *GetSendStatisticsInput) (req *requ
 		input = &GetSendStatisticsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSendStatisticsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1877,9 +1852,8 @@ func (c *SES) ListConfigurationSetsRequest(input *ListConfigurationSetsInput) (r
 		input = &ListConfigurationSetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListConfigurationSetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1950,9 +1924,8 @@ func (c *SES) ListIdentitiesRequest(input *ListIdentitiesInput) (req *request.Re
 		input = &ListIdentitiesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListIdentitiesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2039,9 +2012,8 @@ func (c *SES) ListIdentityPoliciesRequest(input *ListIdentityPoliciesInput) (req
 		input = &ListIdentityPoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListIdentityPoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2111,9 +2083,8 @@ func (c *SES) ListReceiptFiltersRequest(input *ListReceiptFiltersInput) (req *re
 		input = &ListReceiptFiltersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListReceiptFiltersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2177,9 +2148,8 @@ func (c *SES) ListReceiptRuleSetsRequest(input *ListReceiptRuleSetsInput) (req *
 		input = &ListReceiptRuleSetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListReceiptRuleSetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2246,9 +2216,8 @@ func (c *SES) ListVerifiedEmailAddressesRequest(input *ListVerifiedEmailAddresse
 		input = &ListVerifiedEmailAddressesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListVerifiedEmailAddressesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2312,9 +2281,8 @@ func (c *SES) PutIdentityPolicyRequest(input *PutIdentityPolicyInput) (req *requ
 		input = &PutIdentityPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutIdentityPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2389,9 +2357,8 @@ func (c *SES) ReorderReceiptRuleSetRequest(input *ReorderReceiptRuleSetInput) (r
 		input = &ReorderReceiptRuleSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReorderReceiptRuleSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2467,9 +2434,8 @@ func (c *SES) SendBounceRequest(input *SendBounceInput) (req *request.Request, o
 		input = &SendBounceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SendBounceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2544,9 +2510,8 @@ func (c *SES) SendEmailRequest(input *SendEmailInput) (req *request.Request, out
 		input = &SendEmailInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SendEmailOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2644,9 +2609,8 @@ func (c *SES) SendRawEmailRequest(input *SendRawEmailInput) (req *request.Reques
 		input = &SendRawEmailInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SendRawEmailOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2776,9 +2740,8 @@ func (c *SES) SetActiveReceiptRuleSetRequest(input *SetActiveReceiptRuleSetInput
 		input = &SetActiveReceiptRuleSetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetActiveReceiptRuleSetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2850,9 +2813,8 @@ func (c *SES) SetIdentityDkimEnabledRequest(input *SetIdentityDkimEnabledInput) 
 		input = &SetIdentityDkimEnabledInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetIdentityDkimEnabledOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2927,9 +2889,8 @@ func (c *SES) SetIdentityFeedbackForwardingEnabledRequest(input *SetIdentityFeed
 		input = &SetIdentityFeedbackForwardingEnabledInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetIdentityFeedbackForwardingEnabledOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2999,9 +2960,8 @@ func (c *SES) SetIdentityHeadersInNotificationsEnabledRequest(input *SetIdentity
 		input = &SetIdentityHeadersInNotificationsEnabledInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetIdentityHeadersInNotificationsEnabledOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3067,9 +3027,8 @@ func (c *SES) SetIdentityMailFromDomainRequest(input *SetIdentityMailFromDomainI
 		input = &SetIdentityMailFromDomainInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetIdentityMailFromDomainOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3136,9 +3095,8 @@ func (c *SES) SetIdentityNotificationTopicRequest(input *SetIdentityNotification
 		input = &SetIdentityNotificationTopicInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetIdentityNotificationTopicOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3208,9 +3166,8 @@ func (c *SES) SetReceiptRulePositionRequest(input *SetReceiptRulePositionInput) 
 		input = &SetReceiptRulePositionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetReceiptRulePositionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3282,9 +3239,8 @@ func (c *SES) UpdateConfigurationSetEventDestinationRequest(input *UpdateConfigu
 		input = &UpdateConfigurationSetEventDestinationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateConfigurationSetEventDestinationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3370,9 +3326,8 @@ func (c *SES) UpdateReceiptRuleRequest(input *UpdateReceiptRuleInput) (req *requ
 		input = &UpdateReceiptRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateReceiptRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3465,9 +3420,8 @@ func (c *SES) VerifyDomainDkimRequest(input *VerifyDomainDkimInput) (req *reques
 		input = &VerifyDomainDkimInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &VerifyDomainDkimOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3540,9 +3494,8 @@ func (c *SES) VerifyDomainIdentityRequest(input *VerifyDomainIdentityInput) (req
 		input = &VerifyDomainIdentityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &VerifyDomainIdentityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3603,11 +3556,10 @@ func (c *SES) VerifyEmailAddressRequest(input *VerifyEmailAddressInput) (req *re
 		input = &VerifyEmailAddressInput{}
 	}
 
+	output = &VerifyEmailAddressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &VerifyEmailAddressOutput{}
-	req.Data = output
 	return
 }
 
@@ -3672,9 +3624,8 @@ func (c *SES) VerifyEmailIdentityRequest(input *VerifyEmailIdentityInput) (req *
 		input = &VerifyEmailIdentityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &VerifyEmailIdentityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

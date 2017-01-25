@@ -234,7 +234,7 @@ func validateLambdaFunctionName(v interface{}, k string) (ws []string, errors []
 			"%q cannot be longer than 140 characters: %q", k, value))
 	}
 	// http://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
-	pattern := `^(arn:aws:lambda:)?([a-z]{2}-[a-z]+-\d{1}:)?(\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\$LATEST|[a-zA-Z0-9-_]+))?$`
+	pattern := `^(arn:[\w-]+:lambda:)?([a-z]{2}-[a-z]+-\d{1}:)?(\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\$LATEST|[a-zA-Z0-9-_]+))?$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q doesn't comply with restrictions (%q): %q",
@@ -297,7 +297,7 @@ func validateArn(v interface{}, k string) (ws []string, errors []error) {
 	}
 
 	// http://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
-	pattern := `^arn:aws:([a-zA-Z0-9\-])+:([a-z]{2}-[a-z]+-\d{1})?:(\d{12})?:(.*)$`
+	pattern := `^arn:[\w-]+:([a-zA-Z0-9\-])+:([a-z]{2}-[a-z]+-\d{1})?:(\d{12})?:(.*)$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q doesn't look like a valid ARN (%q): %q",
@@ -526,6 +526,19 @@ func validateJsonString(v interface{}, k string) (ws []string, errors []error) {
 	return
 }
 
+func validateCloudFormationTemplate(v interface{}, k string) (ws []string, errors []error) {
+	if looksLikeJsonString(v) {
+		if _, err := normalizeJsonString(v); err != nil {
+			errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
+		}
+	} else {
+		if _, err := checkYamlString(v); err != nil {
+			errors = append(errors, fmt.Errorf("%q contains an invalid YAML: %s", k, err))
+		}
+	}
+	return
+}
+
 func validateApiGatewayIntegrationType(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 
@@ -672,4 +685,45 @@ func validateRoute53RecordType(v interface{}, k string) (ws []string, errors []e
 			"%q must be one of [SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA]", k))
 	}
 	return
+}
+
+// Validates that ECS Placement Constraints are set correctly
+// Takes type, and expression as strings
+func validateAwsEcsPlacementConstraint(constType, constExpr string) error {
+	switch constType {
+	case "distinctInstance":
+		// Expression can be nil for distinctInstance
+		return nil
+	case "memberOf":
+		if constExpr == "" {
+			return fmt.Errorf("Expression cannot be nil for 'memberOf' type")
+		}
+	default:
+		return fmt.Errorf("Unknown type provided: %q", constType)
+	}
+	return nil
+}
+
+// Validates that an Ecs placement strategy is set correctly
+// Takes type, and field as strings
+func validateAwsEcsPlacementStrategy(stratType, stratField string) error {
+	switch stratType {
+	case "random":
+		// random does not need the field attribute set, could error, but it isn't read at the API level
+		return nil
+	case "spread":
+		//  For the spread placement strategy, valid values are instanceId
+		// (or host, which has the same effect), or any platform or custom attribute
+		// that is applied to a container instance
+		// stratField is already cased to a string
+		return nil
+	case "binpack":
+		if stratField != "cpu" && stratField != "memory" {
+			return fmt.Errorf("Binpack type requires the field attribute to be either 'cpu' or 'memory'. Got: %s",
+				stratField)
+		}
+	default:
+		return fmt.Errorf("Unknown type %s. Must be one of 'random', 'spread', or 'binpack'.", stratType)
+	}
+	return nil
 }

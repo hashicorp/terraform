@@ -99,4 +99,7 @@ fmtcheck:
 errcheck:
 	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
 
-.PHONY: bin default generate test vet fmt fmtcheck tools
+vendor-status:
+	@govendor status
+
+.PHONY: bin core-dev core-test cover default dev errcheck fmt fmtcheck generate plugin-dev quickdev test-compile test testacc testrace tools vendor-status vet

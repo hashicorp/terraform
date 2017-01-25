@@ -49,9 +49,8 @@ func (c *SSM) AddTagsToResourceRequest(input *AddTagsToResourceInput) (req *requ
 		input = &AddTagsToResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddTagsToResourceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -144,9 +143,8 @@ func (c *SSM) CancelCommandRequest(input *CancelCommandInput) (req *request.Requ
 		input = &CancelCommandInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelCommandOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -232,9 +230,8 @@ func (c *SSM) CreateActivationRequest(input *CreateActivationInput) (req *reques
 		input = &CreateActivationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateActivationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -304,9 +301,8 @@ func (c *SSM) CreateAssociationRequest(input *CreateAssociationInput) (req *requ
 		input = &CreateAssociationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateAssociationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -422,9 +418,8 @@ func (c *SSM) CreateAssociationBatchRequest(input *CreateAssociationBatchInput) 
 		input = &CreateAssociationBatchInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateAssociationBatchOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -540,9 +535,8 @@ func (c *SSM) CreateDocumentRequest(input *CreateDocumentInput) (req *request.Re
 		input = &CreateDocumentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDocumentOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -624,9 +618,8 @@ func (c *SSM) CreateMaintenanceWindowRequest(input *CreateMaintenanceWindowInput
 		input = &CreateMaintenanceWindowInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateMaintenanceWindowOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -698,9 +691,8 @@ func (c *SSM) CreatePatchBaselineRequest(input *CreatePatchBaselineInput) (req *
 		input = &CreatePatchBaselineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreatePatchBaselineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -772,9 +764,8 @@ func (c *SSM) DeleteActivationRequest(input *DeleteActivationInput) (req *reques
 		input = &DeleteActivationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteActivationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -849,9 +840,8 @@ func (c *SSM) DeleteAssociationRequest(input *DeleteAssociationInput) (req *requ
 		input = &DeleteAssociationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteAssociationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -945,9 +935,8 @@ func (c *SSM) DeleteDocumentRequest(input *DeleteDocumentInput) (req *request.Re
 		input = &DeleteDocumentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteDocumentOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1025,9 +1014,8 @@ func (c *SSM) DeleteMaintenanceWindowRequest(input *DeleteMaintenanceWindowInput
 		input = &DeleteMaintenanceWindowInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteMaintenanceWindowOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1091,9 +1079,8 @@ func (c *SSM) DeleteParameterRequest(input *DeleteParameterInput) (req *request.
 		input = &DeleteParameterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteParameterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1160,9 +1147,8 @@ func (c *SSM) DeletePatchBaselineRequest(input *DeletePatchBaselineInput) (req *
 		input = &DeletePatchBaselineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeletePatchBaselineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1230,9 +1216,8 @@ func (c *SSM) DeregisterManagedInstanceRequest(input *DeregisterManagedInstanceI
 		input = &DeregisterManagedInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeregisterManagedInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1313,9 +1298,8 @@ func (c *SSM) DeregisterPatchBaselineForPatchGroupRequest(input *DeregisterPatch
 		input = &DeregisterPatchBaselineForPatchGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeregisterPatchBaselineForPatchGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1383,9 +1367,8 @@ func (c *SSM) DeregisterTargetFromMaintenanceWindowRequest(input *DeregisterTarg
 		input = &DeregisterTargetFromMaintenanceWindowInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeregisterTargetFromMaintenanceWindowOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1453,9 +1436,8 @@ func (c *SSM) DeregisterTaskFromMaintenanceWindowRequest(input *DeregisterTaskFr
 		input = &DeregisterTaskFromMaintenanceWindowInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeregisterTaskFromMaintenanceWindowOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1529,9 +1511,8 @@ func (c *SSM) DescribeActivationsRequest(input *DescribeActivationsInput) (req *
 		input = &DescribeActivationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeActivationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1629,9 +1610,8 @@ func (c *SSM) DescribeAssociationRequest(input *DescribeAssociationInput) (req *
 		input = &DescribeAssociationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAssociationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1716,9 +1696,8 @@ func (c *SSM) DescribeAutomationExecutionsRequest(input *DescribeAutomationExecu
 		input = &DescribeAutomationExecutionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAutomationExecutionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1785,9 +1764,8 @@ func (c *SSM) DescribeAvailablePatchesRequest(input *DescribeAvailablePatchesInp
 		input = &DescribeAvailablePatchesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAvailablePatchesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1851,9 +1829,8 @@ func (c *SSM) DescribeDocumentRequest(input *DescribeDocumentInput) (req *reques
 		input = &DescribeDocumentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDocumentOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1923,9 +1900,8 @@ func (c *SSM) DescribeDocumentPermissionRequest(input *DescribeDocumentPermissio
 		input = &DescribeDocumentPermissionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDocumentPermissionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1998,9 +1974,8 @@ func (c *SSM) DescribeEffectiveInstanceAssociationsRequest(input *DescribeEffect
 		input = &DescribeEffectiveInstanceAssociationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEffectiveInstanceAssociationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2082,9 +2057,8 @@ func (c *SSM) DescribeEffectivePatchesForPatchBaselineRequest(input *DescribeEff
 		input = &DescribeEffectivePatchesForPatchBaselineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEffectivePatchesForPatchBaselineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2157,9 +2131,8 @@ func (c *SSM) DescribeInstanceAssociationsStatusRequest(input *DescribeInstanceA
 		input = &DescribeInstanceAssociationsStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstanceAssociationsStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2247,9 +2220,8 @@ func (c *SSM) DescribeInstanceInformationRequest(input *DescribeInstanceInformat
 		input = &DescribeInstanceInformationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstanceInformationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2367,9 +2339,8 @@ func (c *SSM) DescribeInstancePatchStatesRequest(input *DescribeInstancePatchSta
 		input = &DescribeInstancePatchStatesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstancePatchStatesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2436,9 +2407,8 @@ func (c *SSM) DescribeInstancePatchStatesForPatchGroupRequest(input *DescribeIns
 		input = &DescribeInstancePatchStatesForPatchGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstancePatchStatesForPatchGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2510,9 +2480,8 @@ func (c *SSM) DescribeInstancePatchesRequest(input *DescribeInstancePatchesInput
 		input = &DescribeInstancePatchesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstancePatchesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2599,9 +2568,8 @@ func (c *SSM) DescribeMaintenanceWindowExecutionTaskInvocationsRequest(input *De
 		input = &DescribeMaintenanceWindowExecutionTaskInvocationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeMaintenanceWindowExecutionTaskInvocationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2670,9 +2638,8 @@ func (c *SSM) DescribeMaintenanceWindowExecutionTasksRequest(input *DescribeMain
 		input = &DescribeMaintenanceWindowExecutionTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeMaintenanceWindowExecutionTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2740,9 +2707,8 @@ func (c *SSM) DescribeMaintenanceWindowExecutionsRequest(input *DescribeMaintena
 		input = &DescribeMaintenanceWindowExecutionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeMaintenanceWindowExecutionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2808,9 +2774,8 @@ func (c *SSM) DescribeMaintenanceWindowTargetsRequest(input *DescribeMaintenance
 		input = &DescribeMaintenanceWindowTargetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeMaintenanceWindowTargetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2878,9 +2843,8 @@ func (c *SSM) DescribeMaintenanceWindowTasksRequest(input *DescribeMaintenanceWi
 		input = &DescribeMaintenanceWindowTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeMaintenanceWindowTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2948,9 +2912,8 @@ func (c *SSM) DescribeMaintenanceWindowsRequest(input *DescribeMaintenanceWindow
 		input = &DescribeMaintenanceWindowsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeMaintenanceWindowsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3014,9 +2977,8 @@ func (c *SSM) DescribeParametersRequest(input *DescribeParametersInput) (req *re
 		input = &DescribeParametersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeParametersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3086,9 +3048,8 @@ func (c *SSM) DescribePatchBaselinesRequest(input *DescribePatchBaselinesInput) 
 		input = &DescribePatchBaselinesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribePatchBaselinesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3152,9 +3113,8 @@ func (c *SSM) DescribePatchGroupStateRequest(input *DescribePatchGroupStateInput
 		input = &DescribePatchGroupStateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribePatchGroupStateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3221,9 +3181,8 @@ func (c *SSM) DescribePatchGroupsRequest(input *DescribePatchGroupsInput) (req *
 		input = &DescribePatchGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribePatchGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3287,9 +3246,8 @@ func (c *SSM) GetAutomationExecutionRequest(input *GetAutomationExecutionInput) 
 		input = &GetAutomationExecutionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetAutomationExecutionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3357,9 +3315,8 @@ func (c *SSM) GetCommandInvocationRequest(input *GetCommandInvocationInput) (req
 		input = &GetCommandInvocationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetCommandInvocationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3449,9 +3406,8 @@ func (c *SSM) GetDefaultPatchBaselineRequest(input *GetDefaultPatchBaselineInput
 		input = &GetDefaultPatchBaselineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDefaultPatchBaselineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3515,9 +3471,8 @@ func (c *SSM) GetDeployablePatchSnapshotForInstanceRequest(input *GetDeployableP
 		input = &GetDeployablePatchSnapshotForInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDeployablePatchSnapshotForInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3583,9 +3538,8 @@ func (c *SSM) GetDocumentRequest(input *GetDocumentInput) (req *request.Request,
 		input = &GetDocumentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDocumentOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3655,9 +3609,8 @@ func (c *SSM) GetInventoryRequest(input *GetInventoryInput) (req *request.Reques
 		input = &GetInventoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetInventoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3734,9 +3687,8 @@ func (c *SSM) GetInventorySchemaRequest(input *GetInventorySchemaInput) (req *re
 		input = &GetInventorySchemaInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetInventorySchemaOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3807,9 +3759,8 @@ func (c *SSM) GetMaintenanceWindowRequest(input *GetMaintenanceWindowInput) (req
 		input = &GetMaintenanceWindowInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetMaintenanceWindowOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3877,9 +3828,8 @@ func (c *SSM) GetMaintenanceWindowExecutionRequest(input *GetMaintenanceWindowEx
 		input = &GetMaintenanceWindowExecutionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetMaintenanceWindowExecutionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3948,9 +3898,8 @@ func (c *SSM) GetMaintenanceWindowExecutionTaskRequest(input *GetMaintenanceWind
 		input = &GetMaintenanceWindowExecutionTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetMaintenanceWindowExecutionTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4019,9 +3968,8 @@ func (c *SSM) GetParameterHistoryRequest(input *GetParameterHistoryInput) (req *
 		input = &GetParameterHistoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetParameterHistoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4091,9 +4039,8 @@ func (c *SSM) GetParametersRequest(input *GetParametersInput) (req *request.Requ
 		input = &GetParametersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetParametersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4157,9 +4104,8 @@ func (c *SSM) GetPatchBaselineRequest(input *GetPatchBaselineInput) (req *reques
 		input = &GetPatchBaselineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetPatchBaselineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4231,9 +4177,8 @@ func (c *SSM) GetPatchBaselineForPatchGroupRequest(input *GetPatchBaselineForPat
 		input = &GetPatchBaselineForPatchGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetPatchBaselineForPatchGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4304,9 +4249,8 @@ func (c *SSM) ListAssociationsRequest(input *ListAssociationsInput) (req *reques
 		input = &ListAssociationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListAssociationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4404,9 +4348,8 @@ func (c *SSM) ListCommandInvocationsRequest(input *ListCommandInvocationsInput) 
 		input = &ListCommandInvocationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListCommandInvocationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4529,9 +4472,8 @@ func (c *SSM) ListCommandsRequest(input *ListCommandsInput) (req *request.Reques
 		input = &ListCommandsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListCommandsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4644,9 +4586,8 @@ func (c *SSM) ListDocumentVersionsRequest(input *ListDocumentVersionsInput) (req
 		input = &ListDocumentVersionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListDocumentVersionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4722,9 +4663,8 @@ func (c *SSM) ListDocumentsRequest(input *ListDocumentsInput) (req *request.Requ
 		input = &ListDocumentsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListDocumentsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4819,9 +4759,8 @@ func (c *SSM) ListInventoryEntriesRequest(input *ListInventoryEntriesInput) (req
 		input = &ListInventoryEntriesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListInventoryEntriesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4910,9 +4849,8 @@ func (c *SSM) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *
 		input = &ListTagsForResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsForResourceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4984,9 +4922,8 @@ func (c *SSM) ModifyDocumentPermissionRequest(input *ModifyDocumentPermissionInp
 		input = &ModifyDocumentPermissionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyDocumentPermissionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5068,9 +5005,8 @@ func (c *SSM) PutInventoryRequest(input *PutInventoryInput) (req *request.Reques
 		input = &PutInventoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutInventoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5175,9 +5111,8 @@ func (c *SSM) PutParameterRequest(input *PutParameterInput) (req *request.Reques
 		input = &PutParameterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutParameterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5258,9 +5193,8 @@ func (c *SSM) RegisterDefaultPatchBaselineRequest(input *RegisterDefaultPatchBas
 		input = &RegisterDefaultPatchBaselineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RegisterDefaultPatchBaselineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5332,9 +5266,8 @@ func (c *SSM) RegisterPatchBaselineForPatchGroupRequest(input *RegisterPatchBase
 		input = &RegisterPatchBaselineForPatchGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RegisterPatchBaselineForPatchGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5414,9 +5347,8 @@ func (c *SSM) RegisterTargetWithMaintenanceWindowRequest(input *RegisterTargetWi
 		input = &RegisterTargetWithMaintenanceWindowInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RegisterTargetWithMaintenanceWindowOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5492,9 +5424,8 @@ func (c *SSM) RegisterTaskWithMaintenanceWindowRequest(input *RegisterTaskWithMa
 		input = &RegisterTaskWithMaintenanceWindowInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RegisterTaskWithMaintenanceWindowOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5570,9 +5501,8 @@ func (c *SSM) RemoveTagsFromResourceRequest(input *RemoveTagsFromResourceInput) 
 		input = &RemoveTagsFromResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RemoveTagsFromResourceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5644,9 +5574,8 @@ func (c *SSM) SendCommandRequest(input *SendCommandInput) (req *request.Request,
 		input = &SendCommandInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SendCommandOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5756,9 +5685,8 @@ func (c *SSM) StartAutomationExecutionRequest(input *StartAutomationExecutionInp
 		input = &StartAutomationExecutionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StartAutomationExecutionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5837,9 +5765,8 @@ func (c *SSM) StopAutomationExecutionRequest(input *StopAutomationExecutionInput
 		input = &StopAutomationExecutionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StopAutomationExecutionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5907,9 +5834,8 @@ func (c *SSM) UpdateAssociationRequest(input *UpdateAssociationInput) (req *requ
 		input = &UpdateAssociationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateAssociationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5997,9 +5923,8 @@ func (c *SSM) UpdateAssociationStatusRequest(input *UpdateAssociationStatusInput
 		input = &UpdateAssociationStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateAssociationStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6091,9 +6016,8 @@ func (c *SSM) UpdateDocumentRequest(input *UpdateDocumentInput) (req *request.Re
 		input = &UpdateDocumentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateDocumentOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6180,9 +6104,8 @@ func (c *SSM) UpdateDocumentDefaultVersionRequest(input *UpdateDocumentDefaultVe
 		input = &UpdateDocumentDefaultVersionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateDocumentDefaultVersionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6255,9 +6178,8 @@ func (c *SSM) UpdateMaintenanceWindowRequest(input *UpdateMaintenanceWindowInput
 		input = &UpdateMaintenanceWindowInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateMaintenanceWindowOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6325,9 +6247,8 @@ func (c *SSM) UpdateManagedInstanceRoleRequest(input *UpdateManagedInstanceRoleI
 		input = &UpdateManagedInstanceRoleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateManagedInstanceRoleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6407,9 +6328,8 @@ func (c *SSM) UpdatePatchBaselineRequest(input *UpdatePatchBaselineInput) (req *
 		input = &UpdatePatchBaselineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdatePatchBaselineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

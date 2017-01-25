@@ -48,9 +48,8 @@ func (c *ECR) BatchCheckLayerAvailabilityRequest(input *BatchCheckLayerAvailabil
 		input = &BatchCheckLayerAvailabilityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BatchCheckLayerAvailabilityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -127,9 +126,8 @@ func (c *ECR) BatchDeleteImageRequest(input *BatchDeleteImageInput) (req *reques
 		input = &BatchDeleteImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BatchDeleteImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -209,9 +207,8 @@ func (c *ECR) BatchGetImageRequest(input *BatchGetImageInput) (req *request.Requ
 		input = &BatchGetImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BatchGetImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -284,9 +281,8 @@ func (c *ECR) CompleteLayerUploadRequest(input *CompleteLayerUploadInput) (req *
 		input = &CompleteLayerUploadInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CompleteLayerUploadOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -381,9 +377,8 @@ func (c *ECR) CreateRepositoryRequest(input *CreateRepositoryInput) (req *reques
 		input = &CreateRepositoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateRepositoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -460,9 +455,8 @@ func (c *ECR) DeleteRepositoryRequest(input *DeleteRepositoryInput) (req *reques
 		input = &DeleteRepositoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteRepositoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -539,9 +533,8 @@ func (c *ECR) DeleteRepositoryPolicyRequest(input *DeleteRepositoryPolicyInput) 
 		input = &DeleteRepositoryPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteRepositoryPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -623,9 +616,8 @@ func (c *ECR) DescribeImagesRequest(input *DescribeImagesInput) (req *request.Re
 		input = &DescribeImagesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeImagesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -737,9 +729,8 @@ func (c *ECR) DescribeRepositoriesRequest(input *DescribeRepositoriesInput) (req
 		input = &DescribeRepositoriesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeRepositoriesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -836,9 +827,8 @@ func (c *ECR) GetAuthorizationTokenRequest(input *GetAuthorizationTokenInput) (r
 		input = &GetAuthorizationTokenInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetAuthorizationTokenOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -913,9 +903,8 @@ func (c *ECR) GetDownloadUrlForLayerRequest(input *GetDownloadUrlForLayerInput) 
 		input = &GetDownloadUrlForLayerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDownloadUrlForLayerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1000,9 +989,8 @@ func (c *ECR) GetRepositoryPolicyRequest(input *GetRepositoryPolicyInput) (req *
 		input = &GetRepositoryPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetRepositoryPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1078,9 +1066,8 @@ func (c *ECR) InitiateLayerUploadRequest(input *InitiateLayerUploadInput) (req *
 		input = &InitiateLayerUploadInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &InitiateLayerUploadOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1162,9 +1149,8 @@ func (c *ECR) ListImagesRequest(input *ListImagesInput) (req *request.Request, o
 		input = &ListImagesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListImagesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1267,9 +1253,8 @@ func (c *ECR) PutImageRequest(input *PutImageInput) (req *request.Request, outpu
 		input = &PutImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1359,9 +1344,8 @@ func (c *ECR) SetRepositoryPolicyRequest(input *SetRepositoryPolicyInput) (req *
 		input = &SetRepositoryPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetRepositoryPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1433,9 +1417,8 @@ func (c *ECR) UploadLayerPartRequest(input *UploadLayerPartInput) (req *request.
 		input = &UploadLayerPartInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UploadLayerPartOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

@@ -102,6 +102,24 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 								},
 							},
 						},
+						"lambda_function_association": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							MaxItems: 4,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"event_type": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"lambda_arn": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+							Set: lambdaFunctionAssociationHash,
+						},
 						"max_ttl": {
 							Type:     schema.TypeInt,
 							Required: true,
@@ -231,6 +249,24 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 									},
 								},
 							},
+						},
+						"lambda_function_association": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							MaxItems: 4,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"event_type": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+									"lambda_arn": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+							Set: lambdaFunctionAssociationHash,
 						},
 						"max_ttl": {
 							Type:     schema.TypeInt,

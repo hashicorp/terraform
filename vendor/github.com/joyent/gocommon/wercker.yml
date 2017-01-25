@@ -1,0 +1,40 @@
+box: golang
+
+build:
+  steps:
+    # Sets the go workspace and places you package
+    # at the right place in the workspace tree
+    - setup-go-workspace:
+        package-dir: github.com/joyent/gocommon
+
+    # Gets the dependencies
+    - script:
+        name: go get
+        code: |
+          go get -v -t ./...
+
+    # Build the project
+    - script:
+        name: go build
+        code: |
+          go build ./...
+
+    - script:
+        name: make a new key for testing
+        code: |
+          ssh-keygen -b 2048 \
+                     -C "Testing Key" \
+                     -f /root/.ssh/id_rsa \
+                     -t rsa \
+                     -P ""
+
+    # Test the project
+    - script:
+        name: go test
+        code: |
+          export KEY_ID=$(ssh-keygen -lf /root/.ssh/id_rsa | awk -F' ' '{print $2}' | cut -d':' -f2-)
+          export SDC_KEY_ID=${KEY_ID}
+          export MANTA_KEY_ID=${KEY_ID}
+          export SDC_URL=https://us-east-1.api.joyent.com
+          export MANTA_URL=https://us-east.manta.joyent.com
+          go test ./...

@@ -19,7 +19,7 @@ func TestAccDataSourceAWSALB_basic(t *testing.T) {
 				Config: testAccDataSourceAWSALBConfigBasic(albName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.aws_alb.alb_test_with_arn", "name", albName),
-					resource.TestCheckResourceAttr("data.aws_alb.alb_test_with_arn", "internal", "false"),
+					resource.TestCheckResourceAttr("data.aws_alb.alb_test_with_arn", "internal", "true"),
 					resource.TestCheckResourceAttr("data.aws_alb.alb_test_with_arn", "subnets.#", "2"),
 					resource.TestCheckResourceAttr("data.aws_alb.alb_test_with_arn", "security_groups.#", "1"),
 					resource.TestCheckResourceAttr("data.aws_alb.alb_test_with_arn", "tags.%", "1"),
@@ -31,7 +31,7 @@ func TestAccDataSourceAWSALB_basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("data.aws_alb.alb_test_with_arn", "dns_name"),
 					resource.TestCheckResourceAttrSet("data.aws_alb.alb_test_with_arn", "arn"),
 					resource.TestCheckResourceAttr("data.aws_alb.alb_test_with_name", "name", albName),
-					resource.TestCheckResourceAttr("data.aws_alb.alb_test_with_name", "internal", "false"),
+					resource.TestCheckResourceAttr("data.aws_alb.alb_test_with_name", "internal", "true"),
 					resource.TestCheckResourceAttr("data.aws_alb.alb_test_with_name", "subnets.#", "2"),
 					resource.TestCheckResourceAttr("data.aws_alb.alb_test_with_name", "security_groups.#", "1"),
 					resource.TestCheckResourceAttr("data.aws_alb.alb_test_with_name", "tags.%", "1"),
@@ -51,7 +51,7 @@ func TestAccDataSourceAWSALB_basic(t *testing.T) {
 func testAccDataSourceAWSALBConfigBasic(albName string) string {
 	return fmt.Sprintf(`resource "aws_alb" "alb_test" {
   name            = "%s"
-  internal        = false
+  internal        = true
   security_groups = ["${aws_security_group.alb_test.id}"]
   subnets         = ["${aws_subnet.alb_test.*.id}"]
 

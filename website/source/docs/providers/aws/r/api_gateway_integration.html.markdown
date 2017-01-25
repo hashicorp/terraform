@@ -36,6 +36,15 @@ resource "aws_api_gateway_integration" "MyDemoIntegration" {
   resource_id = "${aws_api_gateway_resource.MyDemoResource.id}"
   http_method = "${aws_api_gateway_method.MyDemoMethod.http_method}"
   type = "MOCK"
+
+  # Transforms the incoming XML request to JSON
+  request_templates {
+    "application/xml" = <<EOF
+{
+   "body" : $input.json('$')
+}
+EOF
+  }
 }
 ```
 

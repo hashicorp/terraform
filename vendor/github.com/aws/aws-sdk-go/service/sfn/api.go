@@ -48,9 +48,8 @@ func (c *SFN) CreateActivityRequest(input *CreateActivityInput) (req *request.Re
 		input = &CreateActivityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateActivityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -118,9 +117,8 @@ func (c *SFN) CreateStateMachineRequest(input *CreateStateMachineInput) (req *re
 		input = &CreateStateMachineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateStateMachineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -201,9 +199,8 @@ func (c *SFN) DeleteActivityRequest(input *DeleteActivityInput) (req *request.Re
 		input = &DeleteActivityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteActivityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -267,9 +264,8 @@ func (c *SFN) DeleteStateMachineRequest(input *DeleteStateMachineInput) (req *re
 		input = &DeleteStateMachineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteStateMachineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -334,9 +330,8 @@ func (c *SFN) DescribeActivityRequest(input *DescribeActivityInput) (req *reques
 		input = &DescribeActivityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeActivityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -403,9 +398,8 @@ func (c *SFN) DescribeExecutionRequest(input *DescribeExecutionInput) (req *requ
 		input = &DescribeExecutionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeExecutionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -472,9 +466,8 @@ func (c *SFN) DescribeStateMachineRequest(input *DescribeStateMachineInput) (req
 		input = &DescribeStateMachineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeStateMachineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -541,9 +534,8 @@ func (c *SFN) GetActivityTaskRequest(input *GetActivityTaskInput) (req *request.
 		input = &GetActivityTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetActivityTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -629,9 +621,8 @@ func (c *SFN) GetExecutionHistoryRequest(input *GetExecutionHistoryInput) (req *
 		input = &GetExecutionHistoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetExecutionHistoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -736,9 +727,8 @@ func (c *SFN) ListActivitiesRequest(input *ListActivitiesInput) (req *request.Re
 		input = &ListActivitiesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListActivitiesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -835,9 +825,8 @@ func (c *SFN) ListExecutionsRequest(input *ListExecutionsInput) (req *request.Re
 		input = &ListExecutionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListExecutionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -940,9 +929,8 @@ func (c *SFN) ListStateMachinesRequest(input *ListStateMachinesInput) (req *requ
 		input = &ListStateMachinesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListStateMachinesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1033,9 +1021,8 @@ func (c *SFN) SendTaskFailureRequest(input *SendTaskFailureInput) (req *request.
 		input = &SendTaskFailureInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SendTaskFailureOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1105,9 +1092,8 @@ func (c *SFN) SendTaskHeartbeatRequest(input *SendTaskHeartbeatInput) (req *requ
 		input = &SendTaskHeartbeatInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SendTaskHeartbeatOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1189,9 +1175,8 @@ func (c *SFN) SendTaskSuccessRequest(input *SendTaskSuccessInput) (req *request.
 		input = &SendTaskSuccessInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SendTaskSuccessOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1265,9 +1250,8 @@ func (c *SFN) StartExecutionRequest(input *StartExecutionInput) (req *request.Re
 		input = &StartExecutionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StartExecutionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1350,9 +1334,8 @@ func (c *SFN) StopExecutionRequest(input *StopExecutionInput) (req *request.Requ
 		input = &StopExecutionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StopExecutionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

@@ -51,11 +51,10 @@ func (c *CloudWatch) DeleteAlarmsRequest(input *DeleteAlarmsInput) (req *request
 		input = &DeleteAlarmsInput{}
 	}
 
+	output = &DeleteAlarmsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteAlarmsOutput{}
-	req.Data = output
 	return
 }
 
@@ -125,9 +124,8 @@ func (c *CloudWatch) DescribeAlarmHistoryRequest(input *DescribeAlarmHistoryInpu
 		input = &DescribeAlarmHistoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAlarmHistoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -227,9 +225,8 @@ func (c *CloudWatch) DescribeAlarmsRequest(input *DescribeAlarmsInput) (req *req
 		input = &DescribeAlarmsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAlarmsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -320,9 +317,8 @@ func (c *CloudWatch) DescribeAlarmsForMetricRequest(input *DescribeAlarmsForMetr
 		input = &DescribeAlarmsForMetricInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAlarmsForMetricOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -382,11 +378,10 @@ func (c *CloudWatch) DisableAlarmActionsRequest(input *DisableAlarmActionsInput)
 		input = &DisableAlarmActionsInput{}
 	}
 
+	output = &DisableAlarmActionsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DisableAlarmActionsOutput{}
-	req.Data = output
 	return
 }
 
@@ -446,11 +441,10 @@ func (c *CloudWatch) EnableAlarmActionsRequest(input *EnableAlarmActionsInput) (
 		input = &EnableAlarmActionsInput{}
 	}
 
+	output = &EnableAlarmActionsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &EnableAlarmActionsOutput{}
-	req.Data = output
 	return
 }
 
@@ -509,9 +503,8 @@ func (c *CloudWatch) GetMetricStatisticsRequest(input *GetMetricStatisticsInput)
 		input = &GetMetricStatisticsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetMetricStatisticsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -621,9 +614,8 @@ func (c *CloudWatch) ListMetricsRequest(input *ListMetricsInput) (req *request.R
 		input = &ListMetricsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListMetricsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -723,11 +715,10 @@ func (c *CloudWatch) PutMetricAlarmRequest(input *PutMetricAlarmInput) (req *req
 		input = &PutMetricAlarmInput{}
 	}
 
+	output = &PutMetricAlarmOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &PutMetricAlarmOutput{}
-	req.Data = output
 	return
 }
 
@@ -832,11 +823,10 @@ func (c *CloudWatch) PutMetricDataRequest(input *PutMetricDataInput) (req *reque
 		input = &PutMetricDataInput{}
 	}
 
+	output = &PutMetricDataOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &PutMetricDataOutput{}
-	req.Data = output
 	return
 }
 
@@ -926,11 +916,10 @@ func (c *CloudWatch) SetAlarmStateRequest(input *SetAlarmStateInput) (req *reque
 		input = &SetAlarmStateInput{}
 	}
 
+	output = &SetAlarmStateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetAlarmStateOutput{}
-	req.Data = output
 	return
 }
 

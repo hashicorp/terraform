@@ -12,39 +12,39 @@ func resourceSystemdUnit() *schema.Resource {
 		Exists: resourceSystemdUnitExists,
 		Read:   resourceSystemdUnitRead,
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"enable": &schema.Schema{
+			"enable": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 				ForceNew: true,
 			},
-			"mask": &schema.Schema{
+			"mask": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
-			"content": &schema.Schema{
+			"content": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"dropin": &schema.Schema{
+			"dropin": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
-						"content": &schema.Schema{
+						"content": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
@@ -100,7 +100,7 @@ func buildSystemdUnit(d *schema.ResourceData, c *cache) (string, error) {
 	}
 
 	if err := validateUnitContent(d.Get("content").(string)); err != nil {
-		if err != errEmptyUnit || (err == errEmptyUnit && len(dropins) == 0) {
+		if err != errEmptyUnit {
 			return "", err
 		}
 	}

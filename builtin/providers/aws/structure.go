@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/helper/schema"
+	"gopkg.in/yaml.v2"
 )
 
 // Takes the result of flatmap.Expand for an array of listeners and
@@ -1648,6 +1649,34 @@ func normalizeJsonString(jsonString interface{}) (string, error) {
 
 	bytes, _ := json.Marshal(j)
 	return string(bytes[:]), nil
+}
+
+// Takes a value containing YAML string and passes it through
+// the YAML parser. Returns either a parsing
+// error or original YAML string.
+func checkYamlString(yamlString interface{}) (string, error) {
+	var y interface{}
+
+	if yamlString == nil || yamlString.(string) == "" {
+		return "", nil
+	}
+
+	s := yamlString.(string)
+
+	err := yaml.Unmarshal([]byte(s), &y)
+	if err != nil {
+		return s, err
+	}
+
+	return s, nil
+}
+
+func normalizeCloudFormationTemplate(templateString interface{}) (string, error) {
+	if looksLikeJsonString(templateString) {
+		return normalizeJsonString(templateString)
+	} else {
+		return checkYamlString(templateString)
+	}
 }
 
 func flattenInspectorTags(cfTags []*cloudformation.Tag) map[string]string {

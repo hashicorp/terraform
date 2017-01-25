@@ -120,6 +120,13 @@ func Provider() terraform.ResourceProvider {
 				Description: descriptions["skip_credentials_validation"],
 			},
 
+			"skip_region_validation": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["skip_region_validation"],
+			},
+
 			"skip_requesting_account_id": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -147,10 +154,12 @@ func Provider() terraform.ResourceProvider {
 			"aws_alb":                      dataSourceAwsAlb(),
 			"aws_alb_listener":             dataSourceAwsAlbListener(),
 			"aws_ami":                      dataSourceAwsAmi(),
+			"aws_autoscaling_groups":       dataSourceAwsAutoscalingGroups(),
 			"aws_availability_zone":        dataSourceAwsAvailabilityZone(),
 			"aws_availability_zones":       dataSourceAwsAvailabilityZones(),
 			"aws_billing_service_account":  dataSourceAwsBillingServiceAccount(),
 			"aws_caller_identity":          dataSourceAwsCallerIdentity(),
+			"aws_canonical_user_id":        dataSourceAwsCanonicalUserId(),
 			"aws_cloudformation_stack":     dataSourceAwsCloudFormationStack(),
 			"aws_ebs_snapshot":             dataSourceAwsEbsSnapshot(),
 			"aws_ebs_volume":               dataSourceAwsEbsVolume(),
@@ -161,6 +170,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_iam_account_alias":        dataSourceAwsIamAccountAlias(),
 			"aws_iam_policy_document":      dataSourceAwsIamPolicyDocument(),
 			"aws_iam_server_certificate":   dataSourceAwsIAMServerCertificate(),
+			"aws_instance":                 dataSourceAwsInstance(),
 			"aws_ip_ranges":                dataSourceAwsIPRanges(),
 			"aws_prefix_list":              dataSourceAwsPrefixList(),
 			"aws_redshift_service_account": dataSourceAwsRedshiftServiceAccount(),
@@ -171,6 +181,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_subnet":                   dataSourceAwsSubnet(),
 			"aws_security_group":           dataSourceAwsSecurityGroup(),
 			"aws_vpc":                      dataSourceAwsVpc(),
+			"aws_vpc_endpoint":             dataSourceAwsVpcEndpoint(),
 			"aws_vpc_endpoint_service":     dataSourceAwsVpcEndpointService(),
 			"aws_vpc_peering_connection":   dataSourceAwsVpcPeeringConnection(),
 		},
@@ -439,6 +450,9 @@ func init() {
 		"skip_credentials_validation": "Skip the credentials validation via STS API. " +
 			"Used for AWS API implementations that do not have STS available/implemented.",
 
+		"skip_region_validation": "Skip static validation of region name. " +
+			"Used by users of alternative AWS-like APIs or users w/ access to regions that are not public (yet).",
+
 		"skip_requesting_account_id": "Skip requesting the account ID. " +
 			"Used for AWS API implementations that do not have IAM/STS API and/or metadata API.",
 
@@ -473,6 +487,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		KinesisEndpoint:         d.Get("kinesis_endpoint").(string),
 		Insecure:                d.Get("insecure").(bool),
 		SkipCredsValidation:     d.Get("skip_credentials_validation").(bool),
+		SkipRegionValidation:    d.Get("skip_region_validation").(bool),
 		SkipRequestingAccountId: d.Get("skip_requesting_account_id").(bool),
 		SkipMetadataApiCheck:    d.Get("skip_metadata_api_check").(bool),
 		S3ForcePathStyle:        d.Get("s3_force_path_style").(bool),

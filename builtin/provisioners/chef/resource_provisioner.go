@@ -94,6 +94,7 @@ type Provisioner struct {
 	PolicyName            string   `mapstructure:"policy_name"`
 	HTTPProxy             string   `mapstructure:"http_proxy"`
 	HTTPSProxy            string   `mapstructure:"https_proxy"`
+	NamedRunList          string   `mapstructure:"named_run_list"`
 	NOProxy               []string `mapstructure:"no_proxy"`
 	NodeName              string   `mapstructure:"node_name"`
 	OhaiHints             []string `mapstructure:"ohai_hints"`
@@ -598,9 +599,12 @@ func (p *Provisioner) runChefClientFunc(
 		var cmd string
 
 		// Policyfiles do not support chef environments, so don't pass the `-E` flag.
-		if p.UsePolicyfile {
+		switch {
+		case p.UsePolicyfile && p.NamedRunList == "":
 			cmd = fmt.Sprintf("%s -j %q", chefCmd, fb)
-		} else {
+		case p.UsePolicyfile && p.NamedRunList != "":
+			cmd = fmt.Sprintf("%s -j %q -n %q", chefCmd, fb, p.NamedRunList)
+		default:
 			cmd = fmt.Sprintf("%s -j %q -E %q", chefCmd, fb, p.Environment)
 		}
 
