@@ -189,5 +189,9 @@ data "aws_route_table" "by_filter" {
     name = "association.main"
     values = ["true"]
   }
+  filter {
+    name = "vpc-id"
+    values = ["vpc-6bd70802"]
+  }
 }
 `
