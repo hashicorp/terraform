@@ -111,6 +111,10 @@ func _StreamGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) 
 	cid := d.Id()
 	sg, err := ctxt.client.FetchMetricCluster(api.CIDType(&cid), "")
 	if err != nil {
+		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {
+			return false, nil
+		}
+
 		return false, err
 	}
 
