@@ -110,13 +110,13 @@ var _SchemaCheckJSON = &schema.Schema{
 				ValidateFunc: _ValidateRegexp(_CheckJSONPayloadAttr, `\S+`),
 			},
 			_CheckJSONPortAttr: &schema.Schema{
-				// NOTE(sean@): Why isn't this an Int on Circonus's side?  Are they
-				// doing an /etc/services lookup?  TODO: convert this to a TypeInt and
-				// force users in TF to do a map lookup.  Moving this to a `TypeInt`
-				// would match the `tcp` check.
-				Type:     schema.TypeString,
+				Type:     schema.TypeInt,
 				Default:  defaultCheckJSONPort,
 				Optional: true,
+				ValidateFunc: _ValidateFuncs(
+					_ValidateIntMin(_CheckJSONPortAttr, 0),
+					_ValidateIntMax(_CheckJSONPortAttr, 65535),
+				),
 			},
 			_CheckJSONReadLimitAttr: &schema.Schema{
 				Type:     schema.TypeInt,
@@ -149,21 +149,21 @@ func _CheckAPIToStateJSON(c *_Check, d *schema.ResourceData) error {
 
 	// swamp is a sanity check: it must be empty by the time this method returns
 	swamp := make(map[config.Key]string, len(c.Config))
-	for k, v := range c.Config {
-		swamp[k] = v
+	for k, s := range c.Config {
+		swamp[k] = s
 	}
 
 	saveStringConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
-		if v, ok := c.Config[apiKey]; ok {
-			jsonConfig[string(attrName)] = v
+		if s, ok := c.Config[apiKey]; ok && s != "" {
+			jsonConfig[string(attrName)] = s
 		}
 
 		delete(swamp, apiKey)
 	}
 
 	saveIntConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
-		if v, ok := c.Config[apiKey]; ok {
-			i, err := strconv.ParseInt(v, 10, 64)
+		if s, ok := c.Config[apiKey]; ok && s != "0" {
+			i, err := strconv.ParseInt(s, 10, 64)
 			if err != nil {
 				panic(fmt.Sprintf("Unable to convert %s to an integer: %v", apiKey, err))
 			}
@@ -198,7 +198,7 @@ func _CheckAPIToStateJSON(c *_Check, d *schema.ResourceData) error {
 	saveStringConfigToState(config.KeyFile, _CheckJSONKeyFileAttr)
 	saveStringConfigToState(config.Method, _CheckJSONMethodAttr)
 	saveStringConfigToState(config.Payload, _CheckJSONPayloadAttr)
-	saveStringConfigToState(config.Port, _CheckJSONPortAttr)
+	saveIntConfigToState(config.Port, _CheckJSONPortAttr)
 	saveIntConfigToState(config.ReadLimit, _CheckJSONReadLimitAttr)
 	saveStringConfigToState(config.URL, _CheckJSONURLAttr)
 	saveStringConfigToState(config.HTTPVersion, _CheckJSONVersionAttr)
@@ -231,7 +231,7 @@ func _CheckJSONConfigChecksum(v interface{}) int {
 	b.Grow(defaultHashBufSize)
 
 	writeInt := func(attrName _SchemaAttr) {
-		if v, ok := m[string(attrName)]; ok {
+		if v, ok := m[string(attrName)]; ok && v.(int) != 0 {
 			fmt.Fprintf(b, "%x", v.(int))
 		}
 	}
@@ -268,7 +268,7 @@ func _CheckJSONConfigChecksum(v interface{}) int {
 	writeString(_CheckJSONKeyFileAttr)
 	writeString(_CheckJSONMethodAttr)
 	writeString(_CheckJSONPayloadAttr)
-	writeString(_CheckJSONPortAttr)
+	writeInt(_CheckJSONPortAttr)
 	writeInt(_CheckJSONReadLimitAttr)
 	writeString(_CheckJSONURLAttr)
 	writeString(_CheckJSONVersionAttr)
@@ -329,11 +329,11 @@ func _CheckConfigToAPIJSON(c *_Check, ctxt *_ProviderContext, l _InterfaceList) 
 			c.Config[config.Payload] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckJSONPortAttr); ok {
-			c.Config[config.Port] = s
+		if i, ok := ar.GetIntOK(_CheckJSONPortAttr); ok && i != 0 {
+			c.Config[config.Port] = fmt.Sprintf("%d", i)
 		}
 
-		if i, ok := ar.GetIntOK(_CheckJSONReadLimitAttr); ok {
+		if i, ok := ar.GetIntOK(_CheckJSONReadLimitAttr); ok && i != 0 {
 			c.Config[config.ReadLimit] = fmt.Sprintf("%d", i)
 		}
 
@@ -344,14 +344,6 @@ func _CheckConfigToAPIJSON(c *_Check, ctxt *_ProviderContext, l _InterfaceList) 
 			hostInfo := strings.SplitN(u.Host, ":", 2)
 			if len(c.Target) == 0 {
 				c.Target = hostInfo[0]
-			}
-
-			if len(hostInfo) == 2 {
-				// Only override the port if no port has been set.  The config option
-				// `port` takes precidence.
-				if _, ok := c.Config[config.Port]; !ok {
-					c.Config[config.Port] = hostInfo[1]
-				}
 			}
 		}
 
