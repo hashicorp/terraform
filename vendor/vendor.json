@@ -2173,6 +2173,12 @@
 			"revisionTime": "2016-10-03T17:45:16Z"
 		},
 		{
+			"checksumSHA1": "KhOVzKefFYORHdIVe+/gNAHB23A=",
+			"path": "github.com/moul/anonuuid",
+			"revision": "609b752a95effbbef26d134ac18ed6f57e01b98e",
+			"revisionTime": "2016-02-22T16:21:17Z"
+		},
+		{
 			"checksumSHA1": "/iig5lYSPCL3C8J7e4nTAevYNDE=",
 			"comment": "v0.2.0-8-g841842b",
 			"path": "github.com/nesv/go-dynect/dynect",
