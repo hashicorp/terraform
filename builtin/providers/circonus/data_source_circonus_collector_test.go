@@ -16,7 +16,7 @@ func TestAccDataSourceCirconusCollector(t *testing.T) {
 			resource.TestStep{
 				Config: testAccDataSourceCirconusCollectorConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDataSourceCirconusCollectorCheck("data.circonus_collector.by_cid", "/broker/1"),
+					testAccDataSourceCirconusCollectorCheck("data.circonus_collector.by_id", "/broker/1"),
 				),
 			},
 		},
@@ -32,8 +32,8 @@ func testAccDataSourceCirconusCollectorCheck(name, cid string) resource.TestChec
 
 		attr := rs.Primary.Attributes
 
-		if attr["cid"] != cid {
-			return fmt.Errorf("bad id %s", attr["cid"])
+		if attr[collectorIDAttr] != cid {
+			return fmt.Errorf("bad id %s", attr[collectorIDAttr])
 		}
 
 		return nil
@@ -47,7 +47,7 @@ provider "circonus" {
   key = "${var.circonus_api_token}"
 }
 
-data "circonus_collector" "by_cid" {
-  cid = "/broker/1"
+data "circonus_collector" "by_id" {
+  id = "/broker/1"
 }
 `

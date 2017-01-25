@@ -33,6 +33,8 @@ const (
 
 	defaultCheckCloudWatchVersion = "2010-08-01"
 
+	defaultCollectorDetailAttrs = 10
+
 	defaultTriggerLast       = "300s"
 	defaultTriggerMetricType = "numeric"
 	defaultTriggerRuleLen    = 4
