@@ -49,9 +49,8 @@ func (c *DatabaseMigrationService) AddTagsToResourceRequest(input *AddTagsToReso
 		input = &AddTagsToResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddTagsToResourceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -118,9 +117,8 @@ func (c *DatabaseMigrationService) CreateEndpointRequest(input *CreateEndpointIn
 		input = &CreateEndpointInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateEndpointOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -200,9 +198,8 @@ func (c *DatabaseMigrationService) CreateReplicationInstanceRequest(input *Creat
 		input = &CreateReplicationInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateReplicationInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -295,9 +292,8 @@ func (c *DatabaseMigrationService) CreateReplicationSubnetGroupRequest(input *Cr
 		input = &CreateReplicationSubnetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateReplicationSubnetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -377,9 +373,8 @@ func (c *DatabaseMigrationService) CreateReplicationTaskRequest(input *CreateRep
 		input = &CreateReplicationTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateReplicationTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -456,9 +451,8 @@ func (c *DatabaseMigrationService) DeleteCertificateRequest(input *DeleteCertifi
 		input = &DeleteCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteCertificateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -526,9 +520,8 @@ func (c *DatabaseMigrationService) DeleteEndpointRequest(input *DeleteEndpointIn
 		input = &DeleteEndpointInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteEndpointOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -599,9 +592,8 @@ func (c *DatabaseMigrationService) DeleteReplicationInstanceRequest(input *Delet
 		input = &DeleteReplicationInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteReplicationInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -672,9 +664,8 @@ func (c *DatabaseMigrationService) DeleteReplicationSubnetGroupRequest(input *De
 		input = &DeleteReplicationSubnetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteReplicationSubnetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -742,9 +733,8 @@ func (c *DatabaseMigrationService) DeleteReplicationTaskRequest(input *DeleteRep
 		input = &DeleteReplicationTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteReplicationTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -812,9 +802,8 @@ func (c *DatabaseMigrationService) DescribeAccountAttributesRequest(input *Descr
 		input = &DescribeAccountAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAccountAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -878,9 +867,8 @@ func (c *DatabaseMigrationService) DescribeCertificatesRequest(input *DescribeCe
 		input = &DescribeCertificatesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeCertificatesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -944,9 +932,8 @@ func (c *DatabaseMigrationService) DescribeConnectionsRequest(input *DescribeCon
 		input = &DescribeConnectionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeConnectionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1011,9 +998,8 @@ func (c *DatabaseMigrationService) DescribeEndpointTypesRequest(input *DescribeE
 		input = &DescribeEndpointTypesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEndpointTypesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1072,9 +1058,8 @@ func (c *DatabaseMigrationService) DescribeEndpointsRequest(input *DescribeEndpo
 		input = &DescribeEndpointsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEndpointsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1138,9 +1123,8 @@ func (c *DatabaseMigrationService) DescribeOrderableReplicationInstancesRequest(
 		input = &DescribeOrderableReplicationInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeOrderableReplicationInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1200,9 +1184,8 @@ func (c *DatabaseMigrationService) DescribeRefreshSchemasStatusRequest(input *De
 		input = &DescribeRefreshSchemasStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeRefreshSchemasStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1270,9 +1253,8 @@ func (c *DatabaseMigrationService) DescribeReplicationInstancesRequest(input *De
 		input = &DescribeReplicationInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReplicationInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1337,9 +1319,8 @@ func (c *DatabaseMigrationService) DescribeReplicationSubnetGroupsRequest(input 
 		input = &DescribeReplicationSubnetGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReplicationSubnetGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1403,9 +1384,8 @@ func (c *DatabaseMigrationService) DescribeReplicationTasksRequest(input *Descri
 		input = &DescribeReplicationTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReplicationTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1470,9 +1450,8 @@ func (c *DatabaseMigrationService) DescribeSchemasRequest(input *DescribeSchemas
 		input = &DescribeSchemasInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSchemasOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1540,9 +1519,8 @@ func (c *DatabaseMigrationService) DescribeTableStatisticsRequest(input *Describ
 		input = &DescribeTableStatisticsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTableStatisticsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1611,9 +1589,8 @@ func (c *DatabaseMigrationService) ImportCertificateRequest(input *ImportCertifi
 		input = &ImportCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportCertificateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1680,9 +1657,8 @@ func (c *DatabaseMigrationService) ListTagsForResourceRequest(input *ListTagsFor
 		input = &ListTagsForResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsForResourceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1746,9 +1722,8 @@ func (c *DatabaseMigrationService) ModifyEndpointRequest(input *ModifyEndpointIn
 		input = &ModifyEndpointInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyEndpointOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1822,9 +1797,8 @@ func (c *DatabaseMigrationService) ModifyReplicationInstanceRequest(input *Modif
 		input = &ModifyReplicationInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyReplicationInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1908,9 +1882,8 @@ func (c *DatabaseMigrationService) ModifyReplicationSubnetGroupRequest(input *Mo
 		input = &ModifyReplicationSubnetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyReplicationSubnetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1990,9 +1963,8 @@ func (c *DatabaseMigrationService) ModifyReplicationTaskRequest(input *ModifyRep
 		input = &ModifyReplicationTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyReplicationTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2069,9 +2041,8 @@ func (c *DatabaseMigrationService) RefreshSchemasRequest(input *RefreshSchemasIn
 		input = &RefreshSchemasInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RefreshSchemasOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2147,9 +2118,8 @@ func (c *DatabaseMigrationService) RemoveTagsFromResourceRequest(input *RemoveTa
 		input = &RemoveTagsFromResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RemoveTagsFromResourceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2213,9 +2183,8 @@ func (c *DatabaseMigrationService) StartReplicationTaskRequest(input *StartRepli
 		input = &StartReplicationTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StartReplicationTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2283,9 +2252,8 @@ func (c *DatabaseMigrationService) StopReplicationTaskRequest(input *StopReplica
 		input = &StopReplicationTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StopReplicationTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2353,9 +2321,8 @@ func (c *DatabaseMigrationService) TestConnectionRequest(input *TestConnectionIn
 		input = &TestConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &TestConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

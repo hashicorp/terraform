@@ -789,12 +789,12 @@
 			"versionExact": "v1.6.14"
 		},
 		{
-			"checksumSHA1": "xYOrI6aomni/sT2qxcsAsEYhmk8=",
+			"checksumSHA1": "xKUp9QOvMJOavwFwnbLcqq1FxOE=",
 			"path": "github.com/aws/aws-sdk-go/service/databasemigrationservice",
-			"revision": "36670f6ab1769ad77fa5f7e2c194398733503635",
-			"revisionTime": "2016-12-30T00:33:20Z",
-			"version": "v1.6.9",
-			"versionExact": "v1.6.9"
+			"revision": "f82d132783af109928d89d526ccc8d9fc320639e",
+			"revisionTime": "2017-01-19T23:36:13Z",
+			"version": "v1.6.14",
+			"versionExact": "v1.6.14"
 		},
 		{
 			"checksumSHA1": "W29S9x3pVL3xha1nsGqGtSQtGwA=",
