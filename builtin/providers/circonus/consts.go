@@ -13,9 +13,6 @@ const (
 	// When hashing a Set, default to a buffer this size
 	defaultHashBufSize = 512
 
-	// If there are more than this number of tags a warning will be issued.
-	defaultWarnTags = 30
-
 	providerAPIURLAttr  = "api_url"
 	providerAutoTagAttr = "auto_tag"
 	providerKeyAttr     = "key"
@@ -36,7 +33,6 @@ const (
 
 	defaultCheckCloudWatchVersion = "2010-08-01"
 
-	defaultTriggerAfter      = "0m"
 	defaultTriggerLast       = "300s"
 	defaultTriggerMetricType = "numeric"
 	defaultTriggerRuleLen    = 4
