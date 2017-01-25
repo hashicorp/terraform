@@ -143,7 +143,9 @@ func (b *PlanGraphBuilder) init() {
 
 	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
 		return &NodePlannableResource{
-			NodeAbstractResource: a,
+			NodeAbstractCountResource: &NodeAbstractCountResource{
+				NodeAbstractResource: a,
+			},
 		}
 	}
 
