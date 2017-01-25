@@ -18,7 +18,7 @@ const (
 	//
 	// common (apply to more than one check type)
 	//
-	AsyncMetrics       = Key("async_metrics")
+	AsyncMetrics       = Key("asynch_metrics")
 	AuthMethod         = Key("auth_method")
 	AuthPassword       = Key("auth_password")
 	AuthUser           = Key("auth_user")

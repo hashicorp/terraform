@@ -31,6 +31,8 @@ const (
 	defaultCheckHTTPMethod     = "GET"
 	defaultCheckHTTPVersion    = "1.1"
 
+	defaultCheckHTTPTrapAsync = false
+
 	defaultCheckCloudWatchVersion = "2010-08-01"
 
 	defaultCollectorDetailAttrs = 10
