@@ -147,6 +147,7 @@ func _NewTriggerResource() *schema.Resource {
 										Type:             schema.TypeString,
 										Optional:         true,
 										DiffSuppressFunc: suppressEquivalentTimeDurations,
+										StateFunc:        normalizeTimeDurationStringToSeconds,
 										ValidateFunc: _ValidateFuncs(
 											_ValidateDurationMin(_TriggerAfterAttr, "0s"),
 										),
@@ -182,6 +183,7 @@ func _NewTriggerResource() *schema.Resource {
 										Type:             schema.TypeString, // Applies to text or numeric metrics
 										Optional:         true,
 										DiffSuppressFunc: suppressEquivalentTimeDurations,
+										StateFunc:        normalizeTimeDurationStringToSeconds,
 										ValidateFunc: _ValidateFuncs(
 											_ValidateDurationMin(_TriggerAbsentAttr, _TriggerAbsentMin),
 										),
@@ -243,6 +245,7 @@ func _NewTriggerResource() *schema.Resource {
 													Optional:         true,
 													Default:          defaultTriggerLast,
 													DiffSuppressFunc: suppressEquivalentTimeDurations,
+													StateFunc:        normalizeTimeDurationStringToSeconds,
 													ValidateFunc: _ValidateFuncs(
 														_ValidateDurationMin(_TriggerLastAttr, "0s"),
 													),
