@@ -36,8 +36,8 @@ func TestAccAWSAPIGatewayIntegration_basic(t *testing.T) {
 						"aws_api_gateway_integration.test", "request_templates.application/xml", "#set($inputRoot = $input.path('$'))\n{ }"),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_integration.test", "passthrough_behavior", "WHEN_NO_MATCH"),
-					resource.TestCheckResourceAttr(
-						"aws_api_gateway_integration.test", "content_handling", ""),
+					resource.TestCheckNoResourceAttr(
+						"aws_api_gateway_integration.test", "content_handling"),
 				),
 			},
 

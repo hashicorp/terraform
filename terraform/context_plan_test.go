@@ -553,6 +553,52 @@ func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 	}
 }
 
+// This tests (for GH-11282) that deeply nested modules properly inherit
+// configuration.
+func TestContext2Plan_moduleProviderInheritDeep(t *testing.T) {
+	var l sync.Mutex
+
+	m := testModule(t, "plan-module-provider-inherit-deep")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": func() (ResourceProvider, error) {
+				l.Lock()
+				defer l.Unlock()
+
+				var from string
+				p := testProvider("aws")
+				p.ConfigureFn = func(c *ResourceConfig) error {
+					v, ok := c.Get("from")
+					if !ok || v.(string) != "root" {
+						return fmt.Errorf("bad")
+					}
+
+					from = v.(string)
+					return nil
+				}
+
+				p.DiffFn = func(
+					info *InstanceInfo,
+					state *InstanceState,
+					c *ResourceConfig) (*InstanceDiff, error) {
+					if from != "root" {
+						return nil, fmt.Errorf("bad resource")
+					}
+
+					return testDiffFn(info, state, c)
+				}
+				return p, nil
+			},
+		},
+	})
+
+	_, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestContext2Plan_moduleProviderDefaults(t *testing.T) {
 	var l sync.Mutex
 	var calls []string

@@ -54,6 +54,18 @@ The command-line flags are all optional. The list of available flags are:
   provider based on the prefix of the resource being imported. You usually
   don't need to specify this.
 
+* `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
+  can be set multiple times. Variable values are interpreted as
+  [HCL](/docs/configuration/syntax.html#HCL), so list and map values can be
+  specified via this flag. This is only useful with the `-config` flag.
+
+* `-var-file=foo` - Set variables in the Terraform configuration from
+   a [variable file](/docs/configuration/variables.html#variable-files). If
+  "terraform.tfvars" is present, it will be automatically loaded first. Any
+  files specified by `-var-file` override any values in a "terraform.tfvars".
+  This flag can be used multiple times. This is only useful with the `-config`
+  flag.
+
 ## Provider Configuration
 
 Terraform will attempt to load configuration files that configure the

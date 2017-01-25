@@ -21,6 +21,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+ * command/fmt: Single line objects (such as `variable "foo" {}`) aren't separated by newlines
  * provider/aws: Add 'route_table_id' to route_table data source ([#11157](https://github.com/hashicorp/terraform/pull/11157))
  * provider/aws: Add Support for aws_cloudwatch_metric_alarm extended statistic [GH-11193]
  * provider/aws: Make the type of a route53_record modifiable without recreating the resource [GH-11164]
@@ -35,6 +36,8 @@ IMPROVEMENTS:
  * provider/aws: Remove MaxFrameRate default on ElasticTranscoderPreset [GH-11340]
  * provider/aws: Allow ARN Identifier to be set for different partitions [GH-11359]
  * provider/aws: Allow bypassing region validation [GH-11358]
+ * provider/aws: Added a s3_bucket domain name attribute [GH-10088]
+ * provider/aws: Add DiffSupressFunction to aws_db_instance's engine_version [GH-11369]
  * provider/archive: Adding support for multiple source contents [GH-11271]
  * provider/azurerm: add caching support for virtual_machine data_disks [GH-11142]
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
@@ -56,6 +59,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * command/fmt: Multiple `#` comments won't be separated by newlines. [GH-11209]
+ * command/fmt: Lists with a heredoc element that starts on the same line as the opening brace is formatted properly. [GH-11208]
  * provider/aws: Fix panic when querying VPC's main route table via data source ([#11134](https://github.com/hashicorp/terraform/issues/11134))
  * provider/aws: Allow creating aws_codecommit repository outside of us-east-1 [GH-11177]
  * provider/aws: Fix issue destroying or updating CloudFront due to missing Lambda Function Associations parameters [GH-11291]
