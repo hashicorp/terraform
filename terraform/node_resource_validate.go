@@ -1,13 +1,77 @@
 package terraform
 
+import (
+	"github.com/hashicorp/terraform/dag"
+)
+
 // NodeValidatableResource represents a resource that is used for validation
 // only.
 type NodeValidatableResource struct {
+	*NodeAbstractCountResource
+}
+
+// GraphNodeDynamicExpandable
+func (n *NodeValidatableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	// Grab the state which we read
+	state, lock := ctx.State()
+	lock.RLock()
+	defer lock.RUnlock()
+
+	// Expand the resource count which must be available by now from EvalTree
+	count, err := n.Config.Count()
+	if err != nil {
+		return nil, err
+	}
+
+	// The concrete resource factory we'll use
+	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
+		// Add the config and state since we don't do that via transforms
+		a.Config = n.Config
+
+		return &NodeValidatableResourceInstance{
+			NodeAbstractResource: a,
+		}
+	}
+
+	// Start creating the steps
+	steps := []GraphTransformer{
+		// Expand the count.
+		&ResourceCountTransformer{
+			Concrete: concreteResource,
+			Count:    count,
+			Addr:     n.ResourceAddr(),
+		},
+
+		// Attach the state
+		&AttachStateTransformer{State: state},
+
+		// Targeting
+		&TargetsTransformer{ParsedTargets: n.Targets},
+
+		// Connect references so ordering is correct
+		&ReferenceTransformer{},
+
+		// Make sure there is a single root
+		&RootTransformer{},
+	}
+
+	// Build the graph
+	b := &BasicGraphBuilder{
+		Steps:    steps,
+		Validate: true,
+		Name:     "NodeValidatableResource",
+	}
+
+	return b.Build(ctx.Path())
+}
+
+// This represents a _single_ resource instance to validate.
+type NodeValidatableResourceInstance struct {
 	*NodeAbstractResource
 }
 
 // GraphNodeEvalable
-func (n *NodeValidatableResource) EvalTree() EvalNode {
+func (n *NodeValidatableResourceInstance) EvalTree() EvalNode {
 	addr := n.NodeAbstractResource.Addr
 
 	// Build the resource for eval
