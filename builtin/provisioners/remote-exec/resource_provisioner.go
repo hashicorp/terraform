@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator"
@@ -38,10 +39,41 @@ func (p *ResourceProvisioner) Apply(
 		defer s.Close()
 	}
 
-	// Copy and execute each script
-	if err := p.runScripts(o, comm, scripts); err != nil {
+	// Collect verification scripts if needed
+	var verifyScripts []io.ReadCloser
+	_, verifyOk := c.Config["verify"]
+	if verifyOk {
+		verifyScripts, err = p.collectVerification(c)
+		if err != nil {
+			return err
+		}
+		for _, s := range verifyScripts {
+			defer s.Close()
+		}
+	}
+
+	// Wait and retry until we establish a connection
+	err = retryFunc(comm.Timeout(), func() error {
+		err := comm.Connect(o)
+		return err
+	})
+	if err != nil {
 		return err
 	}
+	defer comm.Disconnect()
+
+	// Copy and execute each script
+	if err := p.runScripts(false, o, comm, scripts); err != nil {
+		return err
+	}
+
+	// If verify is specified, verify that the exec scripts need to be ran
+	if verifyOk {
+		if err := p.runScripts(true, o, comm, verifyScripts); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -52,6 +84,8 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 		switch name {
 		case "scripts", "script", "inline":
 			num++
+		case "verify":
+			continue
 		default:
 			es = append(es, fmt.Errorf("Unknown configuration '%s'", name))
 		}
@@ -63,9 +97,9 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 }
 
 // generateScripts takes the configuration and creates a script from each inline config
-func (p *ResourceProvisioner) generateScripts(c *terraform.ResourceConfig) ([]string, error) {
+func (p *ResourceProvisioner) generateScripts(c *terraform.ResourceConfig, key string) ([]string, error) {
 	var scripts []string
-	command, ok := c.Config["inline"]
+	command, ok := c.Config[key]
 	if ok {
 		switch cmd := command.(type) {
 		case string:
@@ -78,11 +112,11 @@ func (p *ResourceProvisioner) generateScripts(c *terraform.ResourceConfig) ([]st
 				if ok {
 					scripts = append(scripts, lStr)
 				} else {
-					return nil, fmt.Errorf("Unsupported 'inline' type! Must be string, or list of strings.")
+					return nil, fmt.Errorf("Unsupported '%s' type! Must be string, or list of strings.", key)
 				}
 			}
 		default:
-			return nil, fmt.Errorf("Unsupported 'inline' type! Must be string, or list of strings.")
+			return nil, fmt.Errorf("Unsupported '%s' type! Must be string, or list of strings.", key)
 		}
 	}
 	return scripts, nil
@@ -94,7 +128,7 @@ func (p *ResourceProvisioner) collectScripts(c *terraform.ResourceConfig) ([]io.
 	// Check if inline
 	_, ok := c.Config["inline"]
 	if ok {
-		scripts, err := p.generateScripts(c)
+		scripts, err := p.generateScripts(c, "inline")
 		if err != nil {
 			return nil, err
 		}
@@ -154,20 +188,31 @@ func (p *ResourceProvisioner) collectScripts(c *terraform.ResourceConfig) ([]io.
 	return fhs, nil
 }
 
+// collectVerification is used to collect all the scripts needed for
+// verification
+func (p *ResourceProvisioner) collectVerification(c *terraform.ResourceConfig) ([]io.ReadCloser, error) {
+	scripts, err := p.generateScripts(c, "verify")
+	if err != nil {
+		return nil, err
+	}
+	r := []io.ReadCloser{}
+	for _, script := range scripts {
+		r = append(r, ioutil.NopCloser(bytes.NewReader([]byte(script))))
+	}
+	return r, nil
+}
+
 // runScripts is used to copy and execute a set of scripts
 func (p *ResourceProvisioner) runScripts(
+	verify bool,
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	scripts []io.ReadCloser) error {
-	// Wait and retry until we establish the connection
-	err := retryFunc(comm.Timeout(), func() error {
-		err := comm.Connect(o)
-		return err
-	})
-	if err != nil {
-		return err
+
+	action := "execution"
+	if verify {
+		action = "verification"
 	}
-	defer comm.Disconnect()
 
 	for _, script := range scripts {
 		var cmd *remote.Cmd
@@ -179,9 +224,9 @@ func (p *ResourceProvisioner) runScripts(
 		go p.copyOutput(o, errR, errDoneCh)
 
 		remotePath := comm.ScriptPath()
-		err = retryFunc(comm.Timeout(), func() error {
+		err := retryFunc(comm.Timeout(), func() error {
 			if err := comm.UploadScript(remotePath, script); err != nil {
-				return fmt.Errorf("Failed to upload script: %v", err)
+				return fmt.Errorf("Failed to upload %s script: %v", action, err)
 			}
 
 			cmd = &remote.Cmd{
@@ -190,7 +235,7 @@ func (p *ResourceProvisioner) runScripts(
 				Stderr:  errW,
 			}
 			if err := comm.Start(cmd); err != nil {
-				return fmt.Errorf("Error starting script: %v", err)
+				return fmt.Errorf("Error starting %s script: %v", action, err)
 			}
 
 			return nil
@@ -198,7 +243,8 @@ func (p *ResourceProvisioner) runScripts(
 		if err == nil {
 			cmd.Wait()
 			if cmd.ExitStatus != 0 {
-				err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
+				err = fmt.Errorf("%s Script exited with non-zero exit status: %d",
+					strings.Title(action), cmd.ExitStatus)
 			}
 		}
 
