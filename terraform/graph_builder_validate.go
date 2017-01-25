@@ -23,7 +23,9 @@ func ValidateGraphBuilder(p *PlanGraphBuilder) GraphBuilder {
 
 	p.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
 		return &NodeValidatableResource{
-			NodeAbstractResource: a,
+			NodeAbstractCountResource: &NodeAbstractCountResource{
+				NodeAbstractResource: a,
+			},
 		}
 	}
 
