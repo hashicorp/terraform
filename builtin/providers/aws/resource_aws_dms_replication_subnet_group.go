@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	dms "github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -86,11 +85,11 @@ func resourceAwsDmsReplicationSubnetGroupRead(d *schema.ResourceData, meta inter
 		},
 	})
 	if err != nil {
-		if dmserr, ok := err.(awserr.Error); ok && dmserr.Code() == "ResourceNotFoundFault" {
-			d.SetId("")
-			return nil
-		}
 		return err
+	}
+	if len(response.ReplicationSubnetGroups) == 0 {
+		d.SetId("")
+		return nil
 	}
 
 	// The AWS API for DMS subnet groups does not return the ARN which is required to
