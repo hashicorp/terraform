@@ -74,6 +74,7 @@ func resourceRundeckJob() *schema.Resource {
 				Optional: true,
 			},
 
+			// Trigger ci build.
 			"rank_order": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
