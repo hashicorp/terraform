@@ -2,11 +2,13 @@ package circonus
 
 import (
 	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
 const (
 	collectorCNAttr           = "cn"
+	collectorIDAttr           = "id"
 	collectorDetailsAttr      = "details"
 	collectorExternalHostAttr = "external_host"
 	collectorExternalPortAttr = "external_port"
@@ -29,6 +31,13 @@ func dataSourceCirconusCollector() *schema.Resource {
 		Read: dataSourceCirconusCollectorRead,
 
 		Schema: map[string]*schema.Schema{
+			collectorIDAttr: &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: _ValidateRegexp(collectorIDAttr, config.BrokerCIDRegex),
+				Description:  collectorDescription[collectorIDAttr],
+			},
 			collectorDetailsAttr: &schema.Schema{
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -138,12 +147,15 @@ func dataSourceCirconusCollectorRead(d *schema.ResourceData, meta interface{}) e
 	var collector *api.Broker
 	var err error
 	cid := d.Id()
+	if cidRaw, ok := d.GetOk(collectorIDAttr); ok {
+		cid = cidRaw.(string)
+	}
 	collector, err = ctxt.client.FetchBroker(api.CIDType(&cid))
 	if err != nil {
 		return err
 	}
 
-	_StateSet(d, collectorDetailsAttr, collector.Details)
+	_StateSet(d, collectorDetailsAttr, collectorDetailsToState(collector))
 	_StateSet(d, collectorLatitudeAttr, collector.Latitude)
 	_StateSet(d, collectorLongitudeAttr, collector.Longitude)
 	_StateSet(d, collectorNameAttr, collector.Name)
@@ -153,4 +165,54 @@ func dataSourceCirconusCollectorRead(d *schema.ResourceData, meta interface{}) e
 	d.SetId(collector.CID)
 
 	return nil
+}
+
+func collectorDetailsToState(c *api.Broker) []interface{} {
+	details := make([]interface{}, 0, len(c.Details))
+
+	for _, collector := range c.Details {
+		collectorDetails := make(map[string]interface{}, defaultCollectorDetailAttrs)
+
+		collectorDetails[collectorCNAttr] = collector.CN
+
+		if collector.ExternalHost != nil {
+			collectorDetails[collectorExternalHostAttr] = *collector.ExternalHost
+		}
+
+		if collector.ExternalPort != 0 {
+			collectorDetails[collectorExternalPortAttr] = collector.ExternalPort
+		}
+
+		if collector.IP != nil {
+			collectorDetails[collectorIPAttr] = *collector.IP
+		}
+
+		if collector.MinVer != 0 {
+			collectorDetails[collectorMinVersionAttr] = collector.MinVer
+		}
+
+		if len(collector.Modules) > 0 {
+			collectorDetails[collectorModulesAttr] = collector.Modules
+		}
+
+		if collector.Port != nil {
+			collectorDetails[collectorPortAttr] = *collector.Port
+		}
+
+		if collector.Skew != nil {
+			collectorDetails[collectorSkewAttr] = *collector.Skew
+		}
+
+		if collector.Status != "" {
+			collectorDetails[collectorStatusAttr] = collector.Status
+		}
+
+		if collector.Version != nil {
+			collectorDetails[collectorVersionAttr] = *collector.Version
+		}
+
+		details = append(details, collectorDetails)
+	}
+
+	return details
 }

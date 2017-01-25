@@ -71,7 +71,7 @@ The following attributes are exported:
 ## Collector Details
 
 * `cn` - The CN of an individual Collector in the Collector Group.
- 
+
 * `external_host` - The external host information for an individual Collector in
   the Collector Group.  This is useful or important when talking with a Collector
   through a NAT'ing firewall.
