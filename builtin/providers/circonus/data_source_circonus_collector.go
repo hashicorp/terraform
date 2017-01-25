@@ -144,13 +144,13 @@ func dataSourceCirconusCollectorRead(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	d.Set("cid", b.CID)
-	d.Set("details", b.Details)
-	d.Set("latitude", b.Latitude)
-	d.Set("longitude", b.Longitude)
-	d.Set("name", b.Name)
-	d.Set("tags", b.Tags)
-	d.Set("type", b.Type)
+	_StateSet(d, "cid", b.CID)
+	_StateSet(d, "details", b.Details)
+	_StateSet(d, "latitude", b.Latitude)
+	_StateSet(d, "longitude", b.Longitude)
+	_StateSet(d, "name", b.Name)
+	_StateSet(d, "tags", b.Tags)
+	_StateSet(d, "type", b.Type)
 
 	d.SetId(b.CID)
 
