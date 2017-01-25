@@ -37,6 +37,9 @@ const (
 
 	defaultCollectorDetailAttrs = 10
 
+	_MetricUnit       = ""
+	_MetricUnitRegexp = `^.*$`
+
 	defaultTriggerLast       = "300s"
 	defaultTriggerMetricType = "numeric"
 	defaultTriggerRuleLen    = 4

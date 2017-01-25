@@ -65,7 +65,8 @@ func _NewMetricResource() *schema.Resource {
 			_MetricUnitAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_MetricUnitAttr, `.+`),
+				Default:      _MetricUnit,
+				ValidateFunc: _ValidateRegexp(_MetricUnitAttr, _MetricUnitRegexp),
 			},
 		}, _MetricDescriptions),
 	}

@@ -33,6 +33,9 @@ func (m *_Metric) ParseConfig(id string, ar _AttrReader) error {
 	m.Tags = tagsToAPI(ar.GetTags(_MetricTagsAttr))
 	m.Type = ar.GetString(_MetricTypeAttr)
 	m.Units = ar.GetStringPtr(_MetricUnitAttr)
+	if m.Units != nil && *m.Units == "" {
+		m.Units = nil
+	}
 
 	return nil
 }
@@ -100,7 +103,7 @@ func _MetricChecksum(ar _AttrReader) int {
 		fmt.Fprint(b, tag)
 	}
 	fmt.Fprint(b, ar.GetString(_MetricTypeAttr))
-	if p := ar.GetStringPtr(_MetricUnitAttr); p != nil {
+	if p := ar.GetStringPtr(_MetricUnitAttr); p != nil && *p != "" {
 		fmt.Fprint(b, _Indirect(p))
 	}
 
