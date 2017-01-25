@@ -88,8 +88,12 @@ resource "circonus_metric" "used" {
   enterprise collector running in your datacenter.  One collection of metrics
   will be automatically created for each `collector` specified.
 
-* `http` - (Optional) An HTTP check.  See below for details on how to configure
+* `http` - (Optional) A poll-based HTTP check.  See below for details on how to configure
   the `http` check.
+
+* `httptrap` - (Optional) An push-based HTTP check.  This check method expects
+  clients to send a specially crafted HTTP JSON payload.  See below for details
+  on how to configure the `httptrap` check.
 
 * `icmp_ping` - (Optional) An ICMP ping check.  See below for details on how to
   configure the `icmp_ping` check.
@@ -297,6 +301,19 @@ Available metrics include: `body_match`, `bytes`, `cert_end`, `cert_end_in`,
 `truncated`, `tt_connect`, and `tt_firstbyte`.  See the
 [`http` check type](https://login.circonus.com/resources/api/calls/check_bundle) for
 additional details.
+
+### `httptrap` Check Type Attributes
+
+* `async_metrics` - (Optional) Boolean value specifies whether or not httptrap
+  metrics are logged immediately or held until the status message is to be
+  emitted.  Default `false`.
+
+* `secret` - (Optional) Specify the secret with which metrics may be
+  submitted.
+
+Available metrics depend on the payload returned in the `httptrap` doc.  See
+the [`httptrap` check type](https://login.circonus.com/resources/api/calls/check_bundle)
+for additional details.
 
 ### `json` Check Type Attributes
 

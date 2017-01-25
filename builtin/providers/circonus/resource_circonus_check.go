@@ -35,6 +35,7 @@ const (
 	_CheckCloudWatchAttr  _SchemaAttr = "cloudwatch"
 	_CheckCollectorAttr   _SchemaAttr = "collector"
 	_CheckHTTPAttr        _SchemaAttr = "http"
+	_CheckHTTPTrapAttr    _SchemaAttr = "httptrap"
 	_CheckICMPPingAttr    _SchemaAttr = "icmp_ping"
 	_CheckJSONAttr        _SchemaAttr = "json"
 	_CheckMetricLimitAttr _SchemaAttr = "metric_limit"
@@ -72,6 +73,7 @@ const (
 	_APICheckTypeCAQLAttr       _APICheckType = "caql"
 	_APICheckTypeCloudWatchAttr _APICheckType = "cloudwatch"
 	_APICheckTypeHTTPAttr       _APICheckType = "http"
+	_APICheckTypeHTTPTrapAttr   _APICheckType = "httptrap"
 	_APICheckTypeICMPPingAttr   _APICheckType = "ping_icmp"
 	_APICheckTypeJSONAttr       _APICheckType = "json"
 	_APICheckTypePostgreSQLAttr _APICheckType = "postgres"
@@ -84,6 +86,7 @@ var _CheckDescriptions = _AttrDescrs{
 	_CheckCloudWatchAttr:  "CloudWatch check configuration",
 	_CheckCollectorAttr:   "The collector(s) that are responsible for gathering the metrics",
 	_CheckHTTPAttr:        "HTTP check configuration",
+	_CheckHTTPTrapAttr:    "HTTP Trap check configuration",
 	_CheckICMPPingAttr:    "ICMP ping check configuration",
 	_CheckJSONAttr:        "JSON check configuration",
 	_CheckMetricLimitAttr: `Setting a metric_limit will enable all (-1), disable (0), or allow up to the specified limit of metrics for this check ("N+", where N is a positive integer)`,
@@ -146,6 +149,7 @@ func _NewCheckResource() *schema.Resource {
 				},
 			},
 			_CheckHTTPAttr:     _SchemaCheckHTTP,
+			_CheckHTTPTrapAttr: _SchemaCheckHTTPTrap,
 			_CheckJSONAttr:     _SchemaCheckJSON,
 			_CheckICMPPingAttr: _SchemaCheckICMPPing,
 			_CheckMetricLimitAttr: &schema.Schema{
@@ -493,6 +497,7 @@ func _CheckConfigToAPI(c *_Check, ar _AttrReader) error {
 		_CheckCAQLAttr:       _CheckConfigToAPICAQL,
 		_CheckCloudWatchAttr: _CheckConfigToAPICloudWatch,
 		_CheckHTTPAttr:       _CheckConfigToAPIHTTP,
+		_CheckHTTPTrapAttr:   _CheckConfigToAPIHTTPTrap,
 		_CheckICMPPingAttr:   _CheckConfigToAPIICMPPing,
 		_CheckJSONAttr:       _CheckConfigToAPIJSON,
 		_CheckPostgreSQLAttr: _CheckConfigToAPIPostgreSQL,
@@ -517,6 +522,7 @@ func _ParseCheckTypeConfig(c *_Check, d *schema.ResourceData) error {
 		_APICheckTypeCAQLAttr:       _CheckAPIToStateCAQL,
 		_APICheckTypeCloudWatchAttr: _CheckAPIToStateCloudWatch,
 		_APICheckTypeHTTPAttr:       _CheckAPIToStateHTTP,
+		_APICheckTypeHTTPTrapAttr:   _CheckAPIToStateHTTPTrap,
 		_APICheckTypeICMPPingAttr:   _CheckAPIToStateICMPPing,
 		_APICheckTypeJSONAttr:       _CheckAPIToStateJSON,
 		_APICheckTypePostgreSQLAttr: _CheckAPIToStatePostgreSQL,
