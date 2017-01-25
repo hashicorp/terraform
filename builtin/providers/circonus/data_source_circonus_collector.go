@@ -6,7 +6,6 @@ import (
 )
 
 const (
-	collectorCIDAttr          = "cid"
 	collectorCNAttr           = "cn"
 	collectorDetailsAttr      = "details"
 	collectorExternalHostAttr = "external_host"
@@ -30,11 +29,6 @@ func dataSourceCirconusCollector() *schema.Resource {
 		Read: dataSourceCirconusCollectorRead,
 
 		Schema: map[string]*schema.Schema{
-			collectorCIDAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
 			collectorDetailsAttr: &schema.Schema{
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -126,33 +120,37 @@ func dataSourceCirconusCollector() *schema.Resource {
 				Computed:    true,
 				Description: collectorDescription[collectorNameAttr],
 			},
+
+			// OUT parameters
+			collectorTypeAttr: &schema.Schema{
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: collectorDescription[collectorTypeAttr],
+			},
 			collectorTagsAttr: _TagMakeConfigSchema(collectorTagsAttr),
 		},
 	}
 }
 
 func dataSourceCirconusCollectorRead(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*_ProviderContext)
+	ctxt := meta.(*_ProviderContext)
 
-	var b *api.Broker
+	var collector *api.Broker
 	var err error
-	if cidRaw, ok := d.GetOk(collectorCIDAttr); ok {
-		cid := cidRaw.(string)
-		b, err = c.client.FetchBroker(api.CIDType(&cid))
-		if err != nil {
-			return err
-		}
+	cid := d.Id()
+	collector, err = ctxt.client.FetchBroker(api.CIDType(&cid))
+	if err != nil {
+		return err
 	}
 
-	_StateSet(d, "cid", b.CID)
-	_StateSet(d, "details", b.Details)
-	_StateSet(d, "latitude", b.Latitude)
-	_StateSet(d, "longitude", b.Longitude)
-	_StateSet(d, "name", b.Name)
-	_StateSet(d, "tags", b.Tags)
-	_StateSet(d, "type", b.Type)
+	_StateSet(d, collectorDetailsAttr, collector.Details)
+	_StateSet(d, collectorLatitudeAttr, collector.Latitude)
+	_StateSet(d, collectorLongitudeAttr, collector.Longitude)
+	_StateSet(d, collectorNameAttr, collector.Name)
+	_StateSet(d, collectorTagsAttr, collector.Tags)
+	_StateSet(d, collectorTypeAttr, collector.Type)
 
-	d.SetId(b.CID)
+	d.SetId(collector.CID)
 
 	return nil
 }
