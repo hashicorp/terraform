@@ -466,7 +466,7 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 	}
 
 	if d, ok := ar.GetDurationOK(_CheckTimeoutAttr); ok {
-		var t float32 = float32(d.Seconds())
+		t := float32(d.Seconds())
 		c.Timeout = t
 	}
 

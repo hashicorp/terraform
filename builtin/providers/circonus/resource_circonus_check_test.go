@@ -65,7 +65,7 @@ func checkCheckBundleExists(c *_ProviderContext, checkBundleID api.CIDType) (boo
 
 	if api.CIDType(&cb.CID) == checkBundleID {
 		return true, nil
-	} else {
-		return false, nil
 	}
+
+	return false, nil
 }

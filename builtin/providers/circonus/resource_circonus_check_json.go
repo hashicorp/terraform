@@ -165,8 +165,7 @@ func _CheckAPIToStateJSON(c *_Check, d *schema.ResourceData) error {
 		if v, ok := c.Config[apiKey]; ok {
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				panic(fmt.Sprintf("Unable to convert %s to an integer: %v", err))
-				return
+				panic(fmt.Sprintf("Unable to convert %s to an integer: %v", apiKey, err))
 			}
 			jsonConfig[string(attrName)] = int(i)
 		}
@@ -209,7 +208,7 @@ func _CheckAPIToStateJSON(c *_Check, d *schema.ResourceData) error {
 		config.SubmissionURL:    struct{}{},
 	}
 
-	for k, _ := range swamp {
+	for k := range swamp {
 		if _, ok := whitelistedConfigKeys[k]; ok {
 			delete(c.Config, k)
 		}
@@ -255,12 +254,12 @@ func _CheckJSONConfigChecksum(v interface{}) int {
 	if headersRaw, ok := m[string(_CheckJSONHeadersAttr)]; ok {
 		headerMap := headersRaw.(map[string]interface{})
 		headers := make([]string, 0, len(headerMap))
-		for k, _ := range headerMap {
+		for k := range headerMap {
 			headers = append(headers, k)
 		}
 
 		sort.Strings(headers)
-		for i, _ := range headers {
+		for i := range headers {
 			fmt.Fprint(b, headers[i])
 			fmt.Fprint(b, headerMap[headers[i]].(string))
 		}

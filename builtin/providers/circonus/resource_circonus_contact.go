@@ -548,9 +548,9 @@ func contactGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) 
 	if err != nil {
 		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {
 			return false, nil
-		} else {
-			return false, err
 		}
+
+		return false, err
 	}
 
 	if cg.CID == "" {
@@ -755,7 +755,7 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 		for _, alertOptionRaw := range alertOptionsRaw {
 			alertOptionsMap := alertOptionRaw.(map[string]interface{})
 
-			var severityIndex int = -1
+			severityIndex := -1
 
 			if optRaw, ok := alertOptionsMap[contactSeverityAttr]; ok {
 				severityIndex = optRaw.(int) - 1

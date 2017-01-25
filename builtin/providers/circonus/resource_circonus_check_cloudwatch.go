@@ -143,7 +143,7 @@ func _CheckAPIToStateCloudWatch(c *_Check, d *schema.ResourceData) error {
 		config.SubmissionURL:    struct{}{},
 	}
 
-	for k, _ := range swamp {
+	for k := range swamp {
 		if _, ok := whitelistedConfigKeys[k]; ok {
 			delete(c.Config, k)
 		}
@@ -178,19 +178,19 @@ func hashCheckCloudWatch(v interface{}) int {
 	if dimmensionsRaw, ok := m[string(_CheckCloudWatchDimmensionsAttr)]; ok {
 		dimmensionMap := dimmensionsRaw.(map[string]interface{})
 		dimmensions := make([]string, 0, len(dimmensionMap))
-		for k, _ := range dimmensionMap {
+		for k := range dimmensionMap {
 			dimmensions = append(dimmensions, k)
 		}
 
 		sort.Strings(dimmensions)
-		for i, _ := range dimmensions {
+		for i := range dimmensions {
 			fmt.Fprint(b, dimmensions[i])
 		}
 	}
 
 	if metricsRaw, ok := m[string(_CheckCloudWatchMetricAttr)]; ok {
 		metricListRaw := flattenSet(metricsRaw.(*schema.Set))
-		for i, _ := range metricListRaw {
+		for i := range metricListRaw {
 			if metricListRaw[i] == nil {
 				continue
 			}

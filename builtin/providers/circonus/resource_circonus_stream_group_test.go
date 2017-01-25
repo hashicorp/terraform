@@ -86,16 +86,16 @@ func checkStreamGroupExists(c *_ProviderContext, streamGroupID api.CIDType) (boo
 	if err != nil {
 		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {
 			return false, nil
-		} else {
-			return false, err
 		}
+
+		return false, err
 	}
 
 	if api.CIDType(&sg.CID) == streamGroupID {
 		return true, nil
-	} else {
-		return false, nil
 	}
+
+	return false, nil
 }
 
 const testAccCirconusStreamGroupConfig = `

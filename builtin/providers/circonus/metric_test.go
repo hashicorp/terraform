@@ -3,7 +3,7 @@ package circonus
 import "testing"
 
 func Test_MetricChecksum(t *testing.T) {
-	var unit string = "qty"
+	unit := "qty"
 	m := _InterfaceMap{
 		string(_MetricActiveAttr): true,
 		string(_MetricNameAttr):   "asdf",

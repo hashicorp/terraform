@@ -150,7 +150,7 @@ func _CheckAPIToStateTCP(c *_Check, d *schema.ResourceData) error {
 		config.SubmissionURL:    struct{}{},
 	}
 
-	for k, _ := range swamp {
+	for k := range swamp {
 		if _, ok := whitelistedConfigKeys[k]; ok {
 			delete(c.Config, k)
 		}

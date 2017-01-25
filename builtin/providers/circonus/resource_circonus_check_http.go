@@ -222,7 +222,7 @@ func _CheckAPIToStateHTTP(c *_Check, d *schema.ResourceData) error {
 		config.SubmissionURL:    struct{}{},
 	}
 
-	for k, _ := range swamp {
+	for k := range swamp {
 		if _, ok := whitelistedConfigKeys[k]; ok {
 			delete(c.Config, k)
 		}
@@ -270,12 +270,12 @@ func hashCheckHTTP(v interface{}) int {
 	if headersRaw, ok := m[string(_CheckHTTPHeadersAttr)]; ok {
 		headerMap := headersRaw.(map[string]interface{})
 		headers := make([]string, 0, len(headerMap))
-		for k, _ := range headerMap {
+		for k := range headerMap {
 			headers = append(headers, k)
 		}
 
 		sort.Strings(headers)
-		for i, _ := range headers {
+		for i := range headers {
 			fmt.Fprint(b, headers[i])
 			fmt.Fprint(b, headerMap[headers[i]].(string))
 		}

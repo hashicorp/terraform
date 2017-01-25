@@ -140,16 +140,16 @@ func checkContactGroupExists(c *_ProviderContext, contactID api.CIDType) (bool, 
 	if err != nil {
 		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {
 			return false, nil
-		} else {
-			return false, err
 		}
+
+		return false, err
 	}
 
 	if api.CIDType(&cb.CID) == contactID {
 		return true, nil
-	} else {
-		return false, nil
 	}
+
+	return false, nil
 }
 
 const testAccCirconusContactGroupConfig = `
