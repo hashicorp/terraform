@@ -56,8 +56,15 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Get the state that we'll be modifying
-	state, err := c.State()
+	// Load the backend
+	b, err := c.Backend(nil)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+		return 1
+	}
+
+	// Get the state
+	state, err := b.State()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
@@ -122,7 +129,11 @@ func (c *TaintCommand) Run(args []string) int {
 	rs.Taint()
 
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
-	if err := c.Meta.PersistState(s); err != nil {
+	if err := state.WriteState(s); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+		return 1
+	}
+	if err := state.PersistState(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}

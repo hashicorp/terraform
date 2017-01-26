@@ -313,6 +313,13 @@ func (c *Context) ShadowError() error {
 	return c.shadowErr
 }
 
+// State returns a copy of the current state associated with this context.
+//
+// This cannot safely be called in parallel with any other Context function.
+func (c *Context) State() *State {
+	return c.state.DeepCopy()
+}
+
 // Interpolater returns an Interpolater built on a copy of the state
 // that can be used to test interpolation values.
 func (c *Context) Interpolater() *Interpolater {
