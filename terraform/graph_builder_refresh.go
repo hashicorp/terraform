@@ -1,22 +1,24 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
 )
 
-// PlanGraphBuilder implements GraphBuilder and is responsible for building
-// a graph for planning (creating a Terraform Diff).
+// RefreshGraphBuilder implements GraphBuilder and is responsible for building
+// a graph for refreshing (updating the Terraform state).
 //
 // The primary difference between this graph and others:
 //
-//   * Based on the config since it represents the target state
+//   * Based on the state since it represents the only resources that
+//     need to be refreshed.
 //
 //   * Ignores lifecycle options since no lifecycle events occur here. This
 //     simplifies the graph significantly since complex transforms such as
 //     create-before-destroy can be completely ignored.
 //
-type PlanGraphBuilder struct {
+type RefreshGraphBuilder struct {
 	// Module is the root module for the graph to build.
 	Module *module.Tree
 
@@ -37,16 +39,16 @@ type PlanGraphBuilder struct {
 }
 
 // See GraphBuilder
-func (b *PlanGraphBuilder) Build(path []string) (*Graph, error) {
+func (b *RefreshGraphBuilder) Build(path []string) (*Graph, error) {
 	return (&BasicGraphBuilder{
 		Steps:    b.Steps(),
 		Validate: b.Validate,
-		Name:     "PlanGraphBuilder",
+		Name:     "RefreshGraphBuilder",
 	}).Build(path)
 }
 
 // See GraphBuilder
-func (b *PlanGraphBuilder) Steps() []GraphTransformer {
+func (b *RefreshGraphBuilder) Steps() []GraphTransformer {
 	// Custom factory for creating providers.
 	concreteProvider := func(a *NodeAbstractProvider) dag.Vertex {
 		return &NodeApplyableProvider{
@@ -55,41 +57,40 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	}
 
 	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodePlannableResource{
+		return &NodeRefreshableResource{
+			NodeAbstractResource: a,
+		}
+	}
+
+	concreteDataResource := func(a *NodeAbstractResource) dag.Vertex {
+		return &NodeRefreshableDataResource{
 			NodeAbstractCountResource: &NodeAbstractCountResource{
 				NodeAbstractResource: a,
 			},
 		}
 	}
 
-	concreteResourceOrphan := func(a *NodeAbstractResource) dag.Vertex {
-		return &NodePlannableResourceOrphan{
-			NodeAbstractResource: a,
-		}
-	}
-
 	steps := []GraphTransformer{
-		// Creates all the resources represented in the config
-		&ConfigTransformer{
+		// Creates all the resources represented in the state
+		&StateTransformer{
 			Concrete: concreteResource,
-			Module:   b.Module,
-		},
-
-		// Add the outputs
-		&OutputTransformer{Module: b.Module},
-
-		// Add orphan resources
-		&OrphanResourceTransformer{
-			Concrete: concreteResourceOrphan,
 			State:    b.State,
-			Module:   b.Module,
 		},
 
-		// Attach the configuration to any resources
-		&AttachResourceConfigTransformer{Module: b.Module},
+		// Creates all the data resources that aren't in the state
+		&ConfigTransformer{
+			Concrete:   concreteDataResource,
+			Module:     b.Module,
+			Unique:     true,
+			ModeFilter: true,
+			Mode:       config.DataResourceMode,
+		},
 
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
+
+		// Attach the configuration to any resources
+		&AttachResourceConfigTransformer{Module: b.Module},
 
 		// Add root variables
 		&RootVariableTransformer{Module: b.Module},
@@ -100,6 +101,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&DisableProviderTransformer{},
 		&ParentProviderTransformer{},
 		&AttachProviderConfigTransformer{Module: b.Module},
+
+		// Add the outputs
+		&OutputTransformer{Module: b.Module},
 
 		// Add module variables
 		&ModuleVariableTransformer{Module: b.Module},

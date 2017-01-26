@@ -10,6 +10,7 @@ type GraphType byte
 const (
 	GraphTypeInvalid GraphType = 0
 	GraphTypeLegacy  GraphType = iota
+	GraphTypeRefresh
 	GraphTypePlan
 	GraphTypePlanDestroy
 	GraphTypeApply
@@ -22,5 +23,6 @@ var GraphTypeMap = map[string]GraphType{
 	"apply":        GraphTypeApply,
 	"plan":         GraphTypePlan,
 	"plan-destroy": GraphTypePlanDestroy,
+	"refresh":      GraphTypeRefresh,
 	"legacy":       GraphTypeLegacy,
 }
