@@ -159,18 +159,10 @@ func resourceAwsEcsTaskDefinitionCreate(d *schema.ResourceData, meta interface{}
 			if err := validateAwsEcsPlacementConstraint(t, e); err != nil {
 				return err
 			}
-
-			switch t {
-			case "distinctInstance":
-				pc = append(pc, &ecs.TaskDefinitionPlacementConstraint{
-					Type: aws.String(t),
-				})
-			default:
-				pc = append(pc, &ecs.TaskDefinitionPlacementConstraint{
-					Type:       aws.String(t),
-					Expression: aws.String(e),
-				})
-			}
+			pc = append(pc, &ecs.TaskDefinitionPlacementConstraint{
+				Type:       aws.String(t),
+				Expression: aws.String(e),
+			})
 		}
 		input.PlacementConstraints = pc
 	}
@@ -229,11 +221,7 @@ func flattenPlacementConstraints(pcs []*ecs.TaskDefinitionPlacementConstraint) [
 	for _, pc := range pcs {
 		c := make(map[string]interface{})
 		c["type"] = *pc.Type
-
-		if c["type"] != "distinctInstance" {
-			c["expression"] = *pc.Expression
-		}
-
+		c["expression"] = *pc.Expression
 		results = append(results, c)
 	}
 	return results
