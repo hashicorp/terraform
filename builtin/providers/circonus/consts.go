@@ -37,6 +37,10 @@ const (
 
 	defaultCollectorDetailAttrs = 10
 
+	defaultGraphDatapoints = 8
+	defaultGraphLineStyle  = "stepped"
+	defaultGraphStyle      = "line"
+
 	_MetricUnit       = ""
 	_MetricUnitRegexp = `^.*$`
 
@@ -57,6 +61,41 @@ var _ValidMetricTypes = _ValidStringValues{
 	`histogram`,
 	`numeric`,
 	`text`,
+}
+
+// _ValidAggregateFuncs: See `aggregate_function`: https://login.circonus.com/resources/api/calls/graph
+var _ValidAggregateFuncs = _ValidStringValues{
+	`none`,
+	`min`,
+	`max`,
+	`sum`,
+	`mean`,
+	`geometric_mean`,
+}
+
+// _ValidGraphLineStyles: See `line_style`: https://login.circonus.com/resources/api/calls/graph
+var _ValidGraphLineStyles = _ValidStringValues{
+	`stepped`,
+	`interpolated`,
+}
+
+// _ValidGraphStyles: See `style`: https://login.circonus.com/resources/api/calls/graph
+var _ValidGraphStyles = _ValidStringValues{
+	`area`,
+	`line`,
+}
+
+// _ValidAxisAttrs: See `line_style`: https://login.circonus.com/resources/api/calls/graph
+var _ValidAxisAttrs = _ValidStringValues{
+	`left`,
+	`right`,
+}
+
+// _ValidGraphFunctionValues: See `derive`: https://login.circonus.com/resources/api/calls/graph
+var _ValidGraphFunctionValues = _ValidStringValues{
+	`gauge`,
+	`derive`,
+	`counter`,
 }
 
 // _ValidTriggerWindowFuncs: See `derive` or `windowing_func`: https://login.circonus.com/resources/api/calls/rule_set
