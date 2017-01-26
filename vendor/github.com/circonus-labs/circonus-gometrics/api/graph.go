@@ -48,7 +48,7 @@ type GraphComposite struct {
 
 // GraphDatapoint defines a datapoint
 type GraphDatapoint struct {
-	Alpha         string      `json:"alpha,omitempty"`          // string
+	Alpha         *string     `json:"alpha,omitempty"`          // string
 	Axis          string      `json:"axis,omitempty"`           // string
 	CAQL          *string     `json:"caql,omitempty"`           // string or null
 	CheckID       uint        `json:"check_id,omitempty"`       // uint
@@ -59,7 +59,7 @@ type GraphDatapoint struct {
 	LegendFormula *string     `json:"legend_formula,omitempty"` // string or null
 	MetricName    string      `json:"metric_name,omitempty"`    // string
 	MetricType    string      `json:"metric_type,omitempty"`    // string
-	Name          string      `json:"name,omitempty"`           // string
+	Name          string      `json:"name"`                     // string
 	Stack         *uint       `json:"stack,omitempty"`          // uint or null
 }
 
@@ -143,8 +143,8 @@ type Graph struct {
 	Description    string                      `json:"description,omitempty"`          // string
 	Guides         []GraphGuide                `json:"guides,omitempty"`               // [] len >= 0
 	LineStyle      string                      `json:"line_style,omitempty"`           // string
-	LogLeftY       int                         `json:"logarithmitc_left_y,omitempty"`  // string or null BUG doc: number (not string)
-	LogRightY      int                         `json:"logarithmitc_right_y,omitempty"` // string or null BUG doc: number (not string)
+	LogLeftY       *int                        `json:"logarithmitc_left_y,omitempty"`  // string or null BUG doc: number (not string)
+	LogRightY      *int                        `json:"logarithmitc_right_y,omitempty"` // string or null BUG doc: number (not string)
 	MaxLeftY       *string                     `json:"max_left_y,omitempty"`           // string or null BUG doc: number (not string)
 	MaxRightY      *string                     `json:"max_right_y,omitempty"`          // string or null BUG doc: number (not string)
 	MetricClusters []GraphMetricCluster        `json:"metric_clusters,omitempty"`      // [] len >= 0

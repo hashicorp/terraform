@@ -117,6 +117,15 @@ func (m _InterfaceMap) GetIntOK(attrName _SchemaAttr) (int, bool) {
 	return 0, false
 }
 
+func (m _InterfaceMap) GetIntPtr(attrName _SchemaAttr) *int {
+	if v, ok := m[string(attrName)]; ok {
+		i := v.(int)
+		return &i
+	}
+
+	return nil
+}
+
 func (m _InterfaceMap) GetString(attrName _SchemaAttr) string {
 	if v, ok := m[string(attrName)]; ok {
 		return v.(string)

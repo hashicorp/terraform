@@ -66,6 +66,10 @@ func (r *_MapReader) GetIntOK(attrName _SchemaAttr) (int, bool) {
 	return 0, false
 }
 
+func (r *_MapReader) GetIntPtr(attrName _SchemaAttr) *int {
+	return r.m.GetIntPtr(attrName)
+}
+
 func (r *_MapReader) GetListOK(attrName _SchemaAttr) (_InterfaceList, bool) {
 	if listRaw, ok := r.m[string(attrName)]; ok {
 		return _InterfaceList{listRaw.([]interface{})}, true

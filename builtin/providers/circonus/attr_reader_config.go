@@ -70,6 +70,15 @@ func (r *_ConfigReader) GetIntOK(attrName _SchemaAttr) (int, bool) {
 	return 0, false
 }
 
+func (r *_ConfigReader) GetIntPtr(attrName _SchemaAttr) *int {
+	if v, ok := r.d.GetOk(string(attrName)); ok {
+		i := v.(int)
+		return &i
+	}
+
+	return nil
+}
+
 func (r *_ConfigReader) GetListOK(attrName _SchemaAttr) (_InterfaceList, bool) {
 	if listRaw, ok := r.d.GetOk(string(attrName)); ok {
 		return _InterfaceList{listRaw.([]interface{})}, true

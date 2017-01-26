@@ -205,6 +205,7 @@ func _NewGraphResource() *schema.Resource {
 						_GraphFunctionAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
+							Default:      defaultGraphFunction,
 							ValidateFunc: _ValidateStringIn(_GraphFunctionAttr, _ValidGraphFunctionValues),
 						},
 						_GraphMetricTypeAttr: &schema.Schema{
@@ -329,10 +330,10 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 
 		dataPointAttrs[string(_GraphStreamActiveAttr)] = !datapoint.Hidden
 
-		if datapoint.Alpha != "" {
-			f, err := strconv.ParseFloat(datapoint.Alpha, 32)
+		if datapoint.Alpha != nil {
+			f, err := strconv.ParseFloat(*datapoint.Alpha, 32)
 			if err != nil {
-				return errwrap.Wrapf(fmt.Sprintf("Unable to parse datapoint %d's alpha %q: {{err}}", i, datapoint.Alpha), err)
+				return errwrap.Wrapf(fmt.Sprintf("Unable to parse datapoint %d's alpha %q: {{err}}", i, *datapoint.Alpha), err)
 			}
 			dataPointAttrs[string(_GraphAlphaAttr)] = f
 		}
@@ -436,7 +437,9 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	leftAxisMap := make(map[string]interface{}, 3)
-	leftAxisMap[string(_GraphLogarithmicAttr)] = fmt.Sprintf("%d", g.LogLeftY)
+	if g.LogLeftY != nil {
+		leftAxisMap[string(_GraphLogarithmicAttr)] = fmt.Sprintf("%d", *g.LogLeftY)
+	}
 
 	if g.MaxLeftY != nil && *g.MaxLeftY != "" {
 		leftAxisMap[string(_GraphMaxAttr)] = *g.MaxLeftY
@@ -447,7 +450,9 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	rightAxisMap := make(map[string]interface{}, 3)
-	rightAxisMap[string(_GraphLogarithmicAttr)] = fmt.Sprintf("%d", g.LogRightY)
+	if g.LogRightY != nil {
+		rightAxisMap[string(_GraphLogarithmicAttr)] = fmt.Sprintf("%d", *g.LogRightY)
+	}
 
 	if g.MaxRightY != nil && *g.MaxRightY != "" {
 		rightAxisMap[string(_GraphMaxAttr)] = *g.MaxRightY
@@ -531,12 +536,14 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 
 	{
 		leftMap := ar.GetMap(_GraphLeftAttr)
-		if v, ok := leftMap[string(_GraphLogarithmicAttr)]; ok && v.(string) != "0" {
+		if v, ok := leftMap[string(_GraphLogarithmicAttr)]; ok {
 			switch v.(string) {
 			case "0":
-				g.LogLeftY = 0
+				i := 0
+				g.LogLeftY = &i
 			case "1":
-				g.LogLeftY = 1
+				i := 1
+				g.LogLeftY = &i
 			default:
 				panic(fmt.Sprintf("PROVIDER BUG: unsupported log attribute: %q", v.(string)))
 			}
@@ -555,12 +562,14 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 
 	{
 		rightMap := ar.GetMap(_GraphRightAttr)
-		if v, ok := rightMap[string(_GraphLogarithmicAttr)]; ok && v.(string) != "0" {
+		if v, ok := rightMap[string(_GraphLogarithmicAttr)]; ok {
 			switch v.(string) {
 			case "0":
-				g.LogRightY = 0
+				i := 0
+				g.LogRightY = &i
 			case "1":
-				g.LogRightY = 1
+				i := 1
+				g.LogRightY = &i
 			default:
 				panic(fmt.Sprintf("PROVIDER BUG: unsupported log attribute: %q", v.(string)))
 			}
@@ -605,7 +614,8 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 				}
 
 				if f, ok := streamReader.GetFloat64OK(_GraphAlphaAttr); ok {
-					datapoint.Alpha = fmt.Sprintf("%f", f)
+					s := fmt.Sprintf("%f", f)
+					datapoint.Alpha = &s
 				}
 
 				if s, ok := streamReader.GetStringOK(_GraphStreamAxisAttr); ok {
@@ -658,8 +668,8 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 					datapoint.Name = s
 				}
 
-				if i, ok := streamReader.GetIntOK(_GraphStreamStackAttr); ok {
-					u := uint(i)
+				if i := streamReader.GetIntPtr(_GraphStreamStackAttr); i != nil {
+					u := uint(*i)
 					datapoint.Stack = &u
 				}
 
@@ -710,8 +720,8 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 					metricCluster.Name = s
 				}
 
-				if i, ok := streamGroupReader.GetIntOK(_GraphStreamStackAttr); ok {
-					u := uint(i)
+				if i := streamGroupReader.GetIntPtr(_GraphStreamStackAttr); i != nil {
+					u := uint(*i)
 					metricCluster.Stack = &u
 				}
 
