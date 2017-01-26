@@ -321,6 +321,11 @@ func (n *graphNodeOrphanResource) managedResourceEvalNodes(info *InstanceInfo) [
 					Name:   n.ResourceKey.String(),
 					Output: &state,
 				},
+				&EvalApplyPre{
+					Info:  info,
+					State: &state,
+					Diff:  &diff,
+				},
 				&EvalApply{
 					Info:     info,
 					State:    &state,

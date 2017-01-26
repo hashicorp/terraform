@@ -232,6 +232,78 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 		"module.A.null_resource.foo (destroy)")
 }
 
+func TestApplyGraphBuilder_provisioner(t *testing.T) {
+	diff := &Diff{
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: []string{"root"},
+				Resources: map[string]*InstanceDiff{
+					"null_resource.foo": &InstanceDiff{
+						Attributes: map[string]*ResourceAttrDiff{
+							"name": &ResourceAttrDiff{
+								Old: "",
+								New: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	b := &ApplyGraphBuilder{
+		Module:       testModule(t, "graph-builder-apply-provisioner"),
+		Diff:         diff,
+		Providers:    []string{"null"},
+		Provisioners: []string{"local"},
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	testGraphContains(t, g, "provisioner.local")
+	testGraphHappensBefore(
+		t, g,
+		"provisioner.local",
+		"null_resource.foo")
+}
+
+func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
+	diff := &Diff{
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: []string{"root"},
+				Resources: map[string]*InstanceDiff{
+					"null_resource.foo": &InstanceDiff{
+						Destroy: true,
+					},
+				},
+			},
+		},
+	}
+
+	b := &ApplyGraphBuilder{
+		Destroy:      true,
+		Module:       testModule(t, "graph-builder-apply-provisioner"),
+		Diff:         diff,
+		Providers:    []string{"null"},
+		Provisioners: []string{"local"},
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	testGraphContains(t, g, "provisioner.local")
+	testGraphHappensBefore(
+		t, g,
+		"provisioner.local",
+		"null_resource.foo (destroy)")
+}
+
 const testApplyGraphBuilderStr = `
 aws_instance.create
   provider.aws
