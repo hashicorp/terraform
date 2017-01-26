@@ -26,73 +26,73 @@ func resourceAwsEcsService() *schema.Resource {
 		Delete: resourceAwsEcsServiceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"cluster": &schema.Schema{
+			"cluster": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"task_definition": &schema.Schema{
+			"task_definition": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"desired_count": &schema.Schema{
+			"desired_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
 
-			"iam_role": &schema.Schema{
+			"iam_role": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
 			},
 
-			"deployment_maximum_percent": &schema.Schema{
+			"deployment_maximum_percent": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  200,
 			},
 
-			"deployment_minimum_healthy_percent": &schema.Schema{
+			"deployment_minimum_healthy_percent": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  100,
 			},
 
-			"load_balancer": &schema.Schema{
+			"load_balancer": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"elb_name": &schema.Schema{
+						"elb_name": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 
-						"target_group_arn": &schema.Schema{
+						"target_group_arn": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 
-						"container_name": &schema.Schema{
+						"container_name": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
 
-						"container_port": &schema.Schema{
+						"container_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 							ForceNew: true,
@@ -100,6 +100,48 @@ func resourceAwsEcsService() *schema.Resource {
 					},
 				},
 				Set: resourceAwsEcsLoadBalancerHash,
+			},
+
+			"placement_strategy": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 5,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Required: true,
+						},
+						"field": {
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Optional: true,
+						},
+					},
+				},
+			},
+
+			"placement_constraints": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 10,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Required: true,
+						},
+						"expression": {
+							Type:     schema.TypeString,
+							ForceNew: true,
+							Optional: true,
+						},
+					},
+				},
 			},
 		},
 	}
@@ -130,6 +172,42 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 	}
 	if v, ok := d.GetOk("iam_role"); ok {
 		input.Role = aws.String(v.(string))
+	}
+
+	strategies := d.Get("placement_strategy").(*schema.Set).List()
+	if len(strategies) > 0 {
+		var ps []*ecs.PlacementStrategy
+		for _, raw := range strategies {
+			p := raw.(map[string]interface{})
+			t := p["type"].(string)
+			f := p["field"].(string)
+			if err := validateAwsEcsPlacementStrategy(t, f); err != nil {
+				return err
+			}
+			ps = append(ps, &ecs.PlacementStrategy{
+				Type:  aws.String(p["type"].(string)),
+				Field: aws.String(p["field"].(string)),
+			})
+		}
+		input.PlacementStrategy = ps
+	}
+
+	constraints := d.Get("placement_constraints").(*schema.Set).List()
+	if len(constraints) > 0 {
+		var pc []*ecs.PlacementConstraint
+		for _, raw := range constraints {
+			p := raw.(map[string]interface{})
+			t := p["type"].(string)
+			e := p["expression"].(string)
+			if err := validateAwsEcsPlacementConstraint(t, e); err != nil {
+				return err
+			}
+			pc = append(pc, &ecs.PlacementConstraint{
+				Type:       aws.String(t),
+				Expression: aws.String(e),
+			})
+		}
+		input.PlacementConstraints = pc
 	}
 
 	log.Printf("[DEBUG] Creating ECS service: %s", input)
@@ -204,7 +282,7 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", service.ServiceName)
 
 	// Save task definition in the same format
-	if strings.HasPrefix(d.Get("task_definition").(string), "arn:aws:ecs:") {
+	if strings.HasPrefix(d.Get("task_definition").(string), "arn:"+meta.(*AWSClient).partition+":ecs:") {
 		d.Set("task_definition", service.TaskDefinition)
 	} else {
 		taskDefinition := buildFamilyAndRevisionFromARN(*service.TaskDefinition)
@@ -214,7 +292,7 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("desired_count", service.DesiredCount)
 
 	// Save cluster in the same format
-	if strings.HasPrefix(d.Get("cluster").(string), "arn:aws:ecs:") {
+	if strings.HasPrefix(d.Get("cluster").(string), "arn:"+meta.(*AWSClient).partition+":ecs:") {
 		d.Set("cluster", service.ClusterArn)
 	} else {
 		clusterARN := getNameFromARN(*service.ClusterArn)
@@ -223,7 +301,7 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Save IAM role in the same format
 	if service.RoleArn != nil {
-		if strings.HasPrefix(d.Get("iam_role").(string), "arn:aws:iam:") {
+		if strings.HasPrefix(d.Get("iam_role").(string), "arn:"+meta.(*AWSClient).partition+":iam:") {
 			d.Set("iam_role", service.RoleArn)
 		} else {
 			roleARN := getNameFromARN(*service.RoleArn)
@@ -240,7 +318,42 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("load_balancers", flattenEcsLoadBalancers(service.LoadBalancers))
 	}
 
+	if err := d.Set("placement_strategy", flattenPlacementStrategy(service.PlacementStrategy)); err != nil {
+		log.Printf("[ERR] Error setting placement_strategy for (%s): %s", d.Id(), err)
+	}
+	if err := d.Set("placement_constraints", flattenServicePlacementConstraints(service.PlacementConstraints)); err != nil {
+		log.Printf("[ERR] Error setting placement_constraints for (%s): %s", d.Id(), err)
+	}
+
 	return nil
+}
+
+func flattenServicePlacementConstraints(pcs []*ecs.PlacementConstraint) []map[string]interface{} {
+	if len(pcs) == 0 {
+		return nil
+	}
+	results := make([]map[string]interface{}, 0)
+	for _, pc := range pcs {
+		c := make(map[string]interface{})
+		c["type"] = *pc.Type
+		c["expression"] = *pc.Expression
+		results = append(results, c)
+	}
+	return results
+}
+
+func flattenPlacementStrategy(pss []*ecs.PlacementStrategy) []map[string]interface{} {
+	if len(pss) == 0 {
+		return nil
+	}
+	results := make([]map[string]interface{}, 0)
+	for _, ps := range pss {
+		c := make(map[string]interface{})
+		c["type"] = *ps.Type
+		c["field"] = *ps.Field
+		results = append(results, c)
+	}
+	return results
 }
 
 func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error {

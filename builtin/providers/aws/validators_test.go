@@ -78,6 +78,7 @@ func TestValidateCloudWatchEventRuleName(t *testing.T) {
 func TestValidateLambdaFunctionName(t *testing.T) {
 	validNames := []string{
 		"arn:aws:lambda:us-west-2:123456789012:function:ThumbNail",
+		"arn:aws-us-gov:lambda:us-west-2:123456789012:function:ThumbNail",
 		"FunctionName",
 		"function-name",
 	}
@@ -203,6 +204,7 @@ func TestValidateArn(t *testing.T) {
 		"arn:aws:events:us-east-1:319201112229:rule/rule_name",                             // CloudWatch Rule
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction",                  // Lambda function
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction:Qualifier",        // Lambda func qualifier
+		"arn:aws-us-gov:s3:::corp_bucket/object.png",                                       // GovCloud ARN
 	}
 	for _, v := range validNames {
 		_, errors := validateArn(v, "arn")
@@ -759,6 +761,49 @@ func TestValidateJsonString(t *testing.T) {
 	}
 }
 
+func TestValidateCloudFormationTemplate(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    `{"abc":"`,
+			ErrCount: 1,
+		},
+		{
+			Value:    "abc: [",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateCloudFormationTemplate(tc.Value, "template")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    `{"abc":"1"}`,
+			ErrCount: 0,
+		},
+		{
+			Value:    `abc: 1`,
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateCloudFormationTemplate(tc.Value, "template")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
 func TestValidateApiGatewayIntegrationType(t *testing.T) {
 	type testCases struct {
 		Value    string
@@ -921,5 +966,209 @@ func TestValidateSecurityRuleType(t *testing.T) {
 		if _, errors := validateSecurityRuleType(v, "type"); len(errors) == 0 {
 			t.Fatalf("%q should be an invalid Security Group Rule type: %v", v, errors)
 		}
+	}
+}
+
+func TestValidateOnceAWeekWindowFormat(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			// once a day window format
+			Value:    "04:00-05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid day of week
+			Value:    "san:04:00-san:05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid hour
+			Value:    "sun:24:00-san:25:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid min
+			Value:    "sun:04:00-sun:04:60",
+			ErrCount: 1,
+		},
+		{
+			// valid format
+			Value:    "sun:04:00-sun:05:00",
+			ErrCount: 0,
+		},
+		{
+			// "Sun" can also be used
+			Value:    "Sun:04:00-Sun:05:00",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateOnceAWeekWindowFormat(tc.Value, "maintenance_window")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d validation errors, But got %d errors for \"%s\"", tc.ErrCount, len(errors), tc.Value)
+		}
+	}
+}
+
+func TestValidateOnceADayWindowFormat(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			// once a week window format
+			Value:    "sun:04:00-sun:05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid hour
+			Value:    "24:00-25:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid min
+			Value:    "04:00-04:60",
+			ErrCount: 1,
+		},
+		{
+			// valid format
+			Value:    "04:00-05:00",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateOnceADayWindowFormat(tc.Value, "backup_window")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d validation errors, But got %d errors for \"%s\"", tc.ErrCount, len(errors), tc.Value)
+		}
+	}
+}
+
+func TestValidateRoute53RecordType(t *testing.T) {
+	validTypes := []string{
+		"AAAA",
+		"SOA",
+		"A",
+		"TXT",
+		"CNAME",
+		"MX",
+		"NAPTR",
+		"PTR",
+		"SPF",
+		"SRV",
+		"NS",
+	}
+
+	invalidTypes := []string{
+		"a",
+		"alias",
+		"SpF",
+		"Txt",
+		"AaAA",
+	}
+
+	for _, v := range validTypes {
+		_, errors := validateRoute53RecordType(v, "route53_record")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Route53 record type: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidTypes {
+		_, errors := validateRoute53RecordType(v, "route53_record")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Route53 record type", v)
+		}
+	}
+}
+
+func TestValidateEcsPlacementConstraint(t *testing.T) {
+	cases := []struct {
+		constType string
+		constExpr string
+		Err       bool
+	}{
+		{
+			constType: "distinctInstance",
+			constExpr: "",
+			Err:       false,
+		},
+		{
+			constType: "memberOf",
+			constExpr: "",
+			Err:       true,
+		},
+		{
+			constType: "distinctInstance",
+			constExpr: "expression",
+			Err:       false,
+		},
+		{
+			constType: "memberOf",
+			constExpr: "expression",
+			Err:       false,
+		},
+	}
+
+	for _, tc := range cases {
+		if err := validateAwsEcsPlacementConstraint(tc.constType, tc.constExpr); err != nil && !tc.Err {
+			t.Fatalf("Unexpected validation error for \"%s:%s\": %s",
+				tc.constType, tc.constExpr, err)
+		}
+
+	}
+}
+
+func TestValidateEcsPlacementStrategy(t *testing.T) {
+	cases := []struct {
+		stratType  string
+		stratField string
+		Err        bool
+	}{
+		{
+			stratType:  "random",
+			stratField: "",
+			Err:        false,
+		},
+		{
+			stratType:  "spread",
+			stratField: "instanceID",
+			Err:        false,
+		},
+		{
+			stratType:  "binpack",
+			stratField: "cpu",
+			Err:        false,
+		},
+		{
+			stratType:  "binpack",
+			stratField: "memory",
+			Err:        false,
+		},
+		{
+			stratType:  "binpack",
+			stratField: "disk",
+			Err:        true,
+		},
+		{
+			stratType:  "fakeType",
+			stratField: "",
+			Err:        true,
+		},
+	}
+
+	for _, tc := range cases {
+		if err := validateAwsEcsPlacementStrategy(tc.stratType, tc.stratField); err != nil && !tc.Err {
+			t.Fatalf("Unexpected validation error for \"%s:%s\": %s",
+				tc.stratType, tc.stratField, err)
+		}
+
 	}
 }

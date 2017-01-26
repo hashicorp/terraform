@@ -288,6 +288,18 @@ func TestTreeValidate_table(t *testing.T) {
 			"validate-alias-bad",
 			"alias must be defined",
 		},
+
+		{
+			"root module named root",
+			"validate-module-root",
+			"cannot contain module",
+		},
+
+		{
+			"grandchild module named root",
+			"validate-module-root-grandchild",
+			"",
+		},
 	}
 
 	for i, tc := range cases {

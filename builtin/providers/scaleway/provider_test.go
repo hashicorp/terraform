@@ -32,7 +32,9 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("SCALEWAY_ORGANIZATION"); v == "" {
 		t.Fatal("SCALEWAY_ORGANIZATION must be set for acceptance tests")
 	}
-	if v := os.Getenv("SCALEWAY_ACCESS_KEY"); v == "" {
-		t.Fatal("SCALEWAY_ACCESS_KEY must be set for acceptance tests")
+	tokenFromAccessKey := os.Getenv("SCALEWAY_ACCESS_KEY")
+	token := os.Getenv("SCALEWAY_TOKEN")
+	if token == "" && tokenFromAccessKey == "" {
+		t.Fatal("SCALEWAY_TOKEN must be set for acceptance tests")
 	}
 }

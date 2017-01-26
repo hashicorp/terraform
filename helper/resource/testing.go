@@ -581,13 +581,40 @@ func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
 			return fmt.Errorf("No primary instance: %s", name)
 		}
 
-		if is.Attributes[key] != value {
+		if v, ok := is.Attributes[key]; !ok || v != value {
+			if !ok {
+				return fmt.Errorf("%s: Attribute '%s' not found", name, key)
+			}
+
 			return fmt.Errorf(
 				"%s: Attribute '%s' expected %#v, got %#v",
 				name,
 				key,
 				value,
 				is.Attributes[key])
+		}
+
+		return nil
+	}
+}
+
+// TestCheckNoResourceAttr is a TestCheckFunc which ensures that
+// NO value exists in state for the given name/key combination.
+func TestCheckNoResourceAttr(name, key string) TestCheckFunc {
+	return func(s *terraform.State) error {
+		ms := s.RootModule()
+		rs, ok := ms.Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		is := rs.Primary
+		if is == nil {
+			return fmt.Errorf("No primary instance: %s", name)
+		}
+
+		if _, ok := is.Attributes[key]; ok {
+			return fmt.Errorf("%s: Attribute '%s' found when not expected", name, key)
 		}
 
 		return nil

@@ -32,6 +32,7 @@ type ArmClient struct {
 	clientId       string
 	tenantId       string
 	subscriptionId string
+	environment    azure.Environment
 
 	StopContext context.Context
 
@@ -131,13 +132,6 @@ func setUserAgent(client *autorest.Client) {
 // getArmClient is a helper method which returns a fully instantiated
 // *ArmClient based on the Config's current settings.
 func (c *Config) getArmClient() (*ArmClient, error) {
-	// client declarations:
-	client := ArmClient{
-		clientId:       c.ClientID,
-		tenantId:       c.TenantID,
-		subscriptionId: c.SubscriptionID,
-	}
-
 	// detect cloud from environment
 	env, envErr := azure.EnvironmentFromName(c.Environment)
 	if envErr != nil {
@@ -147,6 +141,14 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 		if env, innerErr = azure.EnvironmentFromName(wrapped); innerErr != nil {
 			return nil, envErr
 		}
+	}
+
+	// client declarations:
+	client := ArmClient{
+		clientId:       c.ClientID,
+		tenantId:       c.TenantID,
+		subscriptionId: c.SubscriptionID,
+		environment:    env,
 	}
 
 	rivieraClient, err := riviera.NewClient(&riviera.AzureResourceManagerCredentials{
@@ -470,7 +472,8 @@ func (armClient *ArmClient) getBlobStorageClientForStorageAccount(resourceGroupN
 		return nil, false, nil
 	}
 
-	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	storageClient, err := mainStorage.NewClient(storageAccountName, key, armClient.environment.StorageEndpointSuffix,
+		mainStorage.DefaultAPIVersion, true)
 	if err != nil {
 		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
 	}
@@ -488,7 +491,8 @@ func (armClient *ArmClient) getFileServiceClientForStorageAccount(resourceGroupN
 		return nil, false, nil
 	}
 
-	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	storageClient, err := mainStorage.NewClient(storageAccountName, key, armClient.environment.StorageEndpointSuffix,
+		mainStorage.DefaultAPIVersion, true)
 	if err != nil {
 		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
 	}
@@ -506,7 +510,8 @@ func (armClient *ArmClient) getTableServiceClientForStorageAccount(resourceGroup
 		return nil, false, nil
 	}
 
-	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	storageClient, err := mainStorage.NewClient(storageAccountName, key, armClient.environment.StorageEndpointSuffix,
+		mainStorage.DefaultAPIVersion, true)
 	if err != nil {
 		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
 	}
@@ -524,7 +529,8 @@ func (armClient *ArmClient) getQueueServiceClientForStorageAccount(resourceGroup
 		return nil, false, nil
 	}
 
-	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	storageClient, err := mainStorage.NewClient(storageAccountName, key, armClient.environment.StorageEndpointSuffix,
+		mainStorage.DefaultAPIVersion, true)
 	if err != nil {
 		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
 	}

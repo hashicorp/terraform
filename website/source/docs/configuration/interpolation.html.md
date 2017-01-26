@@ -60,8 +60,6 @@ The syntax is `TYPE.NAME.ATTRIBUTE`. For example,
 attribute set, you can access individual attributes with a zero-based
 index, such as `${aws_instance.web.0.id}`. You can also use the splat
 syntax to get a list of all the attributes: `${aws_instance.web.*.id}`.
-This is documented in more detail in the [resource configuration
-page](/docs/configuration/resources.html).
 
 #### Outputs from a module
 
@@ -159,7 +157,7 @@ The supported built-in functions are:
     systems expect for IPv4 interfaces. For example,
     `cidrnetmask("10.0.0.0/8")` returns `255.0.0.0`. Not applicable
     to IPv6 networks since CIDR notation is the only valid notation for
-    IPv4.
+    IPv6.
 
   * `cidrsubnet(iprange, newbits, netnum)` - Takes an IP address range in
     CIDR notation (like `10.0.0.0/8`) and extends its prefix to include an
@@ -273,6 +271,9 @@ The supported built-in functions are:
   * `md5(string)` - Returns a (conventional) hexadecimal representation of the
     MD5 hash of the given string.
 
+  * `pathexpand(string)` - Returns a filepath string with `~` expanded to the home directory. Note:
+    This will create a plan diff between two different hosts, unless the filepaths are the same.
+  
   * `replace(string, search, replace)` - Does a search and replace on the
       given string. All instances of `search` are replaced with the value
       of `replace`. If `search` is wrapped in forward slashes, it is treated

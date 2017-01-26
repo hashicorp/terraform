@@ -34,7 +34,7 @@
 //
 // See http://blog.golang.org/context for example code for a server that uses
 // Contexts.
-package context
+package context // import "github.com/fsouza/go-dockerclient/external/golang.org/x/net/context"
 
 import (
 	"errors"

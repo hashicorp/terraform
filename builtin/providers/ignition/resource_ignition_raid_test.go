@@ -32,7 +32,7 @@ func TestIngnitionRaid(t *testing.T) {
 		}
 
 		if len(a.Devices) != 1 || a.Devices[0] != "/foo" {
-			return fmt.Errorf("devices, found %d", a.Devices)
+			return fmt.Errorf("devices, found %v", a.Devices)
 		}
 
 		if a.Level != "raid10" {

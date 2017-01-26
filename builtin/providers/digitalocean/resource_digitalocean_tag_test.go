@@ -17,7 +17,7 @@ func TestAccDigitalOceanTag_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanTagDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanTagConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanTagExists("digitalocean_tag.foobar", &tag),

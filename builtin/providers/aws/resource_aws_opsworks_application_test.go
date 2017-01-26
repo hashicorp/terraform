@@ -172,7 +172,7 @@ func testAccCheckAWSOpsworksCreateAppAttributes(
 	opsapp *opsworks.App) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *opsapp.EnableSsl {
-			return fmt.Errorf("Unexpected enable ssl: %s", *opsapp.EnableSsl)
+			return fmt.Errorf("Unexpected enable ssl: %t", *opsapp.EnableSsl)
 		}
 
 		if *opsapp.Attributes["DocumentRoot"] != "foo" {
@@ -215,7 +215,7 @@ func testAccCheckAWSOpsworksUpdateAppAttributes(
 		}
 
 		if !*opsapp.EnableSsl {
-			return fmt.Errorf("Unexpected enable ssl: %s", *opsapp.EnableSsl)
+			return fmt.Errorf("Unexpected enable ssl: %t", *opsapp.EnableSsl)
 		}
 
 		if *opsapp.SslConfiguration.Certificate != "-----BEGIN CERTIFICATE-----\nMIIBkDCB+gIJALoScFD0sJq3MA0GCSqGSIb3DQEBBQUAMA0xCzAJBgNVBAYTAkRF\nMB4XDTE1MTIxOTIwMzU1MVoXDTE2MDExODIwMzU1MVowDTELMAkGA1UEBhMCREUw\ngZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAKKQKbTTH/Julz16xY7ArYlzJYCP\nedTCx1bopuryCx/+d1gC94MtRdlPSpQl8mfc9iBdtXbJppp73Qh/DzLzO9Ns25xZ\n+kUQMhbIyLsaCBzuEGLgAaVdGpNvRBw++UoYtd0U7QczFAreTGLH8n8+FIzuI5Mc\n+MJ1TKbbt5gFfRSzAgMBAAEwDQYJKoZIhvcNAQEFBQADgYEALARo96wCDmaHKCaX\nS0IGLGnZCfiIUfCmBxOXBSJxDBwter95QHR0dMGxYIujee5n4vvavpVsqZnfMC3I\nOZWPlwiUJbNIpK+04Bg2vd5m/NMMrvi75RfmyeMtSfq/NrIX2Q3+nyWI7DLq7yZI\nV/YEvOqdAiy5NEWBztHx8HvB9G4=\n-----END CERTIFICATE-----" {
@@ -234,7 +234,7 @@ func testAccCheckAWSOpsworksUpdateAppAttributes(
 		}
 
 		if !reflect.DeepEqual(expectedAttrs, opsapp.Attributes) {
-			return fmt.Errorf("Unnexpected Attributes: %s", opsapp.Attributes)
+			return fmt.Errorf("Unnexpected Attributes: %v", aws.StringValueMap(opsapp.Attributes))
 		}
 
 		expectedAppSource := &opsworks.Source{
@@ -270,7 +270,7 @@ func testAccCheckAWSOpsworksUpdateAppAttributes(
 		}
 
 		if !reflect.DeepEqual(expectedDomains, opsapp.Domains) {
-			return fmt.Errorf("Unnexpected Daomins : %s", opsapp.Domains)
+			return fmt.Errorf("Unnexpected Daomins : %v", aws.StringValueSlice(opsapp.Domains))
 		}
 
 		return nil

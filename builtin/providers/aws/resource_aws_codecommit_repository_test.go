@@ -86,8 +86,8 @@ func TestAccAWSCodeCommitRepository_create_and_update_default_branch(t *testing.
 				Config: testAccCodeCommitRepository_basic(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCodeCommitRepositoryExists("aws_codecommit_repository.test"),
-					resource.TestCheckResourceAttr(
-						"aws_codecommit_repository.test", "default_branch", ""),
+					resource.TestCheckNoResourceAttr(
+						"aws_codecommit_repository.test", "default_branch"),
 				),
 			},
 			resource.TestStep{
@@ -161,9 +161,6 @@ func testAccCheckCodeCommitRepositoryDestroy(s *terraform.State) error {
 
 func testAccCodeCommitRepository_basic(rInt int) string {
 	return fmt.Sprintf(`
-provider "aws" {
-  region = "us-east-1"
-}
 resource "aws_codecommit_repository" "test" {
   repository_name = "test_repository_%d"
   description = "This is a test description"
@@ -173,9 +170,6 @@ resource "aws_codecommit_repository" "test" {
 
 func testAccCodeCommitRepository_withChanges(rInt int) string {
 	return fmt.Sprintf(`
-provider "aws" {
-  region = "us-east-1"
-}
 resource "aws_codecommit_repository" "test" {
   repository_name = "test_repository_%d"
   description = "This is a test description - with changes"
@@ -185,9 +179,6 @@ resource "aws_codecommit_repository" "test" {
 
 func testAccCodeCommitRepository_with_default_branch(rInt int) string {
 	return fmt.Sprintf(`
-provider "aws" {
-  region = "us-east-1"
-}
 resource "aws_codecommit_repository" "test" {
   repository_name = "test_repository_%d"
   description = "This is a test description"

@@ -13,52 +13,52 @@ import (
 
 func TestParseTaskDefinition(t *testing.T) {
 	cases := map[string]map[string]interface{}{
-		"invalid": map[string]interface{}{
+		"invalid": {
 			"family":   "",
 			"revision": "",
 			"isValid":  false,
 		},
-		"invalidWithColon:": map[string]interface{}{
+		"invalidWithColon:": {
 			"family":   "",
 			"revision": "",
 			"isValid":  false,
 		},
-		"1234": map[string]interface{}{
+		"1234": {
 			"family":   "",
 			"revision": "",
 			"isValid":  false,
 		},
-		"invalid:aaa": map[string]interface{}{
+		"invalid:aaa": {
 			"family":   "",
 			"revision": "",
 			"isValid":  false,
 		},
-		"invalid=family:1": map[string]interface{}{
+		"invalid=family:1": {
 			"family":   "",
 			"revision": "",
 			"isValid":  false,
 		},
-		"invalid:name:1": map[string]interface{}{
+		"invalid:name:1": {
 			"family":   "",
 			"revision": "",
 			"isValid":  false,
 		},
-		"valid:1": map[string]interface{}{
+		"valid:1": {
 			"family":   "valid",
 			"revision": "1",
 			"isValid":  true,
 		},
-		"abc12-def:54": map[string]interface{}{
+		"abc12-def:54": {
 			"family":   "abc12-def",
 			"revision": "54",
 			"isValid":  true,
 		},
-		"lorem_ip-sum:123": map[string]interface{}{
+		"lorem_ip-sum:123": {
 			"family":   "lorem_ip-sum",
 			"revision": "123",
 			"isValid":  true,
 		},
-		"lorem-ipsum:1": map[string]interface{}{
+		"lorem-ipsum:1": {
 			"family":   "lorem-ipsum",
 			"revision": "1",
 			"isValid":  true,
@@ -89,14 +89,14 @@ func TestAccAWSEcsServiceWithARN(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEcsService,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSEcsServiceModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
@@ -112,14 +112,14 @@ func TestAccAWSEcsServiceWithFamilyAndRevision(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEcsServiceWithFamilyAndRevision,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.jenkins"),
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSEcsServiceWithFamilyAndRevisionModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.jenkins"),
@@ -141,7 +141,7 @@ func TestAccAWSEcsServiceWithRenamedCluster(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEcsServiceWithRenamedCluster,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.ghost"),
@@ -150,7 +150,7 @@ func TestAccAWSEcsServiceWithRenamedCluster(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSEcsServiceWithRenamedClusterModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.ghost"),
@@ -168,7 +168,7 @@ func TestAccAWSEcsService_withIamRole(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEcsService_withIamRole,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.ghost"),
@@ -184,7 +184,7 @@ func TestAccAWSEcsService_withDeploymentValues(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEcsServiceWithDeploymentValues,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
@@ -205,13 +205,13 @@ func TestAccAWSEcsService_withLbChanges(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEcsService_withLbChanges,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.with_lb_changes"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSEcsService_withLbChanges_modified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.with_lb_changes"),
@@ -229,7 +229,7 @@ func TestAccAWSEcsService_withEcsClusterName(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEcsServiceWithEcsClusterName,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.jenkins"),
@@ -247,10 +247,51 @@ func TestAccAWSEcsService_withAlb(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEcsServiceWithAlb,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsServiceExists("aws_ecs_service.with_alb"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSEcsServiceWithPlacementStrategy(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSEcsService,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
+					resource.TestCheckResourceAttr("aws_ecs_service.mongo", "placement_strategy.#", "0"),
+				),
+			},
+			{
+				Config: testAccAWSEcsServiceWithPlacementStrategy,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
+					resource.TestCheckResourceAttr("aws_ecs_service.mongo", "placement_strategy.#", "1"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSEcsServiceWithPlacementConstraints(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSEcsServiceWithPlacementConstraint,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
+					resource.TestCheckResourceAttr("aws_ecs_service.mongo", "placement_constraints.#", "1"),
 				),
 			},
 		},
@@ -357,6 +398,70 @@ resource "aws_ecs_service" "mongo" {
   cluster = "${aws_ecs_cluster.default.id}"
   task_definition = "${aws_ecs_task_definition.mongo.arn}"
   desired_count = 2
+}
+`
+
+var testAccAWSEcsServiceWithPlacementStrategy = `
+resource "aws_ecs_cluster" "default" {
+	name = "terraformecstest1"
+}
+
+resource "aws_ecs_task_definition" "mongo" {
+  family = "mongodb"
+  container_definitions = <<DEFINITION
+[
+  {
+    "cpu": 128,
+    "essential": true,
+    "image": "mongo:latest",
+    "memory": 128,
+    "name": "mongodb"
+  }
+]
+DEFINITION
+}
+
+resource "aws_ecs_service" "mongo" {
+  name = "mongodb"
+  cluster = "${aws_ecs_cluster.default.id}"
+  task_definition = "${aws_ecs_task_definition.mongo.arn}"
+  desired_count = 1
+  placement_strategy {
+	type = "binpack"
+	field = "MEMORY"
+  }
+}
+`
+
+var testAccAWSEcsServiceWithPlacementConstraint = `
+resource "aws_ecs_cluster" "default" {
+	name = "terraformecstest21"
+}
+
+resource "aws_ecs_task_definition" "mongo" {
+  family = "mongodb"
+  container_definitions = <<DEFINITION
+[
+  {
+    "cpu": 128,
+    "essential": true,
+    "image": "mongo:latest",
+    "memory": 128,
+    "name": "mongodb"
+  }
+]
+DEFINITION
+}
+
+resource "aws_ecs_service" "mongo" {
+  name = "mongodb"
+  cluster = "${aws_ecs_cluster.default.id}"
+  task_definition = "${aws_ecs_task_definition.mongo.arn}"
+  desired_count = 1
+  placement_constraints {
+	type = "memberOf"
+	expression = "attribute:ecs.availability-zone in [us-west-2a, us-west-2b]"
+  }
 }
 `
 
@@ -810,6 +915,7 @@ resource "aws_alb_target_group" "test" {
 
 resource "aws_alb" "main" {
   name            = "tf-acc-test-test-alb-ecs"
+  internal        = true
   subnets         = ["${aws_subnet.main.*.id}"]
 }
 

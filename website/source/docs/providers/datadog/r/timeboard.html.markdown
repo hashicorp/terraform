@@ -109,7 +109,8 @@ Nested `graph` `marker` blocks have the following structure:
 Nested `graph` `request` blocks have the following structure:
 
 * `q` - (Required) The query of the request. Pro tip: Use the JSON tab inside the Datadog UI to help build you query strings.
-* `stacked` - (Optional) Boolean value to determin if this is this a stacked area graph. Default: false (line chart).
+* `aggregator` - (Optional) The aggregation method used when the number of data points outnumbers the max that can be shown.
+* `stacked` - (Optional) Boolean value to determine if this is this a stacked area graph. Default: false (line chart).
 * `type` - (Optional) Choose how to draw the graph. For example: "lines", "bars" or "areas". Default: "lines".
 * `style` - (Optional) Nested block to customize the graph style.
 

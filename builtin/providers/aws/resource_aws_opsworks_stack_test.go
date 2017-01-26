@@ -257,7 +257,7 @@ func testAccCheckAWSOpsworksCreateStackAttributes(
 		}
 
 		if *opsstack.UseOpsworksSecurityGroups {
-			return fmt.Errorf("Unnexpected UseOpsworksSecurityGroups: %s", *opsstack.UseOpsworksSecurityGroups)
+			return fmt.Errorf("Unnexpected UseOpsworksSecurityGroups: %t", *opsstack.UseOpsworksSecurityGroups)
 		}
 
 		return nil
@@ -292,11 +292,11 @@ func testAccCheckAWSOpsworksUpdateStackAttributes(
 		}
 
 		if !*opsstack.UseCustomCookbooks {
-			return fmt.Errorf("Unnexpected UseCustomCookbooks: %s", *opsstack.UseCustomCookbooks)
+			return fmt.Errorf("Unnexpected UseCustomCookbooks: %t", *opsstack.UseCustomCookbooks)
 		}
 
 		if !*opsstack.ChefConfiguration.ManageBerkshelf {
-			return fmt.Errorf("Unnexpected ManageBerkshelf: %s", *opsstack.ChefConfiguration.ManageBerkshelf)
+			return fmt.Errorf("Unnexpected ManageBerkshelf: %t", *opsstack.ChefConfiguration.ManageBerkshelf)
 		}
 
 		if *opsstack.CustomCookbooksSource.Type != "git" {

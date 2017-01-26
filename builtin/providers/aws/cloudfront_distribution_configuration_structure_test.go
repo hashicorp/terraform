@@ -5,22 +5,24 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cloudfront"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func defaultCacheBehaviorConf() map[string]interface{} {
 	return map[string]interface{}{
-		"viewer_protocol_policy": "allow-all",
-		"target_origin_id":       "myS3Origin",
-		"forwarded_values":       schema.NewSet(forwardedValuesHash, []interface{}{forwardedValuesConf()}),
-		"min_ttl":                86400,
-		"trusted_signers":        trustedSignersConf(),
-		"max_ttl":                365000000,
-		"smooth_streaming":       false,
-		"default_ttl":            86400,
-		"allowed_methods":        allowedMethodsConf(),
-		"cached_methods":         cachedMethodsConf(),
-		"compress":               true,
+		"viewer_protocol_policy":      "allow-all",
+		"target_origin_id":            "myS3Origin",
+		"forwarded_values":            schema.NewSet(forwardedValuesHash, []interface{}{forwardedValuesConf()}),
+		"min_ttl":                     86400,
+		"trusted_signers":             trustedSignersConf(),
+		"lambda_function_association": lambdaFunctionAssociationsConf(),
+		"max_ttl":                     365000000,
+		"smooth_streaming":            false,
+		"default_ttl":                 86400,
+		"allowed_methods":             allowedMethodsConf(),
+		"cached_methods":              cachedMethodsConf(),
+		"compress":                    true,
 	}
 }
 
@@ -42,6 +44,21 @@ func cacheBehaviorsConf() *schema.Set {
 
 func trustedSignersConf() []interface{} {
 	return []interface{}{"1234567890EX", "1234567891EX"}
+}
+
+func lambdaFunctionAssociationsConf() *schema.Set {
+	x := []interface{}{
+		map[string]interface{}{
+			"event_type": "viewer-request",
+			"lambda_arn": "arn:aws:lambda:us-east-1:999999999:function1:alias",
+		},
+		map[string]interface{}{
+			"event_type": "origin-response",
+			"lambda_arn": "arn:aws:lambda:us-east-1:999999999:function2:alias",
+		},
+	}
+
+	return schema.NewSet(lambdaFunctionAssociationHash, x)
 }
 
 func forwardedValuesConf() map[string]interface{} {
@@ -236,6 +253,9 @@ func viewerCertificateConfSetACM() map[string]interface{} {
 func TestCloudFrontStructure_expandDefaultCacheBehavior(t *testing.T) {
 	data := defaultCacheBehaviorConf()
 	dcb := expandDefaultCacheBehavior(data)
+	if dcb == nil {
+		t.Fatalf("ExpandDefaultCacheBehavior returned nil")
+	}
 	if *dcb.Compress != true {
 		t.Fatalf("Expected Compress to be true, got %v", *dcb.Compress)
 	}
@@ -262,6 +282,9 @@ func TestCloudFrontStructure_expandDefaultCacheBehavior(t *testing.T) {
 	}
 	if *dcb.DefaultTTL != 86400 {
 		t.Fatalf("Expected DefaultTTL to be 86400, got %v", *dcb.DefaultTTL)
+	}
+	if *dcb.LambdaFunctionAssociations.Quantity != 2 {
+		t.Fatalf("Expected LambdaFunctionAssociations to be 2, got %v", *dcb.LambdaFunctionAssociations.Quantity)
 	}
 	if reflect.DeepEqual(dcb.AllowedMethods.Items, expandStringList(allowedMethodsConf())) != true {
 		t.Fatalf("Expected TrustedSigners.Items to be %v, got %v", allowedMethodsConf(), dcb.AllowedMethods.Items)
@@ -312,6 +335,9 @@ func TestCloudFrontStructure_expandCacheBehavior(t *testing.T) {
 	if *cb.DefaultTTL != 86400 {
 		t.Fatalf("Expected DefaultTTL to be 86400, got %v", *cb.DefaultTTL)
 	}
+	if *cb.LambdaFunctionAssociations.Quantity != 2 {
+		t.Fatalf("Expected LambdaFunctionAssociations to be 2, got %v", *cb.LambdaFunctionAssociations.Quantity)
+	}
 	if reflect.DeepEqual(cb.AllowedMethods.Items, expandStringList(allowedMethodsConf())) != true {
 		t.Fatalf("Expected AllowedMethods.Items to be %v, got %v", allowedMethodsConf(), cb.AllowedMethods.Items)
 	}
@@ -337,6 +363,27 @@ func TestCloudFrontStructure_flattenCacheBehavior(t *testing.T) {
 	if out["target_origin_id"] != "myS3Origin" {
 		t.Fatalf("Expected out[target_origin_id] to be myS3Origin, got %v", out["target_origin_id"])
 	}
+
+	// the flattened lambda function associations are a slice of maps,
+	// where as the default cache behavior LFAs are a set. Here we double check
+	// that and conver the slice to a set, and use Set's Equal() method to check
+	// equality
+	var outSet *schema.Set
+	if outSlice, ok := out["lambda_function_association"].([]interface{}); ok {
+		outSet = schema.NewSet(lambdaFunctionAssociationHash, outSlice)
+	} else {
+		t.Fatalf("out['lambda_function_association'] is not a slice as expected: %#v", out["lambda_function_association"])
+	}
+
+	inSet, ok := in["lambda_function_association"].(*schema.Set)
+	if !ok {
+		t.Fatalf("in['lambda_function_association'] is not a set as expected: %#v", in["lambda_function_association"])
+	}
+
+	if !inSet.Equal(outSet) {
+		t.Fatalf("in / out sets are not equal, in: \n%#v\n\nout: \n%#v\n", inSet, outSet)
+	}
+
 	diff = out["forwarded_values"].(*schema.Set).Difference(in["forwarded_values"].(*schema.Set))
 	if len(diff.List()) > 0 {
 		t.Fatalf("Expected out[forwarded_values] to be %v, got %v, diff: %v", out["forwarded_values"], in["forwarded_values"], diff)
@@ -424,6 +471,47 @@ func TestCloudFrontStructure_expandTrustedSigners_empty(t *testing.T) {
 	}
 	if ts.Items != nil {
 		t.Fatalf("Expected Items to be nil, got %v", ts.Items)
+	}
+}
+
+func TestCloudFrontStructure_expandLambdaFunctionAssociations(t *testing.T) {
+	data := lambdaFunctionAssociationsConf()
+	lfa := expandLambdaFunctionAssociations(data.List())
+	if *lfa.Quantity != 2 {
+		t.Fatalf("Expected Quantity to be 2, got %v", *lfa.Quantity)
+	}
+	if len(lfa.Items) != 2 {
+		t.Fatalf("Expected Items to be len 2, got %v", len(lfa.Items))
+	}
+	if et := "viewer-request"; *lfa.Items[0].EventType != et {
+		t.Fatalf("Expected first Item's EventType to be %q, got %q", et, *lfa.Items[0].EventType)
+	}
+	if et := "origin-response"; *lfa.Items[1].EventType != et {
+		t.Fatalf("Expected second Item's EventType to be %q, got %q", et, *lfa.Items[1].EventType)
+	}
+}
+
+func TestCloudFrontStructure_flattenlambdaFunctionAssociations(t *testing.T) {
+	in := lambdaFunctionAssociationsConf()
+	lfa := expandLambdaFunctionAssociations(in.List())
+	out := flattenLambdaFunctionAssociations(lfa)
+
+	if reflect.DeepEqual(in.List(), out) != true {
+		t.Fatalf("Expected out to be %v, got %v", in, out)
+	}
+}
+
+func TestCloudFrontStructure_expandlambdaFunctionAssociations_empty(t *testing.T) {
+	data := new(schema.Set)
+	lfa := expandLambdaFunctionAssociations(data.List())
+	if *lfa.Quantity != 0 {
+		t.Fatalf("Expected Quantity to be 0, got %v", *lfa.Quantity)
+	}
+	if len(lfa.Items) != 0 {
+		t.Fatalf("Expected Items to be len 0, got %v", len(lfa.Items))
+	}
+	if reflect.DeepEqual(lfa.Items, []*cloudfront.LambdaFunctionAssociation{}) != true {
+		t.Fatalf("Expected Items to be empty, got %v", lfa.Items)
 	}
 }
 
