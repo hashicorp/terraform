@@ -47,7 +47,7 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 
 	steps := []GraphTransformer{
 		// Create all our resources from the configuration and state
-		&ConfigTransformerOld{Module: mod},
+		&ConfigTransformer{Module: mod},
 
 		// Add the import steps
 		&ImportStateTransformer{Targets: b.ImportTargets},
@@ -55,8 +55,8 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Provider-related transformations
 		&MissingProviderTransformer{Providers: b.Providers, Concrete: concreteProvider},
 		&ProviderTransformer{},
-		&DisableProviderTransformerOld{},
-		&PruneProviderTransformer{},
+		&DisableProviderTransformer{},
+		&ParentProviderTransformer{},
 		&AttachProviderConfigTransformer{Module: mod},
 
 		// This validates that the providers only depend on variables

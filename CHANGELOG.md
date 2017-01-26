@@ -3,6 +3,7 @@
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/aws: We no longer prefix an ECR repository address with `https://`
+ * provider/google: `google_project` has undergone significant changes. Existing configs and state should continue to work as they always have, but new configs and state will exhibit some new behaviour, including actually creating and deleting projects, instead of just referencing them. See https://www.terraform.io/docs/providers/google/r/google_project.html for more details.
 
 FEATURES:
 
@@ -17,10 +18,13 @@ FEATURES:
  * **New Resource:**  `aws_inspector_assessment_target` [GH-11217]
  * **New Resource:**  `aws_inspector_assessment_template` [GH-11217]
  * **New Resource:**  `aws_inspector_resource_group` [GH-11217]
+ * **New Resource:**  `google_project_iam_policy` [GH-10425]
+ * **New Resource:**  `google_project_services` [GH-10425]
  * **New Interpolation Function:**  `pathexpand()` [GH-11277]
 
 IMPROVEMENTS:
 
+ * command/fmt: Single line objects (such as `variable "foo" {}`) aren't separated by newlines
  * provider/aws: Add 'route_table_id' to route_table data source ([#11157](https://github.com/hashicorp/terraform/pull/11157))
  * provider/aws: Add Support for aws_cloudwatch_metric_alarm extended statistic [GH-11193]
  * provider/aws: Make the type of a route53_record modifiable without recreating the resource [GH-11164]
@@ -58,10 +62,15 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * command/fmt: Multiple `#` comments won't be separated by newlines. [GH-11209]
+ * command/fmt: Lists with a heredoc element that starts on the same line as the opening brace is formatted properly. [GH-11208]
+ * command/import: Provider configuration inheritance into modules works properly [GH-11393]
+ * command/import: Update help text to note that `-var` and `-var-file` work
  * provider/aws: Fix panic when querying VPC's main route table via data source ([#11134](https://github.com/hashicorp/terraform/issues/11134))
  * provider/aws: Allow creating aws_codecommit repository outside of us-east-1 [GH-11177]
  * provider/aws: Fix issue destroying or updating CloudFront due to missing Lambda Function Associations parameters [GH-11291]
  * provider/aws: Correct error messages are now returned if an `aws_autoscaling_lifecycle_hook` fails during creation [GH-11360]
+ * provider/aws: Fix issue updating/destroying Spot Fleet requests when using `terminate_instances_with_expiration` [GH-10953]
  * provider/azurerm: use configured environment for storage clients [GH-11159]
  * provider/google: removes region param from google_compute_backend_service [GH-10903]
  * provider/ignition: allowing empty systemd.content when a dropin is provided [GH-11216]
