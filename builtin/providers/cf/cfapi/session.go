@@ -28,14 +28,15 @@ type Session struct {
 	ccGateway  net.Gateway
 	uaaGateway net.Gateway
 
-	authManager   *AuthManager
-	userManager   *UserManager
-	domainManager *DomainManager
-	asgManager    *ASGManager
-	evgManager    *EVGManager
-	quotaManager  *QuotaManager
-	orgManager    *OrgManager
-	spaceManager  *SpaceManager
+	authManager    *AuthManager
+	userManager    *UserManager
+	domainManager  *DomainManager
+	asgManager     *ASGManager
+	evgManager     *EVGManager
+	quotaManager   *QuotaManager
+	orgManager     *OrgManager
+	spaceManager   *SpaceManager
+	serviceManager *ServiceManager
 
 	// Used for direct endpoint calls
 	httpClient *http.Client
@@ -179,6 +180,13 @@ func (s *Session) initCliConnection(
 		return err
 	}
 	s.spaceManager, err = NewSpaceManager(s.config, s.ccGateway)
+	if err != nil {
+		return err
+	}
+	s.serviceManager, err = NewServiceManager(s.config, s.ccGateway)
+	if err != nil {
+		return err
+	}
 	return
 }
 
@@ -220,6 +228,11 @@ func (s *Session) OrgManager() *OrgManager {
 // SpaceManager -
 func (s *Session) SpaceManager() *SpaceManager {
 	return s.spaceManager
+}
+
+// ServiceManager -
+func (s *Session) ServiceManager() *ServiceManager {
+	return s.serviceManager
 }
 
 // noopPersistor - No Op Persistor for CF CLI session
