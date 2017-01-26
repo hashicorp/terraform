@@ -64,6 +64,8 @@ BUG FIXES:
 
  * command/fmt: Multiple `#` comments won't be separated by newlines. [GH-11209]
  * command/fmt: Lists with a heredoc element that starts on the same line as the opening brace is formatted properly. [GH-11208]
+ * command/import: Provider configuration inheritance into modules works properly [GH-11393]
+ * command/import: Update help text to note that `-var` and `-var-file` work
  * provider/aws: Fix panic when querying VPC's main route table via data source ([#11134](https://github.com/hashicorp/terraform/issues/11134))
  * provider/aws: Allow creating aws_codecommit repository outside of us-east-1 [GH-11177]
  * provider/aws: Fix issue destroying or updating CloudFront due to missing Lambda Function Associations parameters [GH-11291]
