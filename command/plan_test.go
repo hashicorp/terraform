@@ -575,7 +575,7 @@ func TestPlan_validate(t *testing.T) {
 	}
 
 	actual := ui.ErrorWriter.String()
-	if !strings.Contains(actual, "cannot be computed") {
+	if !strings.Contains(actual, "can't reference") {
 		t.Fatalf("bad: %s", actual)
 	}
 }
