@@ -11,9 +11,7 @@ description: |-
 The KMS secret data source allows you to use data encrypted with the AWS KMS
 service within your resource definitions.
 
-## Note about encrypted data
-
-Using this data provider will allow you to conceal secret data within your
+~> **NOTE**: Using this data provider will allow you to conceal secret data within your
 resource definitions but does not take care of protecting that data in the
 logging output, plan output or state output.
 
