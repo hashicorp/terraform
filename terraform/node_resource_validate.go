@@ -10,6 +10,14 @@ type NodeValidatableResource struct {
 	*NodeAbstractCountResource
 }
 
+// GraphNodeEvalable
+func (n *NodeValidatableResource) EvalTree() EvalNode {
+	// Ensure we're validating
+	c := n.NodeAbstractCountResource
+	c.Validate = true
+	return c.EvalTree()
+}
+
 // GraphNodeDynamicExpandable
 func (n *NodeValidatableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	// Grab the state which we read
@@ -91,6 +99,10 @@ func (n *NodeValidatableResourceInstance) EvalTree() EvalNode {
 
 	seq := &EvalSequence{
 		Nodes: []EvalNode{
+			&EvalValidateResourceSelfRef{
+				Addr:   &addr,
+				Config: &n.Config.RawConfig,
+			},
 			&EvalGetProvider{
 				Name:   n.ProvidedBy()[0],
 				Output: &provider,
