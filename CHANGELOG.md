@@ -1,9 +1,29 @@
+**TEMPORARY NOTE:** The "master" branch CHANGELOG also includes any changes
+in the branch "0-8-stable". The "master" branch is currently a development
+branch for the next major version of Terraform.
+
 ## 0.9.0 (unreleased)
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * Once an environment is updated to use the new "remote backend" feature
+   (from a prior remote state), it cannot be used with prior Terraform versions.
+   Remote backends themselves are fully backwards compatible with prior
+   Terraform versions.
 
 FEATURES:
 
- * **Destroy provisioners:** Provisioners can now be configured to run
+ * **Remote Backends:** This is a successor to "remote state" and includes
+   file-based configuration, an improved setup process (just run `terraform init`),
+   no more local caching of remote state, and more. [GH-11286]
+ * **Destroy Provisioners:** Provisioners can now be configured to run
    on resource destruction. [GH-11329]
+
+IMPROVEMENTS:
+
+ * command/init: previous behavior is retained, but init now also configures
+   the new remote backends as well as downloads modules. It is the single
+   command to initialize a new or existing Terraform configuration.
 
 ## 0.8.6 (unreleased)
 
