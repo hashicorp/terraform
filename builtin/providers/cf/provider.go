@@ -52,6 +52,7 @@ func Provider() terraform.ResourceProvider {
 			"cf_domain": dataSourceDomain(),
 			"cf_asg":    dataSourceAsg(),
 			"cf_quota":  dataSourceQuota(),
+			"cf_org":    dataSourceOrg(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
