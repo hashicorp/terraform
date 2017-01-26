@@ -1,6 +1,9 @@
 ## 0.9.0 (unreleased)
 
+FEATURES:
 
+ * **Destroy provisioners:** Provisioners can now be configured to run
+   on resource destruction. [GH-11329]
 
 ## 0.8.6 (unreleased)
 
