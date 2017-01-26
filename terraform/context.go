@@ -216,14 +216,35 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 			Validate:     opts.Validate,
 		}).Build(RootModulePath)
 
+	case GraphTypeInput:
+		// The input graph is just a slightly modified plan graph
+		fallthrough
+	case GraphTypeValidate:
+		// The validate graph is just a slightly modified plan graph
+		fallthrough
 	case GraphTypePlan:
-		return (&PlanGraphBuilder{
+		// Create the plan graph builder
+		p := &PlanGraphBuilder{
 			Module:    c.module,
 			State:     c.state,
 			Providers: c.components.ResourceProviders(),
 			Targets:   c.targets,
 			Validate:  opts.Validate,
-		}).Build(RootModulePath)
+		}
+
+		// Some special cases for other graph types shared with plan currently
+		var b GraphBuilder = p
+		switch typ {
+		case GraphTypeInput:
+			b = InputGraphBuilder(p)
+		case GraphTypeValidate:
+			// We need to set the provisioners so those can be validated
+			p.Provisioners = c.components.ResourceProvisioners()
+
+			b = ValidateGraphBuilder(p)
+		}
+
+		return b.Build(RootModulePath)
 
 	case GraphTypePlanDestroy:
 		return (&DestroyPlanGraphBuilder{
@@ -231,6 +252,15 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 			State:    c.state,
 			Targets:  c.targets,
 			Validate: opts.Validate,
+		}).Build(RootModulePath)
+
+	case GraphTypeRefresh:
+		return (&RefreshGraphBuilder{
+			Module:    c.module,
+			State:     c.state,
+			Providers: c.components.ResourceProviders(),
+			Targets:   c.targets,
+			Validate:  opts.Validate,
 		}).Build(RootModulePath)
 
 	case GraphTypeLegacy:
@@ -402,7 +432,7 @@ func (c *Context) Input(mode InputMode) error {
 
 	if mode&InputModeProvider != 0 {
 		// Build the graph
-		graph, err := c.Graph(GraphTypeLegacy, nil)
+		graph, err := c.Graph(GraphTypeInput, nil)
 		if err != nil {
 			return err
 		}
@@ -569,8 +599,15 @@ func (c *Context) Refresh() (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
-	// Build the graph
-	graph, err := c.Graph(GraphTypeLegacy, nil)
+	// Used throughout below
+	X_legacyGraph := experiment.Enabled(experiment.X_legacyGraph)
+
+	// Build the graph.
+	graphType := GraphTypeLegacy
+	if !X_legacyGraph {
+		graphType = GraphTypeRefresh
+	}
+	graph, err := c.Graph(graphType, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -641,7 +678,7 @@ func (c *Context) Validate() ([]string, []error) {
 	// We also validate the graph generated here, but this graph doesn't
 	// necessarily match the graph that Plan will generate, so we'll validate the
 	// graph again later after Planning.
-	graph, err := c.Graph(GraphTypeLegacy, nil)
+	graph, err := c.Graph(GraphTypeValidate, nil)
 	if err != nil {
 		return nil, []error{err}
 	}
