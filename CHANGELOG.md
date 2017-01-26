@@ -1,5 +1,9 @@
 ## 0.8.6 (unreleased)
 
+BUG FIXES:
+
+ * provider/aws: Fix issue with `path` not updated when modifying AWS API Gateway Resource [GH-11443]
+ 
 ## 0.8.5 (26 January 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
