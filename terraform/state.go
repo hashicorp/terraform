@@ -268,10 +268,26 @@ func (s *State) Empty() bool {
 	if s == nil {
 		return true
 	}
+
 	s.Lock()
 	defer s.Unlock()
 
-	return len(s.Modules) == 0
+	// Prune so we we remove empty modules
+	s.prune()
+
+	// No modules? Empty
+	if len(s.Modules) == 0 {
+		return true
+	}
+
+	// Any non-empty modules? Not empty
+	for _, m := range s.Modules {
+		if !m.Empty() {
+			return false
+		}
+	}
+
+	return true
 }
 
 // HasResources returns true if the state contains any resources.
@@ -947,6 +963,21 @@ type ModuleState struct {
 
 func (s *ModuleState) Lock()   { s.mu.Lock() }
 func (s *ModuleState) Unlock() { s.mu.Unlock() }
+
+// Empty returns true if this module state is empty and holds no values.
+func (m *ModuleState) Empty() bool {
+	if m == nil {
+		return true
+	}
+
+	// Prune so we're viewing a minimal case
+	m.prune()
+
+	m.Lock()
+	defer m.Unlock()
+
+	return len(m.Outputs) == 0 && len(m.Resources) == 0
+}
 
 // Equal tests whether one module state is equal to another.
 func (m *ModuleState) Equal(other *ModuleState) bool {

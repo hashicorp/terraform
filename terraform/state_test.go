@@ -1224,7 +1224,7 @@ func TestStateEmpty(t *testing.T) {
 					&ModuleState{},
 				},
 			},
-			false,
+			true,
 		},
 	}
 
@@ -1282,7 +1282,7 @@ func TestStateHasResources(t *testing.T) {
 					},
 				},
 			},
-			true,
+			false,
 		},
 	}
 
