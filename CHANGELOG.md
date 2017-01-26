@@ -3,6 +3,7 @@
 BUG FIXES:
 
  * provider/aws: Fix issue with `path` not updated when modifying AWS API Gateway Resource [GH-11443]
+ * provider/aws: Fix AWS Lambda Qualifier Regexp for `aws_lambda_permission` [GH-11383]
  
 ## 0.8.5 (26 January 2017)
 
