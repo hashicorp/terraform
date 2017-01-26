@@ -1678,15 +1678,14 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 	}
 
 	for _, k := range deleted {
-		// Sanity check for invalid structures.
-		// If we removed the primary count key, there should have been no
+		// If we removed the primary count key, we also need to remove
 		// other keys left with this prefix.
 
 		// this must have a "#" or "%" which we need to remove
 		base := k[:len(k)-1]
 		for k, _ := range result.Attributes {
 			if strings.HasPrefix(k, base) {
-				panic(fmt.Sprintf("empty structure %q has entry %q", base, k))
+				delete(result.Attributes, k)
 			}
 		}
 	}
