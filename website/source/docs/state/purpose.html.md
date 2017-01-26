@@ -41,7 +41,7 @@ must keep track of metadata such as dependencies.
 
 Terraform typically uses the configuration to determine dependency order.
 However, when you delete a resource from a Terraform configuration, Terraform
-must know to delete that resource. Terraform can see that a mapping exists
+must know how to delete that resource. Terraform can see that a mapping exists
 for a resource not in your configuration and plan to destroy. However, since
 the configuration no longer exists, it no longer knows the proper destruction
 order.
