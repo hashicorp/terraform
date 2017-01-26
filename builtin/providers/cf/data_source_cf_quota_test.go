@@ -33,7 +33,7 @@ data "cf_quota" "qq" {
 const spaceQuotaDataResource = `
 
 resource "cf_quota" "q" {
-	name = "10g"
+	name = "20g"
     allow_paid_service_plans = false
     instance_memory = 512
     total_memory = 10240
@@ -101,7 +101,7 @@ func TestAccDataSourceSpaceQuota_normal(t *testing.T) {
 					Check: resource.ComposeTestCheckFunc(
 						checkDataSourceQuotaExists(ref),
 						resource.TestCheckResourceAttr(
-							ref, "name", "10g"),
+							ref, "name", "20g"),
 						resource.TestCheckResourceAttr(
 							ref, "org", orgID),
 					),
