@@ -1,7 +1,7 @@
 ---
 layout: "profitbricks"
 page_title: "ProfitBricks: profitbricks_nic"
-sidebar_current: "docs-profitbricks-resource-profitbricks_nic"
+sidebar_current: "docs-profitbricks-resource-nic"
 description: |-
   Creates and manages Network Interface objects.
 ---

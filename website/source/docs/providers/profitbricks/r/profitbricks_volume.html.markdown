@@ -1,7 +1,7 @@
 ---
 layout: "profitbricks"
 page_title: "ProfitBricks: profitbricks_server"
-sidebar_current: "docs-profitbricks-resource-profitbricks_volume"
+sidebar_current: "docs-profitbricks-resource-volume"
 description: |-
   Creates and manages ProfitBricks Volume objects.
 ---
