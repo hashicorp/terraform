@@ -40,6 +40,7 @@ const (
 	defaultGraphDatapoints = 8
 	defaultGraphLineStyle  = "stepped"
 	defaultGraphStyle      = "line"
+	defaultGraphFunction   = "gauge"
 
 	_MetricUnit       = ""
 	_MetricUnitRegexp = `^.*$`
@@ -93,9 +94,9 @@ var _ValidAxisAttrs = _ValidStringValues{
 
 // _ValidGraphFunctionValues: See `derive`: https://login.circonus.com/resources/api/calls/graph
 var _ValidGraphFunctionValues = _ValidStringValues{
-	`gauge`,
-	`derive`,
 	`counter`,
+	`derive`,
+	`gauge`,
 }
 
 // _ValidTriggerWindowFuncs: See `derive` or `windowing_func`: https://login.circonus.com/resources/api/calls/rule_set

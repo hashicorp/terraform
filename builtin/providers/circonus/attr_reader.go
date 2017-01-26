@@ -9,6 +9,7 @@ type _AttrReader interface {
 	GetDurationOK(_SchemaAttr) (time.Duration, bool)
 	GetFloat64OK(_SchemaAttr) (float64, bool)
 	GetIntOK(_SchemaAttr) (int, bool)
+	GetIntPtr(_SchemaAttr) *int
 	GetListOK(_SchemaAttr) (_InterfaceList, bool)
 	GetMap(_SchemaAttr) _InterfaceMap
 	GetSetAsListOK(_SchemaAttr) (_InterfaceList, bool)
