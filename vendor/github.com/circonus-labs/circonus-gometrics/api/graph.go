@@ -55,7 +55,7 @@ type GraphDatapoint struct {
 	Color         string      `json:"color,omitempty"`          // string
 	DataFormula   *string     `json:"data_formula,omitempty"`   // string or null
 	Derive        interface{} `json:"derive,omitempty"`         // BUG doc: string, api: string or boolean(for caql statements)
-	Hidden        bool        `json:"hidden,omitempty"`         // boolean
+	Hidden        bool        `json:"hidden"`                   // boolean
 	LegendFormula *string     `json:"legend_formula,omitempty"` // string or null
 	MetricName    string      `json:"metric_name,omitempty"`    // string
 	MetricType    string      `json:"metric_type,omitempty"`    // string
@@ -77,7 +77,7 @@ type GraphMetricCluster struct {
 	AggregateFunc string  `json:"aggregation_function,omitempty"` // string
 	Axis          string  `json:"axis,omitempty"`                 // string
 	DataFormula   *string `json:"data_formula,omitempty"`         // string or null
-	Hidden        bool    `json:"hidden,omitempty"`               // boolean
+	Hidden        bool    `json:"hidden"`                         // boolean
 	LegendFormula *string `json:"legend_formula,omitempty"`       // string or null
 	MetricCluster string  `json:"metric_cluster,omitempty"`       // string
 	Name          string  `json:"name,omitempty"`                 // string

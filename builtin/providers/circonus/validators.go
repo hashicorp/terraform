@@ -232,6 +232,24 @@ func _ValidateHTTPHeaders(v interface{}, key string) (warnings []string, errors 
 	return warnings, errors
 }
 
+func _ValidateGraphAxisOptions(v interface{}, key string) (warnings []string, errors []error) {
+	axisOptionsMap := v.(map[string]interface{})
+	validOpts := map[_SchemaAttr]struct{}{
+		_GraphLogarithmicAttr: struct{}{},
+		_GraphMaxAttr:         struct{}{},
+		_GraphMinAttr:         struct{}{},
+	}
+
+	for k := range axisOptionsMap {
+		if _, ok := validOpts[_SchemaAttr(k)]; !ok {
+			errors = append(errors, fmt.Errorf("Invalid axis option specified: %q", k))
+			continue
+		}
+	}
+
+	return warnings, errors
+}
+
 func _ValidateIntMin(attrName _SchemaAttr, min int) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		if v.(int) < min {
