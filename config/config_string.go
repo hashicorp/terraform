@@ -214,7 +214,16 @@ func resourcesStr(rs []*Resource) string {
 		if len(r.Provisioners) > 0 {
 			result += fmt.Sprintf("  provisioners\n")
 			for _, p := range r.Provisioners {
-				result += fmt.Sprintf("    %s\n", p.Type)
+				when := ""
+				if p.When != ProvisionerWhenCreate {
+					when = fmt.Sprintf(" (%s)", p.When.String())
+				}
+
+				result += fmt.Sprintf("    %s%s\n", p.Type, when)
+
+				if p.OnFailure != ProvisionerOnFailureFail {
+					result += fmt.Sprintf("      on_failure = %s\n", p.OnFailure.String())
+				}
 
 				ks := make([]string, 0, len(p.RawConfig.Raw))
 				for k, _ := range p.RawConfig.Raw {

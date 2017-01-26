@@ -629,6 +629,22 @@ func TestLoadFile_provisioners(t *testing.T) {
 	}
 }
 
+func TestLoadFile_provisionersDestroy(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "provisioners-destroy.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(provisionerDestroyResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoadFile_unnamedOutput(t *testing.T) {
 	_, err := LoadFile(filepath.Join(fixtureDir, "output-unnamed.tf"))
 	if err == nil {
@@ -1124,6 +1140,17 @@ aws_instance.web (x1)
   vars
     resource: aws_security_group.firewall.foo
     user: var.foo
+`
+
+const provisionerDestroyResourcesStr = `
+aws_instance.web (x1)
+  provisioners
+    shell
+    shell (destroy)
+      path
+    shell (destroy)
+      on_failure = continue
+      path
 `
 
 const connectionResourcesStr = `

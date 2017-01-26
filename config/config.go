@@ -136,6 +136,9 @@ type Provisioner struct {
 	Type      string
 	RawConfig *RawConfig
 	ConnInfo  *RawConfig
+
+	When      ProvisionerWhen
+	OnFailure ProvisionerOnFailure
 }
 
 // Copy returns a copy of this Provisioner
@@ -144,6 +147,8 @@ func (p *Provisioner) Copy() *Provisioner {
 		Type:      p.Type,
 		RawConfig: p.RawConfig.Copy(),
 		ConnInfo:  p.ConnInfo.Copy(),
+		When:      p.When,
+		OnFailure: p.OnFailure,
 	}
 }
 
@@ -553,7 +558,7 @@ func (c *Config) Validate() error {
 		// Validate DependsOn
 		errs = append(errs, c.validateDependsOn(n, r.DependsOn, resources, modules)...)
 
-		// Verify provisioners don't contain any splats
+		// Verify provisioners
 		for _, p := range r.Provisioners {
 			// This validation checks that there are now splat variables
 			// referencing ourself. This currently is not allowed.
@@ -584,6 +589,17 @@ func (c *Config) Validate() error {
 							"referencing itself", n))
 					break
 				}
+			}
+
+			// Check for invalid when/onFailure values, though this should be
+			// picked up by the loader we check here just in case.
+			if p.When == ProvisionerWhenInvalid {
+				errs = append(errs, fmt.Errorf(
+					"%s: provisioner 'when' value is invalid", n))
+			}
+			if p.OnFailure == ProvisionerOnFailureInvalid {
+				errs = append(errs, fmt.Errorf(
+					"%s: provisioner 'on_failure' value is invalid", n))
 			}
 		}
 

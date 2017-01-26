@@ -298,6 +298,12 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 				Name:   stateId,
 				Output: &state,
 			},
+			// Call pre-apply hook
+			&EvalApplyPre{
+				Info:  info,
+				State: &state,
+				Diff:  &diffApply,
+			},
 			&EvalApply{
 				Info:      info,
 				State:     &state,
@@ -321,6 +327,7 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 				InterpResource: resource,
 				CreateNew:      &createNew,
 				Error:          &err,
+				When:           config.ProvisionerWhenCreate,
 			},
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {

@@ -88,6 +88,32 @@ func TestGraphWalk_panicWrap(t *testing.T) {
 	}
 }
 
+// testGraphContains is an assertion helper that tests that a node is
+// contained in the graph.
+func testGraphContains(t *testing.T, g *Graph, name string) {
+	for _, v := range g.Vertices() {
+		if dag.VertexName(v) == name {
+			return
+		}
+	}
+
+	t.Fatalf(
+		"Expected %q in:\n\n%s",
+		name, g.String())
+}
+
+// testGraphnotContains is an assertion helper that tests that a node is
+// NOT contained in the graph.
+func testGraphNotContains(t *testing.T, g *Graph, name string) {
+	for _, v := range g.Vertices() {
+		if dag.VertexName(v) == name {
+			t.Fatalf(
+				"Expected %q to NOT be in:\n\n%s",
+				name, g.String())
+		}
+	}
+}
+
 // testGraphHappensBefore is an assertion helper that tests that node
 // A (dag.VertexName value) happens before node B.
 func testGraphHappensBefore(t *testing.T, g *Graph, A, B string) {
