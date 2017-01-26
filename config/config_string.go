@@ -50,6 +50,26 @@ func (c *Config) TestString() string {
 	return strings.TrimSpace(buf.String())
 }
 
+func terraformStr(t *Terraform) string {
+	result := ""
+
+	if b := t.Backend; b != nil {
+		result += fmt.Sprintf("backend (%s)\n", b.Type)
+
+		keys := make([]string, 0, len(b.RawConfig.Raw))
+		for k, _ := range b.RawConfig.Raw {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		for _, k := range keys {
+			result += fmt.Sprintf("  %s\n", k)
+		}
+	}
+
+	return strings.TrimSpace(result)
+}
+
 func modulesStr(ms []*Module) string {
 	result := ""
 	order := make([]int, 0, len(ms))

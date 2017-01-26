@@ -5,9 +5,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -236,6 +238,128 @@ func TestPlan_outPathNoChange(t *testing.T) {
 	plan := testReadPlan(t, outPath)
 	if !plan.Diff.Empty() {
 		t.Fatalf("Expected empty plan to be written to plan file, got: %s", plan)
+	}
+}
+
+// When using "-out" with a backend, the plan should encode the backend config
+func TestPlan_outBackend(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("plan-out-backend"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Our state
+	originalState := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	originalState.Init()
+
+	// Setup our backend state
+	dataState, srv := testBackendState(t, originalState, 200)
+	defer srv.Close()
+	testStateFileRemote(t, dataState)
+
+	outPath := "foo"
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-out", outPath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	plan := testReadPlan(t, outPath)
+	if !plan.Diff.Empty() {
+		t.Fatalf("Expected empty plan to be written to plan file, got: %s", plan)
+	}
+
+	if plan.Backend.Empty() {
+		t.Fatal("should have backend info")
+	}
+	if !reflect.DeepEqual(plan.Backend, dataState.Backend) {
+		t.Fatalf("bad: %#v", plan.Backend)
+	}
+}
+
+// When using "-out" with a legacy remote state, the plan should encode
+// the backend config
+func TestPlan_outBackendLegacy(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("plan-out-backend-legacy"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Our state
+	originalState := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	originalState.Init()
+
+	// Setup our legacy state
+	remoteState, srv := testRemoteState(t, originalState, 200)
+	defer srv.Close()
+	dataState := terraform.NewState()
+	dataState.Remote = remoteState
+	testStateFileRemote(t, dataState)
+
+	outPath := "foo"
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-out", outPath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	plan := testReadPlan(t, outPath)
+	if !plan.Diff.Empty() {
+		t.Fatalf("Expected empty plan to be written to plan file, got: %s", plan)
+	}
+
+	if plan.State.Remote.Empty() {
+		t.Fatal("should have remote info")
 	}
 }
 

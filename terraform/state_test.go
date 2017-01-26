@@ -256,6 +256,9 @@ func TestStateDeepCopy(t *testing.T) {
 	cases := []struct {
 		State *State
 	}{
+		// Nil
+		{nil},
+
 		// Version
 		{
 			&State{Version: 5},
