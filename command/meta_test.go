@@ -54,6 +54,42 @@ func TestMetaColorize(t *testing.T) {
 	}
 }
 
+func TestMetaShort(t *testing.T) {
+	var m *Meta
+	var args, args2, args3 []string
+
+	// Test short is false by default
+	m = new(Meta)
+	args = m.process(args, false)
+	if m.short {
+		t.Fatal("should be disabled")
+	}
+
+	// Test setting short arg enables short flag
+	m = new(Meta)
+	args = []string{"foo", "-short", "bar"}
+	args2 = m.process(args, false)
+	if !m.short {
+		t.Fatal("should be enabled")
+	}
+
+	if !reflect.DeepEqual(args, args2) {
+		t.Fatalf("bad: %#v", args)
+	}
+
+	// Test setting no-color and short flag still enables short flag
+	m = new(Meta)
+	args2 = []string{"foo", "-no-color", "-short", "bar"}
+	args3 = m.process(args2, false)
+	if !m.short {
+		t.Fatal("should be enabled")
+	}
+
+	if !reflect.DeepEqual(args, args3) {
+		t.Fatalf("bad: %#v", args3)
+	}
+}
+
 func TestMetaInputMode(t *testing.T) {
 	test = false
 	defer func() { test = true }()

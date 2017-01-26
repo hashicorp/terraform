@@ -31,6 +31,7 @@ func TestFormatPlan_destroyDeposed(t *testing.T) {
 			Disable: true,
 		},
 		ModuleDepth: 1,
+		Short:       false,
 	}
 
 	actual := FormatPlan(opts)
@@ -115,6 +116,7 @@ func TestFormatPlan_rootDataSource(t *testing.T) {
 			Disable: true,
 		},
 		ModuleDepth: 1,
+		Short:       false,
 	}
 
 	actual := FormatPlan(opts)
@@ -156,6 +158,7 @@ func TestFormatPlan_nestedDataSource(t *testing.T) {
 			Disable: true,
 		},
 		ModuleDepth: 2,
+		Short:       false,
 	}
 
 	actual := FormatPlan(opts)
@@ -163,6 +166,56 @@ func TestFormatPlan_nestedDataSource(t *testing.T) {
 	expected := strings.TrimSpace(`
  <= module.nested.data.type.name
     A: "B"
+	`)
+	if actual != expected {
+		t.Fatalf("expected:\n\n%s\n\ngot:\n\n%s", expected, actual)
+	}
+}
+
+// Test that if short is set, only the resource names of the resources being changed are shown (Not all of the attributes)
+func TestFormatPlan_shortOnlyShowsResourceNames(t *testing.T) {
+	plan := &terraform.Plan{
+		Diff: &terraform.Diff{
+			Modules: []*terraform.ModuleDiff{
+				&terraform.ModuleDiff{
+					Path: []string{"root"},
+					Resources: map[string]*terraform.InstanceDiff{
+						"data.type.name": &terraform.InstanceDiff{
+							Attributes: map[string]*terraform.ResourceAttrDiff{
+								"A": &terraform.ResourceAttrDiff{
+									New:         "B",
+									RequiresNew: true,
+								},
+							},
+						},
+						"data.type.test.name": &terraform.InstanceDiff{
+							Attributes: map[string]*terraform.ResourceAttrDiff{
+								"C": &terraform.ResourceAttrDiff{
+									New:         "D",
+									RequiresNew: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	opts := &FormatPlanOpts{
+		Plan: plan,
+		Color: &colorstring.Colorize{
+			Colors:  colorstring.DefaultColors,
+			Disable: true,
+		},
+		ModuleDepth: -1,
+		Short:       true,
+	}
+
+	actual := FormatPlan(opts)
+
+	expected := strings.TrimSpace(`
+ <= data.type.name
+<= data.type.test.name
 	`)
 	if actual != expected {
 		t.Fatalf("expected:\n\n%s\n\ngot:\n\n%s", expected, actual)

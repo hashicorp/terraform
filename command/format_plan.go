@@ -19,11 +19,17 @@ type FormatPlanOpts struct {
 	Color *colorstring.Colorize
 
 	// ModuleDepth is the depth of the modules to expand. By default this
-	// is zero which will not expand modules at all.
+	// is -1 which will expand all modules.
 	ModuleDepth int
+
+	// Short will only display the name of each resource in the plan diff.
+	// It will not output the resource attributes that are specifically
+	// changing.
+	Short bool
 }
 
-// FormatPlan takes a plan and returns a
+// FormatPlan takes a plan and returns a string containing the
+// final plan output to display to the user.
 func FormatPlan(opts *FormatPlanOpts) string {
 	p := opts.Plan
 	if p.Diff == nil || p.Diff.Empty() {
@@ -127,67 +133,72 @@ func formatPlanModuleExpand(
 		}
 
 		buf.WriteString(opts.Color.Color(fmt.Sprintf(
-			"[%s]%s %s%s\n",
+			"[%s]%s %s%s",
 			color, symbol, name, extraStr)))
 
-		// Get all the attributes that are changing, and sort them. Also
-		// determine the longest key so that we can align them all.
-		keyLen := 0
-		keys := make([]string, 0, len(rdiff.Attributes))
-		for key, _ := range rdiff.Attributes {
-			// Skip the ID since we do that specially
-			if key == "id" {
-				continue
-			}
+		// If short flag is used then don't output each Attribute.
+		if !opts.Short {
+			buf.WriteString(fmt.Sprintf("\n"))
 
-			keys = append(keys, key)
-			if len(key) > keyLen {
-				keyLen = len(key)
-			}
-		}
-		sort.Strings(keys)
-
-		// Go through and output each attribute
-		for _, attrK := range keys {
-			attrDiff := rdiff.Attributes[attrK]
-
-			v := attrDiff.New
-			if v == "" && attrDiff.NewComputed {
-				v = "<computed>"
-			}
-
-			if attrDiff.Sensitive {
-				v = "<sensitive>"
-			}
-
-			updateMsg := ""
-			if attrDiff.RequiresNew && rdiff.Destroy {
-				updateMsg = opts.Color.Color(" [red](forces new resource)")
-			} else if attrDiff.Sensitive && oldValues {
-				updateMsg = opts.Color.Color(" [yellow](attribute changed)")
-			}
-
-			if oldValues {
-				var u string
-				if attrDiff.Sensitive {
-					u = "<sensitive>"
-				} else {
-					u = attrDiff.Old
+			// Get all the attributes that are changing, and sort them. Also
+			// determine the longest key so that we can align them all.
+			keyLen := 0
+			keys := make([]string, 0, len(rdiff.Attributes))
+			for key, _ := range rdiff.Attributes {
+				// Skip the ID since we do that specially
+				if key == "id" {
+					continue
 				}
-				buf.WriteString(fmt.Sprintf(
-					"    %s:%s %#v => %#v%s\n",
-					attrK,
-					strings.Repeat(" ", keyLen-len(attrK)),
-					u,
-					v,
-					updateMsg))
-			} else {
-				buf.WriteString(fmt.Sprintf(
-					"    %s:%s %#v%s\n",
-					attrK,
-					strings.Repeat(" ", keyLen-len(attrK)),
-					v,
-					updateMsg))
+
+				keys = append(keys, key)
+				if len(key) > keyLen {
+					keyLen = len(key)
+				}
+			}
+			sort.Strings(keys)
+
+			// Go through and output each attribute
+			for _, attrK := range keys {
+				attrDiff := rdiff.Attributes[attrK]
+
+				v := attrDiff.New
+				if v == "" && attrDiff.NewComputed {
+					v = "<computed>"
+				}
+
+				if attrDiff.Sensitive {
+					v = "<sensitive>"
+				}
+
+				updateMsg := ""
+				if attrDiff.RequiresNew && rdiff.Destroy {
+					updateMsg = opts.Color.Color(" [red](forces new resource)")
+				} else if attrDiff.Sensitive && oldValues {
+					updateMsg = opts.Color.Color(" [yellow](attribute changed)")
+				}
+
+				if oldValues {
+					var u string
+					if attrDiff.Sensitive {
+						u = "<sensitive>"
+					} else {
+						u = attrDiff.Old
+					}
+					buf.WriteString(fmt.Sprintf(
+						"    %s:%s %#v => %#v%s\n",
+						attrK,
+						strings.Repeat(" ", keyLen-len(attrK)),
+						u,
+						v,
+						updateMsg))
+				} else {
+					buf.WriteString(fmt.Sprintf(
+						"    %s:%s %#v%s\n",
+						attrK,
+						strings.Repeat(" ", keyLen-len(attrK)),
+						v,
+						updateMsg))
+				}
 			}
 		}
 

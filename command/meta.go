@@ -51,6 +51,7 @@ type Meta struct {
 	// Targets for this context (private)
 	targets []string
 
+	short bool
 	color bool
 	oldUi cli.Ui
 
@@ -415,14 +416,17 @@ func (m *Meta) process(args []string, vars bool) []string {
 		m.Ui = m.oldUi
 	}
 
-	// Set colorization
+	// Set colorization or short
 	m.color = m.Color
-	for i, v := range args {
-		if v == "-no-color" {
+
+	for i := len(args) - 1; i >= 0; i-- {
+		if args[i] == "-no-color" {
 			m.color = false
 			m.Color = false
+
 			args = append(args[:i], args[i+1:]...)
-			break
+		} else if args[i] == "-short" {
+			m.short = true
 		}
 	}
 
@@ -465,6 +469,7 @@ func (m *Meta) process(args []string, vars bool) []string {
 func (m *Meta) uiHook() *UiHook {
 	return &UiHook{
 		Colorize: m.Colorize(),
+		Short:    m.short,
 		Ui:       m.Ui,
 	}
 }
