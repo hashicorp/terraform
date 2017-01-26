@@ -1,96 +1,50 @@
 package spotinst
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
+	"net/url"
 )
 
-// NewRequest creates an API request. A relative URL can be provided in urlStr,
-// which will be resolved to the BaseURL of the Client. Relative URLS should
-// always be specified without a preceding slash. If specified, the value
-// pointed to by body is JSON encoded and included in as the request body.
-func (c *Client) NewRequest(method, path string, payload interface{}) (*http.Request, error) {
-	url := fmt.Sprintf("%s/%s", c.BaseURL, path)
-	body := new(bytes.Buffer)
-	if payload != nil {
-		err := json.NewEncoder(body).Encode(payload)
-		if err != nil {
+// request is used to help build up a request
+type request struct {
+	config *clientConfig
+	method string
+	url    *url.URL
+	params url.Values
+	body   io.Reader
+	header http.Header
+	obj    interface{}
+}
+
+// toHTTP converts the request to an HTTP request
+func (r *request) toHTTP() (*http.Request, error) {
+	// Encode the query parameters
+	r.url.RawQuery = r.params.Encode()
+
+	// Check if we should encode the body
+	if r.body == nil && r.obj != nil {
+		if b, err := encodeBody(r.obj); err != nil {
 			return nil, err
+		} else {
+			r.body = b
 		}
 	}
 
-	req, err := http.NewRequest(method, url, body)
+	// Create the HTTP request
+	req, err := http.NewRequest(r.method, r.url.RequestURI(), r.body)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Add("User-Agent", userAgent)
-	req.Header.Set("Content-Type", mediaType)
-	req.Header.Add("Accept", mediaType)
+	req.URL.Host = r.url.Host
+	req.URL.Scheme = r.url.Scheme
+	req.Host = r.url.Host
+	req.Header = r.header
 
-	if c.AccessToken != "" {
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.AccessToken))
-	}
+	req.Header.Set("Content-Type", r.config.contentType)
+	req.Header.Add("Accept", r.config.contentType)
+	req.Header.Add("User-Agent", r.config.userAgent)
 
 	return req, nil
-}
-
-// Do sends an API request and returns the API response. The API response is
-// JSON decoded and stored in the value pointed to by v, or returned as an
-// error if an API error has occurred. If v implements the io.Writer interface,
-// the raw response will be written to v, without attempting to decode it.
-func (c *Client) Do(req *http.Request, v interface{}) (*http.Response, error) {
-	res, err := c.HttpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	err = CheckResponse(res)
-	if err != nil {
-		return res, err
-	}
-
-	if v != nil {
-		if w, ok := v.(io.Writer); ok {
-			_, err := io.Copy(w, res.Body)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			err := json.NewDecoder(res.Body).Decode(v)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return res, err
-}
-
-// CheckResponse checks the API response for errors, and returns them if present.
-// A response is considered an error if the status code is different than 2xx.
-// Specific requests may have additional requirements, but this is sufficient
-// in most of the cases.
-func CheckResponse(res *http.Response) error {
-	if code := res.StatusCode; 200 <= code && code <= 299 {
-		return nil
-	}
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-
-	var r Response
-	err = json.Unmarshal(body, &r)
-	if err != nil {
-		return err
-	}
-
-	return &ErrorResponse{Response: res, Errors: r.Response.Errors}
 }

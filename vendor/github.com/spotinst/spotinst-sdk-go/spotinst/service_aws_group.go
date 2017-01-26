@@ -1,15 +1,30 @@
 package spotinst
 
 import (
-	"fmt"
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
+
+	"github.com/spotinst/spotinst-sdk-go/spotinst/util/uritemplates"
 )
 
-// AwsGroupService handles communication with the AwsGroup related
-// methods of the Spotinst API.
-type AwsGroupService struct {
+// AwsGroupService is an interface for interfacing with the AwsGroup
+// endpoints of the Spotinst API.
+type AwsGroupService interface {
+	List(*ListAwsGroupInput) (*ListAwsGroupOutput, error)
+	Create(*CreateAwsGroupInput) (*CreateAwsGroupOutput, error)
+	Read(*ReadAwsGroupInput) (*ReadAwsGroupOutput, error)
+	Update(*UpdateAwsGroupInput) (*UpdateAwsGroupOutput, error)
+	Delete(*DeleteAwsGroupInput) (*DeleteAwsGroupOutput, error)
+}
+
+// AwsGroupServiceOp handles communication with the balancer related methods
+// of the Spotinst API.
+type AwsGroupServiceOp struct {
 	client *Client
 }
+
+var _ AwsGroupService = &AwsGroupServiceOp{}
 
 type AwsGroup struct {
 	ID          *string              `json:"id,omitempty"`
@@ -28,6 +43,7 @@ type AwsGroupIntegration struct {
 	ElasticBeanstalk    *AwsGroupElasticBeanstalkIntegration    `json:"elasticBeanstalk,omitempty"`
 	Rancher             *AwsGroupRancherIntegration             `json:"rancher,omitempty"`
 	Kubernetes          *AwsGroupKubernetesIntegration          `json:"kubernetes,omitempty"`
+	Mesosphere          *AwsGroupMesosphereIntegration          `json:"mesosphere,omitempty"`
 }
 
 type AwsGroupRancherIntegration struct {
@@ -47,6 +63,10 @@ type AwsGroupEC2ContainerServiceIntegration struct {
 type AwsGroupKubernetesIntegration struct {
 	Server *string `json:"apiServer,omitempty"`
 	Token  *string `json:"token,omitempty"`
+}
+
+type AwsGroupMesosphereIntegration struct {
+	Server *string `json:"apiServer,omitempty"`
 }
 
 type AwsGroupScheduling struct {
@@ -206,97 +226,196 @@ type AwsGroupComputeTag struct {
 	Value *string `json:"tagValue,omitempty"`
 }
 
-type AwsGroupResponse struct {
-	Response struct {
-		Errors []Error     `json:"errors"`
-		Items  []*AwsGroup `json:"items"`
-	} `json:"response"`
+type ListAwsGroupInput struct{}
+
+type ListAwsGroupOutput struct {
+	Groups []*AwsGroup `json:"groups,omitempty"`
 }
 
-type groupWrapper struct {
-	Group AwsGroup `json:"group"`
+type CreateAwsGroupInput struct {
+	Group *AwsGroup `json:"group,omitempty"`
 }
 
-// Get an existing group.
-func (s *AwsGroupService) Get(args ...string) ([]*AwsGroup, *http.Response, error) {
-	var gid string
-	if len(args) > 0 {
-		gid = args[0]
-	}
-
-	path := fmt.Sprintf("aws/ec2/group/%s", gid)
-	req, err := s.client.NewRequest("GET", path, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var retval AwsGroupResponse
-	resp, err := s.client.Do(req, &retval)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return retval.Response.Items, resp, err
+type CreateAwsGroupOutput struct {
+	Group *AwsGroup `json:"group,omitempty"`
 }
 
-// Create a new group.
-func (s *AwsGroupService) Create(group *AwsGroup) ([]*AwsGroup, *http.Response, error) {
-	path := "aws/ec2/group"
-
-	req, err := s.client.NewRequest("POST", path, groupWrapper{Group: *group})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var retval AwsGroupResponse
-	resp, err := s.client.Do(req, &retval)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return retval.Response.Items, resp, nil
+type ReadAwsGroupInput struct {
+	ID *string `json:"groupId,omitempty"`
 }
 
-// Update an existing group.
-func (s *AwsGroupService) Update(group *AwsGroup) ([]*AwsGroup, *http.Response, error) {
-	gid := (*group).ID
-	(*group).ID = nil
-	path := fmt.Sprintf("aws/ec2/group/%s", *gid)
-
-	req, err := s.client.NewRequest("PUT", path, groupWrapper{Group: *group})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var retval AwsGroupResponse
-	resp, err := s.client.Do(req, &retval)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return retval.Response.Items, resp, nil
+type ReadAwsGroupOutput struct {
+	Group *AwsGroup `json:"group,omitempty"`
 }
 
-// Delete an existing group.
-func (s *AwsGroupService) Delete(group *AwsGroup) (*http.Response, error) {
-	gid := (*group).ID
-	(*group).ID = nil
-	path := fmt.Sprintf("aws/ec2/group/%s", *gid)
+type UpdateAwsGroupInput struct {
+	Group *AwsGroup `json:"group,omitempty"`
+}
 
-	req, err := s.client.NewRequest("DELETE", path, nil)
+type UpdateAwsGroupOutput struct {
+	Group *AwsGroup `json:"group,omitempty"`
+}
+
+type DeleteAwsGroupInput struct {
+	ID *string `json:"groupId,omitempty"`
+}
+
+type DeleteAwsGroupOutput struct{}
+
+func awsGroupFromJSON(in []byte) (*AwsGroup, error) {
+	b := new(AwsGroup)
+	if err := json.Unmarshal(in, b); err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func awsGroupsFromJSON(in []byte) ([]*AwsGroup, error) {
+	var rw responseWrapper
+	if err := json.Unmarshal(in, &rw); err != nil {
+		return nil, err
+	}
+	out := make([]*AwsGroup, len(rw.Response.Items))
+	if len(out) == 0 {
+		return out, nil
+	}
+	for i, rb := range rw.Response.Items {
+		b, err := awsGroupFromJSON(rb)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = b
+	}
+	return out, nil
+}
+
+func awsGroupsFromHttpResponse(resp *http.Response) ([]*AwsGroup, error) {
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return awsGroupsFromJSON(body)
+}
+
+func (s *AwsGroupServiceOp) List(input *ListAwsGroupInput) (*ListAwsGroupOutput, error) {
+	r := s.client.newRequest("GET", "/aws/ec2/group")
+
+	_, resp, err := requireOK(s.client.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	gs, err := awsGroupsFromHttpResponse(resp)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := s.client.Do(req, nil)
-	if err != nil {
-		return resp, err
-	}
-
-	return resp, nil
+	return &ListAwsGroupOutput{Groups: gs}, nil
 }
 
-// String creates a reasonable string representation.
-func (a AwsGroup) String() string {
-	return Stringify(a)
+func (s *AwsGroupServiceOp) Create(input *CreateAwsGroupInput) (*CreateAwsGroupOutput, error) {
+	r := s.client.newRequest("POST", "/aws/ec2/group")
+	r.obj = input
+
+	_, resp, err := requireOK(s.client.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	gs, err := awsGroupsFromHttpResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	output := new(CreateAwsGroupOutput)
+	if len(gs) > 0 {
+		output.Group = gs[0]
+	}
+
+	return output, nil
+}
+
+func (s *AwsGroupServiceOp) Read(input *ReadAwsGroupInput) (*ReadAwsGroupOutput, error) {
+	path, err := uritemplates.Expand("/aws/ec2/group/{groupId}", map[string]string{
+		"groupId": StringValue(input.ID),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	r := s.client.newRequest("GET", path)
+	r.obj = input
+
+	_, resp, err := requireOK(s.client.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	gs, err := awsGroupsFromHttpResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	output := new(ReadAwsGroupOutput)
+	if len(gs) > 0 {
+		output.Group = gs[0]
+	}
+
+	return output, nil
+}
+
+func (s *AwsGroupServiceOp) Update(input *UpdateAwsGroupInput) (*UpdateAwsGroupOutput, error) {
+	path, err := uritemplates.Expand("/aws/ec2/group/{groupId}", map[string]string{
+		"groupId": StringValue(input.Group.ID),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// We do not need the ID anymore so let's drop it.
+	input.Group.ID = nil
+
+	r := s.client.newRequest("PUT", path)
+	r.obj = input
+
+	_, resp, err := requireOK(s.client.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	gs, err := awsGroupsFromHttpResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	output := new(UpdateAwsGroupOutput)
+	if len(gs) > 0 {
+		output.Group = gs[0]
+	}
+
+	return output, nil
+}
+
+func (s *AwsGroupServiceOp) Delete(input *DeleteAwsGroupInput) (*DeleteAwsGroupOutput, error) {
+	path, err := uritemplates.Expand("/aws/ec2/group/{groupId}", map[string]string{
+		"groupId": StringValue(input.ID),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	r := s.client.newRequest("DELETE", path)
+	r.obj = input
+
+	_, resp, err := requireOK(s.client.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return &DeleteAwsGroupOutput{}, nil
 }

@@ -36,15 +36,12 @@ func testAccPreCheck(t *testing.T) {
 		"client_secret": os.Getenv("SPOTINST_CLIENT_SECRET"),
 		"token":         os.Getenv("SPOTINST_TOKEN"),
 	}
-
 	if c["password"] != "" && c["token"] != "" {
 		t.Fatalf("ERR_CONFLICT: Both a password and a token were set, only one is required")
 	}
-
 	if c["password"] != "" && (c["email"] == "" || c["client_id"] == "" || c["client_secret"] == "") {
 		t.Fatalf("ERR_MISSING: A password was set without email, client_id or client_secret")
 	}
-
 	if c["password"] == "" && c["token"] == "" {
 		t.Fatalf("ERR_MISSING: A token is required if not using password")
 	}

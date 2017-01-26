@@ -56,35 +56,24 @@ func resourceSpotinstSubscriptionCreate(d *schema.ResourceData, meta interface{}
 		return err
 	}
 	log.Printf("[DEBUG] Subscription create configuration: %#v\n", newSubscription)
-	res, _, err := client.Subscription.Create(newSubscription)
-	if err != nil || len(res) == 0 {
-		return fmt.Errorf("[ERROR] Error creating subscription: %s", err)
+	input := &spotinst.CreateSubscriptionInput{Subscription: newSubscription}
+	resp, err := client.SubscriptionService.Create(input)
+	if err != nil {
+		return fmt.Errorf("Error creating subscription: %s", err)
 	}
-	d.SetId(*res[0].ID)
+	d.SetId(spotinst.StringValue(resp.Subscription.ID))
 	log.Printf("[INFO] Subscription created successfully: %s\n", d.Id())
 	return resourceSpotinstSubscriptionRead(d, meta)
 }
 
 func resourceSpotinstSubscriptionRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*spotinst.Client)
-	subscriptions, _, err := client.Subscription.Get(d.Id())
+	input := &spotinst.ReadSubscriptionInput{ID: spotinst.String(d.Id())}
+	resp, err := client.SubscriptionService.Read(input)
 	if err != nil {
-		if serr, ok := err.(*spotinst.ErrorResponse); ok {
-			if serr.Response.StatusCode == 400 {
-				d.SetId("")
-				return nil
-			} else {
-				return fmt.Errorf("[ERROR] Error retrieving subscription: %s", err)
-			}
-		} else {
-			return fmt.Errorf("[ERROR] Error retrieving subscription: %s", err)
-		}
+		return fmt.Errorf("Error retrieving subscription: %s", err)
 	}
-	if len(subscriptions) == 0 {
-		return fmt.Errorf("[ERROR] No matching subscription %s", d.Id())
-	} else if len(subscriptions) > 1 {
-		return fmt.Errorf("[ERROR] Got %d results, only one is allowed", len(subscriptions))
-	} else if s := subscriptions[0]; s != nil {
+	if s := resp.Subscription; s != nil {
 		d.Set("resource_id", s.ResourceID)
 		d.Set("event_type", s.EventType)
 		d.Set("protocol", s.Protocol)
@@ -92,46 +81,45 @@ func resourceSpotinstSubscriptionRead(d *schema.ResourceData, meta interface{}) 
 		d.Set("format", s.Format)
 	} else {
 		d.SetId("")
-		return nil
 	}
 	return nil
 }
 
 func resourceSpotinstSubscriptionUpdate(d *schema.ResourceData, meta interface{}) error {
-	hasChange := false
 	client := meta.(*spotinst.Client)
-	update := &spotinst.Subscription{ID: spotinst.String(d.Id())}
+	subscription := &spotinst.Subscription{ID: spotinst.String(d.Id())}
+	update := false
 
 	if d.HasChange("resource_id") {
-		update.ResourceID = spotinst.String(d.Get("resource_id").(string))
-		hasChange = true
+		subscription.ResourceID = spotinst.String(d.Get("resource_id").(string))
+		update = true
 	}
 
 	if d.HasChange("event_type") {
-		update.EventType = spotinst.String(d.Get("event_type").(string))
-		hasChange = true
+		subscription.EventType = spotinst.String(d.Get("event_type").(string))
+		update = true
 	}
 
 	if d.HasChange("protocol") {
-		update.Protocol = spotinst.String(d.Get("protocol").(string))
-		hasChange = true
+		subscription.Protocol = spotinst.String(d.Get("protocol").(string))
+		update = true
 	}
 
 	if d.HasChange("endpoint") {
-		update.Endpoint = spotinst.String(d.Get("endpoint").(string))
-		hasChange = true
+		subscription.Endpoint = spotinst.String(d.Get("endpoint").(string))
+		update = true
 	}
 
 	if d.HasChange("format") {
-		update.Format = d.Get("format").(map[string]interface{})
-		hasChange = true
+		subscription.Format = d.Get("format").(map[string]interface{})
+		update = true
 	}
 
-	if hasChange {
-		log.Printf("[DEBUG] Subscription update configuration: %#v\n", update)
-		_, _, err := client.Subscription.Update(update)
-		if err != nil {
-			return fmt.Errorf("[ERROR] Error updating subscription: %s", err)
+	if update {
+		log.Printf("[DEBUG] Subscription update configuration: %#v\n", subscription)
+		input := &spotinst.UpdateSubscriptionInput{Subscription: subscription}
+		if _, err := client.SubscriptionService.Update(input); err != nil {
+			return fmt.Errorf("Error updating subscription %s: %s", d.Id(), err)
 		}
 	}
 
@@ -139,13 +127,7 @@ func resourceSpotinstSubscriptionUpdate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceSpotinstSubscriptionDelete(d *schema.ResourceData, meta interface{}) error {
-	//log.Printf("[INFO] Deleting subscription: %s\n", d.Id())
-	//client := meta.(*spotinst.Client)
-	//subscription := &spotinst.Subscription{ID: d.Id()}
-	//_, err := client.Subscription.Delete(subscription)
-	//if err != nil {
-	//	return fmt.Errorf("[ERROR] Error deleting subscription: %s", err)
-	//}
+	d.SetId("")
 	return nil
 }
 
@@ -158,6 +140,5 @@ func buildSubscriptionOpts(d *schema.ResourceData, meta interface{}) (*spotinst.
 		Endpoint:   spotinst.String(d.Get("endpoint").(string)),
 		Format:     d.Get("format").(map[string]interface{}),
 	}
-
 	return subscription, nil
 }

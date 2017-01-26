@@ -39,19 +39,16 @@ func (c *Config) Validate() error {
 
 // Client returns a new client for accessing Spotinst.
 func (c *Config) Client() (*spotinst.Client, error) {
-	client, err := spotinst.NewClient(&spotinst.Credentials{
-		Email:        c.Email,
-		Password:     c.Password,
-		ClientID:     c.ClientID,
-		ClientSecret: c.ClientSecret,
-		Token:        c.Token,
-	})
-
+	var clientOpts []spotinst.ClientOptionFunc
+	if c.Token != "" {
+		clientOpts = append(clientOpts, spotinst.SetToken(c.Token))
+	} else {
+		clientOpts = append(clientOpts, spotinst.SetCredentials(c.Email, c.Password, c.ClientID, c.ClientSecret))
+	}
+	client, err := spotinst.NewClient(clientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up client: %s", err)
 	}
-
 	log.Printf("[INFO] Spotinst client configured")
-
 	return client, nil
 }

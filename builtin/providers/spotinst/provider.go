@@ -63,10 +63,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		ClientSecret: d.Get("client_secret").(string),
 		Token:        d.Get("token").(string),
 	}
-
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
-
 	return config.Client()
 }

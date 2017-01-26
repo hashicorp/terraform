@@ -3,17 +3,80 @@ package spotinst
 import (
 	"fmt"
 	"net/http"
-	"strings"
 )
 
 const (
-	apiURL    = "https://api.spotinst.io"
-	oauthURL  = "https://oauth.spotinst.io"
-	mediaType = "application/json"
-	userAgent = SDKName + "/" + SDKVersion
+	// SDKVersion is the current version of the SDK.
+	SDKVersion = "2.0.0"
+
+	// SDKName is the name of the SDK.
+	SDKName = "spotinst-sdk-go"
+
+	// DefaultAPIAddress is the default address of the Spotinst API.
+	// It is used e.g. when initializing a new Client without a specific address.
+	DefaultAPIAddress = "api.spotinst.io"
+
+	// DefaultOAuthAddress is the default address of the Spotinst OAuth API.
+	// It is used e.g. when initializing a new Client without a specific address.
+	DefaultOAuthAddress = "oauth.spotinst.io"
+
+	// DefaultScheme is the default protocol scheme to use when making HTTP
+	// calls.
+	DefaultScheme = "https"
+
+	// DefaultContentType is the default content type to use when making HTTP
+	// calls.
+	DefaultContentType = "application/json"
+
+	// DefaultUserAgent is the default user agent to use when making HTTP
+	// calls.
+	DefaultUserAgent = SDKName + "/" + SDKVersion
+
+	// DefaultMaxRetries is the number of retries for a single request after
+	// the client will give up and return an error. It is zero by default, so
+	// retry is disabled by default.
+	DefaultMaxRetries = 0
+
+	// DefaultGzipEnabled specifies if gzip compression is enabled by default.
+	DefaultGzipEnabled = false
 )
 
-type Credentials struct {
+// clientConfig is used to configure the creation of a client.
+type clientConfig struct {
+	// address is the address of the API server.
+	apiAddress string
+
+	// oauthAddress is the address of the OAuth server.
+	oauthAddress string
+
+	// scheme is the URI scheme for the API server.
+	scheme string
+
+	// httpClient is the client to use. Default will be
+	// used if not provided.
+	httpClient *http.Client
+
+	// credentials is used to provide a per-request authorization token.
+	credentials *credentials
+
+	// userAgent is the user agent to use when making HTTP calls.
+	userAgent string
+
+	// contentType is the content type to use when making HTTP calls.
+	contentType string
+
+	// errorf logs to the error log.
+	errorlog Logger
+
+	// infof logs informational messages.
+	infolog Logger
+
+	// tracef logs to the trace log.
+	tracelog Logger
+}
+
+// credentials is used to configure the credentials used by a client.
+type credentials struct {
 	Email        string `json:"username"`
 	Password     string `json:"password"`
 	ClientID     string `json:"client_id"`
@@ -21,54 +84,93 @@ type Credentials struct {
 	Token        string `json:"token"`
 }
 
-type Response struct {
-	Response struct {
-		Errors []Error       `json:"errors"`
-		Items  []interface{} `json:"items"`
-	} `json:"response"`
+// ClientOptionFunc is a function that configures a Client.
+// It is used in NewClient.
+type ClientOptionFunc func(*clientConfig)
+
+// SetAPIAddress defines the address of the Spotinst API.
+func SetAPIAddress(addr string) ClientOptionFunc {
+	return func(c *clientConfig) {
+		c.apiAddress = addr
+	}
 }
 
-type Error struct {
-	// Error code.
-	Code string `json:"code"`
-
-	// Human-readable message.
-	Message string `json:"message"`
-
-	// The field in error.
-	Field string `json:"field"`
+// SetOauthAddress defines the address of the Spotinst OAuth API.
+func SetOauthAddress(addr string) ClientOptionFunc {
+	return func(c *clientConfig) {
+		c.oauthAddress = addr
+	}
 }
 
-// An ErrorResponse reports the errors caused by an API request.
-type ErrorResponse struct {
-	// HTTP response that caused this error.
-	Response *http.Response
-
-	// A list of errors.
-	Errors []Error
+// SetScheme defines the scheme for the address of the Spotinst API.
+func SetScheme(scheme string) ClientOptionFunc {
+	return func(c *clientConfig) {
+		c.scheme = scheme
+	}
 }
 
-// Error implements the error interface.
-func (e *ErrorResponse) Error() string {
-	if len(e.Errors) > 0 {
-		errs := make([]string, len(e.Errors))
-		for i, err := range e.Errors {
-			serr := fmt.Sprintf("Method: %s, URL: %s, StatusCode: %d, ErrorCode: %s, Field: %s, Message: %s",
-				e.Response.Request.Method,
-				e.Response.Request.URL,
-				e.Response.StatusCode,
-				err.Code,
-				err.Field,
-				err.Message,
-			)
-			errs[i] = serr
+// SetHttpClient defines the HTTP client.
+func SetHttpClient(client *http.Client) ClientOptionFunc {
+	return func(c *clientConfig) {
+		c.httpClient = client
+	}
+}
+
+// SetToken defines the authorization token.
+func SetToken(token string) ClientOptionFunc {
+	return func(c *clientConfig) {
+		c.credentials = &credentials{
+			Token: token,
 		}
-		return strings.Join(errs, "\n")
-	} else {
-		return fmt.Sprintf("Method: %s, URL: %s, StatusCode: %d",
-			e.Response.Request.Method,
-			e.Response.Request.URL,
-			e.Response.StatusCode,
-		)
+	}
+}
+
+// SetCredentials defines the authorization credentials.
+func SetCredentials(email, password, clientID, clientSecret string) ClientOptionFunc {
+	return func(c *clientConfig) {
+		c.credentials = &credentials{
+			Email:        email,
+			Password:     password,
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+		}
+	}
+}
+
+// SetUserAgent defines the user agent.
+func SetUserAgent(ua string) ClientOptionFunc {
+	return func(c *clientConfig) {
+		c.userAgent = fmt.Sprintf("%s+%s", ua, c.userAgent)
+	}
+}
+
+// SetContentType defines the content type.
+func SetContentType(ct string) ClientOptionFunc {
+	return func(c *clientConfig) {
+		c.contentType = ct
+	}
+}
+
+// SetErrorLog sets the logger for critical messages like nodes joining
+// or leaving the cluster or failing requests. It is nil by default.
+func SetErrorLog(logger Logger) ClientOptionFunc {
+	return func(c *clientConfig) {
+		c.errorlog = logger
+	}
+}
+
+// SetInfoLog sets the logger for informational messages, e.g. requests
+// and their response times. It is nil by default.
+func SetInfoLog(logger Logger) ClientOptionFunc {
+	return func(c *clientConfig) {
+		c.infolog = logger
+	}
+}
+
+// SetTraceLog specifies the log.Logger to use for output of HTTP requests
+// and responses which is helpful during debugging. It is nil by default.
+func SetTraceLog(logger Logger) ClientOptionFunc {
+	return func(c *clientConfig) {
+		c.tracelog = logger
 	}
 }
