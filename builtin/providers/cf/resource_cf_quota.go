@@ -51,7 +51,7 @@ func resourceQuota() *schema.Resource {
 			"total_route_ports": &schema.Schema{
 				Type:          schema.TypeInt,
 				Optional:      true,
-				Default:       0,
+				Default:       -1,
 				ConflictsWith: []string{"org"},
 			},
 			"total_private_domains": &schema.Schema{

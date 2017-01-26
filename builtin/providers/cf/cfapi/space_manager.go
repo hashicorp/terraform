@@ -72,11 +72,23 @@ func NewSpaceManager(config coreconfig.Reader, ccGateway net.Gateway) (dm *Space
 	return
 }
 
+// FindSpaceInOrg -
+func (sm *SpaceManager) FindSpaceInOrg(name string, org string) (space CCSpace, err error) {
+	spaceModel, err := sm.repo.FindByNameInOrg(name, org)
+	space.ID = spaceModel.GUID
+	space.Name = spaceModel.Name
+	space.OrgGUID = org
+	space.QuotaGUID = spaceModel.SpaceQuotaGUID
+	return
+}
+
 // FindSpace -
 func (sm *SpaceManager) FindSpace(name string) (space CCSpace, err error) {
 	spaceModel, err := sm.repo.FindByName(name)
 	space.ID = spaceModel.GUID
 	space.Name = spaceModel.Name
+	space.OrgGUID = sm.config.OrganizationFields().GUID
+	space.QuotaGUID = spaceModel.SpaceQuotaGUID
 	return
 }
 
