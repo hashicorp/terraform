@@ -158,7 +158,8 @@ Options:
   -no-color      If specified, output won't contain any color.
 
   -type=plan     Type of graph to output. Can be: plan, plan-destroy, apply,
-                 legacy.
+                 validate, input, refresh.
+
 
 `
 	return strings.TrimSpace(helpText)
