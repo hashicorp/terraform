@@ -71,10 +71,8 @@ const testGraphNodeModuleExpandStr = `
 aws_instance.bar
   aws_instance.foo
 aws_instance.foo
-plan-destroy
 `
 
 const testGraphNodeModuleExpandFlattenStr = `
 aws_instance.foo
-plan-destroy
 `
