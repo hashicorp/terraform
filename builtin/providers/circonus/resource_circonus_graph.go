@@ -139,6 +139,7 @@ func _NewGraphResource() *schema.Resource {
 			_GraphNameAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: _ValidateRegexp(_GraphNameAttr, `.+`),
 			},
 			_GraphNotesAttr: &schema.Schema{
