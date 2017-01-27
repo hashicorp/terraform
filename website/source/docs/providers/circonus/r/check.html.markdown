@@ -454,6 +454,11 @@ resource "circonus_check" "tcp_check" {
 }
 ```
 
+## Out Parameters
+
+* `check_by_collector` - Map of each check (value) that was created for every
+  specified broker (key).
+
 ## Import Example
 
 `circonus_check` supports importing resources.  Supposing the following

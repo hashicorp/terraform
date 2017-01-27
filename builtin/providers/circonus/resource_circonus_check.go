@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	// circonus_check.* "global" resource attribute names
+	// circonus_check.* global resource attribute names
 	_CheckActiveAttr      _SchemaAttr = "active"
 	_CheckCAQLAttr        _SchemaAttr = "caql"
 	_CheckCloudWatchAttr  _SchemaAttr = "cloudwatch"
@@ -60,6 +60,7 @@ const (
 	//_MetricIDAttr _SchemaAttr = "id"
 
 	// Out parameters for circonus_check
+	_CheckOutByCollectorAttr        _SchemaAttr = "check_by_collector"
 	_CheckOutCheckUUIDsAttr         _SchemaAttr = "uuids"
 	_CheckOutChecksAttr             _SchemaAttr = "checks"
 	_CheckOutCreatedAttr            _SchemaAttr = "created"
@@ -102,6 +103,7 @@ var _CheckDescriptions = _AttrDescrs{
 	_CheckTypeAttr:        "The check type",
 
 	_CheckOutChecksAttr:             "",
+	_CheckOutByCollectorAttr:        "",
 	_CheckOutCheckUUIDsAttr:         "",
 	_CheckOutCreatedAttr:            "",
 	_CheckOutLastModifiedAttr:       "",
@@ -243,6 +245,13 @@ func _NewCheckResource() *schema.Resource {
 			},
 
 			// Out parameters
+			_CheckOutByCollectorAttr: &schema.Schema{
+				Type:     schema.TypeMap,
+				Computed: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
 			_CheckOutCheckUUIDsAttr: &schema.Schema{
 				Type:     schema.TypeList,
 				Computed: true,
@@ -327,6 +336,11 @@ func _CheckRead(d *schema.ResourceData, meta interface{}) error {
 	// Global circonus_check attributes are saved first, followed by the check
 	// type specific attributes handled below in their respective _CheckRead*().
 
+	checkIDsByCollector := make(map[string]interface{}, len(c.Checks))
+	for i, b := range c.Brokers {
+		checkIDsByCollector[b] = c.Checks[i]
+	}
+
 	streams := schema.NewSet(_CheckStreamChecksum, nil)
 	for _, m := range c.Metrics {
 		streamAttrs := map[string]interface{}{
@@ -364,6 +378,7 @@ func _CheckRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Out parameters
+	_StateSet(d, _CheckOutByCollectorAttr, checkIDsByCollector)
 	_StateSet(d, _CheckOutCheckUUIDsAttr, c.CheckUUIDs)
 	_StateSet(d, _CheckOutChecksAttr, c.Checks)
 	_StateSet(d, _CheckOutCreatedAttr, c.Created)
