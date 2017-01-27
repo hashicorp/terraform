@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -1800,10 +1801,16 @@ func testForV0State(buf *bufio.Reader) error {
 	return nil
 }
 
+// ErrNoState is returned by ReadState when the io.Reader contains no data
+var ErrNoState = errors.New("no state")
+
 // ReadState reads a state structure out of a reader in the format that
 // was written by WriteState.
 func ReadState(src io.Reader) (*State, error) {
 	buf := bufio.NewReader(src)
+	if _, err := buf.Peek(1); err == io.EOF {
+		return nil, ErrNoState
+	}
 
 	if err := testForV0State(buf); err != nil {
 		return nil, err
