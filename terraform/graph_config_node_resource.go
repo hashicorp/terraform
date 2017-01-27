@@ -229,22 +229,6 @@ func (n *GraphNodeConfigResource) ProvisionedBy() []string {
 	return result
 }
 
-// GraphNodeDestroyable
-func (n *GraphNodeConfigResource) DestroyNode() GraphNodeDestroy {
-	// If we're already a destroy node, then don't do anything
-	if n.Destroy {
-		return nil
-	}
-
-	result := &graphNodeResourceDestroy{
-		GraphNodeConfigResource: *n.Copy(),
-		Original:                n,
-	}
-	result.Destroy = true
-
-	return result
-}
-
 // Same as GraphNodeConfigResource, but for flattening
 type GraphNodeConfigResourceFlat struct {
 	*GraphNodeConfigResource
@@ -286,27 +270,6 @@ func (n *GraphNodeConfigResourceFlat) ProvisionedBy() []string {
 	return modulePrefixList(
 		n.GraphNodeConfigResource.ProvisionedBy(),
 		prefix)
-}
-
-// GraphNodeDestroyable impl.
-func (n *GraphNodeConfigResourceFlat) DestroyNode() GraphNodeDestroy {
-	// Get our parent destroy node. If we don't have any, just return
-	raw := n.GraphNodeConfigResource.DestroyNode()
-	if raw == nil {
-		return nil
-	}
-
-	node, ok := raw.(*graphNodeResourceDestroy)
-	if !ok {
-		panic(fmt.Sprintf("unknown destroy node: %s %T", dag.VertexName(raw), raw))
-	}
-
-	// Otherwise, wrap it so that it gets the proper module treatment.
-	return &graphNodeResourceDestroyFlat{
-		graphNodeResourceDestroy: node,
-		PathValue:                n.PathValue,
-		FlatCreateNode:           n,
-	}
 }
 
 type graphNodeResourceDestroyFlat struct {
