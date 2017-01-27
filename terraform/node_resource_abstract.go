@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
@@ -107,6 +108,63 @@ func (n *NodeAbstractResource) References() []string {
 	}
 
 	return nil
+}
+
+// StateReferences returns the dependencies to put into the state for
+// this resource.
+func (n *NodeAbstractResource) StateReferences() []string {
+	self := n.ReferenceableName()
+
+	// Determine what our "prefix" is for checking for references to
+	// ourself.
+	addrCopy := n.Addr.Copy()
+	addrCopy.Index = -1
+	selfPrefix := addrCopy.String() + "."
+
+	depsRaw := n.References()
+	deps := make([]string, 0, len(depsRaw))
+	for _, d := range depsRaw {
+		// Ignore any variable dependencies
+		if strings.HasPrefix(d, "var.") {
+			continue
+		}
+
+		// If this has a backup ref, ignore those for now. The old state
+		// file never contained those and I'd rather store the rich types we
+		// add in the future.
+		if idx := strings.IndexRune(d, '/'); idx != -1 {
+			d = d[:idx]
+		}
+
+		// If we're referencing ourself, then ignore it
+		found := false
+		for _, s := range self {
+			if d == s {
+				found = true
+			}
+		}
+		if found {
+			continue
+		}
+
+		// If this is a reference to ourself and a specific index, we keep
+		// it. For example, if this resource is "foo.bar" and the reference
+		// is "foo.bar.0" then we keep it exact. Otherwise, we strip it.
+		if strings.HasSuffix(d, ".0") && !strings.HasPrefix(d, selfPrefix) {
+			d = d[:len(d)-2]
+		}
+
+		// This is sad. The dependencies are currently in the format of
+		// "module.foo.bar" (the full field). This strips the field off.
+		if strings.HasPrefix(d, "module.") {
+			parts := strings.SplitN(d, ".", 3)
+			d = strings.Join(parts[0:2], ".")
+		}
+
+		deps = append(deps, d)
+	}
+
+	return deps
 }
 
 // GraphNodeProviderConsumer

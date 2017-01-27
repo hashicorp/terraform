@@ -7229,7 +7229,7 @@ template_file.child:
   type = template_file
 
   Dependencies:
-    template_file.parent
+    template_file.parent.*
 template_file.parent:
   ID = foo
   template = Hi
