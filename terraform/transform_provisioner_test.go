@@ -12,8 +12,15 @@ func TestMissingProvisionerTransformer(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformerOld{Module: mod}
+		tf := &ConfigTransformer{Module: mod}
 		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &AttachResourceConfigTransformer{Module: mod}
+		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -112,8 +119,15 @@ func TestCloseProvisionerTransformer(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformerOld{Module: mod}
+		tf := &ConfigTransformer{Module: mod}
 		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &AttachResourceConfigTransformer{Module: mod}
+		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
