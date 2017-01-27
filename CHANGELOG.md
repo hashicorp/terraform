@@ -34,6 +34,10 @@ BUG FIXES:
 
 ## 0.8.6 (unreleased)
 
+IMPROVEMENTS:
+
+ * provider/aws: Add EBS Volume support for EMR Instance Groups [GH-11411]
+
 BUG FIXES:
 
  * provider/aws: Fix issue with `path` not updated when modifying AWS API Gateway Resource [GH-11443]
