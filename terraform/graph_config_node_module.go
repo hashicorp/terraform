@@ -49,22 +49,6 @@ func (n *GraphNodeConfigModule) Name() string {
 }
 
 // GraphNodeExpandable
-func (n *GraphNodeConfigModule) Expand(b GraphBuilder) (GraphNodeSubgraph, error) {
-	// Build the graph first
-	graph, err := b.Build(n.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	// Build the actual subgraph node
-	return &graphNodeModuleExpanded{
-		Original:  n,
-		Graph:     graph,
-		Variables: make(map[string]interface{}),
-	}, nil
-}
-
-// GraphNodeExpandable
 func (n *GraphNodeConfigModule) ProvidedBy() []string {
 	// Build up the list of providers by simply going over our configuration
 	// to find the providers that are configured there as well as the
