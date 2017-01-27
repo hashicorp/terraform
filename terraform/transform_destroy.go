@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -128,94 +127,6 @@ func (t *DestroyTransformer) Transform(g *Graph) error {
 	}
 	for _, e := range remove {
 		g.RemoveEdge(e)
-	}
-
-	return nil
-}
-
-// CreateBeforeDestroyTransformer is a GraphTransformer that modifies
-// the destroys of some nodes so that the creation happens before the
-// destroy.
-type CreateBeforeDestroyTransformer struct{}
-
-func (t *CreateBeforeDestroyTransformer) Transform(g *Graph) error {
-	// We "stage" the edge connections/destroys in these slices so that
-	// while we're doing the edge transformations (transpositions) in
-	// the graph, we're not affecting future edge transpositions. These
-	// slices let us stage ALL the changes that WILL happen so that all
-	// of the transformations happen atomically.
-	var connect, destroy []dag.Edge
-
-	for _, v := range g.Vertices() {
-		// We only care to use the destroy nodes
-		dn, ok := v.(GraphNodeDestroy)
-		if !ok {
-			continue
-		}
-
-		// If the node doesn't need to create before destroy, then continue
-		if !dn.CreateBeforeDestroy() {
-			if noCreateBeforeDestroyAncestors(g, dn) {
-				continue
-			}
-
-			// PURPOSELY HACKY FIX SINCE THIS TRANSFORM IS DEPRECATED.
-			// This is a hacky way to fix GH-10439. For a detailed description
-			// of the fix, see CBDEdgeTransformer, which is the equivalent
-			// transform used by the new graphs.
-			//
-			// This transform is deprecated because it is only used by the
-			// old graphs which are going to be removed.
-			var update *config.Resource
-			if dn, ok := v.(*graphNodeResourceDestroy); ok {
-				update = dn.Original.Resource
-			}
-			if dn, ok := v.(*graphNodeResourceDestroyFlat); ok {
-				update = dn.Original.Resource
-			}
-			if update != nil {
-				update.Lifecycle.CreateBeforeDestroy = true
-			}
-		}
-
-		// Get the creation side of this node
-		cn := dn.CreateNode()
-
-		// Take all the things which depend on the creation node and
-		// make them dependencies on the destruction. Clarifying this
-		// with an example: if you have a web server and a load balancer
-		// and the load balancer depends on the web server, then when we
-		// do a create before destroy, we want to make sure the steps are:
-		//
-		// 1.) Create new web server
-		// 2.) Update load balancer
-		// 3.) Delete old web server
-		//
-		// This ensures that.
-		for _, sourceRaw := range g.UpEdges(cn).List() {
-			source := sourceRaw.(dag.Vertex)
-
-			// If the graph has a "root" node (one added by a RootTransformer and not
-			// just a resource that happens to have no ancestors), we don't want to
-			// add any edges to it, because then it ceases to be a root.
-			if _, ok := source.(graphNodeRoot); ok {
-				continue
-			}
-
-			connect = append(connect, dag.BasicEdge(dn, source))
-		}
-
-		// Swap the edge so that the destroy depends on the creation
-		// happening...
-		connect = append(connect, dag.BasicEdge(dn, cn))
-		destroy = append(destroy, dag.BasicEdge(cn, dn))
-	}
-
-	for _, edge := range connect {
-		g.Connect(edge)
-	}
-	for _, edge := range destroy {
-		g.RemoveEdge(edge)
 	}
 
 	return nil
