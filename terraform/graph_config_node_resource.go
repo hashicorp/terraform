@@ -165,15 +165,6 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 
 	// Additional destroy modifications.
 	if n.Destroy {
-		// If we're destroying a primary or tainted resource, we want to
-		// expand orphans, which have all the same semantics in a destroy
-		// as a primary or tainted resource.
-		steps = append(steps, &OrphanTransformer{
-			Resource: n.Resource,
-			State:    state,
-			View:     n.Resource.Id(),
-		})
-
 		steps = append(steps, &DeposedTransformer{
 			State: state,
 			View:  n.Resource.Id(),
