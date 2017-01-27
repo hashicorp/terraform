@@ -70,16 +70,8 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 		resource.CountIndex = 0
 	}
 
-	// Determine the dependencies for the state. We use some older
-	// code for this that we've used for a long time.
-	var stateDeps []string
-	{
-		oldN := &graphNodeExpandedResource{
-			Resource: n.Config,
-			Index:    addr.Index,
-		}
-		stateDeps = oldN.StateDependencies()
-	}
+	// Determine the dependencies for the state.
+	stateDeps := n.StateReferences()
 
 	// Eval info is different depending on what kind of resource this is
 	switch n.Config.Mode {
