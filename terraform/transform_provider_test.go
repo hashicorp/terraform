@@ -3,8 +3,6 @@ package terraform
 import (
 	"strings"
 	"testing"
-
-	"github.com/hashicorp/terraform/dag"
 )
 
 func TestProviderTransformer(t *testing.T) {
@@ -399,19 +397,6 @@ func TestPruneProviderTransformer(t *testing.T) {
 	expected := strings.TrimSpace(testTransformPruneProviderBasicStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
-func TestGraphNodeProvider_impl(t *testing.T) {
-	var _ dag.Vertex = new(graphNodeProvider)
-	var _ dag.NamedVertex = new(graphNodeProvider)
-	var _ GraphNodeProvider = new(graphNodeProvider)
-}
-
-func TestGraphNodeProvider_ProviderName(t *testing.T) {
-	n := &graphNodeProvider{ProviderNameValue: "foo"}
-	if v := n.ProviderName(); v != "foo" {
-		t.Fatalf("bad: %#v", v)
 	}
 }
 
