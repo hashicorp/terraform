@@ -27,10 +27,6 @@ IMPROVEMENTS:
 
 ## 0.8.6 (unreleased)
 
-BUGS:
-
- * provider/aws: allow destroy of LB stickiness policy with missing LB [GH-11462]
-
 ## 0.8.5 (26 January 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
