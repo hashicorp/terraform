@@ -44,10 +44,6 @@ func (n *GraphNodeConfigResource) Copy() *GraphNodeConfigResource {
 	return ncr
 }
 
-func (n *GraphNodeConfigResource) ConfigType() GraphNodeConfigType {
-	return GraphNodeConfigTypeResource
-}
-
 func (n *GraphNodeConfigResource) DependableName() []string {
 	return []string{n.Resource.Id()}
 }

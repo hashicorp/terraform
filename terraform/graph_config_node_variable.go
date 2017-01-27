@@ -28,10 +28,6 @@ func (n *GraphNodeConfigVariable) Name() string {
 	return fmt.Sprintf("var.%s", n.Variable.Name)
 }
 
-func (n *GraphNodeConfigVariable) ConfigType() GraphNodeConfigType {
-	return GraphNodeConfigTypeVariable
-}
-
 func (n *GraphNodeConfigVariable) DependableName() []string {
 	return []string{n.Name()}
 }
