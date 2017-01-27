@@ -202,18 +202,14 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 			if err := validateAwsEcsPlacementConstraint(t, e); err != nil {
 				return err
 			}
-
-			switch t {
-			case "distinctInstance":
-				pc = append(pc, &ecs.PlacementConstraint{
-					Type: aws.String(t),
-				})
-			default:
-				pc = append(pc, &ecs.PlacementConstraint{
-					Type:       aws.String(t),
-					Expression: aws.String(e),
-				})
+			constraint := &ecs.PlacementConstraint{
+				Type: aws.String(t),
 			}
+			if e != "" {
+				constraint.Expression = aws.String(e)
+			}
+
+			pc = append(pc, constraint)
 		}
 		input.PlacementConstraints = pc
 	}
@@ -344,8 +340,7 @@ func flattenServicePlacementConstraints(pcs []*ecs.PlacementConstraint) []map[st
 	for _, pc := range pcs {
 		c := make(map[string]interface{})
 		c["type"] = *pc.Type
-
-		if c["type"] != "distinctInstance" {
+		if pc.Expression != nil {
 			c["expression"] = *pc.Expression
 		}
 
