@@ -23,6 +23,13 @@ func TestAccCirconusGraph_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "description", "Terraform Test: mixed graph"),
 					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "notes", "test notes"),
 					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "graph_style", "line"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "left.%", "1"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "left.max", "11"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "right.%", "3"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "right.logarithmic", "10"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "right.max", "20"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "right.min", "-1"),
+
 					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "line_style", "stepped"),
 
 					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.#", "2"),
@@ -201,13 +208,11 @@ resource "circonus_graph" "mixed-points" {
   // }
 
   left {
-    logarithmic = false
-    max = 10
-    min = 0
+    max = 11
   }
 
   right {
-    logarithmic = false
+    logarithmic = 10
     max = 20
     min = -1
   }
