@@ -328,17 +328,13 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	streams := make([]interface{}, 0, len(g.Datapoints))
-	for i, datapoint := range g.Datapoints {
+	for _, datapoint := range g.Datapoints {
 		dataPointAttrs := make(map[string]interface{}, 13) // 13 == len(members in api.GraphDatapoint)
 
 		dataPointAttrs[string(_GraphStreamActiveAttr)] = !datapoint.Hidden
 
 		if datapoint.Alpha != nil {
-			f, err := strconv.ParseFloat(*datapoint.Alpha, 32)
-			if err != nil {
-				return errwrap.Wrapf(fmt.Sprintf("Unable to parse datapoint %d's alpha %q: {{err}}", i, *datapoint.Alpha), err)
-			}
-			dataPointAttrs[string(_GraphStreamAlphaAttr)] = f
+			dataPointAttrs[string(_GraphStreamAlphaAttr)] = *datapoint.Alpha
 		}
 
 		switch datapoint.Axis {
@@ -445,11 +441,11 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if g.MaxLeftY != nil {
-		leftAxisMap[string(_GraphAxisMaxAttr)] = fmt.Sprintf("%d", *g.MaxLeftY)
+		leftAxisMap[string(_GraphAxisMaxAttr)] = strconv.FormatFloat(*g.MaxLeftY, 'f', -1, 64)
 	}
 
 	if g.MinLeftY != nil {
-		leftAxisMap[string(_GraphAxisMinAttr)] = fmt.Sprintf("%d", *g.MinLeftY)
+		leftAxisMap[string(_GraphAxisMinAttr)] = strconv.FormatFloat(*g.MinLeftY, 'f', -1, 64)
 	}
 
 	rightAxisMap := make(map[string]interface{}, 3)
@@ -458,11 +454,11 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if g.MaxRightY != nil {
-		rightAxisMap[string(_GraphAxisMaxAttr)] = fmt.Sprintf("%d", *g.MaxRightY)
+		rightAxisMap[string(_GraphAxisMaxAttr)] = strconv.FormatFloat(*g.MaxRightY, 'f', -1, 64)
 	}
 
 	if g.MinRightY != nil {
-		rightAxisMap[string(_GraphAxisMinAttr)] = fmt.Sprintf("%d", *g.MinRightY)
+		rightAxisMap[string(_GraphAxisMinAttr)] = strconv.FormatFloat(*g.MinRightY, 'f', -1, 64)
 	}
 
 	_StateSet(d, _GraphDescriptionAttr, g.Description)
@@ -538,8 +534,8 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 	g.Datapoints = make([]api.GraphDatapoint, 0, defaultGraphDatapoints)
 
 	{
-		leftMap := ar.GetMap(_GraphLeftAttr)
-		if v, ok := leftMap[string(_GraphAxisLogarithmicAttr)]; ok {
+		leftAxisMap := ar.GetMap(_GraphLeftAttr)
+		if v, ok := leftAxisMap[string(_GraphAxisLogarithmicAttr)]; ok {
 			switch v.(string) {
 			case "0":
 				i := 0
@@ -552,22 +548,20 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 			}
 		}
 
-		if v, ok := leftMap[string(_GraphAxisMaxAttr)]; ok && v.(string) != "" {
-			i64, _ := strconv.ParseInt(v.(string), 10, 64)
-			i := int(i64)
-			g.MaxLeftY = &i
+		if v, ok := leftAxisMap[string(_GraphAxisMaxAttr)]; ok && v.(string) != "" {
+			f, _ := strconv.ParseFloat(v.(string), 64)
+			g.MaxLeftY = &f
 		}
 
-		if v, ok := leftMap[string(_GraphAxisMinAttr)]; ok && v.(string) != "" {
-			i64, _ := strconv.ParseInt(v.(string), 10, 64)
-			i := int(i64)
-			g.MinLeftY = &i
+		if v, ok := leftAxisMap[string(_GraphAxisMinAttr)]; ok && v.(string) != "" {
+			f, _ := strconv.ParseFloat(v.(string), 64)
+			g.MinLeftY = &f
 		}
 	}
 
 	{
-		rightMap := ar.GetMap(_GraphRightAttr)
-		if v, ok := rightMap[string(_GraphAxisLogarithmicAttr)]; ok {
+		rightAxisMap := ar.GetMap(_GraphRightAttr)
+		if v, ok := rightAxisMap[string(_GraphAxisLogarithmicAttr)]; ok {
 			switch v.(string) {
 			case "0":
 				i := 0
@@ -580,16 +574,14 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 			}
 		}
 
-		if v, ok := rightMap[string(_GraphAxisMaxAttr)]; ok && v.(string) != "" {
-			i64, _ := strconv.ParseInt(v.(string), 10, 64)
-			i := int(i64)
-			g.MaxRightY = &i
+		if v, ok := rightAxisMap[string(_GraphAxisMaxAttr)]; ok && v.(string) != "" {
+			f, _ := strconv.ParseFloat(v.(string), 64)
+			g.MaxRightY = &f
 		}
 
-		if v, ok := rightMap[string(_GraphAxisMinAttr)]; ok && v.(string) != "" {
-			i64, _ := strconv.ParseInt(v.(string), 10, 64)
-			i := int(i64)
-			g.MinRightY = &i
+		if v, ok := rightAxisMap[string(_GraphAxisMinAttr)]; ok && v.(string) != "" {
+			f, _ := strconv.ParseFloat(v.(string), 64)
+			g.MinRightY = &f
 		}
 	}
 
@@ -621,8 +613,7 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 				}
 
 				if f, ok := streamReader.GetFloat64OK(_GraphStreamAlphaAttr); ok {
-					s := fmt.Sprintf("%f", f)
-					datapoint.Alpha = &s
+					datapoint.Alpha = &f
 				}
 
 				if s, ok := streamReader.GetStringOK(_GraphStreamAxisAttr); ok {

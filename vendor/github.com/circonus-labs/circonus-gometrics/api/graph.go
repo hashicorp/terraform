@@ -48,7 +48,7 @@ type GraphComposite struct {
 
 // GraphDatapoint defines a datapoint
 type GraphDatapoint struct {
-	Alpha         *string     `json:"alpha,omitempty"`          // string
+	Alpha         *float64    `json:"alpha,string,omitempty"`   // float64
 	Axis          string      `json:"axis,omitempty"`           // string
 	CAQL          *string     `json:"caql,omitempty"`           // string or null
 	CheckID       uint        `json:"check_id,omitempty"`       // uint
@@ -145,11 +145,11 @@ type Graph struct {
 	LineStyle      string                      `json:"line_style,omitempty"`                 // string
 	LogLeftY       *int                        `json:"logarithmic_left_y,string,omitempty"`  // int encoded as string or null
 	LogRightY      *int                        `json:"logarithmic_right_y,string,omitempty"` // int encoded as string or null
-	MaxLeftY       *int                        `json:"max_left_y,string,omitempty"`          // int encoded as string or null
-	MaxRightY      *int                        `json:"max_right_y,string,omitempty"`         // int encoded as string or null
+	MaxLeftY       *float64                    `json:"max_left_y,string,omitempty"`          // float64 encoded as string or null
+	MaxRightY      *float64                    `json:"max_right_y,string,omitempty"`         // float64 encoded as string or null
 	MetricClusters []GraphMetricCluster        `json:"metric_clusters,omitempty"`            // [] len >= 0
-	MinLeftY       *int                        `json:"min_left_y,string,omitempty"`          // int encoded as string or null
-	MinRightY      *int                        `json:"min_right_y,string,omitempty"`         // int encoded as string or null
+	MinLeftY       *float64                    `json:"min_left_y,string,omitempty"`          // float64 encoded as string or null
+	MinRightY      *float64                    `json:"min_right_y,string,omitempty"`         // float64 encoded as string or null
 	Notes          *string                     `json:"notes,omitempty"`                      // string or null
 	OverlaySets    *map[string]GraphOverlaySet `json:"overlay_sets,omitempty"`               // GroupOverLaySets or null
 	Style          string                      `json:"style,omitempty"`                      // string
