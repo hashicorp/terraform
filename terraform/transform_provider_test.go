@@ -359,58 +359,6 @@ func TestPruneProviderTransformer(t *testing.T) {
 	}
 }
 
-func TestDisableProviderTransformer(t *testing.T) {
-	mod := testModule(t, "transform-provider-disable")
-
-	g := Graph{Path: RootModulePath}
-	transforms := []GraphTransformer{
-		&ConfigTransformerOld{Module: mod},
-		&MissingProviderTransformer{Providers: []string{"aws"}},
-		&ProviderTransformer{},
-		&DisableProviderTransformerOld{},
-		&CloseProviderTransformer{},
-		&PruneProviderTransformer{},
-	}
-
-	for _, tr := range transforms {
-		if err := tr.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformDisableProviderBasicStr)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s\n", expected, actual)
-	}
-}
-
-func TestDisableProviderTransformer_keep(t *testing.T) {
-	mod := testModule(t, "transform-provider-disable-keep")
-
-	g := Graph{Path: RootModulePath}
-	transforms := []GraphTransformer{
-		&ConfigTransformerOld{Module: mod},
-		&MissingProviderTransformer{Providers: []string{"aws"}},
-		&ProviderTransformer{},
-		&DisableProviderTransformerOld{},
-		&CloseProviderTransformer{},
-		&PruneProviderTransformer{},
-	}
-
-	for _, tr := range transforms {
-		if err := tr.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformDisableProviderKeepStr)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s\n", expected, actual)
-	}
-}
-
 func TestGraphNodeProvider_impl(t *testing.T) {
 	var _ dag.Vertex = new(graphNodeProvider)
 	var _ dag.NamedVertex = new(graphNodeProvider)
