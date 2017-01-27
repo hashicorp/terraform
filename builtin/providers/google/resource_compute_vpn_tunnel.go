@@ -199,6 +199,18 @@ func resourceComputeVpnTunnelRead(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error Reading VPN Tunnel %s: %s", name, err)
 	}
 
+	localTrafficSelectors := []string{}
+	for _, lts := range vpnTunnel.LocalTrafficSelector {
+		localTrafficSelectors = append(localTrafficSelectors, lts)
+	}
+	d.Set("local_traffic_selector", localTrafficSelectors)
+
+	remoteTrafficSelectors := []string{}
+	for _, rts := range vpnTunnel.RemoteTrafficSelector {
+		remoteTrafficSelectors = append(remoteTrafficSelectors, rts)
+	}
+	d.Set("remote_traffic_selector", remoteTrafficSelectors)
+
 	d.Set("detailed_status", vpnTunnel.DetailedStatus)
 	d.Set("self_link", vpnTunnel.SelfLink)
 
