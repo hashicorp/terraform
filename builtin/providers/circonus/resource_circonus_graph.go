@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/circonus-labs/circonus-gometrics/api/config"
@@ -303,6 +304,10 @@ func _GraphExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	cid := d.Id()
 	g, err := ctxt.client.FetchGraph(api.CIDType(&cid))
 	if err != nil {
+		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {
+			return false, nil
+		}
+
 		return false, err
 	}
 
