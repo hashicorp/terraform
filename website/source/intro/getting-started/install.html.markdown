@@ -33,6 +33,14 @@ Example for Linux/Mac - Type the following into your terminal:
 Example for Windows - Type the following into Powershell:
 >`[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ({;C:\terraform},{C:\terraform})[$env:PATH[-1] -eq ';'], "User")`
 
+### OS X
+
+If you are using [homebrew](http://brew.sh/#install) as a package manager,
+you can install Terraform with:
+
+```
+$ brew install terraform
+```
 
 ## Verifying the Installation
 
