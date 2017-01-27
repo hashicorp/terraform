@@ -56,14 +56,6 @@ func (n *GraphNodeConfigModule) Expand(b GraphBuilder) (GraphNodeSubgraph, error
 		return nil, err
 	}
 
-	{
-		// Add the destroy marker to the graph
-		t := &ModuleDestroyTransformerOld{}
-		if err := t.Transform(graph); err != nil {
-			return nil, err
-		}
-	}
-
 	// Build the actual subgraph node
 	return &graphNodeModuleExpanded{
 		Original:  n,
