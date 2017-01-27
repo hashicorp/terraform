@@ -14,10 +14,6 @@ type graphNodeConfig interface {
 	// be depended on.
 	GraphNodeDependable
 	GraphNodeDependent
-
-	// ConfigType returns the type of thing in the configuration that
-	// this node represents, such as a resource, module, etc.
-	ConfigType() GraphNodeConfigType
 }
 
 // GraphNodeAddressable is an interface that all graph nodes for the
