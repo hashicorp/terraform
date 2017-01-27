@@ -18,10 +18,6 @@ type GraphNodeConfigResource struct {
 	Path []string
 }
 
-func (n *GraphNodeConfigResource) DependableName() []string {
-	return []string{n.Resource.Id()}
-}
-
 // GraphNodeDependent impl.
 func (n *GraphNodeConfigResource) DependentOn() []string {
 	result := make([]string, len(n.Resource.DependsOn),
