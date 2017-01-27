@@ -52,7 +52,7 @@ type GraphDatapoint struct {
 	Axis          string      `json:"axis,omitempty"`           // string
 	CAQL          *string     `json:"caql,omitempty"`           // string or null
 	CheckID       uint        `json:"check_id,omitempty"`       // uint
-	Color         string      `json:"color,omitempty"`          // string
+	Color         *string     `json:"color,omitempty"`          // string
 	DataFormula   *string     `json:"data_formula,omitempty"`   // string or null
 	Derive        interface{} `json:"derive,omitempty"`         // BUG doc: string, api: string or boolean(for caql statements)
 	Hidden        bool        `json:"hidden"`                   // boolean
