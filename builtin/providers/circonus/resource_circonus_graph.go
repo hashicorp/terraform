@@ -25,31 +25,31 @@ const (
 	_GraphTagsAttr        _SchemaAttr = "tags"
 
 	// circonus_graph.stream.* resource attribute names
-	_GraphStreamActiveAttr    _SchemaAttr = "active"
-	_GraphAlphaAttr           _SchemaAttr = "alpha"
-	_GraphStreamAxisAttr      _SchemaAttr = "axis"
-	_GraphCAQLAttr            _SchemaAttr = "caql"
-	_GraphCheckAttr           _SchemaAttr = "check"
-	_GraphColorAttr           _SchemaAttr = "color"
-	_GraphFormulaAttr         _SchemaAttr = "formula"
-	_GraphFormulaLegendAttr   _SchemaAttr = "legend_formula"
-	_GraphFunctionAttr        _SchemaAttr = "function"
-	_GraphMetricTypeAttr      _SchemaAttr = "metric_type"
-	_GraphStreamHumanNameAttr _SchemaAttr = "name"
-	_GraphStreamNameAttr      _SchemaAttr = "stream_name"
-	_GraphStreamStackAttr     _SchemaAttr = "stack"
+	_GraphStreamActiveAttr        _SchemaAttr = "active"
+	_GraphStreamAlphaAttr         _SchemaAttr = "alpha"
+	_GraphStreamAxisAttr          _SchemaAttr = "axis"
+	_GraphStreamCAQLAttr          _SchemaAttr = "caql"
+	_GraphStreamCheckAttr         _SchemaAttr = "check"
+	_GraphStreamColorAttr         _SchemaAttr = "color"
+	_GraphStreamFormulaAttr       _SchemaAttr = "formula"
+	_GraphStreamFormulaLegendAttr _SchemaAttr = "legend_formula"
+	_GraphStreamFunctionAttr      _SchemaAttr = "function"
+	_GraphStreamHumanNameAttr     _SchemaAttr = "name"
+	_GraphStreamMetricTypeAttr    _SchemaAttr = "metric_type"
+	_GraphStreamNameAttr          _SchemaAttr = "stream_name"
+	_GraphStreamStackAttr         _SchemaAttr = "stack"
 
 	// circonus_graph.stream_group.* resource attribute names
 	_GraphStreamGroupActiveAttr    _SchemaAttr = "active"
-	_GraphAggregateAttr            _SchemaAttr = "aggregate"
+	_GraphStreamGroupAggregateAttr _SchemaAttr = "aggregate"
 	_GraphStreamGroupAxisAttr      _SchemaAttr = "axis"
-	_GraphGroupAttr                _SchemaAttr = "group"
+	_GraphStreamGroupGroupAttr     _SchemaAttr = "group"
 	_GraphStreamGroupHumanNameAttr _SchemaAttr = "name"
 
 	// circonus_graph.{left,right}.* resource attribute names
-	_GraphLogarithmicAttr _SchemaAttr = "logarithmic"
-	_GraphMaxAttr         _SchemaAttr = "max"
-	_GraphMinAttr         _SchemaAttr = "min"
+	_GraphAxisLogarithmicAttr _SchemaAttr = "logarithmic"
+	_GraphAxisMaxAttr         _SchemaAttr = "max"
+	_GraphAxisMinAttr         _SchemaAttr = "min"
 )
 
 var _GraphDescriptions = _AttrDescrs{
@@ -68,45 +68,45 @@ var _GraphDescriptions = _AttrDescrs{
 
 var _GraphStreamDescriptions = _AttrDescrs{
 	// circonus_graph.stream.* resource attribute names
-	_GraphStreamActiveAttr:    "",
-	_GraphAlphaAttr:           "",
-	_GraphStreamAxisAttr:      "",
-	_GraphCAQLAttr:            "",
-	_GraphCheckAttr:           "",
-	_GraphColorAttr:           "",
-	_GraphFormulaAttr:         "",
-	_GraphFormulaLegendAttr:   "",
-	_GraphFunctionAttr:        "",
-	_GraphMetricTypeAttr:      "",
-	_GraphStreamHumanNameAttr: "",
-	_GraphStreamNameAttr:      "",
-	_GraphStreamStackAttr:     "",
+	_GraphStreamActiveAttr:        "",
+	_GraphStreamAlphaAttr:         "",
+	_GraphStreamAxisAttr:          "",
+	_GraphStreamCAQLAttr:          "",
+	_GraphStreamCheckAttr:         "",
+	_GraphStreamColorAttr:         "",
+	_GraphStreamFormulaAttr:       "",
+	_GraphStreamFormulaLegendAttr: "",
+	_GraphStreamFunctionAttr:      "",
+	_GraphStreamMetricTypeAttr:    "",
+	_GraphStreamHumanNameAttr:     "",
+	_GraphStreamNameAttr:          "",
+	_GraphStreamStackAttr:         "",
 }
 
 var _GraphStreamGroupDescriptions = _AttrDescrs{
 	// circonus_graph.stream_group.* resource attribute names
 	_GraphStreamGroupActiveAttr:    "",
-	_GraphAggregateAttr:            "",
+	_GraphStreamGroupAggregateAttr: "",
 	_GraphStreamGroupAxisAttr:      "",
-	_GraphGroupAttr:                "",
+	_GraphStreamGroupGroupAttr:     "",
 	_GraphStreamGroupHumanNameAttr: "",
 }
 
 var _GraphStreamAxisOptionDescriptions = _AttrDescrs{
 	// circonus_graph.if.value.over.* resource attribute names
-	_GraphLogarithmicAttr: "",
-	_GraphMaxAttr:         "",
-	_GraphMinAttr:         "",
+	_GraphAxisLogarithmicAttr: "",
+	_GraphAxisMaxAttr:         "",
+	_GraphAxisMinAttr:         "",
 }
 
 func _NewGraphResource() *schema.Resource {
-	// makeConflictsWith := func(in ..._SchemaAttr) []string {
-	// 	out := make([]string, 0, len(in))
-	// 	for _, attr := range in {
-	// 		out = append(out, string(_GraphStreamAttr)+"."+string(attr))
-	// 	}
-	// 	return out
-	// }
+	makeConflictsWith := func(in ..._SchemaAttr) []string {
+		out := make([]string, 0, len(in))
+		for _, attr := range in {
+			out = append(out, string(_GraphStreamAttr)+"."+string(attr))
+		}
+		return out
+	}
 
 	return &schema.Resource{
 		Create: _GraphCreate,
@@ -161,12 +161,12 @@ func _NewGraphResource() *schema.Resource {
 							Optional: true,
 							Default:  true,
 						},
-						_GraphAlphaAttr: &schema.Schema{
+						_GraphStreamAlphaAttr: &schema.Schema{
 							Type:     schema.TypeFloat,
 							Optional: true,
 							ValidateFunc: _ValidateFuncs(
-								_ValidateFloatMin(_GraphAlphaAttr, 0.0),
-								_ValidateFloatMax(_GraphAlphaAttr, 1.0),
+								_ValidateFloatMin(_GraphStreamAlphaAttr, 0.0),
+								_ValidateFloatMax(_GraphStreamAlphaAttr, 1.0),
 							),
 						},
 						_GraphStreamAxisAttr: &schema.Schema{
@@ -175,43 +175,43 @@ func _NewGraphResource() *schema.Resource {
 							Default:      "left",
 							ValidateFunc: _ValidateStringIn(_GraphStreamAxisAttr, _ValidAxisAttrs),
 						},
-						_GraphCAQLAttr: &schema.Schema{
+						_GraphStreamCAQLAttr: &schema.Schema{
+							Type:          schema.TypeString,
+							Optional:      true,
+							ValidateFunc:  _ValidateRegexp(_GraphStreamCAQLAttr, `.+`),
+							ConflictsWith: makeConflictsWith(_GraphStreamCheckAttr, _GraphStreamNameAttr),
+						},
+						_GraphStreamCheckAttr: &schema.Schema{
+							Type:          schema.TypeString,
+							Optional:      true,
+							ValidateFunc:  _ValidateRegexp(_GraphStreamCheckAttr, config.CheckCIDRegex),
+							ConflictsWith: makeConflictsWith(_GraphStreamCAQLAttr),
+						},
+						_GraphStreamColorAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: _ValidateRegexp(_GraphCAQLAttr, `.+`),
-							// ConflictsWith: makeConflictsWith(_GraphCheckAttr, _GraphStreamAttr),
+							ValidateFunc: _ValidateRegexp(_GraphStreamColorAttr, `^#[0-9a-fA-F]{6}$`),
 						},
-						_GraphCheckAttr: &schema.Schema{
+						_GraphStreamFormulaAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: _ValidateRegexp(_GraphCheckAttr, config.CheckCIDRegex),
-							// ConflictsWith: makeConflictsWith(_GraphCAQLAttr),
+							ValidateFunc: _ValidateRegexp(_GraphStreamFormulaAttr, `^.+$`),
 						},
-						_GraphColorAttr: &schema.Schema{
+						_GraphStreamFormulaLegendAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: _ValidateRegexp(_GraphColorAttr, `^#[0-9a-fA-F]{6}$`),
+							ValidateFunc: _ValidateRegexp(_GraphStreamFormulaLegendAttr, `^.+$`),
 						},
-						_GraphFormulaAttr: &schema.Schema{
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: _ValidateRegexp(_GraphFormulaAttr, `^.+$`),
-						},
-						_GraphFormulaLegendAttr: &schema.Schema{
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: _ValidateRegexp(_GraphFormulaLegendAttr, `^.+$`),
-						},
-						_GraphFunctionAttr: &schema.Schema{
+						_GraphStreamFunctionAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      defaultGraphFunction,
-							ValidateFunc: _ValidateStringIn(_GraphFunctionAttr, _ValidGraphFunctionValues),
+							ValidateFunc: _ValidateStringIn(_GraphStreamFunctionAttr, _ValidGraphFunctionValues),
 						},
-						_GraphMetricTypeAttr: &schema.Schema{
+						_GraphStreamMetricTypeAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: _ValidateStringIn(_GraphMetricTypeAttr, _ValidMetricTypes),
+							ValidateFunc: _ValidateStringIn(_GraphStreamMetricTypeAttr, _ValidMetricTypes),
 						},
 						_GraphStreamHumanNameAttr: &schema.Schema{
 							Type:         schema.TypeString,
@@ -220,7 +220,7 @@ func _NewGraphResource() *schema.Resource {
 						},
 						_GraphStreamNameAttr: &schema.Schema{
 							Type:         schema.TypeString,
-							Required:     true,
+							Optional:     true,
 							ValidateFunc: _ValidateRegexp(_GraphStreamNameAttr, `^[\S]+$`),
 						},
 						_GraphStreamStackAttr: &schema.Schema{
@@ -244,11 +244,11 @@ func _NewGraphResource() *schema.Resource {
 							Optional: true,
 							Default:  true,
 						},
-						_GraphAggregateAttr: &schema.Schema{
+						_GraphStreamGroupAggregateAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      "none",
-							ValidateFunc: _ValidateStringIn(_GraphAggregateAttr, _ValidAggregateFuncs),
+							ValidateFunc: _ValidateStringIn(_GraphStreamGroupAggregateAttr, _ValidAggregateFuncs),
 						},
 						_GraphStreamGroupAxisAttr: &schema.Schema{
 							Type:         schema.TypeString,
@@ -256,10 +256,10 @@ func _NewGraphResource() *schema.Resource {
 							Default:      "left",
 							ValidateFunc: _ValidateStringIn(_GraphStreamGroupAttr, _ValidAxisAttrs),
 						},
-						_GraphGroupAttr: &schema.Schema{
+						_GraphStreamGroupGroupAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: _ValidateRegexp(_GraphGroupAttr, config.MetricClusterCIDRegex),
+							ValidateFunc: _ValidateRegexp(_GraphStreamGroupGroupAttr, config.MetricClusterCIDRegex),
 						},
 						_GraphStreamGroupHumanNameAttr: &schema.Schema{
 							Type:         schema.TypeString,
@@ -335,7 +335,7 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 			if err != nil {
 				return errwrap.Wrapf(fmt.Sprintf("Unable to parse datapoint %d's alpha %q: {{err}}", i, *datapoint.Alpha), err)
 			}
-			dataPointAttrs[string(_GraphAlphaAttr)] = f
+			dataPointAttrs[string(_GraphStreamAlphaAttr)] = f
 		}
 
 		switch datapoint.Axis {
@@ -348,31 +348,31 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if datapoint.CAQL != nil {
-			dataPointAttrs[string(_GraphCAQLAttr)] = *datapoint.CAQL
+			dataPointAttrs[string(_GraphStreamCAQLAttr)] = *datapoint.CAQL
 		}
 
 		if datapoint.CheckID != 0 {
-			dataPointAttrs[string(_GraphCheckAttr)] = fmt.Sprintf("%s/%d", config.CheckPrefix, datapoint.CheckID)
+			dataPointAttrs[string(_GraphStreamCheckAttr)] = fmt.Sprintf("%s/%d", config.CheckPrefix, datapoint.CheckID)
 		}
 
 		if datapoint.Color != "" {
-			dataPointAttrs[string(_GraphColorAttr)] = datapoint.Color
+			dataPointAttrs[string(_GraphStreamColorAttr)] = datapoint.Color
 		}
 
 		if datapoint.DataFormula != nil {
-			dataPointAttrs[string(_GraphFormulaAttr)] = *datapoint.DataFormula
+			dataPointAttrs[string(_GraphStreamFormulaAttr)] = *datapoint.DataFormula
 		}
 
 		switch datapoint.Derive.(type) {
 		case bool:
 		case string:
-			dataPointAttrs[string(_GraphFunctionAttr)] = datapoint.Derive.(string)
+			dataPointAttrs[string(_GraphStreamFunctionAttr)] = datapoint.Derive.(string)
 		default:
 			panic(fmt.Sprintf("PROVIDER BUG: Unsupported type for derive: %T", datapoint.Derive))
 		}
 
 		if datapoint.LegendFormula != nil {
-			dataPointAttrs[string(_GraphFormulaLegendAttr)] = *datapoint.LegendFormula
+			dataPointAttrs[string(_GraphStreamFormulaLegendAttr)] = *datapoint.LegendFormula
 		}
 
 		if datapoint.MetricName != "" {
@@ -380,7 +380,7 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if datapoint.MetricType != "" {
-			dataPointAttrs[string(_GraphMetricTypeAttr)] = datapoint.MetricType
+			dataPointAttrs[string(_GraphStreamMetricTypeAttr)] = datapoint.MetricType
 		}
 
 		if datapoint.Name != "" {
@@ -401,7 +401,7 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 		streamGroupAttrs[string(_GraphStreamGroupActiveAttr)] = !metricCluster.Hidden
 
 		if metricCluster.AggregateFunc != "" {
-			streamGroupAttrs[string(_GraphAggregateAttr)] = metricCluster.AggregateFunc
+			streamGroupAttrs[string(_GraphStreamGroupAggregateAttr)] = metricCluster.AggregateFunc
 		}
 
 		switch metricCluster.Axis {
@@ -414,15 +414,15 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if metricCluster.DataFormula != nil {
-			streamGroupAttrs[string(_GraphFormulaAttr)] = *metricCluster.DataFormula
+			streamGroupAttrs[string(_GraphStreamFormulaAttr)] = *metricCluster.DataFormula
 		}
 
 		if metricCluster.LegendFormula != nil {
-			streamGroupAttrs[string(_GraphFormulaLegendAttr)] = *metricCluster.LegendFormula
+			streamGroupAttrs[string(_GraphStreamFormulaLegendAttr)] = *metricCluster.LegendFormula
 		}
 
 		if metricCluster.MetricCluster != "" {
-			streamGroupAttrs[string(_GraphGroupAttr)] = metricCluster.MetricCluster
+			streamGroupAttrs[string(_GraphStreamGroupGroupAttr)] = metricCluster.MetricCluster
 		}
 
 		if metricCluster.Name != "" {
@@ -438,28 +438,28 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 
 	leftAxisMap := make(map[string]interface{}, 3)
 	if g.LogLeftY != nil {
-		leftAxisMap[string(_GraphLogarithmicAttr)] = fmt.Sprintf("%d", *g.LogLeftY)
+		leftAxisMap[string(_GraphAxisLogarithmicAttr)] = fmt.Sprintf("%d", *g.LogLeftY)
 	}
 
 	if g.MaxLeftY != nil && *g.MaxLeftY != "" {
-		leftAxisMap[string(_GraphMaxAttr)] = *g.MaxLeftY
+		leftAxisMap[string(_GraphAxisMaxAttr)] = *g.MaxLeftY
 	}
 
 	if g.MinLeftY != nil && *g.MinLeftY != "" {
-		leftAxisMap[string(_GraphMinAttr)] = *g.MinLeftY
+		leftAxisMap[string(_GraphAxisMinAttr)] = *g.MinLeftY
 	}
 
 	rightAxisMap := make(map[string]interface{}, 3)
 	if g.LogRightY != nil {
-		rightAxisMap[string(_GraphLogarithmicAttr)] = fmt.Sprintf("%d", *g.LogRightY)
+		rightAxisMap[string(_GraphAxisLogarithmicAttr)] = fmt.Sprintf("%d", *g.LogRightY)
 	}
 
 	if g.MaxRightY != nil && *g.MaxRightY != "" {
-		rightAxisMap[string(_GraphMaxAttr)] = *g.MaxRightY
+		rightAxisMap[string(_GraphAxisMaxAttr)] = *g.MaxRightY
 	}
 
 	if g.MinRightY != nil && *g.MinRightY != "" {
-		rightAxisMap[string(_GraphMinAttr)] = *g.MinRightY
+		rightAxisMap[string(_GraphAxisMinAttr)] = *g.MinRightY
 	}
 
 	_StateSet(d, _GraphDescriptionAttr, g.Description)
@@ -536,7 +536,7 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 
 	{
 		leftMap := ar.GetMap(_GraphLeftAttr)
-		if v, ok := leftMap[string(_GraphLogarithmicAttr)]; ok {
+		if v, ok := leftMap[string(_GraphAxisLogarithmicAttr)]; ok {
 			switch v.(string) {
 			case "0":
 				i := 0
@@ -549,12 +549,12 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 			}
 		}
 
-		if v, ok := leftMap[string(_GraphMaxAttr)]; ok && v.(string) != "" {
+		if v, ok := leftMap[string(_GraphAxisMaxAttr)]; ok && v.(string) != "" {
 			s := v.(string)
 			g.MaxLeftY = &s
 		}
 
-		if v, ok := leftMap[string(_GraphMinAttr)]; ok && v.(string) != "" {
+		if v, ok := leftMap[string(_GraphAxisMinAttr)]; ok && v.(string) != "" {
 			s := v.(string)
 			g.MinLeftY = &s
 		}
@@ -562,7 +562,7 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 
 	{
 		rightMap := ar.GetMap(_GraphRightAttr)
-		if v, ok := rightMap[string(_GraphLogarithmicAttr)]; ok {
+		if v, ok := rightMap[string(_GraphAxisLogarithmicAttr)]; ok {
 			switch v.(string) {
 			case "0":
 				i := 0
@@ -575,12 +575,12 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 			}
 		}
 
-		if v, ok := rightMap[string(_GraphMaxAttr)]; ok && v.(string) != "" {
+		if v, ok := rightMap[string(_GraphAxisMaxAttr)]; ok && v.(string) != "" {
 			s := v.(string)
 			g.MaxRightY = &s
 		}
 
-		if v, ok := rightMap[string(_GraphMinAttr)]; ok && v.(string) != "" {
+		if v, ok := rightMap[string(_GraphAxisMinAttr)]; ok && v.(string) != "" {
 			s := v.(string)
 			g.MinRightY = &s
 		}
@@ -613,7 +613,7 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 					datapoint.Hidden = !b
 				}
 
-				if f, ok := streamReader.GetFloat64OK(_GraphAlphaAttr); ok {
+				if f, ok := streamReader.GetFloat64OK(_GraphStreamAlphaAttr); ok {
 					s := fmt.Sprintf("%f", f)
 					datapoint.Alpha = &s
 				}
@@ -629,7 +629,7 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 					}
 				}
 
-				if s, ok := streamReader.GetStringOK(_GraphCheckAttr); ok {
+				if s, ok := streamReader.GetStringOK(_GraphStreamCheckAttr); ok {
 					re := regexp.MustCompile(config.CheckCIDRegex)
 					matches := re.FindStringSubmatch(s)
 					if len(matches) == 3 {
@@ -638,21 +638,21 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 					}
 				}
 
-				if s, ok := streamReader.GetStringOK(_GraphColorAttr); ok {
+				if s, ok := streamReader.GetStringOK(_GraphStreamColorAttr); ok {
 					datapoint.Color = s
 				}
 
-				if s := streamReader.GetStringPtr(_GraphFormulaAttr); s != nil {
+				if s := streamReader.GetStringPtr(_GraphStreamFormulaAttr); s != nil {
 					datapoint.DataFormula = s
 				}
 
-				if s, ok := streamReader.GetStringOK(_GraphFunctionAttr); ok && s != "" {
+				if s, ok := streamReader.GetStringOK(_GraphStreamFunctionAttr); ok && s != "" {
 					datapoint.Derive = s
 				} else {
 					datapoint.Derive = false
 				}
 
-				if s := streamReader.GetStringPtr(_GraphFormulaLegendAttr); s != nil {
+				if s := streamReader.GetStringPtr(_GraphStreamFormulaLegendAttr); s != nil {
 					datapoint.LegendFormula = s
 				}
 
@@ -660,7 +660,7 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 					datapoint.MetricName = s
 				}
 
-				if s, ok := streamReader.GetStringOK(_GraphMetricTypeAttr); ok && s != "" {
+				if s, ok := streamReader.GetStringOK(_GraphStreamMetricTypeAttr); ok && s != "" {
 					datapoint.MetricType = s
 				}
 
@@ -689,7 +689,7 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 					metricCluster.Hidden = !b
 				}
 
-				if s, ok := streamGroupReader.GetStringOK(_GraphAggregateAttr); ok {
+				if s, ok := streamGroupReader.GetStringOK(_GraphStreamGroupAggregateAttr); ok {
 					metricCluster.AggregateFunc = s
 				}
 
@@ -704,15 +704,15 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 					}
 				}
 
-				if s := streamGroupReader.GetStringPtr(_GraphFormulaAttr); s != nil {
+				if s := streamGroupReader.GetStringPtr(_GraphStreamFormulaAttr); s != nil {
 					metricCluster.DataFormula = s
 				}
 
-				if s := streamGroupReader.GetStringPtr(_GraphFormulaLegendAttr); s != nil {
+				if s := streamGroupReader.GetStringPtr(_GraphStreamFormulaLegendAttr); s != nil {
 					metricCluster.LegendFormula = s
 				}
 
-				if s, ok := streamGroupReader.GetStringOK(_GraphGroupAttr); ok && s != "" {
+				if s, ok := streamGroupReader.GetStringOK(_GraphStreamGroupGroupAttr); ok && s != "" {
 					metricCluster.MetricCluster = s
 				}
 

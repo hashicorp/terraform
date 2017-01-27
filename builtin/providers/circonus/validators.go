@@ -235,9 +235,9 @@ func _ValidateHTTPHeaders(v interface{}, key string) (warnings []string, errors 
 func _ValidateGraphAxisOptions(v interface{}, key string) (warnings []string, errors []error) {
 	axisOptionsMap := v.(map[string]interface{})
 	validOpts := map[_SchemaAttr]struct{}{
-		_GraphLogarithmicAttr: struct{}{},
-		_GraphMaxAttr:         struct{}{},
-		_GraphMinAttr:         struct{}{},
+		_GraphAxisLogarithmicAttr: struct{}{},
+		_GraphAxisMaxAttr:         struct{}{},
+		_GraphAxisMinAttr:         struct{}{},
 	}
 
 	for k := range axisOptionsMap {
