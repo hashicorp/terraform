@@ -23,6 +23,7 @@ func TestAccNetworkingV2SecGroup_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2SecGroupExists(
 						"openstack_networking_secgroup_v2.secgroup_1", &security_group),
+					testAccCheckNetworkingV2SecGroupRuleCount(&security_group, 0),
 				),
 			},
 			resource.TestStep{
@@ -86,6 +87,18 @@ func testAccCheckNetworkingV2SecGroupExists(n string, security_group *groups.Sec
 		*security_group = *found
 
 		return nil
+	}
+}
+
+func testAccCheckNetworkingV2SecGroupRuleCount(
+	sg *groups.SecGroup, count int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if len(sg.Rules) == count {
+			return nil
+		}
+
+		return fmt.Errorf("Unexpected number of rules in group %s. Expected %d, got %d",
+			sg.ID, count, len(sg.Rules))
 	}
 }
 
