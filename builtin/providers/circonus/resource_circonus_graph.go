@@ -541,16 +541,9 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 	{
 		leftAxisMap := ar.GetMap(_GraphLeftAttr)
 		if v, ok := leftAxisMap[string(_GraphAxisLogarithmicAttr)]; ok {
-			switch v.(string) {
-			case "0":
-				i := 0
-				g.LogLeftY = &i
-			case "1":
-				i := 1
-				g.LogLeftY = &i
-			default:
-				panic(fmt.Sprintf("PROVIDER BUG: unsupported log attribute: %q", v.(string)))
-			}
+			i64, _ := strconv.ParseInt(v.(string), 10, 64)
+			i := int(i64)
+			g.LogLeftY = &i
 		}
 
 		if v, ok := leftAxisMap[string(_GraphAxisMaxAttr)]; ok && v.(string) != "" {
@@ -567,16 +560,9 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 	{
 		rightAxisMap := ar.GetMap(_GraphRightAttr)
 		if v, ok := rightAxisMap[string(_GraphAxisLogarithmicAttr)]; ok {
-			switch v.(string) {
-			case "0":
-				i := 0
-				g.LogRightY = &i
-			case "1":
-				i := 1
-				g.LogRightY = &i
-			default:
-				panic(fmt.Sprintf("PROVIDER BUG: unsupported log attribute: %q", v.(string)))
-			}
+			i64, _ := strconv.ParseInt(v.(string), 10, 64)
+			i := int(i64)
+			g.LogRightY = &i
 		}
 
 		if v, ok := rightAxisMap[string(_GraphAxisMaxAttr)]; ok && v.(string) != "" {
