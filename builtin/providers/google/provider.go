@@ -5,11 +5,15 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
+
+// Global MutexKV
+var mutexKV = mutexkv.NewMutexKV()
 
 // Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
@@ -76,6 +80,9 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_project_metadata":       resourceComputeProjectMetadata(),
 			"google_compute_region_backend_service": resourceComputeRegionBackendService(),
 			"google_compute_route":                  resourceComputeRoute(),
+			"google_compute_router":                 resourceComputeRouter(),
+			"google_compute_router_interface":       resourceComputeRouterInterface(),
+			"google_compute_router_peer":            resourceComputeRouterPeer(),
 			"google_compute_ssl_certificate":        resourceComputeSslCertificate(),
 			"google_compute_subnetwork":             resourceComputeSubnetwork(),
 			"google_compute_target_http_proxy":      resourceComputeTargetHttpProxy(),
