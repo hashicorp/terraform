@@ -6,6 +6,15 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
+// GraphNodeTargetable is an interface for graph nodes to implement when they
+// need to be told about incoming targets. This is useful for nodes that need
+// to respect targets as they dynamically expand. Note that the list of targets
+// provided will contain every target provided, and each implementing graph
+// node must filter this list to targets considered relevant.
+type GraphNodeTargetable interface {
+	SetTargets([]ResourceAddress)
+}
+
 // TargetsTransformer is a GraphTransformer that, when the user specifies a
 // list of resources to target, limits the graph to only those resources and
 // their dependencies.
@@ -40,7 +49,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 
 		for _, v := range g.Vertices() {
 			removable := false
-			if _, ok := v.(GraphNodeAddressable); ok {
+			if _, ok := v.(GraphNodeResource); ok {
 				removable = true
 			}
 			if vr, ok := v.(RemovableIfNotTargeted); ok {
@@ -108,12 +117,12 @@ func (t *TargetsTransformer) selectTargetedNodes(
 
 func (t *TargetsTransformer) nodeIsTarget(
 	v dag.Vertex, addrs []ResourceAddress) bool {
-	r, ok := v.(GraphNodeAddressable)
+	r, ok := v.(GraphNodeResource)
 	if !ok {
 		return false
 	}
 
-	addr := r.ResourceAddress()
+	addr := r.ResourceAddr()
 	for _, targetAddr := range addrs {
 		if targetAddr.Equals(addr) {
 			return true
