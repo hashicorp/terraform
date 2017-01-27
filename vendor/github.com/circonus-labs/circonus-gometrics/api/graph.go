@@ -60,7 +60,7 @@ type GraphDatapoint struct {
 	MetricName    string      `json:"metric_name,omitempty"`    // string
 	MetricType    string      `json:"metric_type,omitempty"`    // string
 	Name          string      `json:"name"`                     // string
-	Stack         *uint       `json:"stack,omitempty"`          // uint or null
+	Stack         *uint       `json:"stack"`                    // uint or null
 }
 
 // GraphGuide defines a guide
@@ -81,7 +81,7 @@ type GraphMetricCluster struct {
 	LegendFormula *string `json:"legend_formula,omitempty"`       // string or null
 	MetricCluster string  `json:"metric_cluster,omitempty"`       // string
 	Name          string  `json:"name,omitempty"`                 // string
-	Stack         *uint   `json:"stack,omitempty"`                // uint or null
+	Stack         *uint   `json:"stack"`                          // uint or null
 }
 
 // OverlayDataOptions defines overlay options for data. Note, each overlay type requires

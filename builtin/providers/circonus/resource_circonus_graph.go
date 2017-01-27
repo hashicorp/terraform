@@ -225,11 +225,9 @@ func _NewGraphResource() *schema.Resource {
 							ValidateFunc: _ValidateRegexp(_GraphStreamNameAttr, `^[\S]+$`),
 						},
 						_GraphStreamStackAttr: &schema.Schema{
-							Type:     schema.TypeInt,
-							Optional: true,
-							ValidateFunc: _ValidateFuncs(
-								_ValidateIntMin(_GraphStreamStackAttr, 0),
-							),
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: _ValidateRegexp(_GraphStreamStackAttr, `^[\d]*$`),
 						},
 					}, _GraphStreamDescriptions),
 				},
@@ -393,7 +391,7 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if datapoint.Stack != nil {
-			dataPointAttrs[string(_GraphStreamStackAttr)] = *datapoint.Stack
+			dataPointAttrs[string(_GraphStreamStackAttr)] = fmt.Sprintf("%d", *datapoint.Stack)
 		}
 
 		streams = append(streams, dataPointAttrs)
@@ -435,7 +433,7 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		if metricCluster.Stack != nil {
-			streamGroupAttrs[string(_GraphStreamStackAttr)] = *metricCluster.Stack
+			streamGroupAttrs[string(_GraphStreamStackAttr)] = fmt.Sprintf("%d", *metricCluster.Stack)
 		}
 
 		streamGroups = append(streamGroups, streamGroupAttrs)
@@ -673,8 +671,9 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 					datapoint.Name = s
 				}
 
-				if i := streamReader.GetIntPtr(_GraphStreamStackAttr); i != nil {
-					u := uint(*i)
+				if s := streamReader.GetStringPtr(_GraphStreamStackAttr); s != nil && *s != "" {
+					u64, _ := strconv.ParseUint(*s, 10, 64)
+					u := uint(u64)
 					datapoint.Stack = &u
 				}
 
@@ -725,8 +724,9 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 					metricCluster.Name = s
 				}
 
-				if i := streamGroupReader.GetIntPtr(_GraphStreamStackAttr); i != nil {
-					u := uint(*i)
+				if s := streamGroupReader.GetStringPtr(_GraphStreamStackAttr); s != nil && *s != "" {
+					u64, _ := strconv.ParseUint(*s, 10, 64)
+					u := uint(u64)
 					metricCluster.Stack = &u
 				}
 
@@ -765,5 +765,9 @@ func (g *_Graph) Update(ctxt *_ProviderContext) error {
 }
 
 func (g *_Graph) Validate() error {
+	// TODO(sean@): Verify schema and confirm that every stream has either a
+	// _GraphStreamCAQLAttr attribute set, or that a _GraphStreamCheckAttr *and*
+	// _GraphStreamNameAttr are set.
+
 	return nil
 }
