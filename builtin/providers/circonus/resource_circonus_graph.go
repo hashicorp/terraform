@@ -53,6 +53,10 @@ const (
 	_GraphAxisMinAttr         _SchemaAttr = "min"
 )
 
+const (
+	_APIGraphStyleLine = "line"
+)
+
 var _GraphDescriptions = _AttrDescrs{
 	// circonus_graph.* resource attribute names
 	_GraphDescriptionAttr: "",
@@ -333,7 +337,7 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 
 		dataPointAttrs[string(_GraphStreamActiveAttr)] = !datapoint.Hidden
 
-		if datapoint.Alpha != nil {
+		if datapoint.Alpha != nil && *datapoint.Alpha != 0 {
 			dataPointAttrs[string(_GraphStreamAlphaAttr)] = *datapoint.Alpha
 		}
 
@@ -354,8 +358,8 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 			dataPointAttrs[string(_GraphStreamCheckAttr)] = fmt.Sprintf("%s/%d", config.CheckPrefix, datapoint.CheckID)
 		}
 
-		if datapoint.Color != "" {
-			dataPointAttrs[string(_GraphStreamColorAttr)] = datapoint.Color
+		if datapoint.Color != nil {
+			dataPointAttrs[string(_GraphStreamColorAttr)] = *datapoint.Color
 		}
 
 		if datapoint.DataFormula != nil {
@@ -469,6 +473,7 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 	_StateSet(d, _GraphRightAttr, rightAxisMap)
 	_StateSet(d, _GraphStreamAttr, streams)
 	_StateSet(d, _GraphStreamGroupAttr, streamGroups)
+	_StateSet(d, _GraphStyleAttr, g.Style)
 	_StateSet(d, _GraphTagsAttr, tagsToState(apiToTags(g.Tags)))
 
 	d.SetId(g.CID)
@@ -612,7 +617,7 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 					datapoint.Hidden = !b
 				}
 
-				if f, ok := streamReader.GetFloat64OK(_GraphStreamAlphaAttr); ok {
+				if f, ok := streamReader.GetFloat64OK(_GraphStreamAlphaAttr); ok && f != 0 {
 					datapoint.Alpha = &f
 				}
 
@@ -637,7 +642,7 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 				}
 
 				if s, ok := streamReader.GetStringOK(_GraphStreamColorAttr); ok {
-					datapoint.Color = s
+					datapoint.Color = &s
 				}
 
 				if s := streamReader.GetStringPtr(_GraphStreamFormulaAttr); s != nil {
@@ -730,6 +735,10 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 		}
 	}
 
+	if s, ok := ar.GetStringOK(_GraphStyleAttr); ok {
+		g.Style = s
+	}
+
 	g.Tags = tagsToAPI(ar.GetTags(_GraphTagsAttr))
 
 	if err := g.Validate(); err != nil {
@@ -761,6 +770,10 @@ func (g *_Graph) Update(ctxt *_ProviderContext) error {
 
 func (g *_Graph) Validate() error {
 	for i, datapoint := range g.Datapoints {
+		if g.Style == _APIGraphStyleLine && datapoint.Alpha != nil && *datapoint.Alpha != 0 {
+			return fmt.Errorf("%s can not be set on graphs with style %s", _GraphStreamAlphaAttr, _APIGraphStyleLine)
+		}
+
 		if datapoint.CheckID != 0 && datapoint.MetricName == "" {
 			return fmt.Errorf("Error with stream[%d] name=%q: %s is set, missing attribute %s must also be set", i, datapoint.Name, _GraphStreamCheckAttr, _GraphStreamNameAttr)
 		}
