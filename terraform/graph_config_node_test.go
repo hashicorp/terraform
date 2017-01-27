@@ -8,53 +8,6 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
-func TestGraphNodeConfigProvider_impl(t *testing.T) {
-	var _ dag.Vertex = new(GraphNodeConfigProvider)
-	var _ dag.NamedVertex = new(GraphNodeConfigProvider)
-	var _ graphNodeConfig = new(GraphNodeConfigProvider)
-	var _ GraphNodeProvider = new(GraphNodeConfigProvider)
-}
-
-func TestGraphNodeConfigProvider_ProviderName(t *testing.T) {
-	n := &GraphNodeConfigProvider{
-		Provider: &config.ProviderConfig{Name: "foo"},
-	}
-
-	if v := n.ProviderName(); v != "foo" {
-		t.Fatalf("bad: %#v", v)
-	}
-}
-
-func TestGraphNodeConfigProvider_ProviderName_alias(t *testing.T) {
-	n := &GraphNodeConfigProvider{
-		Provider: &config.ProviderConfig{Name: "foo", Alias: "bar"},
-	}
-
-	if v := n.ProviderName(); v != "foo.bar" {
-		t.Fatalf("bad: %#v", v)
-	}
-}
-
-func TestGraphNodeConfigProvider_Name(t *testing.T) {
-	n := &GraphNodeConfigProvider{
-		Provider: &config.ProviderConfig{Name: "foo"},
-	}
-
-	if v := n.Name(); v != "provider.foo" {
-		t.Fatalf("bad: %#v", v)
-	}
-}
-
-func TestGraphNodeConfigProvider_Name_alias(t *testing.T) {
-	n := &GraphNodeConfigProvider{
-		Provider: &config.ProviderConfig{Name: "foo", Alias: "bar"},
-	}
-
-	if v := n.Name(); v != "provider.foo.bar" {
-		t.Fatalf("bad: %#v", v)
-	}
-}
-
 func TestGraphNodeConfigResource_impl(t *testing.T) {
 	var _ dag.Vertex = new(GraphNodeConfigResource)
 	var _ dag.NamedVertex = new(GraphNodeConfigResource)
