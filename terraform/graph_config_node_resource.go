@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
@@ -260,55 +259,6 @@ func (n *GraphNodeConfigResource) DestroyNode() GraphNodeDestroy {
 	result.Destroy = true
 
 	return result
-}
-
-// GraphNodeNoopPrunable
-func (n *GraphNodeConfigResource) Noop(opts *NoopOpts) bool {
-	log.Printf("[DEBUG] Checking resource noop: %s", n.Name())
-	// We don't have any noop optimizations for destroy nodes yet
-	if n.Destroy {
-		log.Printf("[DEBUG] Destroy node, not a noop")
-		return false
-	}
-
-	// If there is no diff, then we aren't a noop since something needs to
-	// be done (such as a plan). We only check if we're a noop in a diff.
-	if opts.Diff == nil || opts.Diff.Empty() {
-		log.Printf("[DEBUG] No diff, not a noop")
-		return false
-	}
-
-	// If the count has any interpolations, we can't prune this node since
-	// we need to be sure to evaluate the count so that splat variables work
-	// later (which need to know the full count).
-	if len(n.Resource.RawCount.Interpolations) > 0 {
-		log.Printf("[DEBUG] Count has interpolations, not a noop")
-		return false
-	}
-
-	// If we have no module diff, we're certainly a noop. This is because
-	// it means there is a diff, and that the module we're in just isn't
-	// in it, meaning we're not doing anything.
-	if opts.ModDiff == nil || opts.ModDiff.Empty() {
-		log.Printf("[DEBUG] No mod diff, treating resource as a noop")
-		return true
-	}
-
-	// Grab the ID which is the prefix (in the case count > 0 at some point)
-	prefix := n.Resource.Id()
-
-	// Go through the diff and if there are any with our name on it, keep us
-	found := false
-	for k, _ := range opts.ModDiff.Resources {
-		if strings.HasPrefix(k, prefix) {
-			log.Printf("[DEBUG] Diff has %s, resource is not a noop", k)
-			found = true
-			break
-		}
-	}
-
-	log.Printf("[DEBUG] Final noop value: %t", !found)
-	return !found
 }
 
 // Same as GraphNodeConfigResource, but for flattening

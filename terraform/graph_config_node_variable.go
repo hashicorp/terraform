@@ -89,81 +89,6 @@ func (n *GraphNodeConfigVariable) DestroyEdgeInclude(v dag.Vertex) bool {
 	return false
 }
 
-// GraphNodeNoopPrunable
-func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
-	log.Printf("[DEBUG] Checking variable noop: %s", n.Name())
-	// If we have no diff, always keep this in the graph. We have to do
-	// this primarily for validation: we want to validate that variable
-	// interpolations are valid even if there are no resources that
-	// depend on them.
-	if opts.Diff == nil || opts.Diff.Empty() {
-		log.Printf("[DEBUG] No diff, not a noop")
-		return false
-	}
-
-	// We have to find our our module diff since we do funky things with
-	// the flat node's implementation of Path() below.
-	modDiff := opts.Diff.ModuleByPath(n.ModulePath)
-
-	// If we're destroying, we have no need of variables unless they are depended
-	// on by the count of a resource.
-	if modDiff != nil && modDiff.Destroy {
-		if n.hasDestroyEdgeInPath(opts, nil) {
-			log.Printf("[DEBUG] Variable has destroy edge from %s, not a noop",
-				dag.VertexName(opts.Vertex))
-			return false
-		}
-		log.Printf("[DEBUG] Variable has no included destroy edges: noop!")
-		return true
-	}
-
-	for _, v := range opts.Graph.UpEdges(opts.Vertex).List() {
-		// This is terrible, but I can't think of a better way to do this.
-		if dag.VertexName(v) == rootNodeName {
-			continue
-		}
-
-		log.Printf("[DEBUG] Found up edge to %s, var is not noop", dag.VertexName(v))
-		return false
-	}
-
-	log.Printf("[DEBUG] No up edges, treating variable as a noop")
-	return true
-}
-
-// hasDestroyEdgeInPath recursively walks for a destroy edge, ensuring that
-// a variable both has no immediate destroy edges or any in its full module
-// path, ensuring that links do not get severed in the middle.
-func (n *GraphNodeConfigVariable) hasDestroyEdgeInPath(opts *NoopOpts, vertex dag.Vertex) bool {
-	if vertex == nil {
-		vertex = opts.Vertex
-	}
-
-	log.Printf("[DEBUG] hasDestroyEdgeInPath: Looking for destroy edge: %s - %T", dag.VertexName(vertex), vertex)
-	for _, v := range opts.Graph.UpEdges(vertex).List() {
-		if len(opts.Graph.UpEdges(v).List()) > 1 {
-			if n.hasDestroyEdgeInPath(opts, v) == true {
-				return true
-			}
-		}
-
-		// Here we borrow the implementation of DestroyEdgeInclude, whose logic
-		// and semantics are exactly what we want here. We add a check for the
-		// the root node, since we have to always depend on its existance.
-		if cv, ok := vertex.(*GraphNodeConfigVariableFlat); ok {
-			if dag.VertexName(v) == rootNodeName || cv.DestroyEdgeInclude(v) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// GraphNodeProxy impl.
-func (n *GraphNodeConfigVariable) Proxy() bool {
-	return true
-}
-
 // GraphNodeEvalable impl.
 func (n *GraphNodeConfigVariable) EvalTree() EvalNode {
 	// If we have no value, do nothing
@@ -250,25 +175,4 @@ func (n *GraphNodeConfigVariableFlat) Path() []string {
 	}
 
 	return nil
-}
-
-func (n *GraphNodeConfigVariableFlat) Noop(opts *NoopOpts) bool {
-	// First look for provider nodes that depend on this variable downstream
-	modDiff := opts.Diff.ModuleByPath(n.ModulePath)
-	if modDiff != nil && modDiff.Destroy {
-		ds, err := opts.Graph.Descendents(n)
-		if err != nil {
-			log.Printf("[ERROR] Error looking up descendents of %s: %s", n.Name(), err)
-		} else {
-			for _, d := range ds.List() {
-				if _, ok := d.(GraphNodeProvider); ok {
-					log.Printf("[DEBUG] This variable is depended on by a provider, can't be a noop.")
-					return false
-				}
-			}
-		}
-	}
-
-	// Then fall back to existing impl
-	return n.GraphNodeConfigVariable.Noop(opts)
 }
