@@ -92,21 +92,10 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 
 	// If the config isn't empty we update the state
 	if n.Config != nil {
-		// Determine the dependencies for the state. We use some older
-		// code for this that we've used for a long time.
-		var stateDeps []string
-		{
-			oldN := &graphNodeExpandedResource{
-				Resource: n.Config,
-				Index:    addr.Index,
-			}
-			stateDeps = oldN.StateDependencies()
-		}
-
 		rs = &ResourceState{
 			Type:         n.Config.Type,
 			Provider:     n.Config.Provider,
-			Dependencies: stateDeps,
+			Dependencies: n.StateReferences(),
 		}
 	}
 

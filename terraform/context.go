@@ -262,28 +262,9 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 			Targets:   c.targets,
 			Validate:  opts.Validate,
 		}).Build(RootModulePath)
-
-	case GraphTypeLegacy:
-		return c.graphBuilder(opts).Build(RootModulePath)
 	}
 
 	return nil, fmt.Errorf("unknown graph type: %s", typ)
-}
-
-// GraphBuilder returns the GraphBuilder that will be used to create
-// the graphs for this context.
-func (c *Context) graphBuilder(g *ContextGraphOpts) GraphBuilder {
-	return &BuiltinGraphBuilder{
-		Root:         c.module,
-		Diff:         c.diff,
-		Providers:    c.components.ResourceProviders(),
-		Provisioners: c.components.ResourceProvisioners(),
-		State:        c.state,
-		Targets:      c.targets,
-		Destroy:      c.destroy,
-		Validate:     g.Validate,
-		Verbose:      g.Verbose,
-	}
 }
 
 // ShadowError returns any errors caught during a shadow operation.
@@ -465,15 +446,8 @@ func (c *Context) Apply() (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
-	// Enable the new graph by default
-	X_legacyGraph := experiment.Enabled(experiment.X_legacyGraph)
-
 	// Build the graph.
-	graphType := GraphTypeLegacy
-	if !X_legacyGraph {
-		graphType = GraphTypeApply
-	}
-	graph, err := c.Graph(graphType, nil)
+	graph, err := c.Graph(GraphTypeApply, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -541,17 +515,10 @@ func (c *Context) Plan() (*Plan, error) {
 	c.diff.init()
 	c.diffLock.Unlock()
 
-	// Used throughout below
-	X_legacyGraph := experiment.Enabled(experiment.X_legacyGraph)
-
 	// Build the graph.
-	graphType := GraphTypeLegacy
-	if !X_legacyGraph {
-		if c.destroy {
-			graphType = GraphTypePlanDestroy
-		} else {
-			graphType = GraphTypePlan
-		}
+	graphType := GraphTypePlan
+	if c.destroy {
+		graphType = GraphTypePlanDestroy
 	}
 	graph, err := c.Graph(graphType, nil)
 	if err != nil {
@@ -576,15 +543,17 @@ func (c *Context) Plan() (*Plan, error) {
 		p.Diff.DeepCopy()
 	}
 
-	// We don't do the reverification during the new destroy plan because
-	// it will use a different apply process.
-	if X_legacyGraph {
-		// Now that we have a diff, we can build the exact graph that Apply will use
-		// and catch any possible cycles during the Plan phase.
-		if _, err := c.Graph(GraphTypeLegacy, nil); err != nil {
-			return nil, err
+	/*
+		// We don't do the reverification during the new destroy plan because
+		// it will use a different apply process.
+		if X_legacyGraph {
+			// Now that we have a diff, we can build the exact graph that Apply will use
+			// and catch any possible cycles during the Plan phase.
+			if _, err := c.Graph(GraphTypeLegacy, nil); err != nil {
+				return nil, err
+			}
 		}
-	}
+	*/
 
 	var errs error
 	if len(walker.ValidationErrors) > 0 {
@@ -606,15 +575,8 @@ func (c *Context) Refresh() (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
-	// Used throughout below
-	X_legacyGraph := experiment.Enabled(experiment.X_legacyGraph)
-
 	// Build the graph.
-	graphType := GraphTypeLegacy
-	if !X_legacyGraph {
-		graphType = GraphTypeRefresh
-	}
-	graph, err := c.Graph(graphType, nil)
+	graph, err := c.Graph(GraphTypeRefresh, nil)
 	if err != nil {
 		return nil, err
 	}
