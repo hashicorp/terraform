@@ -125,7 +125,7 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 	//needed in order to set the owner of the db if the connection user is not a superuser
 	err = grantRoleMembership(conn, d.Get(dbOwnerAttr).(string), c.username)
 	if err != nil {
-		return err
+		return errwrap.Wrapf(fmt.Sprintf("Error granting role membership on  database %s: {{err}}", dbName), err)
 	}
 
 	// Handle each option individually and stream results into the query
