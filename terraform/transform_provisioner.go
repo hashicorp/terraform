@@ -111,18 +111,6 @@ func (t *MissingProvisionerTransformer) Transform(g *Graph) error {
 				NameValue: p,
 				PathValue: path,
 			}
-			if len(path) > 0 {
-				// If we have a path, we do the flattening immediately. This
-				// is to support new-style graph nodes that are already
-				// flattened.
-				if fn, ok := newV.(GraphNodeFlattenable); ok {
-					var err error
-					newV, err = fn.Flatten(path)
-					if err != nil {
-						return err
-					}
-				}
-			}
 
 			// Add the missing provisioner node to the graph
 			m[key] = g.Add(newV)
