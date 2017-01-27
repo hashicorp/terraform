@@ -139,7 +139,6 @@ func _NewGraphResource() *schema.Resource {
 			_GraphNameAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     true,
 				ValidateFunc: _ValidateRegexp(_GraphNameAttr, `.+`),
 			},
 			_GraphNotesAttr: &schema.Schema{
@@ -445,12 +444,12 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 		leftAxisMap[string(_GraphAxisLogarithmicAttr)] = fmt.Sprintf("%d", *g.LogLeftY)
 	}
 
-	if g.MaxLeftY != nil && *g.MaxLeftY != "" {
-		leftAxisMap[string(_GraphAxisMaxAttr)] = *g.MaxLeftY
+	if g.MaxLeftY != nil {
+		leftAxisMap[string(_GraphAxisMaxAttr)] = fmt.Sprintf("%d", *g.MaxLeftY)
 	}
 
-	if g.MinLeftY != nil && *g.MinLeftY != "" {
-		leftAxisMap[string(_GraphAxisMinAttr)] = *g.MinLeftY
+	if g.MinLeftY != nil {
+		leftAxisMap[string(_GraphAxisMinAttr)] = fmt.Sprintf("%d", *g.MinLeftY)
 	}
 
 	rightAxisMap := make(map[string]interface{}, 3)
@@ -458,12 +457,12 @@ func _GraphRead(d *schema.ResourceData, meta interface{}) error {
 		rightAxisMap[string(_GraphAxisLogarithmicAttr)] = fmt.Sprintf("%d", *g.LogRightY)
 	}
 
-	if g.MaxRightY != nil && *g.MaxRightY != "" {
-		rightAxisMap[string(_GraphAxisMaxAttr)] = *g.MaxRightY
+	if g.MaxRightY != nil {
+		rightAxisMap[string(_GraphAxisMaxAttr)] = fmt.Sprintf("%d", *g.MaxRightY)
 	}
 
-	if g.MinRightY != nil && *g.MinRightY != "" {
-		rightAxisMap[string(_GraphAxisMinAttr)] = *g.MinRightY
+	if g.MinRightY != nil {
+		rightAxisMap[string(_GraphAxisMinAttr)] = fmt.Sprintf("%d", *g.MinRightY)
 	}
 
 	_StateSet(d, _GraphDescriptionAttr, g.Description)
@@ -554,13 +553,15 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 		}
 
 		if v, ok := leftMap[string(_GraphAxisMaxAttr)]; ok && v.(string) != "" {
-			s := v.(string)
-			g.MaxLeftY = &s
+			i64, _ := strconv.ParseInt(v.(string), 10, 64)
+			i := int(i64)
+			g.MaxLeftY = &i
 		}
 
 		if v, ok := leftMap[string(_GraphAxisMinAttr)]; ok && v.(string) != "" {
-			s := v.(string)
-			g.MinLeftY = &s
+			i64, _ := strconv.ParseInt(v.(string), 10, 64)
+			i := int(i64)
+			g.MinLeftY = &i
 		}
 	}
 
@@ -580,13 +581,15 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 		}
 
 		if v, ok := rightMap[string(_GraphAxisMaxAttr)]; ok && v.(string) != "" {
-			s := v.(string)
-			g.MaxRightY = &s
+			i64, _ := strconv.ParseInt(v.(string), 10, 64)
+			i := int(i64)
+			g.MaxRightY = &i
 		}
 
 		if v, ok := rightMap[string(_GraphAxisMinAttr)]; ok && v.(string) != "" {
-			s := v.(string)
-			g.MinRightY = &s
+			i64, _ := strconv.ParseInt(v.(string), 10, 64)
+			i := int(i64)
+			g.MinRightY = &i
 		}
 	}
 
@@ -766,9 +769,19 @@ func (g *_Graph) Update(ctxt *_ProviderContext) error {
 }
 
 func (g *_Graph) Validate() error {
-	// TODO(sean@): Verify schema and confirm that every stream has either a
-	// _GraphStreamCAQLAttr attribute set, or that a _GraphStreamCheckAttr *and*
-	// _GraphStreamNameAttr are set.
+	for i, datapoint := range g.Datapoints {
+		if datapoint.CheckID != 0 && datapoint.MetricName == "" {
+			return fmt.Errorf("Error with stream[%d] name=%q: %s is set, missing attribute %s must also be set", i, datapoint.Name, _GraphStreamCheckAttr, _GraphStreamNameAttr)
+		}
+
+		if datapoint.CheckID == 0 && datapoint.MetricName != "" {
+			return fmt.Errorf("Error with stream[%d] name=%q: %s is set, missing attribute %s must also be set", i, datapoint.Name, _GraphStreamNameAttr, _GraphStreamCheckAttr)
+		}
+
+		if datapoint.CAQL != nil && (datapoint.CheckID != 0 || datapoint.MetricName != "") {
+			return fmt.Errorf("Error with stream[%d] name=%q: %q attribute is mutually exclusive with attributes %s or %s", i, datapoint.Name, _GraphStreamCAQLAttr, _GraphStreamNameAttr, _GraphStreamCheckAttr)
+		}
+	}
 
 	return nil
 }
