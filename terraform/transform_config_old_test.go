@@ -72,20 +72,6 @@ func TestConfigTransformerOld_modules(t *testing.T) {
 	}
 }
 
-func TestConfigTransformerOld_outputs(t *testing.T) {
-	g := Graph{Path: RootModulePath}
-	tf := &ConfigTransformerOld{Module: testModule(t, "graph-outputs")}
-	if err := tf.Transform(&g); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testGraphOutputsStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
 func TestConfigTransformerOld_providerAlias(t *testing.T) {
 	g := Graph{Path: RootModulePath}
 	tf := &ConfigTransformerOld{Module: testModule(t, "graph-provider-alias")}

@@ -8,14 +8,6 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
-func TestGraphNodeConfigOutput_impl(t *testing.T) {
-	var _ dag.Vertex = new(GraphNodeConfigOutput)
-	var _ dag.NamedVertex = new(GraphNodeConfigOutput)
-	var _ graphNodeConfig = new(GraphNodeConfigOutput)
-	var _ GraphNodeOutput = new(GraphNodeConfigOutput)
-	var _ GraphNodeProxy = new(GraphNodeConfigOutput)
-}
-
 func TestGraphNodeConfigProvider_impl(t *testing.T) {
 	var _ dag.Vertex = new(GraphNodeConfigProvider)
 	var _ dag.NamedVertex = new(GraphNodeConfigProvider)

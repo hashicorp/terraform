@@ -79,11 +79,6 @@ func (t *ConfigTransformerOld) Transform(g *Graph) error {
 		})
 	}
 
-	// Write all the outputs out
-	for _, o := range config.Outputs {
-		nodes = append(nodes, &GraphNodeConfigOutput{Output: o})
-	}
-
 	// Err is where the final error value will go if there is one
 	var err error
 
