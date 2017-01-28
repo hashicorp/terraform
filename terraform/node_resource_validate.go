@@ -26,9 +26,13 @@ func (n *NodeValidatableResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 	defer lock.RUnlock()
 
 	// Expand the resource count which must be available by now from EvalTree
-	count, err := n.Config.Count()
-	if err != nil {
-		return nil, err
+	count := 1
+	if n.Config.RawCount.Value() != unknownValue() {
+		var err error
+		count, err = n.Config.Count()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// The concrete resource factory we'll use
