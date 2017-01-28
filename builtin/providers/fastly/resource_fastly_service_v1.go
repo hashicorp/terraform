@@ -1103,12 +1103,12 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 				pf := pRaw.(map[string]interface{})
 
 				opts := gofastly.CreatePapertrailInput{
-					Service:         d.Id(),
-					Version:         latestVersion,
-					Name:            pf["name"].(string),
-					Address:      	 pf["bucket_name"].(string),
-					Port:            uint(pf["period"].(int)),
-					Format:          pf["format"].(string),
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    pf["name"].(string),
+					Address: pf["bucket_name"].(string),
+					Port:    uint(pf["period"].(int)),
+					Format:  pf["format"].(string),
 				}
 
 				log.Printf("[DEBUG] Create Papertrail Opts: %#v", opts)
@@ -1445,6 +1445,23 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 
 		if err := d.Set("s3logging", sl); err != nil {
 			log.Printf("[WARN] Error setting S3 Logging for (%s): %s", d.Id(), err)
+		}
+
+		// refresh Papertrail Logging
+		log.Printf("[DEBUG] Refreshing Papertrail for (%s)", d.Id())
+		papertrailList, err := conn.ListPapertrails(&gofastly.ListPapertrailsInput{
+			Service: d.Id(),
+			Version: s.ActiveVersion.Number,
+		})
+
+		if err != nil {
+			return fmt.Errorf("[ERR] Error looking up Papertrail for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+		}
+
+		pl := flattenPapertrails(papertrailList)
+
+		if err := d.Set("papertrail", pl); err != nil {
+			log.Printf("[WARN] Error setting Papertrail for (%s): %s", d.Id(), err)
 		}
 
 		// refresh Conditions
@@ -1808,6 +1825,30 @@ func flattenS3s(s3List []*gofastly.S3) []map[string]interface{} {
 	}
 
 	return sl
+}
+
+func flattenPapertrails(papertrailList []*gofastly.Papertrail) []map[string]interface{} {
+	var pl []map[string]interface{}
+	for _, p := range papertrailList {
+		// Convert S3s to a map for saving to state.
+		ns := map[string]interface{}{
+			"name":    p.Name,
+			"address": p.Address,
+			"port":    p.Port,
+			"format":  p.Format,
+		}
+
+		// prune any empty values that come from the default string value in structs
+		for k, v := range ns {
+			if v == "" {
+				delete(ns, k)
+			}
+		}
+
+		pl = append(pl, ns)
+	}
+
+	return pl
 }
 
 func flattenConditions(conditionList []*gofastly.Condition) []map[string]interface{} {
