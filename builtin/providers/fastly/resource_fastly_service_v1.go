@@ -1067,6 +1067,58 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
+		// find difference in Papertrail
+		if d.HasChange("papertrail") {
+			os, ns := d.GetChange("papertrail")
+			if os == nil {
+				os = new(schema.Set)
+			}
+			if ns == nil {
+				ns = new(schema.Set)
+			}
+
+			oss := os.(*schema.Set)
+			nss := ns.(*schema.Set)
+			removePapertrail := oss.Difference(nss).List()
+			addPapertrail := nss.Difference(oss).List()
+
+			// DELETE old papertrail configurations
+			for _, pRaw := range removePapertrail {
+				pf := pRaw.(map[string]interface{})
+				opts := gofastly.DeletePapertrailInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    pf["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly Papertrail removal opts: %#v", opts)
+				err := conn.DeletePapertrail(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new/updated Papertrail
+			for _, pRaw := range addPapertrail {
+				pf := pRaw.(map[string]interface{})
+
+				opts := gofastly.CreatePapertrailInput{
+					Service:         d.Id(),
+					Version:         latestVersion,
+					Name:            pf["name"].(string),
+					Address:      	 pf["bucket_name"].(string),
+					Port:            uint(pf["period"].(int)),
+					Format:          pf["format"].(string),
+				}
+
+				log.Printf("[DEBUG] Create Papertrail Opts: %#v", opts)
+				_, err := conn.CreatePapertrail(&opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 		// find difference in request settings
 		if d.HasChange("request_setting") {
 			os, ns := d.GetChange("request_setting")
