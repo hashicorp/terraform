@@ -457,6 +457,38 @@ func resourceServiceV1() *schema.Resource {
 				},
 			},
 
+			"papertrail": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// Required fields
+						"name": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Unique name to refer to this logging setup",
+						},
+						"address": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The address of the papertrail service",
+						},
+						"port": &schema.Schema{
+							Type:        schema.TypeInt,
+							Required:    true,
+							Description: "The port of the papertrail service",
+						},
+						// Optional
+						"format": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "%h %l %u %t %r %>s",
+							Description: "Apache-style string or VCL variables to use for log formatting",
+						},
+					},
+				},
+			},
+
 			"request_setting": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -616,6 +648,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 		"header",
 		"gzip",
 		"s3logging",
+		"papertrail",
 		"condition",
 		"request_setting",
 		"cache_setting",
