@@ -38,18 +38,18 @@ func TestMetaBackend_emptyDir(t *testing.T) {
 	}
 
 	// Verify it exists where we expect it to
-	if _, err := os.Stat(DefaultStateFilename); err != nil {
-		t.Fatalf("err: %s", err)
+	if isEmptyState(DefaultStateFilename) {
+		t.Fatalf("no state was written")
 	}
 
 	// Verify no backup since it was empty to start
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatal("expected error")
+	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
+		t.Fatal("backup state should be empty")
 	}
 
 	// Verify no backend state was made
 	if !isEmptyState(filepath.Join(m.DataDir(), DefaultStateFilename)) {
-		t.Fatal("state created")
+		t.Fatal("backend state shoudl be empty")
 	}
 }
 
@@ -1063,8 +1063,8 @@ func TestMetaBackend_configuredUnsetCopy(t *testing.T) {
 	}
 
 	// Verify a backup doesn't exist
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatalf("err: %s", err)
+	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
+		t.Fatalf("backup state should be empty")
 	}
 
 	// Verify we have no configured backend/legacy
@@ -1847,13 +1847,13 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyBackend(t *testing.T) {
 	}
 
 	// Verify the default paths exist
-	if _, err := os.Stat(DefaultStateFilename); err != nil {
-		t.Fatalf("err: %s", err)
+	if isEmptyState(DefaultStateFilename) {
+		t.Fatalf("default state was empty")
 	}
 
 	// Verify a backup doesn't exist
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatalf("err: %s", err)
+	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
+		t.Fatal("backupstate should be empty")
 	}
 
 	// Verify we have no configured backend/legacy
@@ -1945,13 +1945,13 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyLegacy(t *testing.T) {
 	}
 
 	// Verify the default paths exist
-	if _, err := os.Stat(DefaultStateFilename); err != nil {
-		t.Fatalf("err: %s", err)
+	if isEmptyState(DefaultStateFilename) {
+		t.Fatalf("default state was empty")
 	}
 
 	// Verify a backup doesn't exist
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatalf("err: %s", err)
+	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
+		t.Fatal("backupstate should be empty")
 	}
 
 	// Verify we have no configured backend/legacy
@@ -2182,8 +2182,8 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	}
 
 	// Verify no local backup
-	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
-		t.Fatalf("err: %s", err)
+	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
+		t.Fatalf("backup state should be empty")
 	}
 }
 
