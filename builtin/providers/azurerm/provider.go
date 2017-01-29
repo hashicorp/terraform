@@ -73,6 +73,8 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_container_registry": resourceArmContainerRegistry(),
 			"azurerm_container_service":  resourceArmContainerService(),
 
+			"azurerm_documentdb": resourceArmDocumentDb(),
+
 			"azurerm_eventhub":                    resourceArmEventHub(),
 			"azurerm_eventhub_authorization_rule": resourceArmEventHubAuthorizationRule(),
 			"azurerm_eventhub_consumer_group":     resourceArmEventHubConsumerGroup(),
@@ -248,6 +250,7 @@ func registerAzureResourceProvidersWithSubscription(providerList []resources.Pro
 			"Microsoft.Cache":             struct{}{},
 			"Microsoft.ContainerRegistry": struct{}{},
 			"Microsoft.ContainerService":  struct{}{},
+			"Microsoft.DocumentDB":        struct{}{},
 			"Microsoft.Network":           struct{}{},
 			"Microsoft.Cdn":               struct{}{},
 			"Microsoft.Storage":           struct{}{},

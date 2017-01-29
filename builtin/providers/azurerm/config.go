@@ -12,6 +12,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/containerregistry"
 	"github.com/Azure/azure-sdk-for-go/arm/containerservice"
 	"github.com/Azure/azure-sdk-for-go/arm/disk"
+	"github.com/Azure/azure-sdk-for-go/arm/documentdb"
 	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
 	"github.com/Azure/azure-sdk-for-go/arm/keyvault"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
@@ -74,6 +75,8 @@ type ArmClient struct {
 
 	containerRegistryClient containerregistry.RegistriesClient
 	containerServicesClient containerservice.ContainerServicesClient
+
+	documentDbClient documentdb.DatabaseAccountsClient
 
 	eventHubClient              eventhub.EventHubsClient
 	eventHubConsumerGroupClient eventhub.ConsumerGroupsClient
@@ -259,6 +262,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	dkc.Authorizer = auth
 	dkc.Sender = autorest.CreateSender(withRequestLogging())
 	client.diskClient = dkc
+
+	ddbc := documentdb.NewDatabaseAccountsClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&ddbc.Client)
+	ddbc.Authorizer = spt
+	ddbc.Sender = autorest.CreateSender(withRequestLogging())
+	client.documentDbClient = ddbc
 
 	ehc := eventhub.NewEventHubsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&ehc.Client)
