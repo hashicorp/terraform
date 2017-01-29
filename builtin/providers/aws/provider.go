@@ -471,6 +471,10 @@ func init() {
 
 		"assume_role_external_id": "The external ID to use when assuming the role. If omitted," +
 			" no external ID is passed to the AssumeRole call.",
+
+		"assume_role_policy": "The permissions applied when assuming a role. You cannot use," +
+			" this policy to grant further permissions that are in excess to those of the, " +
+			" role that is being assumed.",
 	}
 }
 
@@ -499,8 +503,13 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.AssumeRoleARN = assumeRole["role_arn"].(string)
 		config.AssumeRoleSessionName = assumeRole["session_name"].(string)
 		config.AssumeRoleExternalID = assumeRole["external_id"].(string)
-		log.Printf("[INFO] assume_role configuration set: (ARN: %q, SessionID: %q, ExternalID: %q)",
-			config.AssumeRoleARN, config.AssumeRoleSessionName, config.AssumeRoleExternalID)
+
+		if v := assumeRole["policy"].(string); v != "" {
+			config.AssumeRolePolicy = v
+		}
+
+		log.Printf("[INFO] assume_role configuration set: (ARN: %q, SessionID: %q, ExternalID: %q, Policy: %q)",
+			config.AssumeRoleARN, config.AssumeRoleSessionName, config.AssumeRoleExternalID, config.AssumeRolePolicy)
 	} else {
 		log.Printf("[INFO] No assume_role block read from configuration")
 	}
@@ -553,6 +562,12 @@ func assumeRoleSchema() *schema.Schema {
 					Optional:    true,
 					Description: descriptions["assume_role_external_id"],
 				},
+
+				"policy": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: descriptions["assume_role_policy"],
+				},
 			},
 		},
 		Set: assumeRoleToHash,
@@ -565,6 +580,7 @@ func assumeRoleToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["role_arn"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["session_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["external_id"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["policy"].(string)))
 	return hashcode.String(buf.String())
 }
 
