@@ -276,13 +276,11 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						"image": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							Computed: true,
 						},
 
 						"vhd_containers": &schema.Schema{
 							Type:     schema.TypeSet,
 							Optional: true,
-							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
@@ -295,7 +293,6 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						"os_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							Computed: true,
 						},
 
 						"create_option": &schema.Schema{
@@ -669,6 +666,7 @@ func flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(profile *compute.V
 
 	result["caching"] = profile.Caching
 	result["create_option"] = profile.CreateOption
+	result["os_type"] = profile.OsType
 
 	return []interface{}{result}
 }
