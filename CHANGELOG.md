@@ -34,6 +34,11 @@ BUG FIXES:
 
 ## 0.8.6 (unreleased)
 
+FEATURES:
+
+ * **New Data Source:**  `aws_kms_secret` [GH-11460
+
+
 IMPROVEMENTS:
 
  * provider/aws: Add EBS Volume support for EMR Instance Groups [GH-11411]
