@@ -12,6 +12,8 @@ BUG FIXES:
  * provider/aws: allow destroy of LB stickiness policy with missing LB [GH-11462]
  * provider/ignition: Allow to add authorized keys without user creation [GH-11406]
  * provider/ignition: mount and path are mutually exclusive [GH-11409]
+ * provider/openstack: Remove Default Security Group Rules on Create [GH-11466]
+ * provider/pagerduty: Allow timeouts to be disabled (pagerduty_service) [GH-11483]
 
 
 ## 0.8.5 (26 January 2017)
