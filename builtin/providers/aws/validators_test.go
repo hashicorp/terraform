@@ -1174,6 +1174,31 @@ func TestValidateEcsPlacementStrategy(t *testing.T) {
 	}
 }
 
+func TestValidateStepFunctionActivityName(t *testing.T) {
+	validTypes := []string{
+		"foo",
+		"FooBar123",
+	}
+
+	invalidTypes := []string{
+		strings.Repeat("W", 81), // length > 80
+	}
+
+	for _, v := range validTypes {
+		_, errors := validateSfnActivityName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Step Function Activity name: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidTypes {
+		_, errors := validateSfnActivityName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Step Function Activity name", v)
+		}
+	}
+}
+
 func TestValidateStepFunctionStateMachineDefinition(t *testing.T) {
 	validDefinitions := []string{
 		"foobar",

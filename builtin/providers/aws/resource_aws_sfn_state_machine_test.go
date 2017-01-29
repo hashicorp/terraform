@@ -75,7 +75,7 @@ func testAccCheckAWSSfnDestroy(s *terraform.State) error {
 		}
 
 		if out != nil && *out.Status != sfn.StateMachineStatusDeleting {
-			return fmt.Errorf("Expected AWS Step Function to be destroyed, but was still found")
+			return fmt.Errorf("Expected AWS Step Function State Machine to be destroyed, but was still found")
 		}
 
 		return nil
