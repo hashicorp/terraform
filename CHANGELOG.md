@@ -3,6 +3,7 @@
 IMPROVEMENTS:
 
  * provider/aws: Add EBS Volume support for EMR Instance Groups [GH-11411]
+ * provider/aws: Add support for policy to AWS provider assume_role [GH-11501]
  * provider/opsgenie: Descriptions for Teams [GH-11391]
 
 BUG FIXES:
