@@ -47,6 +47,28 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 	}
 }
 
+// Test that the JSON attributes with an unknown value don't
+// validate.
+func TestResourceProvider_Validate_computedValues(t *testing.T) {
+	c := testConfig(t, map[string]interface{}{
+		"environment":     "_default",
+		"node_name":       "nodename1",
+		"run_list":        []interface{}{"cookbook::recipe"},
+		"server_url":      "https://chef.local",
+		"user_name":       "bob",
+		"user_key":        "USER-KEY",
+		"attributes_json": config.UnknownVariableValue,
+	})
+	r := new(ResourceProvisioner)
+	warn, errs := r.Validate(c)
+	if len(warn) > 0 {
+		t.Fatalf("Warnings: %v", warn)
+	}
+	if len(errs) > 0 {
+		t.Fatalf("Errors: %v", errs)
+	}
+}
+
 func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
 	r, err := config.NewRawConfig(c)
 	if err != nil {
