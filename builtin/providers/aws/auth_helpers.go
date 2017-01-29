@@ -30,7 +30,7 @@ func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string)
 		setOptionalEndpoint(cfg)
 		sess, err := session.NewSession(cfg)
 		if err != nil {
-			return "", "", errwrap.Wrapf("Error creating AWS session: %s", err)
+			return "", "", errwrap.Wrapf("Error creating AWS session: {{err}}", err)
 		}
 
 		metadataClient := ec2metadata.New(sess)
