@@ -37,6 +37,7 @@ BUG FIXES:
 IMPROVEMENTS:
 
  * provider/aws: Add EBS Volume support for EMR Instance Groups [GH-11411]
+ * provider/opsgenie: Descriptions for Teams [GH-11391]
 
 BUG FIXES:
 
