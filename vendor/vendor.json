@@ -376,10 +376,10 @@
 			"revisionTime": "2016-11-03T18:56:17Z"
 		},
 		{
-			"checksumSHA1": "wzzdybMOEWsQ/crdkpTLneeob2U=",
+			"checksumSHA1": "trj+UY2oSzP0O1WJKz8auncslVs=",
 			"path": "github.com/PagerDuty/go-pagerduty",
-			"revision": "317bca1364fc322f4d6f8eeb276e931b6667b43b",
-			"revisionTime": "2016-12-20T22:05:08Z"
+			"revision": "fad777c9c72ec7c62aeec0194f01684d6a2efd0e",
+			"revisionTime": "2017-01-28T02:14:22Z"
 		},
 		{
 			"checksumSHA1": "ly9VLPE9GKo2U7mnbZyjb2LDQ3w=",
