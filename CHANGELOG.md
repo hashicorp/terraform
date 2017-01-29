@@ -23,7 +23,7 @@ BUG FIXES:
  * provider/ns1: Fix "use_client_subnet" in ns1_record [GH-11368]
  * provider/openstack: Remove Default Security Group Rules on Create [GH-11466]
  * provider/pagerduty: Allow timeouts to be disabled (pagerduty_service) [GH-11483]
-
+ * provisioner/chef: Attributes JSON coming from computed source validates [GH-11502]
 
 ## 0.8.5 (26 January 2017)
 
@@ -107,15 +107,15 @@ BUG FIXES:
  * provider/vault: Remove user input for optional vault provider fields ([#11082](https://github.com/hashicorp/terraform/issues/11082))
  * provider/vsphere: Set deviceID to 0 if one 1 network interface in vsphere_virtual_machine ([#8276](https://github.com/hashicorp/terraform/issues/8276))
  * provisioner/remote-exec: fail on first inline script with bad exit code ([#11155](https://github.com/hashicorp/terraform/issues/11155))
- 
+
 ## 0.8.4 (January 11, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
- * We have removed the `Arukas` provider that was added in v0.8.3 for this release. Unfortunately we found the 
- new provider included a dependency that would not compile and run on Windows operating systems. For now the 
- provider has been removed and we hope to work to reintroduce it for all platforms in the near future. Going forward we will also be taking additional steps in our build testing to ensure Terraform builds on all platforms before release. 
- 
+ * We have removed the `Arukas` provider that was added in v0.8.3 for this release. Unfortunately we found the
+ new provider included a dependency that would not compile and run on Windows operating systems. For now the
+ provider has been removed and we hope to work to reintroduce it for all platforms in the near future. Going forward we will also be taking additional steps in our build testing to ensure Terraform builds on all platforms before release.
+
 ## 0.8.3 (January 10, 2017)
 
 FEATURES:
@@ -151,7 +151,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
- * core: Properly expand sets as lists from a flatmap [[#11042](https://github.com/hashicorp/terraform/issues/11042)] 
+ * core: Properly expand sets as lists from a flatmap [[#11042](https://github.com/hashicorp/terraform/issues/11042)]
  * core: Disallow root modules named "root" as a temporary workaround ([#11099](https://github.com/hashicorp/terraform/issues/11099))
  * command/fmt: Lists of heredocs format properly ([#10947](https://github.com/hashicorp/terraform/issues/10947))
  * command/graph: Fix crash when `-type=legacy` ([#11095](https://github.com/hashicorp/terraform/issues/11095))
@@ -195,7 +195,7 @@ FEATURES:
  * **New Resource:**  `ultradns_record` ([#9788](https://github.com/hashicorp/terraform/issues/9788))
  * **New Resource:**  `ultradns_tcpool` ([#9788](https://github.com/hashicorp/terraform/issues/9788))
  * **New Data Source:**  `aws_iam_account_alias` ([#10804](https://github.com/hashicorp/terraform/issues/10804))
- 
+
 IMPROVEMENTS:
 
  * provider/aws: Add support for BinaryMediaTypes and ContentHandling to AWS API Gateway ([#10776](https://github.com/hashicorp/terraform/issues/10776))
@@ -221,7 +221,7 @@ BUG FIXES:
 ## 0.8.1 (December 14, 2016)
 
 IMPROVEMENTS:
- 
+
  * provider/aws: Support eu-west-2 ([#10470](https://github.com/hashicorp/terraform/issues/10470))
  * provider/aws: Improved the SNS topic subscription protocols validation ([#10704](https://github.com/hashicorp/terraform/issues/10704))
  * providers/google: Add subnetwork_project field to enable cross-project networking ([#9662](https://github.com/hashicorp/terraform/issues/9662))
@@ -233,7 +233,7 @@ BUG FIXES:
   * core: `terraform` block works in the presence of `_override` files ([#10715](https://github.com/hashicorp/terraform/issues/10715))
   * core: Fix error when a provider in a module only referenced a variable ([#10719](https://github.com/hashicorp/terraform/issues/10719))
   * core: Destroy ordering for resources that depend on each other across modules is correct ([#745](https://github.com/hashicorp/terraform/issues/745))
-  
+
 DEPRECATION REMOVALS:
 
   * provider/aws: Removed deprecated `parameter_group` from `aws_rds_cluster` ([#10733](https://github.com/hashicorp/terraform/issues/10733))
