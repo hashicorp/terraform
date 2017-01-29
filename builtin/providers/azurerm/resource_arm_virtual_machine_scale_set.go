@@ -724,9 +724,6 @@ func resourceArmVirtualMachineScaleSetStorageProfileOsDiskHash(v interface{}) in
 	if m["image"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", m["image"].(string)))
 	}
-	if m["os_type"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["os_type"].(string)))
-	}
 
 	return hashcode.String(buf.String())
 }
