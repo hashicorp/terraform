@@ -2,7 +2,7 @@
 
 FEATURES:
 
- * **New Data Source:**  `aws_kms_secret` [GH-11460
+ * **New Data Source:**  `aws_kms_secret` [GH-11460]
 
 
 IMPROVEMENTS:
@@ -13,6 +13,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * core: Remove missed subfields when parent list is removed [GH-11498]
  * provider/aws: Fix issue with `path` not updated when modifying AWS API Gateway Resource [GH-11443]
  * provider/aws: Fix AWS Lambda Qualifier Regexp for `aws_lambda_permission` [GH-11383]
  * provider/aws: allow destroy of LB stickiness policy with missing LB [GH-11462]
