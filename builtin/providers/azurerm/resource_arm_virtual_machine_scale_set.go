@@ -281,7 +281,8 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 
 						"vhd_containers": &schema.Schema{
 							Type:     schema.TypeSet,
-							Required: true,
+							Optional: true,
+							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
@@ -656,11 +657,13 @@ func flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(profile *compute.V
 		result["image"] = *profile.Image.URI
 	}
 
-	containers := make([]interface{}, 0, len(*profile.VhdContainers))
-	for _, container := range *profile.VhdContainers {
-		containers = append(containers, container)
+	if profile.VhdContainers != nil {
+		containers := make([]interface{}, 0, len(*profile.VhdContainers))
+		for _, container := range *profile.VhdContainers {
+			containers = append(containers, container)
+		}
+		result["vhd_containers"] = schema.NewSet(schema.HashString, containers)
 	}
-	result["vhd_containers"] = schema.NewSet(schema.HashString, containers)
 
 	result["caching"] = profile.Caching
 	result["create_option"] = profile.CreateOption
@@ -897,25 +900,25 @@ func expandAzureRMVirtualMachineScaleSetsStorageProfileOsDisk(d *schema.Resource
 	osType := osDiskConfig["os_type"].(string)
 	createOption := osDiskConfig["create_option"].(string)
 
-	var vhdContainers []string
-	containers := osDiskConfig["vhd_containers"].(*schema.Set).List()
-	for _, v := range containers {
-		str := v.(string)
-		vhdContainers = append(vhdContainers, str)
-	}
-
 	osDisk := &compute.VirtualMachineScaleSetOSDisk{
-		Name:          &name,
-		Caching:       compute.CachingTypes(caching),
-		OsType:        compute.OperatingSystemTypes(osType),
-		CreateOption:  compute.DiskCreateOptionTypes(createOption),
-		VhdContainers: &vhdContainers,
+		Name:         &name,
+		Caching:      compute.CachingTypes(caching),
+		OsType:       compute.OperatingSystemTypes(osType),
+		CreateOption: compute.DiskCreateOptionTypes(createOption),
 	}
 
 	if image != "" {
 		osDisk.Image = &compute.VirtualHardDisk{
 			URI: &image,
 		}
+	} else {
+		var vhdContainers []string
+		containers := osDiskConfig["vhd_containers"].(*schema.Set).List()
+		for _, v := range containers {
+			str := v.(string)
+			vhdContainers = append(vhdContainers, str)
+		}
+		osDisk.VhdContainers = &vhdContainers
 	}
 
 	return osDisk, nil
