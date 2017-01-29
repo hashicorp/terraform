@@ -17,6 +17,9 @@ func resourceAwsSfnStateMachine() *schema.Resource {
 		Create: resourceAwsSfnStateMachineCreate,
 		Read:   resourceAwsSfnStateMachineRead,
 		Delete: resourceAwsSfnStateMachineDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"definition": {

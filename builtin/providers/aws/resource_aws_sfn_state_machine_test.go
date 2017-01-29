@@ -18,10 +18,10 @@ func TestAccAWSSfn_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSfnDestroy,
+		CheckDestroy: testAccCheckAWSSfnStateMachineDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSSfnBasicConfig(name),
+				Config: testAccAWSSfnStateMachineBasicConfig(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSfnExists("aws_sfn_state_machine.foo"),
 				),
@@ -55,7 +55,7 @@ func testAccCheckAWSSfnExists(n string) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckAWSSfnDestroy(s *terraform.State) error {
+func testAccCheckAWSSfnStateMachineDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).sfnconn
 
 	for _, rs := range s.RootModule().Resources {
@@ -84,7 +84,7 @@ func testAccCheckAWSSfnDestroy(s *terraform.State) error {
 	return fmt.Errorf("Default error in Step Function Test")
 }
 
-func testAccAWSSfnBasicConfig(rName string) string {
+func testAccAWSSfnStateMachineBasicConfig(rName string) string {
 	return fmt.Sprintf(`
 data "aws_region" "current" {
   current = true

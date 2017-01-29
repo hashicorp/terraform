@@ -31,3 +31,11 @@ The following attributes are exported:
 * `id` - The Amazon Resource Name (ARN) that identifies the created activity.
 * `name` - The name of the activity.
 * `creation_date` - The date the activity was created.
+
+## Import
+
+Activities can be imported using the `arn`, e.g.
+
+```
+$ terraform import aws_sfn_activity.foo arn:aws:states:eu-west-1:123456789098:activity:bar
+```

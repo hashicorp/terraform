@@ -17,6 +17,9 @@ func resourceAwsSfnActivity() *schema.Resource {
 		Create: resourceAwsSfnActivityCreate,
 		Read:   resourceAwsSfnActivityRead,
 		Delete: resourceAwsSfnActivityDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {

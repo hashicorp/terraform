@@ -51,3 +51,10 @@ The following attributes are exported:
 * `creation_date` - The date the state machine was created.
 * `status` - The current status of the state machine. Either "ACTIVE" or "DELETING"
 
+## Import
+
+State Machines can be imported using the `arn`, e.g.
+
+```
+$ terraform import aws_sfn_state_machine.foo arn:aws:states:eu-west-1:123456789098:stateMachine:bar
+```
