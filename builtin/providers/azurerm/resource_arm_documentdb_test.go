@@ -32,6 +32,26 @@ func TestAccAzureRMDocumentDb_standard(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMDocumentDb_standardGeoReplicated(t *testing.T) {
+
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMDocumentDb_standardGeoReplicated, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMDocumentDbDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMDocumentDbExists("azurerm_documentdb.test"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMDocumentDbDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).documentDbClient
 
@@ -106,6 +126,35 @@ resource "azurerm_documentdb" "test" {
   failover_policy {
     name     = "${azurerm_resource_group.test.location}"
     priority = 0
+  }
+}
+`
+
+var testAccAzureRMDocumentDb_standardGeoReplicated = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+resource "azurerm_documentdb" "test" {
+  name                = "acctestDDB-%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  offer_type          = "Standard"
+
+  consistency_policy {
+    consistency_level       = "Eventual"
+    max_interval_in_seconds = 100
+    max_staleness           = 30
+  }
+
+  failover_policy {
+    name     = "${azurerm_resource_group.test.location}"
+    priority = 0
+  }
+
+  failover_policy {
+    name     = "West Europe"
+    priority = 1
   }
 }
 `

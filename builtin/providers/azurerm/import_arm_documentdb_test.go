@@ -32,3 +32,27 @@ func TestAccAzureRMDocumentDb_importStandard(t *testing.T) {
 		},
 	})
 }
+
+func TestAccAzureRMDocumentDb_importStandardGeoReplicated(t *testing.T) {
+	resourceName := "azurerm_documentdb.test"
+
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMDocumentDb_standardGeoReplicated, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMDocumentDbDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+			},
+
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
