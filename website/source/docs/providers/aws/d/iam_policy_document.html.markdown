@@ -139,3 +139,25 @@ should be processed by AWS rather than by Terraform.
 The following attribute is exported:
 
 * `json` - The above arguments serialized as a standard JSON policy document.
+
+## Example with Multiple Principals
+
+Showing how you can use this as an assume role policy as well as showing how you can specify multiple principal blocks with different types.
+
+```
+data "aws_iam_policy_document" "event_stream_bucket_role_assume_role_policy" {
+  statement {
+    actions = [ "sts:AssumeRole" ]
+
+    principals {
+      	type = "Service"
+      	identifiers = ["firehose.amazonaws.com"]
+    }
+
+    principals {
+    	type = "AWS"
+    	identifiers = ["${var.trusted_role_arn}"]
+    }
+  }
+}
+```
