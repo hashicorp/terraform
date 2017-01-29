@@ -105,6 +105,25 @@ func TestAccOpsGenieTeam_basic(t *testing.T) {
 	})
 }
 
+func TestAccOpsGenieTeam_withEmptyDescription(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccOpsGenieTeam_withEmptyDescription, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckOpsGenieTeamDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckOpsGenieTeamExists("opsgenie_team.test"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccOpsGenieTeam_withUser(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccOpsGenieTeam_withUser, ri, ri)
@@ -212,6 +231,13 @@ func testCheckOpsGenieTeamExists(name string) resource.TestCheckFunc {
 var testAccOpsGenieTeam_basic = `
 resource "opsgenie_team" "test" {
   name = "acctest%d"
+}
+`
+
+var testAccOpsGenieTeam_withEmptyDescription = `
+resource "opsgenie_team" "test" {
+  name        = "acctest%d"
+  description = ""
 }
 `
 
