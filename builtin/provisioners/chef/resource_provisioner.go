@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/go-linereader"
@@ -355,36 +356,40 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 	}
 
 	if attrs, ok := c.Config["attributes_json"].(string); ok {
-		var m map[string]interface{}
-		if err := json.Unmarshal([]byte(attrs), &m); err != nil {
-			return nil, fmt.Errorf("Error parsing attributes_json: %v", err)
+		if attrs != config.UnknownVariableValue {
+			var m map[string]interface{}
+			if err := json.Unmarshal([]byte(attrs), &m); err != nil {
+				return nil, fmt.Errorf("Error parsing attributes_json: %v", err)
+			}
+			p.attributes = m
 		}
-		p.attributes = m
 	}
 
 	if vaults, ok := c.Config["vault_json"].(string); ok {
-		var m map[string]interface{}
-		if err := json.Unmarshal([]byte(vaults), &m); err != nil {
-			return nil, fmt.Errorf("Error parsing vault_json: %v", err)
-		}
+		if vaults != config.UnknownVariableValue {
+			var m map[string]interface{}
+			if err := json.Unmarshal([]byte(vaults), &m); err != nil {
+				return nil, fmt.Errorf("Error parsing vault_json: %v", err)
+			}
 
-		v := make(map[string][]string)
-		for vault, items := range m {
-			switch items := items.(type) {
-			case []interface{}:
-				for _, item := range items {
-					if item, ok := item.(string); ok {
+			v := make(map[string][]string)
+			for vault, items := range m {
+				switch items := items.(type) {
+				case []interface{}:
+					for _, item := range items {
+						if item, ok := item.(string); ok {
+							v[vault] = append(v[vault], item)
+						}
+					}
+				case interface{}:
+					if item, ok := items.(string); ok {
 						v[vault] = append(v[vault], item)
 					}
 				}
-			case interface{}:
-				if item, ok := items.(string); ok {
-					v[vault] = append(v[vault], item)
-				}
 			}
-		}
 
-		p.vaults = v
+			p.vaults = v
+		}
 	}
 
 	return p, nil
