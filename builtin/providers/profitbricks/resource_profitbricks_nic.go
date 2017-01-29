@@ -101,7 +101,7 @@ func resourceProfitBricksNicRead(d *schema.ResourceData, meta interface{}) error
 	if nic.StatusCode > 299 {
 		return fmt.Errorf("Error occured while fetching a nic ID %s %s", d.Id(), nic.Response)
 	}
-	log.Printf("[INFO] LAN ON NIC: %s", nic.Properties.Lan)
+	log.Printf("[INFO] LAN ON NIC: %q", nic.Properties.Lan)
 	d.Set("dhcp", nic.Properties.Dhcp)
 	d.Set("lan", nic.Properties.Lan)
 	d.Set("name", nic.Properties.Name)
