@@ -1,11 +1,15 @@
 package cfapi
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"code.cloudfoundry.org/cli/cf/api"
 	"code.cloudfoundry.org/cli/cf/api/resources"
 	"code.cloudfoundry.org/cli/cf/configuration/coreconfig"
+	"code.cloudfoundry.org/cli/cf/errors"
 	"code.cloudfoundry.org/cli/cf/models"
 	"code.cloudfoundry.org/cli/cf/net"
 )
@@ -22,20 +26,24 @@ type ServiceManager struct {
 
 // CCServiceInstance -
 type CCServiceInstance struct {
-	ID   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
+	Name            string   `json:"name"`
+	SpaceGUID       string   `json:"space_guid"`
+	ServicePlanGUID string   `json:"service_plan_guid"`
+	Tags            []string `json:"tags,omitempty"`
 }
 
-// CCServicePlan -
-type CCServicePlan struct {
-	ID   string `json:"id,omitempty"`
-	Name string `json:"label,omitempty"`
+// CCServiceInstanceResource -
+type CCServiceInstanceResource struct {
+	Metadata resources.Metadata `json:"metadata"`
+	Entity   CCServiceInstance  `json:"entity"`
 }
 
-// CCService -
-type CCService struct {
-	ID   string `json:"id,omitempty"`
-	Name string `json:"label"`
+// CCServiceInstanceUpdateRequest -
+type CCServiceInstanceUpdateRequest struct {
+	Name            string                 `json:"name"`
+	ServicePlanGUID string                 `json:"service_plan_guid"`
+	Params          map[string]interface{} `json:"parameters,omitempty"`
+	Tags            []string               `json:"tags,omitempty"`
 }
 
 // NewServiceManager -
@@ -52,37 +60,112 @@ func NewServiceManager(config coreconfig.Reader, ccGateway net.Gateway) (sm *Ser
 }
 
 // CreateServiceInstance -
-func (sm *ServiceManager) CreateServiceInstance(name string, servicePlanID string, spaceID string) (serviceInstance CCServiceInstance, err error) {
-	/*
-		payload := map[string]interface{}{"name": name, "service_plan_guid": servicePlanID, "space_guid": spaceID}
+func (sm *ServiceManager) CreateServiceInstance(name string, servicePlanID string, spaceID string, params map[string]interface{}, tags []string) (id string, err error) {
 
-		body, err := json.Marshal(payload)
-		if err != nil {
-			return
-		}
+	path := "/v2/service_instances?accepts_incomplete=true"
+	request := models.ServiceInstanceCreateRequest{
+		Name:      name,
+		PlanGUID:  servicePlanID,
+		SpaceGUID: spaceID,
+		Params:    params,
+		Tags:      tags,
+	}
 
-		resource := CCServiceInstanceResource{}
-		if err = sm.ccGateway.CreateResource(sm.apiEndpoint, "/v2/service_instances", bytes.NewReader(body), &resource); err != nil {
-			return
-		}
+	jsonBytes, err := json.Marshal(request)
+	if err != nil {
+		return
+	}
 
-		serviceInstance = resource.Entity
-		serviceInstance.ID = resource.Metadata.GUID
-	*/
+	resource := CCServiceInstanceResource{}
+	err = sm.ccGateway.CreateResource(sm.apiEndpoint, path, bytes.NewReader(jsonBytes), &resource)
+
+	id = resource.Metadata.GUID
+	return
+}
+
+// UpdateServiceInstance -
+func (sm *ServiceManager) UpdateServiceInstance(serviceInstanceID string, name string, servicePlanID string, params map[string]interface{}, tags []string) (serviceInstance CCServiceInstance, err error) {
+
+	path := fmt.Sprintf("/v2/service_instances/%s?accepts_incomplete=true", serviceInstanceID)
+	request := CCServiceInstanceUpdateRequest{
+		Name:            name,
+		ServicePlanGUID: servicePlanID,
+		Params:          params,
+		Tags:            tags,
+	}
+
+	jsonBytes, err := json.Marshal(request)
+	if err != nil {
+		return
+	}
+
+	resource := CCServiceInstance{}
+	err = sm.ccGateway.UpdateResource(sm.apiEndpoint, path, bytes.NewReader(jsonBytes), &resource)
+
 	return
 }
 
 // ReadServiceInstance -
 func (sm *ServiceManager) ReadServiceInstance(serviceInstanceID string) (serviceInstance CCServiceInstance, err error) {
-	/*
-		resource := &CCServiceInstanceResource{}
-		err = sm.ccGateway.GetResource(
-			fmt.Sprintf("%s/v2/service_instances/%s", sm.apiEndpoint, serviceInstanceID), &resource)
 
-		serviceInstance = resource.Entity
-		serviceInstance.ID = resource.Metadata.GUID
-	*/
+	path := fmt.Sprintf("%s/v2/service_instances/%s", sm.apiEndpoint, serviceInstanceID)
+	resource := CCServiceInstanceResource{}
+	err = sm.ccGateway.GetResource(path, &resource)
+	if err != nil {
+		return
+	}
+
+	serviceInstance = resource.Entity
+
 	return
+}
+
+// FindServiceInstance -
+func (sm *ServiceManager) FindServiceInstance(name string, spaceID string) (serviceInstance CCServiceInstance, err error) {
+
+	path := fmt.Sprintf("/v2/spaces/%s/service_instances?return_user_provided_service_instances=true&q=%s&inline-relations-depth=1",
+		spaceID, url.QueryEscape("name:"+name))
+
+	var found bool
+
+	apiErr := sm.ccGateway.ListPaginatedResources(
+		sm.apiEndpoint,
+		path,
+		CCServiceInstanceResource{},
+		func(resource interface{}) bool {
+			if sp, ok := resource.(CCServiceInstanceResource); ok {
+				serviceInstance = sp.Entity // there should 1 or 0 instances in the space with that name
+				found = true
+				return false
+			}
+			return true
+
+		})
+
+	if apiErr != nil {
+		switch apiErr.(type) {
+		case *errors.HTTPNotFoundError:
+			err = errors.NewModelNotFoundError("Space", spaceID)
+		default:
+			err = apiErr
+		}
+	} else {
+		if !found {
+			err = errors.NewModelNotFoundError("ServiceInstance", name)
+		}
+	}
+
+	return
+
+}
+
+// DeleteServiceInstance -
+func (sm *ServiceManager) DeleteServiceInstance(serviceInstanceID string) (err error) {
+
+	err = sm.ccGateway.DeleteResource(sm.apiEndpoint, fmt.Sprintf("/v2/service_instances/%s", serviceInstanceID))
+
+	return
+
 }
 
 // FindServicePlanID -
