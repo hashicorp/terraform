@@ -354,7 +354,7 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		p.UserKey = p.ValidationKey
 	}
 
-	if attrs, ok := c.Config["attributes_json"].(string); ok {
+	if attrs, ok := c.Config["attributes_json"].(string); ok && !c.IsComputed("attributes_json") {
 		var m map[string]interface{}
 		if err := json.Unmarshal([]byte(attrs), &m); err != nil {
 			return nil, fmt.Errorf("Error parsing attributes_json: %v", err)
@@ -362,7 +362,7 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		p.attributes = m
 	}
 
-	if vaults, ok := c.Config["vault_json"].(string); ok {
+	if vaults, ok := c.Config["vault_json"].(string); ok && !c.IsComputed("vault_json") {
 		var m map[string]interface{}
 		if err := json.Unmarshal([]byte(vaults), &m); err != nil {
 			return nil, fmt.Errorf("Error parsing vault_json: %v", err)
