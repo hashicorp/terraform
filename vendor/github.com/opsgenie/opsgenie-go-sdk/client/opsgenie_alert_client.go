@@ -38,7 +38,13 @@ const (
 	addTagsAlertURL         = "/v1/json/alert/tags"
 	executeActionAlertURL   = "/v1/json/alert/executeAction"
 	attachFileAlertURL      = "/v1/json/alert/attach"
-	countAlertURL          = "/v1/json/alert/count"
+	countAlertURL           = "/v1/json/alert/count"
+	unacknowledgeAlertURL    = "/v1/json/alert/unacknowledge"
+	snoozeAlertURL 		= "/v1/json/alert/snooze"
+	removeTagsAlertURL	= "/v1/json/alert/tags"
+	addDetailsAlertURL	= "/v1/json/alert/details"
+	removeDetailsAlertURL	= "/v1/json/alert/details"
+	escalateToNextAlertURL	= "/v1/json/alert/escalateToNext"
 )
 
 // OpsGenieAlertClient is the data type to make Alert API requests.
@@ -410,6 +416,126 @@ func (cli *OpsGenieAlertClient) ExecuteAction(req alerts.ExecuteActionAlertReque
 		return nil, errors.New(message)
 	}
 	return &executeActionAlertResp, nil
+}
+
+// UnAcknowledge method unacknowledges an alert at OpsGenie.
+func (cli *OpsGenieAlertClient) UnAcknowledge(req alerts.UnAcknowledgeAlertRequest) (*alerts.UnAcknowledgeAlertResponse, error) {
+	req.APIKey = cli.apiKey
+	resp, err := cli.sendRequest(cli.buildPostRequest(unacknowledgeAlertURL, req))
+
+	if resp == nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var unacknowledgeAlertResp alerts.UnAcknowledgeAlertResponse
+
+	if err = resp.Body.FromJsonTo(&unacknowledgeAlertResp); err != nil {
+		message := "Server response can not be parsed, " + err.Error()
+		logging.Logger().Warn(message)
+		return nil, errors.New(message)
+	}
+	return &unacknowledgeAlertResp, nil
+}
+
+// Snooze method snoozes an alert at OpsGenie.
+func (cli *OpsGenieAlertClient) Snooze(req alerts.SnoozeAlertRequest) (*alerts.SnoozeAlertResponse, error) {
+	req.APIKey = cli.apiKey
+	resp, err := cli.sendRequest(cli.buildPostRequest(snoozeAlertURL, req))
+
+	if resp == nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var snoozeAlertResp alerts.SnoozeAlertResponse
+
+	if err = resp.Body.FromJsonTo(&snoozeAlertResp); err != nil {
+		message := "Server response can not be parsed, " + err.Error()
+		logging.Logger().Warn(message)
+		return nil, errors.New(message)
+	}
+	return &snoozeAlertResp, nil
+}
+
+// RemoveTags method removes tags from an alert at OpsGenie.
+func (cli *OpsGenieAlertClient) RemoveTags(req alerts.RemoveTagsAlertRequest) (*alerts.RemoveTagsAlertResponse, error) {
+	req.APIKey = cli.apiKey
+	resp, err := cli.sendRequest(cli.buildDeleteRequest(removeTagsAlertURL, req))
+
+	if resp == nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var removeTagsAlertResp alerts.RemoveTagsAlertResponse
+
+	if err = resp.Body.FromJsonTo(&removeTagsAlertResp); err != nil {
+		message := "Server response can not be parsed, " + err.Error()
+		logging.Logger().Warn(message)
+		return nil, errors.New(message)
+	}
+	return &removeTagsAlertResp, nil
+}
+
+// AddDetails method adds details to an alert at OpsGenie.
+func (cli *OpsGenieAlertClient) AddDetails(req alerts.AddDetailsAlertRequest) (*alerts.AddDetailsAlertResponse, error) {
+	req.APIKey = cli.apiKey
+	resp, err := cli.sendRequest(cli.buildPostRequest(addDetailsAlertURL, req))
+
+	if resp == nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var addDetailsAlertResp alerts.AddDetailsAlertResponse
+
+	if err = resp.Body.FromJsonTo(&addDetailsAlertResp); err != nil {
+		message := "Server response can not be parsed, " + err.Error()
+		logging.Logger().Warn(message)
+		return nil, errors.New(message)
+	}
+	return &addDetailsAlertResp, nil
+}
+
+// RemoveDetails method removes details from an alert at OpsGenie.
+func (cli *OpsGenieAlertClient) RemoveDetails(req alerts.RemoveDetailsAlertRequest) (*alerts.RemoveDetailsAlertResponse, error) {
+	req.APIKey = cli.apiKey
+	resp, err := cli.sendRequest(cli.buildDeleteRequest(removeDetailsAlertURL, req))
+
+	if resp == nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var removeDetailsAlertResp alerts.RemoveDetailsAlertResponse
+
+	if err = resp.Body.FromJsonTo(&removeDetailsAlertResp); err != nil {
+		message := "Server response can not be parsed, " + err.Error()
+		logging.Logger().Warn(message)
+		return nil, errors.New(message)
+	}
+	return &removeDetailsAlertResp, nil
+}
+
+// UnAcknowledge method unacknowledges an alert at OpsGenie.
+func (cli *OpsGenieAlertClient) EscalateToNext(req alerts.EscalateToNextAlertRequest) (*alerts.EscalateToNextAlertResponse, error) {
+	req.APIKey = cli.apiKey
+	resp, err := cli.sendRequest(cli.buildPostRequest(escalateToNextAlertURL, req))
+
+	if resp == nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var escalateToNextAlertResp alerts.EscalateToNextAlertResponse
+
+	if err = resp.Body.FromJsonTo(&escalateToNextAlertResp); err != nil {
+		message := "Server response can not be parsed, " + err.Error()
+		logging.Logger().Warn(message)
+		return nil, errors.New(message)
+	}
+	return &escalateToNextAlertResp, nil
 }
 
 // AttachFile method attaches a file to an alert at OpsGenie.
