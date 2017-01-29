@@ -13,6 +13,7 @@ BUG FIXES:
  * provider/aws: ECS Placement constraints fix [GH-11475]
  * provider/ignition: Allow to add authorized keys without user creation [GH-11406]
  * provider/ignition: mount and path are mutually exclusive [GH-11409]
+ * provider/ns1: Fix "use_client_subnet" in ns1_record [GH-11368]
  * provider/openstack: Remove Default Security Group Rules on Create [GH-11466]
  * provider/pagerduty: Allow timeouts to be disabled (pagerduty_service) [GH-11483]
 
