@@ -122,7 +122,10 @@ func resourceRancherStackCreate(d *schema.ResourceData, meta interface{}) error 
 
 func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Stack: %s", d.Id())
-	client := meta.(*Config)
+	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	if err != nil {
+		return err
+	}
 
 	stack, err := client.Environment.ById(d.Id())
 	if err != nil {

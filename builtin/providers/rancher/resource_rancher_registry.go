@@ -90,7 +90,10 @@ func resourceRancherRegistryCreate(d *schema.ResourceData, meta interface{}) err
 
 func resourceRancherRegistryRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Registry: %s", d.Id())
-	client := meta.(*Config)
+	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	if err != nil {
+		return err
+	}
 
 	registry, err := client.Registry.ById(d.Id())
 	if err != nil {

@@ -104,7 +104,10 @@ func resourceRancherRegistryCredentialCreate(d *schema.ResourceData, meta interf
 
 func resourceRancherRegistryCredentialRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing RegistryCredential: %s", d.Id())
-	client := meta.(*Config)
+	client, err := meta.(*Config).RegistryClient(d.Get("registry_id").(string))
+	if err != nil {
+		return err
+	}
 
 	registryCred, err := client.RegistryCredential.ById(d.Id())
 	if err != nil {
