@@ -10,6 +10,7 @@ BUG FIXES:
  * provider/aws: Fix issue with `path` not updated when modifying AWS API Gateway Resource [GH-11443]
  * provider/aws: Fix AWS Lambda Qualifier Regexp for `aws_lambda_permission` [GH-11383]
  * provider/aws: allow destroy of LB stickiness policy with missing LB [GH-11462]
+ * provider/aws: ECS Placement constraints fix [GH-11475]
  * provider/ignition: Allow to add authorized keys without user creation [GH-11406]
  * provider/ignition: mount and path are mutually exclusive [GH-11409]
  * provider/openstack: Remove Default Security Group Rules on Create [GH-11466]
