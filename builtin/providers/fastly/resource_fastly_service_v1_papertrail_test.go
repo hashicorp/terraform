@@ -19,7 +19,7 @@ func TestAccFastlyServiceV1_papertrail_basic(t *testing.T) {
 	log1 := gofastly.Papertrail{
 		Version: "1",
 		Name:    "papertrailtesting",
-		Address: "fastlytest.papretrail.log",
+		Address: "test1.papertrailapp.com",
 		Port:    uint(3600),
 		Format:  "%h %l %u %t %r %>s",
 	}
@@ -27,7 +27,7 @@ func TestAccFastlyServiceV1_papertrail_basic(t *testing.T) {
 	log2 := gofastly.Papertrail{
 		Version: "1",
 		Name:    "papertrailtesting2",
-		Address: "fastlytest.papretrail.com",
+		Address: "test2.papertrailapp.com",
 		Port:    uint(8080),
 		Format:  "%h %l %u %t %r %>s",
 	}
@@ -125,7 +125,7 @@ resource "fastly_service_v1" "foo" {
 
   papertrail {
     name    = "papertrailtesting"
-    address = "fastlytest.papretrail.log"
+    address = "test1.papertrailapp.com"
     port    = 3600
   }
 
@@ -150,13 +150,13 @@ resource "fastly_service_v1" "foo" {
 
 	papertrail {
     name    = "papertrailtesting"
-    address = "fastlytest.papretrail.log"
+    address = "test1.papertrailapp.com"
     port    = 3600
   }
 
 	papertrail {
     name    = "papertrailtesting2"
-    address = "fastlytest.papretrail.com"
+    address = "test2.papertrailapp.com"
     port    = 8080
   }
 
