@@ -1,13 +1,13 @@
 package aws
 
 import (
-	"fmt"
 	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sfn"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -66,9 +66,25 @@ func resourceAwsSfnStateMachineCreate(d *schema.ResourceData, meta interface{}) 
 		RoleArn:    aws.String(d.Get("role_arn").(string)),
 	}
 
-	activity, err := conn.CreateStateMachine(params)
+	var activity *sfn.CreateStateMachineOutput
+
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		var err error
+		activity, err = conn.CreateStateMachine(params)
+
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "StateMachineDeleting" {
+				return resource.RetryableError(err)
+			}
+
+			return resource.NonRetryableError(err)
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		return fmt.Errorf("Error creating Step Function State Machine: %s", err)
+		return errwrap.Wrapf("Error creating Step Function State Machine: {{err}}", err)
 	}
 
 	d.SetId(*activity.StateMachineArn)
