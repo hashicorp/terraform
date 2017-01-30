@@ -57,6 +57,10 @@ EOF
   `counter_stddev`, `derive`, `derive2`, `derive2_stddev`, `derive_stddev`,
   `histogram`, `stddev`, `text`.
 
+## Out parameters
+
+* `id` - ID of the Stream Group
+
 ## Import Example
 
 `circonus_stream_group` supports importing resources.  Supposing the following

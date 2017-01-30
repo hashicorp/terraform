@@ -20,6 +20,7 @@ func TestAccCirconusStreamGroup_basic(t *testing.T) {
 				Config: testAccCirconusStreamGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("circonus_stream_group.nomad-job1", "description", `Stream Group (a.k.a. "metric cluster") Description`),
+					resource.TestCheckResourceAttrSet("circonus_stream_group.nomad-job1", "id"),
 					resource.TestCheckResourceAttr("circonus_stream_group.nomad-job1", "name", "job1-stream-agg"),
 					resource.TestCheckResourceAttr("circonus_stream_group.nomad-job1", "group.1688061877.query", "*`nomad-jobname`memory`rss"),
 					resource.TestCheckResourceAttr("circonus_stream_group.nomad-job1", "group.1688061877.type", "average"),

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -23,6 +24,9 @@ const (
 	_StreamGroupGroupAttr       _SchemaAttr = "group"
 	_StreamGroupTagsAttr        _SchemaAttr = "tags"
 
+	// circonus_stream_group.* out parameters
+	_StreamGroupIDAttr _SchemaAttr = "id"
+
 	// circonus_stream_group.group.* resource attribute names
 	_StreamGroupQueryAttr _SchemaAttr = "query"
 	_StreamGroupTypeAttr  _SchemaAttr = "type"
@@ -30,6 +34,7 @@ const (
 
 var _StreamGroupDescriptions = _AttrDescrs{
 	_StreamGroupDescriptionAttr: "A description of the stream group",
+	_StreamGroupIDAttr:          "The ID of this stream group",
 	_StreamGroupNameAttr:        "The name of the stream group",
 	_StreamGroupGroupAttr:       "A stream group query definition",
 	_StreamGroupTagsAttr:        "A list of tags assigned to the stream group",
@@ -84,6 +89,13 @@ func _NewStreamGroupResource() *schema.Resource {
 				},
 			},
 			_StreamGroupTagsAttr: _TagMakeConfigSchema(_StreamGroupTagsAttr),
+
+			// Out parameters
+			_StreamGroupIDAttr: &schema.Schema{
+				Computed:     true,
+				Type:         schema.TypeString,
+				ValidateFunc: _ValidateRegexp(_StreamGroupIDAttr, config.MetricClusterCIDRegex),
+			},
 		}, _StreamGroupDescriptions),
 	}
 }
@@ -149,6 +161,7 @@ func _StreamGroupRead(d *schema.ResourceData, meta interface{}) error {
 	_StateSet(d, _StreamGroupDescriptionAttr, sg.Description)
 	_StateSet(d, _StreamGroupNameAttr, sg.Name)
 	_StateSet(d, _StreamGroupTagsAttr, tagsToState(apiToTags(sg.Tags)))
+	_StateSet(d, _StreamGroupIDAttr, sg.CID)
 
 	d.SetId(sg.CID)
 
