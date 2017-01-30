@@ -250,7 +250,6 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 									"load_balancer_backend_address_pool_ids": &schema.Schema{
 										Type:     schema.TypeSet,
 										Optional: true,
-										Computed: true,
 										Elem:     &schema.Schema{Type: schema.TypeString},
 										Set:      schema.HashString,
 									},
@@ -617,11 +616,11 @@ func flattenAzureRmVirtualMachineScaleSetNetworkProfile(profile *compute.Virtual
 				}
 
 				if properties.LoadBalancerBackendAddressPools != nil {
-					addressPools := make([]string, 0, len(*properties.LoadBalancerBackendAddressPools))
+					addressPools := make([]interface{}, 0, len(*properties.LoadBalancerBackendAddressPools))
 					for _, pool := range *properties.LoadBalancerBackendAddressPools {
 						addressPools = append(addressPools, *pool.ID)
 					}
-					config["load_balancer_backend_address_pool_ids"] = addressPools
+					config["load_balancer_backend_address_pool_ids"] = schema.NewSet(schema.HashString, addressPools)
 				}
 
 				ipConfigs = append(ipConfigs, config)
