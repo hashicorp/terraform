@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -54,7 +55,13 @@ func resourceAwsCloudWatchLogGroupCreate(d *schema.ResourceData, meta interface{
 		LogGroupName: aws.String(d.Get("name").(string)),
 	})
 	if err != nil {
-		return fmt.Errorf("Creating CloudWatch Log Group failed: %s", err)
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() != "ResourceAlreadyExistsException" {
+				return fmt.Errorf("Creating CloudWatch Log Group failed: %s", err)
+			}
+		} else {
+			return fmt.Errorf("Creating CloudWatch Log Group failed: %s", err)
+		}
 	}
 
 	d.SetId(d.Get("name").(string))
