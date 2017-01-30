@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -26,6 +27,18 @@ func (b *Local) opPlan(
 				"will output the saved plan. This will not modify the already-existing\n" +
 				"plan. If you wish to generate a new plan, please pass in a configuration\n" +
 				"directory as an argument.\n\n"))
+	}
+
+	// A local plan requires either a plan or a module
+	if op.Plan == nil && op.Module == nil && !op.Destroy {
+		runningOp.Err = fmt.Errorf(strings.TrimSpace(planErrNoConfig))
+		return
+	}
+
+	// If we have a nil module at this point, then set it to an empty tree
+	// to avoid any potential crashes.
+	if op.Module == nil {
+		op.Module = module.NewEmptyTree()
 	}
 
 	// Setup our count hook that keeps track of resource changes
@@ -119,6 +132,16 @@ func (b *Local) opPlan(
 			countHook.ToRemove+countHook.ToRemoveAndAdd)))
 	}
 }
+
+const planErrNoConfig = `
+No configuration files found!
+
+Plan requires configuration to be present. Planning without a configuration
+would mark everything for destruction, which is normally not what is desired.
+If you would like to destroy everything, please run plan with the "-destroy"
+flag or create a single empty configuration file. Otherwise, please create
+a Terraform configuration file in the path being executed and try again.
+`
 
 const planHeaderNoOutput = `
 The Terraform execution plan has been generated and is shown below.
