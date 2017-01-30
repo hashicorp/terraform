@@ -84,6 +84,8 @@ variables in order to keep credential information out of the configuration.
 
 * `token` - (Required) Vault token that will be used by Terraform to
   authenticate. May be set via the `VAULT_TOKEN` environment variable.
+  If none is otherwise supplied, Terraform will attempt to read it from
+  `~/.vault-token` (where the vault command stores its current token).
   Terraform will issue itself a new token that is a child of the one given,
   with a short TTL to limit the exposure of any requested secrets.
 
