@@ -1106,8 +1106,8 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					Service: d.Id(),
 					Version: latestVersion,
 					Name:    pf["name"].(string),
-					Address: pf["bucket_name"].(string),
-					Port:    uint(pf["period"].(int)),
+					Address: pf["address"].(string),
+					Port:    uint(pf["port"].(int)),
 					Format:  pf["format"].(string),
 				}
 
