@@ -907,13 +907,10 @@ func (c *Context) walk(
 }
 
 func (c *Context) watchStop(walker *ContextGraphWalker, doneCh <-chan struct{}) {
-	// Get the stop channel. runContext might be nil only during tests.
-	// If this is called during a proper run operation, this will never
-	// be nil.
-	var stopCh <-chan struct{}
-	if ctx := c.runContext; ctx != nil {
-		stopCh = ctx.Done()
-	}
+	// Get the stop channel. runContext will never be nil since this should
+	// only be called within the context of an operation started with
+	// acquireRun
+	stopCh := c.runContext.Done()
 
 	// Wait for a stop or completion
 	select {
