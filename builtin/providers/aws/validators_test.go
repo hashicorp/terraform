@@ -111,6 +111,8 @@ func TestValidateLambdaQualifier(t *testing.T) {
 		"prod",
 		"PROD",
 		"MyTestEnv",
+		"contains-dashes",
+		"contains_underscores",
 		"$LATEST",
 	}
 	for _, v := range validNames {
@@ -1171,6 +1173,51 @@ func TestValidateEcsPlacementStrategy(t *testing.T) {
 		}
 
 	}
+}
+
+func TestValidateEmrEbsVolumeType(t *testing.T) {
+	cases := []struct {
+		VolType  string
+		ErrCount int
+	}{
+		{
+			VolType:  "gp2",
+			ErrCount: 0,
+		},
+		{
+			VolType:  "io1",
+			ErrCount: 0,
+		},
+		{
+			VolType:  "standard",
+			ErrCount: 0,
+		},
+		{
+			VolType:  "stand",
+			ErrCount: 1,
+		},
+		{
+			VolType:  "io",
+			ErrCount: 1,
+		},
+		{
+			VolType:  "gp1",
+			ErrCount: 1,
+		},
+		{
+			VolType:  "fast-disk",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAwsEmrEbsVolumeType(tc.VolType, "volume")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d errors, got %d: %s", tc.ErrCount, len(errors), errors)
+		}
+	}
+
 }
 
 func TestValidateDmsEndpointId(t *testing.T) {

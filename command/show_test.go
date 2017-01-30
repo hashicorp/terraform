@@ -129,20 +129,11 @@ func TestShow_noArgsRemoteState(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
-	// Pretend like we have a local cache of remote state
-	remoteStatePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
-	if err := os.MkdirAll(filepath.Dir(remoteStatePath), 0755); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	f, err := os.Create(remoteStatePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	err = terraform.WriteState(testState(), f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	// Create some legacy remote state
+	legacyState := testState()
+	_, srv := testRemoteState(t, legacyState, 200)
+	defer srv.Close()
+	testStateFileRemote(t, legacyState)
 
 	ui := new(cli.MockUi)
 	c := &ShowCommand{

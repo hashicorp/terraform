@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-
-	"golang.org/x/net/context"
 )
 
 var (
@@ -35,22 +33,19 @@ type Volume struct {
 // See https://goo.gl/FZA4BK for more details.
 type ListVolumesOptions struct {
 	Filters map[string][]string
-	Context context.Context
 }
 
 // ListVolumes returns a list of available volumes in the server.
 //
 // See https://goo.gl/FZA4BK for more details.
 func (c *Client) ListVolumes(opts ListVolumesOptions) ([]Volume, error) {
-	resp, err := c.do("GET", "/volumes?"+queryString(opts), doOptions{
-		context: opts.Context,
-	})
+	resp, err := c.do("GET", "/volumes?"+queryString(opts), doOptions{})
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 	m := make(map[string]interface{})
-	if err = json.NewDecoder(resp.Body).Decode(&m); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&m); err != nil {
 		return nil, err
 	}
 	var volumes []Volume
@@ -75,18 +70,13 @@ type CreateVolumeOptions struct {
 	Name       string
 	Driver     string
 	DriverOpts map[string]string
-	Context    context.Context `json:"-"`
-	Labels     map[string]string
 }
 
 // CreateVolume creates a volume on the server.
 //
 // See https://goo.gl/pBUbZ9 for more details.
 func (c *Client) CreateVolume(opts CreateVolumeOptions) (*Volume, error) {
-	resp, err := c.do("POST", "/volumes/create", doOptions{
-		data:    opts,
-		context: opts.Context,
-	})
+	resp, err := c.do("POST", "/volumes/create", doOptions{data: opts})
 	if err != nil {
 		return nil, err
 	}

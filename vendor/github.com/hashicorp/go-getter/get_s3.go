@@ -20,6 +20,45 @@ import (
 // a S3 bucket.
 type S3Getter struct{}
 
+func (g *S3Getter) ClientMode(u *url.URL) (ClientMode, error) {
+	// Parse URL
+	region, bucket, path, _, creds, err := g.parseUrl(u)
+	if err != nil {
+		return 0, err
+	}
+
+	// Create client config
+	config := g.getAWSConfig(region, creds)
+	sess := session.New(config)
+	client := s3.New(sess)
+
+	// List the object(s) at the given prefix
+	req := &s3.ListObjectsInput{
+		Bucket: aws.String(bucket),
+		Prefix: aws.String(path),
+	}
+	resp, err := client.ListObjects(req)
+	if err != nil {
+		return 0, err
+	}
+
+	for _, o := range resp.Contents {
+		// Use file mode on exact match.
+		if *o.Key == path {
+			return ClientModeFile, nil
+		}
+
+		// Use dir mode if child keys are found.
+		if strings.HasPrefix(*o.Key, path+"/") {
+			return ClientModeDir, nil
+		}
+	}
+
+	// There was no match, so just return file mode. The download is going
+	// to fail but we will let S3 return the proper error later.
+	return ClientModeFile, nil
+}
+
 func (g *S3Getter) Get(dst string, u *url.URL) error {
 	// Parse URL
 	region, bucket, path, _, creds, err := g.parseUrl(u)

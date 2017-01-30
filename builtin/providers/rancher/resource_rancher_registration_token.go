@@ -97,7 +97,11 @@ func resourceRancherRegistrationTokenCreate(d *schema.ResourceData, meta interfa
 
 func resourceRancherRegistrationTokenRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing RegistrationToken: %s", d.Id())
-	client := meta.(*Config)
+	client, err := meta.(*Config).EnvironmentClient(d.Get("environment_id").(string))
+	if err != nil {
+		return err
+	}
+	// client := meta.(*Config)
 
 	regT, err := client.RegistrationToken.ById(d.Id())
 	if err != nil {

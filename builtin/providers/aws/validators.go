@@ -251,7 +251,7 @@ func validateLambdaQualifier(v interface{}, k string) (ws []string, errors []err
 			"%q cannot be longer than 128 characters: %q", k, value))
 	}
 	// http://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
-	pattern := `^[a-zA-Z0-9$_]+$`
+	pattern := `^[a-zA-Z0-9$_-]+$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q doesn't comply with restrictions (%q): %q",
@@ -726,6 +726,22 @@ func validateAwsEcsPlacementStrategy(stratType, stratField string) error {
 		return fmt.Errorf("Unknown type %s. Must be one of 'random', 'spread', or 'binpack'.", stratType)
 	}
 	return nil
+}
+
+func validateAwsEmrEbsVolumeType(v interface{}, k string) (ws []string, errors []error) {
+	validTypes := map[string]struct{}{
+		"gp2":      {},
+		"io1":      {},
+		"standard": {},
+	}
+
+	value := v.(string)
+
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of ['gp2', 'io1', 'standard']", k))
+	}
+	return
 }
 
 func validateDmsEndpointId(v interface{}, k string) (ws []string, es []error) {

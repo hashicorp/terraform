@@ -216,14 +216,35 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 			Validate:     opts.Validate,
 		}).Build(RootModulePath)
 
+	case GraphTypeInput:
+		// The input graph is just a slightly modified plan graph
+		fallthrough
+	case GraphTypeValidate:
+		// The validate graph is just a slightly modified plan graph
+		fallthrough
 	case GraphTypePlan:
-		return (&PlanGraphBuilder{
+		// Create the plan graph builder
+		p := &PlanGraphBuilder{
 			Module:    c.module,
 			State:     c.state,
 			Providers: c.components.ResourceProviders(),
 			Targets:   c.targets,
 			Validate:  opts.Validate,
-		}).Build(RootModulePath)
+		}
+
+		// Some special cases for other graph types shared with plan currently
+		var b GraphBuilder = p
+		switch typ {
+		case GraphTypeInput:
+			b = InputGraphBuilder(p)
+		case GraphTypeValidate:
+			// We need to set the provisioners so those can be validated
+			p.Provisioners = c.components.ResourceProvisioners()
+
+			b = ValidateGraphBuilder(p)
+		}
+
+		return b.Build(RootModulePath)
 
 	case GraphTypePlanDestroy:
 		return (&DestroyPlanGraphBuilder{
@@ -233,27 +254,17 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 			Validate: opts.Validate,
 		}).Build(RootModulePath)
 
-	case GraphTypeLegacy:
-		return c.graphBuilder(opts).Build(RootModulePath)
+	case GraphTypeRefresh:
+		return (&RefreshGraphBuilder{
+			Module:    c.module,
+			State:     c.state,
+			Providers: c.components.ResourceProviders(),
+			Targets:   c.targets,
+			Validate:  opts.Validate,
+		}).Build(RootModulePath)
 	}
 
 	return nil, fmt.Errorf("unknown graph type: %s", typ)
-}
-
-// GraphBuilder returns the GraphBuilder that will be used to create
-// the graphs for this context.
-func (c *Context) graphBuilder(g *ContextGraphOpts) GraphBuilder {
-	return &BuiltinGraphBuilder{
-		Root:         c.module,
-		Diff:         c.diff,
-		Providers:    c.components.ResourceProviders(),
-		Provisioners: c.components.ResourceProvisioners(),
-		State:        c.state,
-		Targets:      c.targets,
-		Destroy:      c.destroy,
-		Validate:     g.Validate,
-		Verbose:      g.Verbose,
-	}
 }
 
 // ShadowError returns any errors caught during a shadow operation.
@@ -281,6 +292,13 @@ func (c *Context) graphBuilder(g *ContextGraphOpts) GraphBuilder {
 // running.
 func (c *Context) ShadowError() error {
 	return c.shadowErr
+}
+
+// State returns a copy of the current state associated with this context.
+//
+// This cannot safely be called in parallel with any other Context function.
+func (c *Context) State() *State {
+	return c.state.DeepCopy()
 }
 
 // Interpolater returns an Interpolater built on a copy of the state
@@ -402,7 +420,7 @@ func (c *Context) Input(mode InputMode) error {
 
 	if mode&InputModeProvider != 0 {
 		// Build the graph
-		graph, err := c.Graph(GraphTypeLegacy, nil)
+		graph, err := c.Graph(GraphTypeInput, nil)
 		if err != nil {
 			return err
 		}
@@ -428,15 +446,8 @@ func (c *Context) Apply() (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
-	// Enable the new graph by default
-	X_legacyGraph := experiment.Enabled(experiment.X_legacyGraph)
-
 	// Build the graph.
-	graphType := GraphTypeLegacy
-	if !X_legacyGraph {
-		graphType = GraphTypeApply
-	}
-	graph, err := c.Graph(graphType, nil)
+	graph, err := c.Graph(GraphTypeApply, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -504,17 +515,10 @@ func (c *Context) Plan() (*Plan, error) {
 	c.diff.init()
 	c.diffLock.Unlock()
 
-	// Used throughout below
-	X_legacyGraph := experiment.Enabled(experiment.X_legacyGraph)
-
 	// Build the graph.
-	graphType := GraphTypeLegacy
-	if !X_legacyGraph {
-		if c.destroy {
-			graphType = GraphTypePlanDestroy
-		} else {
-			graphType = GraphTypePlan
-		}
+	graphType := GraphTypePlan
+	if c.destroy {
+		graphType = GraphTypePlanDestroy
 	}
 	graph, err := c.Graph(graphType, nil)
 	if err != nil {
@@ -539,15 +543,17 @@ func (c *Context) Plan() (*Plan, error) {
 		p.Diff.DeepCopy()
 	}
 
-	// We don't do the reverification during the new destroy plan because
-	// it will use a different apply process.
-	if X_legacyGraph {
-		// Now that we have a diff, we can build the exact graph that Apply will use
-		// and catch any possible cycles during the Plan phase.
-		if _, err := c.Graph(GraphTypeLegacy, nil); err != nil {
-			return nil, err
+	/*
+		// We don't do the reverification during the new destroy plan because
+		// it will use a different apply process.
+		if X_legacyGraph {
+			// Now that we have a diff, we can build the exact graph that Apply will use
+			// and catch any possible cycles during the Plan phase.
+			if _, err := c.Graph(GraphTypeLegacy, nil); err != nil {
+				return nil, err
+			}
 		}
-	}
+	*/
 
 	var errs error
 	if len(walker.ValidationErrors) > 0 {
@@ -569,8 +575,8 @@ func (c *Context) Refresh() (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
-	// Build the graph
-	graph, err := c.Graph(GraphTypeLegacy, nil)
+	// Build the graph.
+	graph, err := c.Graph(GraphTypeRefresh, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -641,7 +647,7 @@ func (c *Context) Validate() ([]string, []error) {
 	// We also validate the graph generated here, but this graph doesn't
 	// necessarily match the graph that Plan will generate, so we'll validate the
 	// graph again later after Planning.
-	graph, err := c.Graph(GraphTypeLegacy, nil)
+	graph, err := c.Graph(GraphTypeValidate, nil)
 	if err != nil {
 		return nil, []error{err}
 	}

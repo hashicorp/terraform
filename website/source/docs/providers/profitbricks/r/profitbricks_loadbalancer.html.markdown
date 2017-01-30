@@ -1,7 +1,7 @@
 ---
 layout: "profitbricks"
 page_title: "ProfitBricks: profitbricks_loadbalancer"
-sidebar_current: "docs-profitbricks-resource-profitbricks_loadbalancer"
+sidebar_current: "docs-profitbricks-resource-loadbalancer"
 description: |-
   Creates and manages Load Balancers
 ---

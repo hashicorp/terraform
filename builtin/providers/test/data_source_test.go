@@ -2,6 +2,7 @@ package test
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -48,6 +49,49 @@ resource "test_resource" "foo" {
 					}
 					if res.Primary.Attributes["list.2"] != "count-2" {
 						return errors.New("Wrong list.0, expected count-2")
+					}
+					return nil
+				},
+			},
+		},
+	})
+}
+
+// Test that the output of a data source can be used as the value for
+// a "count" in a real resource. This would fail with "count cannot be computed"
+// at some point.
+func TestDataSource_valueAsResourceCount(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testAccProviders,
+		CheckDestroy: func(s *terraform.State) error {
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: strings.TrimSpace(`
+data "test_data_source" "test" {
+  input = "4"
+}
+
+resource "test_resource" "foo" {
+  count = "${data.test_data_source.test.output}"
+
+  required     = "yep"
+  required_map = {
+    key = "value"
+  }
+}
+				`),
+				Check: func(s *terraform.State) error {
+					count := 0
+					for k, _ := range s.RootModule().Resources {
+						if strings.HasPrefix(k, "test_resource.foo.") {
+							count++
+						}
+					}
+
+					if count != 4 {
+						return fmt.Errorf("bad count: %d", count)
 					}
 					return nil
 				},

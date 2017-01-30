@@ -80,6 +80,7 @@ type Config struct {
 	AssumeRoleARN         string
 	AssumeRoleExternalID  string
 	AssumeRoleSessionName string
+	AssumeRolePolicy      string
 
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}

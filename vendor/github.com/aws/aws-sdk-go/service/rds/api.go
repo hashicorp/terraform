@@ -931,6 +931,13 @@ func (c *RDS) CreateDBClusterRequest(input *CreateDBClusterInput) (req *request.
 //   * DBClusterNotFoundFault
 //   DBClusterIdentifier does not refer to an existing DB cluster.
 //
+//   * DBInstanceNotFound
+//   DBInstanceIdentifier does not refer to an existing DB instance.
+//
+//   * DBSubnetGroupDoesNotCoverEnoughAZs
+//   Subnets in the DB subnet group should cover at least two Availability Zones
+//   unless there is only one Availability Zone.
+//
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/CreateDBCluster
 func (c *RDS) CreateDBCluster(input *CreateDBClusterInput) (*CreateDBClusterOutput, error) {
 	req, out := c.CreateDBClusterRequest(input)
@@ -1292,6 +1299,61 @@ func (c *RDS) CreateDBInstanceReadReplicaRequest(input *CreateDBInstanceReadRepl
 // as specified below.
 //
 // The source DB instance must have backup retention enabled.
+//
+// You can create an encrypted Read Replica in a different AWS Region than the
+// source DB instance. In that case, the region where you call the CreateDBInstanceReadReplica
+// action is the destination region of the encrypted Read Replica. The source
+// DB instance must be encrypted.
+//
+// To create an encrypted Read Replica in another AWS Region, you must provide
+// the following values:
+//
+//    * KmsKeyId - The AWS Key Management System (KMS) key identifier for the
+//    key to use to encrypt the Read Replica in the destination region.
+//
+//    * PreSignedUrl - A URL that contains a Signature Version 4 signed request
+//    for the  CreateDBInstanceReadReplica API action in the AWS region that
+//    contains the source DB instance. The PreSignedUrl parameter must be used
+//    when encrypting a Read Replica from another AWS region.
+//
+// The presigned URL must be a valid request for the CreateDBInstanceReadReplica
+//    API action that can be executed in the source region that contains the
+//    encrypted DB instance. The presigned URL request must contain the following
+//    parameter values:
+//
+// DestinationRegion - The AWS Region that the Read Replica is created in. This
+//    region is the same one where the CreateDBInstanceReadReplica action is
+//    called that contains this presigned URL.
+//
+//  For example, if you create an encrypted Read Replica in the us-east-1 region,
+//    and the source DB instance is in the west-2 region, then you call the
+//    CreateDBInstanceReadReplica action in the us-east-1 region and provide
+//    a presigned URL that contains a call to the CreateDBInstanceReadReplica
+//    action in the us-west-2 region. For this example, the DestinationRegion
+//    in the presigned URL must be set to the us-east-1 region.
+//
+// KmsKeyId - The KMS key identifier for the key to use to encrypt the Read
+//    Replica in the destination region. This is the same identifier for both
+//    the CreateDBInstanceReadReplica action that is called in the destination
+//    region, and the action contained in the presigned URL.
+//
+// SourceDBInstanceIdentifier - The DB instance identifier for the encrypted
+//    Read Replica to be created. This identifier must be in the Amazon Resource
+//    Name (ARN) format for the source region. For example, if you create an
+//    encrypted Read Replica from a DB instance in the us-west-2 region, then
+//    your SourceDBInstanceIdentifier would look like this example:  arn:aws:rds:us-west-2:123456789012:instance:mysql-instance1-instance-20161115.
+//
+// To learn how to generate a Signature Version 4 signed request, see  Authenticating
+//    Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
+//    and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+//
+//    * DBInstanceIdentifier - The identifier for the encrypted Read Replica
+//    in the destination region.
+//
+//    * SourceDBInstanceIdentifier - The DB instance identifier for the encrypted
+//    Read Replica. This identifier must be in the ARN format for the source
+//    region and is the same value as the SourceDBInstanceIdentifier in the
+//    presigned URL.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -5695,6 +5757,76 @@ func (c *RDS) ModifyDBParameterGroup(input *ModifyDBParameterGroupInput) (*DBPar
 	return out, err
 }
 
+const opModifyDBSnapshot = "ModifyDBSnapshot"
+
+// ModifyDBSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyDBSnapshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ModifyDBSnapshot for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyDBSnapshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyDBSnapshotRequest method.
+//    req, resp := client.ModifyDBSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBSnapshot
+func (c *RDS) ModifyDBSnapshotRequest(input *ModifyDBSnapshotInput) (req *request.Request, output *ModifyDBSnapshotOutput) {
+	op := &request.Operation{
+		Name:       opModifyDBSnapshot,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ModifyDBSnapshotInput{}
+	}
+
+	output = &ModifyDBSnapshotOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ModifyDBSnapshot API operation for Amazon Relational Database Service.
+//
+// Updates a manual DB snapshot, which can be encrypted or not encrypted, with
+// a new engine version. You can update the engine version to either a new major
+// or minor engine version.
+//
+// Amazon RDS supports upgrading a MySQL DB snapshot from MySQL 5.1 to MySQL
+// 5.5.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Relational Database Service's
+// API operation ModifyDBSnapshot for usage and error information.
+//
+// Returned Error Codes:
+//   * DBSnapshotNotFound
+//   DBSnapshotIdentifier does not refer to an existing DB snapshot.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBSnapshot
+func (c *RDS) ModifyDBSnapshot(input *ModifyDBSnapshotInput) (*ModifyDBSnapshotOutput, error) {
+	req, out := c.ModifyDBSnapshotRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opModifyDBSnapshotAttribute = "ModifyDBSnapshotAttribute"
 
 // ModifyDBSnapshotAttributeRequest generates a "aws/request.Request" representing the
@@ -8444,12 +8576,8 @@ type CopyDBSnapshotInput struct {
 	// you don't specify a value for KmsKeyId, then the copy of the DB snapshot
 	// is encrypted with the same KMS key as the source DB snapshot.
 	//
-	// If you copy an encrypted DB snapshot from your AWS account, you can specify
-	// a value for KmsKeyId to encrypt the copy with a new KMS encryption key. If
-	// you don't specify a value for KmsKeyId, then the copy of the DB snapshot
-	// is encrypted with the same KMS key as the source DB snapshot. If you copy
-	// an encrypted snapshot to a different AWS region, then you must specify a
-	// KMS key for the destination AWS region.
+	// If you copy an encrypted snapshot to a different AWS region, then you must
+	// specify a KMS key for the destination AWS region.
 	//
 	// If you copy an encrypted DB snapshot that is shared from another AWS account,
 	// then you must specify a value for KmsKeyId.
@@ -8493,8 +8621,8 @@ type CopyDBSnapshotInput struct {
 	//    would look like Example: arn:aws:rds:us-west-2:123456789012:snapshot:mysql-instance1-snapshot-20161115.
 	//
 	// To learn how to generate a Signature Version 4 signed request, see  Authenticating
-	// Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
-	// and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+	// Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
+	// and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
 	PreSignedUrl *string `type:"string"`
 
 	// The identifier for the source DB snapshot.
@@ -9437,7 +9565,8 @@ type CreateDBInstanceInput struct {
 	// Type: String
 	DBClusterIdentifier *string `type:"string"`
 
-	// The compute and memory capacity of the DB instance.
+	// The compute and memory capacity of the DB instance. Note that not all instance
+	// classes are available in all regions for all DB engines.
 	//
 	// Valid Values: db.t1.micro | db.m1.small | db.m1.medium | db.m1.large | db.m1.xlarge
 	// | db.m2.xlarge |db.m2.2xlarge | db.m2.4xlarge | db.m3.medium | db.m3.large
@@ -9658,17 +9787,108 @@ type CreateDBInstanceInput struct {
 	//
 	//    * Version 5.5 (available in all AWS regions): 5.5.46
 	//
-	//    * Version 5.5 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1,
-	//    us-gov-west-1, us-west-1, us-west-2): 5.5.42
-	//
-	//    * Version 5.5 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-gov-west-1,
-	//    us-west-1, us-west-2): 5.5.40b | 5.5.41
-	//
-	//    * Version 5.5 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
+	//    * Version 5.1 (only available in AWS regions ap-northeast-1, ap-southeast-1,
 	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
-	//    us-west-2): 5.5.40 | 5.5.40a
+	//    us-west-2): 5.1.73a | 5.1.73b
+	//
+	// Oracle Database Enterprise Edition (oracle-ee)
+	//
+	//    * Version 12.1 (available in all AWS regions except ap-south-1, ap-northeast-2):
+	//    12.1.0.1.v1 | 12.1.0.1.v2
+	//
+	//    * Version 12.1 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
+	//    us-west-2): 12.1.0.1.v3 | 12.1.0.1.v4 | 12.1.0.1.v5
+	//
+	//    * Version 12.1 (available in all AWS regions): 12.1.0.2.v1
+	//
+	//    * Version 12.1 (available in all AWS regions except us-gov-west-1): 12.1.0.2.v2
+	//    | 12.1.0.2.v3 | 12.1.0.2.v4
+	//
+	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
+	//    us-west-2): 11.2.0.2.v3 | 11.2.0.2.v4 | 11.2.0.2.v5 | 11.2.0.2.v6 | 11.2.0.2.v7
+	//
+	//    * Version 11.2 (available in all AWS regions except ap-south-1, ap-northeast-2):
+	//    11.2.0.3.v1 | 11.2.0.3.v2 | 11.2.0.3.v3
+	//
+	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
+	//    us-west-2): 11.2.0.3.v4
+	//
+	//    * Version 11.2 (available in all AWS regions): 11.2.0.4.v1 | 11.2.0.4.v3
+	//    | 11.2.0.4.v4
+	//
+	//    * Version 11.2 (available in all AWS regions except us-gov-west-1): 11.2.0.4.v5
+	//    | 11.2.0.4.v6 | 11.2.0.4.v7 | 11.2.0.4.v8
+	//
+	// Oracle Database Standard Edition (oracle-se)
+	//
+	//    * Version 12.1 (available in all AWS regions except ap-south-1, ap-northeast-2):
+	//    12.1.0.1.v1 | 12.1.0.1.v2
+	//
+	//    * Version 12.1 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
+	//    us-west-2): 12.1.0.1.v3 | 12.1.0.1.v4 | 12.1.0.1.v5
+	//
+	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
+	//    us-west-2): 11.2.0.2.v3 | 11.2.0.2.v4 | 11.2.0.2.v5 | 11.2.0.2.v6 | 11.2.0.2.v7
+	//
+	//    * Version 11.2 (available in all AWS regions except ap-south-1, ap-northeast-2):
+	//    11.2.0.3.v1 | 11.2.0.3.v2 | 11.2.0.3.v3
+	//
+	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
+	//    us-west-2): 11.2.0.3.v4
+	//
+	//    * Version 11.2 (available in all AWS regions): 11.2.0.4.v1 | 11.2.0.4.v3
+	//    | 11.2.0.4.v4
+	//
+	//    * Version 11.2 (available in all AWS regions except us-gov-west-1): 11.2.0.4.v5
+	//    | 11.2.0.4.v6 | 11.2.0.4.v7 | 11.2.0.4.v8
+	//
+	// Oracle Database Standard Edition One (oracle-se1)
+	//
+	//    * Version 12.1 (available in all AWS regions except ap-south-1, ap-northeast-2):
+	//    12.1.0.1.v1 | 12.1.0.1.v2
+	//
+	//    * Version 12.1 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
+	//    us-west-2): 12.1.0.1.v3 | 12.1.0.1.v4 | 12.1.0.1.v5
+	//
+	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
+	//    us-west-2): 11.2.0.2.v3 | 11.2.0.2.v4 | 11.2.0.2.v5 | 11.2.0.2.v6 | 11.2.0.2.v7
+	//
+	//    * Version 11.2 (available in all AWS regions except ap-south-1, ap-northeast-2):
+	//    11.2.0.3.v1 | 11.2.0.3.v2 | 11.2.0.3.v3
+	//
+	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
+	//    us-west-2): 11.2.0.3.v4
+	//
+	//    * Version 11.2 (available in all AWS regions): 11.2.0.4.v1 | 11.2.0.4.v3
+	//    | 11.2.0.4.v4
+	//
+	//    * Version 11.2 (available in all AWS regions except us-gov-west-1): 11.2.0.4.v5
+	//    | 11.2.0.4.v6 | 11.2.0.4.v7 | 11.2.0.4.v8
+	//
+	// Oracle Database Standard Edition Two (oracle-se2)
+	//
+	//    * Version 12.1 (available in all AWS regions except us-gov-west-1): 12.1.0.2.v2
+	//    | 12.1.0.2.v3 | 12.1.0.2.v4
+	//
+	// PostgreSQL
+	//
+	//    * Version 9.6: 9.6.1
+	//
+	//    * Version 9.5:9.5.4 | 9.5.2
+	//
+	//    * Version 9.4: 9.4.9 | 9.4.7 | 9.4.5 | 9.4.4 | 9.4.1
+	//
+	//    * Version 9.3: 9.3.14 | 9.3.12 | 9.3.10 | 9.3.9 | 9.3.6 | 9.3.5 | 9.3.3
+	//    | 9.3.2 | 9.3.1
 	//
 	// Oracle 12c
 	//
@@ -10365,7 +10585,8 @@ type CreateDBInstanceReadReplicaInput struct {
 	// otherwise false. The default is false.
 	CopyTagsToSnapshot *bool `type:"boolean"`
 
-	// The compute and memory capacity of the Read Replica.
+	// The compute and memory capacity of the Read Replica. Note that not all instance
+	// classes are available in all regions for all DB engines.
 	//
 	// Valid Values: db.m1.small | db.m1.medium | db.m1.large | db.m1.xlarge | db.m2.xlarge
 	// |db.m2.2xlarge | db.m2.4xlarge | db.m3.medium | db.m3.large | db.m3.xlarge
@@ -10410,9 +10631,31 @@ type CreateDBInstanceReadReplicaInput struct {
 	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string"`
 
+	// DestinationRegion is used for presigning the request to a given region.
+	DestinationRegion *string `type:"string"`
+
 	// The amount of Provisioned IOPS (input/output operations per second) to be
 	// initially allocated for the DB instance.
 	Iops *int64 `type:"integer"`
+
+	// The AWS KMS key ID for an encrypted Read Replica. The KMS key ID is the Amazon
+	// Resource Name (ARN), KMS key identifier, or the KMS key alias for the KMS
+	// encryption key.
+	//
+	// If you create an unencrypted Read Replica and specify a value for the KmsKeyId
+	// parameter, Amazon RDS encrypts the target Read Replica using the specified
+	// KMS encryption key.
+	//
+	// If you create an encrypted Read Replica from your AWS account, you can specify
+	// a value for KmsKeyId to encrypt the Read Replica with a new KMS encryption
+	// key. If you don't specify a value for KmsKeyId, then the Read Replica is
+	// encrypted with the same KMS key as the source DB instance.
+	//
+	// If you create an encrypted Read Replica in a different AWS region, then you
+	// must specify a KMS key for the destination AWS region. KMS encryption keys
+	// are specific to the region that they are created in, and you cannot use encryption
+	// keys from one region in another region.
+	KmsKeyId *string `type:"string"`
 
 	// The interval, in seconds, between points when Enhanced Monitoring metrics
 	// are collected for the Read Replica. To disable collecting Enhanced Monitoring
@@ -10444,6 +10687,42 @@ type CreateDBInstanceReadReplicaInput struct {
 	// Valid Values: 1150-65535
 	Port *int64 `type:"integer"`
 
+	// The URL that contains a Signature Version 4 signed request for the  CreateDBInstanceReadReplica
+	// API action in the AWS region that contains the source DB instance. The PreSignedUrl
+	// parameter must be used when encrypting a Read Replica from another AWS region.
+	//
+	// The presigned URL must be a valid request for the CreateDBInstanceReadReplica
+	// API action that can be executed in the source region that contains the encrypted
+	// DB instance. The presigned URL request must contain the following parameter
+	// values:
+	//
+	//    * DestinationRegion - The AWS Region that the Read Replica is created
+	//    in. This region is the same one where the CreateDBInstanceReadReplica
+	//    action is called that contains this presigned URL.
+	//
+	//  For example, if you create an encrypted Read Replica in the us-east-1 region,
+	//    and the source DB instance is in the west-2 region, then you call the
+	//    CreateDBInstanceReadReplica action in the us-east-1 region and provide
+	//    a presigned URL that contains a call to the CreateDBInstanceReadReplica
+	//    action in the us-west-2 region. For this example, the DestinationRegion
+	//    in the presigned URL must be set to the us-east-1 region.
+	//
+	//    * KmsKeyId - The KMS key identifier for the key to use to encrypt the
+	//    Read Replica in the destination region. This is the same identifier for
+	//    both the CreateDBInstanceReadReplica action that is called in the destination
+	//    region, and the action contained in the presigned URL.
+	//
+	//    * SourceDBInstanceIdentifier - The DB instance identifier for the encrypted
+	//    Read Replica to be created. This identifier must be in the Amazon Resource
+	//    Name (ARN) format for the source region. For example, if you create an
+	//    encrypted Read Replica from a DB instance in the us-west-2 region, then
+	//    your SourceDBInstanceIdentifier would look like this example:  arn:aws:rds:us-west-2:123456789012:instance:mysql-instance1-instance-20161115.
+	//
+	// To learn how to generate a Signature Version 4 signed request, see  Authenticating
+	// Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
+	// and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+	PreSignedUrl *string `type:"string"`
+
 	// Specifies the accessibility options for the DB instance. A value of true
 	// specifies an Internet-facing instance with a publicly resolvable DNS name,
 	// which resolves to a public IP address. A value of false specifies an internal
@@ -10473,8 +10752,8 @@ type CreateDBInstanceReadReplicaInput struct {
 	//    * Can specify a DB instance that is a MySQL Read Replica only if the source
 	//    is running MySQL 5.6.
 	//
-	//    * Can specify a DB instance that is a PostgreSQL Read Replica only if
-	//    the source is running PostgreSQL 9.3.5.
+	//    * Can specify a DB instance that is a PostgreSQL DB instance only if the
+	//    source is running PostgreSQL 9.3.5 or later.
 	//
 	//    * The specified DB instance must have automatic backups enabled, its backup
 	//    retention period must be greater than 0.
@@ -10488,6 +10767,11 @@ type CreateDBInstanceReadReplicaInput struct {
 	//
 	// SourceDBInstanceIdentifier is a required field
 	SourceDBInstanceIdentifier *string `type:"string" required:"true"`
+
+	// SourceRegion is the source region where the resource exists. This is not
+	// sent over the wire and is only used for presigning. This value should always
+	// have the same region as the source ARN.
+	SourceRegion *string `type:"string" ignore:"true"`
 
 	// Specifies the storage type to be associated with the Read Replica.
 	//
@@ -10564,9 +10848,21 @@ func (s *CreateDBInstanceReadReplicaInput) SetDBSubnetGroupName(v string) *Creat
 	return s
 }
 
+// SetDestinationRegion sets the DestinationRegion field's value.
+func (s *CreateDBInstanceReadReplicaInput) SetDestinationRegion(v string) *CreateDBInstanceReadReplicaInput {
+	s.DestinationRegion = &v
+	return s
+}
+
 // SetIops sets the Iops field's value.
 func (s *CreateDBInstanceReadReplicaInput) SetIops(v int64) *CreateDBInstanceReadReplicaInput {
 	s.Iops = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *CreateDBInstanceReadReplicaInput) SetKmsKeyId(v string) *CreateDBInstanceReadReplicaInput {
+	s.KmsKeyId = &v
 	return s
 }
 
@@ -10594,6 +10890,12 @@ func (s *CreateDBInstanceReadReplicaInput) SetPort(v int64) *CreateDBInstanceRea
 	return s
 }
 
+// SetPreSignedUrl sets the PreSignedUrl field's value.
+func (s *CreateDBInstanceReadReplicaInput) SetPreSignedUrl(v string) *CreateDBInstanceReadReplicaInput {
+	s.PreSignedUrl = &v
+	return s
+}
+
 // SetPubliclyAccessible sets the PubliclyAccessible field's value.
 func (s *CreateDBInstanceReadReplicaInput) SetPubliclyAccessible(v bool) *CreateDBInstanceReadReplicaInput {
 	s.PubliclyAccessible = &v
@@ -10603,6 +10905,12 @@ func (s *CreateDBInstanceReadReplicaInput) SetPubliclyAccessible(v bool) *Create
 // SetSourceDBInstanceIdentifier sets the SourceDBInstanceIdentifier field's value.
 func (s *CreateDBInstanceReadReplicaInput) SetSourceDBInstanceIdentifier(v string) *CreateDBInstanceReadReplicaInput {
 	s.SourceDBInstanceIdentifier = &v
+	return s
+}
+
+// SetSourceRegion sets the SourceRegion field's value.
+func (s *CreateDBInstanceReadReplicaInput) SetSourceRegion(v string) *CreateDBInstanceReadReplicaInput {
+	s.SourceRegion = &v
 	return s
 }
 
@@ -12528,7 +12836,7 @@ type DBInstance struct {
 	// PubliclyAccessible value has not been set, the DB instance will be private.
 	PubliclyAccessible *bool `type:"boolean"`
 
-	// Contains one or more identifiers of Aurora DB clusters that are read replicas
+	// Contains one or more identifiers of Aurora DB clusters that are Read Replicas
 	// of this DB instance.
 	ReadReplicaDBClusterIdentifiers []*string `locationNameList:"ReadReplicaDBClusterIdentifier" type:"list"`
 
@@ -19520,7 +19828,8 @@ type ModifyDBInstanceInput struct {
 
 	// The new compute and memory capacity of the DB instance. To determine the
 	// instance classes that are available for a particular DB engine, use the DescribeOrderableDBInstanceOptions
-	// action.
+	// action. Note that not all instance classes are available in all regions for
+	// all DB engines.
 	//
 	// Passing a value for this setting causes an outage during the change and is
 	// applied during the next maintenance window, unless ApplyImmediately is specified
@@ -20294,6 +20603,84 @@ func (s ModifyDBSnapshotAttributeOutput) GoString() string {
 // SetDBSnapshotAttributesResult sets the DBSnapshotAttributesResult field's value.
 func (s *ModifyDBSnapshotAttributeOutput) SetDBSnapshotAttributesResult(v *DBSnapshotAttributesResult) *ModifyDBSnapshotAttributeOutput {
 	s.DBSnapshotAttributesResult = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBSnapshotMessage
+type ModifyDBSnapshotInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the DB snapshot to modify.
+	//
+	// DBSnapshotIdentifier is a required field
+	DBSnapshotIdentifier *string `type:"string" required:"true"`
+
+	// The engine version to update the DB snapshot to.
+	EngineVersion *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ModifyDBSnapshotInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyDBSnapshotInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyDBSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyDBSnapshotInput"}
+	if s.DBSnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("DBSnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDBSnapshotIdentifier sets the DBSnapshotIdentifier field's value.
+func (s *ModifyDBSnapshotInput) SetDBSnapshotIdentifier(v string) *ModifyDBSnapshotInput {
+	s.DBSnapshotIdentifier = &v
+	return s
+}
+
+// SetEngineVersion sets the EngineVersion field's value.
+func (s *ModifyDBSnapshotInput) SetEngineVersion(v string) *ModifyDBSnapshotInput {
+	s.EngineVersion = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBSnapshotResult
+type ModifyDBSnapshotOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Contains the result of a successful invocation of the following actions:
+	//
+	//    * CreateDBSnapshot
+	//
+	//    * DeleteDBSnapshot
+	//
+	// This data type is used as a response element in the DescribeDBSnapshots action.
+	DBSnapshot *DBSnapshot `type:"structure"`
+}
+
+// String returns the string representation
+func (s ModifyDBSnapshotOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyDBSnapshotOutput) GoString() string {
+	return s.String()
+}
+
+// SetDBSnapshot sets the DBSnapshot field's value.
+func (s *ModifyDBSnapshotOutput) SetDBSnapshot(v *DBSnapshot) *ModifyDBSnapshotOutput {
+	s.DBSnapshot = v
 	return s
 }
 
