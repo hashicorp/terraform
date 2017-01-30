@@ -18,6 +18,13 @@ import (
 const awsSNSPendingConfirmationMessage = "pending confirmation"
 const awsSNSPendingConfirmationMessageWithoutSpaces = "pendingconfirmation"
 
+var SNSSubscriptionAttributeMap = map[string]string{
+	"topic_arn":            "TopicArn",
+	"endpoint":             "Endpoint",
+	"protocol":             "Protocol",
+	"raw_message_delivery": "RawMessageDelivery",
+}
+
 func resourceAwsSnsTopicSubscription() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsSnsTopicSubscriptionCreate,
@@ -158,11 +165,19 @@ func resourceAwsSnsTopicSubscriptionRead(d *schema.ResourceData, meta interface{
 
 	if attributeOutput.Attributes != nil && len(attributeOutput.Attributes) > 0 {
 		attrHash := attributeOutput.Attributes
-		log.Printf("[DEBUG] raw message delivery: %s", *attrHash["RawMessageDelivery"])
-		if *attrHash["RawMessageDelivery"] == "true" {
-			d.Set("raw_message_delivery", true)
-		} else {
-			d.Set("raw_message_delivery", false)
+		resource := *resourceAwsSnsTopicSubscription()
+
+		for iKey, oKey := range SNSSubscriptionAttributeMap {
+			log.Printf("[DEBUG] Reading %s => %s", iKey, oKey)
+
+			if attrHash[oKey] != nil {
+				if resource.Schema[iKey] != nil {
+					var value string
+					value = *attrHash[oKey]
+					log.Printf("[DEBUG] Reading %s => %s -> %s", iKey, oKey, value)
+					d.Set(iKey, value)
+				}
+			}
 		}
 	}
 
