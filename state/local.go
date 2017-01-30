@@ -1,6 +1,7 @@
 package state
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -161,10 +162,19 @@ func (s *LocalState) RefreshState() error {
 		// we haven't written a state file yet, so load from Path
 		f, err := os.Open(s.Path)
 		if err != nil {
-			return err
+			// It is okay if the file doesn't exist, we treat that as a nil state
+			if !os.IsNotExist(err) {
+				return err
+			}
+
+			// we need a non-nil reader for ReadState and an empty buffer works
+			// to return EOF immediately
+			reader = bytes.NewBuffer(nil)
+
+		} else {
+			defer f.Close()
+			reader = f
 		}
-		defer f.Close()
-		reader = f
 	} else {
 		// we have a state file, make sure we're at the start
 		s.stateFileOut.Seek(0, os.SEEK_SET)
