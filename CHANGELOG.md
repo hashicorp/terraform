@@ -18,6 +18,7 @@ BUG FIXES:
  * provider/aws: Fix AWS Lambda Qualifier Regexp for `aws_lambda_permission` [GH-11383]
  * provider/aws: allow destroy of LB stickiness policy with missing LB [GH-11462]
  * provider/aws: ECS Placement constraints fix [GH-11475]
+ * provider/aws: retry kms_key CreateKey if arn in policy not yet seen [GH-11509]
  * provider/ignition: Allow to add authorized keys without user creation [GH-11406]
  * provider/ignition: mount and path are mutually exclusive [GH-11409]
  * provider/ns1: Fix "use_client_subnet" in ns1_record [GH-11368]
