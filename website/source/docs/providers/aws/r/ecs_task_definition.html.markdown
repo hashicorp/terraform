@@ -92,11 +92,13 @@ parameter of container definition in the `mountPoints` section.
 
 `placement_constraints` support the following:
 
-* `expression` -  Cluster Query Language expression to apply to the constraint.
+* `type` - (Required) The type of constraint. Use `memberOf` to restrict selection to a group of valid candidates.
+Note that `distinctInstance` is not supported in task definitions.
+* `expression` -  (Optional) Cluster Query Language expression to apply to the constraint.
 For more information, see [Cluster Query Language in the Amazon EC2 Container
 Service Developer
 Guide](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-query-language.html).
-* `type` - The type of constraint. The only valid value at this time is `memberOf`
+
 
 ## Attributes Reference
 

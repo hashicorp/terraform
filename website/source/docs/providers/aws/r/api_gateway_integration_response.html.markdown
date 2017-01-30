@@ -53,6 +53,17 @@ resource "aws_api_gateway_integration_response" "MyDemoIntegrationResponse" {
   resource_id = "${aws_api_gateway_resource.MyDemoResource.id}"
   http_method = "${aws_api_gateway_method.MyDemoMethod.http_method}"
   status_code = "${aws_api_gateway_method_response.200.status_code}"
+
+  # Transforms the backend JSON response to XML
+  response_templates {
+    "application/xml" = <<EOF
+#set($inputRoot = $input.path('$'))
+<?xml version="1.0" encoding="UTF-8"?>
+<message>
+    $inputRoot.body
+</message>
+EOF
+  }
 }
 ```
 

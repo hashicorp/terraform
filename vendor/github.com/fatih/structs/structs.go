@@ -52,6 +52,12 @@ func New(s interface{}) *Struct {
 //   // Map will panic if Animal does not implement String().
 //   Field *Animal `structs:"field,string"`
 //
+// A tag value with the option of "flatten" used in a struct field is to flatten its fields
+// in the output map. Example:
+//
+//   // The FieldStruct's fields will be flattened into the output map.
+//   FieldStruct time.Time `structs:",flatten"`
+//
 // A tag value with the option of "omitnested" stops iterating further if the type
 // is a struct. Example:
 //
@@ -90,7 +96,7 @@ func (s *Struct) FillMap(out map[string]interface{}) {
 	for _, field := range fields {
 		name := field.Name
 		val := s.value.FieldByName(name)
-
+		isSubStruct := false
 		var finalVal interface{}
 
 		tagName, tagOpts := parseTag(field.Tag.Get(s.TagName))
@@ -109,16 +115,17 @@ func (s *Struct) FillMap(out map[string]interface{}) {
 			}
 		}
 
-		if IsStruct(val.Interface()) && !tagOpts.Has("omitnested") {
-			// look out for embedded structs, and convert them to a
-			// map[string]interface{} too
-			n := New(val.Interface())
-			n.TagName = s.TagName
-			m := n.Map()
-			if len(m) == 0 {
-				finalVal = val.Interface()
-			} else {
-				finalVal = m
+		if !tagOpts.Has("omitnested") {
+			finalVal = s.nested(val)
+
+			v := reflect.ValueOf(val.Interface())
+			if v.Kind() == reflect.Ptr {
+				v = v.Elem()
+			}
+
+			switch v.Kind() {
+			case reflect.Map, reflect.Struct:
+				isSubStruct = true
 			}
 		} else {
 			finalVal = val.Interface()
@@ -132,7 +139,13 @@ func (s *Struct) FillMap(out map[string]interface{}) {
 			continue
 		}
 
-		out[name] = finalVal
+		if isSubStruct && (tagOpts.Has("flatten")) {
+			for k := range finalVal.(map[string]interface{}) {
+				out[k] = finalVal.(map[string]interface{})[k]
+			}
+		} else {
+			out[name] = finalVal
+		}
 	}
 }
 
@@ -270,7 +283,7 @@ func (s *Struct) Field(name string) *Field {
 	return f
 }
 
-// Field returns a new Field struct that provides several high level functions
+// FieldOk returns a new Field struct that provides several high level functions
 // around a single struct field entity. The boolean returns true if the field
 // was found.
 func (s *Struct) FieldOk(name string) (*Field, bool) {
@@ -418,7 +431,7 @@ func strctVal(s interface{}) reflect.Value {
 	v := reflect.ValueOf(s)
 
 	// if pointer get the underlying element≤
-	if v.Kind() == reflect.Ptr {
+	for v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
 
@@ -491,4 +504,83 @@ func IsStruct(s interface{}) bool {
 // empty string for unnamed types. It panics if s's kind is not struct.
 func Name(s interface{}) string {
 	return New(s).Name()
+}
+
+// nested retrieves recursively all types for the given value and returns the
+// nested value.
+func (s *Struct) nested(val reflect.Value) interface{} {
+	var finalVal interface{}
+
+	v := reflect.ValueOf(val.Interface())
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Struct:
+		n := New(val.Interface())
+		n.TagName = s.TagName
+		m := n.Map()
+
+		// do not add the converted value if there are no exported fields, ie:
+		// time.Time
+		if len(m) == 0 {
+			finalVal = val.Interface()
+		} else {
+			finalVal = m
+		}
+	case reflect.Map:
+		// get the element type of the map
+		mapElem := val.Type()
+		switch val.Type().Kind() {
+		case reflect.Ptr, reflect.Array, reflect.Map,
+			reflect.Slice, reflect.Chan:
+			mapElem = val.Type().Elem()
+			if mapElem.Kind() == reflect.Ptr {
+				mapElem = mapElem.Elem()
+			}
+		}
+
+		// only iterate over struct types, ie: map[string]StructType,
+		// map[string][]StructType,
+		if mapElem.Kind() == reflect.Struct ||
+			(mapElem.Kind() == reflect.Slice &&
+				mapElem.Elem().Kind() == reflect.Struct) {
+			m := make(map[string]interface{}, val.Len())
+			for _, k := range val.MapKeys() {
+				m[k.String()] = s.nested(val.MapIndex(k))
+			}
+			finalVal = m
+			break
+		}
+
+		// TODO(arslan): should this be optional?
+		finalVal = val.Interface()
+	case reflect.Slice, reflect.Array:
+		if val.Type().Kind() == reflect.Interface {
+			finalVal = val.Interface()
+			break
+		}
+
+		// TODO(arslan): should this be optional?
+		// do not iterate of non struct types, just pass the value. Ie: []int,
+		// []string, co... We only iterate further if it's a struct.
+		// i.e []foo or []*foo
+		if val.Type().Elem().Kind() != reflect.Struct &&
+			!(val.Type().Elem().Kind() == reflect.Ptr &&
+				val.Type().Elem().Elem().Kind() == reflect.Struct) {
+			finalVal = val.Interface()
+			break
+		}
+
+		slices := make([]interface{}, val.Len(), val.Len())
+		for x := 0; x < val.Len(); x++ {
+			slices[x] = s.nested(val.Index(x))
+		}
+		finalVal = slices
+	default:
+		finalVal = val.Interface()
+	}
+
+	return finalVal
 }

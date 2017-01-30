@@ -6,6 +6,7 @@
 package command
 
 import (
+	alicloudprovider "github.com/hashicorp/terraform/builtin/providers/alicloud"
 	archiveprovider "github.com/hashicorp/terraform/builtin/providers/archive"
 	atlasprovider "github.com/hashicorp/terraform/builtin/providers/atlas"
 	awsprovider "github.com/hashicorp/terraform/builtin/providers/aws"
@@ -39,6 +40,7 @@ import (
 	mysqlprovider "github.com/hashicorp/terraform/builtin/providers/mysql"
 	newrelicprovider "github.com/hashicorp/terraform/builtin/providers/newrelic"
 	nomadprovider "github.com/hashicorp/terraform/builtin/providers/nomad"
+	ns1provider "github.com/hashicorp/terraform/builtin/providers/ns1"
 	nullprovider "github.com/hashicorp/terraform/builtin/providers/null"
 	openstackprovider "github.com/hashicorp/terraform/builtin/providers/openstack"
 	opsgenieprovider "github.com/hashicorp/terraform/builtin/providers/opsgenie"
@@ -63,16 +65,19 @@ import (
 	vaultprovider "github.com/hashicorp/terraform/builtin/providers/vault"
 	vcdprovider "github.com/hashicorp/terraform/builtin/providers/vcd"
 	vsphereprovider "github.com/hashicorp/terraform/builtin/providers/vsphere"
-	chefresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
-	fileresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
-	localexecresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
-	remoteexecresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
+	fileprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
+	localexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
+	remoteexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
 
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
+
+	// Legacy, will remove once it conforms with new structure
+	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
+	"alicloud":     alicloudprovider.Provider,
 	"archive":      archiveprovider.Provider,
 	"atlas":        atlasprovider.Provider,
 	"aws":          awsprovider.Provider,
@@ -106,6 +111,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"mysql":        mysqlprovider.Provider,
 	"newrelic":     newrelicprovider.Provider,
 	"nomad":        nomadprovider.Provider,
+	"ns1":          ns1provider.Provider,
 	"null":         nullprovider.Provider,
 	"openstack":    openstackprovider.Provider,
 	"opsgenie":     opsgenieprovider.Provider,
@@ -133,8 +139,13 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 }
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
-	"chef":        func() terraform.ResourceProvisioner { return new(chefresourceprovisioner.ResourceProvisioner) },
-	"file":        func() terraform.ResourceProvisioner { return new(fileresourceprovisioner.ResourceProvisioner) },
-	"local-exec":  func() terraform.ResourceProvisioner { return new(localexecresourceprovisioner.ResourceProvisioner) },
-	"remote-exec": func() terraform.ResourceProvisioner { return new(remoteexecresourceprovisioner.ResourceProvisioner) },
+	"file":        fileprovisioner.Provisioner,
+	"local-exec":  localexecprovisioner.Provisioner,
+	"remote-exec": remoteexecprovisioner.Provisioner,
+}
+
+func init() {
+	// Legacy provisioners that don't match our heuristics for auto-finding
+	// built-in provisioners.
+	InternalProvisioners["chef"] = func() terraform.ResourceProvisioner { return new(chefprovisioner.ResourceProvisioner) }
 }

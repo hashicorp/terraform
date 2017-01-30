@@ -49,25 +49,6 @@ type SemanticChecker interface {
 	Check(*dag.Graph, dag.Vertex) error
 }
 
-// SemanticCheckModulesExist is an implementation of SemanticChecker that
-// verifies that all the modules that are referenced in the graph exist.
-type SemanticCheckModulesExist struct{}
-
-// TODO: test
-func (*SemanticCheckModulesExist) Check(g *dag.Graph, v dag.Vertex) error {
-	mn, ok := v.(*GraphNodeConfigModule)
-	if !ok {
-		return nil
-	}
-
-	if mn.Tree == nil {
-		return fmt.Errorf(
-			"module '%s' not found", mn.Module.Name)
-	}
-
-	return nil
-}
-
 // smcUserVariables does all the semantic checks to verify that the
 // variables given satisfy the configuration itself.
 func smcUserVariables(c *config.Config, vs map[string]interface{}) []error {

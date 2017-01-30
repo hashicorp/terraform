@@ -78,6 +78,7 @@ func TestValidateCloudWatchEventRuleName(t *testing.T) {
 func TestValidateLambdaFunctionName(t *testing.T) {
 	validNames := []string{
 		"arn:aws:lambda:us-west-2:123456789012:function:ThumbNail",
+		"arn:aws-us-gov:lambda:us-west-2:123456789012:function:ThumbNail",
 		"FunctionName",
 		"function-name",
 	}
@@ -110,6 +111,8 @@ func TestValidateLambdaQualifier(t *testing.T) {
 		"prod",
 		"PROD",
 		"MyTestEnv",
+		"contains-dashes",
+		"contains_underscores",
 		"$LATEST",
 	}
 	for _, v := range validNames {
@@ -203,6 +206,7 @@ func TestValidateArn(t *testing.T) {
 		"arn:aws:events:us-east-1:319201112229:rule/rule_name",                             // CloudWatch Rule
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction",                  // Lambda function
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction:Qualifier",        // Lambda func qualifier
+		"arn:aws-us-gov:s3:::corp_bucket/object.png",                                       // GovCloud ARN
 	}
 	for _, v := range validNames {
 		_, errors := validateArn(v, "arn")
@@ -759,6 +763,49 @@ func TestValidateJsonString(t *testing.T) {
 	}
 }
 
+func TestValidateCloudFormationTemplate(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    `{"abc":"`,
+			ErrCount: 1,
+		},
+		{
+			Value:    "abc: [",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateCloudFormationTemplate(tc.Value, "template")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    `{"abc":"1"}`,
+			ErrCount: 0,
+		},
+		{
+			Value:    `abc: 1`,
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateCloudFormationTemplate(tc.Value, "template")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
 func TestValidateApiGatewayIntegrationType(t *testing.T) {
 	type testCases struct {
 		Value    string
@@ -1042,4 +1089,133 @@ func TestValidateRoute53RecordType(t *testing.T) {
 			t.Fatalf("%q should not be a valid Route53 record type", v)
 		}
 	}
+}
+
+func TestValidateEcsPlacementConstraint(t *testing.T) {
+	cases := []struct {
+		constType string
+		constExpr string
+		Err       bool
+	}{
+		{
+			constType: "distinctInstance",
+			constExpr: "",
+			Err:       false,
+		},
+		{
+			constType: "memberOf",
+			constExpr: "",
+			Err:       true,
+		},
+		{
+			constType: "distinctInstance",
+			constExpr: "expression",
+			Err:       false,
+		},
+		{
+			constType: "memberOf",
+			constExpr: "expression",
+			Err:       false,
+		},
+	}
+
+	for _, tc := range cases {
+		if err := validateAwsEcsPlacementConstraint(tc.constType, tc.constExpr); err != nil && !tc.Err {
+			t.Fatalf("Unexpected validation error for \"%s:%s\": %s",
+				tc.constType, tc.constExpr, err)
+		}
+
+	}
+}
+
+func TestValidateEcsPlacementStrategy(t *testing.T) {
+	cases := []struct {
+		stratType  string
+		stratField string
+		Err        bool
+	}{
+		{
+			stratType:  "random",
+			stratField: "",
+			Err:        false,
+		},
+		{
+			stratType:  "spread",
+			stratField: "instanceID",
+			Err:        false,
+		},
+		{
+			stratType:  "binpack",
+			stratField: "cpu",
+			Err:        false,
+		},
+		{
+			stratType:  "binpack",
+			stratField: "memory",
+			Err:        false,
+		},
+		{
+			stratType:  "binpack",
+			stratField: "disk",
+			Err:        true,
+		},
+		{
+			stratType:  "fakeType",
+			stratField: "",
+			Err:        true,
+		},
+	}
+
+	for _, tc := range cases {
+		if err := validateAwsEcsPlacementStrategy(tc.stratType, tc.stratField); err != nil && !tc.Err {
+			t.Fatalf("Unexpected validation error for \"%s:%s\": %s",
+				tc.stratType, tc.stratField, err)
+		}
+
+	}
+}
+
+func TestValidateEmrEbsVolumeType(t *testing.T) {
+	cases := []struct {
+		VolType  string
+		ErrCount int
+	}{
+		{
+			VolType:  "gp2",
+			ErrCount: 0,
+		},
+		{
+			VolType:  "io1",
+			ErrCount: 0,
+		},
+		{
+			VolType:  "standard",
+			ErrCount: 0,
+		},
+		{
+			VolType:  "stand",
+			ErrCount: 1,
+		},
+		{
+			VolType:  "io",
+			ErrCount: 1,
+		},
+		{
+			VolType:  "gp1",
+			ErrCount: 1,
+		},
+		{
+			VolType:  "fast-disk",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAwsEmrEbsVolumeType(tc.VolType, "volume")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d errors, got %d: %s", tc.ErrCount, len(errors), errors)
+		}
+	}
+
 }

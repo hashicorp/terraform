@@ -28,8 +28,8 @@ func TestAccAWSAPIGatewayIntegrationResponse_basic(t *testing.T) {
 						"aws_api_gateway_integration_response.test", "response_templates.application/json", ""),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_integration_response.test", "response_templates.application/xml", "#set($inputRoot = $input.path('$'))\n{ }"),
-					resource.TestCheckResourceAttr(
-						"aws_api_gateway_integration_response.test", "content_handling", ""),
+					resource.TestCheckNoResourceAttr(
+						"aws_api_gateway_integration_response.test", "content_handling"),
 				),
 			},
 

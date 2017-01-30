@@ -13,8 +13,8 @@ type Operation func() error
 // the notify function isn't called.
 type Notify func(error, time.Duration)
 
-// Retry the function f until it does not return error or BackOff stops.
-// f is guaranteed to be run at least once.
+// Retry the operation o until it does not return error or BackOff stops.
+// o is guaranteed to be run at least once.
 // It is the caller's responsibility to reset b after Retry returns.
 //
 // Retry sleeps the goroutine for the duration returned by BackOff after a

@@ -60,8 +60,8 @@ The following arguments are supported:
 
 The required `settings` block supports:
 
-* `tier` - (Required) The machine tier to use. See
-    [pricing](https://cloud.google.com/sql/pricing) for more details and
+* `tier` - (Required) The machine tier (First Generation) or type (Second Generation) to use. See
+    [tiers](https://cloud.google.com/sql/docs/admin-api/v1beta4/tiers) for more details and
     supported versions.
 
 * `activation_policy` - (Optional) This specifies when the instance should be
@@ -157,9 +157,9 @@ to work, cannot be updated, and supports:
 In addition to the arguments listed above, the following computed attributes are
 exported:
 
-* `ip_address.ip_address` - The IPv4 address assigned.
+* `ip_address.0.ip_address` - The IPv4 address assigned.
 
-* `ip_address.time_to_retire` - The time this IP address will be retired, in RFC
+* `ip_address.0.time_to_retire` - The time this IP address will be retired, in RFC
     3339 format.
 
 * `self_link` - The URI of the created resource.

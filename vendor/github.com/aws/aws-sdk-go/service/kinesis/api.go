@@ -51,11 +51,10 @@ func (c *Kinesis) AddTagsToStreamRequest(input *AddTagsToStreamInput) (req *requ
 		input = &AddTagsToStreamInput{}
 	}
 
+	output = &AddTagsToStreamOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddTagsToStreamOutput{}
-	req.Data = output
 	return
 }
 
@@ -136,11 +135,10 @@ func (c *Kinesis) CreateStreamRequest(input *CreateStreamInput) (req *request.Re
 		input = &CreateStreamInput{}
 	}
 
+	output = &CreateStreamOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateStreamOutput{}
-	req.Data = output
 	return
 }
 
@@ -250,11 +248,10 @@ func (c *Kinesis) DecreaseStreamRetentionPeriodRequest(input *DecreaseStreamRete
 		input = &DecreaseStreamRetentionPeriodInput{}
 	}
 
+	output = &DecreaseStreamRetentionPeriodOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DecreaseStreamRetentionPeriodOutput{}
-	req.Data = output
 	return
 }
 
@@ -333,11 +330,10 @@ func (c *Kinesis) DeleteStreamRequest(input *DeleteStreamInput) (req *request.Re
 		input = &DeleteStreamInput{}
 	}
 
+	output = &DeleteStreamOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteStreamOutput{}
-	req.Data = output
 	return
 }
 
@@ -425,9 +421,8 @@ func (c *Kinesis) DescribeLimitsRequest(input *DescribeLimitsInput) (req *reques
 		input = &DescribeLimitsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeLimitsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -503,9 +498,8 @@ func (c *Kinesis) DescribeStreamRequest(input *DescribeStreamInput) (req *reques
 		input = &DescribeStreamInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeStreamOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -617,9 +611,8 @@ func (c *Kinesis) DisableEnhancedMonitoringRequest(input *DisableEnhancedMonitor
 		input = &DisableEnhancedMonitoringInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnhancedMonitoringOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -696,9 +689,8 @@ func (c *Kinesis) EnableEnhancedMonitoringRequest(input *EnableEnhancedMonitorin
 		input = &EnableEnhancedMonitoringInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnhancedMonitoringOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -775,9 +767,8 @@ func (c *Kinesis) GetRecordsRequest(input *GetRecordsInput) (req *request.Reques
 		input = &GetRecordsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetRecordsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -909,9 +900,8 @@ func (c *Kinesis) GetShardIteratorRequest(input *GetShardIteratorInput) (req *re
 		input = &GetShardIteratorInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetShardIteratorOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1025,11 +1015,10 @@ func (c *Kinesis) IncreaseStreamRetentionPeriodRequest(input *IncreaseStreamRete
 		input = &IncreaseStreamRetentionPeriodInput{}
 	}
 
+	output = &IncreaseStreamRetentionPeriodOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &IncreaseStreamRetentionPeriodOutput{}
-	req.Data = output
 	return
 }
 
@@ -1118,9 +1107,8 @@ func (c *Kinesis) ListStreamsRequest(input *ListStreamsInput) (req *request.Requ
 		input = &ListStreamsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListStreamsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1225,9 +1213,8 @@ func (c *Kinesis) ListTagsForStreamRequest(input *ListTagsForStreamInput) (req *
 		input = &ListTagsForStreamInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsForStreamOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1300,11 +1287,10 @@ func (c *Kinesis) MergeShardsRequest(input *MergeShardsInput) (req *request.Requ
 		input = &MergeShardsInput{}
 	}
 
+	output = &MergeShardsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &MergeShardsOutput{}
-	req.Data = output
 	return
 }
 
@@ -1416,9 +1402,8 @@ func (c *Kinesis) PutRecordRequest(input *PutRecordInput) (req *request.Request,
 		input = &PutRecordInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutRecordOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1532,9 +1517,8 @@ func (c *Kinesis) PutRecordsRequest(input *PutRecordsInput) (req *request.Reques
 		input = &PutRecordsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutRecordsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1670,11 +1654,10 @@ func (c *Kinesis) RemoveTagsFromStreamRequest(input *RemoveTagsFromStreamInput) 
 		input = &RemoveTagsFromStreamInput{}
 	}
 
+	output = &RemoveTagsFromStreamOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemoveTagsFromStreamOutput{}
-	req.Data = output
 	return
 }
 
@@ -1754,11 +1737,10 @@ func (c *Kinesis) SplitShardRequest(input *SplitShardInput) (req *request.Reques
 		input = &SplitShardInput{}
 	}
 
+	output = &SplitShardOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SplitShardOutput{}
-	req.Data = output
 	return
 }
 
@@ -1879,9 +1861,8 @@ func (c *Kinesis) UpdateShardCountRequest(input *UpdateShardCountInput) (req *re
 		input = &UpdateShardCountInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateShardCountOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

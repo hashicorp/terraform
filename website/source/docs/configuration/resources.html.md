@@ -295,6 +295,9 @@ where `PROVISIONER` is:
 provisioner NAME {
 	CONFIG ...
 
+	[when = "create"|"destroy"]
+	[on_failure = "continue"|"fail"]
+
 	[CONNECTION]
 }
 ```

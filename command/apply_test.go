@@ -519,7 +519,7 @@ func TestApply_plan(t *testing.T) {
 	}
 
 	args := []string{
-		"-state", statePath,
+		"-state-out", statePath,
 		planPath,
 	}
 	if code := c.Run(args); code != 0 {
@@ -564,7 +564,7 @@ func TestApply_plan_backup(t *testing.T) {
 	}
 
 	args := []string{
-		"-state", statePath,
+		"-state-out", statePath,
 		"-backup", backupPath,
 		planPath,
 	}
@@ -601,7 +601,7 @@ func TestApply_plan_noBackup(t *testing.T) {
 	}
 
 	args := []string{
-		"-state", statePath,
+		"-state-out", statePath,
 		"-backup", "-",
 		planPath,
 	}
@@ -670,12 +670,13 @@ func TestApply_plan_remoteState(t *testing.T) {
 
 	// State file should be not be installed
 	if _, err := os.Stat(filepath.Join(tmp, DefaultStateFilename)); err == nil {
-		t.Fatalf("State path should not exist")
+		data, _ := ioutil.ReadFile(DefaultStateFilename)
+		t.Fatalf("State path should not exist: %s", string(data))
 	}
 
-	// Check for remote state
-	if _, err := os.Stat(remoteStatePath); err != nil {
-		t.Fatalf("missing remote state: %s", err)
+	// Check that there is no remote state config
+	if _, err := os.Stat(remoteStatePath); err == nil {
+		t.Fatalf("has remote state config")
 	}
 }
 
@@ -710,7 +711,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 	}
 
 	args := []string{
-		"-state", statePath,
+		"-state-out", statePath,
 		planPath,
 	}
 	if code := c.Run(args); code != 0 {
@@ -1486,59 +1487,6 @@ func TestApply_disableBackup(t *testing.T) {
 	_, err = os.Stat("-")
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
-	}
-}
-
-// -state-out wasn't taking effect when a plan is supplied. GH-7264
-func TestApply_stateOutWithPlan(t *testing.T) {
-	p := testProvider()
-	ui := new(cli.MockUi)
-
-	tmpDir := testTempDir(t)
-	defer os.RemoveAll(tmpDir)
-
-	statePath := filepath.Join(tmpDir, "state.tfstate")
-	planPath := filepath.Join(tmpDir, "terraform.tfplan")
-
-	args := []string{
-		"-state", statePath,
-		"-out", planPath,
-		testFixturePath("plan"),
-	}
-
-	// Run plan first to get a current plan file
-	pc := &PlanCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
-		},
-	}
-	if code := pc.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	// now run apply with the generated plan
-	stateOutPath := filepath.Join(tmpDir, "state-new.tfstate")
-
-	args = []string{
-		"-state", statePath,
-		"-state-out", stateOutPath,
-		planPath,
-	}
-
-	ac := &ApplyCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
-		},
-	}
-	if code := ac.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	// now make sure we wrote out our new state
-	if _, err := os.Stat(stateOutPath); err != nil {
-		t.Fatalf("missing new state file: %s", err)
 	}
 }
 

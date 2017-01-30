@@ -1,7 +1,7 @@
 ---
 layout: "profitbricks"
 page_title: "ProfitBricks: profitbricks_firewall"
-sidebar_current: "docs-profitbricks-resource-profitbricks_firewall"
+sidebar_current: "docs-profitbricks-resource-firewall"
 description: |-
   Creates and manages Firewall Rules.
 ---

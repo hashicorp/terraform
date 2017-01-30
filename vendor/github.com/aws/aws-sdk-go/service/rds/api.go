@@ -51,11 +51,10 @@ func (c *RDS) AddRoleToDBClusterRequest(input *AddRoleToDBClusterInput) (req *re
 		input = &AddRoleToDBClusterInput{}
 	}
 
+	output = &AddRoleToDBClusterOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddRoleToDBClusterOutput{}
-	req.Data = output
 	return
 }
 
@@ -132,9 +131,8 @@ func (c *RDS) AddSourceIdentifierToSubscriptionRequest(input *AddSourceIdentifie
 		input = &AddSourceIdentifierToSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddSourceIdentifierToSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -201,11 +199,10 @@ func (c *RDS) AddTagsToResourceRequest(input *AddTagsToResourceInput) (req *requ
 		input = &AddTagsToResourceInput{}
 	}
 
+	output = &AddTagsToResourceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddTagsToResourceOutput{}
-	req.Data = output
 	return
 }
 
@@ -280,9 +277,8 @@ func (c *RDS) ApplyPendingMaintenanceActionRequest(input *ApplyPendingMaintenanc
 		input = &ApplyPendingMaintenanceActionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApplyPendingMaintenanceActionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -347,9 +343,8 @@ func (c *RDS) AuthorizeDBSecurityGroupIngressRequest(input *AuthorizeDBSecurityG
 		input = &AuthorizeDBSecurityGroupIngressInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AuthorizeDBSecurityGroupIngressOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -435,9 +430,8 @@ func (c *RDS) CopyDBClusterParameterGroupRequest(input *CopyDBClusterParameterGr
 		input = &CopyDBClusterParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CopyDBClusterParameterGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -508,9 +502,8 @@ func (c *RDS) CopyDBClusterSnapshotRequest(input *CopyDBClusterSnapshotInput) (r
 		input = &CopyDBClusterSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CopyDBClusterSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -591,9 +584,8 @@ func (c *RDS) CopyDBParameterGroupRequest(input *CopyDBParameterGroupInput) (req
 		input = &CopyDBParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CopyDBParameterGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -664,9 +656,8 @@ func (c *RDS) CopyDBSnapshotRequest(input *CopyDBSnapshotInput) (req *request.Re
 		input = &CopyDBSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CopyDBSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -678,50 +669,59 @@ func (c *RDS) CopyDBSnapshotRequest(input *CopyDBSnapshotInput) (req *request.Re
 // To copy a DB snapshot from a shared manual DB snapshot, SourceDBSnapshotIdentifier
 // must be the Amazon Resource Name (ARN) of the shared DB snapshot.
 //
-// You can not copy an encrypted DB snapshot from another AWS region.
-//
-// You can copy an encrypted DB snapshot from another AWS region. In that case,
+// You can copy an encrypted DB snapshot from another AWS Region. In that case,
 // the region where you call the CopyDBSnapshot action is the destination region
 // for the encrypted DB snapshot to be copied to. To copy an encrypted DB snapshot
 // from another region, you must provide the following values:
 //
-//    * KmsKeyId - the AWS Key Management System (KMS) key identifier for the
+//    * KmsKeyId - The AWS Key Management System (KMS) key identifier for the
 //    key to use to encrypt the copy of the DB snapshot in the destination region.
 //
-//    * PreSignedUrl - a URL that contains a Signature Version 4 signed request
+//    * PreSignedUrl - A URL that contains a Signature Version 4 signed request
 //    for the CopyDBSnapshot action to be called in the source region where
-//    the DB snapshot will be copied from. The pre-signed URL must be a valid
+//    the DB snapshot will be copied from. The presigned URL must be a valid
 //    request for the CopyDBSnapshot API action that can be executed in the
 //    source region that contains the encrypted DB snapshot to be copied.
 //
-// The pre-signed URL request must contain the following parameter values:
+// The presigned URL request must contain the following parameter values:
+//
+// DestinationRegion - The AWS Region that the encrypted DB snapshot will be
+//    copied to. This region is the same one where the CopyDBSnapshot action
+//    is called that contains this presigned URL.
+//
+// For example, if you copy an encrypted DB snapshot from the us-west-2 region
+//    to the us-east-1 region, then you will call the CopyDBSnapshot action
+//    in the us-east-1 region and provide a presigned URL that contains a call
+//    to the CopyDBSnapshot action in the us-west-2 region. For this example,
+//    the DestinationRegion in the presigned URL must be set to the us-east-1
+//    region.
 //
 // KmsKeyId - The KMS key identifier for the key to use to encrypt the copy
-//    of the DB snapshot in the destination region. This is the same identifier
+//    of the DB snapshot in the destination region. This identifier is the same
 //    for both the CopyDBSnapshot action that is called in the destination region,
-//    and the action contained in the pre-signed URL.
+//    and the action contained in the presigned URL.
 //
-// SourceDBSnapshotIdentifier - the DB snapshot identifier for the encrypted
+// SourceDBSnapshotIdentifier - The DB snapshot identifier for the encrypted
 //    snapshot to be copied. This identifier must be in the Amazon Resource
-//    Name (ARN) format for the source region. For example, if you are copying
-//    an encrypted DB snapshot from the us-west-2 region, then your SourceDBSnapshotIdentifier
-//    would look like Example: arn:aws:rds:us-west-2:123456789012:snapshot:mysql-instance1-snapshot-20161115.
+//    Name (ARN) format for the source region. For example, if you copy an encrypted
+//    DB snapshot from the us-west-2 region, then your SourceDBSnapshotIdentifier
+//    looks like this example: arn:aws:rds:us-west-2:123456789012:snapshot:mysql-instance1-snapshot-20161115.
 //
 // To learn how to generate a Signature Version 4 signed request, see  Authenticating
-//    Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
-//    and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+//    Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
+//    and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
 //
-//    * TargetDBSnapshotIdentifier - the identifier for the new copy of the
+//    * TargetDBSnapshotIdentifier - The identifier for the new copy of the
 //    DB snapshot in the destination region.
 //
-//    * SourceDBSnapshotIdentifier - the DB snapshot identifier for the encrypted
+//    * SourceDBSnapshotIdentifier - The DB snapshot identifier for the encrypted
 //    snapshot to be copied. This identifier must be in the ARN format for the
 //    source region and is the same value as the SourceDBSnapshotIdentifier
-//    in the pre-signed URL.
+//    in the presigned URL.
 //
 // For more information on copying encrypted snapshots from one region to another,
-// see  Copying an Encrypted DB Snapshot to Another Region in the Amazon RDS
-// User Guide. (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html#USER_CopySnapshot.Encrypted.CrossRegion)
+// see  Copying an Encrypted DB Snapshot to Another Region (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html#USER_CopySnapshot.Encrypted.CrossRegion)
+// in the Amazon RDS User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -791,9 +791,8 @@ func (c *RDS) CopyOptionGroupRequest(input *CopyOptionGroupInput) (req *request.
 		input = &CopyOptionGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CopyOptionGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -863,9 +862,8 @@ func (c *RDS) CreateDBClusterRequest(input *CreateDBClusterInput) (req *request.
 		input = &CreateDBClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDBClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -874,7 +872,7 @@ func (c *RDS) CreateDBClusterRequest(input *CreateDBClusterInput) (req *request.
 // Creates a new Amazon Aurora DB cluster.
 //
 // You can use the ReplicationSourceIdentifier parameter to create the DB cluster
-// as a Read Replica of another DB cluster.
+// as a Read Replica of another DB cluster or Amazon RDS MySQL DB instance.
 //
 // For more information on Amazon Aurora, see Aurora on Amazon RDS (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html)
 // in the Amazon RDS User Guide.
@@ -933,6 +931,13 @@ func (c *RDS) CreateDBClusterRequest(input *CreateDBClusterInput) (req *request.
 //   * DBClusterNotFoundFault
 //   DBClusterIdentifier does not refer to an existing DB cluster.
 //
+//   * DBInstanceNotFound
+//   DBInstanceIdentifier does not refer to an existing DB instance.
+//
+//   * DBSubnetGroupDoesNotCoverEnoughAZs
+//   Subnets in the DB subnet group should cover at least two Availability Zones
+//   unless there is only one Availability Zone.
+//
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/CreateDBCluster
 func (c *RDS) CreateDBCluster(input *CreateDBClusterInput) (*CreateDBClusterOutput, error) {
 	req, out := c.CreateDBClusterRequest(input)
@@ -978,9 +983,8 @@ func (c *RDS) CreateDBClusterParameterGroupRequest(input *CreateDBClusterParamet
 		input = &CreateDBClusterParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDBClusterParameterGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1075,9 +1079,8 @@ func (c *RDS) CreateDBClusterSnapshotRequest(input *CreateDBClusterSnapshotInput
 		input = &CreateDBClusterSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDBClusterSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1155,9 +1158,8 @@ func (c *RDS) CreateDBInstanceRequest(input *CreateDBInstanceInput) (req *reques
 		input = &CreateDBInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDBInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1281,9 +1283,8 @@ func (c *RDS) CreateDBInstanceReadReplicaRequest(input *CreateDBInstanceReadRepl
 		input = &CreateDBInstanceReadReplicaInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDBInstanceReadReplicaOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1298,6 +1299,61 @@ func (c *RDS) CreateDBInstanceReadReplicaRequest(input *CreateDBInstanceReadRepl
 // as specified below.
 //
 // The source DB instance must have backup retention enabled.
+//
+// You can create an encrypted Read Replica in a different AWS Region than the
+// source DB instance. In that case, the region where you call the CreateDBInstanceReadReplica
+// action is the destination region of the encrypted Read Replica. The source
+// DB instance must be encrypted.
+//
+// To create an encrypted Read Replica in another AWS Region, you must provide
+// the following values:
+//
+//    * KmsKeyId - The AWS Key Management System (KMS) key identifier for the
+//    key to use to encrypt the Read Replica in the destination region.
+//
+//    * PreSignedUrl - A URL that contains a Signature Version 4 signed request
+//    for the  CreateDBInstanceReadReplica API action in the AWS region that
+//    contains the source DB instance. The PreSignedUrl parameter must be used
+//    when encrypting a Read Replica from another AWS region.
+//
+// The presigned URL must be a valid request for the CreateDBInstanceReadReplica
+//    API action that can be executed in the source region that contains the
+//    encrypted DB instance. The presigned URL request must contain the following
+//    parameter values:
+//
+// DestinationRegion - The AWS Region that the Read Replica is created in. This
+//    region is the same one where the CreateDBInstanceReadReplica action is
+//    called that contains this presigned URL.
+//
+//  For example, if you create an encrypted Read Replica in the us-east-1 region,
+//    and the source DB instance is in the west-2 region, then you call the
+//    CreateDBInstanceReadReplica action in the us-east-1 region and provide
+//    a presigned URL that contains a call to the CreateDBInstanceReadReplica
+//    action in the us-west-2 region. For this example, the DestinationRegion
+//    in the presigned URL must be set to the us-east-1 region.
+//
+// KmsKeyId - The KMS key identifier for the key to use to encrypt the Read
+//    Replica in the destination region. This is the same identifier for both
+//    the CreateDBInstanceReadReplica action that is called in the destination
+//    region, and the action contained in the presigned URL.
+//
+// SourceDBInstanceIdentifier - The DB instance identifier for the encrypted
+//    Read Replica to be created. This identifier must be in the Amazon Resource
+//    Name (ARN) format for the source region. For example, if you create an
+//    encrypted Read Replica from a DB instance in the us-west-2 region, then
+//    your SourceDBInstanceIdentifier would look like this example:  arn:aws:rds:us-west-2:123456789012:instance:mysql-instance1-instance-20161115.
+//
+// To learn how to generate a Signature Version 4 signed request, see  Authenticating
+//    Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
+//    and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+//
+//    * DBInstanceIdentifier - The identifier for the encrypted Read Replica
+//    in the destination region.
+//
+//    * SourceDBInstanceIdentifier - The DB instance identifier for the encrypted
+//    Read Replica. This identifier must be in the ARN format for the source
+//    region and is the same value as the SourceDBInstanceIdentifier in the
+//    presigned URL.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1413,9 +1469,8 @@ func (c *RDS) CreateDBParameterGroupRequest(input *CreateDBParameterGroupInput) 
 		input = &CreateDBParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDBParameterGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1503,9 +1558,8 @@ func (c *RDS) CreateDBSecurityGroupRequest(input *CreateDBSecurityGroupInput) (r
 		input = &CreateDBSecurityGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDBSecurityGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1578,9 +1632,8 @@ func (c *RDS) CreateDBSnapshotRequest(input *CreateDBSnapshotInput) (req *reques
 		input = &CreateDBSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDBSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1653,9 +1706,8 @@ func (c *RDS) CreateDBSubnetGroupRequest(input *CreateDBSubnetGroupInput) (req *
 		input = &CreateDBSubnetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDBSubnetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1735,9 +1787,8 @@ func (c *RDS) CreateEventSubscriptionRequest(input *CreateEventSubscriptionInput
 		input = &CreateEventSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateEventSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1836,9 +1887,8 @@ func (c *RDS) CreateOptionGroupRequest(input *CreateOptionGroupInput) (req *requ
 		input = &CreateOptionGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateOptionGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1905,9 +1955,8 @@ func (c *RDS) DeleteDBClusterRequest(input *DeleteDBClusterInput) (req *request.
 		input = &DeleteDBClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteDBClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1988,11 +2037,10 @@ func (c *RDS) DeleteDBClusterParameterGroupRequest(input *DeleteDBClusterParamet
 		input = &DeleteDBClusterParameterGroupInput{}
 	}
 
+	output = &DeleteDBClusterParameterGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDBClusterParameterGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -2063,9 +2111,8 @@ func (c *RDS) DeleteDBClusterSnapshotRequest(input *DeleteDBClusterSnapshotInput
 		input = &DeleteDBClusterSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteDBClusterSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2138,9 +2185,8 @@ func (c *RDS) DeleteDBInstanceRequest(input *DeleteDBInstanceInput) (req *reques
 		input = &DeleteDBInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteDBInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2240,11 +2286,10 @@ func (c *RDS) DeleteDBParameterGroupRequest(input *DeleteDBParameterGroupInput) 
 		input = &DeleteDBParameterGroupInput{}
 	}
 
+	output = &DeleteDBParameterGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDBParameterGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -2312,11 +2357,10 @@ func (c *RDS) DeleteDBSecurityGroupRequest(input *DeleteDBSecurityGroupInput) (r
 		input = &DeleteDBSecurityGroupInput{}
 	}
 
+	output = &DeleteDBSecurityGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDBSecurityGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -2385,9 +2429,8 @@ func (c *RDS) DeleteDBSnapshotRequest(input *DeleteDBSnapshotInput) (req *reques
 		input = &DeleteDBSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteDBSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2457,11 +2500,10 @@ func (c *RDS) DeleteDBSubnetGroupRequest(input *DeleteDBSubnetGroupInput) (req *
 		input = &DeleteDBSubnetGroupInput{}
 	}
 
+	output = &DeleteDBSubnetGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDBSubnetGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -2533,9 +2575,8 @@ func (c *RDS) DeleteEventSubscriptionRequest(input *DeleteEventSubscriptionInput
 		input = &DeleteEventSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteEventSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2603,11 +2644,10 @@ func (c *RDS) DeleteOptionGroupRequest(input *DeleteOptionGroupInput) (req *requ
 		input = &DeleteOptionGroupInput{}
 	}
 
+	output = &DeleteOptionGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteOptionGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -2674,9 +2714,8 @@ func (c *RDS) DescribeAccountAttributesRequest(input *DescribeAccountAttributesI
 		input = &DescribeAccountAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAccountAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2740,9 +2779,8 @@ func (c *RDS) DescribeCertificatesRequest(input *DescribeCertificatesInput) (req
 		input = &DescribeCertificatesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeCertificatesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2806,9 +2844,8 @@ func (c *RDS) DescribeDBClusterParameterGroupsRequest(input *DescribeDBClusterPa
 		input = &DescribeDBClusterParameterGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDBClusterParameterGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2877,9 +2914,8 @@ func (c *RDS) DescribeDBClusterParametersRequest(input *DescribeDBClusterParamet
 		input = &DescribeDBClusterParametersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDBClusterParametersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2947,9 +2983,8 @@ func (c *RDS) DescribeDBClusterSnapshotAttributesRequest(input *DescribeDBCluste
 		input = &DescribeDBClusterSnapshotAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDBClusterSnapshotAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3024,9 +3059,8 @@ func (c *RDS) DescribeDBClusterSnapshotsRequest(input *DescribeDBClusterSnapshot
 		input = &DescribeDBClusterSnapshotsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDBClusterSnapshotsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3094,9 +3128,8 @@ func (c *RDS) DescribeDBClustersRequest(input *DescribeDBClustersInput) (req *re
 		input = &DescribeDBClustersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDBClustersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3170,9 +3203,8 @@ func (c *RDS) DescribeDBEngineVersionsRequest(input *DescribeDBEngineVersionsInp
 		input = &DescribeDBEngineVersionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDBEngineVersionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3262,9 +3294,8 @@ func (c *RDS) DescribeDBInstancesRequest(input *DescribeDBInstancesInput) (req *
 		input = &DescribeDBInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDBInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3359,9 +3390,8 @@ func (c *RDS) DescribeDBLogFilesRequest(input *DescribeDBLogFilesInput) (req *re
 		input = &DescribeDBLogFilesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDBLogFilesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3456,9 +3486,8 @@ func (c *RDS) DescribeDBParameterGroupsRequest(input *DescribeDBParameterGroupsI
 		input = &DescribeDBParameterGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDBParameterGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3555,9 +3584,8 @@ func (c *RDS) DescribeDBParametersRequest(input *DescribeDBParametersInput) (req
 		input = &DescribeDBParametersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDBParametersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3652,9 +3680,8 @@ func (c *RDS) DescribeDBSecurityGroupsRequest(input *DescribeDBSecurityGroupsInp
 		input = &DescribeDBSecurityGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDBSecurityGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3745,9 +3772,8 @@ func (c *RDS) DescribeDBSnapshotAttributesRequest(input *DescribeDBSnapshotAttri
 		input = &DescribeDBSnapshotAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDBSnapshotAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3828,9 +3854,8 @@ func (c *RDS) DescribeDBSnapshotsRequest(input *DescribeDBSnapshotsInput) (req *
 		input = &DescribeDBSnapshotsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDBSnapshotsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3925,9 +3950,8 @@ func (c *RDS) DescribeDBSubnetGroupsRequest(input *DescribeDBSubnetGroupsInput) 
 		input = &DescribeDBSubnetGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDBSubnetGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4019,9 +4043,8 @@ func (c *RDS) DescribeEngineDefaultClusterParametersRequest(input *DescribeEngin
 		input = &DescribeEngineDefaultClusterParametersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEngineDefaultClusterParametersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4090,9 +4113,8 @@ func (c *RDS) DescribeEngineDefaultParametersRequest(input *DescribeEngineDefaul
 		input = &DescribeEngineDefaultParametersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEngineDefaultParametersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4177,9 +4199,8 @@ func (c *RDS) DescribeEventCategoriesRequest(input *DescribeEventCategoriesInput
 		input = &DescribeEventCategoriesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEventCategoriesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4247,9 +4268,8 @@ func (c *RDS) DescribeEventSubscriptionsRequest(input *DescribeEventSubscription
 		input = &DescribeEventSubscriptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEventSubscriptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4348,9 +4368,8 @@ func (c *RDS) DescribeEventsRequest(input *DescribeEventsInput) (req *request.Re
 		input = &DescribeEventsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEventsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4444,9 +4463,8 @@ func (c *RDS) DescribeOptionGroupOptionsRequest(input *DescribeOptionGroupOption
 		input = &DescribeOptionGroupOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeOptionGroupOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4536,9 +4554,8 @@ func (c *RDS) DescribeOptionGroupsRequest(input *DescribeOptionGroupsInput) (req
 		input = &DescribeOptionGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeOptionGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4633,9 +4650,8 @@ func (c *RDS) DescribeOrderableDBInstanceOptionsRequest(input *DescribeOrderable
 		input = &DescribeOrderableDBInstanceOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeOrderableDBInstanceOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4719,9 +4735,8 @@ func (c *RDS) DescribePendingMaintenanceActionsRequest(input *DescribePendingMai
 		input = &DescribePendingMaintenanceActionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribePendingMaintenanceActionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4792,9 +4807,8 @@ func (c *RDS) DescribeReservedDBInstancesRequest(input *DescribeReservedDBInstan
 		input = &DescribeReservedDBInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedDBInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4890,9 +4904,8 @@ func (c *RDS) DescribeReservedDBInstancesOfferingsRequest(input *DescribeReserve
 		input = &DescribeReservedDBInstancesOfferingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedDBInstancesOfferingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4981,9 +4994,8 @@ func (c *RDS) DescribeSourceRegionsRequest(input *DescribeSourceRegionsInput) (r
 		input = &DescribeSourceRegionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSourceRegionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5050,9 +5062,8 @@ func (c *RDS) DownloadDBLogFilePortionRequest(input *DownloadDBLogFilePortionInp
 		input = &DownloadDBLogFilePortionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DownloadDBLogFilePortionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5144,9 +5155,8 @@ func (c *RDS) FailoverDBClusterRequest(input *FailoverDBClusterInput) (req *requ
 		input = &FailoverDBClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &FailoverDBClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5229,9 +5239,8 @@ func (c *RDS) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *
 		input = &ListTagsForResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsForResourceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5304,9 +5313,8 @@ func (c *RDS) ModifyDBClusterRequest(input *ModifyDBClusterInput) (req *request.
 		input = &ModifyDBClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyDBClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5408,9 +5416,8 @@ func (c *RDS) ModifyDBClusterParameterGroupRequest(input *ModifyDBClusterParamet
 		input = &ModifyDBClusterParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DBClusterParameterGroupNameMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5497,9 +5504,8 @@ func (c *RDS) ModifyDBClusterSnapshotAttributeRequest(input *ModifyDBClusterSnap
 		input = &ModifyDBClusterSnapshotAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyDBClusterSnapshotAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5585,9 +5591,8 @@ func (c *RDS) ModifyDBInstanceRequest(input *ModifyDBInstanceInput) (req *reques
 		input = &ModifyDBInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyDBInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5705,9 +5710,8 @@ func (c *RDS) ModifyDBParameterGroupRequest(input *ModifyDBParameterGroupInput) 
 		input = &ModifyDBParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DBParameterGroupNameMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5753,6 +5757,76 @@ func (c *RDS) ModifyDBParameterGroup(input *ModifyDBParameterGroupInput) (*DBPar
 	return out, err
 }
 
+const opModifyDBSnapshot = "ModifyDBSnapshot"
+
+// ModifyDBSnapshotRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyDBSnapshot operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ModifyDBSnapshot for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyDBSnapshot method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyDBSnapshotRequest method.
+//    req, resp := client.ModifyDBSnapshotRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBSnapshot
+func (c *RDS) ModifyDBSnapshotRequest(input *ModifyDBSnapshotInput) (req *request.Request, output *ModifyDBSnapshotOutput) {
+	op := &request.Operation{
+		Name:       opModifyDBSnapshot,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ModifyDBSnapshotInput{}
+	}
+
+	output = &ModifyDBSnapshotOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ModifyDBSnapshot API operation for Amazon Relational Database Service.
+//
+// Updates a manual DB snapshot, which can be encrypted or not encrypted, with
+// a new engine version. You can update the engine version to either a new major
+// or minor engine version.
+//
+// Amazon RDS supports upgrading a MySQL DB snapshot from MySQL 5.1 to MySQL
+// 5.5.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Relational Database Service's
+// API operation ModifyDBSnapshot for usage and error information.
+//
+// Returned Error Codes:
+//   * DBSnapshotNotFound
+//   DBSnapshotIdentifier does not refer to an existing DB snapshot.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBSnapshot
+func (c *RDS) ModifyDBSnapshot(input *ModifyDBSnapshotInput) (*ModifyDBSnapshotOutput, error) {
+	req, out := c.ModifyDBSnapshotRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opModifyDBSnapshotAttribute = "ModifyDBSnapshotAttribute"
 
 // ModifyDBSnapshotAttributeRequest generates a "aws/request.Request" representing the
@@ -5791,9 +5865,8 @@ func (c *RDS) ModifyDBSnapshotAttributeRequest(input *ModifyDBSnapshotAttributeI
 		input = &ModifyDBSnapshotAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyDBSnapshotAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5879,9 +5952,8 @@ func (c *RDS) ModifyDBSubnetGroupRequest(input *ModifyDBSubnetGroupInput) (req *
 		input = &ModifyDBSubnetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyDBSubnetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5961,9 +6033,8 @@ func (c *RDS) ModifyEventSubscriptionRequest(input *ModifyEventSubscriptionInput
 		input = &ModifyEventSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyEventSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6050,9 +6121,8 @@ func (c *RDS) ModifyOptionGroupRequest(input *ModifyOptionGroupInput) (req *requ
 		input = &ModifyOptionGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyOptionGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6119,9 +6189,8 @@ func (c *RDS) PromoteReadReplicaRequest(input *PromoteReadReplicaInput) (req *re
 		input = &PromoteReadReplicaInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PromoteReadReplicaOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6193,9 +6262,8 @@ func (c *RDS) PromoteReadReplicaDBClusterRequest(input *PromoteReadReplicaDBClus
 		input = &PromoteReadReplicaDBClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PromoteReadReplicaDBClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6262,9 +6330,8 @@ func (c *RDS) PurchaseReservedDBInstancesOfferingRequest(input *PurchaseReserved
 		input = &PurchaseReservedDBInstancesOfferingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseReservedDBInstancesOfferingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6334,9 +6401,8 @@ func (c *RDS) RebootDBInstanceRequest(input *RebootDBInstanceInput) (req *reques
 		input = &RebootDBInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RebootDBInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6419,11 +6485,10 @@ func (c *RDS) RemoveRoleFromDBClusterRequest(input *RemoveRoleFromDBClusterInput
 		input = &RemoveRoleFromDBClusterInput{}
 	}
 
+	output = &RemoveRoleFromDBClusterOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemoveRoleFromDBClusterOutput{}
-	req.Data = output
 	return
 }
 
@@ -6496,9 +6561,8 @@ func (c *RDS) RemoveSourceIdentifierFromSubscriptionRequest(input *RemoveSourceI
 		input = &RemoveSourceIdentifierFromSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RemoveSourceIdentifierFromSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6565,11 +6629,10 @@ func (c *RDS) RemoveTagsFromResourceRequest(input *RemoveTagsFromResourceInput) 
 		input = &RemoveTagsFromResourceInput{}
 	}
 
+	output = &RemoveTagsFromResourceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemoveTagsFromResourceOutput{}
-	req.Data = output
 	return
 }
 
@@ -6642,9 +6705,8 @@ func (c *RDS) ResetDBClusterParameterGroupRequest(input *ResetDBClusterParameter
 		input = &ResetDBClusterParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DBClusterParameterGroupNameMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6723,9 +6785,8 @@ func (c *RDS) ResetDBParameterGroupRequest(input *ResetDBParameterGroupInput) (r
 		input = &ResetDBParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DBParameterGroupNameMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6798,9 +6859,8 @@ func (c *RDS) RestoreDBClusterFromS3Request(input *RestoreDBClusterFromS3Input) 
 		input = &RestoreDBClusterFromS3Input{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestoreDBClusterFromS3Output{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6912,9 +6972,8 @@ func (c *RDS) RestoreDBClusterFromSnapshotRequest(input *RestoreDBClusterFromSna
 		input = &RestoreDBClusterFromSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestoreDBClusterFromSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7039,9 +7098,8 @@ func (c *RDS) RestoreDBClusterToPointInTimeRequest(input *RestoreDBClusterToPoin
 		input = &RestoreDBClusterToPointInTimeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestoreDBClusterToPointInTimeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7167,9 +7225,8 @@ func (c *RDS) RestoreDBInstanceFromDBSnapshotRequest(input *RestoreDBInstanceFro
 		input = &RestoreDBInstanceFromDBSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestoreDBInstanceFromDBSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7311,9 +7368,8 @@ func (c *RDS) RestoreDBInstanceToPointInTimeRequest(input *RestoreDBInstanceToPo
 		input = &RestoreDBInstanceToPointInTimeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestoreDBInstanceToPointInTimeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7452,9 +7508,8 @@ func (c *RDS) RevokeDBSecurityGroupIngressRequest(input *RevokeDBSecurityGroupIn
 		input = &RevokeDBSecurityGroupIngressInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RevokeDBSecurityGroupIngressOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8521,12 +8576,8 @@ type CopyDBSnapshotInput struct {
 	// you don't specify a value for KmsKeyId, then the copy of the DB snapshot
 	// is encrypted with the same KMS key as the source DB snapshot.
 	//
-	// If you copy an encrypted DB snapshot from your AWS account, you can specify
-	// a value for KmsKeyId to encrypt the copy with a new KMS encryption key. If
-	// you don't specify a value for KmsKeyId, then the copy of the DB snapshot
-	// is encrypted with the same KMS key as the source DB snapshot. If you copy
-	// an encrypted snapshot to a different AWS region, then you must specify a
-	// KMS key for the destination AWS region.
+	// If you copy an encrypted snapshot to a different AWS region, then you must
+	// specify a KMS key for the destination AWS region.
 	//
 	// If you copy an encrypted DB snapshot that is shared from another AWS account,
 	// then you must specify a value for KmsKeyId.
@@ -8542,25 +8593,36 @@ type CopyDBSnapshotInput struct {
 	// The PreSignedUrl parameter must be used when copying an encrypted DB snapshot
 	// from another AWS region.
 	//
-	// The pre-signed URL must be a valid request for the CopyDBSnapshot API action
+	// The presigned URL must be a valid request for the CopyDBSnapshot API action
 	// that can be executed in the source region that contains the encrypted DB
-	// snapshot to be copied. The pre-signed URL request must contain the following
+	// snapshot to be copied. The presigned URL request must contain the following
 	// parameter values:
+	//
+	//    * DestinationRegion - The AWS Region that the encrypted DB snapshot will
+	//    be copied to. This region is the same one where the CopyDBSnapshot action
+	//    is called that contains this presigned URL.
+	//
+	// For example, if you copy an encrypted DB snapshot from the us-west-2 region
+	//    to the us-east-1 region, then you will call the CopyDBSnapshot action
+	//    in the us-east-1 region and provide a presigned URL that contains a call
+	//    to the CopyDBSnapshot action in the us-west-2 region. For this example,
+	//    the DestinationRegion in the presigned URL must be set to the us-east-1
+	//    region.
 	//
 	//    * KmsKeyId - The KMS key identifier for the key to use to encrypt the
 	//    copy of the DB snapshot in the destination region. This is the same identifier
 	//    for both the CopyDBSnapshot action that is called in the destination region,
-	//    and the action contained in the pre-signed URL.
+	//    and the action contained in the presigned URL.
 	//
-	//    * SourceDBSnapshotIdentifier - the DB snapshot identifier for the encrypted
+	//    * SourceDBSnapshotIdentifier - The DB snapshot identifier for the encrypted
 	//    snapshot to be copied. This identifier must be in the Amazon Resource
 	//    Name (ARN) format for the source region. For example, if you are copying
 	//    an encrypted DB snapshot from the us-west-2 region, then your SourceDBSnapshotIdentifier
 	//    would look like Example: arn:aws:rds:us-west-2:123456789012:snapshot:mysql-instance1-snapshot-20161115.
 	//
 	// To learn how to generate a Signature Version 4 signed request, see  Authenticating
-	// Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
-	// and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+	// Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
+	// and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
 	PreSignedUrl *string `type:"string"`
 
 	// The identifier for the source DB snapshot.
@@ -8994,8 +9056,8 @@ type CreateDBClusterInput struct {
 	// Constraints: Minimum 30-minute window.
 	PreferredMaintenanceWindow *string `type:"string"`
 
-	// The Amazon Resource Name (ARN) of the source DB cluster if this DB cluster
-	// is created as a Read Replica.
+	// The Amazon Resource Name (ARN) of the source DB instance or DB cluster if
+	// this DB cluster is created as a Read Replica.
 	ReplicationSourceIdentifier *string `type:"string"`
 
 	// Specifies whether the DB cluster is encrypted.
@@ -9503,7 +9565,8 @@ type CreateDBInstanceInput struct {
 	// Type: String
 	DBClusterIdentifier *string `type:"string"`
 
-	// The compute and memory capacity of the DB instance.
+	// The compute and memory capacity of the DB instance. Note that not all instance
+	// classes are available in all regions for all DB engines.
 	//
 	// Valid Values: db.t1.micro | db.m1.small | db.m1.medium | db.m1.large | db.m1.xlarge
 	// | db.m2.xlarge |db.m2.2xlarge | db.m2.4xlarge | db.m3.medium | db.m3.large
@@ -9724,17 +9787,108 @@ type CreateDBInstanceInput struct {
 	//
 	//    * Version 5.5 (available in all AWS regions): 5.5.46
 	//
-	//    * Version 5.5 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1,
-	//    us-gov-west-1, us-west-1, us-west-2): 5.5.42
-	//
-	//    * Version 5.5 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-gov-west-1,
-	//    us-west-1, us-west-2): 5.5.40b | 5.5.41
-	//
-	//    * Version 5.5 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
+	//    * Version 5.1 (only available in AWS regions ap-northeast-1, ap-southeast-1,
 	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
-	//    us-west-2): 5.5.40 | 5.5.40a
+	//    us-west-2): 5.1.73a | 5.1.73b
+	//
+	// Oracle Database Enterprise Edition (oracle-ee)
+	//
+	//    * Version 12.1 (available in all AWS regions except ap-south-1, ap-northeast-2):
+	//    12.1.0.1.v1 | 12.1.0.1.v2
+	//
+	//    * Version 12.1 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
+	//    us-west-2): 12.1.0.1.v3 | 12.1.0.1.v4 | 12.1.0.1.v5
+	//
+	//    * Version 12.1 (available in all AWS regions): 12.1.0.2.v1
+	//
+	//    * Version 12.1 (available in all AWS regions except us-gov-west-1): 12.1.0.2.v2
+	//    | 12.1.0.2.v3 | 12.1.0.2.v4
+	//
+	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
+	//    us-west-2): 11.2.0.2.v3 | 11.2.0.2.v4 | 11.2.0.2.v5 | 11.2.0.2.v6 | 11.2.0.2.v7
+	//
+	//    * Version 11.2 (available in all AWS regions except ap-south-1, ap-northeast-2):
+	//    11.2.0.3.v1 | 11.2.0.3.v2 | 11.2.0.3.v3
+	//
+	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
+	//    us-west-2): 11.2.0.3.v4
+	//
+	//    * Version 11.2 (available in all AWS regions): 11.2.0.4.v1 | 11.2.0.4.v3
+	//    | 11.2.0.4.v4
+	//
+	//    * Version 11.2 (available in all AWS regions except us-gov-west-1): 11.2.0.4.v5
+	//    | 11.2.0.4.v6 | 11.2.0.4.v7 | 11.2.0.4.v8
+	//
+	// Oracle Database Standard Edition (oracle-se)
+	//
+	//    * Version 12.1 (available in all AWS regions except ap-south-1, ap-northeast-2):
+	//    12.1.0.1.v1 | 12.1.0.1.v2
+	//
+	//    * Version 12.1 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
+	//    us-west-2): 12.1.0.1.v3 | 12.1.0.1.v4 | 12.1.0.1.v5
+	//
+	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
+	//    us-west-2): 11.2.0.2.v3 | 11.2.0.2.v4 | 11.2.0.2.v5 | 11.2.0.2.v6 | 11.2.0.2.v7
+	//
+	//    * Version 11.2 (available in all AWS regions except ap-south-1, ap-northeast-2):
+	//    11.2.0.3.v1 | 11.2.0.3.v2 | 11.2.0.3.v3
+	//
+	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
+	//    us-west-2): 11.2.0.3.v4
+	//
+	//    * Version 11.2 (available in all AWS regions): 11.2.0.4.v1 | 11.2.0.4.v3
+	//    | 11.2.0.4.v4
+	//
+	//    * Version 11.2 (available in all AWS regions except us-gov-west-1): 11.2.0.4.v5
+	//    | 11.2.0.4.v6 | 11.2.0.4.v7 | 11.2.0.4.v8
+	//
+	// Oracle Database Standard Edition One (oracle-se1)
+	//
+	//    * Version 12.1 (available in all AWS regions except ap-south-1, ap-northeast-2):
+	//    12.1.0.1.v1 | 12.1.0.1.v2
+	//
+	//    * Version 12.1 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
+	//    us-west-2): 12.1.0.1.v3 | 12.1.0.1.v4 | 12.1.0.1.v5
+	//
+	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
+	//    us-west-2): 11.2.0.2.v3 | 11.2.0.2.v4 | 11.2.0.2.v5 | 11.2.0.2.v6 | 11.2.0.2.v7
+	//
+	//    * Version 11.2 (available in all AWS regions except ap-south-1, ap-northeast-2):
+	//    11.2.0.3.v1 | 11.2.0.3.v2 | 11.2.0.3.v3
+	//
+	//    * Version 11.2 (only available in AWS regions ap-northeast-1, ap-southeast-1,
+	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
+	//    us-west-2): 11.2.0.3.v4
+	//
+	//    * Version 11.2 (available in all AWS regions): 11.2.0.4.v1 | 11.2.0.4.v3
+	//    | 11.2.0.4.v4
+	//
+	//    * Version 11.2 (available in all AWS regions except us-gov-west-1): 11.2.0.4.v5
+	//    | 11.2.0.4.v6 | 11.2.0.4.v7 | 11.2.0.4.v8
+	//
+	// Oracle Database Standard Edition Two (oracle-se2)
+	//
+	//    * Version 12.1 (available in all AWS regions except us-gov-west-1): 12.1.0.2.v2
+	//    | 12.1.0.2.v3 | 12.1.0.2.v4
+	//
+	// PostgreSQL
+	//
+	//    * Version 9.6: 9.6.1
+	//
+	//    * Version 9.5:9.5.4 | 9.5.2
+	//
+	//    * Version 9.4: 9.4.9 | 9.4.7 | 9.4.5 | 9.4.4 | 9.4.1
+	//
+	//    * Version 9.3: 9.3.14 | 9.3.12 | 9.3.10 | 9.3.9 | 9.3.6 | 9.3.5 | 9.3.3
+	//    | 9.3.2 | 9.3.1
 	//
 	// Oracle 12c
 	//
@@ -10431,7 +10585,8 @@ type CreateDBInstanceReadReplicaInput struct {
 	// otherwise false. The default is false.
 	CopyTagsToSnapshot *bool `type:"boolean"`
 
-	// The compute and memory capacity of the Read Replica.
+	// The compute and memory capacity of the Read Replica. Note that not all instance
+	// classes are available in all regions for all DB engines.
 	//
 	// Valid Values: db.m1.small | db.m1.medium | db.m1.large | db.m1.xlarge | db.m2.xlarge
 	// |db.m2.2xlarge | db.m2.4xlarge | db.m3.medium | db.m3.large | db.m3.xlarge
@@ -10476,9 +10631,31 @@ type CreateDBInstanceReadReplicaInput struct {
 	// Example: mySubnetgroup
 	DBSubnetGroupName *string `type:"string"`
 
+	// DestinationRegion is used for presigning the request to a given region.
+	DestinationRegion *string `type:"string"`
+
 	// The amount of Provisioned IOPS (input/output operations per second) to be
 	// initially allocated for the DB instance.
 	Iops *int64 `type:"integer"`
+
+	// The AWS KMS key ID for an encrypted Read Replica. The KMS key ID is the Amazon
+	// Resource Name (ARN), KMS key identifier, or the KMS key alias for the KMS
+	// encryption key.
+	//
+	// If you create an unencrypted Read Replica and specify a value for the KmsKeyId
+	// parameter, Amazon RDS encrypts the target Read Replica using the specified
+	// KMS encryption key.
+	//
+	// If you create an encrypted Read Replica from your AWS account, you can specify
+	// a value for KmsKeyId to encrypt the Read Replica with a new KMS encryption
+	// key. If you don't specify a value for KmsKeyId, then the Read Replica is
+	// encrypted with the same KMS key as the source DB instance.
+	//
+	// If you create an encrypted Read Replica in a different AWS region, then you
+	// must specify a KMS key for the destination AWS region. KMS encryption keys
+	// are specific to the region that they are created in, and you cannot use encryption
+	// keys from one region in another region.
+	KmsKeyId *string `type:"string"`
 
 	// The interval, in seconds, between points when Enhanced Monitoring metrics
 	// are collected for the Read Replica. To disable collecting Enhanced Monitoring
@@ -10510,6 +10687,42 @@ type CreateDBInstanceReadReplicaInput struct {
 	// Valid Values: 1150-65535
 	Port *int64 `type:"integer"`
 
+	// The URL that contains a Signature Version 4 signed request for the  CreateDBInstanceReadReplica
+	// API action in the AWS region that contains the source DB instance. The PreSignedUrl
+	// parameter must be used when encrypting a Read Replica from another AWS region.
+	//
+	// The presigned URL must be a valid request for the CreateDBInstanceReadReplica
+	// API action that can be executed in the source region that contains the encrypted
+	// DB instance. The presigned URL request must contain the following parameter
+	// values:
+	//
+	//    * DestinationRegion - The AWS Region that the Read Replica is created
+	//    in. This region is the same one where the CreateDBInstanceReadReplica
+	//    action is called that contains this presigned URL.
+	//
+	//  For example, if you create an encrypted Read Replica in the us-east-1 region,
+	//    and the source DB instance is in the west-2 region, then you call the
+	//    CreateDBInstanceReadReplica action in the us-east-1 region and provide
+	//    a presigned URL that contains a call to the CreateDBInstanceReadReplica
+	//    action in the us-west-2 region. For this example, the DestinationRegion
+	//    in the presigned URL must be set to the us-east-1 region.
+	//
+	//    * KmsKeyId - The KMS key identifier for the key to use to encrypt the
+	//    Read Replica in the destination region. This is the same identifier for
+	//    both the CreateDBInstanceReadReplica action that is called in the destination
+	//    region, and the action contained in the presigned URL.
+	//
+	//    * SourceDBInstanceIdentifier - The DB instance identifier for the encrypted
+	//    Read Replica to be created. This identifier must be in the Amazon Resource
+	//    Name (ARN) format for the source region. For example, if you create an
+	//    encrypted Read Replica from a DB instance in the us-west-2 region, then
+	//    your SourceDBInstanceIdentifier would look like this example:  arn:aws:rds:us-west-2:123456789012:instance:mysql-instance1-instance-20161115.
+	//
+	// To learn how to generate a Signature Version 4 signed request, see  Authenticating
+	// Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
+	// and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+	PreSignedUrl *string `type:"string"`
+
 	// Specifies the accessibility options for the DB instance. A value of true
 	// specifies an Internet-facing instance with a publicly resolvable DNS name,
 	// which resolves to a public IP address. A value of false specifies an internal
@@ -10539,8 +10752,8 @@ type CreateDBInstanceReadReplicaInput struct {
 	//    * Can specify a DB instance that is a MySQL Read Replica only if the source
 	//    is running MySQL 5.6.
 	//
-	//    * Can specify a DB instance that is a PostgreSQL Read Replica only if
-	//    the source is running PostgreSQL 9.3.5.
+	//    * Can specify a DB instance that is a PostgreSQL DB instance only if the
+	//    source is running PostgreSQL 9.3.5 or later.
 	//
 	//    * The specified DB instance must have automatic backups enabled, its backup
 	//    retention period must be greater than 0.
@@ -10554,6 +10767,11 @@ type CreateDBInstanceReadReplicaInput struct {
 	//
 	// SourceDBInstanceIdentifier is a required field
 	SourceDBInstanceIdentifier *string `type:"string" required:"true"`
+
+	// SourceRegion is the source region where the resource exists. This is not
+	// sent over the wire and is only used for presigning. This value should always
+	// have the same region as the source ARN.
+	SourceRegion *string `type:"string" ignore:"true"`
 
 	// Specifies the storage type to be associated with the Read Replica.
 	//
@@ -10630,9 +10848,21 @@ func (s *CreateDBInstanceReadReplicaInput) SetDBSubnetGroupName(v string) *Creat
 	return s
 }
 
+// SetDestinationRegion sets the DestinationRegion field's value.
+func (s *CreateDBInstanceReadReplicaInput) SetDestinationRegion(v string) *CreateDBInstanceReadReplicaInput {
+	s.DestinationRegion = &v
+	return s
+}
+
 // SetIops sets the Iops field's value.
 func (s *CreateDBInstanceReadReplicaInput) SetIops(v int64) *CreateDBInstanceReadReplicaInput {
 	s.Iops = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *CreateDBInstanceReadReplicaInput) SetKmsKeyId(v string) *CreateDBInstanceReadReplicaInput {
+	s.KmsKeyId = &v
 	return s
 }
 
@@ -10660,6 +10890,12 @@ func (s *CreateDBInstanceReadReplicaInput) SetPort(v int64) *CreateDBInstanceRea
 	return s
 }
 
+// SetPreSignedUrl sets the PreSignedUrl field's value.
+func (s *CreateDBInstanceReadReplicaInput) SetPreSignedUrl(v string) *CreateDBInstanceReadReplicaInput {
+	s.PreSignedUrl = &v
+	return s
+}
+
 // SetPubliclyAccessible sets the PubliclyAccessible field's value.
 func (s *CreateDBInstanceReadReplicaInput) SetPubliclyAccessible(v bool) *CreateDBInstanceReadReplicaInput {
 	s.PubliclyAccessible = &v
@@ -10669,6 +10905,12 @@ func (s *CreateDBInstanceReadReplicaInput) SetPubliclyAccessible(v bool) *Create
 // SetSourceDBInstanceIdentifier sets the SourceDBInstanceIdentifier field's value.
 func (s *CreateDBInstanceReadReplicaInput) SetSourceDBInstanceIdentifier(v string) *CreateDBInstanceReadReplicaInput {
 	s.SourceDBInstanceIdentifier = &v
+	return s
+}
+
+// SetSourceRegion sets the SourceRegion field's value.
+func (s *CreateDBInstanceReadReplicaInput) SetSourceRegion(v string) *CreateDBInstanceReadReplicaInput {
+	s.SourceRegion = &v
 	return s
 }
 
@@ -12594,6 +12836,10 @@ type DBInstance struct {
 	// PubliclyAccessible value has not been set, the DB instance will be private.
 	PubliclyAccessible *bool `type:"boolean"`
 
+	// Contains one or more identifiers of Aurora DB clusters that are Read Replicas
+	// of this DB instance.
+	ReadReplicaDBClusterIdentifiers []*string `locationNameList:"ReadReplicaDBClusterIdentifier" type:"list"`
+
 	// Contains one or more identifiers of the Read Replicas associated with this
 	// DB instance.
 	ReadReplicaDBInstanceIdentifiers []*string `locationNameList:"ReadReplicaDBInstanceIdentifier" type:"list"`
@@ -12865,6 +13111,12 @@ func (s *DBInstance) SetPromotionTier(v int64) *DBInstance {
 // SetPubliclyAccessible sets the PubliclyAccessible field's value.
 func (s *DBInstance) SetPubliclyAccessible(v bool) *DBInstance {
 	s.PubliclyAccessible = &v
+	return s
+}
+
+// SetReadReplicaDBClusterIdentifiers sets the ReadReplicaDBClusterIdentifiers field's value.
+func (s *DBInstance) SetReadReplicaDBClusterIdentifiers(v []*string) *DBInstance {
+	s.ReadReplicaDBClusterIdentifiers = v
 	return s
 }
 
@@ -15458,6 +15710,11 @@ type DescribeDBInstancesInput struct {
 	// A filter that specifies one or more DB instances to describe.
 	//
 	// Supported filters:
+	//
+	//    * db-cluster-id - Accepts DB cluster identifiers and DB cluster Amazon
+	//    Resource Names (ARNs). The results list will only include information
+	//    about the DB instances associated with the DB Clusters identified by these
+	//    ARNs.
 	//
 	//    * db-instance-id - Accepts DB instance identifiers and DB instance Amazon
 	//    Resource Names (ARNs). The results list will only include information
@@ -19571,7 +19828,8 @@ type ModifyDBInstanceInput struct {
 
 	// The new compute and memory capacity of the DB instance. To determine the
 	// instance classes that are available for a particular DB engine, use the DescribeOrderableDBInstanceOptions
-	// action.
+	// action. Note that not all instance classes are available in all regions for
+	// all DB engines.
 	//
 	// Passing a value for this setting causes an outage during the change and is
 	// applied during the next maintenance window, unless ApplyImmediately is specified
@@ -20345,6 +20603,84 @@ func (s ModifyDBSnapshotAttributeOutput) GoString() string {
 // SetDBSnapshotAttributesResult sets the DBSnapshotAttributesResult field's value.
 func (s *ModifyDBSnapshotAttributeOutput) SetDBSnapshotAttributesResult(v *DBSnapshotAttributesResult) *ModifyDBSnapshotAttributeOutput {
 	s.DBSnapshotAttributesResult = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBSnapshotMessage
+type ModifyDBSnapshotInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the DB snapshot to modify.
+	//
+	// DBSnapshotIdentifier is a required field
+	DBSnapshotIdentifier *string `type:"string" required:"true"`
+
+	// The engine version to update the DB snapshot to.
+	EngineVersion *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ModifyDBSnapshotInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyDBSnapshotInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyDBSnapshotInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyDBSnapshotInput"}
+	if s.DBSnapshotIdentifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("DBSnapshotIdentifier"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDBSnapshotIdentifier sets the DBSnapshotIdentifier field's value.
+func (s *ModifyDBSnapshotInput) SetDBSnapshotIdentifier(v string) *ModifyDBSnapshotInput {
+	s.DBSnapshotIdentifier = &v
+	return s
+}
+
+// SetEngineVersion sets the EngineVersion field's value.
+func (s *ModifyDBSnapshotInput) SetEngineVersion(v string) *ModifyDBSnapshotInput {
+	s.EngineVersion = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/rds-2014-10-31/ModifyDBSnapshotResult
+type ModifyDBSnapshotOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Contains the result of a successful invocation of the following actions:
+	//
+	//    * CreateDBSnapshot
+	//
+	//    * DeleteDBSnapshot
+	//
+	// This data type is used as a response element in the DescribeDBSnapshots action.
+	DBSnapshot *DBSnapshot `type:"structure"`
+}
+
+// String returns the string representation
+func (s ModifyDBSnapshotOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyDBSnapshotOutput) GoString() string {
+	return s.String()
+}
+
+// SetDBSnapshot sets the DBSnapshot field's value.
+func (s *ModifyDBSnapshotOutput) SetDBSnapshot(v *DBSnapshot) *ModifyDBSnapshotOutput {
+	s.DBSnapshot = v
 	return s
 }
 
@@ -23866,7 +24202,8 @@ type RestoreDBInstanceFromDBSnapshotInput struct {
 	//
 	// Default: The same as source
 	//
-	// Constraint: Must be compatible with the engine of the source
+	// Constraint: Must be compatible with the engine of the source. You can restore
+	// a MariaDB 10.1 DB instance from a MySQL 5.6 snapshot.
 	//
 	// Valid Values: MySQL | mariadb | oracle-se1 | oracle-se | oracle-ee | sqlserver-ee
 	// | sqlserver-se | sqlserver-ex | sqlserver-web | postgres | aurora

@@ -46,9 +46,8 @@ func (c *ElasticTranscoder) CancelJobRequest(input *CancelJobInput) (req *reques
 		input = &CancelJobInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelJobOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -132,9 +131,8 @@ func (c *ElasticTranscoder) CreateJobRequest(input *CreateJobInput) (req *reques
 		input = &CreateJobInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateJobResponse{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -220,9 +218,8 @@ func (c *ElasticTranscoder) CreatePipelineRequest(input *CreatePipelineInput) (r
 		input = &CreatePipelineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreatePipelineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -302,9 +299,8 @@ func (c *ElasticTranscoder) CreatePresetRequest(input *CreatePresetInput) (req *
 		input = &CreatePresetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreatePresetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -393,9 +389,8 @@ func (c *ElasticTranscoder) DeletePipelineRequest(input *DeletePipelineInput) (r
 		input = &DeletePipelineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeletePipelineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -479,9 +474,8 @@ func (c *ElasticTranscoder) DeletePresetRequest(input *DeletePresetInput) (req *
 		input = &DeletePresetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeletePresetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -565,9 +559,8 @@ func (c *ElasticTranscoder) ListJobsByPipelineRequest(input *ListJobsByPipelineI
 		input = &ListJobsByPipelineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListJobsByPipelineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -678,9 +671,8 @@ func (c *ElasticTranscoder) ListJobsByStatusRequest(input *ListJobsByStatusInput
 		input = &ListJobsByStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListJobsByStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -789,9 +781,8 @@ func (c *ElasticTranscoder) ListPipelinesRequest(input *ListPipelinesInput) (req
 		input = &ListPipelinesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListPipelinesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -894,9 +885,8 @@ func (c *ElasticTranscoder) ListPresetsRequest(input *ListPresetsInput) (req *re
 		input = &ListPresetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListPresetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -993,9 +983,8 @@ func (c *ElasticTranscoder) ReadJobRequest(input *ReadJobInput) (req *request.Re
 		input = &ReadJobInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReadJobOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1071,9 +1060,8 @@ func (c *ElasticTranscoder) ReadPipelineRequest(input *ReadPipelineInput) (req *
 		input = &ReadPipelineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReadPipelineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1149,9 +1137,8 @@ func (c *ElasticTranscoder) ReadPresetRequest(input *ReadPresetInput) (req *requ
 		input = &ReadPresetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReadPresetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1230,9 +1217,8 @@ func (c *ElasticTranscoder) TestRoleRequest(input *TestRoleInput) (req *request.
 		input = &TestRoleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &TestRoleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1314,9 +1300,8 @@ func (c *ElasticTranscoder) UpdatePipelineRequest(input *UpdatePipelineInput) (r
 		input = &UpdatePipelineInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdatePipelineOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1401,9 +1386,8 @@ func (c *ElasticTranscoder) UpdatePipelineNotificationsRequest(input *UpdatePipe
 		input = &UpdatePipelineNotificationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdatePipelineNotificationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1487,9 +1471,8 @@ func (c *ElasticTranscoder) UpdatePipelineStatusRequest(input *UpdatePipelineSta
 		input = &UpdatePipelineStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdatePipelineStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

@@ -105,6 +105,25 @@ func TestAccOpsGenieTeam_basic(t *testing.T) {
 	})
 }
 
+func TestAccOpsGenieTeam_withEmptyDescription(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccOpsGenieTeam_withEmptyDescription, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckOpsGenieTeamDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckOpsGenieTeamExists("opsgenie_team.test"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccOpsGenieTeam_withUser(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccOpsGenieTeam_withUser, ri, ri)
@@ -215,6 +234,13 @@ resource "opsgenie_team" "test" {
 }
 `
 
+var testAccOpsGenieTeam_withEmptyDescription = `
+resource "opsgenie_team" "test" {
+  name        = "acctest%d"
+  description = ""
+}
+`
+
 var testAccOpsGenieTeam_withUser = `
 resource "opsgenie_user" "test" {
   username  = "acctest-%d@example.tld"
@@ -238,7 +264,8 @@ resource "opsgenie_user" "test" {
 }
 
 resource "opsgenie_team" "test" {
-  name  = "acctest%d"
+  name        = "acctest%d"
+  description = "Some exmaple description"
   member {
     username = "${opsgenie_user.test.username}"
     role     = "user"
@@ -259,7 +286,8 @@ resource "opsgenie_user" "second" {
 }
 
 resource "opsgenie_team" "test" {
-  name  = "acctest%d"
+  name        = "acctest%d"
+  description = "Some exmaple description"
   member {
     username = "${opsgenie_user.first.username}"
   }

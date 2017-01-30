@@ -553,6 +553,52 @@ func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 	}
 }
 
+// This tests (for GH-11282) that deeply nested modules properly inherit
+// configuration.
+func TestContext2Plan_moduleProviderInheritDeep(t *testing.T) {
+	var l sync.Mutex
+
+	m := testModule(t, "plan-module-provider-inherit-deep")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": func() (ResourceProvider, error) {
+				l.Lock()
+				defer l.Unlock()
+
+				var from string
+				p := testProvider("aws")
+				p.ConfigureFn = func(c *ResourceConfig) error {
+					v, ok := c.Get("from")
+					if !ok || v.(string) != "root" {
+						return fmt.Errorf("bad")
+					}
+
+					from = v.(string)
+					return nil
+				}
+
+				p.DiffFn = func(
+					info *InstanceInfo,
+					state *InstanceState,
+					c *ResourceConfig) (*InstanceDiff, error) {
+					if from != "root" {
+						return nil, fmt.Errorf("bad resource")
+					}
+
+					return testDiffFn(info, state, c)
+				}
+				return p, nil
+			},
+		},
+	})
+
+	_, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestContext2Plan_moduleProviderDefaults(t *testing.T) {
 	var l sync.Mutex
 	var calls []string
@@ -1428,6 +1474,74 @@ func TestContext2Plan_countComputedModule(t *testing.T) {
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
 		t.Fatalf("expected err would contain %q\nerr: %s\n",
 			expectedErr, err)
+	}
+}
+
+func TestContext2Plan_countModuleStatic(t *testing.T) {
+	m := testModule(t, "plan-count-module-static")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+module.child:
+  CREATE: aws_instance.foo.0
+  CREATE: aws_instance.foo.1
+  CREATE: aws_instance.foo.2
+
+STATE:
+
+<no state>
+`)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestContext2Plan_countModuleStaticGrandchild(t *testing.T) {
+	m := testModule(t, "plan-count-module-static-grandchild")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+module.child.child:
+  CREATE: aws_instance.foo.0
+  CREATE: aws_instance.foo.1
+  CREATE: aws_instance.foo.2
+
+STATE:
+
+<no state>
+`)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
 	}
 }
 

@@ -1,7 +1,7 @@
 ---
 layout: "profitbricks"
 page_title: "ProfitBricks: profitbricks_datacenter"
-sidebar_current: "docs-profitbricks-resource-profitbricks_datacenter"
+sidebar_current: "docs-profitbricks-resource-datacenter"
 description: |-
   Creates and manages Profitbricks Virtual Data Center.
 ---

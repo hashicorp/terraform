@@ -50,9 +50,8 @@ func (c *Redshift) AuthorizeClusterSecurityGroupIngressRequest(input *AuthorizeC
 		input = &AuthorizeClusterSecurityGroupIngressInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AuthorizeClusterSecurityGroupIngressOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -146,9 +145,8 @@ func (c *Redshift) AuthorizeSnapshotAccessRequest(input *AuthorizeSnapshotAccess
 		input = &AuthorizeSnapshotAccessInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AuthorizeSnapshotAccessOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -234,9 +232,8 @@ func (c *Redshift) CopyClusterSnapshotRequest(input *CopyClusterSnapshotInput) (
 		input = &CopyClusterSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CopyClusterSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -324,9 +321,8 @@ func (c *Redshift) CreateClusterRequest(input *CreateClusterInput) (req *request
 		input = &CreateClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -460,9 +456,8 @@ func (c *Redshift) CreateClusterParameterGroupRequest(input *CreateClusterParame
 		input = &CreateClusterParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateClusterParameterGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -548,9 +543,8 @@ func (c *Redshift) CreateClusterSecurityGroupRequest(input *CreateClusterSecurit
 		input = &CreateClusterSecurityGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateClusterSecurityGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -631,9 +625,8 @@ func (c *Redshift) CreateClusterSnapshotRequest(input *CreateClusterSnapshotInpu
 		input = &CreateClusterSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateClusterSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -719,9 +712,8 @@ func (c *Redshift) CreateClusterSubnetGroupRequest(input *CreateClusterSubnetGro
 		input = &CreateClusterSubnetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateClusterSubnetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -820,9 +812,8 @@ func (c *Redshift) CreateEventSubscriptionRequest(input *CreateEventSubscription
 		input = &CreateEventSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateEventSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -947,9 +938,8 @@ func (c *Redshift) CreateHsmClientCertificateRequest(input *CreateHsmClientCerti
 		input = &CreateHsmClientCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateHsmClientCertificateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1033,9 +1023,8 @@ func (c *Redshift) CreateHsmConfigurationRequest(input *CreateHsmConfigurationIn
 		input = &CreateHsmConfigurationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateHsmConfigurationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1120,9 +1109,8 @@ func (c *Redshift) CreateSnapshotCopyGrantRequest(input *CreateSnapshotCopyGrant
 		input = &CreateSnapshotCopyGrantInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSnapshotCopyGrantOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1210,11 +1198,10 @@ func (c *Redshift) CreateTagsRequest(input *CreateTagsInput) (req *request.Reque
 		input = &CreateTagsInput{}
 	}
 
+	output = &CreateTagsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateTagsOutput{}
-	req.Data = output
 	return
 }
 
@@ -1290,9 +1277,8 @@ func (c *Redshift) DeleteClusterRequest(input *DeleteClusterInput) (req *request
 		input = &DeleteClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1383,11 +1369,10 @@ func (c *Redshift) DeleteClusterParameterGroupRequest(input *DeleteClusterParame
 		input = &DeleteClusterParameterGroupInput{}
 	}
 
+	output = &DeleteClusterParameterGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteClusterParameterGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -1458,11 +1443,10 @@ func (c *Redshift) DeleteClusterSecurityGroupRequest(input *DeleteClusterSecurit
 		input = &DeleteClusterSecurityGroupInput{}
 	}
 
+	output = &DeleteClusterSecurityGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteClusterSecurityGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -1537,9 +1521,8 @@ func (c *Redshift) DeleteClusterSnapshotRequest(input *DeleteClusterSnapshotInpu
 		input = &DeleteClusterSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteClusterSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1614,11 +1597,10 @@ func (c *Redshift) DeleteClusterSubnetGroupRequest(input *DeleteClusterSubnetGro
 		input = &DeleteClusterSubnetGroupInput{}
 	}
 
+	output = &DeleteClusterSubnetGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteClusterSubnetGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -1689,11 +1671,10 @@ func (c *Redshift) DeleteEventSubscriptionRequest(input *DeleteEventSubscription
 		input = &DeleteEventSubscriptionInput{}
 	}
 
+	output = &DeleteEventSubscriptionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteEventSubscriptionOutput{}
-	req.Data = output
 	return
 }
 
@@ -1762,11 +1743,10 @@ func (c *Redshift) DeleteHsmClientCertificateRequest(input *DeleteHsmClientCerti
 		input = &DeleteHsmClientCertificateInput{}
 	}
 
+	output = &DeleteHsmClientCertificateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteHsmClientCertificateOutput{}
-	req.Data = output
 	return
 }
 
@@ -1834,11 +1814,10 @@ func (c *Redshift) DeleteHsmConfigurationRequest(input *DeleteHsmConfigurationIn
 		input = &DeleteHsmConfigurationInput{}
 	}
 
+	output = &DeleteHsmConfigurationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteHsmConfigurationOutput{}
-	req.Data = output
 	return
 }
 
@@ -1906,11 +1885,10 @@ func (c *Redshift) DeleteSnapshotCopyGrantRequest(input *DeleteSnapshotCopyGrant
 		input = &DeleteSnapshotCopyGrantInput{}
 	}
 
+	output = &DeleteSnapshotCopyGrantOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSnapshotCopyGrantOutput{}
-	req.Data = output
 	return
 }
 
@@ -1979,11 +1957,10 @@ func (c *Redshift) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Reque
 		input = &DeleteTagsInput{}
 	}
 
+	output = &DeleteTagsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteTagsOutput{}
-	req.Data = output
 	return
 }
 
@@ -2057,9 +2034,8 @@ func (c *Redshift) DescribeClusterParameterGroupsRequest(input *DescribeClusterP
 		input = &DescribeClusterParameterGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClusterParameterGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2175,9 +2151,8 @@ func (c *Redshift) DescribeClusterParametersRequest(input *DescribeClusterParame
 		input = &DescribeClusterParametersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClusterParametersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2283,9 +2258,8 @@ func (c *Redshift) DescribeClusterSecurityGroupsRequest(input *DescribeClusterSe
 		input = &DescribeClusterSecurityGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClusterSecurityGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2400,9 +2374,8 @@ func (c *Redshift) DescribeClusterSnapshotsRequest(input *DescribeClusterSnapsho
 		input = &DescribeClusterSnapshotsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClusterSnapshotsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2514,9 +2487,8 @@ func (c *Redshift) DescribeClusterSubnetGroupsRequest(input *DescribeClusterSubn
 		input = &DescribeClusterSubnetGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClusterSubnetGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2627,9 +2599,8 @@ func (c *Redshift) DescribeClusterVersionsRequest(input *DescribeClusterVersions
 		input = &DescribeClusterVersionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClusterVersionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2723,9 +2694,8 @@ func (c *Redshift) DescribeClustersRequest(input *DescribeClustersInput) (req *r
 		input = &DescribeClustersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClustersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2836,9 +2806,8 @@ func (c *Redshift) DescribeDefaultClusterParametersRequest(input *DescribeDefaul
 		input = &DescribeDefaultClusterParametersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDefaultClusterParametersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2926,9 +2895,8 @@ func (c *Redshift) DescribeEventCategoriesRequest(input *DescribeEventCategories
 		input = &DescribeEventCategoriesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEventCategoriesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2995,9 +2963,8 @@ func (c *Redshift) DescribeEventSubscriptionsRequest(input *DescribeEventSubscri
 		input = &DescribeEventSubscriptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEventSubscriptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3095,9 +3062,8 @@ func (c *Redshift) DescribeEventsRequest(input *DescribeEventsInput) (req *reque
 		input = &DescribeEventsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEventsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3190,9 +3156,8 @@ func (c *Redshift) DescribeHsmClientCertificatesRequest(input *DescribeHsmClient
 		input = &DescribeHsmClientCertificatesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeHsmClientCertificatesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3302,9 +3267,8 @@ func (c *Redshift) DescribeHsmConfigurationsRequest(input *DescribeHsmConfigurat
 		input = &DescribeHsmConfigurationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeHsmConfigurationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3408,9 +3372,8 @@ func (c *Redshift) DescribeLoggingStatusRequest(input *DescribeLoggingStatusInpu
 		input = &DescribeLoggingStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &LoggingStatus{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3481,9 +3444,8 @@ func (c *Redshift) DescribeOrderableClusterOptionsRequest(input *DescribeOrderab
 		input = &DescribeOrderableClusterOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeOrderableClusterOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3581,9 +3543,8 @@ func (c *Redshift) DescribeReservedNodeOfferingsRequest(input *DescribeReservedN
 		input = &DescribeReservedNodeOfferingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedNodeOfferingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3690,9 +3651,8 @@ func (c *Redshift) DescribeReservedNodesRequest(input *DescribeReservedNodesInpu
 		input = &DescribeReservedNodesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedNodesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3781,9 +3741,8 @@ func (c *Redshift) DescribeResizeRequest(input *DescribeResizeInput) (req *reque
 		input = &DescribeResizeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeResizeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3856,9 +3815,8 @@ func (c *Redshift) DescribeSnapshotCopyGrantsRequest(input *DescribeSnapshotCopy
 		input = &DescribeSnapshotCopyGrantsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSnapshotCopyGrantsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3931,9 +3889,8 @@ func (c *Redshift) DescribeTableRestoreStatusRequest(input *DescribeTableRestore
 		input = &DescribeTableRestoreStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTableRestoreStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4004,9 +3961,8 @@ func (c *Redshift) DescribeTagsRequest(input *DescribeTagsInput) (req *request.R
 		input = &DescribeTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4095,9 +4051,8 @@ func (c *Redshift) DisableLoggingRequest(input *DisableLoggingInput) (req *reque
 		input = &DisableLoggingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &LoggingStatus{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4162,9 +4117,8 @@ func (c *Redshift) DisableSnapshotCopyRequest(input *DisableSnapshotCopyInput) (
 		input = &DisableSnapshotCopyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisableSnapshotCopyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4242,9 +4196,8 @@ func (c *Redshift) EnableLoggingRequest(input *EnableLoggingInput) (req *request
 		input = &EnableLoggingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &LoggingStatus{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4325,9 +4278,8 @@ func (c *Redshift) EnableSnapshotCopyRequest(input *EnableSnapshotCopyInput) (re
 		input = &EnableSnapshotCopyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnableSnapshotCopyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4421,9 +4373,8 @@ func (c *Redshift) ModifyClusterRequest(input *ModifyClusterInput) (req *request
 		input = &ModifyClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4544,9 +4495,8 @@ func (c *Redshift) ModifyClusterIamRolesRequest(input *ModifyClusterIamRolesInpu
 		input = &ModifyClusterIamRolesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyClusterIamRolesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4616,9 +4566,8 @@ func (c *Redshift) ModifyClusterParameterGroupRequest(input *ModifyClusterParame
 		input = &ModifyClusterParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ClusterParameterGroupNameMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4691,9 +4640,8 @@ func (c *Redshift) ModifyClusterSubnetGroupRequest(input *ModifyClusterSubnetGro
 		input = &ModifyClusterSubnetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyClusterSubnetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4780,9 +4728,8 @@ func (c *Redshift) ModifyEventSubscriptionRequest(input *ModifyEventSubscription
 		input = &ModifyEventSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyEventSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4878,9 +4825,8 @@ func (c *Redshift) ModifySnapshotCopyRetentionPeriodRequest(input *ModifySnapsho
 		input = &ModifySnapshotCopyRetentionPeriodInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifySnapshotCopyRetentionPeriodOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4954,9 +4900,8 @@ func (c *Redshift) PurchaseReservedNodeOfferingRequest(input *PurchaseReservedNo
 		input = &PurchaseReservedNodeOfferingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseReservedNodeOfferingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5039,9 +4984,8 @@ func (c *Redshift) RebootClusterRequest(input *RebootClusterInput) (req *request
 		input = &RebootClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RebootClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5114,9 +5058,8 @@ func (c *Redshift) ResetClusterParameterGroupRequest(input *ResetClusterParamete
 		input = &ResetClusterParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ClusterParameterGroupNameMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5188,9 +5131,8 @@ func (c *Redshift) RestoreFromClusterSnapshotRequest(input *RestoreFromClusterSn
 		input = &RestoreFromClusterSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestoreFromClusterSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5340,9 +5282,8 @@ func (c *Redshift) RestoreTableFromClusterSnapshotRequest(input *RestoreTableFro
 		input = &RestoreTableFromClusterSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestoreTableFromClusterSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5439,9 +5380,8 @@ func (c *Redshift) RevokeClusterSecurityGroupIngressRequest(input *RevokeCluster
 		input = &RevokeClusterSecurityGroupIngressInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RevokeClusterSecurityGroupIngressOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5517,9 +5457,8 @@ func (c *Redshift) RevokeSnapshotAccessRequest(input *RevokeSnapshotAccessInput)
 		input = &RevokeSnapshotAccessInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RevokeSnapshotAccessOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5597,9 +5536,8 @@ func (c *Redshift) RotateEncryptionKeyRequest(input *RotateEncryptionKeyInput) (
 		input = &RotateEncryptionKeyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RotateEncryptionKeyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

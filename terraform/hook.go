@@ -42,7 +42,7 @@ type Hook interface {
 	PreProvisionResource(*InstanceInfo, *InstanceState) (HookAction, error)
 	PostProvisionResource(*InstanceInfo, *InstanceState) (HookAction, error)
 	PreProvision(*InstanceInfo, string) (HookAction, error)
-	PostProvision(*InstanceInfo, string) (HookAction, error)
+	PostProvision(*InstanceInfo, string, error) (HookAction, error)
 	ProvisionOutput(*InstanceInfo, string, string)
 
 	// PreRefresh and PostRefresh are called before and after a single
@@ -92,7 +92,7 @@ func (*NilHook) PreProvision(*InstanceInfo, string) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostProvision(*InstanceInfo, string) (HookAction, error) {
+func (*NilHook) PostProvision(*InstanceInfo, string, error) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

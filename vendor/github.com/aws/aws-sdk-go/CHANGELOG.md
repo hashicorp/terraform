@@ -1,3 +1,119 @@
+Release v1.6.18 (2017-01-27)
+===
+
+Service Client Updates
+---
+* `service/clouddirectory`: Adds new service
+  * Amazon Cloud Directory is a highly scalable, high performance, multi-tenant directory service in the cloud. Its web-based directories make it easy for you to organize and manage application resources such as users, groups, locations, devices, policies, and the rich relationships between them.
+* `service/codedeploy`: Updates service API, documentation, and paginators
+  * This release of AWS CodeDeploy introduces support for blue/green deployments. In a blue/green deployment, the current set of instances in a deployment group is replaced by new instances that have the latest application revision installed on them. After traffic is rerouted behind a load balancer to the replacement instances, the original instances can be terminated automatically or kept running for other uses.
+* `service/ec2`: Updates service API and documentation
+  * Adds instance health check functionality to replace unhealthy EC2 Spot fleet instances with fresh ones.
+* `service/rds`: Updates service API and documentation
+  * Snapshot Engine Version Upgrade
+
+Release v1.6.17 (2017-01-25)
+===
+
+Service Client Updates
+---
+* `service/elbv2`: Updates service API, documentation, and paginators
+  * Application Load Balancers now support native Internet Protocol version 6 (IPv6) in an Amazon Virtual Private Cloud (VPC). With this ability, clients can now connect to the Application Load Balancer in a dual-stack mode via either IPv4 or IPv6.
+* `service/rds`: Updates service API and documentation
+  * Cross Region Read Replica Copying (CreateDBInstanceReadReplica)
+
+Release v1.6.16 (2017-01-24)
+===
+
+Service Client Updates
+---
+* `service/codebuild`: Updates service documentation and paginators
+  * Documentation updates
+* `service/codecommit`: Updates service API, documentation, and paginators
+  * AWS CodeCommit now includes the option to view the differences between a commit and its parent commit from within the console. You can view the differences inline (Unified view) or side by side (Split view). To view information about the differences between a commit and something other than its parent, you can use the AWS CLI and the get-differences and get-blob commands, or you can use the GetDifferences and GetBlob APIs.
+* `service/ecs`: Updates service API and documentation
+  * Amazon ECS now supports a state for container instances that can be used to drain a container instance in preparation for maintenance or cluster scale down.
+
+Release v1.6.15 (2017-01-20)
+===
+
+Service Client Updates
+---
+* `service/acm`: Updates service API, documentation, and paginators
+  * Update for AWS Certificate Manager: Updated response elements for DescribeCertificate API in support of managed renewal
+* `service/health`: Updates service documentation
+
+Release v1.6.14 (2017-01-19)
+===
+
+Service Client Updates
+---
+* `service/ec2`: Updates service API, documentation, and paginators
+  * Amazon EC2 Spot instances now support dedicated tenancy, providing the ability to run Spot instances single-tenant manner on physically isolated hardware within a VPC to satisfy security, privacy, or other compliance requirements. Dedicated Spot instances can be requested using RequestSpotInstances and RequestSpotFleet.
+
+Release v1.6.13 (2017-01-18)
+===
+
+Service Client Updates
+---
+* `service/rds`: Updates service API, documentation, and paginators
+
+Release v1.6.12 (2017-01-17)
+===
+
+Service Client Updates
+---
+* `service/dynamodb`: Updates service API, documentation, and paginators
+  * Tagging Support for Amazon DynamoDB Tables and Indexes
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/glacier`: Updates service API, paginators, and examples
+  * Doc-only Update for Glacier: Added code snippets
+* `service/polly`: Updates service documentation and examples
+  * Doc-only update for Amazon Polly -- added snippets
+* `service/rekognition`: Updates service documentation and paginators
+  * Added code samples to Rekognition reference topics.
+* `service/route53`: Updates service API and paginators
+  * Add ca-central-1 and eu-west-2 enum values to CloudWatchRegion enum
+
+Release v1.6.11 (2017-01-16)
+===
+
+Service Client Updates
+---
+* `service/configservice`: Updates service API, documentation, and paginators
+* `service/costandusagereportservice`: Adds new service
+  * The AWS Cost and Usage Report Service API allows you to enable and disable the Cost & Usage report, as well as modify the report name, the data granularity, and the delivery preferences.
+* `service/dynamodb`: Updates service API, documentation, and examples
+  * Snippets for the DynamoDB API.
+* `service/elasticache`: Updates service API, documentation, and examples
+  * Adds new code examples.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+
+Release v1.6.10 (2017-01-04)
+===
+
+Service Client Updates
+---
+* `service/configservice`: Updates service API and documentation
+  * AWSConfig is planning to add support for OversizedConfigurationItemChangeNotification message type in putConfigRule. After this release customers can use/write rules based on OversizedConfigurationItemChangeNotification mesage type.
+* `service/efs`: Updates service API, documentation, and examples
+  * Doc-only Update for EFS: Added code snippets
+* `service/iam`: Updates service documentation and examples
+* `service/lambda`: Updates service documentation and examples
+  * Doc only updates for Lambda: Added code snippets
+* `service/marketplacecommerceanalytics`: Updates service API and documentation
+  * Added support for data set disbursed_amount_by_instance_hours, with historical data available starting 2012-09-04. New data is published to this data set every 30 days.
+* `service/rds`: Updates service documentation
+  * Updated documentation for CopyDBSnapshot.
+* `service/rekognition`: Updates service documentation and examples
+  * Doc-only Update for Rekognition: Added code snippets
+* `service/snowball`: Updates service examples
+* `service/dynamodbstreams`: Updates service API and examples
+  * Doc-only Update for DynamoDB Streams:  Added code snippets
+
+SDK Feature
+---
+* `private/model/api`: Increasing the readability of code generated files. (#1024)
 Release v1.6.9 (2016-12-30)
 ===
 
@@ -71,6 +187,7 @@ SDK Bug Fixes
 SDK Feature
 ---
 * `private/model/api`: Adds crosslinking to service documentation (#1010)
+
 Release v1.6.4 (2016-12-15)
 ===
 
