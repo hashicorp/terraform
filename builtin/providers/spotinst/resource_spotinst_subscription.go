@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/spotinst/spotinst-sdk-go/spotinst"
+	"github.com/spotinst/spotinst-sdk-go/spotinst/util/stringutil"
 )
 
 func resourceSpotinstSubscription() *schema.Resource {
@@ -55,7 +56,7 @@ func resourceSpotinstSubscriptionCreate(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] Subscription create configuration: %#v\n", newSubscription)
+	log.Printf("[DEBUG] Subscription create configuration: %s\n", stringutil.Stringify(newSubscription))
 	input := &spotinst.CreateSubscriptionInput{Subscription: newSubscription}
 	resp, err := client.SubscriptionService.Create(input)
 	if err != nil {
@@ -116,7 +117,7 @@ func resourceSpotinstSubscriptionUpdate(d *schema.ResourceData, meta interface{}
 	}
 
 	if update {
-		log.Printf("[DEBUG] Subscription update configuration: %#v\n", subscription)
+		log.Printf("[DEBUG] Subscription update configuration: %s\n", stringutil.Stringify(subscription))
 		input := &spotinst.UpdateSubscriptionInput{Subscription: subscription}
 		if _, err := client.SubscriptionService.Update(input); err != nil {
 			return fmt.Errorf("Error updating subscription %s: %s", d.Id(), err)

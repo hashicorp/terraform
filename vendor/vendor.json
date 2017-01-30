@@ -2497,8 +2497,14 @@
 		{
 			"checksumSHA1": "5iia8GkSb2i1JDlaqjPYAUJm2Ls=",
 			"path": "github.com/spotinst/spotinst-sdk-go/spotinst",
-			"revision": "fd2d8956ec967261b0c8efb4a958d7bb2b07a753",
-			"revisionTime": "2017-01-26T12:44:54Z"
+			"revision": "cee48cfd52ede8117d77b0907bd4c95dfe5aa651",
+			"revisionTime": "2017-01-26T17:17:44Z"
+		},
+		{
+			"checksumSHA1": "/oApHzKZwKYrVFEosDhHV4y3sbQ=",
+			"path": "github.com/spotinst/spotinst-sdk-go/spotinst/util/stringutil",
+			"revision": "cee48cfd52ede8117d77b0907bd4c95dfe5aa651",
+			"revisionTime": "2017-01-26T17:17:44Z"
 		},
 		{
 			"checksumSHA1": "F8PDlBY72o5HHNLXpB4X1itP70w=",

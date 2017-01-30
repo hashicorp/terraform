@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/spotinst/spotinst-sdk-go/spotinst"
+	"github.com/spotinst/spotinst-sdk-go/spotinst/util/stringutil"
 )
 
 func resourceSpotinstHealthCheck() *schema.Resource {
@@ -210,7 +211,7 @@ func resourceSpotinstHealthCheckUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	if update {
-		log.Printf("[DEBUG] HealthCheck update configuration: %#v\n", healthCheck)
+		log.Printf("[DEBUG] HealthCheck update configuration: %s\n", stringutil.Stringify(healthCheck))
 		input := &spotinst.UpdateHealthCheckInput{HealthCheck: healthCheck}
 		if _, err := client.HealthCheckService.Update(input); err != nil {
 			return fmt.Errorf("Error updating health check %s: %s", d.Id(), err)
@@ -291,7 +292,7 @@ func expandHealthCheckConfig(data interface{}) (*spotinst.HealthCheckConfig, err
 		check.Timeout = spotinst.Int(v)
 	}
 
-	log.Printf("[DEBUG] HealthCheck check configuration: %#v\n", check)
+	log.Printf("[DEBUG] HealthCheck check configuration: %s\n", stringutil.Stringify(check))
 	return check, nil
 }
 
@@ -309,7 +310,7 @@ func expandHealthCheckThreshold(data interface{}) (*spotinst.HealthCheckThreshol
 		threshold.Unhealthy = spotinst.Int(v)
 	}
 
-	log.Printf("[DEBUG] HealthCheck threshold configuration: %#v\n", threshold)
+	log.Printf("[DEBUG] HealthCheck threshold configuration: %s\n", stringutil.Stringify(threshold))
 	return threshold, nil
 }
 
@@ -327,6 +328,6 @@ func expandHealthCheckProxy(data interface{}) (*spotinst.HealthCheckProxy, error
 		proxy.Port = spotinst.Int(v)
 	}
 
-	log.Printf("[DEBUG] HealthCheck proxy configuration: %#v\n", proxy)
+	log.Printf("[DEBUG] HealthCheck proxy configuration: %s\n", stringutil.Stringify(proxy))
 	return proxy, nil
 }

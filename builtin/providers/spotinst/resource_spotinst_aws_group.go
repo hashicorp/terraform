@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/spotinst/spotinst-sdk-go/spotinst"
+	"github.com/spotinst/spotinst-sdk-go/spotinst/util/stringutil"
 )
 
 func resourceSpotinstAwsGroup() *schema.Resource {
@@ -639,7 +640,7 @@ func resourceSpotinstAwsGroupCreate(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] AwsGroup create configuration: %#v\n", newAwsGroup)
+	log.Printf("[DEBUG] AwsGroup create configuration: %s\n", stringutil.Stringify(newAwsGroup))
 	input := &spotinst.CreateAwsGroupInput{Group: newAwsGroup}
 	resp, err := client.AwsGroupService.Create(input)
 	if err != nil {
@@ -685,13 +686,6 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 			}
 		}
 
-		// Set scheduled tasks.
-		if g.Scheduling.Tasks != nil {
-			if err := d.Set("scheduled_task", flattenAwsGroupScheduledTasks(g.Scheduling.Tasks)); err != nil {
-				return fmt.Errorf("Error setting scheduled tasks configuration: %#v", err)
-			}
-		}
-
 		// Set scaling up policies.
 		if g.Scaling.Up != nil {
 			if err := d.Set("scaling_up_policy", flattenAwsGroupScalingPolicies(g.Scaling.Up)); err != nil {
@@ -703,6 +697,13 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 		if g.Scaling.Down != nil {
 			if err := d.Set("scaling_down_policy", flattenAwsGroupScalingPolicies(g.Scaling.Down)); err != nil {
 				return fmt.Errorf("Error setting scaling down policies configuration: %#v", err)
+			}
+		}
+
+		// Set scheduled tasks.
+		if g.Scheduling.Tasks != nil {
+			if err := d.Set("scheduled_task", flattenAwsGroupScheduledTasks(g.Scheduling.Tasks)); err != nil {
+				return fmt.Errorf("Error setting scheduled tasks configuration: %#v", err)
 			}
 		}
 
@@ -823,15 +824,15 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 
 	if d.HasChange("launch_specification") {
 		if v, ok := d.GetOk("launch_specification"); ok {
-			if lc, err := expandAwsGroupLaunchSpecification(v); err != nil {
+			lc, err := expandAwsGroupLaunchSpecification(v)
+			if err != nil {
 				return err
-			} else {
-				if group.Compute == nil {
-					group.Compute = &spotinst.AwsGroupCompute{}
-				}
-				group.Compute.LaunchSpecification = lc
-				update = true
 			}
+			if group.Compute == nil {
+				group.Compute = &spotinst.AwsGroupCompute{}
+			}
+			group.Compute.LaunchSpecification = lc
+			update = true
 		}
 	}
 
@@ -1145,7 +1146,7 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if update {
-		log.Printf("[DEBUG] AwsGroup update configuration: %#v\n", group)
+		log.Printf("[DEBUG] AwsGroup update configuration: %s\n", stringutil.Stringify(group))
 		input := &spotinst.UpdateAwsGroupInput{Group: group}
 		if _, err := client.AwsGroupService.Update(input); err != nil {
 			return fmt.Errorf("Error updating group %s: %s", d.Id(), err)
@@ -1580,7 +1581,7 @@ func expandAwsGroupCapacity(data interface{}) (*spotinst.AwsGroupCapacity, error
 		capacity.Unit = spotinst.String(v)
 	}
 
-	log.Printf("[DEBUG] AwsGroup capacity configuration: %#v\n", capacity)
+	log.Printf("[DEBUG] AwsGroup capacity configuration: %s\n", stringutil.Stringify(capacity))
 	return capacity, nil
 }
 
@@ -1592,17 +1593,19 @@ func expandAwsGroupStrategy(data interface{}) (*spotinst.AwsGroupStrategy, error
 
 	if v, ok := m["risk"].(float64); ok && v >= 0 {
 		strategy.Risk = spotinst.Float64(v)
+		strategy.OnDemandCount = nil
 	}
 
 	if v, ok := m["ondemand_count"].(int); ok && v >= 0 {
 		strategy.OnDemandCount = spotinst.Int(v)
+		strategy.Risk = nil
 	}
 
 	if v, ok := m["availability_vs_cost"].(string); ok && v != "" {
 		strategy.AvailabilityVsCost = spotinst.String(v)
 	}
 
-	if v, ok := m["draining_timeout"].(int); ok && v >= 0 {
+	if v, ok := m["draining_timeout"].(int); ok && v > 0 {
 		strategy.DrainingTimeout = spotinst.Int(v)
 	}
 
@@ -1614,7 +1617,7 @@ func expandAwsGroupStrategy(data interface{}) (*spotinst.AwsGroupStrategy, error
 		strategy.FallbackToOnDemand = spotinst.Bool(v)
 	}
 
-	log.Printf("[DEBUG] AwsGroup strategy configuration: %#v\n", strategy)
+	log.Printf("[DEBUG] AwsGroup strategy configuration: %s\n", stringutil.Stringify(strategy))
 	return strategy, nil
 }
 
@@ -1683,7 +1686,7 @@ func expandAwsGroupScalingPolicies(data interface{}) ([]*spotinst.AwsGroupScalin
 			policy.Dimensions = dimensions
 		}
 
-		log.Printf("[DEBUG] AwsGroup scaling policy configuration: %#v\n", policy)
+		log.Printf("[DEBUG] AwsGroup scaling policy configuration: %s\n", stringutil.Stringify(policy))
 		policies = append(policies, policy)
 	}
 
@@ -1697,7 +1700,7 @@ func expandAwsGroupScalingPolicyDimensions(list map[string]interface{}) []*spoti
 			Name:  spotinst.String(name),
 			Value: spotinst.String(val.(string)),
 		}
-		log.Printf("[DEBUG] AwsGroup scaling policy dimension: %#v\n", dimension)
+		log.Printf("[DEBUG] AwsGroup scaling policy dimension: %s\n", stringutil.Stringify(dimension))
 		dimensions = append(dimensions, dimension)
 	}
 	return dimensions
@@ -1735,7 +1738,7 @@ func expandAwsGroupScheduledTasks(data interface{}) ([]*spotinst.AwsGroupSchedul
 			task.ScaleMaxCapacity = spotinst.Int(v)
 		}
 
-		log.Printf("[DEBUG] AwsGroup scheduled task configuration: %#v\n", task)
+		log.Printf("[DEBUG] AwsGroup scheduled task configuration: %s\n", stringutil.Stringify(task))
 		tasks = append(tasks, task)
 	}
 
@@ -1758,7 +1761,7 @@ func expandAwsGroupAvailabilityZones(data interface{}) ([]*spotinst.AwsGroupComp
 			zone.SubnetID = spotinst.String(v)
 		}
 
-		log.Printf("[DEBUG] AwsGroup availability zone configuration: %#v\n", zone)
+		log.Printf("[DEBUG] AwsGroup availability zone configuration: %s\n", stringutil.Stringify(zone))
 		zones = append(zones, zone)
 	}
 
@@ -1779,7 +1782,7 @@ func expandAwsGroupAvailabilityZonesSlice(data interface{}) ([]*spotinst.AwsGrou
 			if len(parts) == 2 && parts[1] != "" {
 				zone.SubnetID = spotinst.String(parts[1])
 			}
-			log.Printf("[DEBUG] AwsGroup availability zone configuration: %#v\n", zone)
+			log.Printf("[DEBUG] AwsGroup availability zone configuration: %s\n", stringutil.Stringify(zone))
 			zones = append(zones, zone)
 		}
 	}
@@ -1807,7 +1810,7 @@ func expandAwsGroupEBSVolumePool(data interface{}) ([]*spotinst.AwsGroupComputeE
 			volume.VolumeIDs = ids
 		}
 
-		log.Printf("[DEBUG] AwsGroup EBS volume (pool) configuration: %#v\n", volume)
+		log.Printf("[DEBUG] AwsGroup EBS volume (pool) configuration: %s\n", stringutil.Stringify(volume))
 		volumes = append(volumes, volume)
 	}
 
@@ -1826,7 +1829,7 @@ func expandAwsGroupSignals(data interface{}) ([]*spotinst.AwsGroupStrategySignal
 			signal.Name = spotinst.String(strings.ToUpper(v))
 		}
 
-		log.Printf("[DEBUG] AwsGroup signal configuration: %#v\n", signal)
+		log.Printf("[DEBUG] AwsGroup signal configuration: %s\n", stringutil.Stringify(signal))
 		signals = append(signals, signal)
 	}
 
@@ -1849,7 +1852,7 @@ func expandAwsGroupInstanceTypes(data interface{}) (*spotinst.AwsGroupComputeIns
 		types.Spot = it
 	}
 
-	log.Printf("[DEBUG] AwsGroup instance types configuration: %#v\n", types)
+	log.Printf("[DEBUG] AwsGroup instance types configuration: %s\n", stringutil.Stringify(types))
 	return types, nil
 }
 
@@ -1901,7 +1904,7 @@ func expandAwsGroupNetworkInterfaces(data interface{}) ([]*spotinst.AwsGroupComp
 			iface.SecurityGroupsIDs = ids
 		}
 
-		log.Printf("[DEBUG] AwsGroup network interface configuration: %#v\n", iface)
+		log.Printf("[DEBUG] AwsGroup network interface configuration: %s\n", stringutil.Stringify(iface))
 		interfaces = append(interfaces, iface)
 	}
 
@@ -1924,7 +1927,7 @@ func expandAwsGroupEphemeralBlockDevices(data interface{}) ([]*spotinst.AwsGroup
 			device.VirtualName = spotinst.String(v)
 		}
 
-		log.Printf("[DEBUG] AwsGroup ephemeral block device configuration: %#v\n", device)
+		log.Printf("[DEBUG] AwsGroup ephemeral block device configuration: %s\n", stringutil.Stringify(device))
 		devices = append(devices, device)
 	}
 
@@ -1967,7 +1970,7 @@ func expandAwsGroupEBSBlockDevices(data interface{}) ([]*spotinst.AwsGroupComput
 			device.EBS.IOPS = spotinst.Int(v)
 		}
 
-		log.Printf("[DEBUG] AwsGroup elastic block device configuration: %#v\n", device)
+		log.Printf("[DEBUG] AwsGroup elastic block device configuration: %s\n", stringutil.Stringify(device))
 		devices = append(devices, device)
 	}
 
@@ -2039,7 +2042,7 @@ func expandAwsGroupLaunchSpecification(data interface{}) (*spotinst.AwsGroupComp
 		lc.LoadBalancerNames = names
 	}
 
-	log.Printf("[DEBUG] AwsGroup launch specification configuration: %#v\n", lc)
+	log.Printf("[DEBUG] AwsGroup launch specification configuration: %s\n", stringutil.Stringify(lc))
 	return lc, nil
 }
 
@@ -2063,7 +2066,7 @@ func expandAwsGroupLoadBalancer(data interface{}) ([]*spotinst.AwsGroupComputeLo
 			lb.Type = spotinst.String(strings.ToUpper(v))
 		}
 
-		log.Printf("[DEBUG] AwsGroup load balancer configuration: %#v\n", lb)
+		log.Printf("[DEBUG] AwsGroup load balancer configuration: %s\n", stringutil.Stringify(lb))
 		lbs = append(lbs, lb)
 	}
 
@@ -2088,7 +2091,7 @@ func expandAwsGroupRancherIntegration(data interface{}) (*spotinst.AwsGroupRanch
 		i.SecretKey = spotinst.String(v)
 	}
 
-	log.Printf("[DEBUG] AwsGroup Rancher integration configuration: %#v\n", i)
+	log.Printf("[DEBUG] AwsGroup Rancher integration configuration: %s\n", stringutil.Stringify(i))
 	return i, nil
 }
 
@@ -2102,7 +2105,7 @@ func expandAwsGroupElasticBeanstalkIntegration(data interface{}) (*spotinst.AwsG
 		i.EnvironmentID = spotinst.String(v)
 	}
 
-	log.Printf("[DEBUG] AwsGroup Elastic Beanstalk integration configuration: %#v\n", i)
+	log.Printf("[DEBUG] AwsGroup Elastic Beanstalk integration configuration:  %s\n", stringutil.Stringify(i))
 	return i, nil
 }
 
@@ -2116,7 +2119,7 @@ func expandAwsGroupEC2ContainerServiceIntegration(data interface{}) (*spotinst.A
 		i.ClusterName = spotinst.String(v)
 	}
 
-	log.Printf("[DEBUG] AwsGroup ECS integration configuration: %#v\n", i)
+	log.Printf("[DEBUG] AwsGroup ECS integration configuration:  %s\n", stringutil.Stringify(i))
 	return i, nil
 }
 
@@ -2134,7 +2137,7 @@ func expandAwsGroupKubernetesIntegration(data interface{}) (*spotinst.AwsGroupKu
 		i.Token = spotinst.String(v)
 	}
 
-	log.Printf("[DEBUG] AwsGroup Kubernetes integration configuration: %#v\n", i)
+	log.Printf("[DEBUG] AwsGroup Kubernetes integration configuration:  %s\n", stringutil.Stringify(i))
 	return i, nil
 }
 
@@ -2148,7 +2151,7 @@ func expandAwsGroupMesosphereIntegration(data interface{}) (*spotinst.AwsGroupMe
 		i.Server = spotinst.String(v)
 	}
 
-	log.Printf("[DEBUG] AwsGroup Mesosphere integration configuration: %#v\n", i)
+	log.Printf("[DEBUG] AwsGroup Mesosphere integration configuration: %s\n", stringutil.Stringify(i))
 	return i, nil
 }
 
@@ -2158,7 +2161,7 @@ func expandAwsGroupElasticIPs(data interface{}) ([]string, error) {
 	eips := make([]string, 0, len(list))
 	for _, str := range list {
 		if eip, ok := str.(string); ok {
-			log.Printf("[DEBUG] AwsGroup elastic IP configuration: %#v\n", eip)
+			log.Printf("[DEBUG] AwsGroup elastic IP configuration: %s\n", stringutil.Stringify(eip))
 			eips = append(eips, eip)
 		}
 	}
@@ -2176,7 +2179,7 @@ func expandAwsGroupTags(data interface{}) ([]*spotinst.AwsGroupComputeTag, error
 			Value: spotinst.String(v.(string)),
 		}
 
-		log.Printf("[DEBUG] AwsGroup tag configuration: %#v\n", tag)
+		log.Printf("[DEBUG] AwsGroup tag configuration: %s\n", stringutil.Stringify(tag))
 		tags = append(tags, tag)
 	}
 
