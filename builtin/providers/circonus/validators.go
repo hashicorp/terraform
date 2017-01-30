@@ -181,7 +181,7 @@ func _ValidateDurationMax(attrName _SchemaAttr, maxDuration string) func(v inter
 func _ValidateFloatMin(attrName _SchemaAttr, min float64) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		if v.(float64) < min {
-			errors = append(errors, fmt.Errorf("Invalid %s specified (%d): minimum value must be %s", attrName, v.(float64), min))
+			errors = append(errors, fmt.Errorf("Invalid %s specified (%f): minimum value must be %f", attrName, v.(float64), min))
 		}
 
 		return warnings, errors
@@ -191,7 +191,7 @@ func _ValidateFloatMin(attrName _SchemaAttr, min float64) func(v interface{}, ke
 func _ValidateFloatMax(attrName _SchemaAttr, max float64) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		if v.(float64) > max {
-			errors = append(errors, fmt.Errorf("Invalid %s specified (%d): maximum value must be %s", attrName, v.(float64), max))
+			errors = append(errors, fmt.Errorf("Invalid %s specified (%f): maximum value must be %f", attrName, v.(float64), max))
 		}
 
 		return warnings, errors
@@ -253,7 +253,7 @@ func _ValidateGraphAxisOptions(v interface{}, key string) (warnings []string, er
 func _ValidateIntMin(attrName _SchemaAttr, min int) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		if v.(int) < min {
-			errors = append(errors, fmt.Errorf("Invalid %s specified (%d): minimum value must be %s", attrName, v.(int), min))
+			errors = append(errors, fmt.Errorf("Invalid %s specified (%d): minimum value must be %d", attrName, v.(int), min))
 		}
 
 		return warnings, errors
@@ -263,7 +263,7 @@ func _ValidateIntMin(attrName _SchemaAttr, min int) func(v interface{}, key stri
 func _ValidateIntMax(attrName _SchemaAttr, max int) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		if v.(int) > max {
-			errors = append(errors, fmt.Errorf("Invalid %s specified (%d): maximum value must be %s", attrName, v.(int), max))
+			errors = append(errors, fmt.Errorf("Invalid %s specified (%d): maximum value must be %d", attrName, v.(int), max))
 		}
 
 		return warnings, errors
@@ -384,7 +384,7 @@ func _ValidateHTTPURL(attrName _SchemaAttr, checkFlags _URLParseFlags) func(v in
 		if checkFlags&_URLWithoutPort != 0 {
 			hostParts := strings.SplitN(u.Host, ":", 2)
 			if len(hostParts) != 1 {
-				errors = append(errors, fmt.Errorf("Port is present on URL %q (HINT: drop the :%d)", v.(string), hostParts[1]))
+				errors = append(errors, fmt.Errorf("Port is present on URL %q (HINT: drop the :%s)", v.(string), hostParts[1]))
 			}
 		}
 
