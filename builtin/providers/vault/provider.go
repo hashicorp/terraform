@@ -2,7 +2,9 @@ package vault
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -22,7 +24,7 @@ func Provider() terraform.ResourceProvider {
 			"token": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("VAULT_TOKEN", nil),
+				DefaultFunc: schema.EnvDefaultFunc("VAULT_TOKEN", ""),
 				Description: "Token to use to authenticate to Vault.",
 			},
 			"ca_cert_file": &schema.Schema{
@@ -122,6 +124,18 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, fmt.Errorf("failed to configure Vault API: %s", err)
 	}
 
+	token := d.Get("token").(string)
+	if token == "" {
+		// Use the vault CLI's token, if present.
+		tokenFile := fmt.Sprintf("%s/.vault-token", os.Getenv("HOME"))
+		tokenBytes, err := ioutil.ReadFile(tokenFile)
+		if err != nil {
+			return nil, fmt.Errorf("No vault token found: %s", err)
+		}
+
+		token = string(tokenBytes)
+	}
+
 	// In order to enforce our relatively-short lease TTL, we derive a
 	// temporary child token that inherits all of the policies of the
 	// token we were given but expires after max_lease_ttl_seconds.
@@ -135,7 +149,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	// can explicitly be revoked, and this limited scope won't apply to
 	// any secrets that are *written* by Terraform to Vault.
 
-	client.SetToken(d.Get("token").(string))
+	client.SetToken(token)
 	renewable := false
 	childTokenLease, err := client.Auth().Token().Create(&api.TokenCreateRequest{
 		DisplayName:    "terraform",
