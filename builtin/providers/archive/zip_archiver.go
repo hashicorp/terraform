@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 )
 
 type ZipArchiver struct {
@@ -83,6 +84,34 @@ func (a *ZipArchiver) ArchiveDir(indirname string) error {
 		return err
 	})
 
+}
+
+func (a *ZipArchiver) ArchiveMultiple(content map[string][]byte) error {
+	if err := a.open(); err != nil {
+		return err
+	}
+	defer a.close()
+
+	// Ensure files are processed in the same order so hashes don't change
+	keys := make([]string, len(content))
+	i := 0
+	for k := range content {
+		keys[i] = k
+		i++
+	}
+	sort.Strings(keys)
+
+	for _, filename := range keys {
+		f, err := a.writer.Create(filename)
+		if err != nil {
+			return err
+		}
+		_, err = f.Write(content[filename])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (a *ZipArchiver) open() error {

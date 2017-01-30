@@ -49,6 +49,7 @@ const (
 	AppstreamServiceID                    = "appstream"                    // Appstream.
 	Appstream2ServiceID                   = "appstream2"                   // Appstream2.
 	AutoscalingServiceID                  = "autoscaling"                  // Autoscaling.
+	BatchServiceID                        = "batch"                        // Batch.
 	BudgetsServiceID                      = "budgets"                      // Budgets.
 	CloudformationServiceID               = "cloudformation"               // Cloudformation.
 	CloudfrontServiceID                   = "cloudfront"                   // Cloudfront.
@@ -63,6 +64,7 @@ const (
 	CognitoIdpServiceID                   = "cognito-idp"                  // CognitoIdp.
 	CognitoSyncServiceID                  = "cognito-sync"                 // CognitoSync.
 	ConfigServiceID                       = "config"                       // Config.
+	CurServiceID                          = "cur"                          // Cur.
 	DatapipelineServiceID                 = "datapipeline"                 // Datapipeline.
 	DevicefarmServiceID                   = "devicefarm"                   // Devicefarm.
 	DirectconnectServiceID                = "directconnect"                // Directconnect.
@@ -320,6 +322,12 @@ var awsPartition = partition{
 				"us-west-2":      endpoint{},
 			},
 		},
+		"batch": service{
+
+			Endpoints: endpoints{
+				"us-east-1": endpoint{},
+			},
+		},
 		"budgets": service{
 			PartitionEndpoint: "aws-global",
 			IsRegionalized:    boxedFalse,
@@ -521,6 +529,12 @@ var awsPartition = partition{
 				"us-east-2":      endpoint{},
 				"us-west-1":      endpoint{},
 				"us-west-2":      endpoint{},
+			},
+		},
+		"cur": service{
+
+			Endpoints: endpoints{
+				"us-east-1": endpoint{},
 			},
 		},
 		"datapipeline": service{
@@ -1041,7 +1055,11 @@ var awsPartition = partition{
 			},
 		},
 		"metering.marketplace": service{
-
+			Defaults: endpoint{
+				CredentialScope: credentialScope{
+					Service: "aws-marketplace",
+				},
+			},
 			Endpoints: endpoints{
 				"ap-northeast-1": endpoint{},
 				"ap-southeast-1": endpoint{},

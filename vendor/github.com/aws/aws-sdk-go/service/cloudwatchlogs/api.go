@@ -50,11 +50,10 @@ func (c *CloudWatchLogs) CancelExportTaskRequest(input *CancelExportTaskInput) (
 		input = &CancelExportTaskInput{}
 	}
 
+	output = &CancelExportTaskOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CancelExportTaskOutput{}
-	req.Data = output
 	return
 }
 
@@ -129,9 +128,8 @@ func (c *CloudWatchLogs) CreateExportTaskRequest(input *CreateExportTaskInput) (
 		input = &CreateExportTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateExportTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -221,11 +219,10 @@ func (c *CloudWatchLogs) CreateLogGroupRequest(input *CreateLogGroupInput) (req 
 		input = &CreateLogGroupInput{}
 	}
 
+	output = &CreateLogGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateLogGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -312,11 +309,10 @@ func (c *CloudWatchLogs) CreateLogStreamRequest(input *CreateLogStreamInput) (re
 		input = &CreateLogStreamInput{}
 	}
 
+	output = &CreateLogStreamOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateLogStreamOutput{}
-	req.Data = output
 	return
 }
 
@@ -400,11 +396,10 @@ func (c *CloudWatchLogs) DeleteDestinationRequest(input *DeleteDestinationInput)
 		input = &DeleteDestinationInput{}
 	}
 
+	output = &DeleteDestinationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDestinationOutput{}
-	req.Data = output
 	return
 }
 
@@ -479,11 +474,10 @@ func (c *CloudWatchLogs) DeleteLogGroupRequest(input *DeleteLogGroupInput) (req 
 		input = &DeleteLogGroupInput{}
 	}
 
+	output = &DeleteLogGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteLogGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -557,11 +551,10 @@ func (c *CloudWatchLogs) DeleteLogStreamRequest(input *DeleteLogStreamInput) (re
 		input = &DeleteLogStreamInput{}
 	}
 
+	output = &DeleteLogStreamOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteLogStreamOutput{}
-	req.Data = output
 	return
 }
 
@@ -635,11 +628,10 @@ func (c *CloudWatchLogs) DeleteMetricFilterRequest(input *DeleteMetricFilterInpu
 		input = &DeleteMetricFilterInput{}
 	}
 
+	output = &DeleteMetricFilterOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteMetricFilterOutput{}
-	req.Data = output
 	return
 }
 
@@ -712,11 +704,10 @@ func (c *CloudWatchLogs) DeleteRetentionPolicyRequest(input *DeleteRetentionPoli
 		input = &DeleteRetentionPolicyInput{}
 	}
 
+	output = &DeleteRetentionPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteRetentionPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -792,11 +783,10 @@ func (c *CloudWatchLogs) DeleteSubscriptionFilterRequest(input *DeleteSubscripti
 		input = &DeleteSubscriptionFilterInput{}
 	}
 
+	output = &DeleteSubscriptionFilterOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSubscriptionFilterOutput{}
-	req.Data = output
 	return
 }
 
@@ -875,9 +865,8 @@ func (c *CloudWatchLogs) DescribeDestinationsRequest(input *DescribeDestinations
 		input = &DescribeDestinationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDestinationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -970,9 +959,8 @@ func (c *CloudWatchLogs) DescribeExportTasksRequest(input *DescribeExportTasksIn
 		input = &DescribeExportTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeExportTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1046,9 +1034,8 @@ func (c *CloudWatchLogs) DescribeLogGroupsRequest(input *DescribeLogGroupsInput)
 		input = &DescribeLogGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeLogGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1147,9 +1134,8 @@ func (c *CloudWatchLogs) DescribeLogStreamsRequest(input *DescribeLogStreamsInpu
 		input = &DescribeLogStreamsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeLogStreamsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1255,9 +1241,8 @@ func (c *CloudWatchLogs) DescribeMetricFiltersRequest(input *DescribeMetricFilte
 		input = &DescribeMetricFiltersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeMetricFiltersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1360,9 +1345,8 @@ func (c *CloudWatchLogs) DescribeSubscriptionFiltersRequest(input *DescribeSubsc
 		input = &DescribeSubscriptionFiltersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSubscriptionFiltersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1465,9 +1449,8 @@ func (c *CloudWatchLogs) FilterLogEventsRequest(input *FilterLogEventsInput) (re
 		input = &FilterLogEventsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &FilterLogEventsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1576,9 +1559,8 @@ func (c *CloudWatchLogs) GetLogEventsRequest(input *GetLogEventsInput) (req *req
 		input = &GetLogEventsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetLogEventsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1679,9 +1661,8 @@ func (c *CloudWatchLogs) ListTagsLogGroupRequest(input *ListTagsLogGroupInput) (
 		input = &ListTagsLogGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsLogGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1750,9 +1731,8 @@ func (c *CloudWatchLogs) PutDestinationRequest(input *PutDestinationInput) (req 
 		input = &PutDestinationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutDestinationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1832,11 +1812,10 @@ func (c *CloudWatchLogs) PutDestinationPolicyRequest(input *PutDestinationPolicy
 		input = &PutDestinationPolicyInput{}
 	}
 
+	output = &PutDestinationPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &PutDestinationPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -1909,9 +1888,8 @@ func (c *CloudWatchLogs) PutLogEventsRequest(input *PutLogEventsInput) (req *req
 		input = &PutLogEventsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutLogEventsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2012,11 +1990,10 @@ func (c *CloudWatchLogs) PutMetricFilterRequest(input *PutMetricFilterInput) (re
 		input = &PutMetricFilterInput{}
 	}
 
+	output = &PutMetricFilterOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &PutMetricFilterOutput{}
-	req.Data = output
 	return
 }
 
@@ -2097,11 +2074,10 @@ func (c *CloudWatchLogs) PutRetentionPolicyRequest(input *PutRetentionPolicyInpu
 		input = &PutRetentionPolicyInput{}
 	}
 
+	output = &PutRetentionPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &PutRetentionPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -2176,11 +2152,10 @@ func (c *CloudWatchLogs) PutSubscriptionFilterRequest(input *PutSubscriptionFilt
 		input = &PutSubscriptionFilterInput{}
 	}
 
+	output = &PutSubscriptionFilterOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &PutSubscriptionFilterOutput{}
-	req.Data = output
 	return
 }
 
@@ -2273,11 +2248,10 @@ func (c *CloudWatchLogs) TagLogGroupRequest(input *TagLogGroupInput) (req *reque
 		input = &TagLogGroupInput{}
 	}
 
+	output = &TagLogGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &TagLogGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -2351,9 +2325,8 @@ func (c *CloudWatchLogs) TestMetricFilterRequest(input *TestMetricFilterInput) (
 		input = &TestMetricFilterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &TestMetricFilterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2422,11 +2395,10 @@ func (c *CloudWatchLogs) UntagLogGroupRequest(input *UntagLogGroupInput) (req *r
 		input = &UntagLogGroupInput{}
 	}
 
+	output = &UntagLogGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UntagLogGroupOutput{}
-	req.Data = output
 	return
 }
 

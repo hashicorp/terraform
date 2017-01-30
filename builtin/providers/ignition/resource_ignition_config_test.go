@@ -83,7 +83,7 @@ func testIgnition(t *testing.T, input string, assert func(*types.Config) error) 
 	resource.Test(t, resource.TestCase{
 		Providers: testProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testTemplate, input),
 				Check:  check,
 			},

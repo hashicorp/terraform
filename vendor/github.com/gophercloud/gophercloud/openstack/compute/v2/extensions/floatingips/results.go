@@ -1,6 +1,9 @@
 package floatingips
 
 import (
+	"encoding/json"
+	"strconv"
+
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/pagination"
 )
@@ -8,7 +11,7 @@ import (
 // A FloatingIP is an IP that can be associated with an instance
 type FloatingIP struct {
 	// ID is a unique ID of the Floating IP
-	ID string `json:"id"`
+	ID string `json:"-"`
 
 	// FixedIP is the IP of the instance related to the Floating IP
 	FixedIP string `json:"fixed_ip,omitempty"`
@@ -21,6 +24,29 @@ type FloatingIP struct {
 
 	// Pool is the pool of floating IPs that this floating IP belongs to
 	Pool string `json:"pool"`
+}
+
+func (r *FloatingIP) UnmarshalJSON(b []byte) error {
+	type tmp FloatingIP
+	var s struct {
+		tmp
+		ID interface{} `json:"id"`
+	}
+	err := json.Unmarshal(b, &s)
+	if err != nil {
+		return err
+	}
+
+	*r = FloatingIP(s.tmp)
+
+	switch t := s.ID.(type) {
+	case float64:
+		r.ID = strconv.FormatFloat(t, 'f', -1, 64)
+	case string:
+		r.ID = t
+	}
+
+	return err
 }
 
 // FloatingIPPage stores a single, only page of FloatingIPs

@@ -14,9 +14,9 @@ import (
 // Overview
 //
 // This is the AWS Lambda API Reference. The AWS Lambda Developer Guide provides
-// additional information. For the service overview, go to What is AWS Lambda
+// additional information. For the service overview, see What is AWS Lambda
 // (http://docs.aws.amazon.com/lambda/latest/dg/welcome.html), and for information
-// about how the service works, go to AWS Lambda: How it Works (http://docs.aws.amazon.com/lambda/latest/dg/lambda-introduction.html)
+// about how the service works, see AWS Lambda: How it Works (http://docs.aws.amazon.com/lambda/latest/dg/lambda-introduction.html)
 // in the AWS Lambda Developer Guide.
 // The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.

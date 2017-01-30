@@ -40,6 +40,7 @@ import (
 	mysqlprovider "github.com/hashicorp/terraform/builtin/providers/mysql"
 	newrelicprovider "github.com/hashicorp/terraform/builtin/providers/newrelic"
 	nomadprovider "github.com/hashicorp/terraform/builtin/providers/nomad"
+	ns1provider "github.com/hashicorp/terraform/builtin/providers/ns1"
 	nullprovider "github.com/hashicorp/terraform/builtin/providers/null"
 	openstackprovider "github.com/hashicorp/terraform/builtin/providers/openstack"
 	opsgenieprovider "github.com/hashicorp/terraform/builtin/providers/opsgenie"
@@ -108,6 +109,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"mysql":        mysqlprovider.Provider,
 	"newrelic":     newrelicprovider.Provider,
 	"nomad":        nomadprovider.Provider,
+	"ns1":          ns1provider.Provider,
 	"null":         nullprovider.Provider,
 	"openstack":    openstackprovider.Provider,
 	"opsgenie":     opsgenieprovider.Provider,

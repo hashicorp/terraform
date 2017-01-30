@@ -51,11 +51,10 @@ func (c *ACM) AddTagsToCertificateRequest(input *AddTagsToCertificateInput) (req
 		input = &AddTagsToCertificateInput{}
 	}
 
+	output = &AddTagsToCertificateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddTagsToCertificateOutput{}
-	req.Data = output
 	return
 }
 
@@ -146,11 +145,10 @@ func (c *ACM) DeleteCertificateRequest(input *DeleteCertificateInput) (req *requ
 		input = &DeleteCertificateInput{}
 	}
 
+	output = &DeleteCertificateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteCertificateOutput{}
-	req.Data = output
 	return
 }
 
@@ -230,9 +228,8 @@ func (c *ACM) DescribeCertificateRequest(input *DescribeCertificateInput) (req *
 		input = &DescribeCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeCertificateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -304,9 +301,8 @@ func (c *ACM) GetCertificateRequest(input *GetCertificateInput) (req *request.Re
 		input = &GetCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetCertificateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -386,9 +382,8 @@ func (c *ACM) ImportCertificateRequest(input *ImportCertificateInput) (req *requ
 		input = &ImportCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportCertificateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -491,9 +486,8 @@ func (c *ACM) ListCertificatesRequest(input *ListCertificatesInput) (req *reques
 		input = &ListCertificatesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListCertificatesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -579,9 +573,8 @@ func (c *ACM) ListTagsForCertificateRequest(input *ListTagsForCertificateInput) 
 		input = &ListTagsForCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsForCertificateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -652,11 +645,10 @@ func (c *ACM) RemoveTagsFromCertificateRequest(input *RemoveTagsFromCertificateI
 		input = &RemoveTagsFromCertificateInput{}
 	}
 
+	output = &RemoveTagsFromCertificateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemoveTagsFromCertificateOutput{}
-	req.Data = output
 	return
 }
 
@@ -735,9 +727,8 @@ func (c *ACM) RequestCertificateRequest(input *RequestCertificateInput) (req *re
 		input = &RequestCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RequestCertificateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -814,11 +805,10 @@ func (c *ACM) ResendValidationEmailRequest(input *ResendValidationEmailInput) (r
 		input = &ResendValidationEmailInput{}
 	}
 
+	output = &ResendValidationEmailOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ResendValidationEmailOutput{}
-	req.Data = output
 	return
 }
 

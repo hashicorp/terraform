@@ -915,6 +915,7 @@ resource "aws_alb_target_group" "test" {
 
 resource "aws_alb" "main" {
   name            = "tf-acc-test-test-alb-ecs"
+  internal        = true
   subnets         = ["${aws_subnet.main.*.id}"]
 }
 

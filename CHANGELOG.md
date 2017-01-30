@@ -3,31 +3,45 @@
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/aws: We no longer prefix an ECR repository address with `https://`
+ * provider/google: `google_project` has undergone significant changes. Existing configs and state should continue to work as they always have, but new configs and state will exhibit some new behaviour, including actually creating and deleting projects, instead of just referencing them. See https://www.terraform.io/docs/providers/google/r/google_project.html for more details.
 
 FEATURES:
 
  * **New Data Source:**  `aws_autoscaling_groups` [GH-11303]
  * **New Data Source:**  `aws_elb_hosted_zone_id ` [GH-11027]
  * **New Data Source:**  `aws_instance` [GH-11272]
- * **New Provider:**  `ProfitBricks` [GH-7943]
+ * **New Data Source:**  `aws_canonical_user_id` [GH-11332]
+ * **New Data Source:**  `aws_vpc_endpoint` [GH-11323]
+ * **New Provider:**  `profitbricks` [GH-7943]
  * **New Provider:**  `alicloud` [GH-11235]
+ * **New Provider:**  `ns1` [GH-10782]
  * **New Resource:**  `aws_inspector_assessment_target` [GH-11217]
  * **New Resource:**  `aws_inspector_assessment_template` [GH-11217]
  * **New Resource:**  `aws_inspector_resource_group` [GH-11217]
+ * **New Resource:**  `google_project_iam_policy` [GH-10425]
+ * **New Resource:**  `google_project_services` [GH-10425]
  * **New Interpolation Function:**  `pathexpand()` [GH-11277]
 
 IMPROVEMENTS:
 
+ * command/fmt: Single line objects (such as `variable "foo" {}`) aren't separated by newlines
  * provider/aws: Add 'route_table_id' to route_table data source ([#11157](https://github.com/hashicorp/terraform/pull/11157))
  * provider/aws: Add Support for aws_cloudwatch_metric_alarm extended statistic [GH-11193]
  * provider/aws: Make the type of a route53_record modifiable without recreating the resource [GH-11164]
  * provider/aws: Add Placement Strategy to aws_ecs_service resource [GH-11201]
  * provider/aws: Add support for placement_constraint to aws_ecs_service [GH-11242]
  * provider/aws: allow ALB target group stickiness to be enabled/disabled [GH-11251]
+ * provider/aws: ALBs now wait for provisioning to complete before proceeding [GH-11333]
  * provider/aws: Add support for setting MSSQL Timezone in aws_db_instance [GH-11247]
  * provider/aws: CloudFormation YAML template support [GH-11121]
  * provider/aws: Remove hardcoded https from the ecr repository [GH-11307]
- * provider/aws: implement CloudFront Lambda Function Associations [GH-11291]
+ * provider/aws: Implement CloudFront Lambda Function Associations [GH-11291]
+ * provider/aws: Remove MaxFrameRate default on ElasticTranscoderPreset [GH-11340]
+ * provider/aws: Allow ARN Identifier to be set for different partitions [GH-11359]
+ * provider/aws: Allow bypassing region validation [GH-11358]
+ * provider/aws: Added a s3_bucket domain name attribute [GH-10088]
+ * provider/aws: Add DiffSupressFunction to aws_db_instance's engine_version [GH-11369]
+ * provider/archive: Adding support for multiple source contents [GH-11271]
  * provider/azurerm: add caching support for virtual_machine data_disks [GH-11142]
  * provider/azurerm: make lb sub resources idempotent [GH-11128]
  * provider/cloudflare: Add verification for record types and content [GH-11197]
@@ -37,7 +51,9 @@ IMPROVEMENTS:
  * provider/google: Add support for encrypting a disk [GH-11167]
  * provider/google: Add support for session_affinity to google_compute_region_backend_service [GH-11228]
  * provider/google: Allow additional zones to be configured in GKE [GH-11018]
+ * provider/ignition: Allow empty dropin and content for systemd_units [GH-11327]
  * provider/openstack: LoadBalancer Security Groups [GH-11074]
+ * provider/openstack: Volume Attachment Updates [GH-11285]
  * provider/scaleway improve bootscript data source [GH-11183]
  * provider/statuscake: Add support for StatusCake confirmation servers [GH-11179]
  * provider/statuscake: Add support for Updating StatusCake contact_ids [GH-7115]
@@ -46,9 +62,13 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * command/fmt: Multiple `#` comments won't be separated by newlines. [GH-11209]
+ * command/fmt: Lists with a heredoc element that starts on the same line as the opening brace is formatted properly. [GH-11208]
  * provider/aws: Fix panic when querying VPC's main route table via data source ([#11134](https://github.com/hashicorp/terraform/issues/11134))
  * provider/aws: Allow creating aws_codecommit repository outside of us-east-1 [GH-11177]
  * provider/aws: Fix issue destroying or updating CloudFront due to missing Lambda Function Associations parameters [GH-11291]
+ * provider/aws: Correct error messages are now returned if an `aws_autoscaling_lifecycle_hook` fails during creation [GH-11360]
+ * provider/aws: Fix issue updating/destroying Spot Fleet requests when using `terminate_instances_with_expiration` [GH-10953]
  * provider/azurerm: use configured environment for storage clients [GH-11159]
  * provider/google: removes region param from google_compute_backend_service [GH-10903]
  * provider/ignition: allowing empty systemd.content when a dropin is provided [GH-11216]

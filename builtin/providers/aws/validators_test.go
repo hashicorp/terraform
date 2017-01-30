@@ -78,6 +78,7 @@ func TestValidateCloudWatchEventRuleName(t *testing.T) {
 func TestValidateLambdaFunctionName(t *testing.T) {
 	validNames := []string{
 		"arn:aws:lambda:us-west-2:123456789012:function:ThumbNail",
+		"arn:aws-us-gov:lambda:us-west-2:123456789012:function:ThumbNail",
 		"FunctionName",
 		"function-name",
 	}
@@ -203,6 +204,7 @@ func TestValidateArn(t *testing.T) {
 		"arn:aws:events:us-east-1:319201112229:rule/rule_name",                             // CloudWatch Rule
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction",                  // Lambda function
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction:Qualifier",        // Lambda func qualifier
+		"arn:aws-us-gov:s3:::corp_bucket/object.png",                                       // GovCloud ARN
 	}
 	for _, v := range validNames {
 		_, errors := validateArn(v, "arn")

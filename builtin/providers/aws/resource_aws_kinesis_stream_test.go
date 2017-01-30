@@ -134,8 +134,8 @@ func TestAccAWSKinesisStream_shardLevelMetrics(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckKinesisStreamExists("aws_kinesis_stream.test_stream", &stream),
 					testAccCheckAWSKinesisStreamAttributes(&stream),
-					resource.TestCheckResourceAttr(
-						"aws_kinesis_stream.test_stream", "shard_level_metrics.#", ""),
+					resource.TestCheckNoResourceAttr(
+						"aws_kinesis_stream.test_stream", "shard_level_metrics"),
 				),
 			},
 

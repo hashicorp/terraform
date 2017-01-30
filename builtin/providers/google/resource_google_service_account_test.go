@@ -9,6 +9,14 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+var (
+	projectId = multiEnvSearch([]string{
+		"GOOGLE_PROJECT",
+		"GCLOUD_PROJECT",
+		"CLOUDSDK_CORE_PROJECT",
+	})
+)
+
 // Test that a service account resource can be created, updated, and destroyed
 func TestAccGoogleServiceAccount_basic(t *testing.T) {
 	accountId := "a" + acctest.RandString(10)

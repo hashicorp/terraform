@@ -50,11 +50,10 @@ func (c *SimpleDB) BatchDeleteAttributesRequest(input *BatchDeleteAttributesInpu
 		input = &BatchDeleteAttributesInput{}
 	}
 
+	output = &BatchDeleteAttributesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &BatchDeleteAttributesOutput{}
-	req.Data = output
 	return
 }
 
@@ -136,11 +135,10 @@ func (c *SimpleDB) BatchPutAttributesRequest(input *BatchPutAttributesInput) (re
 		input = &BatchPutAttributesInput{}
 	}
 
+	output = &BatchPutAttributesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &BatchPutAttributesOutput{}
-	req.Data = output
 	return
 }
 
@@ -270,11 +268,10 @@ func (c *SimpleDB) CreateDomainRequest(input *CreateDomainInput) (req *request.R
 		input = &CreateDomainInput{}
 	}
 
+	output = &CreateDomainOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateDomainOutput{}
-	req.Data = output
 	return
 }
 
@@ -352,11 +349,10 @@ func (c *SimpleDB) DeleteAttributesRequest(input *DeleteAttributesInput) (req *r
 		input = &DeleteAttributesInput{}
 	}
 
+	output = &DeleteAttributesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteAttributesOutput{}
-	req.Data = output
 	return
 }
 
@@ -439,11 +435,10 @@ func (c *SimpleDB) DeleteDomainRequest(input *DeleteDomainInput) (req *request.R
 		input = &DeleteDomainInput{}
 	}
 
+	output = &DeleteDomainOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDomainOutput{}
-	req.Data = output
 	return
 }
 
@@ -512,9 +507,8 @@ func (c *SimpleDB) DomainMetadataRequest(input *DomainMetadataInput) (req *reque
 		input = &DomainMetadataInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DomainMetadataOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -583,9 +577,8 @@ func (c *SimpleDB) GetAttributesRequest(input *GetAttributesInput) (req *request
 		input = &GetAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -670,9 +663,8 @@ func (c *SimpleDB) ListDomainsRequest(input *ListDomainsInput) (req *request.Req
 		input = &ListDomainsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListDomainsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -769,11 +761,10 @@ func (c *SimpleDB) PutAttributesRequest(input *PutAttributesInput) (req *request
 		input = &PutAttributesInput{}
 	}
 
+	output = &PutAttributesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &PutAttributesOutput{}
-	req.Data = output
 	return
 }
 
@@ -891,9 +882,8 @@ func (c *SimpleDB) SelectRequest(input *SelectInput) (req *request.Request, outp
 		input = &SelectInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SelectOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 

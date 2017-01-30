@@ -49,9 +49,8 @@ func (c *ApplicationAutoScaling) DeleteScalingPolicyRequest(input *DeleteScaling
 		input = &DeleteScalingPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteScalingPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -137,9 +136,8 @@ func (c *ApplicationAutoScaling) DeregisterScalableTargetRequest(input *Deregist
 		input = &DeregisterScalableTargetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeregisterScalableTargetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -230,9 +228,8 @@ func (c *ApplicationAutoScaling) DescribeScalableTargetsRequest(input *DescribeS
 		input = &DescribeScalableTargetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeScalableTargetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -345,9 +342,8 @@ func (c *ApplicationAutoScaling) DescribeScalingActivitiesRequest(input *Describ
 		input = &DescribeScalingActivitiesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeScalingActivitiesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -461,9 +457,8 @@ func (c *ApplicationAutoScaling) DescribeScalingPoliciesRequest(input *DescribeS
 		input = &DescribeScalingPoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeScalingPoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -579,9 +574,8 @@ func (c *ApplicationAutoScaling) PutScalingPolicyRequest(input *PutScalingPolicy
 		input = &PutScalingPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutScalingPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -678,9 +672,8 @@ func (c *ApplicationAutoScaling) RegisterScalableTargetRequest(input *RegisterSc
 		input = &RegisterScalableTargetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RegisterScalableTargetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
