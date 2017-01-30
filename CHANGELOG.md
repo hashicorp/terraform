@@ -21,6 +21,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+ * core: Data source values can now be used as part of a `count` calculation. [GH-11482]
  * command/init: previous behavior is retained, but init now also configures
    the new remote backends as well as downloads modules. It is the single
    command to initialize a new or existing Terraform configuration.
