@@ -636,6 +636,7 @@ func (c *Context) Stop() {
 	log.Printf("[WARN] terraform: Stop called, initiating interrupt sequence")
 
 	c.l.Lock()
+	defer c.l.Unlock()
 
 	// If we're running, then stop
 	if c.runContextCancel != nil {
@@ -652,7 +653,6 @@ func (c *Context) Stop() {
 	// Grab the condition var before we exit
 	if cond := c.runCond; cond != nil {
 		cond.Wait()
-		c.l.Unlock()
 	}
 
 	log.Printf("[WARN] terraform: stop complete")
