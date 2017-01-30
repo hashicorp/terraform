@@ -40,7 +40,7 @@ type Session struct {
 //
 // If the AWS_SDK_LOAD_CONFIG environment variable is set to a truthy value
 // the shared config file (~/.aws/config) will also be loaded, in addition to
-// the shared credentials file (~/.aws/config). Values set in both the
+// the shared credentials file (~/.aws/credentials). Values set in both the
 // shared config, and shared credentials will be taken from the shared
 // credentials file.
 //
@@ -83,7 +83,7 @@ func New(cfgs ...*aws.Config) *Session {
 //
 // If the AWS_SDK_LOAD_CONFIG environment variable is set to a truthy value
 // the shared config file (~/.aws/config) will also be loaded in addition to
-// the shared credentials file (~/.aws/config). Values set in both the
+// the shared credentials file (~/.aws/credentials). Values set in both the
 // shared config, and shared credentials will be taken from the shared
 // credentials file. Enabling the Shared Config will also allow the Session
 // to be built with retrieving credentials with AssumeRole set in the config.
@@ -155,7 +155,7 @@ type Options struct {
 //
 // If the AWS_SDK_LOAD_CONFIG environment variable is set to a truthy value
 // the shared config file (~/.aws/config) will also be loaded in addition to
-// the shared credentials file (~/.aws/config). Values set in both the
+// the shared credentials file (~/.aws/credentials). Values set in both the
 // shared config, and shared credentials will be taken from the shared
 // credentials file. Enabling the Shared Config will also allow the Session
 // to be built with retrieving credentials with AssumeRole set in the config.
