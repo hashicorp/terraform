@@ -25,6 +25,8 @@ IMPROVEMENTS:
  * command/init: previous behavior is retained, but init now also configures
    the new remote backends as well as downloads modules. It is the single
    command to initialize a new or existing Terraform configuration.
+ * provisioners: All provisioners now respond very quickly to interrupts for
+   fast cancellation. [GH-10934]
 
 ## 0.8.6 (unreleased)
 
