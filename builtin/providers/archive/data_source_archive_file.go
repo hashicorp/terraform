@@ -1,6 +1,7 @@
 package archive
 
 import (
+	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -23,6 +25,33 @@ func dataSourceFile() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+			"source": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"content": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"filename": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+					},
+				},
+				ConflictsWith: []string{"source_file", "source_dir", "source_content", "source_content_filename"},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%s-", m["filename"].(string)))
+					buf.WriteString(fmt.Sprintf("%s-", m["content"].(string)))
+					return hashcode.String(buf.String())
+				},
 			},
 			"source_content": &schema.Schema{
 				Type:          schema.TypeString,
@@ -136,6 +165,16 @@ func archive(d *schema.ResourceData) error {
 	} else if filename, ok := d.GetOk("source_content_filename"); ok {
 		content := d.Get("source_content").(string)
 		if err := archiver.ArchiveContent([]byte(content), filename.(string)); err != nil {
+			return fmt.Errorf("error archiving content: %s", err)
+		}
+	} else if v, ok := d.GetOk("source"); ok {
+		vL := v.(*schema.Set).List()
+		content := make(map[string][]byte)
+		for _, v := range vL {
+			src := v.(map[string]interface{})
+			content[src["filename"].(string)] = []byte(src["content"].(string))
+		}
+		if err := archiver.ArchiveMultiple(content); err != nil {
 			return fmt.Errorf("error archiving content: %s", err)
 		}
 	} else {

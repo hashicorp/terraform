@@ -74,7 +74,7 @@ func TestAccAWSLambdaFunction_envVariables(t *testing.T) {
 					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
 					testAccCheckAwsLambdaFunctionName(&conf, rName),
 					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":"+rName),
-					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "environment.#", "0"),
+					resource.TestCheckNoResourceAttr("aws_lambda_function.lambda_function_test", "environment"),
 				),
 			},
 			{
@@ -102,8 +102,7 @@ func TestAccAWSLambdaFunction_envVariables(t *testing.T) {
 					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
 					testAccCheckAwsLambdaFunctionName(&conf, rName),
 					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":"+rName),
-					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "environment.0.variables.foo", ""),
-					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "environment.0.variables.foo1", ""),
+					resource.TestCheckNoResourceAttr("aws_lambda_function.lambda_function_test", "environment"),
 				),
 			},
 		},

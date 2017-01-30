@@ -36,6 +36,11 @@ func resourceAwsS3Bucket() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"bucket_domain_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"arn": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -534,6 +539,8 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("bucket", d.Id())
 	}
 
+	d.Set("bucket_domain_name", bucketDomainName(d.Get("bucket").(string)))
+
 	// Read the policy
 	if _, ok := d.GetOk("policy"); ok {
 		pol, err := s3conn.GetBucketPolicy(&s3.GetBucketPolicyInput{
@@ -905,7 +912,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("arn", fmt.Sprint("arn:aws:s3:::", d.Id()))
+	d.Set("arn", fmt.Sprintf("arn:%s:s3:::%s", meta.(*AWSClient).partition, d.Id()))
 
 	return nil
 }
@@ -1205,6 +1212,10 @@ func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (*S3Website, error) 
 	}
 
 	return WebsiteEndpoint(bucket, region), nil
+}
+
+func bucketDomainName(bucket string) string {
+	return fmt.Sprintf("%s.s3.amazonaws.com", bucket)
 }
 
 func WebsiteEndpoint(bucket string, region string) *S3Website {

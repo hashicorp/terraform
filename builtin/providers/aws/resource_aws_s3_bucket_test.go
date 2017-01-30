@@ -42,10 +42,14 @@ func TestAccAWSS3Bucket_basic(t *testing.T) {
 						"aws_s3_bucket.bucket", "hosted_zone_id", HostedZoneIDForRegion("us-west-2")),
 					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "region", "us-west-2"),
-					resource.TestCheckResourceAttr(
-						"aws_s3_bucket.bucket", "website_endpoint", ""),
+					resource.TestCheckNoResourceAttr(
+						"aws_s3_bucket.bucket", "website_endpoint"),
 					resource.TestMatchResourceAttr(
 						"aws_s3_bucket.bucket", "arn", arnRegexp),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "bucket", testAccBucketName(rInt)),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "bucket_domain_name", testAccBucketDomainName(rInt)),
 				),
 			},
 		},
@@ -1089,6 +1093,14 @@ func testAccCheckAWSS3BucketLogging(n, b, p string) resource.TestCheckFunc {
 
 // These need a bit of randomness as the name can only be used once globally
 // within AWS
+func testAccBucketName(randInt int) string {
+	return fmt.Sprintf("tf-test-bucket-%d", randInt)
+}
+
+func testAccBucketDomainName(randInt int) string {
+	return fmt.Sprintf("tf-test-bucket-%d.s3.amazonaws.com", randInt)
+}
+
 func testAccWebsiteEndpoint(randInt int) string {
 	return fmt.Sprintf("tf-test-bucket-%d.s3-website-us-west-2.amazonaws.com", randInt)
 }

@@ -49,9 +49,8 @@ func (c *DirectoryService) AddIpRoutesRequest(input *AddIpRoutesInput) (req *req
 		input = &AddIpRoutesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddIpRoutesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -143,9 +142,8 @@ func (c *DirectoryService) AddTagsToResourceRequest(input *AddTagsToResourceInpu
 		input = &AddTagsToResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddTagsToResourceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -223,9 +221,8 @@ func (c *DirectoryService) CancelSchemaExtensionRequest(input *CancelSchemaExten
 		input = &CancelSchemaExtensionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelSchemaExtensionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -298,9 +295,8 @@ func (c *DirectoryService) ConnectDirectoryRequest(input *ConnectDirectoryInput)
 		input = &ConnectDirectoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ConnectDirectoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -380,9 +376,8 @@ func (c *DirectoryService) CreateAliasRequest(input *CreateAliasInput) (req *req
 		input = &CreateAliasInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateAliasOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -463,9 +458,8 @@ func (c *DirectoryService) CreateComputerRequest(input *CreateComputerInput) (re
 		input = &CreateComputerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateComputerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -551,9 +545,8 @@ func (c *DirectoryService) CreateConditionalForwarderRequest(input *CreateCondit
 		input = &CreateConditionalForwarderInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateConditionalForwarderOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -637,9 +630,8 @@ func (c *DirectoryService) CreateDirectoryRequest(input *CreateDirectoryInput) (
 		input = &CreateDirectoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDirectoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -719,9 +711,8 @@ func (c *DirectoryService) CreateMicrosoftADRequest(input *CreateMicrosoftADInpu
 		input = &CreateMicrosoftADInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateMicrosoftADOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -804,9 +795,8 @@ func (c *DirectoryService) CreateSnapshotRequest(input *CreateSnapshotInput) (re
 		input = &CreateSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -886,9 +876,8 @@ func (c *DirectoryService) CreateTrustRequest(input *CreateTrustInput) (req *req
 		input = &CreateTrustInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateTrustOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -974,9 +963,8 @@ func (c *DirectoryService) DeleteConditionalForwarderRequest(input *DeleteCondit
 		input = &DeleteConditionalForwarderInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteConditionalForwarderOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1055,9 +1043,8 @@ func (c *DirectoryService) DeleteDirectoryRequest(input *DeleteDirectoryInput) (
 		input = &DeleteDirectoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteDirectoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1132,9 +1119,8 @@ func (c *DirectoryService) DeleteSnapshotRequest(input *DeleteSnapshotInput) (re
 		input = &DeleteSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1207,9 +1193,8 @@ func (c *DirectoryService) DeleteTrustRequest(input *DeleteTrustInput) (req *req
 		input = &DeleteTrustInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteTrustOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1286,9 +1271,8 @@ func (c *DirectoryService) DeregisterEventTopicRequest(input *DeregisterEventTop
 		input = &DeregisterEventTopicInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeregisterEventTopicOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1361,9 +1345,8 @@ func (c *DirectoryService) DescribeConditionalForwardersRequest(input *DescribeC
 		input = &DescribeConditionalForwardersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeConditionalForwardersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1445,9 +1428,8 @@ func (c *DirectoryService) DescribeDirectoriesRequest(input *DescribeDirectories
 		input = &DescribeDirectoriesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDirectoriesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1534,9 +1516,8 @@ func (c *DirectoryService) DescribeEventTopicsRequest(input *DescribeEventTopics
 		input = &DescribeEventTopicsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEventTopicsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1613,9 +1594,8 @@ func (c *DirectoryService) DescribeSnapshotsRequest(input *DescribeSnapshotsInpu
 		input = &DescribeSnapshotsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSnapshotsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1698,9 +1678,8 @@ func (c *DirectoryService) DescribeTrustsRequest(input *DescribeTrustsInput) (re
 		input = &DescribeTrustsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTrustsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1782,9 +1761,8 @@ func (c *DirectoryService) DisableRadiusRequest(input *DisableRadiusInput) (req 
 		input = &DisableRadiusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisableRadiusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1855,9 +1833,8 @@ func (c *DirectoryService) DisableSsoRequest(input *DisableSsoInput) (req *reque
 		input = &DisableSsoInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisableSsoOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1933,9 +1910,8 @@ func (c *DirectoryService) EnableRadiusRequest(input *EnableRadiusInput) (req *r
 		input = &EnableRadiusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnableRadiusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2012,9 +1988,8 @@ func (c *DirectoryService) EnableSsoRequest(input *EnableSsoInput) (req *request
 		input = &EnableSsoInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnableSsoOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2090,9 +2065,8 @@ func (c *DirectoryService) GetDirectoryLimitsRequest(input *GetDirectoryLimitsIn
 		input = &GetDirectoryLimitsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDirectoryLimitsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2162,9 +2136,8 @@ func (c *DirectoryService) GetSnapshotLimitsRequest(input *GetSnapshotLimitsInpu
 		input = &GetSnapshotLimitsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSnapshotLimitsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2234,9 +2207,8 @@ func (c *DirectoryService) ListIpRoutesRequest(input *ListIpRoutesInput) (req *r
 		input = &ListIpRoutesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListIpRoutesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2312,9 +2284,8 @@ func (c *DirectoryService) ListSchemaExtensionsRequest(input *ListSchemaExtensio
 		input = &ListSchemaExtensionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListSchemaExtensionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2387,9 +2358,8 @@ func (c *DirectoryService) ListTagsForResourceRequest(input *ListTagsForResource
 		input = &ListTagsForResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsForResourceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2465,9 +2435,8 @@ func (c *DirectoryService) RegisterEventTopicRequest(input *RegisterEventTopicIn
 		input = &RegisterEventTopicInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RegisterEventTopicOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2545,9 +2514,8 @@ func (c *DirectoryService) RemoveIpRoutesRequest(input *RemoveIpRoutesInput) (re
 		input = &RemoveIpRoutesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RemoveIpRoutesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2623,9 +2591,8 @@ func (c *DirectoryService) RemoveTagsFromResourceRequest(input *RemoveTagsFromRe
 		input = &RemoveTagsFromResourceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RemoveTagsFromResourceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2698,9 +2665,8 @@ func (c *DirectoryService) RestoreFromSnapshotRequest(input *RestoreFromSnapshot
 		input = &RestoreFromSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestoreFromSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2781,9 +2747,8 @@ func (c *DirectoryService) StartSchemaExtensionRequest(input *StartSchemaExtensi
 		input = &StartSchemaExtensionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StartSchemaExtensionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2864,9 +2829,8 @@ func (c *DirectoryService) UpdateConditionalForwarderRequest(input *UpdateCondit
 		input = &UpdateConditionalForwarderInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateConditionalForwarderOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2945,9 +2909,8 @@ func (c *DirectoryService) UpdateRadiusRequest(input *UpdateRadiusInput) (req *r
 		input = &UpdateRadiusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateRadiusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3021,9 +2984,8 @@ func (c *DirectoryService) VerifyTrustRequest(input *VerifyTrustInput) (req *req
 		input = &VerifyTrustInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &VerifyTrustOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
