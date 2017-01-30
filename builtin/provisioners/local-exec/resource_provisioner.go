@@ -72,15 +72,14 @@ func applyFn(ctx context.Context) error {
 	err := cmd.Start()
 	if err == nil {
 		// Wait for the command to complete in a goroutine
-		doneCh := make(chan struct{})
+		doneCh := make(chan error, 1)
 		go func() {
-			defer close(doneCh)
-			err = cmd.Wait()
+			doneCh <- cmd.Wait()
 		}()
 
 		// Wait for the command to finish or for us to be interrupted
 		select {
-		case <-doneCh:
+		case err = <-doneCh:
 		case <-ctx.Done():
 			cmd.Process.Kill()
 			err = cmd.Wait()
