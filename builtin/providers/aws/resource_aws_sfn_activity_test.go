@@ -25,6 +25,7 @@ func TestAccAWSSfnActivity_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSfnActivityExists("aws_sfn_activity.foo"),
 					resource.TestCheckResourceAttr("aws_sfn_activity.foo", "name", name),
+					resource.TestCheckResourceAttrSet("aws_sfn_activity.foo", "creation_date"),
 				),
 			},
 		},

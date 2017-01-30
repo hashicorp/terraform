@@ -58,7 +58,7 @@ func resourceAwsSfnStateMachine() *schema.Resource {
 
 func resourceAwsSfnStateMachineCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).sfnconn
-	log.Printf("[DEBUG] Creating Step Function State Machine")
+	log.Print("[DEBUG] Creating Step Function State Machine")
 
 	params := &sfn.CreateStateMachineInput{
 		Definition: aws.String(d.Get("definition").(string)),
@@ -91,6 +91,9 @@ func resourceAwsSfnStateMachineRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
+	d.Set("definition", sm.Definition)
+	d.Set("name", sm.Name)
+	d.Set("role_arn", sm.RoleArn)
 	d.Set("status", sm.Status)
 
 	if err := d.Set("creation_date", sm.CreationDate.Format(time.RFC3339)); err != nil {
@@ -102,7 +105,7 @@ func resourceAwsSfnStateMachineRead(d *schema.ResourceData, meta interface{}) er
 
 func resourceAwsSfnStateMachineDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).sfnconn
-	log.Printf("[DEBUG] Deleting Step Functions State Machine: %s", d.Id())
+	log.Printf("[DEBUG] Deleting Step Function State Machine: %s", d.Id())
 
 	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		_, err := conn.DeleteStateMachine(&sfn.DeleteStateMachineInput{

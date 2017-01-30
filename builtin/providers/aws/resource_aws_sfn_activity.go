@@ -70,6 +70,8 @@ func resourceAwsSfnActivityRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
+	d.Set("name", sm.Name)
+
 	if err := d.Set("creation_date", sm.CreationDate.Format(time.RFC3339)); err != nil {
 		log.Printf("[DEBUG] Error setting creation_date: %s", err)
 	}

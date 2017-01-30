@@ -3,11 +3,13 @@ package aws
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccAWSSfnStateMachine_importBasic(t *testing.T) {
-	resourceName := "aws_sfn_activity.foo"
+	resourceName := "aws_sfn_state_machine.foo"
+	rName := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -15,7 +17,7 @@ func TestAccAWSSfnStateMachine_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSSfnStateMachineDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSSfnStateMachineBasicConfig(resourceName),
+				Config: testAccAWSSfnStateMachineBasicConfig(rName),
 			},
 
 			{

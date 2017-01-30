@@ -39,7 +39,7 @@ EOF
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the state machine
+* `name` - (Required) The name of the state machine.
 * `definition` - (Required) The Amazon States Language definition of the state machine.
 * `role_arn` - (Required) The Amazon Resource Name (ARN) of the IAM role to use for this state machine.
 
@@ -47,9 +47,9 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `id` - The ARN of the state machine
+* `id` - The ARN of the state machine.
 * `creation_date` - The date the state machine was created.
-* `status` - The current status of the state machine. Either "ACTIVE" or "DELETING"
+* `status` - The current status of the state machine. Either "ACTIVE" or "DELETING".
 
 ## Import
 
