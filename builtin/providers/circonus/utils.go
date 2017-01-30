@@ -2,7 +2,6 @@ package circonus
 
 import (
 	"fmt"
-	"reflect"
 	"regexp"
 	"strconv"
 	"time"
@@ -179,19 +178,6 @@ func _Indirect(v interface{}) interface{} {
 	default:
 		return v
 	}
-
-	vVal := reflect.ValueOf(v)
-	switch vVal.Kind() {
-	case reflect.Func, reflect.Map, reflect.Slice, reflect.Array, reflect.Struct:
-		return v
-	case reflect.Ptr:
-		vValPtr := reflect.Indirect(vVal)
-		if vValPtr.IsValid() {
-			return vValPtr.Interface()
-		}
-		return v
-	}
-	return vVal.Interface()
 }
 
 // _StateSet sets an attribute based on an attrName and panic()'s if the Set

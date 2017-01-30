@@ -119,8 +119,7 @@ func _CheckAPIToStateTCP(c *_Check, d *schema.ResourceData) error {
 		if v, ok := c.Config[apiKey]; ok {
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				panic(fmt.Sprintf("Unable to convert %s to an integer: %v", err))
-				return
+				panic(fmt.Sprintf("Unable to convert %s to an integer: %v", apiKey, err))
 			}
 			tcpConfig[string(attrName)] = int(i)
 		}
