@@ -3,6 +3,7 @@ package google
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -70,6 +71,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 						"crash_safe_replication": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Computed: true,
 						},
 						"database_flags": &schema.Schema{
 							Type:     schema.TypeList,
@@ -564,7 +566,7 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 				_backupConfiguration["enabled"] = settings.BackupConfiguration.Enabled
 			}
 
-			if vp, okp := _backupConfiguration["start_time"]; okp && vp != nil {
+			if vp, okp := _backupConfiguration["start_time"]; okp && len(vp.(string)) > 0 {
 				_backupConfiguration["start_time"] = settings.BackupConfiguration.StartTime
 			}
 
@@ -758,7 +760,7 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("ip_address", _ipAddresses)
 
 	if v, ok := d.GetOk("master_instance_name"); ok && v != nil {
-		d.Set("master_instance_name", instance.MasterInstanceName)
+		d.Set("master_instance_name", strings.TrimPrefix(instance.MasterInstanceName, project+":"))
 	}
 
 	d.Set("self_link", instance.SelfLink)
