@@ -254,29 +254,8 @@ func TestConfigValidate_countCountVar(t *testing.T) {
 	}
 }
 
-func TestConfigValidate_countModuleVar(t *testing.T) {
-	c := testConfig(t, "validate-count-module-var")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
-	}
-}
-
 func TestConfigValidate_countNotInt(t *testing.T) {
 	c := testConfig(t, "validate-count-not-int")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
-	}
-}
-
-func TestConfigValidate_countResourceVar(t *testing.T) {
-	c := testConfig(t, "validate-count-resource-var")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
-	}
-}
-
-func TestConfigValidate_countResourceVarMulti(t *testing.T) {
-	c := testConfig(t, "validate-count-resource-var-multi")
 	if err := c.Validate(); err == nil {
 		t.Fatal("should not be valid")
 	}
