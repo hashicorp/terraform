@@ -64,6 +64,11 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Required: true,
 			},
 
+			"overprovision": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
 			"os_profile": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
@@ -375,6 +380,7 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 	}
 
 	updatePolicy := d.Get("upgrade_policy_mode").(string)
+	overprovision := d.Get("overprovision").(bool)
 	scaleSetProps := compute.VirtualMachineScaleSetProperties{
 		UpgradePolicy: &compute.UpgradePolicy{
 			Mode: compute.UpgradeMode(updatePolicy),
@@ -384,6 +390,7 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 			StorageProfile: &storageProfile,
 			OsProfile:      osProfile,
 		},
+		Overprovision: &overprovision,
 	}
 
 	scaleSetParams := compute.VirtualMachineScaleSet{
@@ -441,6 +448,7 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 	properties := resp.VirtualMachineScaleSetProperties
 
 	d.Set("upgrade_policy_mode", properties.UpgradePolicy.Mode)
+	d.Set("overprovision", properties.Overprovision)
 
 	if err := d.Set("os_profile", flattenAzureRMVirtualMachineScaleSetOsProfile(properties.VirtualMachineProfile.OsProfile)); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set OS Profile error: %#v", err)
