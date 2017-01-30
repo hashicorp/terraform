@@ -2520,14 +2520,14 @@ func TestMetaBackend_planBackendEmptyDir(t *testing.T) {
 		t.Fatalf("bad: %#v", state)
 	}
 
-	// Verify the default path
-	if isEmptyState(DefaultStateFilename) {
-		t.Fatal("state is empty")
+	// Verify the default path doesn't exist
+	if !isEmptyState(DefaultStateFilename) {
+		t.Fatal("state is not empty")
 	}
 
-	// Verify a backup exists
-	if isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
-		t.Fatal("backup is empty")
+	// Verify a backup doesn't exist
+	if !isEmptyState(DefaultStateFilename + DefaultBackupExtension) {
+		t.Fatal("backup is not empty")
 	}
 
 	// Verify we have no configured backend/legacy
