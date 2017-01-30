@@ -59,9 +59,6 @@ func TestRefresh(t *testing.T) {
 	}
 }
 
-// TODO: State locking now creates the state file.
-//       Is there a good reason this shouldn't exist?
-/*
 func TestRefresh_badState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -80,7 +77,6 @@ func TestRefresh_badState(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 }
-*/
 
 func TestRefresh_cwd(t *testing.T) {
 	cwd, err := os.Getwd()
