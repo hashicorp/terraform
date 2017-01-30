@@ -811,7 +811,8 @@ func (c *Context) walk(
 
 	// Watch for a stop so we can call the provider Stop() API.
 	doneCh := make(chan struct{})
-	go c.watchStop(walker, doneCh)
+	stopCh := c.runContext.Done()
+	go c.watchStop(walker, doneCh, stopCh)
 
 	// Walk the real graph, this will block until it completes
 	realErr := graph.Walk(walker)
@@ -906,12 +907,7 @@ func (c *Context) walk(
 	return walker, realErr
 }
 
-func (c *Context) watchStop(walker *ContextGraphWalker, doneCh <-chan struct{}) {
-	// Get the stop channel. runContext will never be nil since this should
-	// only be called within the context of an operation started with
-	// acquireRun
-	stopCh := c.runContext.Done()
-
+func (c *Context) watchStop(walker *ContextGraphWalker, doneCh, stopCh <-chan struct{}) {
 	// Wait for a stop or completion
 	select {
 	case <-stopCh:
