@@ -264,7 +264,361 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(tc.Result, out) {
-			t.Fatalf("%s: bad: %#v", name, out)
+			t.Fatalf("Case %s:\ngiven: %#v\nexpected: %#v", name, out, tc.Result)
 		}
+	}
+}
+
+func TestMultiLevelFieldReader_ReadField_SetInSet(t *testing.T) {
+	schema := map[string]*Schema{
+		"main_set": &Schema{
+			Type:     TypeSet,
+			Optional: true,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"inner_string_set": &Schema{
+						Type:     TypeSet,
+						Required: true,
+						Set:      HashString,
+						Elem:     &Schema{Type: TypeString},
+					},
+				},
+			},
+		},
+		"main_int": &Schema{
+			Type:     TypeInt,
+			Optional: true,
+		},
+	}
+
+	var readers = make(map[string]FieldReader)
+	readers["state"] = &MapFieldReader{
+		Schema: schema,
+		Map: BasicMapReader(map[string]string{
+			"id":                                              "8395051352714003426",
+			"main_int":                                        "9",
+			"main_set.#":                                      "1",
+			"main_set.2813616083.inner_string_set.#":          "2",
+			"main_set.2813616083.inner_string_set.2654390964": "blue",
+			"main_set.2813616083.inner_string_set.3499814433": "green",
+		}),
+	}
+	readers["diff"] = &DiffFieldReader{
+		Schema: schema,
+		Diff: &terraform.InstanceDiff{
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"main_int": &terraform.ResourceAttrDiff{
+					Old: "9",
+					New: "2",
+				},
+			},
+		},
+		Source: &MultiLevelFieldReader{
+			Levels:  []string{"state", "config"},
+			Readers: readers,
+		},
+	}
+
+	mr := &MultiLevelFieldReader{
+		Levels: []string{
+			"state",
+			"diff",
+		},
+
+		Readers: readers,
+	}
+
+	result, err := mr.ReadField([]string{"main_set"})
+	if err != nil {
+		t.Fatalf("ReadField failed: %#v", err)
+	}
+
+	v := result.Value
+	if v == nil {
+		t.Fatal("Expected Value to be not nil")
+	}
+	list := v.(*Set).List()
+	if len(list) != 1 {
+		t.Fatalf("Expected exactly 1 instance, got %d", len(list))
+	}
+	if list[0] == nil {
+		t.Fatalf("Expected value to be not nil: %#v", list)
+	}
+
+	m := list[0].(map[string]interface{})
+	set := m["inner_string_set"].(*Set).List()
+
+	expectedSet := NewSet(HashString, []interface{}{"blue", "green"}).List()
+
+	if !reflect.DeepEqual(set, expectedSet) {
+		t.Fatalf("Given: %#v\n\nExpected: %#v", set, expectedSet)
+	}
+}
+
+func TestMultiLevelFieldReader_ReadField_SetInSet_complex(t *testing.T) {
+	schema := map[string]*Schema{
+		"main_set": &Schema{
+			Type:     TypeSet,
+			Optional: true,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"inner_string_set": &Schema{
+						Type:     TypeSet,
+						Required: true,
+						Set:      HashString,
+						Elem:     &Schema{Type: TypeString},
+					},
+					"inner_int": &Schema{
+						Type:     TypeInt,
+						Required: true,
+					},
+				},
+			},
+		},
+		"main_int": &Schema{
+			Type:     TypeInt,
+			Optional: true,
+		},
+	}
+
+	var readers = make(map[string]FieldReader)
+	readers["state"] = &MapFieldReader{
+		Schema: schema,
+		Map: BasicMapReader(map[string]string{
+			"id":                                              "8395051352714003426",
+			"main_int":                                        "9",
+			"main_set.#":                                      "1",
+			"main_set.2476980464.inner_string_set.#":          "2",
+			"main_set.2476980464.inner_string_set.2654390964": "blue",
+			"main_set.2476980464.inner_string_set.3499814433": "green",
+			"main_set.2476980464.inner_int":                   "4",
+		}),
+	}
+	readers["diff"] = &DiffFieldReader{
+		Schema: schema,
+		Diff: &terraform.InstanceDiff{
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"main_int": &terraform.ResourceAttrDiff{
+					Old: "9",
+					New: "2",
+				},
+			},
+		},
+		Source: &MultiLevelFieldReader{
+			Levels:  []string{"state", "config"},
+			Readers: readers,
+		},
+	}
+
+	mr := &MultiLevelFieldReader{
+		Levels: []string{
+			"state",
+			"diff",
+		},
+
+		Readers: readers,
+	}
+
+	result, err := mr.ReadFieldMerge([]string{"main_set"}, "diff")
+	if err != nil {
+		t.Fatalf("ReadFieldMerge failed: %#v", err)
+	}
+
+	v := result.Value
+	if v == nil {
+		t.Fatal("Expected Value to be not nil")
+	}
+	list := v.(*Set).List()
+	if len(list) != 1 {
+		t.Fatalf("Expected exactly 1 instance, got %d", len(list))
+	}
+	if list[0] == nil {
+		t.Fatalf("Expected value to be not nil: %#v", list)
+	}
+
+	m := list[0].(map[string]interface{})
+	set := m["inner_string_set"].(*Set).List()
+
+	expectedSet := NewSet(HashString, []interface{}{"blue", "green"}).List()
+
+	if !reflect.DeepEqual(set, expectedSet) {
+		t.Fatalf("Given: %#v\n\nExpected: %#v", set, expectedSet)
+	}
+}
+
+func TestMultiLevelFieldReader_ReadField_SetInList_simple(t *testing.T) {
+	schema := map[string]*Schema{
+		"main_list": &Schema{
+			Type:     TypeList,
+			Optional: true,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"inner_string_set": &Schema{
+						Type:     TypeSet,
+						Required: true,
+						Set:      HashString,
+						Elem:     &Schema{Type: TypeString},
+					},
+				},
+			},
+		},
+		"main_int": &Schema{
+			Type:     TypeInt,
+			Optional: true,
+		},
+	}
+
+	var readers = make(map[string]FieldReader)
+	readers["state"] = &MapFieldReader{
+		Schema: schema,
+		Map: BasicMapReader(map[string]string{
+			"id":                                      "8395051352714003426",
+			"main_int":                                "9",
+			"main_list.#":                             "1",
+			"main_list.0.inner_string_set.#":          "2",
+			"main_list.0.inner_string_set.2654390964": "blue",
+			"main_list.0.inner_string_set.3499814433": "green",
+		}),
+	}
+	readers["diff"] = &DiffFieldReader{
+		Schema: schema,
+		Diff: &terraform.InstanceDiff{
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"main_int": &terraform.ResourceAttrDiff{
+					Old: "9",
+					New: "2",
+				},
+			},
+		},
+		Source: &MultiLevelFieldReader{
+			Levels:  []string{"state", "config"},
+			Readers: readers,
+		},
+	}
+
+	mr := &MultiLevelFieldReader{
+		Levels: []string{
+			"state",
+			"diff",
+		},
+
+		Readers: readers,
+	}
+
+	result, err := mr.ReadField([]string{"main_list"})
+	if err != nil {
+		t.Fatalf("ReadField failed: %#v", err)
+	}
+
+	v := result.Value
+	if v == nil {
+		t.Fatal("Expected Value to be not nil")
+	}
+	list := v.([]interface{})
+	if len(list) != 1 {
+		t.Fatalf("Expected exactly 1 instance, got %d", len(list))
+	}
+	if list[0] == nil {
+		t.Fatalf("Expected value to be not nil: %#v", list)
+	}
+
+	m := list[0].(map[string]interface{})
+	set := m["inner_string_set"].(*Set).List()
+
+	expectedSet := NewSet(HashString, []interface{}{"blue", "green"}).List()
+
+	if !reflect.DeepEqual(set, expectedSet) {
+		t.Fatalf("Given: %#v\n\nExpected: %#v", set, expectedSet)
+	}
+}
+
+func TestMultiLevelFieldReader_ReadField_SetInList_complex(t *testing.T) {
+	schema := map[string]*Schema{
+		"main_list": &Schema{
+			Type:     TypeList,
+			Optional: true,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"inner_string_set": &Schema{
+						Type:     TypeSet,
+						Required: true,
+						Set:      HashString,
+						Elem:     &Schema{Type: TypeString},
+					},
+					"inner_int": &Schema{
+						Type:     TypeInt,
+						Required: true,
+					},
+				},
+			},
+		},
+		"main_int": &Schema{
+			Type:     TypeInt,
+			Optional: true,
+		},
+	}
+
+	var readers = make(map[string]FieldReader)
+	readers["state"] = &MapFieldReader{
+		Schema: schema,
+		Map: BasicMapReader(map[string]string{
+			"id":                                      "8395051352714003426",
+			"main_int":                                "9",
+			"main_list.#":                             "1",
+			"main_list.0.inner_string_set.#":          "2",
+			"main_list.0.inner_string_set.2654390964": "blue",
+			"main_list.0.inner_string_set.3499814433": "green",
+			"main_list.0.inner_int":                   "4",
+		}),
+	}
+	readers["diff"] = &DiffFieldReader{
+		Schema: schema,
+		Diff: &terraform.InstanceDiff{
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"main_int": &terraform.ResourceAttrDiff{
+					Old: "9",
+					New: "2",
+				},
+			},
+		},
+		Source: &MultiLevelFieldReader{
+			Levels:  []string{"state", "config"},
+			Readers: readers,
+		},
+	}
+
+	mr := &MultiLevelFieldReader{
+		Levels: []string{
+			"state",
+			"diff",
+		},
+
+		Readers: readers,
+	}
+
+	result, err := mr.ReadFieldMerge([]string{"main_list"}, "diff")
+	if err != nil {
+		t.Fatalf("ReadFieldMerge failed: %#v", err)
+	}
+
+	v := result.Value
+	if v == nil {
+		t.Fatal("Expected Value to be not nil")
+	}
+	list := v.([]interface{})
+	if len(list) != 1 {
+		t.Fatalf("Expected exactly 1 instance, got %d", len(list))
+	}
+	if list[0] == nil {
+		t.Fatalf("Expected value to be not nil: %#v", list)
+	}
+
+	m := list[0].(map[string]interface{})
+	set := m["inner_string_set"].(*Set).List()
+
+	expectedSet := NewSet(HashString, []interface{}{"blue", "green"}).List()
+
+	if !reflect.DeepEqual(set, expectedSet) {
+		t.Fatalf("Given: %#v\n\nExpected: %#v", set, expectedSet)
 	}
 }
