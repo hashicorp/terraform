@@ -3,6 +3,7 @@ package state
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -37,8 +38,7 @@ type LocalState struct {
 	Path    string
 	PathOut string
 
-	// the file handles corresponding to Path and PathOut
-	stateFile    *os.File
+	// the file handle corresponding to PathOut
 	stateFileOut *os.File
 
 	state     *terraform.State
@@ -66,7 +66,7 @@ func (s *LocalState) Lock(reason string) error {
 	}
 
 	if err := s.lock(); err != nil {
-		if info, err := s.lockInfo(); err != nil {
+		if info, err := s.lockInfo(); err == nil {
 			return info.Err()
 		}
 		return fmt.Errorf("state file %q locked: %s", s.Path, err)
@@ -82,23 +82,11 @@ func (s *LocalState) Unlock() error {
 
 // Open the state file, creating the directories and file as needed.
 func (s *LocalState) createStateFiles() error {
-	f, err := createFileAndDirs(s.Path)
-	if err != nil {
-		return err
-	}
-
-	s.stateFile = f
-
 	if s.PathOut == "" {
 		s.PathOut = s.Path
 	}
 
-	if s.PathOut == s.Path {
-		s.stateFileOut = s.stateFile
-		return nil
-	}
-
-	f, err = createFileAndDirs(s.PathOut)
+	f, err := createFileAndDirs(s.PathOut)
 	if err != nil {
 		return err
 	}
@@ -168,18 +156,22 @@ func (s *LocalState) PersistState() error {
 
 // StateRefresher impl.
 func (s *LocalState) RefreshState() error {
-	if s.stateFile == nil {
-		if err := s.createStateFiles(); err != nil {
+	var reader io.Reader
+	if !s.written {
+		// we haven't written a state file yet, so load from Path
+		f, err := os.Open(s.Path)
+		if err != nil {
 			return err
 		}
+		defer f.Close()
+		reader = f
+	} else {
+		// we have a state file, make sure we're at the start
+		s.stateFileOut.Seek(0, os.SEEK_SET)
+		reader = s.stateFileOut
 	}
 
-	// make sure we're at the start of the file
-	if _, err := s.stateFile.Seek(0, os.SEEK_SET); err != nil {
-		return err
-	}
-
-	state, err := terraform.ReadState(s.stateFile)
+	state, err := terraform.ReadState(reader)
 	// if there's no state we just assign the nil return value
 	if err != nil && err != terraform.ErrNoState {
 		return err
