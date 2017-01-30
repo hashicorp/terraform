@@ -110,18 +110,20 @@ func TestAccAWSDBInstance_subnetGroup(t *testing.T) {
 func TestAccAWSDBInstance_optionGroup(t *testing.T) {
 	var v rds.DBInstance
 
+	rName := fmt.Sprintf("tf-option-test-%d", acctest.RandInt())
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSDBInstanceConfigWithOptionGroup,
+				Config: testAccAWSDBInstanceConfigWithOptionGroup(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
 					testAccCheckAWSDBInstanceAttributes(&v),
 					resource.TestCheckResourceAttr(
-						"aws_db_instance.bar", "option_group_name", "option-group-test-terraform"),
+						"aws_db_instance.bar", "option_group_name", rName),
 				),
 			},
 		},
@@ -642,10 +644,10 @@ resource "aws_db_instance" "bar" {
 }
 `
 
-var testAccAWSDBInstanceConfigWithOptionGroup = fmt.Sprintf(`
-
+func testAccAWSDBInstanceConfigWithOptionGroup(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_db_option_group" "bar" {
-	name = "option-group-test-terraform"
+	name = "%s"
 	option_group_description = "Test option group for terraform"
 	engine_name = "mysql"
 	major_engine_version = "5.6"
@@ -665,7 +667,8 @@ resource "aws_db_instance" "bar" {
 
 	parameter_group_name = "default.mysql5.6"
 	option_group_name = "${aws_db_option_group.bar.name}"
-}`, acctest.RandInt())
+}`, rName, acctest.RandInt())
+}
 
 func testAccReplicaInstanceConfig(val int) string {
 	return fmt.Sprintf(`
