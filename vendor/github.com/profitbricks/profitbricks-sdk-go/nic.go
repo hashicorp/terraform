@@ -25,6 +25,7 @@ type NicProperties struct {
 	Dhcp           bool     `json:"dhcp,omitempty"`
 	Lan            int      `json:"lan,omitempty"`
 	FirewallActive bool     `json:"firewallActive,omitempty"`
+	Nat            bool     `json:"nat,omitempty"`
 }
 
 type NicEntities struct {
