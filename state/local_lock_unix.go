@@ -17,7 +17,7 @@ func (s *LocalState) lock() error {
 		Len:    0,
 	}
 
-	fd := s.stateFile.Fd()
+	fd := s.stateFileOut.Fd()
 	return syscall.FcntlFlock(fd, syscall.F_SETLK, flock)
 }
 
