@@ -28,6 +28,7 @@ BUG FIXES:
  * provider/ns1: Fix "use_client_subnet" in ns1_record [GH-11368]
  * provider/openstack: Remove Default Security Group Rules on Create [GH-11466]
  * provider/pagerduty: Allow timeouts to be disabled (pagerduty_service) [GH-11483]
+ * provider/rancher: Use environment specific client for accessing resources [GH-11503]
  * provisioner/chef: Attributes JSON coming from computed source validates [GH-11502]
 
 ## 0.8.5 (26 January 2017)
