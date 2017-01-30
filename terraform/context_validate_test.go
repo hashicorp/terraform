@@ -928,6 +928,7 @@ func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 		Targets:   c.targets,
 	}).Build(RootModulePath)
 
+	defer c.acquireRun("validate-test")()
 	walker, err := c.walk(graph, graph, walkValidate)
 	if err != nil {
 		t.Fatal(err)
