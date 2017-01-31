@@ -43,19 +43,33 @@ type Error struct {
 	// Error message
 	Message string `json:"message"`
 
+	// Error field
+	Field string `json:"field"`
+
 	// RequestID returned from the API, useful to contact support.
 	RequestID string `json:"requestId"`
 }
 
-func (e *Error) Error() string {
-	if e.RequestID != "" {
-		return fmt.Sprintf("%v %v: %d (request %q) %v",
-			e.Response.Request.Method, e.Response.Request.URL,
-			e.Response.StatusCode, e.RequestID, e.Message)
-	}
-	return fmt.Sprintf("%v %v: %d %v",
+func (e Error) Error() string {
+	msg := fmt.Sprintf("%v %v: %d (request: %q) %v: %v",
 		e.Response.Request.Method, e.Response.Request.URL,
-		e.Response.StatusCode, e.Message)
+		e.Response.StatusCode, e.RequestID, e.Code, e.Message)
+
+	if e.Field != "" {
+		msg = fmt.Sprintf("%s (field: %v)", msg, e.Field)
+	}
+
+	return msg
+}
+
+type Errors []Error
+
+func (es Errors) Error() string {
+	var stack string
+	for _, e := range es {
+		stack += e.Error() + "\n"
+	}
+	return stack
 }
 
 // decodeBody is used to JSON decode a body
@@ -101,19 +115,27 @@ func extractError(resp *http.Response) error {
 		return err
 	}
 
-	// TODO(liran): Should be extracted from the X-Request-ID header
-	err := &Error{
-		Response:  resp,
-		RequestID: output.Request.ID,
-	}
-
+	var errors Errors
 	if errs := output.Response.Errors; len(errs) > 0 {
-		err.Code = errs[0].Code
-		err.Message = errs[0].Message
+		for _, e := range errs {
+			err := Error{
+				Response:  resp,
+				RequestID: output.Request.ID, // TODO(liran): Should be extracted from the X-Request-ID header
+				Code:      e.Code,
+				Message:   e.Message,
+				Field:     e.Field,
+			}
+			errors = append(errors, err)
+		}
 	} else {
-		err.Code = strconv.Itoa(resp.StatusCode)
-		err.Message = http.StatusText(resp.StatusCode)
+		err := Error{
+			Response:  resp,
+			RequestID: output.Request.ID, // TODO(liran): Should be extracted from the X-Request-ID header
+			Code:      strconv.Itoa(resp.StatusCode),
+			Message:   http.StatusText(resp.StatusCode),
+		}
+		errors = append(errors, err)
 	}
 
-	return err
+	return errors
 }

@@ -1593,10 +1593,9 @@ func expandAwsGroupStrategy(data interface{}) (*spotinst.AwsGroupStrategy, error
 
 	if v, ok := m["risk"].(float64); ok && v >= 0 {
 		strategy.Risk = spotinst.Float64(v)
-		strategy.OnDemandCount = nil
 	}
 
-	if v, ok := m["ondemand_count"].(int); ok && v >= 0 {
+	if v, ok := m["ondemand_count"].(int); ok && v >= 0 && spotinst.Float64Value(strategy.Risk) == 0 {
 		strategy.OnDemandCount = spotinst.Int(v)
 		strategy.Risk = nil
 	}
