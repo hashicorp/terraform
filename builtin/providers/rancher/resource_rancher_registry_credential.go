@@ -114,6 +114,12 @@ func resourceRancherRegistryCredentialRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
+	if registryCred == nil {
+		log.Printf("[INFO] RegistryCredential %s not found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
 	log.Printf("[INFO] RegistryCredential Name: %s", registryCred.Name)
 
 	d.Set("description", registryCred.Description)

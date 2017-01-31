@@ -94,6 +94,12 @@ func resourceRancherEnvironmentRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
+	if env == nil {
+		log.Printf("[INFO] Environment %s not found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
 	log.Printf("[INFO] Environment Name: %s", env.Name)
 
 	d.Set("description", env.Description)
