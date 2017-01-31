@@ -32,17 +32,17 @@ func resourceProfitBricksNic() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"ips" : {
-				Type: schema.TypeList,
+			"ips": {
+				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Computed:true,
+				Computed: true,
 			},
 			"firewall_active": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"nat" :{
-				Type: schema.TypeBool,
+			"nat": {
+				Type:     schema.TypeBool,
 				Optional: true,
 			},
 			"server_id": {
