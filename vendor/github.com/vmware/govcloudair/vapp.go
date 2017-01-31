@@ -2,7 +2,7 @@
  * Copyright 2014 VMware, Inc.  All rights reserved.  Licensed under the Apache v2 License.
  */
 
-package govcd
+package govcloudair
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	"os"
 	"strconv"
 
-	types "github.com/hmrc/vmware-govcd/types/v56"
+	types "github.com/vmware/govcloudair/types/v56"
 )
 
 type VApp struct {

@@ -3,7 +3,7 @@
  */
 
 // Package govcloudair provides a simple binding for vCloud Air / vCloud Director REST APIs.
-package govcd
+package govcloudair
 
 import (
 	"encoding/xml"
@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"net/url"
 
-	types "github.com/hmrc/vmware-govcd/types/v56"
+	types "github.com/vmware/govcloudair/types/v56"
 )
 
 // Client provides a client to vCloud Air, values can be populated automatically using the Authenticate method.

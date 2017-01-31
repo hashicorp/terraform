@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hmrc/vmware-govcd"
+	"github.com/vmware/govcloudair"
 )
 
 func TestAccVcdSNAT_Basic(t *testing.T) {
@@ -16,7 +16,7 @@ func TestAccVcdSNAT_Basic(t *testing.T) {
 		return
 	}
 
-	var e govcd.EdgeGateway
+	var e govcloudair.EdgeGateway
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -37,7 +37,7 @@ func TestAccVcdSNAT_Basic(t *testing.T) {
 	})
 }
 
-func testAccCheckVcdSNATExists(n string, gateway *govcd.EdgeGateway) resource.TestCheckFunc {
+func testAccCheckVcdSNATExists(n string, gateway *govcloudair.EdgeGateway) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
