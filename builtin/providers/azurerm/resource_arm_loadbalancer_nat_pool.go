@@ -163,22 +163,21 @@ func resourceArmLoadBalancerNatPoolRead(d *schema.ResourceData, meta interface{}
 		return nil
 	}
 
-	configs := *loadBalancer.LoadBalancerPropertiesFormat.InboundNatPools
-	for _, config := range configs {
-		if *config.Name == d.Get("name").(string) {
-			d.Set("name", config.Name)
+	config, _, exists := findLoadBalancerNatPoolByName(loadBalancer, d.Get("name").(string))
+	if !exists {
+		d.SetId("")
+		log.Printf("[INFO] LoadBalancer Nat Pool %q not found. Removing from state", d.Get("name").(string))
+		return nil
+	}
 
-			d.Set("protocol", config.InboundNatPoolPropertiesFormat.Protocol)
-			d.Set("frontend_port_start", config.InboundNatPoolPropertiesFormat.FrontendPortRangeStart)
-			d.Set("frontend_port_end", config.InboundNatPoolPropertiesFormat.FrontendPortRangeEnd)
-			d.Set("backend_port", config.InboundNatPoolPropertiesFormat.BackendPort)
+	d.Set("name", config.Name)
+	d.Set("protocol", config.InboundNatPoolPropertiesFormat.Protocol)
+	d.Set("frontend_port_start", config.InboundNatPoolPropertiesFormat.FrontendPortRangeStart)
+	d.Set("frontend_port_end", config.InboundNatPoolPropertiesFormat.FrontendPortRangeEnd)
+	d.Set("backend_port", config.InboundNatPoolPropertiesFormat.BackendPort)
 
-			if config.InboundNatPoolPropertiesFormat.FrontendIPConfiguration != nil {
-				d.Set("frontend_ip_configuration_id", config.InboundNatPoolPropertiesFormat.FrontendIPConfiguration.ID)
-			}
-
-			break
-		}
+	if config.InboundNatPoolPropertiesFormat.FrontendIPConfiguration != nil {
+		d.Set("frontend_ip_configuration_id", config.InboundNatPoolPropertiesFormat.FrontendIPConfiguration.ID)
 	}
 
 	return nil

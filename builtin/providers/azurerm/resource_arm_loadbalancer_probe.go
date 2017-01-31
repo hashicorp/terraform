@@ -168,20 +168,19 @@ func resourceArmLoadBalancerProbeRead(d *schema.ResourceData, meta interface{}) 
 		return nil
 	}
 
-	configs := *loadBalancer.LoadBalancerPropertiesFormat.Probes
-	for _, config := range configs {
-		if *config.Name == d.Get("name").(string) {
-			d.Set("name", config.Name)
-
-			d.Set("protocol", config.ProbePropertiesFormat.Protocol)
-			d.Set("interval_in_seconds", config.ProbePropertiesFormat.IntervalInSeconds)
-			d.Set("number_of_probes", config.ProbePropertiesFormat.NumberOfProbes)
-			d.Set("port", config.ProbePropertiesFormat.Port)
-			d.Set("request_path", config.ProbePropertiesFormat.RequestPath)
-
-			break
-		}
+	config, _, exists := findLoadBalancerProbeByName(loadBalancer, d.Get("name").(string))
+	if !exists {
+		d.SetId("")
+		log.Printf("[INFO] LoadBalancer Probe %q not found. Removing from state", d.Get("name").(string))
+		return nil
 	}
+
+	d.Set("name", config.Name)
+	d.Set("protocol", config.ProbePropertiesFormat.Protocol)
+	d.Set("interval_in_seconds", config.ProbePropertiesFormat.IntervalInSeconds)
+	d.Set("number_of_probes", config.ProbePropertiesFormat.NumberOfProbes)
+	d.Set("port", config.ProbePropertiesFormat.Port)
+	d.Set("request_path", config.ProbePropertiesFormat.RequestPath)
 
 	return nil
 }
