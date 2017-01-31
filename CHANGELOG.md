@@ -3,6 +3,7 @@
 FEATURES:
 
  * **New Data Source:**  `aws_kms_secret` [GH-11460]
+ * **New Data Source:**  `aws_ecs_task_definition` [GH-8509]
 
 
 IMPROVEMENTS:
