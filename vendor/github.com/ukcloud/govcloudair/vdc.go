@@ -2,14 +2,14 @@
  * Copyright 2014 VMware, Inc.  All rights reserved.  Licensed under the Apache v2 License.
  */
 
-package govcd
+package govcloudair
 
 import (
 	"fmt"
 	"net/url"
 	"strings"
 
-	types "github.com/hmrc/vmware-govcd/types/v56"
+	types "github.com/ukcloud/govcloudair/types/v56"
 )
 
 type Vdc struct {
@@ -60,12 +60,14 @@ func (v *Vdc) Refresh() error {
 
 	// Empty struct before a new unmarshal, otherwise we end up with duplicate
 	// elements in slices.
-	v.Vdc = &types.Vdc{}
+	unmarshalledVdc := &types.Vdc{}
 
-	if err = decodeBody(resp, v.Vdc); err != nil {
-		return fmt.Errorf("error decoding Edge Gateway response: %s", err)
+	if err = decodeBody(resp, unmarshalledVdc); err != nil {
+		return fmt.Errorf("error decoding vdc response: %s", err)
 	}
 
+	v.Vdc = unmarshalledVdc
+	
 	// The request was successful
 	return nil
 }
