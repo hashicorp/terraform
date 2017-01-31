@@ -445,7 +445,7 @@ resource "aws_ecs_service" "mongo" {
   desired_count = 1
   placement_strategy {
 	type = "binpack"
-	field = "MEMORY"
+	field = "memory"
   }
 }
 `
