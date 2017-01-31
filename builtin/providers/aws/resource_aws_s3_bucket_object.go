@@ -14,6 +14,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
@@ -89,6 +90,13 @@ func resourceAwsS3BucketObject() *schema.Resource {
 				ValidateFunc: validateS3BucketObjectStorageClassType,
 			},
 
+			"server_side_encryption": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateS3BucketObjectServerSideEncryption,
+				Computed:     true,
+			},
+
 			"kms_key_id": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -102,7 +110,7 @@ func resourceAwsS3BucketObject() *schema.Resource {
 				// See http://docs.aws.amazon.com/AmazonS3/latest/API/RESTCommonResponseHeaders.html
 				Optional:      true,
 				Computed:      true,
-				ConflictsWith: []string{"kms_key_id"},
+				ConflictsWith: []string{"kms_key_id", "server_side_encryption"},
 			},
 
 			"version_id": {
@@ -171,9 +179,13 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		putInput.ContentDisposition = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("server_side_encryption"); ok {
+		putInput.ServerSideEncryption = aws.String(v.(string))
+	}
+
 	if v, ok := d.GetOk("kms_key_id"); ok {
 		putInput.SSEKMSKeyId = aws.String(v.(string))
-		putInput.ServerSideEncryption = aws.String("aws:kms")
+		putInput.ServerSideEncryption = aws.String(s3.ServerSideEncryptionAwsKms)
 	}
 
 	resp, err := s3conn.PutObject(putInput)
@@ -218,7 +230,24 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("content_language", resp.ContentLanguage)
 	d.Set("content_type", resp.ContentType)
 	d.Set("version_id", resp.VersionId)
-	d.Set("kms_key_id", resp.SSEKMSKeyId)
+	d.Set("server_side_encryption", resp.ServerSideEncryption)
+
+	// Only set non-default KMS key ID (one that doesn't match default)
+	if resp.SSEKMSKeyId != nil {
+		// retrieve S3 KMS Default Master Key
+		kmsconn := meta.(*AWSClient).kmsconn
+		kmsresp, err := kmsconn.DescribeKey(&kms.DescribeKeyInput{
+			KeyId: aws.String("alias/aws/s3"),
+		})
+		if err != nil {
+			return fmt.Errorf("Failed to describe default S3 KMS key (alias/aws/s3): %s", err)
+		}
+
+		if *resp.SSEKMSKeyId != *kmsresp.KeyMetadata.Arn {
+			log.Printf("[DEBUG] S3 object is encrypted using a non-default KMS Key ID: %s", *resp.SSEKMSKeyId)
+			d.Set("kms_key_id", resp.SSEKMSKeyId)
+		}
+	}
 	d.Set("etag", strings.Trim(*resp.ETag, `"`))
 
 	// The "STANDARD" (which is also the default) storage
@@ -325,6 +354,22 @@ func validateS3BucketObjectStorageClassType(v interface{}, k string) (ws []strin
 			"%q contains an invalid Storage Class type %q. Valid types are either %q, %q, or %q",
 			k, value, s3.StorageClassStandard, s3.StorageClassReducedRedundancy,
 			s3.StorageClassStandardIa))
+	}
+	return
+}
+
+func validateS3BucketObjectServerSideEncryption(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	serverSideEncryption := map[string]bool{
+		s3.ServerSideEncryptionAes256: true,
+		s3.ServerSideEncryptionAwsKms: true,
+	}
+
+	if _, ok := serverSideEncryption[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Server Side Encryption value %q. Valid values are %q and %q",
+			k, value, s3.ServerSideEncryptionAes256, s3.ServerSideEncryptionAwsKms))
 	}
 	return
 }
