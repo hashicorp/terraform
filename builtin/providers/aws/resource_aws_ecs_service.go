@@ -357,7 +357,7 @@ func flattenPlacementStrategy(pss []*ecs.PlacementStrategy) []map[string]interfa
 	for _, ps := range pss {
 		c := make(map[string]interface{})
 		c["type"] = *ps.Type
-		c["field"] = *ps.Field
+		c["field"] = strings.ToLower(*ps.Field)
 		results = append(results, c)
 	}
 	return results
