@@ -108,6 +108,12 @@ func resourceRancherRegistrationTokenRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	if regT == nil {
+		log.Printf("[INFO] RegistrationToken %s not found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
 	log.Printf("[INFO] RegistrationToken Name: %s", regT.Name)
 
 	d.Set("description", regT.Description)
