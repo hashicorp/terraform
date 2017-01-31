@@ -51,6 +51,10 @@ func resourceRancherRegistrationToken() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"image": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -122,6 +126,7 @@ func resourceRancherRegistrationTokenRead(d *schema.ResourceData, meta interface
 	d.Set("registration_url", regT.RegistrationUrl)
 	d.Set("environment_id", regT.AccountId)
 	d.Set("command", regT.Command)
+	d.Set("image", regT.Image)
 
 	return nil
 }
