@@ -365,6 +365,10 @@ func makeStackData(d *schema.ResourceData, meta interface{}) (data map[string]in
 			return data, fmt.Errorf("Failed to get catalog template: %s", err)
 		}
 
+		if template == nil {
+			return data, fmt.Errorf("Unknown catalog template %s", catalogID)
+		}
+
 		dockerCompose = template.Files["docker-compose.yml"].(string)
 		rancherCompose = template.Files["rancher-compose.yml"].(string)
 	}
