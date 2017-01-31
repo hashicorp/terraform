@@ -16,6 +16,7 @@ IMPROVEMENTS:
  * provider/fastly: Adds papertrail logging [GH-11491]
  * provider/google: allow instance group managers in region other than project [GH-11294]
  * provider/opsgenie: Descriptions for Teams [GH-11391]
+ * provider/rancher: rancher_registration_token add image parameter [GH-11551]
 
 BUG FIXES:
 
@@ -28,6 +29,7 @@ BUG FIXES:
  * provider/aws: Fix ALB Listener Rule Import [GH-1174]
  * provider/azurerm: Scale Sets Load balancer pools should not be computed [GH-11516]
  * provider/azurerm: Scale Sets ip configuration handling and update support for load balancer backend pools. [GH-11516]
+ * provider/azurerm: check if lb sub resources exist when reading [GH-11553]
  * provider/ignition: Allow to add authorized keys without user creation [GH-11406]
  * provider/ignition: mount and path are mutually exclusive [GH-11409]
  * provider/ns1: Fix "use_client_subnet" in ns1_record [GH-11368]
@@ -37,6 +39,7 @@ BUG FIXES:
  * provider/rancher: Refresh rancher stack from state on delete [GH-11539]
  * provider/rancher: Refresh rancher token and registry from state on not found [GH-11543]
  * provider/rancher: return error when Rancher template not found [GH-11544]
+ * provider/rancher: rancher_stack set docker_compose and rancher_compose [GH-11550]
  * provider/statuscake: Remove computed from statuscake_test timeout parameter [GH-11541]
  * provisioner/chef: Attributes JSON coming from computed source validates [GH-11502]
 
