@@ -18,7 +18,7 @@ func TestAccAWSEIPAssociation_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEIPAssociationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEIPAssociationConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEIPExists(
@@ -47,7 +47,7 @@ func TestAccAWSEIPAssociation_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEIPAssociationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEIPAssociationConfigDisappears,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEIPExists(
@@ -168,10 +168,12 @@ resource "aws_eip" "bar" {
 resource "aws_eip_association" "by_allocation_id" {
 	allocation_id = "${aws_eip.bar.0.id}"
 	instance_id = "${aws_instance.foo.0.id}"
+	depends_on = ["aws_instance.foo"]
 }
 resource "aws_eip_association" "by_public_ip" {
 	public_ip = "${aws_eip.bar.1.public_ip}"
 	instance_id = "${aws_instance.foo.1.id}"
+  depends_on = ["aws_instance.foo"]
 }
 resource "aws_eip_association" "to_eni" {
 	allocation_id = "${aws_eip.bar.2.id}"
@@ -180,6 +182,7 @@ resource "aws_eip_association" "to_eni" {
 resource "aws_network_interface" "baz" {
 	subnet_id = "${aws_subnet.sub.id}"
 	private_ips = ["192.168.0.10"]
+  depends_on = ["aws_instance.foo"]
 	attachment {
 		instance = "${aws_instance.foo.0.id}"
 		device_index = 1

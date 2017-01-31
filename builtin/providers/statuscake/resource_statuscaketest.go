@@ -54,10 +54,13 @@ func resourceStatusCakeTest() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+
 			"timeout": &schema.Schema{
 				Type:     schema.TypeInt,
-				Computed: true,
+				Optional: true,
+				Default:  40,
 			},
+
 			"confirmations": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,

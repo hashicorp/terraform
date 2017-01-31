@@ -55,6 +55,7 @@ type MockHook struct {
 	PostProvisionCalled        bool
 	PostProvisionInfo          *InstanceInfo
 	PostProvisionProvisionerId string
+	PostProvisionErrorArg      error
 	PostProvisionReturn        HookAction
 	PostProvisionError         error
 
@@ -170,13 +171,14 @@ func (h *MockHook) PreProvision(n *InstanceInfo, provId string) (HookAction, err
 	return h.PreProvisionReturn, h.PreProvisionError
 }
 
-func (h *MockHook) PostProvision(n *InstanceInfo, provId string) (HookAction, error) {
+func (h *MockHook) PostProvision(n *InstanceInfo, provId string, err error) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PostProvisionCalled = true
 	h.PostProvisionInfo = n
 	h.PostProvisionProvisionerId = provId
+	h.PostProvisionErrorArg = err
 	return h.PostProvisionReturn, h.PostProvisionError
 }
 

@@ -19,6 +19,7 @@ import (
 	"google.golang.org/api/dns/v1"
 	"google.golang.org/api/iam/v1"
 	"google.golang.org/api/pubsub/v1"
+	"google.golang.org/api/servicemanagement/v1"
 	"google.golang.org/api/sqladmin/v1beta4"
 	"google.golang.org/api/storage/v1"
 )
@@ -38,6 +39,7 @@ type Config struct {
 	clientStorage         *storage.Service
 	clientSqlAdmin        *sqladmin.Service
 	clientIAM             *iam.Service
+	clientServiceMan      *servicemanagement.APIService
 }
 
 func (c *Config) loadAndValidate() error {
@@ -130,26 +132,33 @@ func (c *Config) loadAndValidate() error {
 	}
 	c.clientSqlAdmin.UserAgent = userAgent
 
-	log.Printf("[INFO] Instatiating Google Pubsub Client...")
+	log.Printf("[INFO] Instantiating Google Pubsub Client...")
 	c.clientPubsub, err = pubsub.New(client)
 	if err != nil {
 		return err
 	}
 	c.clientPubsub.UserAgent = userAgent
 
-	log.Printf("[INFO] Instatiating Google Cloud ResourceManager Client...")
+	log.Printf("[INFO] Instantiating Google Cloud ResourceManager Client...")
 	c.clientResourceManager, err = cloudresourcemanager.New(client)
 	if err != nil {
 		return err
 	}
 	c.clientResourceManager.UserAgent = userAgent
 
-	log.Printf("[INFO] Instatiating Google Cloud IAM Client...")
+	log.Printf("[INFO] Instantiating Google Cloud IAM Client...")
 	c.clientIAM, err = iam.New(client)
 	if err != nil {
 		return err
 	}
 	c.clientIAM.UserAgent = userAgent
+
+	log.Printf("[INFO] Instantiating Google Cloud Service Management Client...")
+	c.clientServiceMan, err = servicemanagement.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientServiceMan.UserAgent = userAgent
 
 	return nil
 }

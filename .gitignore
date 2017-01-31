@@ -25,3 +25,7 @@ website/node_modules
 *.iml
 
 website/vendor
+
+# Test exclusions
+!command/test-fixtures/**/*.tfstate
+!command/test-fixtures/**/.terraform/

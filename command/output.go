@@ -20,13 +20,11 @@ func (c *OutputCommand) Run(args []string) int {
 
 	var module string
 	var jsonOutput bool
-
 	cmdFlags := flag.NewFlagSet("output", flag.ContinueOnError)
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
@@ -45,9 +43,17 @@ func (c *OutputCommand) Run(args []string) int {
 		name = args[0]
 	}
 
-	stateStore, err := c.Meta.State()
+	// Load the backend
+	b, err := c.Backend(nil)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error reading state: %s", err))
+		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
+		return 1
+	}
+
+	// Get the state
+	stateStore, err := b.State()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
 
@@ -62,7 +68,6 @@ func (c *OutputCommand) Run(args []string) int {
 
 	state := stateStore.State()
 	mod := state.ModuleByPath(modPath)
-
 	if mod == nil {
 		c.Ui.Error(fmt.Sprintf(
 			"The module %s could not be found. There is nothing to output.",
@@ -211,6 +216,7 @@ func formatNestedMap(indent string, outputMap map[string]interface{}) string {
 
 	return strings.TrimPrefix(outputBuf.String(), "\n")
 }
+
 func formatMapOutput(indent, outputName string, outputMap map[string]interface{}) string {
 	ks := make([]string, 0, len(outputMap))
 	for k, _ := range outputMap {
