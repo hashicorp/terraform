@@ -140,31 +140,31 @@ func resourceArmLoadBalancerBackendAddressPoolRead(d *schema.ResourceData, meta 
 		return nil
 	}
 
-	configs := *loadBalancer.LoadBalancerPropertiesFormat.BackendAddressPools
-	for _, config := range configs {
-		if *config.Name == d.Get("name").(string) {
-			d.Set("name", config.Name)
+	config, _, exists := findLoadBalancerBackEndAddressPoolByName(loadBalancer, d.Get("name").(string))
+	if !exists {
+		d.SetId("")
+		log.Printf("[INFO] LoadBalancer Backend Address Pool %q not found. Removing from state", d.Get("name").(string))
+		return nil
+	}
 
-			if config.BackendAddressPoolPropertiesFormat.BackendIPConfigurations != nil {
-				backend_ip_configurations := make([]string, 0, len(*config.BackendAddressPoolPropertiesFormat.BackendIPConfigurations))
-				for _, backendConfig := range *config.BackendAddressPoolPropertiesFormat.BackendIPConfigurations {
-					backend_ip_configurations = append(backend_ip_configurations, *backendConfig.ID)
-				}
+	d.Set("name", config.Name)
 
-				d.Set("backend_ip_configurations", backend_ip_configurations)
-			}
-
-			if config.BackendAddressPoolPropertiesFormat.LoadBalancingRules != nil {
-				load_balancing_rules := make([]string, 0, len(*config.BackendAddressPoolPropertiesFormat.LoadBalancingRules))
-				for _, rule := range *config.BackendAddressPoolPropertiesFormat.LoadBalancingRules {
-					load_balancing_rules = append(load_balancing_rules, *rule.ID)
-				}
-
-				d.Set("backend_ip_configurations", load_balancing_rules)
-			}
-
-			break
+	if config.BackendAddressPoolPropertiesFormat.BackendIPConfigurations != nil {
+		backend_ip_configurations := make([]string, 0, len(*config.BackendAddressPoolPropertiesFormat.BackendIPConfigurations))
+		for _, backendConfig := range *config.BackendAddressPoolPropertiesFormat.BackendIPConfigurations {
+			backend_ip_configurations = append(backend_ip_configurations, *backendConfig.ID)
 		}
+
+		d.Set("backend_ip_configurations", backend_ip_configurations)
+	}
+
+	if config.BackendAddressPoolPropertiesFormat.LoadBalancingRules != nil {
+		load_balancing_rules := make([]string, 0, len(*config.BackendAddressPoolPropertiesFormat.LoadBalancingRules))
+		for _, rule := range *config.BackendAddressPoolPropertiesFormat.LoadBalancingRules {
+			load_balancing_rules = append(load_balancing_rules, *rule.ID)
+		}
+
+		d.Set("backend_ip_configurations", load_balancing_rules)
 	}
 
 	return nil

@@ -134,6 +134,29 @@ func TestAccAzureRMLoadBalancerNatPool_reapply(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMLoadBalancerNatPool_disappears(t *testing.T) {
+	var lb network.LoadBalancer
+	ri := acctest.RandInt()
+	natPoolName := fmt.Sprintf("NatPool-%d", ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLoadBalancerNatPool_basic(ri, natPoolName),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerNatPoolExists(natPoolName, &lb),
+					testCheckAzureRMLoadBalancerNatPoolDisappears(natPoolName, &lb),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testCheckAzureRMLoadBalancerNatPoolExists(natPoolName string, lb *network.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerNatPoolByName(lb, natPoolName)
@@ -153,6 +176,34 @@ func testCheckAzureRMLoadBalancerNatPoolNotExists(natPoolName string, lb *networ
 		}
 
 		return nil
+	}
+}
+
+func testCheckAzureRMLoadBalancerNatPoolDisappears(natPoolName string, lb *network.LoadBalancer) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*ArmClient).loadBalancerClient
+
+		_, i, exists := findLoadBalancerNatPoolByName(lb, natPoolName)
+		if !exists {
+			return fmt.Errorf("A Nat Pool with name %q cannot be found.", natPoolName)
+		}
+
+		currentPools := *lb.LoadBalancerPropertiesFormat.InboundNatPools
+		pools := append(currentPools[:i], currentPools[i+1:]...)
+		lb.LoadBalancerPropertiesFormat.InboundNatPools = &pools
+
+		id, err := parseAzureResourceID(*lb.ID)
+		if err != nil {
+			return err
+		}
+
+		_, err = conn.CreateOrUpdate(id.ResourceGroup, *lb.Name, *lb, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Error Creating/Updating LoadBalancer %s", err)
+		}
+
+		_, err = conn.Get(id.ResourceGroup, *lb.Name, "")
+		return err
 	}
 }
 

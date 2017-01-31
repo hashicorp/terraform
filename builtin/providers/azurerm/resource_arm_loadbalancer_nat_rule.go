@@ -163,25 +163,24 @@ func resourceArmLoadBalancerNatRuleRead(d *schema.ResourceData, meta interface{}
 		return nil
 	}
 
-	configs := *loadBalancer.LoadBalancerPropertiesFormat.InboundNatRules
-	for _, config := range configs {
-		if *config.Name == d.Get("name").(string) {
-			d.Set("name", config.Name)
+	config, _, exists := findLoadBalancerNatRuleByName(loadBalancer, d.Get("name").(string))
+	if !exists {
+		d.SetId("")
+		log.Printf("[INFO] LoadBalancer Nat Rule %q not found. Removing from state", d.Get("name").(string))
+		return nil
+	}
 
-			d.Set("protocol", config.InboundNatRulePropertiesFormat.Protocol)
-			d.Set("frontend_port", config.InboundNatRulePropertiesFormat.FrontendPort)
-			d.Set("backend_port", config.InboundNatRulePropertiesFormat.BackendPort)
+	d.Set("name", config.Name)
+	d.Set("protocol", config.InboundNatRulePropertiesFormat.Protocol)
+	d.Set("frontend_port", config.InboundNatRulePropertiesFormat.FrontendPort)
+	d.Set("backend_port", config.InboundNatRulePropertiesFormat.BackendPort)
 
-			if config.InboundNatRulePropertiesFormat.FrontendIPConfiguration != nil {
-				d.Set("frontend_ip_configuration_id", config.InboundNatRulePropertiesFormat.FrontendIPConfiguration.ID)
-			}
+	if config.InboundNatRulePropertiesFormat.FrontendIPConfiguration != nil {
+		d.Set("frontend_ip_configuration_id", config.InboundNatRulePropertiesFormat.FrontendIPConfiguration.ID)
+	}
 
-			if config.InboundNatRulePropertiesFormat.BackendIPConfiguration != nil {
-				d.Set("backend_ip_configuration_id", config.InboundNatRulePropertiesFormat.BackendIPConfiguration.ID)
-			}
-
-			break
-		}
+	if config.InboundNatRulePropertiesFormat.BackendIPConfiguration != nil {
+		d.Set("backend_ip_configuration_id", config.InboundNatRulePropertiesFormat.BackendIPConfiguration.ID)
 	}
 
 	return nil
