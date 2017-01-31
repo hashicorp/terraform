@@ -50,29 +50,28 @@ func dataSourceAwsEcsCluster() *schema.Resource {
 func dataSourceAwsEcsClusterRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ecsconn
 
-	desc, err := conn.DescribeClusters(&ecs.DescribeClustersInput{})
+	desc, err := conn.DescribeClusters(&ecs.DescribeClustersInput{
+		Clusters: []*string{aws.String(d.Get("cluster_name").(string))},
+	})
 
 	if err != nil {
 		return err
 	}
 
-	var c *ecs.Cluster
 	for _, cluster := range desc.Clusters {
-		if aws.StringValue(cluster.ClusterName) == d.Get("cluster_name").(string) {
-			c = cluster
-			break
+		if aws.StringValue(cluster.ClusterName) != d.Get("cluster_name").(string) {
+			continue
 		}
+		d.SetId(aws.StringValue(cluster.ClusterArn))
+		d.Set("status", cluster.Status)
+		d.Set("pending_tasks_count", cluster.PendingTasksCount)
+		d.Set("running_tasks_count", cluster.RunningTasksCount)
+		d.Set("registered_container_instances_count", cluster.RegisteredContainerInstancesCount)
 	}
 
-	if c == nil {
+	if d.Id() == "" {
 		return fmt.Errorf("cluster with name %q not found", d.Get("cluster_name").(string))
 	}
-
-	d.SetId(aws.StringValue(c.ClusterArn))
-	d.Set("status", c.Status)
-	d.Set("pending_tasks_count", c.PendingTasksCount)
-	d.Set("running_tasks_count", c.RunningTasksCount)
-	d.Set("registered_container_instances_count", c.RegisteredContainerInstancesCount)
 
 	return nil
 }
