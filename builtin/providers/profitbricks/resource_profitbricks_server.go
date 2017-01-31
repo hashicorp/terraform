@@ -294,7 +294,7 @@ func resourceProfitBricksServerCreate(d *schema.ResourceData, meta interface{}) 
 					log.Printf("[DEBUG] Reading file %s", path)
 					publicKey, err := readPublicKey(path.(string))
 					if err != nil {
-						return fmt.Errorf("Error fetching sshkey from file (%s)", path, err)
+						return fmt.Errorf("Error fetching sshkey from file (%s) (%s)", path, err.Error())
 					}
 					publicKeys = append(publicKeys, publicKey)
 				}
@@ -406,7 +406,7 @@ func resourceProfitBricksServerCreate(d *schema.ResourceData, meta interface{}) 
 					}
 
 					request.Entities.Nics.Items[0].Entities = &profitbricks.NicEntities{
-						&profitbricks.FirewallRules{
+						Firewallrules : &profitbricks.FirewallRules{
 							Items: []profitbricks.FirewallRule{
 								firewall,
 							},

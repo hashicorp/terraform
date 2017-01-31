@@ -98,7 +98,7 @@ func resourceProfitBricksVolumeCreate(d *schema.ResourceData, meta interface{}) 
 			log.Printf("[DEBUG] Reading file %s", path)
 			publicKey, err := readPublicKey(path.(string))
 			if err != nil {
-				return fmt.Errorf("Error fetching sshkey from file (%s)", path, err)
+				return fmt.Errorf("Error fetching sshkey from file (%s) (%s)", path, err.Error())
 			}
 			publicKeys = append(publicKeys, publicKey)
 		}
