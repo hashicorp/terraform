@@ -79,7 +79,7 @@ func (c *OutputCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf(
 			"The state file has no outputs defined. Define an output\n" +
 				"in your configuration with the `output` directive and re-run\n" +
-				"`terraform apply` for it to become available."))
+				"`terraform refresh` for it to become available."))
 		return 1
 	}
 
