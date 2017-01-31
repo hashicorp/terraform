@@ -164,6 +164,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_ebs_snapshot":             dataSourceAwsEbsSnapshot(),
 			"aws_ebs_volume":               dataSourceAwsEbsVolume(),
 			"aws_ecs_container_definition": dataSourceAwsEcsContainerDefinition(),
+			"aws_ecs_task_definition":      dataSourceAwsEcsTaskDefinition(),
 			"aws_eip":                      dataSourceAwsEip(),
 			"aws_elb_hosted_zone_id":       dataSourceAwsElbHostedZoneId(),
 			"aws_elb_service_account":      dataSourceAwsElbServiceAccount(),
