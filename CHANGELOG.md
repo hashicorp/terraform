@@ -8,6 +8,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+ * core: Interaction with Atlas now supports the `ATLAS_TLS_NOVERIFY` environment variable [GH-11576]
  * provider/aws: Add EBS Volume support for EMR Instance Groups [GH-11411]
  * provider/aws: Add support for policy to AWS provider assume_role [GH-11501]
  * provider/aws: Add support for more sns_topic_subscription parameters on import command [GH-10408]
