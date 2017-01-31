@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/vault/api"
+	"github.com/mitchellh/go-homedir"
 )
 
 func Provider() terraform.ResourceProvider {
@@ -127,13 +127,16 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	token := d.Get("token").(string)
 	if token == "" {
 		// Use the vault CLI's token, if present.
-		tokenFile := fmt.Sprintf("%s/.vault-token", os.Getenv("HOME"))
-		tokenBytes, err := ioutil.ReadFile(tokenFile)
+		homePath, err := homedir.Dir()
+		if err != nil {
+			return nil, fmt.Errorf("No vault token found: %s", err)
+		}
+		tokenBytes, err := ioutil.ReadFile(homePath + "/.vault-token")
 		if err != nil {
 			return nil, fmt.Errorf("No vault token found: %s", err)
 		}
 
-		token = string(tokenBytes)
+		token = strings.TrimSpace(string(tokenBytes))
 	}
 
 	// In order to enforce our relatively-short lease TTL, we derive a
