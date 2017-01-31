@@ -364,6 +364,12 @@ type InstanceDiff struct {
 	Destroy        bool
 	DestroyDeposed bool
 	DestroyTainted bool
+
+	// Meta is a simple K/V map that is stored in a diff and persisted to
+	// plans but otherwise is completely ignored by Terraform core. It is
+	// mean to be used for additional data a resource may want to pass through.
+	// The value here must only contain Go primitives and collections.
+	Meta map[string]interface{}
 }
 
 func (d *InstanceDiff) Lock()   { d.mu.Lock() }
