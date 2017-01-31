@@ -28,6 +28,7 @@ BUG FIXES:
  * provider/aws: ECS Placement constraints fix [GH-11475]
  * provider/aws: retry kms_key CreateKey if arn in policy not yet seen [GH-11509]
  * provider/aws: Fix ALB Listener Rule Import [GH-1174]
+ * provider/aws: Fix issue with ECS Placement Strat. and type casing [GH-11565]
  * provider/azurerm: Scale Sets Load balancer pools should not be computed [GH-11516]
  * provider/azurerm: Scale Sets ip configuration handling and update support for load balancer backend pools. [GH-11516]
  * provider/azurerm: check if lb sub resources exist when reading [GH-11553]
