@@ -43,6 +43,7 @@ func resourceAwsDmsReplicationTask() *schema.Resource {
 			"replication_instance_arn": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateArn,
 			},
 			"replication_task_arn": {
@@ -52,6 +53,7 @@ func resourceAwsDmsReplicationTask() *schema.Resource {
 			"replication_task_id": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateDmsReplicationTaskId,
 			},
 			"replication_task_settings": {
@@ -62,6 +64,7 @@ func resourceAwsDmsReplicationTask() *schema.Resource {
 			"source_endpoint_arn": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateArn,
 			},
 			"table_mappings": {
@@ -76,6 +79,7 @@ func resourceAwsDmsReplicationTask() *schema.Resource {
 			"target_endpoint_arn": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateArn,
 			},
 		},

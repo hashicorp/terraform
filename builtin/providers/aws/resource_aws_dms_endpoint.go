@@ -41,6 +41,7 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 			"endpoint_id": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateDmsEndpointId,
 			},
 			"endpoint_type": {
@@ -74,6 +75,7 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 				Type:         schema.TypeString,
 				Computed:     true,
 				Optional:     true,
+				ForceNew:     true,
 				ValidateFunc: validateArn,
 			},
 			"password": {

@@ -32,6 +32,7 @@ func resourceAwsDmsReplicationSubnetGroup() *schema.Resource {
 			"replication_subnet_group_id": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateDmsReplicationSubnetGroupId,
 			},
 			"subnet_ids": {

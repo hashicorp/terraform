@@ -42,6 +42,7 @@ func resourceAwsDmsReplicationInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
+				ForceNew: true,
 			},
 			"engine_version": {
 				Type:     schema.TypeString,
@@ -52,6 +53,7 @@ func resourceAwsDmsReplicationInstance() *schema.Resource {
 				Type:         schema.TypeString,
 				Computed:     true,
 				Optional:     true,
+				ForceNew:     true,
 				ValidateFunc: validateArn,
 			},
 			"multi_az": {
@@ -69,6 +71,7 @@ func resourceAwsDmsReplicationInstance() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 				Optional: true,
+				ForceNew: true,
 			},
 			"replication_instance_arn": {
 				Type:     schema.TypeString,
@@ -83,6 +86,7 @@ func resourceAwsDmsReplicationInstance() *schema.Resource {
 			"replication_instance_id": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateDmsReplicationInstanceId,
 			},
 			"replication_instance_private_ips": {
@@ -99,6 +103,7 @@ func resourceAwsDmsReplicationInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
+				ForceNew: true,
 			},
 			"tags": {
 				Type:     schema.TypeMap,
