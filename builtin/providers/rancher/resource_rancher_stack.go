@@ -132,6 +132,12 @@ func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	if stack == nil {
+		log.Printf("[INFO] Stack %s not found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
 	if stack.State == "removed" {
 		log.Printf("[INFO] Stack %s was removed on %v", d.Id(), stack.Removed)
 		d.SetId("")
