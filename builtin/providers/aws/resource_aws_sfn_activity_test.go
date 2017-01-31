@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"time"
 )
 
 func TestAccAWSSfnActivity_basic(t *testing.T) {
@@ -65,19 +66,29 @@ func testAccCheckAWSSfnActivityDestroy(s *terraform.State) error {
 			continue
 		}
 
-		out, err := conn.DescribeActivity(&sfn.DescribeActivityInput{
-			ActivityArn: aws.String(rs.Primary.ID),
+		// Retrying as Read after Delete is not always consistent
+		retryErr := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			var err error
+
+			_, err = conn.DescribeActivity(&sfn.DescribeActivityInput{
+				ActivityArn: aws.String(rs.Primary.ID),
+			})
+
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ActivityDoesNotExist" {
+					return nil
+				}
+
+				return resource.NonRetryableError(err)
+			}
+
+			// If there are no errors, the removal failed
+			// and the object is not yet removed.
+			return resource.RetryableError(fmt.Errorf("Expected AWS Step Function Activity to be destroyed, but was still found, retrying"))
 		})
 
-		if err != nil {
-			if wserr, ok := err.(awserr.Error); ok && wserr.Code() == "ActivityDoesNotExist" {
-				return nil
-			}
-			return err
-		}
-
-		if out != nil {
-			return fmt.Errorf("Expected AWS Step Function Activity to be destroyed, but was still found")
+		if retryErr != nil {
+			return retryErr
 		}
 
 		return nil

@@ -73,6 +73,9 @@ func resourceAwsSfnStateMachineCreate(d *schema.ResourceData, meta interface{}) 
 		activity, err = conn.CreateStateMachine(params)
 
 		if err != nil {
+			// Note: the instance may be in a deleting mode, hence the retry
+			// when creating the step function. This can happen when we are
+			// updating the resource (since there is no update API call).
 			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "StateMachineDeleting" {
 				return resource.RetryableError(err)
 			}
