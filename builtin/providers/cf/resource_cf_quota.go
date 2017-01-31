@@ -104,8 +104,11 @@ func resourceQuotaRead(d *schema.ResourceData, meta interface{}) (err error) {
 	d.Set("allow_paid_service_plans", quota.NonBasicServicesAllowed)
 	d.Set("total_services", quota.TotalServices)
 	d.Set("total_routes", quota.TotalRoutes)
-	d.Set("total_route_ports", quota.TotalReserveredPorts)
-	d.Set("total_private_domains", quota.TotalPrivateDomains)
+
+	if quota.OrgGUID == "" {
+		d.Set("total_route_ports", quota.TotalReserveredPorts)
+		d.Set("total_private_domains", quota.TotalPrivateDomains)
+	}
 	return
 }
 
