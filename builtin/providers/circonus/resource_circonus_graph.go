@@ -125,8 +125,9 @@ func _NewGraphResource() *schema.Resource {
 
 		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
 			_GraphDescriptionAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				StateFunc: suppressWhitespace,
 			},
 			_GraphLeftAttr: &schema.Schema{
 				Type:         schema.TypeMap,

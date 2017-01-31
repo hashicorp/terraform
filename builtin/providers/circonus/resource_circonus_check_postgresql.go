@@ -77,7 +77,7 @@ var _SchemaCheckPostgreSQL = &schema.Schema{
 			_CheckPostgreSQLQueryAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				StateFunc:    func(v interface{}) string { return strings.TrimSpace(v.(string)) },
+				StateFunc:    suppressWhitespace,
 				ValidateFunc: _ValidateRegexp(_CheckPostgreSQLQueryAttr, `.+`),
 			},
 			// _CheckPostgreSQLSSLModeAttr: &schema.Schema{
