@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/ukcloud/govcloudair"
+	govcd "github.com/ukcloud/govcloudair"
 )
 
 func TestAccVcdDNAT_Basic(t *testing.T) {

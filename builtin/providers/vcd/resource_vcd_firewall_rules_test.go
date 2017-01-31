@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/ukcloud/govcloudair"
+	govcd "github.com/ukcloud/govcloudair"
 )
 
 func TestAccVcdFirewallRules_basic(t *testing.T) {
