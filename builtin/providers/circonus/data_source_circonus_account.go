@@ -39,25 +39,21 @@ func dataSourceCirconusAccount() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			accountAddress1Attr: &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: accountDescription[accountAddress1Attr],
 			},
 			accountAddress2Attr: &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: accountDescription[accountAddress2Attr],
 			},
 			accountCCEmailAttr: &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: accountDescription[accountCCEmailAttr],
 			},
 			accountIDAttr: &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 				// ConflictsWith: []string{accountCurrentAttr},
 				ValidateFunc: _ValidateFuncs(
@@ -67,20 +63,17 @@ func dataSourceCirconusAccount() *schema.Resource {
 			},
 			accountCityAttr: &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: accountDescription[accountCityAttr],
 			},
 			accountContactGroupsAttr: &schema.Schema{
 				Type:        schema.TypeList,
-				Optional:    true,
 				Computed:    true,
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Description: accountDescription[accountContactGroupsAttr],
 			},
 			accountCountryAttr: &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: accountDescription[accountCountryAttr],
 			},
@@ -92,26 +85,22 @@ func dataSourceCirconusAccount() *schema.Resource {
 			},
 			accountDescriptionAttr: &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: accountDescription[accountDescriptionAttr],
 			},
 			accountInvitesAttr: &schema.Schema{
 				Type:        schema.TypeList,
-				Optional:    true,
 				Computed:    true,
 				Description: accountDescription[accountInvitesAttr],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						accountEmailAttr: &schema.Schema{
 							Type:        schema.TypeString,
-							Optional:    true,
 							Computed:    true,
 							Description: accountDescription[accountEmailAttr],
 						},
 						accountRoleAttr: &schema.Schema{
 							Type:        schema.TypeString,
-							Optional:    true,
 							Computed:    true,
 							Description: accountDescription[accountRoleAttr],
 						},
@@ -120,56 +109,47 @@ func dataSourceCirconusAccount() *schema.Resource {
 			},
 			accountNameAttr: &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: accountDescription[accountNameAttr],
 			},
 			accountOwnerAttr: &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: accountDescription[accountOwnerAttr],
 			},
 			accountStateProvAttr: &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: accountDescription[accountStateProvAttr],
 			},
 			accountTimezoneAttr: &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: accountDescription[accountTimezoneAttr],
 			},
 			accountUIBaseURLAttr: &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: accountDescription[accountUIBaseURLAttr],
 			},
 			accountUsageAttr: &schema.Schema{
 				Type:        schema.TypeList,
-				Optional:    true,
 				Computed:    true,
 				Description: accountDescription[accountUsageAttr],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						accountLimitAttr: &schema.Schema{
 							Type:        schema.TypeInt,
-							Optional:    true,
 							Computed:    true,
 							Description: accountDescription[accountLimitAttr],
 						},
 						accountTypeAttr: &schema.Schema{
 							Type:        schema.TypeString,
-							Optional:    true,
 							Computed:    true,
 							Description: accountDescription[accountTypeAttr],
 						},
 						accountUsedAttr: &schema.Schema{
 							Type:        schema.TypeInt,
-							Optional:    true,
 							Computed:    true,
 							Description: accountDescription[accountUsedAttr],
 						},
@@ -178,20 +158,17 @@ func dataSourceCirconusAccount() *schema.Resource {
 			},
 			accountUsersAttr: &schema.Schema{
 				Type:        schema.TypeList,
-				Optional:    true,
 				Computed:    true,
 				Description: accountDescription[accountUsersAttr],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						accountUserIDAttr: &schema.Schema{
 							Type:        schema.TypeString,
-							Optional:    true,
 							Computed:    true,
 							Description: accountDescription[accountUserIDAttr],
 						},
 						accountRoleAttr: &schema.Schema{
 							Type:        schema.TypeString,
-							Optional:    true,
 							Computed:    true,
 							Description: accountDescription[accountRoleAttr],
 						},
