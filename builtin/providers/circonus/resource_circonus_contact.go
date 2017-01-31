@@ -324,25 +324,19 @@ func resourceContactGroup() *schema.Resource {
 				},
 			},
 			contactLongMessageAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				StateFunc: func(v interface{}) string {
-					return strings.TrimSpace(v.(string))
-				},
+				Type:      schema.TypeString,
+				Optional:  true,
+				StateFunc: suppressWhitespace,
 			},
 			contactLongSubjectAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				StateFunc: func(v interface{}) string {
-					return strings.TrimSpace(v.(string))
-				},
+				Type:      schema.TypeString,
+				Optional:  true,
+				StateFunc: suppressWhitespace,
 			},
 			contactLongSummaryAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				StateFunc: func(v interface{}) string {
-					return strings.TrimSpace(v.(string))
-				},
+				Type:      schema.TypeString,
+				Optional:  true,
+				StateFunc: suppressWhitespace,
 			},
 			contactNameAttr: &schema.Schema{
 				Type:     schema.TypeString,
@@ -373,18 +367,14 @@ func resourceContactGroup() *schema.Resource {
 				},
 			},
 			contactShortMessageAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				StateFunc: func(v interface{}) string {
-					return strings.TrimSpace(v.(string))
-				},
+				Type:      schema.TypeString,
+				Optional:  true,
+				StateFunc: suppressWhitespace,
 			},
 			contactShortSummaryAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				StateFunc: func(v interface{}) string {
-					return strings.TrimSpace(v.(string))
-				},
+				Type:      schema.TypeString,
+				Optional:  true,
+				StateFunc: suppressWhitespace,
 			},
 			contactSlackAttr: &schema.Schema{
 				Type:     schema.TypeSet,

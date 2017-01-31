@@ -279,20 +279,16 @@ func _NewTriggerResource() *schema.Resource {
 				ValidateFunc: _ValidateStringIn(_TriggerMetricTypeAttr, _ValidTriggerMetricTypes),
 			},
 			_TriggerNotesAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				StateFunc: func(v interface{}) string {
-					return strings.TrimSpace(v.(string))
-				},
+				Type:      schema.TypeString,
+				Optional:  true,
+				Computed:  true,
+				StateFunc: suppressWhitespace,
 			},
 			_TriggerParentAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				StateFunc: func(v interface{}) string {
-					return strings.TrimSpace(v.(string))
-				},
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				StateFunc:    suppressWhitespace,
 				ValidateFunc: _ValidateRegexp(_TriggerParentAttr, `^[\d]+_[\d\w]+$`),
 			},
 			_TriggerStreamNameAttr: &schema.Schema{

@@ -58,12 +58,10 @@ func _NewStreamGroupResource() *schema.Resource {
 
 		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
 			_StreamGroupDescriptionAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				StateFunc: func(v interface{}) string {
-					return strings.TrimSpace(v.(string))
-				},
+				Type:      schema.TypeString,
+				Optional:  true,
+				Computed:  true,
+				StateFunc: suppressWhitespace,
 			},
 			_StreamGroupNameAttr: &schema.Schema{
 				Type:     schema.TypeString,

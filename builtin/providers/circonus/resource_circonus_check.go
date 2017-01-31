@@ -19,7 +19,6 @@ package circonus
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
@@ -168,12 +167,10 @@ func _NewCheckResource() *schema.Resource {
 				Computed: true,
 			},
 			_CheckNotesAttr: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				StateFunc: func(v interface{}) string {
-					return strings.TrimSpace(v.(string))
-				},
+				Type:      schema.TypeString,
+				Optional:  true,
+				Computed:  true,
+				StateFunc: suppressWhitespace,
 			},
 			_CheckPeriodAttr: &schema.Schema{
 				Type:      schema.TypeString,
