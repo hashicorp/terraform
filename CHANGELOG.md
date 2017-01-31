@@ -10,6 +10,7 @@ IMPROVEMENTS:
  * provider/aws: Add EBS Volume support for EMR Instance Groups [GH-11411]
  * provider/aws: Add support for policy to AWS provider assume_role [GH-11501]
  * provider/aws: Add support for more sns_topic_subscription parameters on import command [GH-10408]
+ * provider/aws: Add support for Sever Side Encryption with default S3 KMS key to `aws_s3_bucket_object` [GH-11261]
  * provider/fastly: Adds papertrail logging [GH-11491]
  * provider/google: allow instance group managers in region other than project [GH-11294]
  * provider/opsgenie: Descriptions for Teams [GH-11391]
