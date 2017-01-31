@@ -40,44 +40,37 @@ func dataSourceCirconusCollector() *schema.Resource {
 			},
 			collectorDetailsAttr: &schema.Schema{
 				Type:        schema.TypeList,
-				Optional:    true,
 				Computed:    true,
 				Description: collectorDescription[collectorDetailsAttr],
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						collectorCNAttr: &schema.Schema{
 							Type:        schema.TypeString,
-							Optional:    true,
 							Computed:    true,
 							Description: collectorDescription[collectorCNAttr],
 						},
 						collectorExternalHostAttr: &schema.Schema{
 							Type:        schema.TypeString,
-							Optional:    true,
 							Computed:    true,
 							Description: collectorDescription[collectorExternalHostAttr],
 						},
 						collectorExternalPortAttr: &schema.Schema{
 							Type:        schema.TypeInt,
-							Optional:    true,
 							Computed:    true,
 							Description: collectorDescription[collectorExternalPortAttr],
 						},
 						collectorIPAttr: &schema.Schema{
 							Type:        schema.TypeString,
-							Optional:    true,
 							Computed:    true,
 							Description: collectorDescription[collectorIPAttr],
 						},
 						collectorMinVersionAttr: &schema.Schema{
 							Type:        schema.TypeInt,
-							Optional:    true,
 							Computed:    true,
 							Description: collectorDescription[collectorMinVersionAttr],
 						},
 						collectorModulesAttr: &schema.Schema{
 							Type:     schema.TypeList,
-							Optional: true,
 							Computed: true,
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
@@ -86,25 +79,21 @@ func dataSourceCirconusCollector() *schema.Resource {
 						},
 						collectorPortAttr: &schema.Schema{
 							Type:        schema.TypeInt,
-							Optional:    true,
 							Computed:    true,
 							Description: collectorDescription[collectorPortAttr],
 						},
 						collectorSkewAttr: &schema.Schema{
 							Type:        schema.TypeString,
-							Optional:    true,
 							Computed:    true,
 							Description: collectorDescription[collectorSkewAttr],
 						},
 						collectorStatusAttr: &schema.Schema{
 							Type:        schema.TypeString,
-							Optional:    true,
 							Computed:    true,
 							Description: collectorDescription[collectorStatusAttr],
 						},
 						collectorVersionAttr: &schema.Schema{
 							Type:        schema.TypeInt,
-							Optional:    true,
 							Computed:    true,
 							Description: collectorDescription[collectorVersionAttr],
 						},
@@ -113,30 +102,25 @@ func dataSourceCirconusCollector() *schema.Resource {
 			},
 			collectorLatitudeAttr: &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: collectorDescription[collectorLatitudeAttr],
 			},
 			collectorLongitudeAttr: &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: collectorDescription[collectorLongitudeAttr],
 			},
 			collectorNameAttr: &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
 				Computed:    true,
 				Description: collectorDescription[collectorNameAttr],
 			},
-
-			// OUT parameters
+			collectorTagsAttr: _TagMakeConfigSchema(collectorTagsAttr),
 			collectorTypeAttr: &schema.Schema{
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: collectorDescription[collectorTypeAttr],
 			},
-			collectorTagsAttr: _TagMakeConfigSchema(collectorTagsAttr),
 		},
 	}
 }
@@ -156,6 +140,7 @@ func dataSourceCirconusCollectorRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	_StateSet(d, collectorDetailsAttr, collectorDetailsToState(collector))
+	_StateSet(d, collectorIDAttr, collector.CID)
 	_StateSet(d, collectorLatitudeAttr, collector.Latitude)
 	_StateSet(d, collectorLongitudeAttr, collector.Longitude)
 	_StateSet(d, collectorNameAttr, collector.Name)
