@@ -16,15 +16,15 @@ func resourceProfitBricksNic() *schema.Resource {
 		Delete: resourceProfitBricksNicDelete,
 		Schema: map[string]*schema.Schema{
 
-			"lan": &schema.Schema{
+			"lan": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"dhcp": &schema.Schema{
+			"dhcp": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
@@ -32,8 +32,17 @@ func resourceProfitBricksNic() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"ips" : {
+				Type: schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Computed:true,
+			},
 			"firewall_active": {
 				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"nat" :{
+				Type: schema.TypeBool,
 				Optional: true,
 			},
 			"server_id": {
@@ -69,6 +78,14 @@ func resourceProfitBricksNicCreate(d *schema.ResourceData, meta interface{}) err
 		ips := strings.Split(raw, ",")
 		nic.Properties.Ips = ips
 	}
+	if _, ok := d.GetOk("firewall_active"); ok {
+		raw := d.Get("firewall_active").(bool)
+		nic.Properties.FirewallActive = raw
+	}
+	if _, ok := d.GetOk("nat"); ok {
+		raw := d.Get("nat").(bool)
+		nic.Properties.Nat = raw
+	}
 
 	nic = profitbricks.CreateNic(d.Get("datacenter_id").(string), d.Get("server_id").(string), nic)
 	if nic.StatusCode > 299 {
@@ -95,17 +112,16 @@ func resourceProfitBricksNicCreate(d *schema.ResourceData, meta interface{}) err
 func resourceProfitBricksNicRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	profitbricks.SetAuth(config.Username, config.Password)
-	profitbricks.SetDepth("5")
 
 	nic := profitbricks.GetNic(d.Get("datacenter_id").(string), d.Get("server_id").(string), d.Id())
 	if nic.StatusCode > 299 {
 		return fmt.Errorf("Error occured while fetching a nic ID %s %s", d.Id(), nic.Response)
 	}
-	log.Printf("[INFO] LAN ON NIC: %q", nic.Properties.Lan)
+	log.Printf("[INFO] LAN ON NIC: %s", nic.Properties.Lan)
 	d.Set("dhcp", nic.Properties.Dhcp)
 	d.Set("lan", nic.Properties.Lan)
 	d.Set("name", nic.Properties.Name)
-	d.Set("ip", nic.Properties.Ips)
+	d.Set("ips", nic.Properties.Ips)
 
 	return nil
 }
@@ -133,6 +149,11 @@ func resourceProfitBricksNicUpdate(d *schema.ResourceData, meta interface{}) err
 		_, raw := d.GetChange("ip")
 		ips := strings.Split(raw.(string), ",")
 		properties.Ips = ips
+	}
+	if d.HasChange("nat") {
+		_, raw := d.GetChange("nat")
+		nat := raw.(bool)
+		properties.Nat = nat
 	}
 
 	nic := profitbricks.PatchNic(d.Get("datacenter_id").(string), d.Get("server_id").(string), d.Id(), properties)

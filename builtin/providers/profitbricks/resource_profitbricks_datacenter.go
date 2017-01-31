@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+	"regexp"
 )
 
 func resourceProfitBricksDatacenter() *schema.Resource {
@@ -70,7 +71,6 @@ func resourceProfitBricksDatacenterCreate(d *schema.ResourceData, meta interface
 
 func resourceProfitBricksDatacenterRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-
 	profitbricks.SetAuth(config.Username, config.Password)
 	datacenter := profitbricks.GetDatacenter(d.Id())
 	if datacenter.StatusCode > 299 {
@@ -85,7 +85,6 @@ func resourceProfitBricksDatacenterRead(d *schema.ResourceData, meta interface{}
 
 func resourceProfitBricksDatacenterUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-
 	profitbricks.SetAuth(config.Username, config.Password)
 
 	obj := profitbricks.DatacenterProperties{}
@@ -108,8 +107,8 @@ func resourceProfitBricksDatacenterUpdate(d *schema.ResourceData, meta interface
 
 func resourceProfitBricksDatacenterDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-
 	profitbricks.SetAuth(config.Username, config.Password)
+
 	dcid := d.Id()
 	resp := profitbricks.DeleteDatacenter(dcid)
 
@@ -127,8 +126,13 @@ func resourceProfitBricksDatacenterDelete(d *schema.ResourceData, meta interface
 func waitTillProvisioned(meta interface{}, path string) error {
 	config := meta.(*Config)
 	profitbricks.SetAuth(config.Username, config.Password)
+	//log.Printf("[DEBUG] Request status path: %s", path)
+	waitCount := 50
 
-	for i := 0; i < config.Retries; i++ {
+	if config.Retries != 0 {
+		waitCount = config.Retries
+	}
+	for i := 0; i < waitCount; i++ {
 		request := profitbricks.GetRequestStatus(path)
 		pc, _, _, ok := runtime.Caller(1)
 		details := runtime.FuncForPC(pc)
@@ -175,10 +179,15 @@ func getImageId(dcId string, imageName string, imageType string) string {
 			if imageType == "SSD" {
 				imageType = "HDD"
 			}
-			if imgName != "" && strings.Contains(strings.ToLower(imgName), strings.ToLower(imageName)) && i.Properties.ImageType == imageType && i.Properties.Location == dc.Properties.Location && i.Properties.Public == true {
+			if (imgName != "" && strings.Contains(strings.ToLower(imgName), strings.ToLower(imageName)) && i.Properties.ImageType == imageType && i.Properties.Location == dc.Properties.Location && i.Properties.Public == true) {
 				return i.Id
 			}
 		}
 	}
 	return ""
+}
+
+func IsValidUUID(uuid string) bool {
+	r := regexp.MustCompile("^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$")
+	return r.MatchString(uuid)
 }

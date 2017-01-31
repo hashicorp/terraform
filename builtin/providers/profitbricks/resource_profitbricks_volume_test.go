@@ -109,7 +109,7 @@ resource "profitbricks_lan" "webserver_lan" {
 }
 
 resource "profitbricks_server" "webserver" {
-  name = "updated"
+  name = "webserver"
   datacenter_id = "${profitbricks_datacenter.foobar.id}"
   cores = 1
   ram = 1024
@@ -152,7 +152,7 @@ resource "profitbricks_datacenter" "foobar" {
 }
 
 resource "profitbricks_server" "webserver" {
-  name = "old-name"
+  name = "webserver"
   datacenter_id = "${profitbricks_datacenter.foobar.id}"
   cores = 1
   ram = 1024
@@ -182,7 +182,7 @@ resource "profitbricks_volume" "database_volume" {
   datacenter_id = "${profitbricks_datacenter.foobar.id}"
   server_id = "${profitbricks_server.webserver.id}"
   licence_type = "OTHER"
-  name = "%s"
+  name = "updated"
   size = 5
   disk_type = "SSD"
   bus = "VIRTIO"

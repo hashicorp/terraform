@@ -37,3 +37,4 @@ resource "profitbricks_volume" "example" {
 * `image_name` - [string] The image or snapshot ID. It is required if `licence_type` is not provided.
 * `licence_type` - [string] Required if `image_name` is not provided.
 * `name` - (Optional) [string] The name of the volume.
+* `availability_zone` - (Optional) [string] The storage availability zone assigned to the volume. AUTO, ZONE_1, ZONE_2, or ZONE_3
