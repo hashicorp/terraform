@@ -59,6 +59,8 @@ func applyFn(ctx context.Context) error {
 
 	// Setup the command
 	cmd := exec.Command(shell, flag, command)
+	// TODO: use exec.CommandContext when cancelation is fixed in Go
+
 	output, _ := circbuf.NewBuffer(maxBufSize)
 	cmd.Stderr = io.MultiWriter(output, pw)
 	cmd.Stdout = io.MultiWriter(output, pw)
@@ -82,7 +84,7 @@ func applyFn(ctx context.Context) error {
 		case err = <-doneCh:
 		case <-ctx.Done():
 			cmd.Process.Kill()
-			err = cmd.Wait()
+			err = <-doneCh
 		}
 	}
 
