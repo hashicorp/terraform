@@ -31,6 +31,7 @@ BUG FIXES:
  * provider/pagerduty: Allow timeouts to be disabled (pagerduty_service) [GH-11483]
  * provider/rancher: Use environment specific client for accessing resources [GH-11503]
  * provider/rancher: Refresh rancher stack from state on delete [GH-11539]
+ * provider/statuscake: Remove computed from statuscake_test timeout parameter [GH-11541]
  * provisioner/chef: Attributes JSON coming from computed source validates [GH-11502]
 
 ## 0.8.5 (26 January 2017)
