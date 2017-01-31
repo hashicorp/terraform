@@ -62,7 +62,6 @@ func testAccEnvironmentSet() bool {
 		fmt.Println("CF_API_URL, CF_USER, CF_PASSWORD, CF_UAA_CLIENT_ID, CF_UAA_CLIENT_SECRET " +
 			"and CF_SKIP_SSL_VALIDATION must be set for acceptance tests to work.")
 		return false
-
 	}
 	return true
 }
@@ -70,18 +69,29 @@ func testAccEnvironmentSet() bool {
 func defaultPcfDevOrgID() string {
 
 	if len(pcfDevOrgID) == 0 && testAccEnvironmentSet() {
+
 		var (
 			err       error
+			session   *cfapi.Session
 			pcfDevOrg cfapi.CCOrg
 		)
-		meta := testAccProvider.Meta()
-		if meta != nil {
-			session := meta.(*cfapi.Session)
-			if pcfDevOrg, err = session.OrgManager().FindOrg("pcfdev-org"); err != nil {
-				panic(err.Error())
-			}
-			pcfDevOrgID = pcfDevOrg.ID
+
+		c := Config{
+			endpoint:        os.Getenv("CF_API_URL"),
+			User:            os.Getenv("CF_USER"),
+			Password:        os.Getenv("CF_PASSWORD"),
+			UaaClientID:     os.Getenv("CF_UAA_CLIENT_ID"),
+			UaaClientSecret: os.Getenv("CF_UAA_CLIENT_SECRET"),
 		}
+		c.SkipSslValidation, _ = strconv.ParseBool(os.Getenv("CF_SKIP_SSL_VALIDATION"))
+
+		if session, err = c.Client(); err != nil {
+			panic(err.Error())
+		}
+		if pcfDevOrg, err = session.OrgManager().FindOrg("pcfdev-org"); err != nil {
+			panic(err.Error())
+		}
+		pcfDevOrgID = pcfDevOrg.ID
 	}
 	return pcfDevOrgID
 }
