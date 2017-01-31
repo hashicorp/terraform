@@ -190,39 +190,41 @@ func resourceArmLoadBalancerRuleRead(d *schema.ResourceData, meta interface{}) e
 		return nil
 	}
 
-	configs := *loadBalancer.LoadBalancerPropertiesFormat.LoadBalancingRules
-	for _, config := range configs {
-		if *config.Name == d.Get("name").(string) {
-			d.Set("name", config.Name)
+	config, _, exists := findLoadBalancerRuleByName(loadBalancer, d.Get("name").(string))
+	if !exists {
+		d.SetId("")
+		log.Printf("[INFO] LoadBalancer Rule %q not found. Removing from state", d.Get("name").(string))
+		return nil
+	}
 
-			d.Set("protocol", config.LoadBalancingRulePropertiesFormat.Protocol)
-			d.Set("frontend_port", config.LoadBalancingRulePropertiesFormat.FrontendPort)
-			d.Set("backend_port", config.LoadBalancingRulePropertiesFormat.BackendPort)
+	d.Set("name", config.Name)
 
-			if config.LoadBalancingRulePropertiesFormat.EnableFloatingIP != nil {
-				d.Set("enable_floating_ip", config.LoadBalancingRulePropertiesFormat.EnableFloatingIP)
-			}
+	d.Set("protocol", config.LoadBalancingRulePropertiesFormat.Protocol)
+	d.Set("frontend_port", config.LoadBalancingRulePropertiesFormat.FrontendPort)
+	d.Set("backend_port", config.LoadBalancingRulePropertiesFormat.BackendPort)
 
-			if config.LoadBalancingRulePropertiesFormat.IdleTimeoutInMinutes != nil {
-				d.Set("idle_timeout_in_minutes", config.LoadBalancingRulePropertiesFormat.IdleTimeoutInMinutes)
-			}
+	if config.LoadBalancingRulePropertiesFormat.EnableFloatingIP != nil {
+		d.Set("enable_floating_ip", config.LoadBalancingRulePropertiesFormat.EnableFloatingIP)
+	}
 
-			if config.LoadBalancingRulePropertiesFormat.FrontendIPConfiguration != nil {
-				d.Set("frontend_ip_configuration_id", config.LoadBalancingRulePropertiesFormat.FrontendIPConfiguration.ID)
-			}
+	if config.LoadBalancingRulePropertiesFormat.IdleTimeoutInMinutes != nil {
+		d.Set("idle_timeout_in_minutes", config.LoadBalancingRulePropertiesFormat.IdleTimeoutInMinutes)
+	}
 
-			if config.LoadBalancingRulePropertiesFormat.BackendAddressPool != nil {
-				d.Set("backend_address_pool_id", config.LoadBalancingRulePropertiesFormat.BackendAddressPool.ID)
-			}
+	if config.LoadBalancingRulePropertiesFormat.FrontendIPConfiguration != nil {
+		d.Set("frontend_ip_configuration_id", config.LoadBalancingRulePropertiesFormat.FrontendIPConfiguration.ID)
+	}
 
-			if config.LoadBalancingRulePropertiesFormat.Probe != nil {
-				d.Set("probe_id", config.LoadBalancingRulePropertiesFormat.Probe.ID)
-			}
+	if config.LoadBalancingRulePropertiesFormat.BackendAddressPool != nil {
+		d.Set("backend_address_pool_id", config.LoadBalancingRulePropertiesFormat.BackendAddressPool.ID)
+	}
 
-			if config.LoadBalancingRulePropertiesFormat.LoadDistribution != "" {
-				d.Set("load_distribution", config.LoadBalancingRulePropertiesFormat.LoadDistribution)
-			}
-		}
+	if config.LoadBalancingRulePropertiesFormat.Probe != nil {
+		d.Set("probe_id", config.LoadBalancingRulePropertiesFormat.Probe.ID)
+	}
+
+	if config.LoadBalancingRulePropertiesFormat.LoadDistribution != "" {
+		d.Set("load_distribution", config.LoadBalancingRulePropertiesFormat.LoadDistribution)
 	}
 
 	return nil
