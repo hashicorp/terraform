@@ -163,6 +163,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_cloudformation_stack":     dataSourceAwsCloudFormationStack(),
 			"aws_ebs_snapshot":             dataSourceAwsEbsSnapshot(),
 			"aws_ebs_volume":               dataSourceAwsEbsVolume(),
+			"aws_ecs_cluster":              dataSourceAwsEcsCluster(),
 			"aws_ecs_container_definition": dataSourceAwsEcsContainerDefinition(),
 			"aws_ecs_task_definition":      dataSourceAwsEcsTaskDefinition(),
 			"aws_eip":                      dataSourceAwsEip(),
