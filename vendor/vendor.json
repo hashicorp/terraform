@@ -1586,15 +1586,15 @@
 			"checksumSHA1": "FUiF2WLrih0JdHsUTMMDz3DRokw=",
 			"comment": "20141209094003-92-g95fa852",
 			"path": "github.com/hashicorp/atlas-go/archive",
-			"revision": "8e45a6c8b2de014db767a42c3ee777f101e11624",
-			"revisionTime": "2016-08-24T17:34:10Z"
+			"revision": "1792bd8de119ba49b17fd8d3c3c1f488ec613e62",
+			"revisionTime": "2016-11-07T20:49:10Z"
 		},
 		{
-			"checksumSHA1": "yylO3hSRKd0T4mveT9ho2OSARwU=",
+			"checksumSHA1": "lrfddRS4/LDKnF0sAbyZ59eUSjo=",
 			"comment": "20141209094003-92-g95fa852",
 			"path": "github.com/hashicorp/atlas-go/v1",
-			"revision": "9be9a611a15ba2f857a99b332fd966896867299a",
-			"revisionTime": "2016-07-26T16:33:11Z"
+			"revision": "1792bd8de119ba49b17fd8d3c3c1f488ec613e62",
+			"revisionTime": "2016-11-07T20:49:10Z"
 		},
 		{
 			"checksumSHA1": "ZY6NCrR80zUmtOtPtKffbmFxRWw=",
