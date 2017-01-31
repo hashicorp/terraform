@@ -30,7 +30,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
- * provider/cloudstack: Ensure consistent hashes of `cloudstack_port_forward` forward items [11546]
+ * provider/cloudstack: Ensure consistent hashes of `cloudstack_port_forward` forward items. [GH-11546]
 
 ## 0.8.6 (unreleased)
 
