@@ -36,7 +36,7 @@ For local dev first make sure Go is properly installed, including setting up a [
 Next, using [Git](https://git-scm.com/), clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`. All the necessary dependencies are either vendored or automatically installed, so you just need to type `make`. This will compile the code and then run the tests. If this exits with exit status 0, then everything is working!
 
 ```sh
-$ cd $GOPATH/src/github.com/hashicorp/terraform
+$ cd "$GOPATH"/src/github.com/hashicorp/terraform
 $ make
 ```
 
@@ -131,7 +131,7 @@ terraform: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linke
 `XC_OS` and `XC_ARCH` can be space separated lists representing different combinations of operating system and architecture. For example, to compile for both Linux and Mac OS X, targeting both 32- and 64-bit architectures, you can run:
 
 ```sh
-$ XC_OS="linux darwin" XC_ARCH="386 amd64" make bin
+$ XC_OS='linux darwin' XC_ARCH='386 amd64' make bin
 ...
 $ tree ./pkg/ -P "terraform|*.zip"
 ./pkg/
