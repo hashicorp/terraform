@@ -744,6 +744,25 @@ func validateAwsEmrEbsVolumeType(v interface{}, k string) (ws []string, errors [
 	return
 }
 
+func validateDmsCertificateId(v interface{}, k string) (ws []string, es []error) {
+	val := v.(string)
+
+	if len(val) > 255 {
+		es = append(es, fmt.Errorf("%q must not be longer than 255 characters", k))
+	}
+	if !regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9-]+$").MatchString(val) {
+		es = append(es, fmt.Errorf("%q must start with a letter, only contain alphanumeric characters and hyphens", k))
+	}
+	if strings.Contains(val, "--") {
+		es = append(es, fmt.Errorf("%q must not contain consecutive hyphens", k))
+	}
+	if strings.HasSuffix(val, "-") {
+		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
+	}
+
+	return
+}
+
 func validateDmsEndpointId(v interface{}, k string) (ws []string, es []error) {
 	val := v.(string)
 

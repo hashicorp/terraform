@@ -1251,6 +1251,37 @@ func TestValidateDmsEndpointId(t *testing.T) {
 	}
 }
 
+func TestValidateDmsCertificateId(t *testing.T) {
+	validIds := []string{
+		"tf-test-certificate-1",
+		"tfTestEndpoint",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsCertificateId(s, "certificate_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid certificate id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"tf_test_certificate_1",
+		"tf.test.certificate.1",
+		"tf test certificate 1",
+		"tf-test-certificate-1!",
+		"tf-test-certificate-1-",
+		"tf-test-certificate--1",
+		"tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsEndpointId(s, "certificate_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid certificate id: %v", s, errors)
+		}
+	}
+}
+
 func TestValidateDmsReplicationInstanceId(t *testing.T) {
 	validIds := []string{
 		"tf-test-replication-instance-1",
