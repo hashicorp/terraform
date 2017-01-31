@@ -66,7 +66,7 @@ type CustomizationSection struct {
 	HREF                   string  `xml:"href,attr,omitempty"`
 	Type                   string  `xml:"type,attr,omitempty"`
 	CustomizeOnInstantiate bool    `xml:"CustomizeOnInstantiate"`
-	Link                   []*Link `xml:"Link,omitempty"`
+	Link                   LinkList `xml:"Link,omitempty"`
 }
 
 // LeaseSettingsSection represents vApp lease settings.
@@ -172,7 +172,7 @@ type SubAllocations struct {
 	HREF string `xml:"href,attr,omitempty"` // The URI of the entity.
 	Type string `xml:"type,attr,omitempty"` // The MIME type of the entity.
 	// Elements
-	Link          []*Link        `xml:"Link,omitempty"`          // A reference to an entity or operation associated with this object.
+	Link          LinkList        `xml:"Link,omitempty"`          // A reference to an entity or operation associated with this object.
 	SubAllocation *SubAllocation `xml:"SubAllocation,omitempty"` // IP Range sub allocated to a edge gateway.
 }
 
@@ -358,7 +358,7 @@ type Vdc struct {
 	ComputeCapacity    []*ComputeCapacity    `xml:"ComputeCapacity"`
 	Description        string                `xml:"Description,omitempty"`
 	IsEnabled          bool                  `xml:"IsEnabled"`
-	Link               []*Link               `xml:"Link,omitempty"`
+	Link               LinkList               `xml:"Link,omitempty"`
 	NetworkQuota       int                   `xml:"NetworkQuota"`
 	NicQuota           int                   `xml:"NicQuota"`
 	ResourceEntities   []*ResourceEntities   `xml:"ResourceEntities,omitempty"`
@@ -502,7 +502,7 @@ type Org struct {
 	Description  string           `xml:"Description,omitempty"`
 	FullName     string           `xml:"FullName"`
 	IsEnabled    bool             `xml:"IsEnabled,omitempty"`
-	Link         []*Link          `xml:"Link,omitempty"`
+	Link         LinkList          `xml:"Link,omitempty"`
 	Tasks        *TasksInProgress `xml:"Tasks,omitempty"`
 }
 
@@ -521,7 +521,7 @@ type CatalogItem struct {
 	DateCreated   string           `xml:"DateCreated,omitempty"`
 	Description   string           `xml:"Description,omitempty"`
 	Entity        *Entity          `xml:"Entity"`
-	Link          []*Link          `xml:"Link,omitempty"`
+	Link          LinkList          `xml:"Link,omitempty"`
 	Tasks         *TasksInProgress `xml:"Tasks,omitempty"`
 	VersionNumber int64            `xml:"VersionNumber,omitempty"`
 }
@@ -538,7 +538,7 @@ type Entity struct {
 	OperationKey string           `xml:"operationKey,attr,omitempty"`
 	Name         string           `xml:"name,attr"`
 	Description  string           `xml:"Description,omitempty"`
-	Link         []*Link          `xml:"Link,omitempty"`
+	Link         LinkList          `xml:"Link,omitempty"`
 	Tasks        *TasksInProgress `xml:"Tasks,omitempty"`
 }
 
@@ -566,7 +566,7 @@ type Catalog struct {
 	DateCreated   string           `xml:"DateCreated"`
 	Description   string           `xml:"Description"`
 	IsPublished   bool             `xml:"IsPublished"`
-	Link          []*Link          `xml:"Link"`
+	Link          LinkList          `xml:"Link"`
 	Owner         *Owner           `xml:"Owner,omitempty"`
 	Tasks         *TasksInProgress `xml:"Tasks,omitempty"`
 	VersionNumber int64            `xml:"VersionNumber"`
@@ -580,7 +580,7 @@ type Catalog struct {
 type Owner struct {
 	HREF string     `xml:"href,attr,omitempty"`
 	Type string     `xml:"type,attr,omitempty"`
-	Link []*Link    `xml:"Link,omitempty"`
+	Link LinkList    `xml:"Link,omitempty"`
 	User *Reference `xml:"User"`
 }
 
@@ -612,7 +612,7 @@ type File struct {
 	BytesTransferred int64            `xml:"bytesTransferred,attr,omitempty"`
 	Checksum         string           `xml:"checksum,attr,omitempty"`
 	Description      string           `xml:"Description,omitempty"`
-	Link             []*Link          `xml:"Link,omitempty"`
+	Link             LinkList          `xml:"Link,omitempty"`
 	Tasks            *TasksInProgress `xml:"Tasks,omitempty"`
 }
 
@@ -644,7 +644,7 @@ type VMCapabilities struct {
 	HREF                string  `xml:"href,attr,omitempty"`
 	Type                string  `xml:"type,attr,omitempty"`
 	CPUHotAddEnabled    bool    `xml:"CpuHotAddEnabled,omitempty"`
-	Link                []*Link `xml:"Link,omitempty"`
+	Link                LinkList `xml:"Link,omitempty"`
 	MemoryHotAddEnabled bool    `xml:"MemoryHotAddEnabled,omitempty"`
 }
 
@@ -656,7 +656,7 @@ type VMCapabilities struct {
 type VMs struct {
 	HREF        string       `xml:"href,attr,omitempty"`
 	Type        string       `xml:"type,attr,omitempty"`
-	Link        []*Link      `xml:"Link,omitempty"`
+	Link        LinkList      `xml:"Link,omitempty"`
 	VMReference []*Reference `xml:"VmReference,omitempty"`
 }
 
@@ -754,7 +754,7 @@ type VApp struct {
 	Deployed              bool   `xml:"deployed,attr,omitempty"`              // True if the virtual machine is deployed.
 	OvfDescriptorUploaded bool   `xml:"ovfDescriptorUploaded,attr,omitempty"` // Read-only indicator that the OVF descriptor for this vApp has been uploaded.
 	// Elements
-	Link        []*Link          `xml:"Link,omitempty"`        // A reference to an entity or operation associated with this object.
+	Link        LinkList          `xml:"Link,omitempty"`        // A reference to an entity or operation associated with this object.
 	Description string           `xml:"Description,omitempty"` // Optional description.
 	Tasks       *TasksInProgress `xml:"Tasks,omitempty"`       // A list of queued, running, or recently completed tasks associated with this entity.
 	Files       *FilesList       `xml:"Files,omitempty"`       // Represents a list of files to be transferred (uploaded or downloaded). Each File in the list is part of the ResourceEntity.
@@ -851,7 +851,7 @@ type VAppTemplate struct {
 	OvfDescriptorUploaded string `xml:"ovfDescriptorUploaded,attr,omitempty"` // True if the OVF descriptor for this template has been uploaded.
 	GoldMaster            bool   `xml:"goldMaster,attr,omitempty"`            // True if this template is a gold master.
 	// Elements
-	Link                  []*Link               `xml:"Link,omitempty"`                  // A reference to an entity or operation associated with this object.
+	Link                  LinkList               `xml:"Link,omitempty"`                  // A reference to an entity or operation associated with this object.
 	Description           string                `xml:"Description,omitempty"`           // Optional description.
 	Tasks                 *TasksInProgress      `xml:"Tasks,omitempty"`                 // A list of queued, running, or recently completed tasks associated with this entity.
 	Files                 *FilesList            `xml:"Files,omitempty"`                 // Represents a list of files to be transferred (uploaded or downloaded). Each File in the list is part of the ResourceEntity.
@@ -894,7 +894,7 @@ type VM struct {
 	NeedsCustomization      bool   `xml:"needsCustomization,attr,omitempty"`      // True if this virtual machine needs customization.
 	NestedHypervisorEnabled bool   `xml:"nestedHypervisorEnabled,attr,omitempty"` // True if hardware-assisted CPU virtualization capabilities in the host should be exposed to the guest operating system.
 	// Elements
-	Link        []*Link          `xml:"Link,omitempty"`        // A reference to an entity or operation associated with this object.
+	Link        LinkList          `xml:"Link,omitempty"`        // A reference to an entity or operation associated with this object.
 	Description string           `xml:"Description,omitempty"` // Optional description.
 	Tasks       *TasksInProgress `xml:"Tasks,omitempty"`       // A list of queued, running, or recently completed tasks associated with this entity.
 	Files       *FilesList       `xml:"FilesList,omitempty"`   // Represents a list of files to be transferred (uploaded or downloaded). Each File in the list is part of the ResourceEntity.
@@ -1055,7 +1055,7 @@ type GuestCustomizationSection struct {
 	ResetPasswordRequired bool    `xml:"ResetPasswordRequired,omitempty"` // True if the administrator password for this virtual machine must be reset after first use.
 	CustomizationScript   string  `xml:"CustomizationScript,omitempty"`   // Script to run on guest customization. The entire script must appear in this element. Use the XML entity &#13; to represent a newline. Unicode characters can be represented in the form &#xxxx; where xxxx is the character number.
 	ComputerName          string  `xml:"ComputerName,omitempty"`          // Computer name to assign to this virtual machine.
-	Link                  []*Link `xml:"Link,omitempty"`                  // A link to an operation on this section.
+	Link                  LinkList `xml:"Link,omitempty"`                  // A link to an operation on this section.
 }
 
 // InstantiateVAppTemplateParams represents vApp template instantiation parameters.
@@ -1098,7 +1098,7 @@ type EdgeGateway struct {
 	Name         string `xml:"name,attr"`                   // The name of the entity.
 	Status       int    `xml:"status,attr,omitempty"`       // Creation status of the gateway. One of: 0 (The gateway is still being created) 1 (The gateway is ready) -1 (There was an error while creating the gateway).
 	// Elements
-	Link          []*Link               `xml:"Link,omitempty"`        // A link to an operation on this section.
+	Link          LinkList               `xml:"Link,omitempty"`        // A link to an operation on this section.
 	Description   string                `xml:"Description,omitempty"` // Optional description.
 	Tasks         *TasksInProgress      `xml:"Tasks,omitempty"`       //	A list of queued, running, or recently completed tasks associated with this entity.
 	Configuration *GatewayConfiguration `xml:"Configuration"`         // Gateway configuration.
@@ -1588,7 +1588,7 @@ type QueryResultEdgeGatewayRecordsType struct {
 	PageSize int     `xml:"pageSize,attr,omitempty"` // Page size, as a number of records or references.
 	Total    float64 `xml:"total,attr,omitempty"`    // Total number of records or references in the container.
 	// Elements
-	Link              []*Link                           `xml:"Link,omitempty"`    // A reference to an entity or operation associated with this object.
+	Link              LinkList                           `xml:"Link,omitempty"`    // A reference to an entity or operation associated with this object.
 	EdgeGatewayRecord *QueryResultEdgeGatewayRecordType `xml:"EdgeGatewayRecord"` // A record representing a query result.
 }
 
