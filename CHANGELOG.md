@@ -28,6 +28,10 @@ IMPROVEMENTS:
  * provisioners: All provisioners now respond very quickly to interrupts for
    fast cancellation. [GH-10934]
 
+BUG FIXES:
+
+ * provider/cloudstack: Ensure consistent hashes of `cloudstack_port_forward` forward items [11546]
+
 ## 0.8.6 (unreleased)
 
 ## 0.8.5 (26 January 2017)
