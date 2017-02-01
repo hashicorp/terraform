@@ -118,6 +118,12 @@ func resourceRancherRegistrationTokenRead(d *schema.ResourceData, meta interface
 		return nil
 	}
 
+	if removed(regT.State) {
+		log.Printf("[INFO] Registration Token %s was removed on %v", d.Id(), regT.Removed)
+		d.SetId("")
+		return nil
+	}
+
 	log.Printf("[INFO] RegistrationToken Name: %s", regT.Name)
 
 	d.Set("description", regT.Description)

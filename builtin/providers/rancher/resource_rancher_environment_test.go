@@ -3,13 +3,14 @@ package rancher
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	rancherClient "github.com/rancher/go-rancher/client"
 )
 
-func TestAccRancherEnvironment(t *testing.T) {
+func TestAccRancherEnvironment_basic(t *testing.T) {
 	var environment rancherClient.Project
 
 	resource.Test(t, resource.TestCase{
@@ -37,6 +38,50 @@ func TestAccRancherEnvironment(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccRancherEnvironment_disappears(t *testing.T) {
+	var environment rancherClient.Project
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRancherEnvironmentDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRancherEnvironmentConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRancherEnvironmentExists("rancher_environment.foo", &environment),
+					testAccRancherEnvironmentDisappears(&environment),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func testAccRancherEnvironmentDisappears(env *rancherClient.Project) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client := testAccProvider.Meta().(*Config)
+		if err := client.Project.Delete(env); err != nil {
+			return fmt.Errorf("Error deleting Environment: %s", err)
+		}
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"active", "removed", "removing"},
+			Target:     []string{"removed"},
+			Refresh:    EnvironmentStateRefreshFunc(client, env.Id),
+			Timeout:    10 * time.Minute,
+			Delay:      1 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, waitErr := stateConf.WaitForState()
+		if waitErr != nil {
+			return fmt.Errorf(
+				"Error waiting for environment (%s) to be removed: %s", env.Id, waitErr)
+		}
+		return nil
+	}
 }
 
 func testAccCheckRancherEnvironmentExists(n string, env *rancherClient.Project) resource.TestCheckFunc {
