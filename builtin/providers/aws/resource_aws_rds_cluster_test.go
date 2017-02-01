@@ -38,6 +38,22 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 	})
 }
 
+/// This is a regression test to make sure that we always cover the scenario as hightlighted in
+/// https://github.com/hashicorp/terraform/issues/11568
+func TestAccAWSRDSCluster_missingUserNameCausesError(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAWSClusterConfigWithoutUserNameAndPassword(acctest.RandInt()),
+				ExpectError: regexp.MustCompile(`required field is not set`),
+			},
+		},
+	})
+}
+
 func TestAccAWSRDSCluster_updateTags(t *testing.T) {
 	var v rds.DBCluster
 	ri := acctest.RandInt()
@@ -225,6 +241,15 @@ resource "aws_rds_cluster" "default" {
   tags {
     Environment = "production"
   }
+}`, n)
+}
+
+func testAccAWSClusterConfigWithoutUserNameAndPassword(n int) string {
+	return fmt.Sprintf(`
+resource "aws_rds_cluster" "default" {
+  cluster_identifier = "tf-aurora-cluster-%d"
+  availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
+  database_name = "mydb"
 }`, n)
 }
 
