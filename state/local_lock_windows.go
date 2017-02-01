@@ -24,6 +24,8 @@ var (
 )
 
 const (
+	// dwFlags defined for LockFileEx
+	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa365203(v=vs.85).aspx
 	_LOCKFILE_FAIL_IMMEDIATELY = 1
 	_LOCKFILE_EXCLUSIVE_LOCK   = 2
 )
