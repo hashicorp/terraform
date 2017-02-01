@@ -3,10 +3,12 @@ package local
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/state"
 )
 
 func (b *Local) opRefresh(
@@ -40,14 +42,24 @@ func (b *Local) opRefresh(
 	}
 
 	// Get our context
-	tfCtx, state, err := b.context(op)
+	tfCtx, opState, err := b.context(op)
 	if err != nil {
 		runningOp.Err = err
 		return
 	}
 
+	// context acquired the state, and therefor the lock.
+	// Unlock it when the operation is complete
+	defer func() {
+		if s, ok := opState.(state.Locker); op.LockState && ok {
+			if err := s.Unlock(); err != nil {
+				log.Printf("[ERROR]: %s", err)
+			}
+		}
+	}()
+
 	// Set our state
-	runningOp.State = state.State()
+	runningOp.State = opState.State()
 
 	// Perform operation and write the resulting state to the running op
 	newState, err := tfCtx.Refresh()
@@ -58,11 +70,11 @@ func (b *Local) opRefresh(
 	}
 
 	// Write and persist the state
-	if err := state.WriteState(newState); err != nil {
+	if err := opState.WriteState(newState); err != nil {
 		runningOp.Err = errwrap.Wrapf("Error writing state: {{err}}", err)
 		return
 	}
-	if err := state.PersistState(); err != nil {
+	if err := opState.PersistState(); err != nil {
 		runningOp.Err = errwrap.Wrapf("Error saving state: {{err}}", err)
 		return
 	}

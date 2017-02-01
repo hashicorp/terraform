@@ -47,6 +47,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
+	cmdFlags.BoolVar(&c.Meta.lockState, "state-lock", true, "lock state")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -182,6 +183,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.Plan = plan
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypeApply
+	opReq.LockState = c.Meta.lockState
 
 	// Perform the operation
 	ctx, ctxCancel := context.WithCancel(context.Background())

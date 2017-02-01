@@ -34,6 +34,9 @@ type Local struct {
 	StateOutPath    string
 	StateBackupPath string
 
+	// we only want to create a single instance of the local state
+	state state.State
+
 	// ContextOpts are the base context options to set when initializing a
 	// Terraform context. Many of these will be overridden or merged by
 	// Operation. See Operation for more details.
@@ -100,6 +103,10 @@ func (b *Local) State() (state.State, error) {
 		return b.Backend.State()
 	}
 
+	if b.state != nil {
+		return b.state, nil
+	}
+
 	// Otherwise, we need to load the state.
 	var s state.State = &state.LocalState{
 		Path:    b.StatePath,
@@ -119,6 +126,7 @@ func (b *Local) State() (state.State, error) {
 		}
 	}
 
+	b.state = s
 	return s, nil
 }
 
