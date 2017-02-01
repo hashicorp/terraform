@@ -115,6 +115,29 @@ func TestAccGoogleSqlDatabaseInstance_slave(t *testing.T) {
 	})
 }
 
+func TestAccGoogleSqlDatabaseInstance_diskspecs(t *testing.T) {
+	var instance sqladmin.DatabaseInstance
+	masterID := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabaseInstance_diskspecs, masterID),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleSqlDatabaseInstanceExists(
+						"google_sql_database_instance.instance", &instance),
+					testAccCheckGoogleSqlDatabaseInstanceEquals(
+						"google_sql_database_instance.instance", &instance),
+				),
+			},
+		},
+	})
+}
+
 func TestAccGoogleSqlDatabaseInstance_settings_upgrade(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
 	databaseID := acctest.RandInt()
@@ -264,6 +287,24 @@ func testAccCheckGoogleSqlDatabaseInstanceEquals(n string,
 		local = attributes["settings.0.crash_safe_replication"]
 		if server != local && len(server) > 0 && len(local) > 0 {
 			return fmt.Errorf("Error settings.crash_safe_replication mismatch, (%s, %s)", server, local)
+		}
+
+		server = strconv.FormatBool(instance.Settings.StorageAutoResize)
+		local = attributes["settings.0.disk_autoresize"]
+		if server != local && len(server) > 0 && len(local) > 0 {
+			return fmt.Errorf("Error settings.disk_autoresize mismatch, (%s, %s)", server, local)
+		}
+
+		server = strconv.FormatInt(instance.Settings.DataDiskSizeGb, 10)
+		local = attributes["settings.0.disk_size"]
+		if server != local && len(server) > 0 && len(local) > 0 && local != "0" {
+			return fmt.Errorf("Error settings.disk_size mismatch, (%s, %s)", server, local)
+		}
+
+		server = instance.Settings.DataDiskType
+		local = attributes["settings.0.disk_type"]
+		if server != local && len(server) > 0 && len(local) > 0 {
+			return fmt.Errorf("Error settings.disk_type mismatch, (%s, %s)", server, local)
 		}
 
 		if instance.Settings.IpConfiguration != nil {
@@ -526,6 +567,20 @@ resource "google_sql_database_instance" "instance_slave" {
 
 	settings {
 		tier = "db-f1-micro"
+	}
+}
+`
+
+var testGoogleSqlDatabaseInstance_diskspecs = `
+resource "google_sql_database_instance" "instance" {
+	name = "tf-lw-%d"
+	region = "us-central1"
+
+	settings {
+		tier = "db-f1-micro"
+		disk_autoresize = true
+		disk_size = 15
+		disk_type = "PD_HDD"
 	}
 }
 `
