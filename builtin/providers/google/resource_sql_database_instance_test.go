@@ -64,6 +64,30 @@ func TestAccGoogleSqlDatabaseInstance_basic2(t *testing.T) {
 	})
 }
 
+func TestAccGoogleSqlDatabaseInstance_basic3(t *testing.T) {
+	var instance sqladmin.DatabaseInstance
+	databaseID := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabaseInstance_basic3, databaseID),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleSqlDatabaseInstanceExists(
+						"google_sql_database_instance.instance", &instance),
+					testAccCheckGoogleSqlDatabaseInstanceEquals(
+						"google_sql_database_instance.instance", &instance),
+					testAccCheckGoogleSqlDatabaseRootUserDoesNotExist(
+						&instance),
+				),
+			},
+		},
+	})
+}
 func TestAccGoogleSqlDatabaseInstance_settings_basic(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
 	databaseID := acctest.RandInt()
@@ -447,6 +471,27 @@ func testAccGoogleSqlDatabaseInstanceDestroy(s *terraform.State) error {
 	return nil
 }
 
+func testAccCheckGoogleSqlDatabaseRootUserDoesNotExist(
+	instance *sqladmin.DatabaseInstance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		config := testAccProvider.Meta().(*Config)
+
+		users, err := config.clientSqlAdmin.Users.List(config.Project, instance.Name).Do()
+
+		if err != nil {
+			return fmt.Errorf("Could not list database users for %q: %s", instance.Name, err)
+		}
+
+		for _, u := range users.Items {
+			if u.Name == "root" && u.Host == "%" {
+				return fmt.Errorf("%v@%v user still exists", u.Name, u.Host)
+			}
+		}
+
+		return nil
+	}
+}
+
 var testGoogleSqlDatabaseInstance_basic = `
 resource "google_sql_database_instance" "instance" {
 	name = "tf-lw-%d"
@@ -464,6 +509,15 @@ resource "google_sql_database_instance" "instance" {
 	settings {
 		tier = "D0"
 		crash_safe_replication = false
+	}
+}
+`
+var testGoogleSqlDatabaseInstance_basic3 = `
+resource "google_sql_database_instance" "instance" {
+	name = "tf-lw-%d"
+	region = "us-central"
+	settings {
+		tier = "db-f1-micro"
 	}
 }
 `

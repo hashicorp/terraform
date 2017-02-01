@@ -526,7 +526,30 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	return resourceSqlDatabaseInstanceRead(d, meta)
+	err = resourceSqlDatabaseInstanceRead(d, meta)
+	if err != nil {
+		return err
+	}
+
+	// If a root user exists with a wildcard ('%') hostname, delete it.
+	users, err := config.clientSqlAdmin.Users.List(project, instance.Name).Do()
+	if err != nil {
+		return fmt.Errorf("Error, attempting to list users associated with instance %s: %s", instance.Name, err)
+	}
+	for _, u := range users.Items {
+		if u.Name == "root" && u.Host == "%" {
+			op, err = config.clientSqlAdmin.Users.Delete(project, instance.Name, u.Host, u.Name).Do()
+			if err != nil {
+				return fmt.Errorf("Error, failed to delete default 'root'@'*' user, but the database was created successfully: %s", err)
+			}
+			err = sqladminOperationWait(config, op, "Delete default root User")
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) error {
