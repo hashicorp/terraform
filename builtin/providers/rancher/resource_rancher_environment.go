@@ -100,6 +100,12 @@ func resourceRancherEnvironmentRead(d *schema.ResourceData, meta interface{}) er
 		return nil
 	}
 
+	if removed(env.State) {
+		log.Printf("[INFO] Environment %s was removed on %v", d.Id(), env.Removed)
+		d.SetId("")
+		return nil
+	}
+
 	log.Printf("[INFO] Environment Name: %s", env.Name)
 
 	d.Set("description", env.Description)
