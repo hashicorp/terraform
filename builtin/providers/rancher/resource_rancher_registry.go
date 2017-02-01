@@ -106,6 +106,12 @@ func resourceRancherRegistryRead(d *schema.ResourceData, meta interface{}) error
 		return nil
 	}
 
+	if removed(registry.State) {
+		log.Printf("[INFO] Registry %s was removed on %v", d.Id(), registry.Removed)
+		d.SetId("")
+		return nil
+	}
+
 	log.Printf("[INFO] Registry Name: %s", registry.Name)
 
 	d.Set("description", registry.Description)
