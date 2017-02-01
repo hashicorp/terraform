@@ -19,8 +19,9 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"pagerduty_user":   dataSourcePagerDutyUser(),
-			"pagerduty_vendor": dataSourcePagerDutyVendor(),
+			"pagerduty_user":     dataSourcePagerDutyUser(),
+			"pagerduty_schedule": dataSourcePagerDutySchedule(),
+			"pagerduty_vendor":   dataSourcePagerDutyVendor(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
