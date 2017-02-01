@@ -129,8 +129,11 @@ func resourceAwsInstance() *schema.Resource {
 			},
 
 			"network_interface_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"vpc_security_group_ids", "subnet_id", "associate_public_ip_address"},
 			},
 
 			"public_ip": &schema.Schema{
@@ -1065,11 +1068,14 @@ func buildAwsInstanceOpts(
 
 	user_data := d.Get("user_data").(string)
 
-	opts.UserData64 = aws.String(base64Encode([]byte(user_data)))
+	// Check whether the user_data is already Base64 encoded; don't double-encode
+	_, base64DecodeError := base64.StdEncoding.DecodeString(user_data)
 
-	// check for non-default Subnet, and cast it to a String
-	subnet, hasSubnet := d.GetOk("subnet_id")
-	subnetID := subnet.(string)
+	if base64DecodeError == nil {
+		opts.UserData64 = aws.String(user_data)
+	} else {
+		opts.UserData64 = aws.String(base64.StdEncoding.EncodeToString([]byte(user_data)))
+	}
 
 	// Placement is used for aws_instance; SpotPlacement is used for
 	// aws_spot_instance_request. They represent the same data. :-|
@@ -1089,6 +1095,10 @@ func buildAwsInstanceOpts(
 
 	associatePublicIPAddress := d.Get("associate_public_ip_address").(bool)
 
+	// check for non-default Subnet, and cast it to a String
+	subnet, hasSubnet := d.GetOk("subnet_id")
+	subnetID := subnet.(string)
+
 	var groups []*string
 	if v := d.Get("security_groups"); v != nil {
 		// Security group names.
@@ -1104,7 +1114,13 @@ func buildAwsInstanceOpts(
 		}
 	}
 
-	if hasSubnet && associatePublicIPAddress {
+	if v, ok := d.GetOk("network_interface_id"); ok {
+		ni := &ec2.InstanceNetworkInterfaceSpecification{
+			DeviceIndex:        aws.Int64(int64(0)),
+			NetworkInterfaceId: aws.String(v.(string)),
+		}
+		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
+	} else if hasSubnet && associatePublicIPAddress {
 		// If we have a non-default VPC / Subnet specified, we can flag
 		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
 		// You cannot specify both SubnetId and the NetworkInterface.0.* parameters though, otherwise
