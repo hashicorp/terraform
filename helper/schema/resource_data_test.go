@@ -4,6 +4,7 @@ import (
 	"math"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -1076,6 +1077,83 @@ func TestResourceDataGetOk(t *testing.T) {
 		}
 		if ok != tc.Ok {
 			t.Fatalf("%d: expected ok: %t, got: %t", i, tc.Ok, ok)
+		}
+	}
+}
+
+func TestResourceDataTimeout(t *testing.T) {
+	cases := []struct {
+		Rd       *ResourceData
+		Expected *ResourceTimeout
+	}{
+		// 0
+		{
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 0, 0, 0, 0)},
+			Expected: timeoutForValues(10, 0, 0, 0, 0),
+		},
+		// 1
+		{
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 0, 3, 0, 0)},
+			Expected: timeoutForValues(10, 0, 3, 0, 0),
+		},
+		// 2
+		{
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 0, 0, 0, 7)},
+			Expected: timeoutForValues(10, 7, 7, 7, 7),
+		},
+		// 3
+		{
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 0, 0, 15, 7)},
+			Expected: timeoutForValues(10, 7, 7, 15, 7),
+		},
+		// 4
+		{
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 3, 0, 15, 0)},
+			Expected: timeoutForValues(10, 3, 0, 15, 0),
+		},
+		// 5
+		{
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 3, 0, 0, 13)},
+			Expected: timeoutForValues(10, 3, 13, 13, 13),
+		},
+		// 6
+		{
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 3, 5, 7, 13)},
+			Expected: timeoutForValues(10, 3, 5, 7, 13),
+		},
+	}
+
+	keys := timeKeys()
+	for i, c := range cases {
+		for _, k := range keys {
+			got := c.Rd.Timeout(k)
+			var ex *time.Duration
+			switch k {
+			case "create":
+				ex = c.Expected.Create
+			case "read":
+				ex = c.Expected.Read
+			case "update":
+				ex = c.Expected.Update
+			case "delete":
+				ex = c.Expected.Delete
+			case "default":
+				ex = c.Expected.Default
+			}
+
+			if got > 0 && ex == nil {
+				t.Fatalf("Unexpected value in (%s), case %d check 1:\n\texpected: %#v\n\tgot: %#v", k, i, ex, got)
+			}
+			if got == 0 && ex != nil {
+				t.Fatalf("Unexpected value in (%s), case %d check 2:\n\texpected: %#v\n\tgot: %#v", k, i, *ex, got)
+			}
+
+			// confirm values
+			if ex != nil {
+				if got != *ex {
+					t.Fatalf("Timeout %s case (%d) expected (%#v), got (%#v)", k, i, *ex, got)
+				}
+			}
 		}
 	}
 }
@@ -3078,6 +3156,24 @@ func TestResourceDataSetConnInfo(t *testing.T) {
 	actual := d.State()
 	if !reflect.DeepEqual(actual.Ephemeral.ConnInfo, expected) {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceDataSetMeta_Timeouts(t *testing.T) {
+	d := &ResourceData{}
+	d.SetId("foo")
+
+	rt := ResourceTimeout{
+		Create: DefaultTimeout(7 * time.Minute),
+	}
+
+	d.timeouts = &rt
+
+	expected := expectedForValues(7, 0, 0, 0, 0)
+
+	actual := d.State()
+	if !reflect.DeepEqual(actual.Meta[TimeoutKey], expected) {
+		t.Fatalf("Bad Meta_timeout match:\n\texpected: %#v\n\tgot: %#v", expected, actual.Meta[TimeoutKey])
 	}
 }
 
