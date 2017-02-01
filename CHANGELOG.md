@@ -21,6 +21,7 @@ IMPROVEMENTS:
  * provider/azurerm: Add support for scale sets overprovision [GH-11516]
  * provider/fastly: Adds papertrail logging [GH-11491]
  * provider/google: allow instance group managers in region other than project [GH-11294]
+ * provider/google: Add second generation disk specification options [GH-11571]
  * provider/opsgenie: Descriptions for Teams [GH-11391]
  * provider/rancher: rancher_registration_token add image parameter [GH-11551]
 
