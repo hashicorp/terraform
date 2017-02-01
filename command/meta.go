@@ -83,12 +83,15 @@ type Meta struct {
 	// shadow is used to enable/disable the shadow graph
 	//
 	// provider is to specify specific resource providers
+	//
+	// lockState is set to false to disable state locking
 	statePath    string
 	stateOutPath string
 	backupPath   string
 	parallelism  int
 	shadow       bool
 	provider     string
+	lockState    bool
 }
 
 // initStatePaths is used to initialize the default values for
