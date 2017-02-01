@@ -26,6 +26,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"pagerduty_addon":               resourcePagerDutyAddon(),
 			"pagerduty_user":                resourcePagerDutyUser(),
 			"pagerduty_team":                resourcePagerDutyTeam(),
 			"pagerduty_service":             resourcePagerDutyService(),
