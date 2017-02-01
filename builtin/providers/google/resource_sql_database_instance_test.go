@@ -297,7 +297,7 @@ func testAccCheckGoogleSqlDatabaseInstanceEquals(n string,
 
 		server = strconv.FormatInt(instance.Settings.DataDiskSizeGb, 10)
 		local = attributes["settings.0.disk_size"]
-		if server != local && len(server) > 0 && len(local) > 0 {
+		if server != local && len(server) > 0 && len(local) > 0 && local != "0" {
 			return fmt.Errorf("Error settings.disk_size mismatch, (%s, %s)", server, local)
 		}
 
