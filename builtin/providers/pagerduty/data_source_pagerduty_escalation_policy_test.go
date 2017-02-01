@@ -66,7 +66,7 @@ resource "pagerduty_escalation_policy" "test" {
 
     target {
       type = "user_reference"
-      id   = "${data.pagerduty_user.test.id}"
+      id   = "${pagerduty_user.test.id}"
     }
   }
 }
