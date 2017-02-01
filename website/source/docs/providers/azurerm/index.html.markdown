@@ -83,7 +83,7 @@ The following arguments are supported:
   * `german`
   * `china`
   
-* `skip_provider_registration` - (Optional) Prevents the provier from registering
+* `skip_provider_registration` - (Optional) Prevents the provider from registering
   the ARM provider namespaces, this can be used if you don't wish to give the Active
   Directory Application permission to register resource providers. It can also be
   sourced from the `ARM_SKIP_PROVIDER_REGISTRATION` environment variable, defaults
