@@ -1594,15 +1594,15 @@
 			"checksumSHA1": "FUiF2WLrih0JdHsUTMMDz3DRokw=",
 			"comment": "20141209094003-92-g95fa852",
 			"path": "github.com/hashicorp/atlas-go/archive",
-			"revision": "8e45a6c8b2de014db767a42c3ee777f101e11624",
-			"revisionTime": "2016-08-24T17:34:10Z"
+			"revision": "1792bd8de119ba49b17fd8d3c3c1f488ec613e62",
+			"revisionTime": "2016-11-07T20:49:10Z"
 		},
 		{
-			"checksumSHA1": "yylO3hSRKd0T4mveT9ho2OSARwU=",
+			"checksumSHA1": "lrfddRS4/LDKnF0sAbyZ59eUSjo=",
 			"comment": "20141209094003-92-g95fa852",
 			"path": "github.com/hashicorp/atlas-go/v1",
-			"revision": "9be9a611a15ba2f857a99b332fd966896867299a",
-			"revisionTime": "2016-07-26T16:33:11Z"
+			"revision": "1792bd8de119ba49b17fd8d3c3c1f488ec613e62",
+			"revisionTime": "2016-11-07T20:49:10Z"
 		},
 		{
 			"checksumSHA1": "ZY6NCrR80zUmtOtPtKffbmFxRWw=",
@@ -1814,20 +1814,6 @@
 			"path": "github.com/henrikhodne/go-librato/librato",
 			"revision": "6e9aa4b1a8a8b735ad14b4f1c9542ef183e82dc2",
 			"revisionTime": "2016-08-11T07:26:26Z"
-		},
-		{
-			"checksumSHA1": "IHwZNoO/SD4MDwPWapLncZvDbTU=",
-			"comment": "v0.0.2-37-g5cd82f0",
-			"path": "github.com/hmrc/vmware-govcd",
-			"revision": "86a1deb871c34d97042b74c8a0d61a3bba7e84ff",
-			"revisionTime": "2016-09-07T09:41:58Z"
-		},
-		{
-			"checksumSHA1": "kTsVJblC91gsKgjfnFNgPmPswio=",
-			"comment": "v0.0.2-37-g5cd82f0",
-			"path": "github.com/hmrc/vmware-govcd/types/v56",
-			"revision": "86a1deb871c34d97042b74c8a0d61a3bba7e84ff",
-			"revisionTime": "2016-09-07T09:41:58Z"
 		},
 		{
 			"checksumSHA1": "hwGdeQbcfc2RvIQS5wAaYRKJDd4=",
@@ -2476,6 +2462,18 @@
 			"path": "github.com/ugorji/go/codec",
 			"revision": "faddd6128c66c4708f45fdc007f575f75e592a3c",
 			"revisionTime": "2016-09-28T01:52:44Z"
+		},
+		{
+			"checksumSHA1": "y4ihcZrjJdyQDnsKLelo9/1MjqE=",
+			"path": "github.com/ukcloud/govcloudair",
+			"revision": "9076b4221ebf430944c716c798e904e00cbaa89d",
+			"revisionTime": "2017-01-31T00:00:54Z"
+		},
+		{
+			"checksumSHA1": "CridJfrpcrjMdXnf7PbqA/+7wuY=",
+			"path": "github.com/ukcloud/govcloudair/types/v56",
+			"revision": "9076b4221ebf430944c716c798e904e00cbaa89d",
+			"revisionTime": "2017-01-31T00:00:54Z"
 		},
 		{
 			"checksumSHA1": "CdE9OUEGLn2pAv1UMuM5rSlaUpM=",

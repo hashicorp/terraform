@@ -2,12 +2,12 @@
  * Copyright 2016 Skyscape Cloud Services.  All rights reserved.  Licensed under the Apache v2 License.
  */
 
-package govcd
+package govcloudair
 
 import (
 	"fmt"
 
-	types "github.com/hmrc/vmware-govcd/types/v56"
+	types "github.com/ukcloud/govcloudair/types/v56"
 )
 
 type Results struct {

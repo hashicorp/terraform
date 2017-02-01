@@ -1171,7 +1171,101 @@ func TestValidateEcsPlacementStrategy(t *testing.T) {
 			t.Fatalf("Unexpected validation error for \"%s:%s\": %s",
 				tc.stratType, tc.stratField, err)
 		}
+	}
+}
 
+func TestValidateStepFunctionActivityName(t *testing.T) {
+	validTypes := []string{
+		"foo",
+		"FooBar123",
+	}
+
+	invalidTypes := []string{
+		strings.Repeat("W", 81), // length > 80
+	}
+
+	for _, v := range validTypes {
+		_, errors := validateSfnActivityName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Step Function Activity name: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidTypes {
+		_, errors := validateSfnActivityName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Step Function Activity name", v)
+		}
+	}
+}
+
+func TestValidateStepFunctionStateMachineDefinition(t *testing.T) {
+	validDefinitions := []string{
+		"foobar",
+		strings.Repeat("W", 1048576),
+	}
+
+	invalidDefinitions := []string{
+		strings.Repeat("W", 1048577), // length > 1048576
+	}
+
+	for _, v := range validDefinitions {
+		_, errors := validateSfnStateMachineDefinition(v, "definition")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Step Function State Machine definition: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidDefinitions {
+		_, errors := validateSfnStateMachineDefinition(v, "definition")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Step Function State Machine definition", v)
+		}
+	}
+}
+
+func TestValidateStepFunctionStateMachineName(t *testing.T) {
+	validTypes := []string{
+		"foo",
+		"BAR",
+		"FooBar123",
+		"FooBar123Baz-_",
+	}
+
+	invalidTypes := []string{
+		"foo bar",
+		"foo<bar>",
+		"foo{bar}",
+		"foo[bar]",
+		"foo*bar",
+		"foo?bar",
+		"foo#bar",
+		"foo%bar",
+		"foo\bar",
+		"foo^bar",
+		"foo|bar",
+		"foo~bar",
+		"foo$bar",
+		"foo&bar",
+		"foo,bar",
+		"foo:bar",
+		"foo;bar",
+		"foo/bar",
+		strings.Repeat("W", 81), // length > 80
+	}
+
+	for _, v := range validTypes {
+		_, errors := validateSfnStateMachineName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Step Function State Machine name: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidTypes {
+		_, errors := validateSfnStateMachineName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Step Function State Machine name", v)
+		}
 	}
 }
 

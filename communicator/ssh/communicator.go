@@ -42,6 +42,8 @@ type Communicator struct {
 	config   *sshConfig
 	conn     net.Conn
 	address  string
+
+	lock sync.Mutex
 }
 
 type sshConfig struct {
@@ -96,6 +98,10 @@ func New(s *terraform.InstanceState) (*Communicator, error) {
 
 // Connect implementation of communicator.Communicator interface
 func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
+	// Grab a lock so we can modify our internal attributes
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	if c.conn != nil {
 		c.conn.Close()
 	}
@@ -190,8 +196,19 @@ func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 
 // Disconnect implementation of communicator.Communicator interface
 func (c *Communicator) Disconnect() error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	if c.config.sshAgent != nil {
-		return c.config.sshAgent.Close()
+		if err := c.config.sshAgent.Close(); err != nil {
+			return err
+		}
+	}
+
+	if c.conn != nil {
+		conn := c.conn
+		c.conn = nil
+		return conn.Close()
 	}
 
 	return nil

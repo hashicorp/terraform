@@ -1,13 +1,14 @@
 package localexec
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os/exec"
 	"runtime"
 
 	"github.com/armon/circbuf"
-	"github.com/hashicorp/terraform/helper/config"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-linereader"
 )
@@ -19,21 +20,26 @@ const (
 	maxBufSize = 8 * 1024
 )
 
-type ResourceProvisioner struct{}
+func Provisioner() terraform.ResourceProvisioner {
+	return &schema.Provisioner{
+		Schema: map[string]*schema.Schema{
+			"command": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+		},
 
-func (p *ResourceProvisioner) Apply(
-	o terraform.UIOutput,
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) error {
-
-	// Get the command
-	commandRaw, ok := c.Config["command"]
-	if !ok {
-		return fmt.Errorf("local-exec provisioner missing 'command'")
+		ApplyFunc: applyFn,
 	}
-	command, ok := commandRaw.(string)
-	if !ok {
-		return fmt.Errorf("local-exec provisioner command must be a string")
+}
+
+func applyFn(ctx context.Context) error {
+	data := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
+	o := ctx.Value(schema.ProvOutputKey).(terraform.UIOutput)
+
+	command := data.Get("command").(string)
+	if command == "" {
+		return fmt.Errorf("local-exec provisioner command must be a non-empty string")
 	}
 
 	// Execute the command using a shell
@@ -49,7 +55,7 @@ func (p *ResourceProvisioner) Apply(
 	// Setup the reader that will read the lines from the command
 	pr, pw := io.Pipe()
 	copyDoneCh := make(chan struct{})
-	go p.copyOutput(o, pr, copyDoneCh)
+	go copyOutput(o, pr, copyDoneCh)
 
 	// Setup the command
 	cmd := exec.Command(shell, flag, command)
@@ -62,8 +68,23 @@ func (p *ResourceProvisioner) Apply(
 		"Executing: %s %s \"%s\"",
 		shell, flag, command))
 
-	// Run the command to completion
-	err := cmd.Run()
+	// Start the command
+	err := cmd.Start()
+	if err == nil {
+		// Wait for the command to complete in a goroutine
+		doneCh := make(chan error, 1)
+		go func() {
+			doneCh <- cmd.Wait()
+		}()
+
+		// Wait for the command to finish or for us to be interrupted
+		select {
+		case err = <-doneCh:
+		case <-ctx.Done():
+			cmd.Process.Kill()
+			err = cmd.Wait()
+		}
+	}
 
 	// Close the write-end of the pipe so that the goroutine mirroring output
 	// ends properly.
@@ -78,15 +99,7 @@ func (p *ResourceProvisioner) Apply(
 	return nil
 }
 
-func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	validator := config.Validator{
-		Required: []string{"command"},
-	}
-	return validator.Validate(c)
-}
-
-func (p *ResourceProvisioner) copyOutput(
-	o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
+func copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
 	defer close(doneCh)
 	lr := linereader.New(r)
 	for line := range lr.Ch {

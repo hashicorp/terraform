@@ -132,6 +132,18 @@ func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	if stack == nil {
+		log.Printf("[INFO] Stack %s not found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	if stack.State == "removed" {
+		log.Printf("[INFO] Stack %s was removed on %v", d.Id(), stack.Removed)
+		d.SetId("")
+		return nil
+	}
+
 	config, err := client.Environment.ActionExportconfig(stack, &rancherClient.ComposeConfigInput{})
 	if err != nil {
 		return err
@@ -141,8 +153,12 @@ func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("description", stack.Description)
 	d.Set("name", stack.Name)
-	d.Set("rendered_docker_compose", strings.Replace(config.DockerComposeConfig, "\r", "", -1))
-	d.Set("rendered_rancher_compose", strings.Replace(config.RancherComposeConfig, "\r", "", -1))
+	dockerCompose := strings.Replace(config.DockerComposeConfig, "\r", "", -1)
+	rancherCompose := strings.Replace(config.RancherComposeConfig, "\r", "", -1)
+	d.Set("docker_compose", dockerCompose)
+	d.Set("rancher_compose", rancherCompose)
+	d.Set("rendered_docker_compose", dockerCompose)
+	d.Set("rendered_rancher_compose", rancherCompose)
 	d.Set("environment_id", stack.AccountId)
 	d.Set("environment", stack.Environment)
 
@@ -357,6 +373,10 @@ func makeStackData(d *schema.ResourceData, meta interface{}) (data map[string]in
 		template, err := catalogClient.Template.ById(catalogID)
 		if err != nil {
 			return data, fmt.Errorf("Failed to get catalog template: %s", err)
+		}
+
+		if template == nil {
+			return data, fmt.Errorf("Unknown catalog template %s", catalogID)
 		}
 
 		dockerCompose = template.Files["docker-compose.yml"].(string)

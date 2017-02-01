@@ -25,6 +25,12 @@ IMPROVEMENTS:
  * command/init: previous behavior is retained, but init now also configures
    the new remote backends as well as downloads modules. It is the single
    command to initialize a new or existing Terraform configuration.
+ * provisioners: All provisioners now respond very quickly to interrupts for
+   fast cancellation. [GH-10934]
+
+BUG FIXES:
+
+ * provider/cloudstack: Ensure consistent hashes of `cloudstack_port_forward` forward items. [GH-11546]
 
 ## 0.8.6 (unreleased)
 

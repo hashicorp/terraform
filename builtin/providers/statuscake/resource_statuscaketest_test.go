@@ -51,6 +51,7 @@ func TestAccStatusCake_withUpdate(t *testing.T) {
 					testAccTestCheckAttributes("statuscake_test.google", &test),
 					resource.TestCheckResourceAttr("statuscake_test.google", "check_rate", "500"),
 					resource.TestCheckResourceAttr("statuscake_test.google", "paused", "true"),
+					resource.TestCheckResourceAttr("statuscake_test.google", "timeout", "40"),
 					resource.TestCheckResourceAttr("statuscake_test.google", "contact_id", "0"),
 					resource.TestCheckResourceAttr("statuscake_test.google", "confirmations", "0"),
 				),
@@ -147,6 +148,7 @@ resource "statuscake_test" "google" {
 	website_url = "www.google.com"
 	test_type = "HTTP"
 	check_rate = 300
+	timeout = 10
 	contact_id = 12345
 	confirmations = 1
 }

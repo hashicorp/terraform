@@ -100,6 +100,12 @@ func resourceRancherRegistryRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
+	if registry == nil {
+		log.Printf("[INFO] Registry %s not found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
 	log.Printf("[INFO] Registry Name: %s", registry.Name)
 
 	d.Set("description", registry.Description)

@@ -51,6 +51,10 @@ func resourceRancherRegistrationToken() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"image": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -108,6 +112,12 @@ func resourceRancherRegistrationTokenRead(d *schema.ResourceData, meta interface
 		return err
 	}
 
+	if regT == nil {
+		log.Printf("[INFO] RegistrationToken %s not found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
 	log.Printf("[INFO] RegistrationToken Name: %s", regT.Name)
 
 	d.Set("description", regT.Description)
@@ -116,6 +126,7 @@ func resourceRancherRegistrationTokenRead(d *schema.ResourceData, meta interface
 	d.Set("registration_url", regT.RegistrationUrl)
 	d.Set("environment_id", regT.AccountId)
 	d.Set("command", regT.Command)
+	d.Set("image", regT.Image)
 
 	return nil
 }

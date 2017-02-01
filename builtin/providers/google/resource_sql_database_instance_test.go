@@ -10,6 +10,7 @@ package google
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -80,6 +81,34 @@ func TestAccGoogleSqlDatabaseInstance_settings_basic(t *testing.T) {
 						"google_sql_database_instance.instance", &instance),
 					testAccCheckGoogleSqlDatabaseInstanceEquals(
 						"google_sql_database_instance.instance", &instance),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGoogleSqlDatabaseInstance_slave(t *testing.T) {
+	var instance sqladmin.DatabaseInstance
+	masterID := acctest.RandInt()
+	slaveID := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabaseInstance_slave, masterID, slaveID),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleSqlDatabaseInstanceExists(
+						"google_sql_database_instance.instance_master", &instance),
+					testAccCheckGoogleSqlDatabaseInstanceEquals(
+						"google_sql_database_instance.instance_master", &instance),
+					testAccCheckGoogleSqlDatabaseInstanceExists(
+						"google_sql_database_instance.instance_slave", &instance),
+					testAccCheckGoogleSqlDatabaseInstanceEquals(
+						"google_sql_database_instance.instance_slave", &instance),
 				),
 			},
 		},
@@ -199,7 +228,7 @@ func testAccCheckGoogleSqlDatabaseInstanceEquals(n string,
 			return fmt.Errorf("Error settings.tier mismatch, (%s, %s)", server, local)
 		}
 
-		server = instance.MasterInstanceName
+		server = strings.TrimPrefix(instance.MasterInstanceName, instance.Project+":")
 		local = attributes["master_instance_name"]
 		if server != local && len(server) > 0 && len(local) > 0 {
 			return fmt.Errorf("Error master_instance_name mismatch, (%s, %s)", server, local)
@@ -470,6 +499,33 @@ resource "google_sql_database_instance" "instance" {
 		username = "username"
 		ssl_cipher = "ALL"
 		verify_server_certificate = false
+	}
+}
+`
+
+var testGoogleSqlDatabaseInstance_slave = `
+resource "google_sql_database_instance" "instance_master" {
+	name = "tf-lw-%d"
+	region = "us-central1"
+
+	settings {
+		tier = "db-f1-micro"
+
+		backup_configuration {
+			enabled = true
+			binary_log_enabled = true
+		}
+	}
+}
+
+resource "google_sql_database_instance" "instance_slave" {
+	name = "tf-lw-%d"
+	region = "us-central1"
+
+	master_instance_name = "${google_sql_database_instance.instance_master.name}"
+
+	settings {
+		tier = "db-f1-micro"
 	}
 }
 `
