@@ -42,6 +42,7 @@ BUG FIXES:
  * provider/aws: Fix panic in aws_rds_cluster missing parameter error message [GH-11600]
  * provider/aws: Succeed creating aws_volume_attachment if identical attachment exists [GH-11060]
  * provider/aws: Guard against panic in aws_vpc_endpoint_association [GH-11613]
+ * provider/aws: Allow root volume size changes in aws_instance [GH-11619]
  * provider/azurerm: Scale Sets Load balancer pools should not be computed [GH-11516]
  * provider/azurerm: Scale Sets ip configuration handling and update support for load balancer backend pools. [GH-11516]
  * provider/azurerm: check if lb sub resources exist when reading [GH-11553]
