@@ -73,6 +73,12 @@ The required `settings` block supports:
 * `crash_safe_replication` - (Optional) Specific to read instances, indicates
     when crash-safe replication flags are enabled.
 
+* `disk_autoresize` - (Optional, Second Generation, Default: `false`) Configuration to increase storage size automatically.
+
+* `disk_size` - (Optional, Second Generation, Default: `10`) The size of data disk, in GB. Size of a running instance cannot be reduced but can be increased.
+
+* `disk_type` - (Optional, Second Generation, Default: `PD_SSD`) The type of data disk: PD_SSD or PD_HDD.
+
 * `pricing_plan` - (Optional) Pricing plan for this instance, can be one of
     `PER_USE` or `PACKAGE`.
 
