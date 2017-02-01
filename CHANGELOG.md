@@ -19,6 +19,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for Cross Region RDS Cluster Replica [GH-11428]
  * provider/aws: Add sensitive attribute in master_password [GH-11584]
  * provider/azurerm: Add support for scale sets overprovision [GH-11516]
+ * provider/azurerm: support import for load balancer and sub resources [GH-11610]
  * provider/fastly: Adds papertrail logging [GH-11491]
  * provider/google: allow instance group managers in region other than project [GH-11294]
  * provider/google: Add second generation disk specification options [GH-11571]
