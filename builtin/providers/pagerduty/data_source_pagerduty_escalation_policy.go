@@ -13,10 +13,6 @@ func dataSourcePagerDutyEscalationPolicy() *schema.Resource {
 		Read: dataSourcePagerDutyEscalationPolicyRead,
 
 		Schema: map[string]*schema.Schema{
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
