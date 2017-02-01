@@ -20,10 +20,6 @@ func dataSourceLocation() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 		},
 	}
 }

@@ -27,10 +27,6 @@ func dataSourceImage() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 		},
 	}
 }
@@ -46,7 +42,7 @@ func dataSourceImageRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("An error occured while fetching ProfitBricks locations %s", images.Response)
 	}
 
-	name, _ := d.GetOk("name")
+	name := d.Get("name").(string)
 	imageType, imageTypeOk := d.GetOk("type")
 	location, locationOk := d.GetOk("location")
 	version, versionOk := d.GetOk("version")
@@ -56,7 +52,7 @@ func dataSourceImageRead(d *schema.ResourceData, meta interface{}) error {
 	// if version value is present then concatenate name - version
 	// otherwise search by name or part of the name
 	if versionOk {
-		name_ver := fmt.Sprintf("%s-%s", name.(string), version.(string))
+		name_ver := fmt.Sprintf("%s-%s", name, version.(string))
 		for _, img := range images.Items {
 			if strings.Contains(strings.ToLower(img.Properties.Name), strings.ToLower(name_ver)) {
 				results = append(results, img)
@@ -64,7 +60,7 @@ func dataSourceImageRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	} else {
 		for _, img := range images.Items {
-			if strings.Contains(strings.ToLower(img.Properties.Name), strings.ToLower(name.(string))) {
+			if strings.Contains(strings.ToLower(img.Properties.Name), strings.ToLower(name)) {
 				results = append(results, img)
 			}
 		}
@@ -101,6 +97,7 @@ func dataSourceImageRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("name", results[0].Properties.Name)
+
 	d.SetId(results[0].Id)
 
 	return nil
