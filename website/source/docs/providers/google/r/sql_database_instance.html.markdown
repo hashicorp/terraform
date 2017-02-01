@@ -10,6 +10,12 @@ description: |-
 
 Creates a new Google SQL Database Instance. For more information, see the [official documentation](https://cloud.google.com/sql/), or the [JSON API](https://cloud.google.com/sql/docs/admin-api/v1beta4/instances).
 
+~> **NOTE on `google_sql_database_instance`:** - Second-generation instances include a
+default 'root'@'%' user with no password. This user will be deleted by Terraform on
+instance creation. You should use a `google_sql_user` to define a customer user with
+a restricted host and strong password.
+
+
 ## Example Usage
 
 Example creating a SQL Database.
