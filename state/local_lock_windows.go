@@ -5,6 +5,7 @@ package state
 import (
 	"math"
 	"os"
+	"sync"
 	"syscall"
 	"unsafe"
 )
@@ -18,7 +19,8 @@ var (
 	procLockFileEx   = modkernel32.NewProc("LockFileEx")
 	procCreateEventW = modkernel32.NewProc("CreateEventW")
 
-	lockedFiles = map[*os.File]syscall.Handle{}
+	lockedFilesMu sync.Mutex
+	lockedFiles   = map[*os.File]syscall.Handle{}
 )
 
 const (
@@ -27,6 +29,9 @@ const (
 )
 
 func (s *LocalState) lock() error {
+	lockedFilesMu.Lock()
+	defer lockedFilesMu.Unlock()
+
 	name, err := syscall.UTF16PtrFromString(s.PathOut)
 	if err != nil {
 		return err
@@ -68,6 +73,9 @@ func (s *LocalState) lock() error {
 }
 
 func (s *LocalState) unlock() error {
+	lockedFilesMu.Lock()
+	defer lockedFilesMu.Unlock()
+
 	handle, ok := lockedFiles[s.stateFileOut]
 	if !ok {
 		// we allow multiple Unlock calls
