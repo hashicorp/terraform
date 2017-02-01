@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"runtime"
 
@@ -52,16 +53,28 @@ func applyFn(ctx context.Context) error {
 		flag = "-c"
 	}
 
-	// Setup the reader that will read the lines from the command
-	pr, pw := io.Pipe()
-	copyDoneCh := make(chan struct{})
-	go copyOutput(o, pr, copyDoneCh)
+	// Setup the reader that will read the output from the command.
+	// We use an os.Pipe so that the *os.File can be passed directly to the
+	// process, and not rely on goroutines copying the data which may block.
+	// See golang.org/issue/18874
+	pr, pw, err := os.Pipe()
+	if err != nil {
+		return fmt.Errorf("failed to initialize pipe for output: %s", err)
+	}
 
 	// Setup the command
-	cmd := exec.Command(shell, flag, command)
+	cmd := exec.CommandContext(ctx, shell, flag, command)
+	cmd.Stderr = pw
+	cmd.Stdout = pw
+
 	output, _ := circbuf.NewBuffer(maxBufSize)
-	cmd.Stderr = io.MultiWriter(output, pw)
-	cmd.Stdout = io.MultiWriter(output, pw)
+
+	// Write everything we read from the pipe to the output buffer too
+	tee := io.TeeReader(pr, output)
+
+	// copy the teed output to the UI output
+	copyDoneCh := make(chan struct{})
+	go copyOutput(o, tee, copyDoneCh)
 
 	// Output what we're about to run
 	o.Output(fmt.Sprintf(
@@ -69,27 +82,22 @@ func applyFn(ctx context.Context) error {
 		shell, flag, command))
 
 	// Start the command
-	err := cmd.Start()
+	err = cmd.Start()
 	if err == nil {
-		// Wait for the command to complete in a goroutine
-		doneCh := make(chan error, 1)
-		go func() {
-			doneCh <- cmd.Wait()
-		}()
-
-		// Wait for the command to finish or for us to be interrupted
-		select {
-		case err = <-doneCh:
-		case <-ctx.Done():
-			cmd.Process.Kill()
-			err = cmd.Wait()
-		}
+		err = cmd.Wait()
 	}
 
 	// Close the write-end of the pipe so that the goroutine mirroring output
 	// ends properly.
 	pw.Close()
-	<-copyDoneCh
+
+	// Cancelling the command may block the pipe reader if the file descriptor
+	// was passed to a child process which hasn't closed it. In this case the
+	// copyOutput goroutine will just hang out until exit.
+	select {
+	case <-copyDoneCh:
+	case <-ctx.Done():
+	}
 
 	if err != nil {
 		return fmt.Errorf("Error running command '%s': %v. Output: %s",
