@@ -155,8 +155,12 @@ func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", stack.Name)
 	dockerCompose := strings.Replace(config.DockerComposeConfig, "\r", "", -1)
 	rancherCompose := strings.Replace(config.RancherComposeConfig, "\r", "", -1)
-	d.Set("docker_compose", dockerCompose)
-	d.Set("rancher_compose", rancherCompose)
+
+	catalogId := d.Get("catalog_id")
+	if catalogId == "" {
+		d.Set("docker_compose", dockerCompose)
+		d.Set("rancher_compose", rancherCompose)
+	}
 	d.Set("rendered_docker_compose", dockerCompose)
 	d.Set("rendered_rancher_compose", rancherCompose)
 	d.Set("environment_id", stack.AccountId)
