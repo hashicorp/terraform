@@ -3,7 +3,7 @@ layout: "azurerm"
 page_title: "Provider: Azure Resource Manager"
 sidebar_current: "docs-azurerm-index"
 description: |-
-  The Azure Resource Manager provider is used to interact with the many resources supported by Azure, via the ARM API. This supercedes the Azure provider, which interacts with Azure using the Service Management API. The provider needs to be configured with a credentials file, or credentials needed to generate OAuth tokens for the ARM API.
+  The Azure Resource Manager provider is used to interact with the many resources supported by Azure, via the ARM API. This supersedes the Azure provider, which interacts with Azure using the Service Management API. The provider needs to be configured with a credentials file, or credentials needed to generate OAuth tokens for the ARM API.
 ---
 
 # Microsoft Azure Provider
