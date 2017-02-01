@@ -125,8 +125,9 @@ func resourceAwsRDSCluster() *schema.Resource {
 			},
 
 			"master_password": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
 			},
 
 			"snapshot_identifier": {
