@@ -2,10 +2,9 @@ package aws
 
 import (
 	"fmt"
-	"math/rand"
 	"testing"
-	"time"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
@@ -58,4 +57,4 @@ resource "aws_ecs_service" "mongo" {
 data "aws_ecs_cluster" "default" {
   cluster_name = "${aws_ecs_cluster.default.name}"
 }
-`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+`, acctest.RandInt())
