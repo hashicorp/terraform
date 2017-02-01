@@ -9,7 +9,7 @@ import (
 	rancherClient "github.com/rancher/go-rancher/client"
 )
 
-func TestAccRancherRegistry(t *testing.T) {
+func TestAccRancherRegistry_basic(t *testing.T) {
 	var registry rancherClient.Registry
 
 	resource.Test(t, resource.TestCase{

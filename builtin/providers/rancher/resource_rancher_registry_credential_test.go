@@ -9,7 +9,7 @@ import (
 	rancherClient "github.com/rancher/go-rancher/client"
 )
 
-func TestAccRancherRegistryCredential(t *testing.T) {
+func TestAccRancherRegistryCredential_basic(t *testing.T) {
 	var registry rancherClient.RegistryCredential
 
 	resource.Test(t, resource.TestCase{

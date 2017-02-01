@@ -9,7 +9,7 @@ import (
 	rancherClient "github.com/rancher/go-rancher/client"
 )
 
-func TestAccRancherRegistrationToken(t *testing.T) {
+func TestAccRancherRegistrationToken_basic(t *testing.T) {
 	var registrationToken rancherClient.RegistrationToken
 
 	resource.Test(t, resource.TestCase{

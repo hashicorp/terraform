@@ -9,7 +9,7 @@ import (
 	rancherClient "github.com/rancher/go-rancher/client"
 )
 
-func TestAccRancherEnvironment(t *testing.T) {
+func TestAccRancherEnvironment_basic(t *testing.T) {
 	var environment rancherClient.Project
 
 	resource.Test(t, resource.TestCase{
