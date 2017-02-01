@@ -26,12 +26,7 @@ func resourceArmSqlServer() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": &schema.Schema{
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": &schema.Schema{
 				Type:     schema.TypeString,

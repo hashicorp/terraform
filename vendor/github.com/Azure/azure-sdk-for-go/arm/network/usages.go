@@ -46,7 +46,7 @@ func NewUsagesClientWithBaseURI(baseURI string, subscriptionID string) UsagesCli
 
 // List lists compute usages for a subscription.
 //
-// location is the location upon which resource usage is queried.
+// location is the location where resource usage is queried.
 func (client UsagesClient) List(location string) (result UsagesListResult, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: location,

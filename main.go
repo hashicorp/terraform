@@ -60,6 +60,8 @@ func realMain() int {
 		wrapConfig.Handler = panicHandler(logTempFile)
 		wrapConfig.Writer = io.MultiWriter(logTempFile, logWriter)
 		wrapConfig.Stdout = outW
+		wrapConfig.IgnoreSignals = ignoreSignals
+		wrapConfig.ForwardSignals = forwardSignals
 		exitStatus, err := panicwrap.Wrap(&wrapConfig)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Couldn't start Terraform: %s", err)

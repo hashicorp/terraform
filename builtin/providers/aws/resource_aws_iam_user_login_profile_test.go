@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"regexp"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -15,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/vault/helper/pgpkeys"
-	"regexp"
 )
 
 func TestAccAWSUserLoginProfile_basic(t *testing.T) {
@@ -89,7 +90,7 @@ func TestAccAWSUserLoginProfile_notAKey(t *testing.T) {
 			{
 				// We own this account but it doesn't have any key associated with it
 				Config:      testAccAWSUserLoginProfileConfig(username, "/", "lolimnotakey"),
-				ExpectError: regexp.MustCompile(`Error encrypting password`),
+				ExpectError: regexp.MustCompile(`Error encrypting Password`),
 			},
 		},
 	})
@@ -240,7 +241,9 @@ resource "aws_iam_access_key" "user" {
 
 resource "aws_iam_user_login_profile" "user" {
         user = "${aws_iam_user.user.name}"
-        pgp_key = "%s"
+        pgp_key = <<EOF
+%s
+EOF
 }
 `, r, p, key)
 }

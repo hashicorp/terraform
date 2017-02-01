@@ -86,8 +86,8 @@ func resourceArmVirtualNetworkPeeringCreate(d *schema.ResourceData, meta interfa
 	resGroup := d.Get("resource_group_name").(string)
 
 	peer := network.VirtualNetworkPeering{
-		Name:       &name,
-		Properties: getVirtualNetworkPeeringProperties(d),
+		Name: &name,
+		VirtualNetworkPeeringPropertiesFormat: getVirtualNetworkPeeringProperties(d),
 	}
 
 	peerMutex.Lock()
@@ -131,7 +131,7 @@ func resourceArmVirtualNetworkPeeringRead(d *schema.ResourceData, meta interface
 		return fmt.Errorf("Error making Read request on Azure virtual network peering %s: %s", name, err)
 	}
 
-	peer := *resp.Properties
+	peer := *resp.VirtualNetworkPeeringPropertiesFormat
 
 	// update appropriate values
 	d.Set("resource_group_name", resGroup)

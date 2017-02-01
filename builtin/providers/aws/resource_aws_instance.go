@@ -268,7 +268,12 @@ func resourceAwsInstance() *schema.Resource {
 
 						"virtual_name": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+						},
+
+						"no_device": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
 						},
 					},
 				},
@@ -277,6 +282,9 @@ func resourceAwsInstance() *schema.Resource {
 					m := v.(map[string]interface{})
 					buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
 					buf.WriteString(fmt.Sprintf("%s-", m["virtual_name"].(string)))
+					if v, ok := m["no_device"].(bool); ok && v {
+						buf.WriteString(fmt.Sprintf("%t-", v))
+					}
 					return hashcode.String(buf.String())
 				},
 			},
@@ -518,52 +526,8 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("tags", tagsToMap(instance.Tags))
 
-	// Determine whether we're referring to security groups with
-	// IDs or names. We use a heuristic to figure this out. By default,
-	// we use IDs if we're in a VPC. However, if we previously had an
-	// all-name list of security groups, we use names. Or, if we had any
-	// IDs, we use IDs.
-	useID := instance.SubnetId != nil && *instance.SubnetId != ""
-	if v := d.Get("security_groups"); v != nil {
-		match := useID
-		sgs := v.(*schema.Set).List()
-		if len(sgs) > 0 {
-			match = false
-			for _, v := range v.(*schema.Set).List() {
-				if strings.HasPrefix(v.(string), "sg-") {
-					match = true
-					break
-				}
-			}
-		}
-
-		useID = match
-	}
-
-	// Build up the security groups
-	sgs := make([]string, 0, len(instance.SecurityGroups))
-	if useID {
-		for _, sg := range instance.SecurityGroups {
-			sgs = append(sgs, *sg.GroupId)
-		}
-		log.Printf("[DEBUG] Setting Security Group IDs: %#v", sgs)
-		if err := d.Set("vpc_security_group_ids", sgs); err != nil {
-			return err
-		}
-		if err := d.Set("security_groups", []string{}); err != nil {
-			return err
-		}
-	} else {
-		for _, sg := range instance.SecurityGroups {
-			sgs = append(sgs, *sg.GroupName)
-		}
-		log.Printf("[DEBUG] Setting Security Group Names: %#v", sgs)
-		if err := d.Set("security_groups", sgs); err != nil {
-			return err
-		}
-		if err := d.Set("vpc_security_group_ids", []string{}); err != nil {
-			return err
-		}
+	if err := readSecurityGroups(d, instance); err != nil {
+		return err
 	}
 
 	if err := readBlockDevices(d, instance, conn); err != nil {
@@ -859,6 +823,11 @@ func fetchRootDeviceName(ami string, conn *ec2.EC2) (*string, error) {
 	image := res.Images[0]
 	rootDeviceName := image.RootDeviceName
 
+	// Instance store backed AMIs do not provide a root device name.
+	if *image.RootDeviceType == ec2.DeviceTypeInstanceStore {
+		return nil, nil
+	}
+
 	// Some AMIs have a RootDeviceName like "/dev/sda1" that does not appear as a
 	// DeviceName in the BlockDeviceMapping list (which will instead have
 	// something like "/dev/sda")
@@ -931,10 +900,21 @@ func readBlockDeviceMappingsFromConfig(
 		vL := v.(*schema.Set).List()
 		for _, v := range vL {
 			bd := v.(map[string]interface{})
-			blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
+			bdm := &ec2.BlockDeviceMapping{
 				DeviceName:  aws.String(bd["device_name"].(string)),
 				VirtualName: aws.String(bd["virtual_name"].(string)),
-			})
+			}
+			if v, ok := bd["no_device"].(bool); ok && v {
+				bdm.NoDevice = aws.String("")
+				// When NoDevice is true, just ignore VirtualName since it's not needed
+				bdm.VirtualName = nil
+			}
+
+			if bdm.NoDevice == nil && aws.StringValue(bdm.VirtualName) == "" {
+				return nil, fmt.Errorf("virtual_name cannot be empty when no_device is false or undefined.")
+			}
+
+			blockDevices = append(blockDevices, bdm)
 		}
 	}
 
@@ -989,6 +969,57 @@ func readBlockDeviceMappingsFromConfig(
 	return blockDevices, nil
 }
 
+// Determine whether we're referring to security groups with
+// IDs or names. We use a heuristic to figure this out. By default,
+// we use IDs if we're in a VPC. However, if we previously had an
+// all-name list of security groups, we use names. Or, if we had any
+// IDs, we use IDs.
+func readSecurityGroups(d *schema.ResourceData, instance *ec2.Instance) error {
+	useID := instance.SubnetId != nil && *instance.SubnetId != ""
+	if v := d.Get("security_groups"); v != nil {
+		match := useID
+		sgs := v.(*schema.Set).List()
+		if len(sgs) > 0 {
+			match = false
+			for _, v := range v.(*schema.Set).List() {
+				if strings.HasPrefix(v.(string), "sg-") {
+					match = true
+					break
+				}
+			}
+		}
+
+		useID = match
+	}
+
+	// Build up the security groups
+	sgs := make([]string, 0, len(instance.SecurityGroups))
+	if useID {
+		for _, sg := range instance.SecurityGroups {
+			sgs = append(sgs, *sg.GroupId)
+		}
+		log.Printf("[DEBUG] Setting Security Group IDs: %#v", sgs)
+		if err := d.Set("vpc_security_group_ids", sgs); err != nil {
+			return err
+		}
+		if err := d.Set("security_groups", []string{}); err != nil {
+			return err
+		}
+	} else {
+		for _, sg := range instance.SecurityGroups {
+			sgs = append(sgs, *sg.GroupName)
+		}
+		log.Printf("[DEBUG] Setting Security Group Names: %#v", sgs)
+		if err := d.Set("security_groups", sgs); err != nil {
+			return err
+		}
+		if err := d.Set("vpc_security_group_ids", []string{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type awsInstanceOpts struct {
 	BlockDeviceMappings               []*ec2.BlockDeviceMapping
 	DisableAPITermination             *bool
@@ -1034,14 +1065,7 @@ func buildAwsInstanceOpts(
 
 	user_data := d.Get("user_data").(string)
 
-	// Check whether the user_data is already Base64 encoded; don't double-encode
-	_, base64DecodeError := base64.StdEncoding.DecodeString(user_data)
-
-	if base64DecodeError == nil {
-		opts.UserData64 = aws.String(user_data)
-	} else {
-		opts.UserData64 = aws.String(base64.StdEncoding.EncodeToString([]byte(user_data)))
-	}
+	opts.UserData64 = aws.String(base64Encode([]byte(user_data)))
 
 	// check for non-default Subnet, and cast it to a String
 	subnet, hasSubnet := d.GetOk("subnet_id")

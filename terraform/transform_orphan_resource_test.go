@@ -59,6 +59,31 @@ func TestOrphanResourceTransformer(t *testing.T) {
 	}
 }
 
+func TestOrphanResourceTransformer_nilModule(t *testing.T) {
+	mod := testModule(t, "transform-orphan-basic")
+	state := &State{
+		Modules: []*ModuleState{nil},
+	}
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := &OrphanResourceTransformer{
+			Concrete: testOrphanResourceConcreteFunc,
+			State:    state, Module: mod,
+		}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+}
+
 func TestOrphanResourceTransformer_countGood(t *testing.T) {
 	mod := testModule(t, "transform-orphan-count")
 	state := &State{

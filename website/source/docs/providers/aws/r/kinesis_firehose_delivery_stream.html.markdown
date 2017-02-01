@@ -135,7 +135,7 @@ The `s3_configuration` object supports the following:
                                 We recommend setting SizeInMBs to a value greater than the amount of data you typically ingest into the delivery stream in 10 seconds. For example, if you typically ingest data at 1 MB/sec set SizeInMBs to be 10 MB or higher.
 * `buffer_interval` - (Optional) Buffer incoming data for the specified period of time, in seconds, before delivering it to the destination. The default value is 300.
 * `compression_format` - (Optional) The compression format. If no value is specified, the default is UNCOMPRESSED. Other supported values are GZIP, ZIP & Snappy. If the destination is redshift you cannot use ZIP or Snappy.
-* `kms_key_arn` - (Optional) If set, the stream will encrypt data using the key in KMS, otherwise, no encryption will
+* `kms_key_arn` - (Optional) Specifies the KMS key ARN the stream will use to encrypt data. If not set, no encryption will
 be used.
 * `cloudwatch_logging_options` - (Optional) The CloudWatch Logging Options for the delivery stream. More details are given below
 

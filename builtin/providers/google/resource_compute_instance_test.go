@@ -2,6 +2,7 @@ package google
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -219,6 +220,30 @@ func TestAccComputeInstance_disksWithAutodelete(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_diskEncryption(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_disks_encryption(diskName, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceDisk(&instance, instanceName, true, true),
+					testAccCheckComputeInstanceDisk(&instance, diskName, true, false),
+					testAccCheckComputeInstanceDiskEncryptionKey("google_compute_instance.foobar", &instance),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeInstance_local_ssd(t *testing.T) {
 	var instance compute.Instance
 	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
@@ -408,6 +433,28 @@ func TestAccComputeInstance_subnet_custom(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccComputeInstance_subnet_custom(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceHasSubnet(&instance),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_subnet_xpn(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var xpn_host = os.Getenv("GOOGLE_XPN_HOST_PROJECT")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_subnet_xpn(instanceName, xpn_host),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeInstanceExists(
 						"google_compute_instance.foobar", &instance),
@@ -610,6 +657,27 @@ func testAccCheckComputeInstanceDisk(instance *compute.Instance, source string, 
 		}
 
 		return fmt.Errorf("Disk not found: %s", source)
+	}
+}
+
+func testAccCheckComputeInstanceDiskEncryptionKey(n string, instance *compute.Instance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		for i, disk := range instance.Disks {
+			attr := rs.Primary.Attributes[fmt.Sprintf("disk.%d.disk_encryption_key_sha256", i)]
+			if disk.DiskEncryptionKey == nil && attr != "" {
+				return fmt.Errorf("Disk %d has mismatched encryption key.\nTF State: %+v\nGCP State: <empty>", i, attr)
+			}
+			if disk.DiskEncryptionKey != nil && attr != disk.DiskEncryptionKey.Sha256 {
+				return fmt.Errorf("Disk %d has mismatched encryption key.\nTF State: %+v\nGCP State: %+v",
+					i, attr, disk.DiskEncryptionKey.Sha256)
+			}
+		}
+		return nil
 	}
 }
 
@@ -960,6 +1028,39 @@ func testAccComputeInstance_disks(disk, instance string, autodelete bool) string
 	}`, disk, instance, autodelete)
 }
 
+func testAccComputeInstance_disks_encryption(disk, instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_disk" "foobar" {
+		name = "%s"
+		size = 10
+		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		disk {
+			image = "debian-8-jessie-v20160803"
+			disk_encryption_key_raw = "SGVsbG8gZnJvbSBHb29nbGUgQ2xvdWQgUGxhdGZvcm0="
+		}
+
+		disk {
+			disk = "${google_compute_disk.foobar.name}"
+		}
+
+		network_interface {
+			network = "default"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, disk, instance)
+}
+
 func testAccComputeInstance_local_ssd(instance string) string {
 	return fmt.Sprintf(`
 	resource "google_compute_instance" "local-ssd" {
@@ -1081,6 +1182,40 @@ func testAccComputeInstance_subnet_custom(instance string) string {
 		}
 
 	}`, acctest.RandString(10), acctest.RandString(10), instance)
+}
+
+func testAccComputeInstance_subnet_xpn(instance, xpn_host string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_network" "inst-test-network" {
+		name = "inst-test-network-%s"
+		auto_create_subnetworks = false
+		project = "%s"
+	}
+
+	resource "google_compute_subnetwork" "inst-test-subnetwork" {
+		name = "inst-test-subnetwork-%s"
+		ip_cidr_range = "10.0.0.0/16"
+		region = "us-central1"
+		network = "${google_compute_network.inst-test-network.self_link}"
+		project = "%s"
+	}
+
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		disk {
+			image = "debian-8-jessie-v20160803"
+		}
+
+		network_interface {
+			subnetwork = "${google_compute_subnetwork.inst-test-subnetwork.name}"
+			subnetwork_project = "${google_compute_subnetwork.inst-test-subnetwork.project}"
+			access_config {	}
+		}
+
+	}`, acctest.RandString(10), xpn_host, acctest.RandString(10), xpn_host, instance)
 }
 
 func testAccComputeInstance_address_auto(instance string) string {

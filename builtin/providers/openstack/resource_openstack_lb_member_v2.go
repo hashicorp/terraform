@@ -94,7 +94,7 @@ func resourceMemberV2() *schema.Resource {
 
 func resourceMemberV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -117,7 +117,25 @@ func resourceMemberV2Create(d *schema.ResourceData, meta interface{}) error {
 	poolID := d.Get("pool_id").(string)
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
-	member, err := pools.CreateMember(networkingClient, poolID, createOpts).Extract()
+
+	var member *pools.Member
+	err = resource.Retry(10*time.Minute, func() *resource.RetryError {
+		var err error
+		log.Printf("[DEBUG] Attempting to create LBaaSV2 member")
+		member, err = pools.CreateMember(networkingClient, poolID, createOpts).Extract()
+		if err != nil {
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 || errCode.Actual == 500 {
+					log.Printf("[DEBUG] OpenStack LBaaSV2 member is still creating.")
+					return resource.RetryableError(err)
+				}
+			}
+			return resource.NonRetryableError(err)
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack LBaaSV2 member: %s", err)
 	}
@@ -146,7 +164,7 @@ func resourceMemberV2Create(d *schema.ResourceData, meta interface{}) error {
 
 func resourceMemberV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -172,7 +190,7 @@ func resourceMemberV2Read(d *schema.ResourceData, meta interface{}) error {
 
 func resourceMemberV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -201,7 +219,7 @@ func resourceMemberV2Update(d *schema.ResourceData, meta interface{}) error {
 
 func resourceMemberV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -261,7 +279,7 @@ func waitForMemberDelete(networkingClient *gophercloud.ServiceClient, poolID str
 			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
 				if errCode.Actual == 409 {
 					log.Printf("[DEBUG] OpenStack LBaaSV2 Member (%s) is still in use.", memberID)
-					return member, "ACTIVE", nil
+					return member, "PENDING_DELETE", nil
 				}
 			}
 

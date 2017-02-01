@@ -328,7 +328,7 @@ func resourceComputeInstanceV2() *schema.Resource {
 
 func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -475,7 +475,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 	// if volumes were specified, attach them after the instance has launched.
 	if v, ok := d.GetOk("volume"); ok {
 		vols := v.(*schema.Set).List()
-		if blockClient, err := config.blockStorageV1Client(d.Get("region").(string)); err != nil {
+		if blockClient, err := config.blockStorageV1Client(GetRegion(d)); err != nil {
 			return fmt.Errorf("Error creating OpenStack block storage client: %s", err)
 		} else {
 			if err := attachVolumesToInstance(computeClient, blockClient, d.Id(), vols); err != nil {
@@ -489,7 +489,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 
 func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -576,7 +576,7 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 
 func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -594,10 +594,34 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if d.HasChange("metadata") {
-		var metadataOpts servers.MetadataOpts
-		metadataOpts = make(servers.MetadataOpts)
-		newMetadata := d.Get("metadata").(map[string]interface{})
-		for k, v := range newMetadata {
+		oldMetadata, newMetadata := d.GetChange("metadata")
+		var metadataToDelete []string
+
+		// Determine if any metadata keys were removed from the configuration.
+		// Then request those keys to be deleted.
+		for oldKey, _ := range oldMetadata.(map[string]interface{}) {
+			var found bool
+			for newKey, _ := range newMetadata.(map[string]interface{}) {
+				if oldKey == newKey {
+					found = true
+				}
+			}
+
+			if !found {
+				metadataToDelete = append(metadataToDelete, oldKey)
+			}
+		}
+
+		for _, key := range metadataToDelete {
+			err := servers.DeleteMetadatum(computeClient, d.Id(), key).ExtractErr()
+			if err != nil {
+				return fmt.Errorf("Error deleting metadata (%s) from server (%s): %s", key, d.Id(), err)
+			}
+		}
+
+		// Update existing metadata and add any new metadata.
+		metadataOpts := make(servers.MetadataOpts)
+		for k, v := range newMetadata.(map[string]interface{}) {
 			metadataOpts[k] = v.(string)
 		}
 
@@ -712,7 +736,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 		oldAttachmentSet := oldAttachments.(*schema.Set).List()
 
 		log.Printf("[DEBUG] Attempting to detach the following volumes: %#v", oldAttachmentSet)
-		if blockClient, err := config.blockStorageV1Client(d.Get("region").(string)); err != nil {
+		if blockClient, err := config.blockStorageV1Client(GetRegion(d)); err != nil {
 			return err
 		} else {
 			if err := detachVolumesFromInstance(computeClient, blockClient, d.Id(), oldAttachmentSet); err != nil {
@@ -722,7 +746,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 		// for each new attachment, attach the volume
 		newAttachmentSet := newAttachments.(*schema.Set).List()
-		if blockClient, err := config.blockStorageV1Client(d.Get("region").(string)); err != nil {
+		if blockClient, err := config.blockStorageV1Client(GetRegion(d)); err != nil {
 			return err
 		} else {
 			if err := attachVolumesToInstance(computeClient, blockClient, d.Id(), newAttachmentSet); err != nil {
@@ -799,7 +823,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -810,7 +834,7 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 		volumeList := volumeSet.List()
 		if len(volumeList) > 0 {
 			log.Printf("[DEBUG] Attempting to detach the following volumes: %#v", volumeList)
-			if blockClient, err := config.blockStorageV1Client(d.Get("region").(string)); err != nil {
+			if blockClient, err := config.blockStorageV1Client(GetRegion(d)); err != nil {
 				return err
 			} else {
 				if err := detachVolumesFromInstance(computeClient, blockClient, d.Id(), volumeList); err != nil {

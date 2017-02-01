@@ -1,5 +1,4 @@
 TEST?=$$(go list ./... | grep -v '/terraform/vendor/' | grep -v '/builtin/bins/')
-VETARGS?=-all
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
 default: test vet
@@ -39,8 +38,10 @@ plugin-dev: generate
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 
 # test runs the unit tests
-test: fmtcheck errcheck generate
-	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
+test:# fmtcheck errcheck generate
+	go test -i $(TEST) || exit 1
+	echo $(TEST) | \
+		xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4
 
 # testacc runs acceptance tests
 testacc: fmtcheck generate
@@ -74,8 +75,8 @@ cover:
 # vet runs the Go source code static analysis tool `vet` to find
 # any common errors.
 vet:
-	@echo "go tool vet $(VETARGS) ."
-	@go tool vet $(VETARGS) $$(ls -d */ | grep -v vendor) ; if [ $$? -eq 1 ]; then \
+	@echo "go vet ."
+	@go vet $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \
@@ -100,4 +101,7 @@ fmtcheck:
 errcheck:
 	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
 
-.PHONY: bin default generate test vet fmt fmtcheck tools
+vendor-status:
+	@govendor status
+
+.PHONY: bin core-dev core-test cover default dev errcheck fmt fmtcheck generate plugin-dev quickdev test-compile test testacc testrace tools vendor-status vet

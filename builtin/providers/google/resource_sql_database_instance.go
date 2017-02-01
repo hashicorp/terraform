@@ -3,6 +3,7 @@ package google
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -70,6 +71,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 						"crash_safe_replication": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Computed: true,
 						},
 						"database_flags": &schema.Schema{
 							Type:     schema.TypeList,
@@ -86,6 +88,18 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 									},
 								},
 							},
+						},
+						"disk_autoresize": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"disk_size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"disk_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 						"ip_configuration": &schema.Schema{
 							Type:     schema.TypeList,
@@ -321,6 +335,18 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 
 	if v, ok := _settings["crash_safe_replication"]; ok {
 		settings.CrashSafeReplicationEnabled = v.(bool)
+	}
+
+	if v, ok := _settings["disk_autoresize"]; ok && v.(bool) {
+		settings.StorageAutoResize = v.(bool)
+	}
+
+	if v, ok := _settings["disk_size"]; ok && v.(int) > 0 {
+		settings.DataDiskSizeGb = int64(v.(int))
+	}
+
+	if v, ok := _settings["disk_type"]; ok && len(v.(string)) > 0 {
+		settings.DataDiskType = v.(string)
 	}
 
 	if v, ok := _settings["database_flags"]; ok {
@@ -564,7 +590,7 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 				_backupConfiguration["enabled"] = settings.BackupConfiguration.Enabled
 			}
 
-			if vp, okp := _backupConfiguration["start_time"]; okp && vp != nil {
+			if vp, okp := _backupConfiguration["start_time"]; okp && len(vp.(string)) > 0 {
 				_backupConfiguration["start_time"] = settings.BackupConfiguration.StartTime
 			}
 
@@ -575,6 +601,24 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 
 	if v, ok := _settings["crash_safe_replication"]; ok && v != nil {
 		_settings["crash_safe_replication"] = settings.CrashSafeReplicationEnabled
+	}
+
+	if v, ok := _settings["disk_autoresize"]; ok && v != nil {
+		if v.(bool) {
+			_settings["disk_autoresize"] = settings.StorageAutoResize
+		}
+	}
+
+	if v, ok := _settings["disk_size"]; ok && v != nil {
+		if v.(int) > 0 && settings.DataDiskSizeGb < int64(v.(int)) {
+			_settings["disk_size"] = settings.DataDiskSizeGb
+		}
+	}
+
+	if v, ok := _settings["disk_type"]; ok && v != nil {
+		if len(v.(string)) > 0 {
+			_settings["disk_type"] = settings.DataDiskType
+		}
 	}
 
 	if v, ok := _settings["database_flags"]; ok && len(v.([]interface{})) > 0 {
@@ -758,7 +802,7 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("ip_address", _ipAddresses)
 
 	if v, ok := d.GetOk("master_instance_name"); ok && v != nil {
-		d.Set("master_instance_name", instance.MasterInstanceName)
+		d.Set("master_instance_name", strings.TrimPrefix(instance.MasterInstanceName, project+":"))
 	}
 
 	d.Set("self_link", instance.SelfLink)
@@ -838,6 +882,20 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 
 		if v, ok := _settings["crash_safe_replication"]; ok {
 			settings.CrashSafeReplicationEnabled = v.(bool)
+		}
+
+		if v, ok := _settings["disk_autoresize"]; ok && v.(bool) {
+			settings.StorageAutoResize = v.(bool)
+		}
+
+		if v, ok := _settings["disk_size"]; ok {
+			if v.(int) > 0 && int64(v.(int)) > instance.Settings.DataDiskSizeGb {
+				settings.DataDiskSizeGb = int64(v.(int))
+			}
+		}
+
+		if v, ok := _settings["disk_type"]; ok && len(v.(string)) > 0 {
+			settings.DataDiskType = v.(string)
 		}
 
 		_oldDatabaseFlags := make([]interface{}, 0)

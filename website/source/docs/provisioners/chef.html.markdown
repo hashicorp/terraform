@@ -80,9 +80,24 @@ The following arguments are supported:
   subdirectory called `logfiles` created in your current directory. The filename will be
   the `node_name` of the new node.
 
+* `use_policyfile (boolean)` - (Optional) If `true`, use the policy files to bootstrap the
+  node. Setting `policy_group` and `policy_name` are required if this is `true`. (defaults to
+  `false`).
+
+* `policy_group (string)` - (Optional) The name of a policy group that exists on the Chef
+  server. Required if `use_policyfile` is set; `policy_name` must also be specified.
+
+* `policy_name (string)` - (Optional) The name of a policy, as identified by the `name`
+  setting in a Policyfile.rb file. Required if `use_policyfile` is set; `policy_group`
+  must also be specified.
+
 * `http_proxy (string)` - (Optional) The proxy server for Chef Client HTTP connections.
 
 * `https_proxy (string)` - (Optional) The proxy server for Chef Client HTTPS connections.
+
+* `named_run_list (string)` - (Optional) The name of an alternate run-list to invoke during the
+  initial Chef Client run. The run-list must already exist in the Policyfile that defines
+  `policy_name`. Only applies when `use_policyfile` is `true`.
 
 * `no_proxy (array)` - (Optional) A list of URLs that should bypass the proxy.
 
@@ -102,9 +117,10 @@ The following arguments are supported:
 * `recreate_client (boolean)` - (Optional) If `true`, first delete any existing Chef Node and
   Client before registering the new Chef Client.
 
-* `run_list (array)` - (Required) A list with recipes that will be invoked during the initial
+* `run_list (array)` - (Optional) A list with recipes that will be invoked during the initial
   Chef Client run. The run-list will also be saved to the Chef Server after a successful
-  initial run.
+  initial run. Required if `use_policyfile` is `false`; ignored when `use_policyfile` is `true`
+  (see `named_run_list` to specify a run-list defined in a Policyfile).
 
 * `secret_key (string)` - (Optional) The contents of the secret key that is used
   by the Chef Client to decrypt data bags on the Chef Server. The key will be uploaded to the remote

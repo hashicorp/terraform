@@ -41,15 +41,15 @@ func NewNamespacesClientWithBaseURI(baseURI string, subscriptionID string) Names
 	return NamespacesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate creates/Updates a service namespace. Once created, this
+// CreateOrUpdate creates or updates a service namespace. Once created, this
 // namespace's resource manifest is immutable. This operation is idempotent.
 // This method may poll for completion. Polling can be canceled by passing
 // the cancel channel argument. The channel will be used to cancel polling
 // and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. parameters is parameters supplied to create a Namespace
-// Resource.
+// namespace name. parameters is parameters supplied to create a namespace
+// resource.
 func (client NamespacesClient) CreateOrUpdate(resourceGroupName string, namespaceName string, parameters NamespaceCreateOrUpdateParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -118,17 +118,17 @@ func (client NamespacesClient) CreateOrUpdateResponder(resp *http.Response) (res
 	return
 }
 
-// CreateOrUpdateAuthorizationRule creates an authorization rule for a
-// namespace
+// CreateOrUpdateAuthorizationRule creates or updates an authorization rule
+// for a namespace.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. authorizationRuleName is namespace Aauthorization Rule
-// Name. parameters is the shared access authorization rule.
+// namespace name. authorizationRuleName is namespace authorization rule
+// name. parameters is the shared access authorization rule.
 func (client NamespacesClient) CreateOrUpdateAuthorizationRule(resourceGroupName string, namespaceName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (result SharedAccessAuthorizationRuleResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
-			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "parameters.Properties.Rights", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "parameters.SharedAccessAuthorizationRuleProperties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.SharedAccessAuthorizationRuleProperties.Rights", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "servicebus.NamespacesClient", "CreateOrUpdateAuthorizationRule")
 	}
 
@@ -261,10 +261,10 @@ func (client NamespacesClient) DeleteResponder(resp *http.Response) (result auto
 	return
 }
 
-// DeleteAuthorizationRule deletes a namespace authorization rule
+// DeleteAuthorizationRule deletes a namespace authorization rule.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. authorizationRuleName is authorization Rule Name.
+// namespace name. authorizationRuleName is authorization rule name.
 func (client NamespacesClient) DeleteAuthorizationRule(resourceGroupName string, namespaceName string, authorizationRuleName string) (result autorest.Response, err error) {
 	req, err := client.DeleteAuthorizationRulePreparer(resourceGroupName, namespaceName, authorizationRuleName)
 	if err != nil {
@@ -324,7 +324,7 @@ func (client NamespacesClient) DeleteAuthorizationRuleResponder(resp *http.Respo
 	return
 }
 
-// Get returns the description for the specified namespace.
+// Get gets a description for the specified namespace.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name.
@@ -387,10 +387,11 @@ func (client NamespacesClient) GetResponder(resp *http.Response) (result Namespa
 	return
 }
 
-// GetAuthorizationRule authorization rule for a namespace by name.
+// GetAuthorizationRule gets an authorization rule for a namespace by rule
+// name.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name authorizationRuleName is authorization rule name.
+// namespace name. authorizationRuleName is authorization rule name.
 func (client NamespacesClient) GetAuthorizationRule(resourceGroupName string, namespaceName string, authorizationRuleName string) (result SharedAccessAuthorizationRuleResource, err error) {
 	req, err := client.GetAuthorizationRulePreparer(resourceGroupName, namespaceName, authorizationRuleName)
 	if err != nil {
@@ -451,10 +452,10 @@ func (client NamespacesClient) GetAuthorizationRuleResponder(resp *http.Response
 	return
 }
 
-// ListAuthorizationRules authorization rules for a namespace.
+// ListAuthorizationRules gets the authorization rules for a namespace.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name
+// namespace name.
 func (client NamespacesClient) ListAuthorizationRules(resourceGroupName string, namespaceName string) (result SharedAccessAuthorizationRuleListResult, err error) {
 	req, err := client.ListAuthorizationRulesPreparer(resourceGroupName, namespaceName)
 	if err != nil {
@@ -538,7 +539,7 @@ func (client NamespacesClient) ListAuthorizationRulesNextResults(lastResults Sha
 	return
 }
 
-// ListByResourceGroup lists the available namespaces within a resourceGroup.
+// ListByResourceGroup gets the available namespaces within a resource group.
 //
 // resourceGroupName is the name of the resource group.
 func (client NamespacesClient) ListByResourceGroup(resourceGroupName string) (result NamespaceListResult, err error) {
@@ -623,8 +624,8 @@ func (client NamespacesClient) ListByResourceGroupNextResults(lastResults Namesp
 	return
 }
 
-// ListBySubscription lists all the available namespaces within the
-// subscription irrespective of the resourceGroups.
+// ListBySubscription gets all the available namespaces within the
+// subscription, irrespective of the resource groups.
 func (client NamespacesClient) ListBySubscription() (result NamespaceListResult, err error) {
 	req, err := client.ListBySubscriptionPreparer()
 	if err != nil {
@@ -706,10 +707,11 @@ func (client NamespacesClient) ListBySubscriptionNextResults(lastResults Namespa
 	return
 }
 
-// ListKeys primary and Secondary ConnectionStrings to the namespace
+// ListKeys gets the primary and secondary connection strings for the
+// namespace.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. authorizationRuleName is the authorizationRule name.
+// namespace name. authorizationRuleName is the authorization rule name.
 func (client NamespacesClient) ListKeys(resourceGroupName string, namespaceName string, authorizationRuleName string) (result ResourceListKeys, err error) {
 	req, err := client.ListKeysPreparer(resourceGroupName, namespaceName, authorizationRuleName)
 	if err != nil {
@@ -770,12 +772,12 @@ func (client NamespacesClient) ListKeysResponder(resp *http.Response) (result Re
 	return
 }
 
-// RegenerateKeys regenerats the Primary or Secondary ConnectionStrings to the
-// namespace
+// RegenerateKeys regenerates the primary or secondary connection strings for
+// the namespace.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. authorizationRuleName is the authorizationRule name.
-// parameters is parameters supplied to regenerate Auth Rule.
+// namespace name. authorizationRuleName is the authorization rule name.
+// parameters is parameters supplied to regenerate the authorization rule.
 func (client NamespacesClient) RegenerateKeys(resourceGroupName string, namespaceName string, authorizationRuleName string, parameters RegenerateKeysParameters) (result ResourceListKeys, err error) {
 	req, err := client.RegenerateKeysPreparer(resourceGroupName, namespaceName, authorizationRuleName, parameters)
 	if err != nil {

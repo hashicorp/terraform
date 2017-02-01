@@ -25,10 +25,11 @@ type Event struct {
 	AlertType   string   `json:"alert_type,omitempty"`
 	Host        string   `json:"host,omitempty"`
 	Aggregation string   `json:"aggregation_key,omitempty"`
-	SourceType  string   `json:"source_type,omitempty"`
+	SourceType  string   `json:"source_type_name,omitempty"`
 	Tags        []string `json:"tags,omitempty"`
 	Url         string   `json:"url,omitempty"`
 	Resource    string   `json:"resource,omitempty"`
+	EventType   string   `json:"event_type,omitempty"`
 }
 
 // reqGetEvent is the container for receiving a single event.
@@ -42,27 +43,25 @@ type reqGetEvents struct {
 }
 
 // PostEvent takes as input an event and then posts it to the server.
-func (self *Client) PostEvent(event *Event) (*Event, error) {
+func (client *Client) PostEvent(event *Event) (*Event, error) {
 	var out reqGetEvent
-	err := self.doJsonRequest("POST", "/v1/events", event, &out)
-	if err != nil {
+	if err := client.doJsonRequest("POST", "/v1/events", event, &out); err != nil {
 		return nil, err
 	}
 	return &out.Event, nil
 }
 
 // GetEvent gets a single event given an identifier.
-func (self *Client) GetEvent(id int) (*Event, error) {
+func (client *Client) GetEvent(id int) (*Event, error) {
 	var out reqGetEvent
-	err := self.doJsonRequest("GET", fmt.Sprintf("/v1/events/%d", id), nil, &out)
-	if err != nil {
+	if err := client.doJsonRequest("GET", fmt.Sprintf("/v1/events/%d", id), nil, &out); err != nil {
 		return nil, err
 	}
 	return &out.Event, nil
 }
 
 // QueryEvents returns a slice of events from the query stream.
-func (self *Client) GetEvents(start, end int,
+func (client *Client) GetEvents(start, end int,
 	priority, sources, tags string) ([]Event, error) {
 	// Since this is a GET request, we need to build a query string.
 	vals := url.Values{}
@@ -80,9 +79,8 @@ func (self *Client) GetEvents(start, end int,
 
 	// Now the request and response.
 	var out reqGetEvents
-	err := self.doJsonRequest("GET",
-		fmt.Sprintf("/v1/events?%s", vals.Encode()), nil, &out)
-	if err != nil {
+	if err := client.doJsonRequest("GET",
+		fmt.Sprintf("/v1/events?%s", vals.Encode()), nil, &out); err != nil {
 		return nil, err
 	}
 	return out.Events, nil

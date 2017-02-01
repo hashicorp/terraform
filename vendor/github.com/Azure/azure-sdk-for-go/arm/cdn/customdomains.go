@@ -27,8 +27,7 @@ import (
 
 // CustomDomainsClient is the use these APIs to manage Azure CDN resources
 // through the Azure Resource Manager. You must make sure that requests made
-// to these resources are secure. For more information, see
-// https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx.
+// to these resources are secure.
 type CustomDomainsClient struct {
 	ManagementClient
 }
@@ -45,24 +44,30 @@ func NewCustomDomainsClientWithBaseURI(baseURI string, subscriptionID string) Cu
 	return CustomDomainsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// Create sends the create request. This method may poll for completion.
-// Polling can be canceled by passing the cancel channel argument. The
-// channel will be used to cancel polling and any outstanding HTTP requests.
+// Create creates a new CDN custom domain within an endpoint. This method may
+// poll for completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
-// customDomainName is name of the custom domain within an endpoint.
-// customDomainProperties is custom domain properties required for creation.
-// endpointName is name of the endpoint within the CDN profile. profileName
-// is name of the CDN profile within the resource group. resourceGroupName is
-// name of the resource group within the Azure subscription.
-func (client CustomDomainsClient) Create(customDomainName string, customDomainProperties CustomDomainParameters, endpointName string, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+// resourceGroupName is name of the Resource group within the Azure
+// subscription. profileName is name of the CDN profile which is unique
+// within the resource group. endpointName is name of the endpoint under the
+// profile which is unique globally. customDomainName is name of the custom
+// domain within an endpoint. customDomainProperties is custom domain
+// properties required for creation.
+func (client CustomDomainsClient) Create(resourceGroupName string, profileName string, endpointName string, customDomainName string, customDomainProperties CustomDomainParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
 		{TargetValue: customDomainProperties,
-			Constraints: []validation.Constraint{{Target: "customDomainProperties.Properties", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "customDomainProperties.Properties.HostName", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "customDomainProperties.CustomDomainPropertiesParameters", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "customDomainProperties.CustomDomainPropertiesParameters.HostName", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "cdn.CustomDomainsClient", "Create")
 	}
 
-	req, err := client.CreatePreparer(customDomainName, customDomainProperties, endpointName, profileName, resourceGroupName, cancel)
+	req, err := client.CreatePreparer(resourceGroupName, profileName, endpointName, customDomainName, customDomainProperties, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Create", nil, "Failure preparing request")
 	}
@@ -82,7 +87,7 @@ func (client CustomDomainsClient) Create(customDomainName string, customDomainPr
 }
 
 // CreatePreparer prepares the Create request.
-func (client CustomDomainsClient) CreatePreparer(customDomainName string, customDomainProperties CustomDomainParameters, endpointName string, profileName string, resourceGroupName string, cancel <-chan struct{}) (*http.Request, error) {
+func (client CustomDomainsClient) CreatePreparer(resourceGroupName string, profileName string, endpointName string, customDomainName string, customDomainProperties CustomDomainParameters, cancel <-chan struct{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"customDomainName":  autorest.Encode("path", customDomainName),
 		"endpointName":      autorest.Encode("path", endpointName),
@@ -125,37 +130,46 @@ func (client CustomDomainsClient) CreateResponder(resp *http.Response) (result a
 	return
 }
 
-// DeleteIfExists sends the delete if exists request. This method may poll for
-// completion. Polling can be canceled by passing the cancel channel
-// argument. The channel will be used to cancel polling and any outstanding
-// HTTP requests.
+// Delete deletes an existing CDN custom domain within an endpoint. This
+// method may poll for completion. Polling can be canceled by passing the
+// cancel channel argument. The channel will be used to cancel polling and
+// any outstanding HTTP requests.
 //
-// customDomainName is name of the custom domain within an endpoint.
-// endpointName is name of the endpoint within the CDN profile. profileName
-// is name of the CDN profile within the resource group. resourceGroupName is
-// name of the resource group within the Azure subscription.
-func (client CustomDomainsClient) DeleteIfExists(customDomainName string, endpointName string, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
-	req, err := client.DeleteIfExistsPreparer(customDomainName, endpointName, profileName, resourceGroupName, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "DeleteIfExists", nil, "Failure preparing request")
+// resourceGroupName is name of the Resource group within the Azure
+// subscription. profileName is name of the CDN profile which is unique
+// within the resource group. endpointName is name of the endpoint under the
+// profile which is unique globally. customDomainName is name of the custom
+// domain within an endpoint.
+func (client CustomDomainsClient) Delete(resourceGroupName string, profileName string, endpointName string, customDomainName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.CustomDomainsClient", "Delete")
 	}
 
-	resp, err := client.DeleteIfExistsSender(req)
+	req, err := client.DeletePreparer(resourceGroupName, profileName, endpointName, customDomainName, cancel)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Delete", nil, "Failure preparing request")
+	}
+
+	resp, err := client.DeleteSender(req)
 	if err != nil {
 		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "DeleteIfExists", resp, "Failure sending request")
+		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Delete", resp, "Failure sending request")
 	}
 
-	result, err = client.DeleteIfExistsResponder(resp)
+	result, err = client.DeleteResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "DeleteIfExists", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Delete", resp, "Failure responding to request")
 	}
 
 	return
 }
 
-// DeleteIfExistsPreparer prepares the DeleteIfExists request.
-func (client CustomDomainsClient) DeleteIfExistsPreparer(customDomainName string, endpointName string, profileName string, resourceGroupName string, cancel <-chan struct{}) (*http.Request, error) {
+// DeletePreparer prepares the Delete request.
+func (client CustomDomainsClient) DeletePreparer(resourceGroupName string, profileName string, endpointName string, customDomainName string, cancel <-chan struct{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"customDomainName":  autorest.Encode("path", customDomainName),
 		"endpointName":      autorest.Encode("path", endpointName),
@@ -176,17 +190,17 @@ func (client CustomDomainsClient) DeleteIfExistsPreparer(customDomainName string
 	return preparer.Prepare(&http.Request{Cancel: cancel})
 }
 
-// DeleteIfExistsSender sends the DeleteIfExists request. The method will close the
+// DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
-func (client CustomDomainsClient) DeleteIfExistsSender(req *http.Request) (*http.Response, error) {
+func (client CustomDomainsClient) DeleteSender(req *http.Request) (*http.Response, error) {
 	return autorest.SendWithSender(client,
 		req,
 		azure.DoPollForAsynchronous(client.PollingDelay))
 }
 
-// DeleteIfExistsResponder handles the response to the DeleteIfExists request. The method always
+// DeleteResponder handles the response to the Delete request. The method always
 // closes the http.Response Body.
-func (client CustomDomainsClient) DeleteIfExistsResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client CustomDomainsClient) DeleteResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -196,14 +210,23 @@ func (client CustomDomainsClient) DeleteIfExistsResponder(resp *http.Response) (
 	return
 }
 
-// Get sends the get request.
+// Get gets an existing CDN custom domain within an endpoint.
 //
-// customDomainName is name of the custom domain within an endpoint.
-// endpointName is name of the endpoint within the CDN profile. profileName
-// is name of the CDN profile within the resource group. resourceGroupName is
-// name of the resource group within the Azure subscription.
-func (client CustomDomainsClient) Get(customDomainName string, endpointName string, profileName string, resourceGroupName string) (result CustomDomain, err error) {
-	req, err := client.GetPreparer(customDomainName, endpointName, profileName, resourceGroupName)
+// resourceGroupName is name of the Resource group within the Azure
+// subscription. profileName is name of the CDN profile which is unique
+// within the resource group. endpointName is name of the endpoint under the
+// profile which is unique globally. customDomainName is name of the custom
+// domain within an endpoint.
+func (client CustomDomainsClient) Get(resourceGroupName string, profileName string, endpointName string, customDomainName string) (result CustomDomain, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.CustomDomainsClient", "Get")
+	}
+
+	req, err := client.GetPreparer(resourceGroupName, profileName, endpointName, customDomainName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Get", nil, "Failure preparing request")
 	}
@@ -223,7 +246,7 @@ func (client CustomDomainsClient) Get(customDomainName string, endpointName stri
 }
 
 // GetPreparer prepares the Get request.
-func (client CustomDomainsClient) GetPreparer(customDomainName string, endpointName string, profileName string, resourceGroupName string) (*http.Request, error) {
+func (client CustomDomainsClient) GetPreparer(resourceGroupName string, profileName string, endpointName string, customDomainName string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"customDomainName":  autorest.Encode("path", customDomainName),
 		"endpointName":      autorest.Encode("path", endpointName),
@@ -263,13 +286,22 @@ func (client CustomDomainsClient) GetResponder(resp *http.Response) (result Cust
 	return
 }
 
-// ListByEndpoint sends the list by endpoint request.
+// ListByEndpoint lists the existing CDN custom domains within an endpoint.
 //
-// endpointName is name of the endpoint within the CDN profile. profileName is
-// name of the CDN profile within the resource group. resourceGroupName is
-// name of the resource group within the Azure subscription.
-func (client CustomDomainsClient) ListByEndpoint(endpointName string, profileName string, resourceGroupName string) (result CustomDomainListResult, err error) {
-	req, err := client.ListByEndpointPreparer(endpointName, profileName, resourceGroupName)
+// resourceGroupName is name of the Resource group within the Azure
+// subscription. profileName is name of the CDN profile which is unique
+// within the resource group. endpointName is name of the endpoint under the
+// profile which is unique globally.
+func (client CustomDomainsClient) ListByEndpoint(resourceGroupName string, profileName string, endpointName string) (result CustomDomainListResult, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.CustomDomainsClient", "ListByEndpoint")
+	}
+
+	req, err := client.ListByEndpointPreparer(resourceGroupName, profileName, endpointName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "ListByEndpoint", nil, "Failure preparing request")
 	}
@@ -289,7 +321,7 @@ func (client CustomDomainsClient) ListByEndpoint(endpointName string, profileNam
 }
 
 // ListByEndpointPreparer prepares the ListByEndpoint request.
-func (client CustomDomainsClient) ListByEndpointPreparer(endpointName string, profileName string, resourceGroupName string) (*http.Request, error) {
+func (client CustomDomainsClient) ListByEndpointPreparer(resourceGroupName string, profileName string, endpointName string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"endpointName":      autorest.Encode("path", endpointName),
 		"profileName":       autorest.Encode("path", profileName),
@@ -328,72 +360,26 @@ func (client CustomDomainsClient) ListByEndpointResponder(resp *http.Response) (
 	return
 }
 
-// Update sends the update request.
-//
-// customDomainName is name of the custom domain within an endpoint.
-// customDomainProperties is custom domain properties to update. endpointName
-// is name of the endpoint within the CDN profile. profileName is name of the
-// CDN profile within the resource group. resourceGroupName is name of the
-// resource group within the Azure subscription.
-func (client CustomDomainsClient) Update(customDomainName string, customDomainProperties CustomDomainParameters, endpointName string, profileName string, resourceGroupName string) (result ErrorResponse, err error) {
-	req, err := client.UpdatePreparer(customDomainName, customDomainProperties, endpointName, profileName, resourceGroupName)
+// ListByEndpointNextResults retrieves the next set of results, if any.
+func (client CustomDomainsClient) ListByEndpointNextResults(lastResults CustomDomainListResult) (result CustomDomainListResult, err error) {
+	req, err := lastResults.CustomDomainListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Update", nil, "Failure preparing request")
+		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "ListByEndpoint", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
 	}
 
-	resp, err := client.UpdateSender(req)
+	resp, err := client.ListByEndpointSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Update", resp, "Failure sending request")
+		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "ListByEndpoint", resp, "Failure sending next results request")
 	}
 
-	result, err = client.UpdateResponder(resp)
+	result, err = client.ListByEndpointResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Update", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "ListByEndpoint", resp, "Failure responding to next results request")
 	}
 
-	return
-}
-
-// UpdatePreparer prepares the Update request.
-func (client CustomDomainsClient) UpdatePreparer(customDomainName string, customDomainProperties CustomDomainParameters, endpointName string, profileName string, resourceGroupName string) (*http.Request, error) {
-	pathParameters := map[string]interface{}{
-		"customDomainName":  autorest.Encode("path", customDomainName),
-		"endpointName":      autorest.Encode("path", endpointName),
-		"profileName":       autorest.Encode("path", profileName),
-		"resourceGroupName": autorest.Encode("path", resourceGroupName),
-		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
-	}
-
-	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
-		autorest.AsPatch(),
-		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Cdn/profiles/{profileName}/endpoints/{endpointName}/customDomains/{customDomainName}", pathParameters),
-		autorest.WithJSON(customDomainProperties),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare(&http.Request{})
-}
-
-// UpdateSender sends the Update request. The method will close the
-// http.Response Body if it receives an error.
-func (client CustomDomainsClient) UpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req)
-}
-
-// UpdateResponder handles the response to the Update request. The method always
-// closes the http.Response Body.
-func (client CustomDomainsClient) UpdateResponder(resp *http.Response) (result ErrorResponse, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
 	return
 }

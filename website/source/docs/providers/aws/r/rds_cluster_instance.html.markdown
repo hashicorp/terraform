@@ -53,6 +53,7 @@ string. If omitted, a unique identifier will be generated.
 * `instance_class` - (Required) The instance class to use. For details on CPU
 and memory, see [Scaling Aurora DB Instances][4]. Aurora currently
   supports the below instance classes.
+  - db.t2.medium
   - db.r3.large
   - db.r3.xlarge
   - db.r3.2xlarge

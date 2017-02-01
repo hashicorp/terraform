@@ -27,6 +27,9 @@ func Unquote(s string) (t string, err error) {
 	if quote != '"' {
 		return "", ErrSyntax
 	}
+	if !contains(s, '$') && !contains(s, '{') && contains(s, '\n') {
+		return "", ErrSyntax
+	}
 
 	// Is it trivial?  Avoid allocation.
 	if !contains(s, '\\') && !contains(s, quote) && !contains(s, '$') {
@@ -82,6 +85,10 @@ func Unquote(s string) (t string, err error) {
 				// in case there's another interpolation in this string.
 				continue
 			}
+		}
+
+		if s[0] == '\n' {
+			return "", ErrSyntax
 		}
 
 		c, multibyte, ss, err := unquoteChar(s, quote)

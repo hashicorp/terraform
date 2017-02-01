@@ -13,11 +13,10 @@ type Config struct {
 }
 
 // Client returns a new Datadog client.
-func (c *Config) Client() (*datadog.Client, error) {
+func (c *Config) Client() *datadog.Client {
 
 	client := datadog.NewClient(c.APIKey, c.APPKey)
-
 	log.Printf("[INFO] Datadog Client configured ")
 
-	return client, nil
+	return client
 }

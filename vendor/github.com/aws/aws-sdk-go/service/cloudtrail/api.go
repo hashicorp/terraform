@@ -37,6 +37,7 @@ const opAddTags = "AddTags"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/AddTags
 func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, output *AddTagsOutput) {
 	op := &request.Operation{
 		Name:       opAddTags,
@@ -48,15 +49,14 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 		input = &AddTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
 // AddTags API operation for AWS CloudTrail.
 //
-// Adds one or more tags to a trail, up to a limit of 10. Tags must be unique
+// Adds one or more tags to a trail, up to a limit of 50. Tags must be unique
 // per trail. Overwrites an existing tag's value when a new value is specified
 // for an existing tag key. If you specify a key without a value, the tag will
 // be created with the specified key and a value of null. You can tag a trail
@@ -86,7 +86,7 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 //
 //   * TagsLimitExceededException
 //   The number of tags per trail has exceeded the permitted amount. Currently,
-//   the limit is 10.
+//   the limit is 50.
 //
 //   * InvalidTrailNameException
 //   This exception is thrown when the provided trail name is not valid. Trail
@@ -114,6 +114,7 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 //   * OperationNotPermittedException
 //   This exception is thrown when the requested operation is not permitted.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/AddTags
 func (c *CloudTrail) AddTags(input *AddTagsInput) (*AddTagsOutput, error) {
 	req, out := c.AddTagsRequest(input)
 	err := req.Send()
@@ -146,6 +147,7 @@ const opCreateTrail = "CreateTrail"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/CreateTrail
 func (c *CloudTrail) CreateTrailRequest(input *CreateTrailInput) (req *request.Request, output *CreateTrailOutput) {
 	op := &request.Operation{
 		Name:       opCreateTrail,
@@ -157,9 +159,8 @@ func (c *CloudTrail) CreateTrailRequest(input *CreateTrailInput) (req *request.R
 		input = &CreateTrailInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateTrailOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -257,6 +258,7 @@ func (c *CloudTrail) CreateTrailRequest(input *CreateTrailInput) (req *request.R
 //   * OperationNotPermittedException
 //   This exception is thrown when the requested operation is not permitted.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/CreateTrail
 func (c *CloudTrail) CreateTrail(input *CreateTrailInput) (*CreateTrailOutput, error) {
 	req, out := c.CreateTrailRequest(input)
 	err := req.Send()
@@ -289,6 +291,7 @@ const opDeleteTrail = "DeleteTrail"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/DeleteTrail
 func (c *CloudTrail) DeleteTrailRequest(input *DeleteTrailInput) (req *request.Request, output *DeleteTrailOutput) {
 	op := &request.Operation{
 		Name:       opDeleteTrail,
@@ -300,9 +303,8 @@ func (c *CloudTrail) DeleteTrailRequest(input *DeleteTrailInput) (req *request.R
 		input = &DeleteTrailInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteTrailOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -343,6 +345,7 @@ func (c *CloudTrail) DeleteTrailRequest(input *DeleteTrailInput) (req *request.R
 //   This exception is thrown when an operation is called on a trail from a region
 //   other than the region in which the trail was created.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/DeleteTrail
 func (c *CloudTrail) DeleteTrail(input *DeleteTrailInput) (*DeleteTrailOutput, error) {
 	req, out := c.DeleteTrailRequest(input)
 	err := req.Send()
@@ -375,6 +378,7 @@ const opDescribeTrails = "DescribeTrails"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/DescribeTrails
 func (c *CloudTrail) DescribeTrailsRequest(input *DescribeTrailsInput) (req *request.Request, output *DescribeTrailsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTrails,
@@ -386,9 +390,8 @@ func (c *CloudTrail) DescribeTrailsRequest(input *DescribeTrailsInput) (req *req
 		input = &DescribeTrailsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTrailsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -411,8 +414,107 @@ func (c *CloudTrail) DescribeTrailsRequest(input *DescribeTrailsInput) (req *req
 //   * OperationNotPermittedException
 //   This exception is thrown when the requested operation is not permitted.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/DescribeTrails
 func (c *CloudTrail) DescribeTrails(input *DescribeTrailsInput) (*DescribeTrailsOutput, error) {
 	req, out := c.DescribeTrailsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetEventSelectors = "GetEventSelectors"
+
+// GetEventSelectorsRequest generates a "aws/request.Request" representing the
+// client's request for the GetEventSelectors operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetEventSelectors for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetEventSelectors method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetEventSelectorsRequest method.
+//    req, resp := client.GetEventSelectorsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/GetEventSelectors
+func (c *CloudTrail) GetEventSelectorsRequest(input *GetEventSelectorsInput) (req *request.Request, output *GetEventSelectorsOutput) {
+	op := &request.Operation{
+		Name:       opGetEventSelectors,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetEventSelectorsInput{}
+	}
+
+	output = &GetEventSelectorsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetEventSelectors API operation for AWS CloudTrail.
+//
+// Describes the settings for the event selectors that you configured for your
+// trail. The information returned for your event selectors includes the following:
+//
+//    * The S3 objects that you are logging for data events.
+//
+//    * If your event selector includes management events.
+//
+//    * If your event selector includes read-only events, write-only events,
+//    or all.
+//
+// For more information, see Configuring Event Selectors for Trails (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/create-event-selectors-for-a-trail.html)
+// in the AWS CloudTrail User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation GetEventSelectors for usage and error information.
+//
+// Returned Error Codes:
+//   * TrailNotFoundException
+//   This exception is thrown when the trail with the given name is not found.
+//
+//   * InvalidTrailNameException
+//   This exception is thrown when the provided trail name is not valid. Trail
+//   names must meet the following requirements:
+//
+//      * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//      (_), or dashes (-)
+//
+//      * Start with a letter or number, and end with a letter or number
+//
+//      * Be between 3 and 128 characters
+//
+//      * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//      and my--namespace are invalid.
+//
+//      * Not be in IP address format (for example, 192.168.5.4)
+//
+//   * UnsupportedOperationException
+//   This exception is thrown when the requested operation is not supported.
+//
+//   * OperationNotPermittedException
+//   This exception is thrown when the requested operation is not permitted.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/GetEventSelectors
+func (c *CloudTrail) GetEventSelectors(input *GetEventSelectorsInput) (*GetEventSelectorsOutput, error) {
+	req, out := c.GetEventSelectorsRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -443,6 +545,7 @@ const opGetTrailStatus = "GetTrailStatus"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/GetTrailStatus
 func (c *CloudTrail) GetTrailStatusRequest(input *GetTrailStatusInput) (req *request.Request, output *GetTrailStatusOutput) {
 	op := &request.Operation{
 		Name:       opGetTrailStatus,
@@ -454,9 +557,8 @@ func (c *CloudTrail) GetTrailStatusRequest(input *GetTrailStatusInput) (req *req
 		input = &GetTrailStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetTrailStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -495,6 +597,7 @@ func (c *CloudTrail) GetTrailStatusRequest(input *GetTrailStatusInput) (req *req
 //
 //      * Not be in IP address format (for example, 192.168.5.4)
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/GetTrailStatus
 func (c *CloudTrail) GetTrailStatus(input *GetTrailStatusInput) (*GetTrailStatusOutput, error) {
 	req, out := c.GetTrailStatusRequest(input)
 	err := req.Send()
@@ -527,6 +630,7 @@ const opListPublicKeys = "ListPublicKeys"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/ListPublicKeys
 func (c *CloudTrail) ListPublicKeysRequest(input *ListPublicKeysInput) (req *request.Request, output *ListPublicKeysOutput) {
 	op := &request.Operation{
 		Name:       opListPublicKeys,
@@ -538,9 +642,8 @@ func (c *CloudTrail) ListPublicKeysRequest(input *ListPublicKeysInput) (req *req
 		input = &ListPublicKeysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListPublicKeysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -576,6 +679,7 @@ func (c *CloudTrail) ListPublicKeysRequest(input *ListPublicKeysInput) (req *req
 //   * InvalidTokenException
 //   Reserved for future use.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/ListPublicKeys
 func (c *CloudTrail) ListPublicKeys(input *ListPublicKeysInput) (*ListPublicKeysOutput, error) {
 	req, out := c.ListPublicKeysRequest(input)
 	err := req.Send()
@@ -608,6 +712,7 @@ const opListTags = "ListTags"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/ListTags
 func (c *CloudTrail) ListTagsRequest(input *ListTagsInput) (req *request.Request, output *ListTagsOutput) {
 	op := &request.Operation{
 		Name:       opListTags,
@@ -619,9 +724,8 @@ func (c *CloudTrail) ListTagsRequest(input *ListTagsInput) (req *request.Request
 		input = &ListTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -675,6 +779,7 @@ func (c *CloudTrail) ListTagsRequest(input *ListTagsInput) (req *request.Request
 //   * InvalidTokenException
 //   Reserved for future use.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/ListTags
 func (c *CloudTrail) ListTags(input *ListTagsInput) (*ListTagsOutput, error) {
 	req, out := c.ListTagsRequest(input)
 	err := req.Send()
@@ -707,20 +812,26 @@ const opLookupEvents = "LookupEvents"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/LookupEvents
 func (c *CloudTrail) LookupEventsRequest(input *LookupEventsInput) (req *request.Request, output *LookupEventsOutput) {
 	op := &request.Operation{
 		Name:       opLookupEvents,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
 		input = &LookupEventsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &LookupEventsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -729,13 +840,21 @@ func (c *CloudTrail) LookupEventsRequest(input *LookupEventsInput) (req *request
 // Looks up API activity events captured by CloudTrail that create, update,
 // or delete resources in your account. Events for a region can be looked up
 // for the times in which you had CloudTrail turned on in that region during
-// the last seven days. Lookup supports five different attributes: time range
-// (defined by a start time and end time), user name, event name, resource type,
-// and resource name. All attributes are optional. The maximum number of attributes
-// that can be specified in any one lookup request are time range and one other
-// attribute. The default number of results returned is 10, with a maximum of
-// 50 possible. The response includes a token that you can use to get the next
-// page of results.
+// the last seven days. Lookup supports the following attributes:
+//
+//    * Event ID
+//
+//    * Event name
+//
+//    * Resource name
+//
+//    * Resource type
+//
+//    * User name
+//
+// All attributes are optional. The default number of results returned is 10,
+// with a maximum of 50 possible. The response includes a token that you can
+// use to get the next page of results.
 //
 // The rate of lookup requests is limited to one per second per account. If
 // this limit is exceeded, a throttling error occurs.
@@ -765,8 +884,164 @@ func (c *CloudTrail) LookupEventsRequest(input *LookupEventsInput) (req *request
 //   Invalid token or token that was previously used in a request with different
 //   parameters. This exception is thrown if the token is invalid.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/LookupEvents
 func (c *CloudTrail) LookupEvents(input *LookupEventsInput) (*LookupEventsOutput, error) {
 	req, out := c.LookupEventsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+// LookupEventsPages iterates over the pages of a LookupEvents operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See LookupEvents method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a LookupEvents operation.
+//    pageNum := 0
+//    err := client.LookupEventsPages(params,
+//        func(page *LookupEventsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *CloudTrail) LookupEventsPages(input *LookupEventsInput, fn func(p *LookupEventsOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.LookupEventsRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*LookupEventsOutput), lastPage)
+	})
+}
+
+const opPutEventSelectors = "PutEventSelectors"
+
+// PutEventSelectorsRequest generates a "aws/request.Request" representing the
+// client's request for the PutEventSelectors operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See PutEventSelectors for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutEventSelectors method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutEventSelectorsRequest method.
+//    req, resp := client.PutEventSelectorsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/PutEventSelectors
+func (c *CloudTrail) PutEventSelectorsRequest(input *PutEventSelectorsInput) (req *request.Request, output *PutEventSelectorsOutput) {
+	op := &request.Operation{
+		Name:       opPutEventSelectors,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutEventSelectorsInput{}
+	}
+
+	output = &PutEventSelectorsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutEventSelectors API operation for AWS CloudTrail.
+//
+// Configures an event selector for your trail. Use event selectors to specify
+// the type of events that you want your trail to log. When an event occurs
+// in your account, CloudTrail evaluates the event selectors in all trails.
+// For each trail, if the event matches any event selector, the trail processes
+// and logs the event. If the event doesn't match any event selector, the trail
+// doesn't log the event.
+//
+// Example
+//
+// You create an event selector for a trail and specify that you want write-only
+// events.
+//
+// The EC2 GetConsoleOutput and RunInstances API operations occur in your account.
+//
+// CloudTrail evaluates whether the events match your event selectors.
+//
+// The RunInstances is a write-only event and it matches your event selector.
+// The trail logs the event.
+//
+// The GetConsoleOutput is a read-only event but it doesn't match your event
+// selector. The trail doesn't log the event.
+//
+// The PutEventSelectors operation must be called from the region in which the
+// trail was created; otherwise, an InvalidHomeRegionException is thrown.
+//
+// You can configure up to five event selectors for each trail. For more information,
+// see Configuring Event Selectors for Trails (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/create-event-selectors-for-a-trail.html)
+// in the AWS CloudTrail User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation PutEventSelectors for usage and error information.
+//
+// Returned Error Codes:
+//   * TrailNotFoundException
+//   This exception is thrown when the trail with the given name is not found.
+//
+//   * InvalidTrailNameException
+//   This exception is thrown when the provided trail name is not valid. Trail
+//   names must meet the following requirements:
+//
+//      * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//      (_), or dashes (-)
+//
+//      * Start with a letter or number, and end with a letter or number
+//
+//      * Be between 3 and 128 characters
+//
+//      * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//      and my--namespace are invalid.
+//
+//      * Not be in IP address format (for example, 192.168.5.4)
+//
+//   * InvalidHomeRegionException
+//   This exception is thrown when an operation is called on a trail from a region
+//   other than the region in which the trail was created.
+//
+//   * InvalidEventSelectorsException
+//   This exception is thrown when the PutEventSelectors operation is called with
+//   an invalid number of event selectors, data resources, or an invalid value
+//   for a parameter:
+//
+//      * Specify a valid number of event selectors (1 to 5) for a trail.
+//
+//      * Specify a valid number of data resources (1 to 50) for an event selector.
+//
+//      * Specify a valid value for a parameter. For example, specifying the ReadWriteType
+//      parameter with a value of read-only is invalid.
+//
+//   * UnsupportedOperationException
+//   This exception is thrown when the requested operation is not supported.
+//
+//   * OperationNotPermittedException
+//   This exception is thrown when the requested operation is not permitted.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/PutEventSelectors
+func (c *CloudTrail) PutEventSelectors(input *PutEventSelectorsInput) (*PutEventSelectorsOutput, error) {
+	req, out := c.PutEventSelectorsRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -797,6 +1072,7 @@ const opRemoveTags = "RemoveTags"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/RemoveTags
 func (c *CloudTrail) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Request, output *RemoveTagsOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTags,
@@ -808,9 +1084,8 @@ func (c *CloudTrail) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Req
 		input = &RemoveTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RemoveTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -865,6 +1140,7 @@ func (c *CloudTrail) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Req
 //   * OperationNotPermittedException
 //   This exception is thrown when the requested operation is not permitted.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/RemoveTags
 func (c *CloudTrail) RemoveTags(input *RemoveTagsInput) (*RemoveTagsOutput, error) {
 	req, out := c.RemoveTagsRequest(input)
 	err := req.Send()
@@ -897,6 +1173,7 @@ const opStartLogging = "StartLogging"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/StartLogging
 func (c *CloudTrail) StartLoggingRequest(input *StartLoggingInput) (req *request.Request, output *StartLoggingOutput) {
 	op := &request.Operation{
 		Name:       opStartLogging,
@@ -908,9 +1185,8 @@ func (c *CloudTrail) StartLoggingRequest(input *StartLoggingInput) (req *request
 		input = &StartLoggingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StartLoggingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -953,6 +1229,7 @@ func (c *CloudTrail) StartLoggingRequest(input *StartLoggingInput) (req *request
 //   This exception is thrown when an operation is called on a trail from a region
 //   other than the region in which the trail was created.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/StartLogging
 func (c *CloudTrail) StartLogging(input *StartLoggingInput) (*StartLoggingOutput, error) {
 	req, out := c.StartLoggingRequest(input)
 	err := req.Send()
@@ -985,6 +1262,7 @@ const opStopLogging = "StopLogging"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/StopLogging
 func (c *CloudTrail) StopLoggingRequest(input *StopLoggingInput) (req *request.Request, output *StopLoggingOutput) {
 	op := &request.Operation{
 		Name:       opStopLogging,
@@ -996,9 +1274,8 @@ func (c *CloudTrail) StopLoggingRequest(input *StopLoggingInput) (req *request.R
 		input = &StopLoggingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StopLoggingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1043,6 +1320,7 @@ func (c *CloudTrail) StopLoggingRequest(input *StopLoggingInput) (req *request.R
 //   This exception is thrown when an operation is called on a trail from a region
 //   other than the region in which the trail was created.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/StopLogging
 func (c *CloudTrail) StopLogging(input *StopLoggingInput) (*StopLoggingOutput, error) {
 	req, out := c.StopLoggingRequest(input)
 	err := req.Send()
@@ -1075,6 +1353,7 @@ const opUpdateTrail = "UpdateTrail"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/UpdateTrail
 func (c *CloudTrail) UpdateTrailRequest(input *UpdateTrailInput) (req *request.Request, output *UpdateTrailOutput) {
 	op := &request.Operation{
 		Name:       opUpdateTrail,
@@ -1086,9 +1365,8 @@ func (c *CloudTrail) UpdateTrailRequest(input *UpdateTrailInput) (req *request.R
 		input = &UpdateTrailInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateTrailOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1190,6 +1468,7 @@ func (c *CloudTrail) UpdateTrailRequest(input *UpdateTrailInput) (req *request.R
 //   * OperationNotPermittedException
 //   This exception is thrown when the requested operation is not permitted.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/UpdateTrail
 func (c *CloudTrail) UpdateTrail(input *UpdateTrailInput) (*UpdateTrailOutput, error) {
 	req, out := c.UpdateTrailRequest(input)
 	err := req.Send()
@@ -1197,6 +1476,7 @@ func (c *CloudTrail) UpdateTrail(input *UpdateTrailInput) (*UpdateTrailOutput, e
 }
 
 // Specifies the tags to add to a trail.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/AddTagsRequest
 type AddTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1208,7 +1488,7 @@ type AddTagsInput struct {
 	// ResourceId is a required field
 	ResourceId *string `type:"string" required:"true"`
 
-	// Contains a list of CloudTrail tags, up to a limit of 10.
+	// Contains a list of CloudTrail tags, up to a limit of 50
 	TagsList []*Tag `type:"list"`
 }
 
@@ -1259,6 +1539,7 @@ func (s *AddTagsInput) SetTagsList(v []*Tag) *AddTagsInput {
 
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/AddTagsResponse
 type AddTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1274,6 +1555,7 @@ func (s AddTagsOutput) GoString() string {
 }
 
 // Specifies the settings for each trail.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/CreateTrailRequest
 type CreateTrailInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1444,6 +1726,7 @@ func (s *CreateTrailInput) SetSnsTopicName(v string) *CreateTrailInput {
 
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/CreateTrailResponse
 type CreateTrailOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1581,14 +1864,74 @@ func (s *CreateTrailOutput) SetTrailARN(v string) *CreateTrailOutput {
 	return s
 }
 
+// The Amazon S3 objects that you specify in your event selectors for your trail
+// to log data events. Data events are object level API operations that access
+// S3 objects, such as GetObject, DeleteObject, and PutObject. You can specify
+// up to 50 S3 buckets and object prefixes for an event selector.
+//
+// Example
+//
+// You create an event selector for a trail and specify an S3 bucket and an
+// empty prefix, such as arn:aws:s3:::bucket-1/.
+//
+// You upload an image file to bucket-1.
+//
+// The PutObject API operation occurs on an object in the S3 bucket that you
+// specified in the event selector. The trail processes and logs the event.
+//
+// You upload another image file to a different S3 bucket named arn:aws:s3:::bucket-2.
+//
+// The event occurs on an object in an S3 bucket that you didn't specify in
+// the event selector. The trail doesn’t log the event.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/DataResource
+type DataResource struct {
+	_ struct{} `type:"structure"`
+
+	// The resource type in which you want to log data events. You can specify only
+	// the following value: AWS::S3::Object.
+	Type *string `type:"string"`
+
+	// A list of ARN-like strings for the specified S3 objects.
+	//
+	// To log data events for all objects in an S3 bucket, specify the bucket and
+	// an empty object prefix such as arn:aws:s3:::bucket-1/. The trail logs data
+	// events for all objects in this S3 bucket.
+	//
+	// To log data events for specific objects, specify the S3 bucket and object
+	// prefix such as arn:aws:s3:::bucket-1/example-images. The trail logs data
+	// events for objects in this S3 bucket that match the prefix.
+	Values []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s DataResource) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DataResource) GoString() string {
+	return s.String()
+}
+
+// SetType sets the Type field's value.
+func (s *DataResource) SetType(v string) *DataResource {
+	s.Type = &v
+	return s
+}
+
+// SetValues sets the Values field's value.
+func (s *DataResource) SetValues(v []*string) *DataResource {
+	s.Values = v
+	return s
+}
+
 // The request that specifies the name of a trail to delete.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/DeleteTrailRequest
 type DeleteTrailInput struct {
 	_ struct{} `type:"structure"`
 
 	// Specifies the name or the CloudTrail ARN of the trail to be deleted. The
-	// format of a trail ARN is:
-	//
-	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// format of a trail ARN is: arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -1625,6 +1968,7 @@ func (s *DeleteTrailInput) SetName(v string) *DeleteTrailInput {
 
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/DeleteTrailResponse
 type DeleteTrailOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1640,6 +1984,7 @@ func (s DeleteTrailOutput) GoString() string {
 }
 
 // Returns information about the trail.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/DescribeTrailsRequest
 type DescribeTrailsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1694,6 +2039,7 @@ func (s *DescribeTrailsInput) SetTrailNameList(v []*string) *DescribeTrailsInput
 
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/DescribeTrailsResponse
 type DescribeTrailsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1719,6 +2065,7 @@ func (s *DescribeTrailsOutput) SetTrailList(v []*Trail) *DescribeTrailsOutput {
 
 // Contains information about an event that was returned by a lookup request.
 // The result includes a representation of a CloudTrail event.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/Event
 type Event struct {
 	_ struct{} `type:"structure"`
 
@@ -1730,6 +2077,9 @@ type Event struct {
 
 	// The name of the event returned.
 	EventName *string `type:"string"`
+
+	// The AWS service that the request was made to.
+	EventSource *string `type:"string"`
 
 	// The date and time of the event returned.
 	EventTime *time.Time `type:"timestamp" timestampFormat:"unix"`
@@ -1770,6 +2120,12 @@ func (s *Event) SetEventName(v string) *Event {
 	return s
 }
 
+// SetEventSource sets the EventSource field's value.
+func (s *Event) SetEventSource(v string) *Event {
+	s.EventSource = &v
+	return s
+}
+
 // SetEventTime sets the EventTime field's value.
 func (s *Event) SetEventTime(v time.Time) *Event {
 	s.EventTime = &v
@@ -1788,7 +2144,145 @@ func (s *Event) SetUsername(v string) *Event {
 	return s
 }
 
+// Use event selectors to specify the types of events that you want your trail
+// to log. When an event occurs in your account, CloudTrail evaluates the event
+// selector for all trails. For each trail, if the event matches any event selector,
+// the trail processes and logs the event. If the event doesn't match any event
+// selector, the trail doesn't log the event.
+//
+// You can configure up to five event selectors for a trail.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/EventSelector
+type EventSelector struct {
+	_ struct{} `type:"structure"`
+
+	// CloudTrail supports logging only data events for S3 objects. You can specify
+	// up to 50 S3 buckets and object prefixes for an event selector.
+	//
+	// For more information, see Data Events (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/create-event-selectors-for-a-trail.html#data-events-resources)
+	// in the AWS CloudTrail User Guide.
+	DataResources []*DataResource `type:"list"`
+
+	// Specify if you want your event selector to include management events for
+	// your trail.
+	//
+	// For more information, see Management Events (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/create-event-selectors-for-a-trail.html#event-selector-for-management-events)
+	// in the AWS CloudTrail User Guide.
+	//
+	// By default, the value is true.
+	IncludeManagementEvents *bool `type:"boolean"`
+
+	// Specify if you want your trail to log read-only events, write-only events,
+	// or all. For example, the EC2 GetConsoleOutput is a read-only API operation
+	// and RunInstances is a write-only API operation.
+	//
+	// By default, the value is All.
+	ReadWriteType *string `type:"string" enum:"ReadWriteType"`
+}
+
+// String returns the string representation
+func (s EventSelector) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EventSelector) GoString() string {
+	return s.String()
+}
+
+// SetDataResources sets the DataResources field's value.
+func (s *EventSelector) SetDataResources(v []*DataResource) *EventSelector {
+	s.DataResources = v
+	return s
+}
+
+// SetIncludeManagementEvents sets the IncludeManagementEvents field's value.
+func (s *EventSelector) SetIncludeManagementEvents(v bool) *EventSelector {
+	s.IncludeManagementEvents = &v
+	return s
+}
+
+// SetReadWriteType sets the ReadWriteType field's value.
+func (s *EventSelector) SetReadWriteType(v string) *EventSelector {
+	s.ReadWriteType = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/GetEventSelectorsRequest
+type GetEventSelectorsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the name of the trail or trail ARN. If you specify a trail name,
+	// the string must meet the following requirements:
+	//
+	//    * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+	//    (_), or dashes (-)
+	//
+	//    * Start with a letter or number, and end with a letter or number
+	//
+	//    * Be between 3 and 128 characters
+	//
+	//    * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+	//    and my--namespace are invalid.
+	//
+	//    * Not be in IP address format (for example, 192.168.5.4)
+	//
+	// If you specify a trail ARN, it must be in the format:
+	//
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	TrailName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetEventSelectorsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetEventSelectorsInput) GoString() string {
+	return s.String()
+}
+
+// SetTrailName sets the TrailName field's value.
+func (s *GetEventSelectorsInput) SetTrailName(v string) *GetEventSelectorsInput {
+	s.TrailName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/GetEventSelectorsResponse
+type GetEventSelectorsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The event selectors that are configured for the trail.
+	EventSelectors []*EventSelector `type:"list"`
+
+	// The specified trail ARN that has the event selectors.
+	TrailARN *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetEventSelectorsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetEventSelectorsOutput) GoString() string {
+	return s.String()
+}
+
+// SetEventSelectors sets the EventSelectors field's value.
+func (s *GetEventSelectorsOutput) SetEventSelectors(v []*EventSelector) *GetEventSelectorsOutput {
+	s.EventSelectors = v
+	return s
+}
+
+// SetTrailARN sets the TrailARN field's value.
+func (s *GetEventSelectorsOutput) SetTrailARN(v string) *GetEventSelectorsOutput {
+	s.TrailARN = &v
+	return s
+}
+
 // The name of a trail about which you want the current status.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/GetTrailStatusRequest
 type GetTrailStatusInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1833,6 +2327,7 @@ func (s *GetTrailStatusInput) SetName(v string) *GetTrailStatusInput {
 
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/GetTrailStatusResponse
 type GetTrailStatusOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2026,6 +2521,7 @@ func (s *GetTrailStatusOutput) SetTimeLoggingStopped(v string) *GetTrailStatusOu
 }
 
 // Requests the public keys for a specified time range.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/ListPublicKeysRequest
 type ListPublicKeysInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2072,6 +2568,7 @@ func (s *ListPublicKeysInput) SetStartTime(v time.Time) *ListPublicKeysInput {
 
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/ListPublicKeysResponse
 type ListPublicKeysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2107,6 +2604,7 @@ func (s *ListPublicKeysOutput) SetPublicKeyList(v []*PublicKey) *ListPublicKeysO
 }
 
 // Specifies a list of trail tags to return.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/ListTagsRequest
 type ListTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2159,6 +2657,7 @@ func (s *ListTagsInput) SetResourceIdList(v []*string) *ListTagsInput {
 
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/ListTagsResponse
 type ListTagsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2192,6 +2691,7 @@ func (s *ListTagsOutput) SetResourceTagList(v []*ResourceTag) *ListTagsOutput {
 }
 
 // Specifies an attribute and value that filter the events returned.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/LookupAttribute
 type LookupAttribute struct {
 	_ struct{} `type:"structure"`
 
@@ -2245,6 +2745,7 @@ func (s *LookupAttribute) SetAttributeValue(v string) *LookupAttribute {
 }
 
 // Contains a request for LookupEvents.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/LookupEventsRequest
 type LookupEventsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2338,6 +2839,7 @@ func (s *LookupEventsInput) SetStartTime(v time.Time) *LookupEventsInput {
 }
 
 // Contains a response to a LookupEvents action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/LookupEventsResponse
 type LookupEventsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2377,6 +2879,7 @@ func (s *LookupEventsOutput) SetNextToken(v string) *LookupEventsOutput {
 }
 
 // Contains information about a returned public key.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/PublicKey
 type PublicKey struct {
 	_ struct{} `type:"structure"`
 
@@ -2429,7 +2932,95 @@ func (s *PublicKey) SetValue(v []byte) *PublicKey {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/PutEventSelectorsRequest
+type PutEventSelectorsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the settings for your event selectors. You can configure up to
+	// five event selectors for a trail.
+	EventSelectors []*EventSelector `type:"list"`
+
+	// Specifies the name of the trail or trail ARN. If you specify a trail name,
+	// the string must meet the following requirements:
+	//
+	//    * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+	//    (_), or dashes (-)
+	//
+	//    * Start with a letter or number, and end with a letter or number
+	//
+	//    * Be between 3 and 128 characters
+	//
+	//    * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+	//    and my--namespace are invalid.
+	//
+	//    * Not be in IP address format (for example, 192.168.5.4)
+	//
+	// If you specify a trail ARN, it must be in the format:
+	//
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	TrailName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s PutEventSelectorsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutEventSelectorsInput) GoString() string {
+	return s.String()
+}
+
+// SetEventSelectors sets the EventSelectors field's value.
+func (s *PutEventSelectorsInput) SetEventSelectors(v []*EventSelector) *PutEventSelectorsInput {
+	s.EventSelectors = v
+	return s
+}
+
+// SetTrailName sets the TrailName field's value.
+func (s *PutEventSelectorsInput) SetTrailName(v string) *PutEventSelectorsInput {
+	s.TrailName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/PutEventSelectorsResponse
+type PutEventSelectorsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the event selectors configured for your trail.
+	EventSelectors []*EventSelector `type:"list"`
+
+	// Specifies the ARN of the trail that was updated with event selectors. The
+	// format of a trail ARN is:
+	//
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	TrailARN *string `type:"string"`
+}
+
+// String returns the string representation
+func (s PutEventSelectorsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutEventSelectorsOutput) GoString() string {
+	return s.String()
+}
+
+// SetEventSelectors sets the EventSelectors field's value.
+func (s *PutEventSelectorsOutput) SetEventSelectors(v []*EventSelector) *PutEventSelectorsOutput {
+	s.EventSelectors = v
+	return s
+}
+
+// SetTrailARN sets the TrailARN field's value.
+func (s *PutEventSelectorsOutput) SetTrailARN(v string) *PutEventSelectorsOutput {
+	s.TrailARN = &v
+	return s
+}
+
 // Specifies the tags to remove from a trail.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/RemoveTagsRequest
 type RemoveTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2492,6 +3083,7 @@ func (s *RemoveTagsInput) SetTagsList(v []*Tag) *RemoveTagsInput {
 
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/RemoveTagsResponse
 type RemoveTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2507,6 +3099,7 @@ func (s RemoveTagsOutput) GoString() string {
 }
 
 // Specifies the type and name of a resource referenced by an event.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/Resource
 type Resource struct {
 	_ struct{} `type:"structure"`
 
@@ -2547,6 +3140,7 @@ func (s *Resource) SetResourceType(v string) *Resource {
 }
 
 // A resource tag.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/ResourceTag
 type ResourceTag struct {
 	_ struct{} `type:"structure"`
 
@@ -2580,6 +3174,7 @@ func (s *ResourceTag) SetTagsList(v []*Tag) *ResourceTag {
 }
 
 // The request to CloudTrail to start logging AWS API calls for an account.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/StartLoggingRequest
 type StartLoggingInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2623,6 +3218,7 @@ func (s *StartLoggingInput) SetName(v string) *StartLoggingInput {
 
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/StartLoggingResponse
 type StartLoggingOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2639,6 +3235,7 @@ func (s StartLoggingOutput) GoString() string {
 
 // Passes the request to CloudTrail to stop logging AWS API calls for the specified
 // account.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/StopLoggingRequest
 type StopLoggingInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2682,6 +3279,7 @@ func (s *StopLoggingInput) SetName(v string) *StopLoggingInput {
 
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/StopLoggingResponse
 type StopLoggingOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2697,6 +3295,7 @@ func (s StopLoggingOutput) GoString() string {
 }
 
 // A custom key-value pair associated with a resource such as a CloudTrail trail.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/Tag
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -2747,6 +3346,7 @@ func (s *Tag) SetValue(v string) *Tag {
 }
 
 // The settings for a trail.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/Trail
 type Trail struct {
 	_ struct{} `type:"structure"`
 
@@ -2757,6 +3357,9 @@ type Trail struct {
 	// Specifies the role for the CloudWatch Logs endpoint to assume to write to
 	// a user's log group.
 	CloudWatchLogsRoleArn *string `type:"string"`
+
+	// Specifies if the trail has custom event selectors.
+	HasCustomEventSelectors *bool `type:"boolean"`
 
 	// The region in which the trail was created.
 	HomeRegion *string `type:"string"`
@@ -2827,6 +3430,12 @@ func (s *Trail) SetCloudWatchLogsRoleArn(v string) *Trail {
 	return s
 }
 
+// SetHasCustomEventSelectors sets the HasCustomEventSelectors field's value.
+func (s *Trail) SetHasCustomEventSelectors(v bool) *Trail {
+	s.HasCustomEventSelectors = &v
+	return s
+}
+
 // SetHomeRegion sets the HomeRegion field's value.
 func (s *Trail) SetHomeRegion(v string) *Trail {
 	s.HomeRegion = &v
@@ -2894,6 +3503,7 @@ func (s *Trail) SetTrailARN(v string) *Trail {
 }
 
 // Specifies settings to update for the trail.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/UpdateTrailRequest
 type UpdateTrailInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3067,6 +3677,7 @@ func (s *UpdateTrailInput) SetSnsTopicName(v string) *UpdateTrailInput {
 
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/UpdateTrailResponse
 type UpdateTrailOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3219,4 +3830,18 @@ const (
 
 	// LookupAttributeKeyResourceName is a LookupAttributeKey enum value
 	LookupAttributeKeyResourceName = "ResourceName"
+
+	// LookupAttributeKeyEventSource is a LookupAttributeKey enum value
+	LookupAttributeKeyEventSource = "EventSource"
+)
+
+const (
+	// ReadWriteTypeReadOnly is a ReadWriteType enum value
+	ReadWriteTypeReadOnly = "ReadOnly"
+
+	// ReadWriteTypeWriteOnly is a ReadWriteType enum value
+	ReadWriteTypeWriteOnly = "WriteOnly"
+
+	// ReadWriteTypeAll is a ReadWriteType enum value
+	ReadWriteTypeAll = "All"
 )

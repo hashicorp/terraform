@@ -50,6 +50,9 @@ The following configuration options are supported:
  * `password` - (Optional) The Password to login with. If omitted, the
    `OS_PASSWORD` environment variable is used.
 
+ * `token` - (Optional) Access token to login with instead of user and password.
+    If omitted, the `OS_AUTH_TOKEN` variable is used.
+
  * `region_name` (Required) - The region in which to store `terraform.tfstate`. If
    omitted, the `OS_REGION_NAME` environment variable is used.
 

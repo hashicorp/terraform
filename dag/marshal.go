@@ -102,30 +102,22 @@ type marshalVertex struct {
 	Attrs map[string]string `json:",omitempty"`
 
 	// This is to help transition from the old Dot interfaces. We record if the
-	// node was a GraphNodeDotter here, so we know if it should be included in the
-	// dot output
-	graphNodeDotter bool
+	// node was a GraphNodeDotter here, so we can call it to get attributes.
+	graphNodeDotter GraphNodeDotter
 }
 
 func newMarshalVertex(v Vertex) *marshalVertex {
+	dn, ok := v.(GraphNodeDotter)
+	if !ok {
+		dn = nil
+	}
+
 	return &marshalVertex{
 		ID:              marshalVertexID(v),
 		Name:            VertexName(v),
 		Attrs:           make(map[string]string),
-		graphNodeDotter: isDotter(v),
+		graphNodeDotter: dn,
 	}
-}
-
-func isDotter(v Vertex) bool {
-	dn, isDotter := v.(GraphNodeDotter)
-	dotOpts := &DotOpts{
-		Verbose:    true,
-		DrawCycles: true,
-	}
-	if isDotter && dn.DotNode("fake", dotOpts) == nil {
-		isDotter = false
-	}
-	return isDotter
 }
 
 // vertices is a sort.Interface implementation for sorting vertices by ID

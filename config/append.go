@@ -35,6 +35,11 @@ func Append(c1, c2 *Config) (*Config, error) {
 		c.Atlas = c2.Atlas
 	}
 
+	c.Terraform = c1.Terraform
+	if c2.Terraform != nil {
+		c.Terraform = c2.Terraform
+	}
+
 	if len(c1.Modules) > 0 || len(c2.Modules) > 0 {
 		c.Modules = make(
 			[]*Module, 0, len(c1.Modules)+len(c2.Modules))

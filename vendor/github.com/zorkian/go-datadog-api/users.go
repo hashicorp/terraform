@@ -24,8 +24,8 @@ type reqInviteUsers struct {
 }
 
 // InviteUsers takes a slice of email addresses and sends invitations to them.
-func (self *Client) InviteUsers(emails []string) error {
-	return self.doJsonRequest("POST", "/v1/invite_users",
+func (client *Client) InviteUsers(emails []string) error {
+	return client.doJsonRequest("POST", "/v1/invite_users",
 		reqInviteUsers{Emails: emails}, nil)
 }
 
@@ -54,10 +54,10 @@ type usersData struct {
 }
 
 // GetUsers returns all user, or an error if not found
-func (self *Client) GetUsers() (users []User, err error) {
+func (client *Client) GetUsers() (users []User, err error) {
 	var udata usersData
 	uri := "/v1/user"
-	err = self.doJsonRequest("GET", uri, nil, &udata)
+	err = client.doJsonRequest("GET", uri, nil, &udata)
 	users = udata.Users
 	return
 }
@@ -68,23 +68,23 @@ type userData struct {
 }
 
 // GetUser returns the user that match a handle, or an error if not found
-func (self *Client) GetUser(handle string) (user User, err error) {
+func (client *Client) GetUser(handle string) (user User, err error) {
 	var udata userData
 	uri := "/v1/user/" + handle
-	err = self.doJsonRequest("GET", uri, nil, &udata)
+	err = client.doJsonRequest("GET", uri, nil, &udata)
 	user = udata.User
 	return
 }
 
 // UpdateUser updates a user with the content of `user`,
 // and returns an error if the update failed
-func (self *Client) UpdateUser(user User) error {
+func (client *Client) UpdateUser(user User) error {
 	uri := "/v1/user/" + user.Handle
-	return self.doJsonRequest("PUT", uri, user, nil)
+	return client.doJsonRequest("PUT", uri, user, nil)
 }
 
 // DeleteUser deletes a user and returns an error if deletion failed
-func (self *Client) DeleteUser(handle string) error {
+func (client *Client) DeleteUser(handle string) error {
 	uri := "/v1/user/" + handle
-	return self.doJsonRequest("DELETE", uri, nil, nil)
+	return client.doJsonRequest("DELETE", uri, nil, nil)
 }

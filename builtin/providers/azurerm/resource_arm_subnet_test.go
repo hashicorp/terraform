@@ -127,7 +127,7 @@ func testCheckAzureRMSubnetDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Subnet still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Subnet still exists:\n%#v", resp.SubnetPropertiesFormat)
 		}
 	}
 

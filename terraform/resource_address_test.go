@@ -571,7 +571,7 @@ func TestResourceAddressStateId(t *testing.T) {
 			"aws_instance.foo",
 		},
 
-		"basic resource ignores count": {
+		"basic resource with index": {
 			&ResourceAddress{
 				Mode:         config.ManagedResourceMode,
 				Type:         "aws_instance",
@@ -579,7 +579,7 @@ func TestResourceAddressStateId(t *testing.T) {
 				InstanceType: TypePrimary,
 				Index:        2,
 			},
-			"aws_instance.foo",
+			"aws_instance.foo.2",
 		},
 
 		"data resource": {

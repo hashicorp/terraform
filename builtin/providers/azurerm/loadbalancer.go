@@ -41,11 +41,11 @@ func retrieveLoadBalancerById(loadBalancerId string, meta interface{}) (*network
 }
 
 func findLoadBalancerBackEndAddressPoolByName(lb *network.LoadBalancer, name string) (*network.BackendAddressPool, int, bool) {
-	if lb == nil || lb.Properties == nil || lb.Properties.BackendAddressPools == nil {
+	if lb == nil || lb.LoadBalancerPropertiesFormat == nil || lb.LoadBalancerPropertiesFormat.BackendAddressPools == nil {
 		return nil, -1, false
 	}
 
-	for i, apc := range *lb.Properties.BackendAddressPools {
+	for i, apc := range *lb.LoadBalancerPropertiesFormat.BackendAddressPools {
 		if apc.Name != nil && *apc.Name == name {
 			return &apc, i, true
 		}
@@ -55,11 +55,11 @@ func findLoadBalancerBackEndAddressPoolByName(lb *network.LoadBalancer, name str
 }
 
 func findLoadBalancerFrontEndIpConfigurationByName(lb *network.LoadBalancer, name string) (*network.FrontendIPConfiguration, int, bool) {
-	if lb == nil || lb.Properties == nil || lb.Properties.FrontendIPConfigurations == nil {
+	if lb == nil || lb.LoadBalancerPropertiesFormat == nil || lb.LoadBalancerPropertiesFormat.FrontendIPConfigurations == nil {
 		return nil, -1, false
 	}
 
-	for i, feip := range *lb.Properties.FrontendIPConfigurations {
+	for i, feip := range *lb.LoadBalancerPropertiesFormat.FrontendIPConfigurations {
 		if feip.Name != nil && *feip.Name == name {
 			return &feip, i, true
 		}
@@ -69,11 +69,11 @@ func findLoadBalancerFrontEndIpConfigurationByName(lb *network.LoadBalancer, nam
 }
 
 func findLoadBalancerRuleByName(lb *network.LoadBalancer, name string) (*network.LoadBalancingRule, int, bool) {
-	if lb == nil || lb.Properties == nil || lb.Properties.LoadBalancingRules == nil {
+	if lb == nil || lb.LoadBalancerPropertiesFormat == nil || lb.LoadBalancerPropertiesFormat.LoadBalancingRules == nil {
 		return nil, -1, false
 	}
 
-	for i, lbr := range *lb.Properties.LoadBalancingRules {
+	for i, lbr := range *lb.LoadBalancerPropertiesFormat.LoadBalancingRules {
 		if lbr.Name != nil && *lbr.Name == name {
 			return &lbr, i, true
 		}
@@ -83,11 +83,11 @@ func findLoadBalancerRuleByName(lb *network.LoadBalancer, name string) (*network
 }
 
 func findLoadBalancerNatRuleByName(lb *network.LoadBalancer, name string) (*network.InboundNatRule, int, bool) {
-	if lb == nil || lb.Properties == nil || lb.Properties.InboundNatRules == nil {
+	if lb == nil || lb.LoadBalancerPropertiesFormat == nil || lb.LoadBalancerPropertiesFormat.InboundNatRules == nil {
 		return nil, -1, false
 	}
 
-	for i, nr := range *lb.Properties.InboundNatRules {
+	for i, nr := range *lb.LoadBalancerPropertiesFormat.InboundNatRules {
 		if nr.Name != nil && *nr.Name == name {
 			return &nr, i, true
 		}
@@ -97,11 +97,11 @@ func findLoadBalancerNatRuleByName(lb *network.LoadBalancer, name string) (*netw
 }
 
 func findLoadBalancerNatPoolByName(lb *network.LoadBalancer, name string) (*network.InboundNatPool, int, bool) {
-	if lb == nil || lb.Properties == nil || lb.Properties.InboundNatPools == nil {
+	if lb == nil || lb.LoadBalancerPropertiesFormat == nil || lb.LoadBalancerPropertiesFormat.InboundNatPools == nil {
 		return nil, -1, false
 	}
 
-	for i, np := range *lb.Properties.InboundNatPools {
+	for i, np := range *lb.LoadBalancerPropertiesFormat.InboundNatPools {
 		if np.Name != nil && *np.Name == name {
 			return &np, i, true
 		}
@@ -111,11 +111,11 @@ func findLoadBalancerNatPoolByName(lb *network.LoadBalancer, name string) (*netw
 }
 
 func findLoadBalancerProbeByName(lb *network.LoadBalancer, name string) (*network.Probe, int, bool) {
-	if lb == nil || lb.Properties == nil || lb.Properties.Probes == nil {
+	if lb == nil || lb.LoadBalancerPropertiesFormat == nil || lb.LoadBalancerPropertiesFormat.Probes == nil {
 		return nil, -1, false
 	}
 
-	for i, p := range *lb.Properties.Probes {
+	for i, p := range *lb.LoadBalancerPropertiesFormat.Probes {
 		if p.Name != nil && *p.Name == name {
 			return &p, i, true
 		}
@@ -131,7 +131,7 @@ func loadbalancerStateRefreshFunc(client *ArmClient, resourceGroupName string, l
 			return nil, "", fmt.Errorf("Error issuing read request in loadbalancerStateRefreshFunc to Azure ARM for LoadBalancer '%s' (RG: '%s'): %s", loadbalancer, resourceGroupName, err)
 		}
 
-		return res, *res.Properties.ProvisioningState, nil
+		return res, *res.LoadBalancerPropertiesFormat.ProvisioningState, nil
 	}
 }
 

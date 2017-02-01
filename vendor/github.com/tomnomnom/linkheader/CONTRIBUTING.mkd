@@ -1,0 +1,10 @@
+# Contributing
+
+* Raise an issue if appropriate
+* Fork the repo
+* Bootstrap the dev dependencies (run `./script/bootstrap`)
+* Make your changes
+* Use [gofmt](https://golang.org/cmd/gofmt/)
+* Make sure the tests pass (run `./script/test`)
+* Make sure the linters pass (run `./script/lint`)
+* Issue a pull request

@@ -26,7 +26,7 @@ func resourceAwsRDSCluster() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 
-			"availability_zones": &schema.Schema{
+			"availability_zones": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
@@ -35,14 +35,14 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"cluster_identifier": &schema.Schema{
+			"cluster_identifier": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateRdsId,
 			},
 
-			"cluster_members": &schema.Schema{
+			"cluster_members": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
@@ -50,59 +50,49 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"database_name": &schema.Schema{
+			"database_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"db_subnet_group_name": &schema.Schema{
+			"db_subnet_group_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			// TODO: remove parameter_group_name
-			// See https://github.com/hashicorp/terraform/issues/7046
-			// Likely need migration to remove from state
-			"parameter_group_name": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				Computed:   true,
-				Deprecated: "Use db_cluster_parameter_group_name instead. This attribute will be removed in a future version",
-			},
-
-			"db_cluster_parameter_group_name": &schema.Schema{
+			"db_cluster_parameter_group_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"endpoint": &schema.Schema{
+			"endpoint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"reader_endpoint": &schema.Schema{
+			"reader_endpoint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"engine": &schema.Schema{
+			"engine": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"storage_encrypted": &schema.Schema{
+			"storage_encrypted": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 				ForceNew: true,
 			},
 
-			"final_snapshot_identifier": &schema.Schema{
+			"final_snapshot_identifier": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
@@ -121,32 +111,33 @@ func resourceAwsRDSCluster() *schema.Resource {
 				},
 			},
 
-			"skip_final_snapshot": &schema.Schema{
+			"skip_final_snapshot": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"master_username": &schema.Schema{
+			"master_username": {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"master_password": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+			"master_password": {
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
 			},
 
-			"snapshot_identifier": &schema.Schema{
+			"snapshot_identifier": {
 				Type:     schema.TypeString,
 				Computed: false,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"port": &schema.Schema{
+			"port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
@@ -155,13 +146,13 @@ func resourceAwsRDSCluster() *schema.Resource {
 			// apply_immediately is used to determine when the update modifications
 			// take place.
 			// See http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html
-			"apply_immediately": &schema.Schema{
+			"apply_immediately": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"vpc_security_group_ids": &schema.Schema{
+			"vpc_security_group_ids": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
@@ -169,13 +160,14 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"preferred_backup_window": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+			"preferred_backup_window": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateOnceADayWindowFormat,
 			},
 
-			"preferred_maintenance_window": &schema.Schema{
+			"preferred_maintenance_window": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -185,9 +177,10 @@ func resourceAwsRDSCluster() *schema.Resource {
 					}
 					return strings.ToLower(val.(string))
 				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
 			},
 
-			"backup_retention_period": &schema.Schema{
+			"backup_retention_period": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  1,
@@ -201,11 +194,17 @@ func resourceAwsRDSCluster() *schema.Resource {
 				},
 			},
 
-			"kms_key_id": &schema.Schema{
+			"kms_key_id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				ValidateFunc: validateArn,
+			},
+
+			"replication_source_identifier": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
-				ForceNew: true,
 			},
 
 			"tags": tagsSchema(),
@@ -279,7 +278,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 				Pending:    []string{"creating", "backing-up", "modifying"},
 				Target:     []string{"available"},
 				Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
-				Timeout:    40 * time.Minute,
+				Timeout:    120 * time.Minute,
 				MinTimeout: 3 * time.Second,
 				Delay:      30 * time.Second, // Wait 30 secs before starting
 			}
@@ -295,13 +294,67 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 				return err
 			}
 		}
+	} else if _, ok := d.GetOk("replication_source_identifier"); ok {
+		createOpts := &rds.CreateDBClusterInput{
+			DBClusterIdentifier:         aws.String(d.Get("cluster_identifier").(string)),
+			Engine:                      aws.String("aurora"),
+			StorageEncrypted:            aws.Bool(d.Get("storage_encrypted").(bool)),
+			ReplicationSourceIdentifier: aws.String(d.Get("replication_source_identifier").(string)),
+			Tags: tags,
+		}
+
+		if attr, ok := d.GetOk("port"); ok {
+			createOpts.Port = aws.Int64(int64(attr.(int)))
+		}
+
+		if attr, ok := d.GetOk("db_subnet_group_name"); ok {
+			createOpts.DBSubnetGroupName = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("db_cluster_parameter_group_name"); ok {
+			createOpts.DBClusterParameterGroupName = aws.String(attr.(string))
+		}
+
+		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
+			createOpts.VpcSecurityGroupIds = expandStringList(attr.List())
+		}
+
+		if attr := d.Get("availability_zones").(*schema.Set); attr.Len() > 0 {
+			createOpts.AvailabilityZones = expandStringList(attr.List())
+		}
+
+		if v, ok := d.GetOk("backup_retention_period"); ok {
+			createOpts.BackupRetentionPeriod = aws.Int64(int64(v.(int)))
+		}
+
+		if v, ok := d.GetOk("preferred_backup_window"); ok {
+			createOpts.PreferredBackupWindow = aws.String(v.(string))
+		}
+
+		if v, ok := d.GetOk("preferred_maintenance_window"); ok {
+			createOpts.PreferredMaintenanceWindow = aws.String(v.(string))
+		}
+
+		if attr, ok := d.GetOk("kms_key_id"); ok {
+			createOpts.KmsKeyId = aws.String(attr.(string))
+		}
+
+		log.Printf("[DEBUG] Create RDS Cluster as read replica: %s", createOpts)
+		resp, err := conn.CreateDBCluster(createOpts)
+		if err != nil {
+			log.Printf("[ERROR] Error creating RDS Cluster: %s", err)
+			return err
+		}
+
+		log.Printf("[DEBUG]: RDS Cluster create response: %s", resp)
+
 	} else {
 		if _, ok := d.GetOk("master_password"); !ok {
-			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_password": required field is not set`, d.Get("name").(string))
+			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_password": required field is not set`, d.Get("database_name").(string))
 		}
 
 		if _, ok := d.GetOk("master_username"); !ok {
-			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_username": required field is not set`, d.Get("name").(string))
+			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_username": required field is not set`, d.Get("database_name").(string))
 		}
 
 		createOpts := &rds.CreateDBClusterInput{
@@ -323,10 +376,6 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 		if attr, ok := d.GetOk("db_subnet_group_name"); ok {
 			createOpts.DBSubnetGroupName = aws.String(attr.(string))
-		}
-
-		if attr, ok := d.GetOk("parameter_group_name"); ok {
-			createOpts.DBClusterParameterGroupName = aws.String(attr.(string))
 		}
 
 		if attr, ok := d.GetOk("db_cluster_parameter_group_name"); ok {
@@ -378,7 +427,7 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		Pending:    []string{"creating", "backing-up", "modifying"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRDSClusterStateRefreshFunc(d, meta),
-		Timeout:    40 * time.Minute,
+		Timeout:    120 * time.Minute,
 		MinTimeout: 3 * time.Second,
 	}
 
@@ -437,7 +486,6 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("cluster_identifier", dbc.DBClusterIdentifier)
 	d.Set("db_subnet_group_name", dbc.DBSubnetGroup)
-	d.Set("parameter_group_name", dbc.DBClusterParameterGroup)
 	d.Set("db_cluster_parameter_group_name", dbc.DBClusterParameterGroup)
 	d.Set("endpoint", dbc.Endpoint)
 	d.Set("engine", dbc.Engine)
@@ -449,6 +497,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("preferred_maintenance_window", dbc.PreferredMaintenanceWindow)
 	d.Set("kms_key_id", dbc.KmsKeyId)
 	d.Set("reader_endpoint", dbc.ReaderEndpoint)
+	d.Set("replication_source_identifier", dbc.ReplicationSourceIdentifier)
 
 	var vpcg []string
 	for _, g := range dbc.VpcSecurityGroups {
@@ -514,12 +563,6 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 
 	if d.HasChange("backup_retention_period") {
 		req.BackupRetentionPeriod = aws.Int64(int64(d.Get("backup_retention_period").(int)))
-		requestUpdate = true
-	}
-
-	if d.HasChange("parameter_group_name") {
-		d.SetPartial("parameter_group_name")
-		req.DBClusterParameterGroupName = aws.String(d.Get("parameter_group_name").(string))
 		requestUpdate = true
 	}
 

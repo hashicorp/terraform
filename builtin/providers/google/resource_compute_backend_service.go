@@ -118,13 +118,20 @@ func resourceComputeBackendService() *schema.Resource {
 			},
 
 			"region": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "This parameter has been removed as it was never used",
 			},
 
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"session_affinity": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
 			},
 
@@ -165,6 +172,10 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("protocol"); ok {
 		service.Protocol = v.(string)
+	}
+
+	if v, ok := d.GetOk("session_affinity"); ok {
+		service.SessionAffinity = v.(string)
 	}
 
 	if v, ok := d.GetOk("timeout_sec"); ok {
@@ -225,6 +236,7 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 	d.Set("enable_cdn", service.EnableCDN)
 	d.Set("port_name", service.PortName)
 	d.Set("protocol", service.Protocol)
+	d.Set("session_affinity", service.SessionAffinity)
 	d.Set("timeout_sec", service.TimeoutSec)
 	d.Set("fingerprint", service.Fingerprint)
 	d.Set("self_link", service.SelfLink)
@@ -270,6 +282,10 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 	}
 	if v, ok := d.GetOk("timeout_sec"); ok {
 		service.TimeoutSec = int64(v.(int))
+	}
+
+	if d.HasChange("session_affinity") {
+		service.SessionAffinity = d.Get("session_affinity").(string)
 	}
 
 	if d.HasChange("enable_cdn") {

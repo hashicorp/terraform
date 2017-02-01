@@ -1,9 +1,16 @@
 package command
 
 import (
+	"bytes"
+	"crypto/md5"
+	"encoding/base64"
+	"encoding/json"
 	"flag"
+	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -163,7 +170,20 @@ func testState() *terraform.State {
 		},
 	}
 	state.Init()
-	return state
+
+	// Write and read the state so that it is properly initialized. We
+	// do this since we didn't call the normal NewState constructor.
+	var buf bytes.Buffer
+	if err := terraform.WriteState(state, &buf); err != nil {
+		panic(err)
+	}
+
+	result, err := terraform.ReadState(&buf)
+	if err != nil {
+		panic(err)
+	}
+
+	return result
 }
 
 func testStateFile(t *testing.T, s *terraform.State) string {
@@ -219,9 +239,8 @@ func testStateFileRemote(t *testing.T, s *terraform.State) string {
 	return path
 }
 
-// testStateOutput tests that the state at the given path contains
-// the expected state string.
-func testStateOutput(t *testing.T, path string, expected string) {
+// testStateRead reads the state from a file
+func testStateRead(t *testing.T, path string) *terraform.State {
 	f, err := os.Open(path)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -233,6 +252,13 @@ func testStateOutput(t *testing.T, path string, expected string) {
 		t.Fatalf("err: %s", err)
 	}
 
+	return newState
+}
+
+// testStateOutput tests that the state at the given path contains
+// the expected state string.
+func testStateOutput(t *testing.T, path string, expected string) {
+	newState := testStateRead(t, path)
 	actual := strings.TrimSpace(newState.String())
 	expected = strings.TrimSpace(expected)
 	if actual != expected {
@@ -335,4 +361,171 @@ func testFixCwd(t *testing.T, tmp, cwd string) {
 	if err := os.RemoveAll(tmp); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+// testStdinPipe changes os.Stdin to be a pipe that sends the data from
+// the reader before closing the pipe.
+//
+// The returned function should be deferred to properly clean up and restore
+// the original stdin.
+func testStdinPipe(t *testing.T, src io.Reader) func() {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Modify stdin to point to our new pipe
+	old := os.Stdin
+	os.Stdin = r
+
+	// Copy the data from the reader to the pipe
+	go func() {
+		defer w.Close()
+		io.Copy(w, src)
+	}()
+
+	return func() {
+		// Close our read end
+		r.Close()
+
+		// Reset stdin
+		os.Stdin = old
+	}
+}
+
+// Modify os.Stdout to write to the given buffer. Note that this is generally
+// not useful since the commands are configured to write to a cli.Ui, not
+// Stdout directly. Commands like `console` though use the raw stdout.
+func testStdoutCapture(t *testing.T, dst io.Writer) func() {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Modify stdout
+	old := os.Stdout
+	os.Stdout = w
+
+	// Copy
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		defer r.Close()
+		io.Copy(dst, r)
+	}()
+
+	return func() {
+		// Close the writer end of the pipe
+		w.Sync()
+		w.Close()
+
+		// Reset stdout
+		os.Stdout = old
+
+		// Wait for the data copy to complete to avoid a race reading data
+		<-doneCh
+	}
+}
+
+// testInteractiveInput configures tests so that the answers given are sent
+// in order to interactive prompts. The returned function must be called
+// in a defer to clean up.
+func testInteractiveInput(t *testing.T, answers []string) func() {
+	// Disable test mode so input is called
+	test = false
+
+	// Setup reader/writers
+	testInputResponse = answers
+	defaultInputReader = bytes.NewBufferString("")
+	defaultInputWriter = new(bytes.Buffer)
+
+	// Return the cleanup
+	return func() {
+		test = true
+		testInputResponse = nil
+	}
+}
+
+// testBackendState is used to make a test HTTP server to test a configured
+// backend. This returns the complete state that can be saved. Use
+// `testStateFileRemote` to write the returned state.
+func testBackendState(t *testing.T, s *terraform.State, c int) (*terraform.State, *httptest.Server) {
+	var b64md5 string
+	buf := bytes.NewBuffer(nil)
+
+	cb := func(resp http.ResponseWriter, req *http.Request) {
+		if req.Method == "PUT" {
+			resp.WriteHeader(c)
+			return
+		}
+		if s == nil {
+			resp.WriteHeader(404)
+			return
+		}
+
+		resp.Header().Set("Content-MD5", b64md5)
+		resp.Write(buf.Bytes())
+	}
+
+	// If a state was given, make sure we calculate the proper b64md5
+	if s != nil {
+		enc := json.NewEncoder(buf)
+		if err := enc.Encode(s); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		md5 := md5.Sum(buf.Bytes())
+		b64md5 = base64.StdEncoding.EncodeToString(md5[:16])
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(cb))
+
+	state := terraform.NewState()
+	state.Backend = &terraform.BackendState{
+		Type:   "http",
+		Config: map[string]interface{}{"address": srv.URL},
+		Hash:   2529831861221416334,
+	}
+
+	return state, srv
+}
+
+// testRemoteState is used to make a test HTTP server to return a given
+// state file that can be used for testing legacy remote state.
+func testRemoteState(t *testing.T, s *terraform.State, c int) (*terraform.RemoteState, *httptest.Server) {
+	var b64md5 string
+	buf := bytes.NewBuffer(nil)
+
+	cb := func(resp http.ResponseWriter, req *http.Request) {
+		if req.Method == "PUT" {
+			resp.WriteHeader(c)
+			return
+		}
+		if s == nil {
+			resp.WriteHeader(404)
+			return
+		}
+
+		resp.Header().Set("Content-MD5", b64md5)
+		resp.Write(buf.Bytes())
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(cb))
+	remote := &terraform.RemoteState{
+		Type:   "http",
+		Config: map[string]string{"address": srv.URL},
+	}
+
+	if s != nil {
+		// Set the remote data
+		s.Remote = remote
+
+		enc := json.NewEncoder(buf)
+		if err := enc.Encode(s); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		md5 := md5.Sum(buf.Bytes())
+		b64md5 = base64.StdEncoding.EncodeToString(md5[:16])
+	}
+
+	return remote, srv
 }

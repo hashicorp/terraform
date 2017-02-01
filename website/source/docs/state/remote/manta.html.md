@@ -35,7 +35,7 @@ data "terraform_remote_state" "foo" {
 
 The following configuration options are supported:
 
- * `path` - (Required) The path where to store the state file
+ * `path` - (Required) The path relative to your private storage directory (`/$MANTA_USER/stor`) where the state file will be stored
  * `objectName` - (Optional) The name of the state file (defaults to `terraform.tfstate`)
 
 The following [Manta environment variables](https://apidocs.joyent.com/manta/#setting-up-your-environment) are supported:

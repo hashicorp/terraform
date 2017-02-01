@@ -21,26 +21,41 @@ To view a list of the available commands at any time, just run terraform with no
 
 ```
 $ terraform
-usage: terraform [--version] [--help] <command> [<args>]
+Usage: terraform [--version] [--help] <command> [args]
 
-Available commands are:
-    apply      Builds or changes infrastructure
-    destroy    Destroy Terraform-managed infrastructure
-    get        Download and install modules for the configuration
-    graph      Create a visual graph of Terraform resources
-    init       Initializes Terraform configuration from a module
-    output     Read an output from a state file
-    plan       Generate and show an execution plan
-    refresh    Update local state file against real resources
-    remote     Configure remote state storage
-    show       Inspect Terraform state or plan
-    taint      Manually mark a resource for recreation
-    validate   Validates the Terraform files
-    version    Prints the Terraform version
+The available commands for execution are listed below.
+The most common, useful commands are shown first, followed by
+less common or more advanced commands. If you're just getting
+started with Terraform, stick with the common commands. For the
+other commands, please read the help and docs before usage.
+
+Common commands:
+    apply              Builds or changes infrastructure
+    console            Interactive console for Terraform interpolations
+    destroy            Destroy Terraform-managed infrastructure
+    fmt                Rewrites config files to canonical format
+    get                Download and install modules for the configuration
+    graph              Create a visual graph of Terraform resources
+    import             Import existing infrastructure into Terraform
+    init               Initializes Terraform configuration from a module
+    output             Read an output from a state file
+    plan               Generate and show an execution plan
+    push               Upload this Terraform module to Atlas to run
+    refresh            Update local state file against real resources
+    remote             Configure remote state storage
+    show               Inspect Terraform state or plan
+    taint              Manually mark a resource for recreation
+    untaint            Manually unmark a resource as tainted
+    validate           Validates the Terraform files
+    version            Prints the Terraform version
+
+All other commands:
+    debug              Debug output management (experimental)
+    state              Advanced state management
 ```
 
 To get help for any specific command, pass the -h flag to the relevant subcommand. For example,
-to see help about the members subcommand:
+to see help about the graph subcommand:
 
 ```
 $ terraform graph -h

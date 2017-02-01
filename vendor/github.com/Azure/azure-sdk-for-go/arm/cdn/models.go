@@ -20,6 +20,8 @@ package cdn
 
 import (
 	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/to"
+	"net/http"
 )
 
 // CustomDomainResourceState enumerates the values for custom domain resource
@@ -59,6 +61,16 @@ const (
 	EndpointResourceStateStopping EndpointResourceState = "Stopping"
 )
 
+// GeoFilterActions enumerates the values for geo filter actions.
+type GeoFilterActions string
+
+const (
+	// Allow specifies the allow state for geo filter actions.
+	Allow GeoFilterActions = "Allow"
+	// Block specifies the block state for geo filter actions.
+	Block GeoFilterActions = "Block"
+)
+
 // OriginResourceState enumerates the values for origin resource state.
 type OriginResourceState string
 
@@ -90,21 +102,6 @@ const (
 	// ProfileResourceStateDisabled specifies the profile resource state
 	// disabled state for profile resource state.
 	ProfileResourceStateDisabled ProfileResourceState = "Disabled"
-)
-
-// ProvisioningState enumerates the values for provisioning state.
-type ProvisioningState string
-
-const (
-	// ProvisioningStateCreating specifies the provisioning state creating
-	// state for provisioning state.
-	ProvisioningStateCreating ProvisioningState = "Creating"
-	// ProvisioningStateFailed specifies the provisioning state failed state
-	// for provisioning state.
-	ProvisioningStateFailed ProvisioningState = "Failed"
-	// ProvisioningStateSucceeded specifies the provisioning state succeeded
-	// state for provisioning state.
-	ProvisioningStateSucceeded ProvisioningState = "Succeeded"
 )
 
 // QueryStringCachingBehavior enumerates the values for query string caching
@@ -144,6 +141,8 @@ const (
 	PremiumVerizon SkuName = "Premium_Verizon"
 	// StandardAkamai specifies the standard akamai state for sku name.
 	StandardAkamai SkuName = "Standard_Akamai"
+	// StandardChinaCdn specifies the standard china cdn state for sku name.
+	StandardChinaCdn SkuName = "Standard_ChinaCdn"
 	// StandardVerizon specifies the standard verizon state for sku name.
 	StandardVerizon SkuName = "Standard_Verizon"
 )
@@ -157,54 +156,74 @@ type CheckNameAvailabilityInput struct {
 // CheckNameAvailabilityOutput is output of check name availability API.
 type CheckNameAvailabilityOutput struct {
 	autorest.Response `json:"-"`
-	NameAvailable     *bool   `json:"NameAvailable,omitempty"`
-	Reason            *string `json:"Reason,omitempty"`
-	Message           *string `json:"Message,omitempty"`
+	NameAvailable     *bool   `json:"nameAvailable,omitempty"`
+	Reason            *string `json:"reason,omitempty"`
+	Message           *string `json:"message,omitempty"`
 }
 
-// CustomDomain is cDN CustomDomain represents a mapping between a user
-// specified domain name and a CDN endpoint. This is to use custom domain
-// names to represent the URLs for branding purposes.
+// CustomDomain is cDN CustomDomain represents a mapping between a
+// user-specified domain name and a CDN endpoint. This is to use custom
+// domain names to represent the URLs for branding purposes.
 type CustomDomain struct {
-	autorest.Response `json:"-"`
-	ID                *string                 `json:"id,omitempty"`
-	Name              *string                 `json:"name,omitempty"`
-	Type              *string                 `json:"type,omitempty"`
-	Properties        *CustomDomainProperties `json:"properties,omitempty"`
+	autorest.Response       `json:"-"`
+	ID                      *string             `json:"id,omitempty"`
+	Name                    *string             `json:"name,omitempty"`
+	Type                    *string             `json:"type,omitempty"`
+	Location                *string             `json:"location,omitempty"`
+	Tags                    *map[string]*string `json:"tags,omitempty"`
+	*CustomDomainProperties `json:"properties,omitempty"`
 }
 
-// CustomDomainListResult is
+// CustomDomainListResult is result of the request to list custom domains. It
+// contains a list of custom domain objects and a URL link to get the next
+// set of results.
 type CustomDomainListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]CustomDomain `json:"value,omitempty"`
+	NextLink          *string         `json:"nextLink,omitempty"`
 }
 
-// CustomDomainParameters is customDomain properties required for custom
+// CustomDomainListResultPreparer prepares a request to retrieve the next set of results. It returns
+// nil if no more results exist.
+func (client CustomDomainListResult) CustomDomainListResultPreparer() (*http.Request, error) {
+	if client.NextLink == nil || len(to.String(client.NextLink)) <= 0 {
+		return nil, nil
+	}
+	return autorest.Prepare(&http.Request{},
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(client.NextLink)))
+}
+
+// CustomDomainParameters is the customDomain JSON object required for custom
 // domain creation or update.
 type CustomDomainParameters struct {
-	Properties *CustomDomainPropertiesParameters `json:"properties,omitempty"`
+	*CustomDomainPropertiesParameters `json:"properties,omitempty"`
 }
 
-// CustomDomainProperties is
+// CustomDomainProperties is the JSON object that contains the properties of
+// the custom domain to create.
 type CustomDomainProperties struct {
 	HostName          *string                   `json:"hostName,omitempty"`
 	ResourceState     CustomDomainResourceState `json:"resourceState,omitempty"`
-	ProvisioningState ProvisioningState         `json:"provisioningState,omitempty"`
+	ValidationData    *string                   `json:"validationData,omitempty"`
+	ProvisioningState *string                   `json:"provisioningState,omitempty"`
 }
 
-// CustomDomainPropertiesParameters is
+// CustomDomainPropertiesParameters is the JSON object that contains the
+// properties of the custom domain to create.
 type CustomDomainPropertiesParameters struct {
 	HostName *string `json:"hostName,omitempty"`
 }
 
-// DeepCreatedOrigin is deep created origins within a CDN endpoint.
+// DeepCreatedOrigin is origins to be added when creating a CDN endpoint.
 type DeepCreatedOrigin struct {
-	Name       *string                      `json:"name,omitempty"`
-	Properties *DeepCreatedOriginProperties `json:"properties,omitempty"`
+	Name                         *string `json:"name,omitempty"`
+	*DeepCreatedOriginProperties `json:"properties,omitempty"`
 }
 
-// DeepCreatedOriginProperties is properties of deep created origin on a CDN
-// endpoint.
+// DeepCreatedOriginProperties is properties of origins Properties of the
+// origin created on the CDN endpoint.
 type DeepCreatedOriginProperties struct {
 	HostName  *string `json:"hostName,omitempty"`
 	HTTPPort  *int32  `json:"httpPort,omitempty"`
@@ -216,32 +235,39 @@ type DeepCreatedOriginProperties struct {
 // endpoint is exposed using the URL format <endpointname>.azureedge.net by
 // default, but custom domains can also be created.
 type Endpoint struct {
-	autorest.Response `json:"-"`
-	ID                *string             `json:"id,omitempty"`
-	Name              *string             `json:"name,omitempty"`
-	Type              *string             `json:"type,omitempty"`
-	Location          *string             `json:"location,omitempty"`
-	Tags              *map[string]*string `json:"tags,omitempty"`
-	Properties        *EndpointProperties `json:"properties,omitempty"`
+	autorest.Response   `json:"-"`
+	ID                  *string             `json:"id,omitempty"`
+	Name                *string             `json:"name,omitempty"`
+	Type                *string             `json:"type,omitempty"`
+	Location            *string             `json:"location,omitempty"`
+	Tags                *map[string]*string `json:"tags,omitempty"`
+	*EndpointProperties `json:"properties,omitempty"`
 }
 
-// EndpointCreateParameters is endpoint properties required for new endpoint
-// creation.
-type EndpointCreateParameters struct {
-	Location   *string                             `json:"location,omitempty"`
-	Tags       *map[string]*string                 `json:"tags,omitempty"`
-	Properties *EndpointPropertiesCreateParameters `json:"properties,omitempty"`
-}
-
-// EndpointListResult is
+// EndpointListResult is result of the request to list endpoints. It contains
+// a list of endpoint objects and a URL link to get the the next set of
+// results.
 type EndpointListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]Endpoint `json:"value,omitempty"`
+	NextLink          *string     `json:"nextLink,omitempty"`
 }
 
-// EndpointProperties is
+// EndpointListResultPreparer prepares a request to retrieve the next set of results. It returns
+// nil if no more results exist.
+func (client EndpointListResult) EndpointListResultPreparer() (*http.Request, error) {
+	if client.NextLink == nil || len(to.String(client.NextLink)) <= 0 {
+		return nil, nil
+	}
+	return autorest.Prepare(&http.Request{},
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(client.NextLink)))
+}
+
+// EndpointProperties is the JSON object that contains the properties of the
+// endpoint to create.
 type EndpointProperties struct {
-	HostName                   *string                    `json:"hostName,omitempty"`
 	OriginHostHeader           *string                    `json:"originHostHeader,omitempty"`
 	OriginPath                 *string                    `json:"originPath,omitempty"`
 	ContentTypesToCompress     *[]string                  `json:"contentTypesToCompress,omitempty"`
@@ -249,24 +275,17 @@ type EndpointProperties struct {
 	IsHTTPAllowed              *bool                      `json:"isHttpAllowed,omitempty"`
 	IsHTTPSAllowed             *bool                      `json:"isHttpsAllowed,omitempty"`
 	QueryStringCachingBehavior QueryStringCachingBehavior `json:"queryStringCachingBehavior,omitempty"`
+	OptimizationType           *string                    `json:"optimizationType,omitempty"`
+	GeoFilters                 *[]GeoFilter               `json:"geoFilters,omitempty"`
+	HostName                   *string                    `json:"hostName,omitempty"`
 	Origins                    *[]DeepCreatedOrigin       `json:"origins,omitempty"`
 	ResourceState              EndpointResourceState      `json:"resourceState,omitempty"`
-	ProvisioningState          ProvisioningState          `json:"provisioningState,omitempty"`
+	ProvisioningState          *string                    `json:"provisioningState,omitempty"`
 }
 
-// EndpointPropertiesCreateParameters is
-type EndpointPropertiesCreateParameters struct {
-	OriginHostHeader           *string                    `json:"originHostHeader,omitempty"`
-	OriginPath                 *string                    `json:"originPath,omitempty"`
-	ContentTypesToCompress     *[]string                  `json:"contentTypesToCompress,omitempty"`
-	IsCompressionEnabled       *bool                      `json:"isCompressionEnabled,omitempty"`
-	IsHTTPAllowed              *bool                      `json:"isHttpAllowed,omitempty"`
-	IsHTTPSAllowed             *bool                      `json:"isHttpsAllowed,omitempty"`
-	QueryStringCachingBehavior QueryStringCachingBehavior `json:"queryStringCachingBehavior,omitempty"`
-	Origins                    *[]DeepCreatedOrigin       `json:"origins,omitempty"`
-}
-
-// EndpointPropertiesUpdateParameters is
+// EndpointPropertiesUpdateParameters is result of the request to list
+// endpoints. It contains a list of endpoints and a URL link to get the next
+// set of results.
 type EndpointPropertiesUpdateParameters struct {
 	OriginHostHeader           *string                    `json:"originHostHeader,omitempty"`
 	OriginPath                 *string                    `json:"originPath,omitempty"`
@@ -275,20 +294,29 @@ type EndpointPropertiesUpdateParameters struct {
 	IsHTTPAllowed              *bool                      `json:"isHttpAllowed,omitempty"`
 	IsHTTPSAllowed             *bool                      `json:"isHttpsAllowed,omitempty"`
 	QueryStringCachingBehavior QueryStringCachingBehavior `json:"queryStringCachingBehavior,omitempty"`
+	OptimizationType           *string                    `json:"optimizationType,omitempty"`
+	GeoFilters                 *[]GeoFilter               `json:"geoFilters,omitempty"`
 }
 
 // EndpointUpdateParameters is endpoint properties required for new endpoint
 // creation.
 type EndpointUpdateParameters struct {
-	Tags       *map[string]*string                 `json:"tags,omitempty"`
-	Properties *EndpointPropertiesUpdateParameters `json:"properties,omitempty"`
+	Tags                                *map[string]*string `json:"tags,omitempty"`
+	*EndpointPropertiesUpdateParameters `json:"properties,omitempty"`
 }
 
-// ErrorResponse is
+// ErrorResponse is error reponse indicates CDN service is not able to process
+// the incoming request. The reason is provided in the error message.
 type ErrorResponse struct {
-	autorest.Response `json:"-"`
-	Code              *string `json:"code,omitempty"`
-	Message           *string `json:"message,omitempty"`
+	Code    *string `json:"code,omitempty"`
+	Message *string `json:"message,omitempty"`
+}
+
+// GeoFilter is geo filter of a CDN endpoint.
+type GeoFilter struct {
+	RelativePath *string          `json:"relativePath,omitempty"`
+	Action       GeoFilterActions `json:"action,omitempty"`
+	CountryCodes *[]string        `json:"countryCodes,omitempty"`
 }
 
 // LoadParameters is parameters required for endpoint load.
@@ -302,17 +330,32 @@ type Operation struct {
 	Display *OperationDisplay `json:"display,omitempty"`
 }
 
-// OperationDisplay is
+// OperationDisplay is the object that represents the operation.
 type OperationDisplay struct {
 	Provider  *string `json:"provider,omitempty"`
 	Resource  *string `json:"resource,omitempty"`
 	Operation *string `json:"operation,omitempty"`
 }
 
-// OperationListResult is
+// OperationListResult is result of the request to list CDN operations. It
+// contains a list of operations and a URL link to get the next set of
+// results.
 type OperationListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]Operation `json:"value,omitempty"`
+	NextLink          *string      `json:"nextLink,omitempty"`
+}
+
+// OperationListResultPreparer prepares a request to retrieve the next set of results. It returns
+// nil if no more results exist.
+func (client OperationListResult) OperationListResultPreparer() (*http.Request, error) {
+	if client.NextLink == nil || len(to.String(client.NextLink)) <= 0 {
+		return nil, nil
+	}
+	return autorest.Prepare(&http.Request{},
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(client.NextLink)))
 }
 
 // Origin is cDN origin is the source of the content being delivered via CDN.
@@ -321,37 +364,56 @@ type OperationListResult struct {
 // configured origins.
 type Origin struct {
 	autorest.Response `json:"-"`
-	ID                *string           `json:"id,omitempty"`
-	Name              *string           `json:"name,omitempty"`
-	Type              *string           `json:"type,omitempty"`
-	Properties        *OriginProperties `json:"properties,omitempty"`
+	ID                *string             `json:"id,omitempty"`
+	Name              *string             `json:"name,omitempty"`
+	Type              *string             `json:"type,omitempty"`
+	Location          *string             `json:"location,omitempty"`
+	Tags              *map[string]*string `json:"tags,omitempty"`
+	*OriginProperties `json:"properties,omitempty"`
 }
 
-// OriginListResult is
+// OriginListResult is result of the request to list origins. It contains a
+// list of origin objects and a URL link to get the next set of results.
 type OriginListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]Origin `json:"value,omitempty"`
+	NextLink          *string   `json:"nextLink,omitempty"`
 }
 
-// OriginParameters is origin properties needed for origin creation or update.
-type OriginParameters struct {
-	Properties *OriginPropertiesParameters `json:"properties,omitempty"`
+// OriginListResultPreparer prepares a request to retrieve the next set of results. It returns
+// nil if no more results exist.
+func (client OriginListResult) OriginListResultPreparer() (*http.Request, error) {
+	if client.NextLink == nil || len(to.String(client.NextLink)) <= 0 {
+		return nil, nil
+	}
+	return autorest.Prepare(&http.Request{},
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(client.NextLink)))
 }
 
-// OriginProperties is
+// OriginProperties is the JSON object that contains the properties of the
+// origin to create.
 type OriginProperties struct {
 	HostName          *string             `json:"hostName,omitempty"`
 	HTTPPort          *int32              `json:"httpPort,omitempty"`
 	HTTPSPort         *int32              `json:"httpsPort,omitempty"`
 	ResourceState     OriginResourceState `json:"resourceState,omitempty"`
-	ProvisioningState ProvisioningState   `json:"provisioningState,omitempty"`
+	ProvisioningState *string             `json:"provisioningState,omitempty"`
 }
 
-// OriginPropertiesParameters is
+// OriginPropertiesParameters is the JSON object that contains the properties
+// of the origin to create.
 type OriginPropertiesParameters struct {
 	HostName  *string `json:"hostName,omitempty"`
 	HTTPPort  *int32  `json:"httpPort,omitempty"`
 	HTTPSPort *int32  `json:"httpsPort,omitempty"`
+}
+
+// OriginUpdateParameters is origin properties needed for origin creation or
+// update.
+type OriginUpdateParameters struct {
+	*OriginPropertiesParameters `json:"properties,omitempty"`
 }
 
 // Profile is cDN profile represents the top level resource and the entry
@@ -359,33 +421,41 @@ type OriginPropertiesParameters struct {
 // endpoints in addition to creating shared configuration settings and
 // selecting pricing tiers and providers.
 type Profile struct {
-	autorest.Response `json:"-"`
-	ID                *string             `json:"id,omitempty"`
-	Name              *string             `json:"name,omitempty"`
-	Type              *string             `json:"type,omitempty"`
-	Location          *string             `json:"location,omitempty"`
-	Tags              *map[string]*string `json:"tags,omitempty"`
-	Sku               *Sku                `json:"sku,omitempty"`
-	Properties        *ProfileProperties  `json:"properties,omitempty"`
+	autorest.Response  `json:"-"`
+	ID                 *string             `json:"id,omitempty"`
+	Name               *string             `json:"name,omitempty"`
+	Type               *string             `json:"type,omitempty"`
+	Location           *string             `json:"location,omitempty"`
+	Tags               *map[string]*string `json:"tags,omitempty"`
+	Sku                *Sku                `json:"sku,omitempty"`
+	*ProfileProperties `json:"properties,omitempty"`
 }
 
-// ProfileCreateParameters is profile properties required for profile creation.
-type ProfileCreateParameters struct {
-	Location *string             `json:"location,omitempty"`
-	Tags     *map[string]*string `json:"tags,omitempty"`
-	Sku      *Sku                `json:"sku,omitempty"`
-}
-
-// ProfileListResult is
+// ProfileListResult is result of the request to list profiles. It contains a
+// list of profile objects and a URL link to get the the next set of results.
 type ProfileListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]Profile `json:"value,omitempty"`
+	NextLink          *string    `json:"nextLink,omitempty"`
 }
 
-// ProfileProperties is
+// ProfileListResultPreparer prepares a request to retrieve the next set of results. It returns
+// nil if no more results exist.
+func (client ProfileListResult) ProfileListResultPreparer() (*http.Request, error) {
+	if client.NextLink == nil || len(to.String(client.NextLink)) <= 0 {
+		return nil, nil
+	}
+	return autorest.Prepare(&http.Request{},
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(client.NextLink)))
+}
+
+// ProfileProperties is the JSON object that contains the properties of the
+// profile to create.
 type ProfileProperties struct {
 	ResourceState     ProfileResourceState `json:"resourceState,omitempty"`
-	ProvisioningState ProvisioningState    `json:"provisioningState,omitempty"`
+	ProvisioningState *string              `json:"provisioningState,omitempty"`
 }
 
 // ProfileUpdateParameters is profile properties required for profile update.
@@ -398,11 +468,13 @@ type PurgeParameters struct {
 	ContentPaths *[]string `json:"contentPaths,omitempty"`
 }
 
-// Resource is
+// Resource is the Resource definition.
 type Resource struct {
-	ID   *string `json:"id,omitempty"`
-	Name *string `json:"name,omitempty"`
-	Type *string `json:"type,omitempty"`
+	ID       *string             `json:"id,omitempty"`
+	Name     *string             `json:"name,omitempty"`
+	Type     *string             `json:"type,omitempty"`
+	Location *string             `json:"location,omitempty"`
+	Tags     *map[string]*string `json:"tags,omitempty"`
 }
 
 // Sku is the SKU (pricing tier) of the CDN profile.
@@ -414,15 +486,6 @@ type Sku struct {
 type SsoURI struct {
 	autorest.Response `json:"-"`
 	SsoURIValue       *string `json:"ssoUriValue,omitempty"`
-}
-
-// TrackedResource is aRM tracked resource
-type TrackedResource struct {
-	ID       *string             `json:"id,omitempty"`
-	Name     *string             `json:"name,omitempty"`
-	Type     *string             `json:"type,omitempty"`
-	Location *string             `json:"location,omitempty"`
-	Tags     *map[string]*string `json:"tags,omitempty"`
 }
 
 // ValidateCustomDomainInput is input of the custom domain to be validated.

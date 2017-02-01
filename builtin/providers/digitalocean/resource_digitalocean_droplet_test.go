@@ -19,7 +19,7 @@ func TestAccDigitalOceanDroplet_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
@@ -48,7 +48,7 @@ func TestAccDigitalOceanDroplet_Update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
@@ -56,7 +56,7 @@ func TestAccDigitalOceanDroplet_Update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_RenameAndResize,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
@@ -81,7 +81,7 @@ func TestAccDigitalOceanDroplet_ResizeWithOutDisk(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
@@ -89,7 +89,7 @@ func TestAccDigitalOceanDroplet_ResizeWithOutDisk(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_resize_without_disk,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
@@ -112,7 +112,7 @@ func TestAccDigitalOceanDroplet_UpdateUserData(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterCreate),
@@ -120,7 +120,7 @@ func TestAccDigitalOceanDroplet_UpdateUserData(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_userdata_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterUpdate),
@@ -144,7 +144,7 @@ func TestAccDigitalOceanDroplet_UpdateTags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterCreate),
@@ -152,7 +152,7 @@ func TestAccDigitalOceanDroplet_UpdateTags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_tag_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterUpdate),
@@ -178,7 +178,7 @@ func TestAccDigitalOceanDroplet_PrivateNetworkingIpv6(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDigitalOceanDropletConfig_PrivateNetworkingIpv6,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
@@ -371,24 +371,6 @@ func testAccCheckDigitalOceanDropletRecreated(t *testing.T,
 	}
 }
 
-// Not sure if this check should remain here as the underlaying
-// function is changed and is tested indirectly by almost all
-// other test already
-//
-//func Test_new_droplet_state_refresh_func(t *testing.T) {
-//	droplet := godo.Droplet{
-//		Name: "foobar",
-//	}
-//	resourceMap, _ := resource_digitalocean_droplet_update_state(
-//		&terraform.InstanceState{Attributes: map[string]string{}}, &droplet)
-//
-//	// See if we can access our attribute
-//	if _, ok := resourceMap.Attributes["name"]; !ok {
-//		t.Fatalf("bad name: %s", resourceMap.Attributes)
-//	}
-//
-//}
-
 var testAccCheckDigitalOceanDropletConfig_basic = fmt.Sprintf(`
 resource "digitalocean_ssh_key" "foobar" {
   name       = "foobar"
@@ -468,6 +450,7 @@ resource "digitalocean_droplet" "foobar" {
   size     = "1gb"
   image    = "centos-7-x64"
   region   = "nyc3"
+  user_data = "foobar"
   ssh_keys = ["${digitalocean_ssh_key.foobar.id}"]
   resize_disk = false
 }

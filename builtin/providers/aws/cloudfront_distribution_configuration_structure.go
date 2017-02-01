@@ -46,6 +46,7 @@ func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionCo
 		CustomErrorResponses: expandCustomErrorResponses(d.Get("custom_error_response").(*schema.Set)),
 		DefaultCacheBehavior: expandDefaultCacheBehavior(d.Get("default_cache_behavior").(*schema.Set).List()[0].(map[string]interface{})),
 		Enabled:              aws.Bool(d.Get("enabled").(bool)),
+		IsIPV6Enabled:        aws.Bool(d.Get("is_ipv6_enabled").(bool)),
 		HttpVersion:          aws.String(d.Get("http_version").(string)),
 		Origins:              expandOrigins(d.Get("origin").(*schema.Set)),
 		PriceClass:           aws.String(d.Get("price_class").(string)),
@@ -101,6 +102,7 @@ func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloud
 	var err error
 
 	d.Set("enabled", distributionConfig.Enabled)
+	d.Set("is_ipv6_enabled", distributionConfig.IsIPV6Enabled)
 	d.Set("price_class", distributionConfig.PriceClass)
 	d.Set("hosted_zone_id", cloudFrontRoute53ZoneID)
 
@@ -226,6 +228,18 @@ func defaultCacheBehaviorHash(v interface{}) int {
 			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
 		}
 	}
+	if d, ok := m["lambda_function_association"]; ok {
+		var associations []interface{}
+		switch d.(type) {
+		case *schema.Set:
+			associations = d.(*schema.Set).List()
+		default:
+			associations = d.([]interface{})
+		}
+		for _, lfa := range associations {
+			buf.WriteString(fmt.Sprintf("%d-", lambdaFunctionAssociationHash(lfa.(map[string]interface{}))))
+		}
+	}
 	return hashcode.String(buf.String())
 }
 
@@ -265,6 +279,11 @@ func expandCacheBehavior(m map[string]interface{}) *cloudfront.CacheBehavior {
 	} else {
 		cb.TrustedSigners = expandTrustedSigners([]interface{}{})
 	}
+
+	if v, ok := m["lambda_function_association"]; ok {
+		cb.LambdaFunctionAssociations = expandLambdaFunctionAssociations(v.(*schema.Set).List())
+	}
+
 	if v, ok := m["smooth_streaming"]; ok {
 		cb.SmoothStreaming = aws.Bool(v.(bool))
 	}
@@ -291,6 +310,9 @@ func flattenCacheBehavior(cb *cloudfront.CacheBehavior) map[string]interface{} {
 
 	if len(cb.TrustedSigners.Items) > 0 {
 		m["trusted_signers"] = flattenTrustedSigners(cb.TrustedSigners)
+	}
+	if len(cb.LambdaFunctionAssociations.Items) > 0 {
+		m["lambda_function_association"] = flattenLambdaFunctionAssociations(cb.LambdaFunctionAssociations)
 	}
 	if cb.MaxTTL != nil {
 		m["max_ttl"] = int(*cb.MaxTTL)
@@ -350,6 +372,18 @@ func cacheBehaviorHash(v interface{}) int {
 	if d, ok := m["path_pattern"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", d))
 	}
+	if d, ok := m["lambda_function_association"]; ok {
+		var associations []interface{}
+		switch d.(type) {
+		case *schema.Set:
+			associations = d.(*schema.Set).List()
+		default:
+			associations = d.([]interface{})
+		}
+		for _, lfa := range associations {
+			buf.WriteString(fmt.Sprintf("%d-", lambdaFunctionAssociationHash(lfa.(map[string]interface{}))))
+		}
+	}
 	return hashcode.String(buf.String())
 }
 
@@ -371,6 +405,59 @@ func flattenTrustedSigners(ts *cloudfront.TrustedSigners) []interface{} {
 		return flattenStringList(ts.Items)
 	}
 	return []interface{}{}
+}
+
+func lambdaFunctionAssociationHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["event_type"].(string)))
+	buf.WriteString(fmt.Sprintf("%s", m["lambda_arn"].(string)))
+	return hashcode.String(buf.String())
+}
+
+func expandLambdaFunctionAssociations(v interface{}) *cloudfront.LambdaFunctionAssociations {
+	if v == nil {
+		return &cloudfront.LambdaFunctionAssociations{
+			Quantity: aws.Int64(0),
+		}
+	}
+
+	s := v.([]interface{})
+	var lfa cloudfront.LambdaFunctionAssociations
+	lfa.Quantity = aws.Int64(int64(len(s)))
+	lfa.Items = make([]*cloudfront.LambdaFunctionAssociation, len(s))
+	for i, lf := range s {
+		lfa.Items[i] = expandLambdaFunctionAssociation(lf.(map[string]interface{}))
+	}
+	return &lfa
+}
+
+func expandLambdaFunctionAssociation(lf map[string]interface{}) *cloudfront.LambdaFunctionAssociation {
+	var lfa cloudfront.LambdaFunctionAssociation
+	if v, ok := lf["event_type"]; ok {
+		lfa.EventType = aws.String(v.(string))
+	}
+	if v, ok := lf["lambda_arn"]; ok {
+		lfa.LambdaFunctionARN = aws.String(v.(string))
+	}
+	return &lfa
+}
+
+func flattenLambdaFunctionAssociations(lfa *cloudfront.LambdaFunctionAssociations) []interface{} {
+	s := make([]interface{}, len(lfa.Items))
+	for i, v := range lfa.Items {
+		s[i] = flattenLambdaFunctionAssociation(v)
+	}
+	return s
+}
+
+func flattenLambdaFunctionAssociation(lfa *cloudfront.LambdaFunctionAssociation) map[string]interface{} {
+	m := map[string]interface{}{}
+	if lfa != nil {
+		m["event_type"] = *lfa.EventType
+		m["lambda_arn"] = *lfa.LambdaFunctionARN
+	}
+	return m
 }
 
 func expandForwardedValues(m map[string]interface{}) *cloudfront.ForwardedValues {

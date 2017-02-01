@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/hashicorp/go-uuid"
@@ -78,6 +79,7 @@ func Funcs() map[string]ast.Function {
 		"md5":          interpolationFuncMd5(),
 		"merge":        interpolationFuncMerge(),
 		"min":          interpolationFuncMin(),
+		"pathexpand":   interpolationFuncPathExpand(),
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
@@ -85,6 +87,7 @@ func Funcs() map[string]ast.Function {
 		"signum":       interpolationFuncSignum(),
 		"sort":         interpolationFuncSort(),
 		"split":        interpolationFuncSplit(),
+		"timestamp":    interpolationFuncTimestamp(),
 		"title":        interpolationFuncTitle(),
 		"trimspace":    interpolationFuncTrimSpace(),
 		"upper":        interpolationFuncUpper(),
@@ -425,6 +428,17 @@ func interpolationFuncMin() ast.Function {
 			}
 
 			return min, nil
+		},
+	}
+}
+
+// interpolationFuncPathExpand will expand any `~`'s found with the full file path
+func interpolationFuncPathExpand() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return homedir.Expand(args[0].(string))
 		},
 	}
 }
@@ -1105,6 +1119,17 @@ func interpolationFuncUUID() ast.Function {
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
 			return uuid.GenerateUUID()
+		},
+	}
+}
+
+// interpolationFuncTimestamp
+func interpolationFuncTimestamp() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return time.Now().UTC().Format(time.RFC3339), nil
 		},
 	}
 }

@@ -55,7 +55,7 @@ The following arguments are supported:
 * `ebs_options` - (Optional) EBS related options, see below.
 * `cluster_config` - (Optional) Cluster configuration of the domain, see below.
 * `snapshot_options` - (Optional) Snapshot related options, see below.
-* `elasticsearch_version` - (Optional) The version of ElasticSearch to deploy. Only valid values are `1.5` and `2.3`. Defaults to `1.5`
+* `elasticsearch_version` - (Optional) The version of ElasticSearch to deploy. Defaults to `1.5`
 * `tags` - (Optional) A mapping of tags to assign to the resource
 
 **ebs_options** supports the following attributes:

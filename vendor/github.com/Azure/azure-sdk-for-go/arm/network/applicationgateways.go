@@ -46,9 +46,8 @@ func NewApplicationGatewaysClientWithBaseURI(baseURI string, subscriptionID stri
 	return ApplicationGatewaysClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// BackendHealth the BackendHealth operation gets the backend health of
-// application gateway in the specified resource group through Network
-// resource provider. This method may poll for completion. Polling can be
+// BackendHealth gets the backend health of the specified application gateway
+// in a resource group. This method may poll for completion. Polling can be
 // canceled by passing the cancel channel argument. The channel will be used
 // to cancel polling and any outstanding HTTP requests.
 //
@@ -118,21 +117,21 @@ func (client ApplicationGatewaysClient) BackendHealthResponder(resp *http.Respon
 	return
 }
 
-// CreateOrUpdate the Put ApplicationGateway operation creates/updates a
-// ApplicationGateway This method may poll for completion. Polling can be
-// canceled by passing the cancel channel argument. The channel will be used
-// to cancel polling and any outstanding HTTP requests.
+// CreateOrUpdate creates or updates the specified application gateway. This
+// method may poll for completion. Polling can be canceled by passing the
+// cancel channel argument. The channel will be used to cancel polling and
+// any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. applicationGatewayName
-// is the name of the ApplicationGateway. parameters is parameters supplied
-// to the create/delete ApplicationGateway operation
+// is the name of the application gateway. parameters is parameters supplied
+// to the create or update application gateway operation.
 func (client ApplicationGatewaysClient) CreateOrUpdate(resourceGroupName string, applicationGatewayName string, parameters ApplicationGateway, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
-			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "parameters.Properties.WebApplicationFirewallConfiguration", Name: validation.Null, Rule: false,
-					Chain: []validation.Constraint{{Target: "parameters.Properties.WebApplicationFirewallConfiguration.Enabled", Name: validation.Null, Rule: true, Chain: nil}}},
-					{Target: "parameters.Properties.OperationalState", Name: validation.ReadOnly, Rule: true, Chain: nil},
+			Constraints: []validation.Constraint{{Target: "parameters.ApplicationGatewayPropertiesFormat", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.ApplicationGatewayPropertiesFormat.WebApplicationFirewallConfiguration", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.ApplicationGatewayPropertiesFormat.WebApplicationFirewallConfiguration.Enabled", Name: validation.Null, Rule: true, Chain: nil}}},
+					{Target: "parameters.ApplicationGatewayPropertiesFormat.OperationalState", Name: validation.ReadOnly, Rule: true, Chain: nil},
 				}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "network.ApplicationGatewaysClient", "CreateOrUpdate")
 	}
@@ -198,10 +197,10 @@ func (client ApplicationGatewaysClient) CreateOrUpdateResponder(resp *http.Respo
 	return
 }
 
-// Delete the delete ApplicationGateway operation deletes the specified
-// application gateway. This method may poll for completion. Polling can be
-// canceled by passing the cancel channel argument. The channel will be used
-// to cancel polling and any outstanding HTTP requests.
+// Delete deletes the specified application gateway. This method may poll for
+// completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
 // resourceGroupName is the name of the resource group. applicationGatewayName
 // is the name of the application gateway.
@@ -265,8 +264,7 @@ func (client ApplicationGatewaysClient) DeleteResponder(resp *http.Response) (re
 	return
 }
 
-// Get the Get ApplicationGateway operation retrieves information about the
-// specified application gateway.
+// Get gets the specified application gateway.
 //
 // resourceGroupName is the name of the resource group. applicationGatewayName
 // is the name of the application gateway.
@@ -329,8 +327,7 @@ func (client ApplicationGatewaysClient) GetResponder(resp *http.Response) (resul
 	return
 }
 
-// List the List ApplicationGateway operation retrieves all the application
-// gateways in a resource group.
+// List lists all application gateways in a resource group.
 //
 // resourceGroupName is the name of the resource group.
 func (client ApplicationGatewaysClient) List(resourceGroupName string) (result ApplicationGatewayListResult, err error) {
@@ -415,8 +412,7 @@ func (client ApplicationGatewaysClient) ListNextResults(lastResults ApplicationG
 	return
 }
 
-// ListAll the List ApplicationGateway operation retrieves all the application
-// gateways in a subscription.
+// ListAll gets all the application gateways in a subscription.
 func (client ApplicationGatewaysClient) ListAll() (result ApplicationGatewayListResult, err error) {
 	req, err := client.ListAllPreparer()
 	if err != nil {
@@ -498,11 +494,10 @@ func (client ApplicationGatewaysClient) ListAllNextResults(lastResults Applicati
 	return
 }
 
-// Start the Start ApplicationGateway operation starts application gateway in
-// the specified resource group through Network resource provider. This
-// method may poll for completion. Polling can be canceled by passing the
-// cancel channel argument. The channel will be used to cancel polling and
-// any outstanding HTTP requests.
+// Start starts the specified application gateway. This method may poll for
+// completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
 // resourceGroupName is the name of the resource group. applicationGatewayName
 // is the name of the application gateway.
@@ -566,11 +561,10 @@ func (client ApplicationGatewaysClient) StartResponder(resp *http.Response) (res
 	return
 }
 
-// Stop the STOP ApplicationGateway operation stops application gateway in the
-// specified resource group through Network resource provider. This method
-// may poll for completion. Polling can be canceled by passing the cancel
-// channel argument. The channel will be used to cancel polling and any
-// outstanding HTTP requests.
+// Stop stops the specified application gateway in a resource group. This
+// method may poll for completion. Polling can be canceled by passing the
+// cancel channel argument. The channel will be used to cancel polling and
+// any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. applicationGatewayName
 // is the name of the application gateway.

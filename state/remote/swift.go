@@ -39,6 +39,7 @@ type SwiftClient struct {
 	tenantname  string
 	userid      string
 	username    string
+	token       string
 	archive     bool
 	archivepath string
 	expireSecs  int
@@ -76,14 +77,21 @@ func (c *SwiftClient) validateConfig(conf map[string]string) (err error) {
 	}
 	c.userid = userID
 
+	token, ok := conf["token"]
+	if !ok {
+		token = os.Getenv("OS_AUTH_TOKEN")
+	}
+	c.token = token
+
 	password, ok := conf["password"]
 	if !ok {
 		password = os.Getenv("OS_PASSWORD")
-		if password == "" {
-			return fmt.Errorf("missing 'password' configuration or OS_PASSWORD environment variable")
-		}
+
 	}
 	c.password = password
+	if password == "" && token == "" {
+		return fmt.Errorf("missing either password or token configuration or OS_PASSWORD or OS_AUTH_TOKEN environment variable")
+	}
 
 	region, ok := conf["region_name"]
 	if !ok {
@@ -203,6 +211,7 @@ func (c *SwiftClient) validateConfig(conf map[string]string) (err error) {
 		TenantID:         c.tenantid,
 		TenantName:       c.tenantname,
 		Password:         c.password,
+		TokenID:          c.token,
 		DomainID:         c.domainid,
 		DomainName:       c.domainname,
 	}

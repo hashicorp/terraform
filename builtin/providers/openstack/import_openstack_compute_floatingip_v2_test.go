@@ -7,7 +7,7 @@ import (
 )
 
 func TestAccComputeV2FloatingIP_importBasic(t *testing.T) {
-	resourceName := "openstack_compute_floatingip_v2.foo"
+	resourceName := "openstack_compute_floatingip_v2.fip_1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -19,10 +19,9 @@ func TestAccComputeV2FloatingIP_importBasic(t *testing.T) {
 			},
 
 			resource.TestStep{
-				ResourceName:            resourceName,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"region"},
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

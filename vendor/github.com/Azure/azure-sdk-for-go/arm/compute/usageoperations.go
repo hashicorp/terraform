@@ -42,9 +42,11 @@ func NewUsageOperationsClientWithBaseURI(baseURI string, subscriptionID string) 
 	return UsageOperationsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// List lists compute usages for a subscription.
+// List gets, for the specified location, the current compute resource usage
+// information as well as the limits for compute resources under the
+// subscription.
 //
-// location is the location upon which resource usage is queried.
+// location is the location for which resource usage is queried.
 func (client UsageOperationsClient) List(location string) (result ListUsagesResult, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: location,

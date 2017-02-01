@@ -166,11 +166,29 @@ func resourceServiceV1() *schema.Resource {
 							Default:     80,
 							Description: "The port number Backend responds on. Default 80",
 						},
+						"request_condition": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Condition, which if met, will select this backend during a request.",
+						},
+						"shield": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "The POP of the shield designated to reduce inbound load.",
+						},
 						"ssl_check_cert": &schema.Schema{
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Default:     true,
 							Description: "Be strict on checking SSL certs",
+						},
+						"ssl_hostname": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "SSL certificate hostname",
 						},
 						// UseSSL is something we want to support in the future, but
 						// requires SSL setup we don't yet have
@@ -439,6 +457,38 @@ func resourceServiceV1() *schema.Resource {
 				},
 			},
 
+			"papertrail": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						// Required fields
+						"name": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "Unique name to refer to this logging setup",
+						},
+						"address": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: "The address of the papertrail service",
+						},
+						"port": &schema.Schema{
+							Type:        schema.TypeInt,
+							Required:    true,
+							Description: "The port of the papertrail service",
+						},
+						// Optional
+						"format": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "%h %l %u %t %r %>s",
+							Description: "Apache-style string or VCL variables to use for log formatting",
+						},
+					},
+				},
+			},
+
 			"request_setting": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -598,6 +648,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 		"header",
 		"gzip",
 		"s3logging",
+		"papertrail",
 		"condition",
 		"request_setting",
 		"cache_setting",
@@ -810,8 +861,10 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					Version:             latestVersion,
 					Name:                df["name"].(string),
 					Address:             df["address"].(string),
-					AutoLoadbalance:     df["auto_loadbalance"].(bool),
-					SSLCheckCert:        df["ssl_check_cert"].(bool),
+					AutoLoadbalance:     gofastly.CBool(df["auto_loadbalance"].(bool)),
+					SSLCheckCert:        gofastly.CBool(df["ssl_check_cert"].(bool)),
+					SSLHostname:         df["ssl_hostname"].(string),
+					Shield:              df["shield"].(string),
 					Port:                uint(df["port"].(int)),
 					BetweenBytesTimeout: uint(df["between_bytes_timeout"].(int)),
 					ConnectTimeout:      uint(df["connect_timeout"].(int)),
@@ -819,6 +872,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					FirstByteTimeout:    uint(df["first_byte_timeout"].(int)),
 					MaxConn:             uint(df["max_conn"].(int)),
 					Weight:              uint(df["weight"].(int)),
+					RequestCondition:    df["request_condition"].(string),
 				}
 
 				log.Printf("[DEBUG] Create Backend Opts: %#v", opts)
@@ -1007,6 +1061,58 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 
 				log.Printf("[DEBUG] Create S3 Logging Opts: %#v", opts)
 				_, err := conn.CreateS3(&opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		// find difference in Papertrail
+		if d.HasChange("papertrail") {
+			os, ns := d.GetChange("papertrail")
+			if os == nil {
+				os = new(schema.Set)
+			}
+			if ns == nil {
+				ns = new(schema.Set)
+			}
+
+			oss := os.(*schema.Set)
+			nss := ns.(*schema.Set)
+			removePapertrail := oss.Difference(nss).List()
+			addPapertrail := nss.Difference(oss).List()
+
+			// DELETE old papertrail configurations
+			for _, pRaw := range removePapertrail {
+				pf := pRaw.(map[string]interface{})
+				opts := gofastly.DeletePapertrailInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    pf["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly Papertrail removal opts: %#v", opts)
+				err := conn.DeletePapertrail(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new/updated Papertrail
+			for _, pRaw := range addPapertrail {
+				pf := pRaw.(map[string]interface{})
+
+				opts := gofastly.CreatePapertrailInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    pf["name"].(string),
+					Address: pf["address"].(string),
+					Port:    uint(pf["port"].(int)),
+					Format:  pf["format"].(string),
+				}
+
+				log.Printf("[DEBUG] Create Papertrail Opts: %#v", opts)
+				_, err := conn.CreatePapertrail(&opts)
 				if err != nil {
 					return err
 				}
@@ -1341,6 +1447,23 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			log.Printf("[WARN] Error setting S3 Logging for (%s): %s", d.Id(), err)
 		}
 
+		// refresh Papertrail Logging
+		log.Printf("[DEBUG] Refreshing Papertrail for (%s)", d.Id())
+		papertrailList, err := conn.ListPapertrails(&gofastly.ListPapertrailsInput{
+			Service: d.Id(),
+			Version: s.ActiveVersion.Number,
+		})
+
+		if err != nil {
+			return fmt.Errorf("[ERR] Error looking up Papertrail for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+		}
+
+		pl := flattenPapertrails(papertrailList)
+
+		if err := d.Set("papertrail", pl); err != nil {
+			log.Printf("[WARN] Error setting Papertrail for (%s): %s", d.Id(), err)
+		}
+
 		// refresh Conditions
 		log.Printf("[DEBUG] Refreshing Conditions for (%s)", d.Id())
 		conditionList, err := conn.ListConditions(&gofastly.ListConditionsInput{
@@ -1485,15 +1608,18 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 		nb := map[string]interface{}{
 			"name":                  b.Name,
 			"address":               b.Address,
-			"auto_loadbalance":      b.AutoLoadbalance,
+			"auto_loadbalance":      gofastly.CBool(b.AutoLoadbalance),
 			"between_bytes_timeout": int(b.BetweenBytesTimeout),
 			"connect_timeout":       int(b.ConnectTimeout),
 			"error_threshold":       int(b.ErrorThreshold),
 			"first_byte_timeout":    int(b.FirstByteTimeout),
 			"max_conn":              int(b.MaxConn),
 			"port":                  int(b.Port),
-			"ssl_check_cert":        b.SSLCheckCert,
+			"shield":                b.Shield,
+			"ssl_check_cert":        gofastly.CBool(b.SSLCheckCert),
+			"ssl_hostname":          b.SSLHostname,
 			"weight":                int(b.Weight),
+			"request_condition":     b.RequestCondition,
 		}
 
 		bl = append(bl, nb)
@@ -1566,7 +1692,7 @@ func buildHeader(headerMap interface{}) (*gofastly.CreateHeaderInput, error) {
 	df := headerMap.(map[string]interface{})
 	opts := gofastly.CreateHeaderInput{
 		Name:              df["name"].(string),
-		IgnoreIfSet:       gofastly.Compatibool(df["ignore_if_set"].(bool)),
+		IgnoreIfSet:       gofastly.CBool(df["ignore_if_set"].(bool)),
 		Destination:       df["destination"].(string),
 		Priority:          uint(df["priority"].(int)),
 		Source:            df["source"].(string),
@@ -1701,6 +1827,30 @@ func flattenS3s(s3List []*gofastly.S3) []map[string]interface{} {
 	return sl
 }
 
+func flattenPapertrails(papertrailList []*gofastly.Papertrail) []map[string]interface{} {
+	var pl []map[string]interface{}
+	for _, p := range papertrailList {
+		// Convert S3s to a map for saving to state.
+		ns := map[string]interface{}{
+			"name":    p.Name,
+			"address": p.Address,
+			"port":    p.Port,
+			"format":  p.Format,
+		}
+
+		// prune any empty values that come from the default string value in structs
+		for k, v := range ns {
+			if v == "" {
+				delete(ns, k)
+			}
+		}
+
+		pl = append(pl, ns)
+	}
+
+	return pl
+}
+
 func flattenConditions(conditionList []*gofastly.Condition) []map[string]interface{} {
 	var cl []map[string]interface{}
 	for _, c := range conditionList {
@@ -1762,12 +1912,12 @@ func buildRequestSetting(requestSettingMap interface{}) (*gofastly.CreateRequest
 	opts := gofastly.CreateRequestSettingInput{
 		Name:             df["name"].(string),
 		MaxStaleAge:      uint(df["max_stale_age"].(int)),
-		ForceMiss:        gofastly.Compatibool(df["force_miss"].(bool)),
-		ForceSSL:         gofastly.Compatibool(df["force_ssl"].(bool)),
-		BypassBusyWait:   gofastly.Compatibool(df["bypass_busy_wait"].(bool)),
+		ForceMiss:        gofastly.CBool(df["force_miss"].(bool)),
+		ForceSSL:         gofastly.CBool(df["force_ssl"].(bool)),
+		BypassBusyWait:   gofastly.CBool(df["bypass_busy_wait"].(bool)),
 		HashKeys:         df["hash_keys"].(string),
-		TimerSupport:     gofastly.Compatibool(df["timer_support"].(bool)),
-		GeoHeaders:       gofastly.Compatibool(df["geo_headers"].(bool)),
+		TimerSupport:     gofastly.CBool(df["timer_support"].(bool)),
+		GeoHeaders:       gofastly.CBool(df["geo_headers"].(bool)),
 		DefaultHost:      df["default_host"].(string),
 		RequestCondition: df["request_condition"].(string),
 	}

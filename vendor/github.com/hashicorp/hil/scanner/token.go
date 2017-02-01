@@ -48,6 +48,20 @@ const (
 	SLASH   TokenType = '/'
 	PERCENT TokenType = '%'
 
+	AND  TokenType = '∧'
+	OR   TokenType = '∨'
+	BANG TokenType = '!'
+
+	EQUAL    TokenType = '='
+	NOTEQUAL TokenType = '≠'
+	GT       TokenType = '>'
+	LT       TokenType = '<'
+	GTE      TokenType = '≥'
+	LTE      TokenType = '≤'
+
+	QUESTION TokenType = '?'
+	COLON    TokenType = ':'
+
 	EOF TokenType = '␄'
 
 	// Produced for sequences that cannot be understood as valid tokens
@@ -73,6 +87,16 @@ func (t *Token) String() string {
 		return fmt.Sprintf("opening quote")
 	case CQUOTE:
 		return fmt.Sprintf("closing quote")
+	case AND:
+		return "&&"
+	case OR:
+		return "||"
+	case NOTEQUAL:
+		return "!="
+	case GTE:
+		return ">="
+	case LTE:
+		return "<="
 	default:
 		// The remaining token types have content that
 		// speaks for itself.

@@ -50,9 +50,14 @@ The `forward` block supports:
 
 * `virtual_machine_id` - (Required) The ID of the virtual machine to forward to.
 
+* `vm_guest_ip` - (Optional) The virtual machine IP address for the port
+    forwarding rule (useful when the virtual machine has secondairy NICs
+    or IP addresses).
+
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `id` - The ID of the IP address for which the port forwards are created.
-
+* `vm_guest_ip` - The IP address of the virtual machine that is used
+    for the port forwarding rule.

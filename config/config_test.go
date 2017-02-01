@@ -168,6 +168,13 @@ func TestConfigValidate_table(t *testing.T) {
 			true,
 			"data sources cannot have",
 		},
+
+		{
+			"basic provisioners",
+			"validate-basic-provisioners",
+			false,
+			"",
+		},
 	}
 
 	for i, tc := range cases {
@@ -247,29 +254,8 @@ func TestConfigValidate_countCountVar(t *testing.T) {
 	}
 }
 
-func TestConfigValidate_countModuleVar(t *testing.T) {
-	c := testConfig(t, "validate-count-module-var")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
-	}
-}
-
 func TestConfigValidate_countNotInt(t *testing.T) {
 	c := testConfig(t, "validate-count-not-int")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
-	}
-}
-
-func TestConfigValidate_countResourceVar(t *testing.T) {
-	c := testConfig(t, "validate-count-resource-var")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
-	}
-}
-
-func TestConfigValidate_countResourceVarMulti(t *testing.T) {
-	c := testConfig(t, "validate-count-resource-var-multi")
 	if err := c.Validate(); err == nil {
 		t.Fatal("should not be valid")
 	}
@@ -453,13 +439,6 @@ func TestConfigValidate_providerMultiRefGood(t *testing.T) {
 	c := testConfig(t, "validate-provider-multi-ref-good")
 	if err := c.Validate(); err != nil {
 		t.Fatalf("should be valid: %s", err)
-	}
-}
-
-func TestConfigValidate_providerMultiRefBad(t *testing.T) {
-	c := testConfig(t, "validate-provider-multi-ref-bad")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
 	}
 }
 

@@ -25,44 +25,44 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"database_name": &schema.Schema{
+			"database_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				ValidateFunc: validateRedshiftClusterDbName,
 			},
 
-			"cluster_identifier": &schema.Schema{
+			"cluster_identifier": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateRedshiftClusterIdentifier,
 			},
-			"cluster_type": &schema.Schema{
+			"cluster_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"node_type": &schema.Schema{
+			"node_type": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"master_username": &schema.Schema{
+			"master_username": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateRedshiftClusterMasterUsername,
 			},
 
-			"master_password": &schema.Schema{
+			"master_password": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Sensitive:    true,
 				ValidateFunc: validateRedshiftClusterMasterPassword,
 			},
 
-			"cluster_security_groups": &schema.Schema{
+			"cluster_security_groups": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
@@ -70,7 +70,7 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"vpc_security_group_ids": &schema.Schema{
+			"vpc_security_group_ids": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
@@ -78,20 +78,20 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"cluster_subnet_group_name": &schema.Schema{
+			"cluster_subnet_group_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			"availability_zone": &schema.Schema{
+			"availability_zone": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"preferred_maintenance_window": &schema.Schema{
+			"preferred_maintenance_window": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -101,15 +101,16 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 					}
 					return strings.ToLower(val.(string))
 				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
 			},
 
-			"cluster_parameter_group_name": &schema.Schema{
+			"cluster_parameter_group_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"automated_snapshot_retention_period": &schema.Schema{
+			"automated_snapshot_retention_period": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  1,
@@ -123,91 +124,92 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				},
 			},
 
-			"port": &schema.Schema{
+			"port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  5439,
 			},
 
-			"cluster_version": &schema.Schema{
+			"cluster_version": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "1.0",
 			},
 
-			"allow_version_upgrade": &schema.Schema{
+			"allow_version_upgrade": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"number_of_nodes": &schema.Schema{
+			"number_of_nodes": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  1,
 			},
 
-			"publicly_accessible": &schema.Schema{
+			"publicly_accessible": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"encrypted": &schema.Schema{
+			"encrypted": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"enhanced_vpc_routing": &schema.Schema{
+			"enhanced_vpc_routing": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"kms_key_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
+			"kms_key_id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				ValidateFunc: validateArn,
 			},
 
-			"elastic_ip": &schema.Schema{
+			"elastic_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"final_snapshot_identifier": &schema.Schema{
+			"final_snapshot_identifier": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateRedshiftClusterFinalSnapshotIdentifier,
 			},
 
-			"skip_final_snapshot": &schema.Schema{
+			"skip_final_snapshot": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"endpoint": &schema.Schema{
+			"endpoint": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"cluster_public_key": &schema.Schema{
+			"cluster_public_key": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"cluster_revision_number": &schema.Schema{
+			"cluster_revision_number": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"iam_roles": &schema.Schema{
+			"iam_roles": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
@@ -233,12 +235,12 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Computed: true,
 			},
 
-			"snapshot_identifier": &schema.Schema{
+			"snapshot_identifier": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"snapshot_cluster_identifier": &schema.Schema{
+			"snapshot_cluster_identifier": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -327,6 +329,14 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		d.SetId(*resp.Cluster.ClusterIdentifier)
 
 	} else {
+		if _, ok := d.GetOk("master_password"); !ok {
+			return fmt.Errorf(`provider.aws: aws_redshift_cluster: %s: "master_password": required field is not set`, d.Get("cluster_identifier").(string))
+		}
+
+		if _, ok := d.GetOk("master_username"); !ok {
+			return fmt.Errorf(`provider.aws: aws_redshift_cluster: %s: "master_username": required field is not set`, d.Get("cluster_identifier").(string))
+		}
+
 		createOpts := &redshift.CreateClusterInput{
 			ClusterIdentifier:                aws.String(d.Get("cluster_identifier").(string)),
 			Port:                             aws.Int64(int64(d.Get("port").(int))),
@@ -407,7 +417,7 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		Pending:    []string{"creating", "backing-up", "modifying", "restoring"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
-		Timeout:    40 * time.Minute,
+		Timeout:    75 * time.Minute,
 		MinTimeout: 10 * time.Second,
 	}
 
@@ -585,8 +595,8 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 		requestUpdate = true
 	}
 
-	if d.HasChange("vpc_security_group_ips") {
-		req.VpcSecurityGroupIds = expandStringList(d.Get("vpc_security_group_ips").(*schema.Set).List())
+	if d.HasChange("vpc_security_group_ids") {
+		req.VpcSecurityGroupIds = expandStringList(d.Get("vpc_security_group_ids").(*schema.Set).List())
 		requestUpdate = true
 	}
 

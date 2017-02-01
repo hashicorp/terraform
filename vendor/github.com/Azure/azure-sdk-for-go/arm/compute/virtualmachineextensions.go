@@ -55,8 +55,8 @@ func NewVirtualMachineExtensionsClientWithBaseURI(baseURI string, subscriptionID
 func (client VirtualMachineExtensionsClient) CreateOrUpdate(resourceGroupName string, vmName string, vmExtensionName string, extensionParameters VirtualMachineExtension, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: extensionParameters,
-			Constraints: []validation.Constraint{{Target: "extensionParameters.Properties", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "extensionParameters.Properties.ProvisioningState", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "extensionParameters.VirtualMachineExtensionProperties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "extensionParameters.VirtualMachineExtensionProperties.ProvisioningState", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "compute.VirtualMachineExtensionsClient", "CreateOrUpdate")
 	}
 

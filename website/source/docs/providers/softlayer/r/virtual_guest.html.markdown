@@ -13,8 +13,9 @@ and deleted. For additional details please refer to [API documentation](http://s
 
 ## Example Usage
 
-```
-# Create a new virtual guest using image "Debian"
+Create a new virtual guest using the "Debian" image.
+
+```hcl
 resource "softlayer_virtual_guest" "twc_terraform_sample" {
     name = "twc-terraform-sample-name"
     domain = "bar.example.com"
@@ -34,8 +35,9 @@ resource "softlayer_virtual_guest" "twc_terraform_sample" {
 }
 ```
 
-```
-# Create a new virtual guest using block device template
+Create a new virtual guest using block device template.
+
+```hcl
 resource "softlayer_virtual_guest" "terraform-sample-BDTGroup" {
    name = "terraform-sample-blockDeviceTemplateGroup"
    domain = "bar.example.com"
@@ -69,10 +71,10 @@ The following arguments are supported:
 	* Specifies which datacenter the instance is to be provisioned in.
 	* **Required**
 * `hourly_billing` | *boolean*
-	* Specifies the billing type for the instance. When true the computing instance will be billed on hourly usage, otherwise it will be billed on a monthly basis.
+	* Specifies the billing type for the instance. When `true`, the computing instance will be billed on hourly usage, otherwise it will be billed on a monthly basis.
 	* **Required**
 * `local_disk` | *boolean*
-	* Specifies the disk type for the instance. When true the disks for the computing instance will be provisioned on the host which it runs, otherwise SAN disks will be provisioned.
+	* Specifies the disk type for the instance. When `true`, the disks for the computing instance will be provisioned on the host which it runs, otherwise SAN disks will be provisioned.
 	* **Required**
 * `dedicated_acct_host_only` | *boolean*
 	* Specifies whether or not the instance must only run on hosts with instances from the same account
@@ -80,10 +82,10 @@ The following arguments are supported:
 	* *Optional*
 * `image` | *string*
 	* An identifier for the operating system to provision the computing instance with.
-	* **Conditionally required**	- Disallowed when blockDeviceTemplateGroup.globalIdentifier is provided, as the template will specify the operating system.
+	* **Conditionally required**	- Disallowed when `blockDeviceTemplateGroup.globalIdentifier` is provided, as the template will specify the operating system.
 * `block_device_template_group_gid` | *string*
 	* A global identifier for the template to be used to provision the computing instance.
-	* **Conditionally required**	- Disallowed when operatingSystemReferenceCode is provided, as the template will specify the operating system.
+	* **Conditionally required**	- Disallowed when `operatingSystemReferenceCode` is provided, as the template will specify the operating system.
 * `public_network_speed` | *int*
 	* Specifies the connection speed for the instance's network components.
 	* *Default*: 10
@@ -93,11 +95,11 @@ The following arguments are supported:
 	* *Default*: False
 	* *Optional*
 * `frontend_vlan_id` | *int*
-	* Specifies the network vlan which is to be used for the frontend interface of the computing instance.
+	* Specifies the network VLAN which is to be used for the front end interface of the computing instance.
 	* *Default*: nil
 	* *Optional*
 * `backend_vlan_id` | *int*
-	* Specifies the network vlan which is to be used for the backend interface of the computing instance.
+	* Specifies the network VLAN which is to be used for the back end interface of the computing instance.
 	* *Default*: nil
 	* *Optional*
 * `disks` | *array*
@@ -113,22 +115,21 @@ The following arguments are supported:
 	* *Default*: nil
 	* *Optional*
 * `ipv4_address` | *string*
-	* Uses editObject call, template data [defined here](https://sldn.softlayer.com/reference/datatypes/SoftLayer_Virtual_Guest).
+	* Uses `editObject` call, template data [defined here](https://sldn.softlayer.com/reference/datatypes/SoftLayer_Virtual_Guest).
 	* *Default*: nil
 	* *Optional*
 * `ipv4_address_private` | *string*
-	* Uses editObject call, template data [defined here](https://sldn.softlayer.com/reference/datatypes/SoftLayer_Virtual_Guest).
+	* Uses `editObject` call, template data [defined here](https://sldn.softlayer.com/reference/datatypes/SoftLayer_Virtual_Guest).
 	* *Default*: nil
 	* *Optional*
 * `post_install_script_uri` | *string*
 	* As defined in the [SoftLayer_Virtual_Guest_SupplementalCreateObjectOptions](https://sldn.softlayer.com/reference/datatypes/SoftLayer_Virtual_Guest_SupplementalCreateObjectOptions).
 	* *Default*: nil
 	* *Optional*
-				
+
 ## Attributes Reference
 
-The following attributes are exported:	
+The following attributes are exported:
 
-* `id` - id of the virtual guest.
+* `id` - The ID of the virtual guest.
 
-	

@@ -45,14 +45,14 @@ func NewLoadBalancersClientWithBaseURI(baseURI string, subscriptionID string) Lo
 	return LoadBalancersClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate the Put LoadBalancer operation creates/updates a
-// LoadBalancer This method may poll for completion. Polling can be canceled
-// by passing the cancel channel argument. The channel will be used to cancel
-// polling and any outstanding HTTP requests.
+// CreateOrUpdate creates or updates a load balancer. This method may poll for
+// completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
 // resourceGroupName is the name of the resource group. loadBalancerName is
-// the name of the loadBalancer. parameters is parameters supplied to the
-// create/delete LoadBalancer operation
+// the name of the load balancer. parameters is parameters supplied to the
+// create or update load balancer operation.
 func (client LoadBalancersClient) CreateOrUpdate(resourceGroupName string, loadBalancerName string, parameters LoadBalancer, cancel <-chan struct{}) (result autorest.Response, err error) {
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, loadBalancerName, parameters, cancel)
 	if err != nil {
@@ -115,13 +115,13 @@ func (client LoadBalancersClient) CreateOrUpdateResponder(resp *http.Response) (
 	return
 }
 
-// Delete the delete LoadBalancer operation deletes the specified load
-// balancer. This method may poll for completion. Polling can be canceled by
-// passing the cancel channel argument. The channel will be used to cancel
-// polling and any outstanding HTTP requests.
+// Delete deletes the specified load balancer. This method may poll for
+// completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
 // resourceGroupName is the name of the resource group. loadBalancerName is
-// the name of the loadBalancer.
+// the name of the load balancer.
 func (client LoadBalancersClient) Delete(resourceGroupName string, loadBalancerName string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(resourceGroupName, loadBalancerName, cancel)
 	if err != nil {
@@ -182,11 +182,10 @@ func (client LoadBalancersClient) DeleteResponder(resp *http.Response) (result a
 	return
 }
 
-// Get the Get LoadBalancer operation retrieves information about the
-// specified LoadBalancer.
+// Get gets the specified load balancer.
 //
 // resourceGroupName is the name of the resource group. loadBalancerName is
-// the name of the loadBalancer. expand is expand references resources.
+// the name of the load balancer. expand is expands referenced resources.
 func (client LoadBalancersClient) Get(resourceGroupName string, loadBalancerName string, expand string) (result LoadBalancer, err error) {
 	req, err := client.GetPreparer(resourceGroupName, loadBalancerName, expand)
 	if err != nil {
@@ -249,8 +248,7 @@ func (client LoadBalancersClient) GetResponder(resp *http.Response) (result Load
 	return
 }
 
-// List the List loadBalancer operation retrieves all the load balancers in a
-// resource group.
+// List gets all the load balancers in a resource group.
 //
 // resourceGroupName is the name of the resource group.
 func (client LoadBalancersClient) List(resourceGroupName string) (result LoadBalancerListResult, err error) {
@@ -335,8 +333,7 @@ func (client LoadBalancersClient) ListNextResults(lastResults LoadBalancerListRe
 	return
 }
 
-// ListAll the List loadBalancer operation retrieves all the load balancers in
-// a subscription.
+// ListAll gets all the load balancers in a subscription.
 func (client LoadBalancersClient) ListAll() (result LoadBalancerListResult, err error) {
 	req, err := client.ListAllPreparer()
 	if err != nil {

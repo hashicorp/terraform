@@ -27,53 +27,54 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 		MigrateState:  resourceAwsSecurityGroupRuleMigrateState,
 
 		Schema: map[string]*schema.Schema{
-			"type": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Type of rule, ingress (inbound) or egress (outbound).",
+			"type": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				Description:  "Type of rule, ingress (inbound) or egress (outbound).",
+				ValidateFunc: validateSecurityRuleType,
 			},
 
-			"from_port": &schema.Schema{
+			"from_port": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"to_port": &schema.Schema{
+			"to_port": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: protocolStateFunc,
 			},
 
-			"cidr_blocks": &schema.Schema{
+			"cidr_blocks": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"prefix_list_ids": &schema.Schema{
+			"prefix_list_ids": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"security_group_id": &schema.Schema{
+			"security_group_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"source_security_group_id": &schema.Schema{
+			"source_security_group_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
@@ -81,7 +82,7 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 				ConflictsWith: []string{"cidr_blocks", "self"},
 			},
 
-			"self": &schema.Schema{
+			"self": {
 				Type:          schema.TypeBool,
 				Optional:      true,
 				Default:       false,

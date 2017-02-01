@@ -120,6 +120,13 @@ func Provider() terraform.ResourceProvider {
 				Description: descriptions["skip_credentials_validation"],
 			},
 
+			"skip_region_validation": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: descriptions["skip_region_validation"],
+			},
+
 			"skip_requesting_account_id": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -147,24 +154,39 @@ func Provider() terraform.ResourceProvider {
 			"aws_alb":                      dataSourceAwsAlb(),
 			"aws_alb_listener":             dataSourceAwsAlbListener(),
 			"aws_ami":                      dataSourceAwsAmi(),
+			"aws_autoscaling_groups":       dataSourceAwsAutoscalingGroups(),
 			"aws_availability_zone":        dataSourceAwsAvailabilityZone(),
 			"aws_availability_zones":       dataSourceAwsAvailabilityZones(),
 			"aws_billing_service_account":  dataSourceAwsBillingServiceAccount(),
 			"aws_caller_identity":          dataSourceAwsCallerIdentity(),
+			"aws_canonical_user_id":        dataSourceAwsCanonicalUserId(),
 			"aws_cloudformation_stack":     dataSourceAwsCloudFormationStack(),
 			"aws_ebs_snapshot":             dataSourceAwsEbsSnapshot(),
 			"aws_ebs_volume":               dataSourceAwsEbsVolume(),
+			"aws_ecs_cluster":              dataSourceAwsEcsCluster(),
 			"aws_ecs_container_definition": dataSourceAwsEcsContainerDefinition(),
+			"aws_ecs_task_definition":      dataSourceAwsEcsTaskDefinition(),
+			"aws_eip":                      dataSourceAwsEip(),
+			"aws_elb_hosted_zone_id":       dataSourceAwsElbHostedZoneId(),
 			"aws_elb_service_account":      dataSourceAwsElbServiceAccount(),
+			"aws_iam_account_alias":        dataSourceAwsIamAccountAlias(),
 			"aws_iam_policy_document":      dataSourceAwsIamPolicyDocument(),
+			"aws_iam_server_certificate":   dataSourceAwsIAMServerCertificate(),
+			"aws_instance":                 dataSourceAwsInstance(),
 			"aws_ip_ranges":                dataSourceAwsIPRanges(),
 			"aws_prefix_list":              dataSourceAwsPrefixList(),
 			"aws_redshift_service_account": dataSourceAwsRedshiftServiceAccount(),
 			"aws_region":                   dataSourceAwsRegion(),
+			"aws_route_table":              dataSourceAwsRouteTable(),
+			"aws_route53_zone":             dataSourceAwsRoute53Zone(),
 			"aws_s3_bucket_object":         dataSourceAwsS3BucketObject(),
 			"aws_subnet":                   dataSourceAwsSubnet(),
 			"aws_security_group":           dataSourceAwsSecurityGroup(),
 			"aws_vpc":                      dataSourceAwsVpc(),
+			"aws_vpc_endpoint":             dataSourceAwsVpcEndpoint(),
+			"aws_vpc_endpoint_service":     dataSourceAwsVpcEndpointService(),
+			"aws_vpc_peering_connection":   dataSourceAwsVpcPeeringConnection(),
+			"aws_kms_secret":               dataSourceAwsKmsSecret(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -212,6 +234,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_autoscaling_lifecycle_hook":               resourceAwsAutoscalingLifecycleHook(),
 			"aws_cloudwatch_metric_alarm":                  resourceAwsCloudWatchMetricAlarm(),
 			"aws_codedeploy_app":                           resourceAwsCodeDeployApp(),
+			"aws_codedeploy_deployment_config":             resourceAwsCodeDeployDeploymentConfig(),
 			"aws_codedeploy_deployment_group":              resourceAwsCodeDeployDeploymentGroup(),
 			"aws_codecommit_repository":                    resourceAwsCodeCommitRepository(),
 			"aws_codecommit_trigger":                       resourceAwsCodeCommitTrigger(),
@@ -271,6 +294,9 @@ func Provider() terraform.ResourceProvider {
 			"aws_iam_user_ssh_key":                         resourceAwsIamUserSshKey(),
 			"aws_iam_user":                                 resourceAwsIamUser(),
 			"aws_iam_user_login_profile":                   resourceAwsIamUserLoginProfile(),
+			"aws_inspector_assessment_target":              resourceAWSInspectorAssessmentTarget(),
+			"aws_inspector_assessment_template":            resourceAWSInspectorAssessmentTemplate(),
+			"aws_inspector_resource_group":                 resourceAWSInspectorResourceGroup(),
 			"aws_instance":                                 resourceAwsInstance(),
 			"aws_internet_gateway":                         resourceAwsInternetGateway(),
 			"aws_key_pair":                                 resourceAwsKeyPair(),
@@ -283,6 +309,9 @@ func Provider() terraform.ResourceProvider {
 			"aws_lambda_alias":                             resourceAwsLambdaAlias(),
 			"aws_lambda_permission":                        resourceAwsLambdaPermission(),
 			"aws_launch_configuration":                     resourceAwsLaunchConfiguration(),
+			"aws_lightsail_domain":                         resourceAwsLightsailDomain(),
+			"aws_lightsail_instance":                       resourceAwsLightsailInstance(),
+			"aws_lightsail_key_pair":                       resourceAwsLightsailKeyPair(),
 			"aws_lb_cookie_stickiness_policy":              resourceAwsLBCookieStickinessPolicy(),
 			"aws_load_balancer_policy":                     resourceAwsLoadBalancerPolicy(),
 			"aws_load_balancer_backend_server_policy":      resourceAwsLoadBalancerBackendServerPolicies(),
@@ -310,6 +339,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_opsworks_instance":                        resourceAwsOpsworksInstance(),
 			"aws_opsworks_user_profile":                    resourceAwsOpsworksUserProfile(),
 			"aws_opsworks_permission":                      resourceAwsOpsworksPermission(),
+			"aws_opsworks_rds_db_instance":                 resourceAwsOpsworksRdsDbInstance(),
 			"aws_placement_group":                          resourceAwsPlacementGroup(),
 			"aws_proxy_protocol_policy":                    resourceAwsProxyProtocolPolicy(),
 			"aws_rds_cluster":                              resourceAwsRDSCluster(),
@@ -331,6 +361,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_ses_receipt_filter":                       resourceAwsSesReceiptFilter(),
 			"aws_ses_receipt_rule":                         resourceAwsSesReceiptRule(),
 			"aws_ses_receipt_rule_set":                     resourceAwsSesReceiptRuleSet(),
+			"aws_ses_configuration_set":                    resourceAwsSesConfigurationSet(),
+			"aws_ses_event_destination":                    resourceAwsSesEventDestination(),
 			"aws_s3_bucket":                                resourceAwsS3Bucket(),
 			"aws_s3_bucket_policy":                         resourceAwsS3BucketPolicy(),
 			"aws_s3_bucket_object":                         resourceAwsS3BucketObject(),
@@ -347,9 +379,12 @@ func Provider() terraform.ResourceProvider {
 			"aws_spot_fleet_request":                       resourceAwsSpotFleetRequest(),
 			"aws_sqs_queue":                                resourceAwsSqsQueue(),
 			"aws_sqs_queue_policy":                         resourceAwsSqsQueuePolicy(),
+			"aws_snapshot_create_volume_permission":        resourceAwsSnapshotCreateVolumePermission(),
 			"aws_sns_topic":                                resourceAwsSnsTopic(),
 			"aws_sns_topic_policy":                         resourceAwsSnsTopicPolicy(),
 			"aws_sns_topic_subscription":                   resourceAwsSnsTopicSubscription(),
+			"aws_sfn_activity":                             resourceAwsSfnActivity(),
+			"aws_sfn_state_machine":                        resourceAwsSfnStateMachine(),
 			"aws_subnet":                                   resourceAwsSubnet(),
 			"aws_volume_attachment":                        resourceAwsVolumeAttachment(),
 			"aws_vpc_dhcp_options_association":             resourceAwsVpcDhcpOptionsAssociation(),
@@ -357,6 +392,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_vpc_peering_connection":                   resourceAwsVpcPeeringConnection(),
 			"aws_vpc":                                      resourceAwsVpc(),
 			"aws_vpc_endpoint":                             resourceAwsVpcEndpoint(),
+			"aws_vpc_endpoint_route_table_association":     resourceAwsVpcEndpointRouteTableAssociation(),
 			"aws_vpn_connection":                           resourceAwsVpnConnection(),
 			"aws_vpn_connection_route":                     resourceAwsVpnConnectionRoute(),
 			"aws_vpn_gateway":                              resourceAwsVpnGateway(),
@@ -419,6 +455,9 @@ func init() {
 		"skip_credentials_validation": "Skip the credentials validation via STS API. " +
 			"Used for AWS API implementations that do not have STS available/implemented.",
 
+		"skip_region_validation": "Skip static validation of region name. " +
+			"Used by users of alternative AWS-like APIs or users w/ access to regions that are not public (yet).",
+
 		"skip_requesting_account_id": "Skip requesting the account ID. " +
 			"Used for AWS API implementations that do not have IAM/STS API and/or metadata API.",
 
@@ -437,6 +476,10 @@ func init() {
 
 		"assume_role_external_id": "The external ID to use when assuming the role. If omitted," +
 			" no external ID is passed to the AssumeRole call.",
+
+		"assume_role_policy": "The permissions applied when assuming a role. You cannot use," +
+			" this policy to grant further permissions that are in excess to those of the, " +
+			" role that is being assumed.",
 	}
 }
 
@@ -453,6 +496,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		KinesisEndpoint:         d.Get("kinesis_endpoint").(string),
 		Insecure:                d.Get("insecure").(bool),
 		SkipCredsValidation:     d.Get("skip_credentials_validation").(bool),
+		SkipRegionValidation:    d.Get("skip_region_validation").(bool),
 		SkipRequestingAccountId: d.Get("skip_requesting_account_id").(bool),
 		SkipMetadataApiCheck:    d.Get("skip_metadata_api_check").(bool),
 		S3ForcePathStyle:        d.Get("s3_force_path_style").(bool),
@@ -464,8 +508,13 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.AssumeRoleARN = assumeRole["role_arn"].(string)
 		config.AssumeRoleSessionName = assumeRole["session_name"].(string)
 		config.AssumeRoleExternalID = assumeRole["external_id"].(string)
-		log.Printf("[INFO] assume_role configuration set: (ARN: %q, SessionID: %q, ExternalID: %q)",
-			config.AssumeRoleARN, config.AssumeRoleSessionName, config.AssumeRoleExternalID)
+
+		if v := assumeRole["policy"].(string); v != "" {
+			config.AssumeRolePolicy = v
+		}
+
+		log.Printf("[INFO] assume_role configuration set: (ARN: %q, SessionID: %q, ExternalID: %q, Policy: %q)",
+			config.AssumeRoleARN, config.AssumeRoleSessionName, config.AssumeRoleExternalID, config.AssumeRolePolicy)
 	} else {
 		log.Printf("[INFO] No assume_role block read from configuration")
 	}
@@ -518,6 +567,12 @@ func assumeRoleSchema() *schema.Schema {
 					Optional:    true,
 					Description: descriptions["assume_role_external_id"],
 				},
+
+				"policy": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: descriptions["assume_role_policy"],
+				},
 			},
 		},
 		Set: assumeRoleToHash,
@@ -530,6 +585,7 @@ func assumeRoleToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["role_arn"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["session_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["external_id"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["policy"].(string)))
 	return hashcode.String(buf.String())
 }
 

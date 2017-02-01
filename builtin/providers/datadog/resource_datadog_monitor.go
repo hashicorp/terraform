@@ -19,7 +19,7 @@ func resourceDatadogMonitor() *schema.Resource {
 		Delete: resourceDatadogMonitorDelete,
 		Exists: resourceDatadogMonitorExists,
 		Importer: &schema.ResourceImporter{
-			State: resourceDatadogImport,
+			State: resourceDatadogMonitorImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -56,7 +56,7 @@ func resourceDatadogMonitor() *schema.Resource {
 			// Options
 			"thresholds": &schema.Schema{
 				Type:     schema.TypeMap,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ok": &schema.Schema{
@@ -69,11 +69,11 @@ func resourceDatadogMonitor() *schema.Resource {
 						},
 						"critical": &schema.Schema{
 							Type:     schema.TypeFloat,
-							Required: true,
+							Optional: true,
 						},
 					},
 				},
-				DiffSuppressFunc: supressDataDogFloatIntDiff,
+				DiffSuppressFunc: suppressDataDogFloatIntDiff,
 			},
 			"notify_no_data": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -119,13 +119,9 @@ func resourceDatadogMonitor() *schema.Resource {
 				Optional: true,
 			},
 			"tags": &schema.Schema{
-				Type:     schema.TypeMap,
+				Type:     schema.TypeList,
 				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-					Elem: &schema.Schema{
-						Type: schema.TypeString},
-				},
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}
@@ -193,11 +189,11 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 	}
 
 	if attr, ok := d.GetOk("tags"); ok {
-		s := make([]string, 0)
-		for k, v := range attr.(map[string]interface{}) {
-			s = append(s, fmt.Sprintf("%s:%s", k, v.(string)))
+		tags := []string{}
+		for _, s := range attr.([]interface{}) {
+			tags = append(tags, s.(string))
 		}
-		m.Tags = s
+		m.Tags = tags
 	}
 
 	return &m
@@ -263,10 +259,9 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
-	tags := make(map[string]string)
+	tags := []string{}
 	for _, s := range m.Tags {
-		tag := strings.Split(s, ":")
-		tags[tag[0]] = tag[1]
+		tags = append(tags, s)
 	}
 
 	log.Printf("[DEBUG] monitor: %v", m)
@@ -313,8 +308,8 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 
 	if attr, ok := d.GetOk("tags"); ok {
 		s := make([]string, 0)
-		for k, v := range attr.(map[string]interface{}) {
-			s = append(s, fmt.Sprintf("%s:%s", k, v.(string)))
+		for _, v := range attr.([]interface{}) {
+			s = append(s, v.(string))
 		}
 		m.Tags = s
 	}
@@ -393,7 +388,7 @@ func resourceDatadogMonitorDelete(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceDatadogImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceDatadogMonitorImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	if err := resourceDatadogMonitorRead(d, meta); err != nil {
 		return nil, err
 	}
@@ -402,7 +397,7 @@ func resourceDatadogImport(d *schema.ResourceData, meta interface{}) ([]*schema.
 
 // Ignore any diff that results from the mix of ints or floats returned from the
 // DataDog API.
-func supressDataDogFloatIntDiff(k, old, new string, d *schema.ResourceData) bool {
+func suppressDataDogFloatIntDiff(k, old, new string, d *schema.ResourceData) bool {
 	oF, err := strconv.ParseFloat(old, 64)
 	if err != nil {
 		log.Printf("Error parsing float of old value (%s): %s", old, err)

@@ -22,6 +22,10 @@ type RPCServer struct {
 	// make our own custom one we pipe across.
 	Stdout io.Reader
 	Stderr io.Reader
+
+	// DoneCh should be set to a non-nil channel that will be closed
+	// when the control requests the RPC server to end.
+	DoneCh chan<- struct{}
 }
 
 // Accept accepts connections on a listener and serves requests for
@@ -84,11 +88,39 @@ func (s *RPCServer) ServeConn(conn io.ReadWriteCloser) {
 	// Use the control connection to build the dispenser and serve the
 	// connection.
 	server := rpc.NewServer()
+	server.RegisterName("Control", &controlServer{
+		server: s,
+	})
 	server.RegisterName("Dispenser", &dispenseServer{
 		broker:  broker,
 		plugins: s.Plugins,
 	})
 	server.ServeConn(control)
+}
+
+// done is called internally by the control server to trigger the
+// doneCh to close which is listened to by the main process to cleanly
+// exit.
+func (s *RPCServer) done() {
+	if s.DoneCh != nil {
+		close(s.DoneCh)
+	}
+}
+
+// dispenseServer dispenses variousinterface implementations for Terraform.
+type controlServer struct {
+	server *RPCServer
+}
+
+func (c *controlServer) Quit(
+	null bool, response *struct{}) error {
+	// End the server
+	c.server.done()
+
+	// Always return true
+	*response = struct{}{}
+
+	return nil
 }
 
 // dispenseServer dispenses variousinterface implementations for Terraform.

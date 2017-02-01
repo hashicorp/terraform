@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -23,10 +25,25 @@ import (
 type ConfigTransformer struct {
 	Concrete ConcreteResourceNodeFunc
 
+	// Module is the module to add resources from.
 	Module *module.Tree
+
+	// Unique will only add resources that aren't already present in the graph.
+	Unique bool
+
+	// Mode will only add resources that match the given mode
+	ModeFilter bool
+	Mode       config.ResourceMode
+
+	l         sync.Mutex
+	uniqueMap map[string]struct{}
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
+	// Lock since we use some internal state
+	t.l.Lock()
+	defer t.l.Unlock()
+
 	// If no module is given, we don't do anything
 	if t.Module == nil {
 		return nil
@@ -35,6 +52,18 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 	// If the module isn't loaded, that is simply an error
 	if !t.Module.Loaded() {
 		return errors.New("module must be loaded for ConfigTransformer")
+	}
+
+	// Reset the uniqueness map. If we're tracking uniques, then populate
+	// it with addresses.
+	t.uniqueMap = make(map[string]struct{})
+	defer func() { t.uniqueMap = nil }()
+	if t.Unique {
+		for _, v := range g.Vertices() {
+			if rn, ok := v.(GraphNodeResource); ok {
+				t.uniqueMap[rn.ResourceAddr().String()] = struct{}{}
+			}
+		}
 	}
 
 	// Start the transformation process
@@ -66,13 +95,13 @@ func (t *ConfigTransformer) transformSingle(g *Graph, m *module.Tree) error {
 	log.Printf("[TRACE] ConfigTransformer: Starting for path: %v", m.Path())
 
 	// Get the configuration for this module
-	config := m.Config()
+	conf := m.Config()
 
 	// Build the path we're at
 	path := m.Path()
 
 	// Write all the resources out
-	for _, r := range config.Resources {
+	for _, r := range conf.Resources {
 		// Build the resource address
 		addr, err := parseResourceAddressConfig(r)
 		if err != nil {
@@ -80,6 +109,16 @@ func (t *ConfigTransformer) transformSingle(g *Graph, m *module.Tree) error {
 				"Error parsing config address, this is a bug: %#v", r))
 		}
 		addr.Path = path
+
+		// If this is already in our uniqueness map, don't add it again
+		if _, ok := t.uniqueMap[addr.String()]; ok {
+			continue
+		}
+
+		// Remove non-matching modes
+		if t.ModeFilter && addr.Mode != t.Mode {
+			continue
+		}
 
 		// Build the abstract node and the concrete one
 		abstract := &NodeAbstractResource{Addr: addr}

@@ -7,7 +7,6 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -67,12 +66,7 @@ func resourceArmVirtualNetwork() *schema.Resource {
 				Set: resourceAzureSubnetHash,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -97,10 +91,10 @@ func resourceArmVirtualNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	tags := d.Get("tags").(map[string]interface{})
 
 	vnet := network.VirtualNetwork{
-		Name:       &name,
-		Location:   &location,
-		Properties: getVirtualNetworkProperties(d),
-		Tags:       expandTags(tags),
+		Name:                           &name,
+		Location:                       &location,
+		VirtualNetworkPropertiesFormat: getVirtualNetworkProperties(d),
+		Tags: expandTags(tags),
 	}
 
 	_, err := vnetClient.CreateOrUpdate(resGroup, name, vnet, make(chan struct{}))
@@ -140,7 +134,7 @@ func resourceArmVirtualNetworkRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error making Read request on Azure virtual network %s: %s", name, err)
 	}
 
-	vnet := *resp.Properties
+	vnet := *resp.VirtualNetworkPropertiesFormat
 
 	// update appropriate values
 	d.Set("resource_group_name", resGroup)
@@ -156,9 +150,9 @@ func resourceArmVirtualNetworkRead(d *schema.ResourceData, meta interface{}) err
 		s := map[string]interface{}{}
 
 		s["name"] = *subnet.Name
-		s["address_prefix"] = *subnet.Properties.AddressPrefix
-		if subnet.Properties.NetworkSecurityGroup != nil {
-			s["security_group"] = *subnet.Properties.NetworkSecurityGroup.ID
+		s["address_prefix"] = *subnet.SubnetPropertiesFormat.AddressPrefix
+		if subnet.SubnetPropertiesFormat.NetworkSecurityGroup != nil {
+			s["security_group"] = *subnet.SubnetPropertiesFormat.NetworkSecurityGroup.ID
 		}
 
 		subnets.Add(s)
@@ -218,11 +212,11 @@ func getVirtualNetworkProperties(d *schema.ResourceData) *network.VirtualNetwork
 
 			var subnetObj network.Subnet
 			subnetObj.Name = &name
-			subnetObj.Properties = &network.SubnetPropertiesFormat{}
-			subnetObj.Properties.AddressPrefix = &prefix
+			subnetObj.SubnetPropertiesFormat = &network.SubnetPropertiesFormat{}
+			subnetObj.SubnetPropertiesFormat.AddressPrefix = &prefix
 
 			if secGroup != "" {
-				subnetObj.Properties.NetworkSecurityGroup = &network.SecurityGroup{
+				subnetObj.SubnetPropertiesFormat.NetworkSecurityGroup = &network.SecurityGroup{
 					ID: &secGroup,
 				}
 			}
@@ -250,15 +244,4 @@ func resourceAzureSubnetHash(v interface{}) int {
 		subnet = subnet + securityGroup.(string)
 	}
 	return hashcode.String(subnet)
-}
-
-func virtualNetworkStateRefreshFunc(client *ArmClient, resourceGroupName string, networkName string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		res, err := client.vnetClient.Get(resourceGroupName, networkName, "")
-		if err != nil {
-			return nil, "", fmt.Errorf("Error issuing read request in virtualNetworkStateRefreshFunc to Azure ARM for virtual network '%s' (RG: '%s'): %s", networkName, resourceGroupName, err)
-		}
-
-		return res, *res.Properties.ProvisioningState, nil
-	}
 }

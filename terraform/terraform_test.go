@@ -179,6 +179,10 @@ func (h *HookRecordApplyOrder) PreApply(
 	info *InstanceInfo,
 	s *InstanceState,
 	d *InstanceDiff) (HookAction, error) {
+	if d.Empty() {
+		return HookActionContinue, nil
+	}
+
 	if h.Active {
 		h.l.Lock()
 		defer h.l.Unlock()
@@ -943,6 +947,24 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanComputedMultiIndexStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "<computed>"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.0
+  ip.#: "" => "<computed>"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.1
+  ip.#: "" => "<computed>"
+  type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanCountStr = `
 DIFF:
 
@@ -1361,6 +1383,19 @@ STATE:
 module.child:
   aws_instance.foo:
     ID = baz
+`
+
+const testTerraformPlanModuleProviderVarStr = `
+DIFF:
+
+module.child:
+  CREATE: aws_instance.test
+    type:  "" => "aws_instance"
+    value: "" => "hello"
+
+STATE:
+
+<no state>
 `
 
 const testTerraformPlanModuleVarStr = `

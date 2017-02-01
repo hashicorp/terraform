@@ -15,35 +15,37 @@ func TestAccAWSAPIGatewayDomainName_basic(t *testing.T) {
 	var conf apigateway.DomainName
 
 	// Our test cert is for a wildcard on this domain
-	name := fmt.Sprintf("%s.tf-acc.invalid", resource.UniqueId())
+	uniqueId := resource.UniqueId()
+	name := fmt.Sprintf("%s.tf-acc.invalid", uniqueId)
+	nameModified := fmt.Sprintf("test-acc.%s.tf-acc.invalid", uniqueId)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAPIGatewayDomainNameDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAPIGatewayDomainNameConfigCreate(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayDomainNameExists("aws_api_gateway_domain_name.test", &conf),
-					resource.TestCheckResourceAttr(
-						"aws_api_gateway_domain_name.test", "certificate_body", testAccAWSAPIGatewayCertBody,
-					),
-					resource.TestCheckResourceAttr(
-						"aws_api_gateway_domain_name.test", "certificate_chain", testAccAWSAPIGatewayCertChain,
-					),
-					resource.TestCheckResourceAttr(
-						"aws_api_gateway_domain_name.test", "certificate_name", "tf-acc-apigateway-domain-name",
-					),
-					resource.TestCheckResourceAttr(
-						"aws_api_gateway_domain_name.test", "certificate_private_key", testAccAWSAPIGatewayCertPrivateKey,
-					),
-					resource.TestCheckResourceAttr(
-						"aws_api_gateway_domain_name.test", "domain_name", name,
-					),
-					resource.TestCheckResourceAttrSet(
-						"aws_api_gateway_domain_name.test", "certificate_upload_date",
-					),
+					resource.TestCheckResourceAttr("aws_api_gateway_domain_name.test", "certificate_body", testAccAWSAPIGatewayCertBody),
+					resource.TestCheckResourceAttr("aws_api_gateway_domain_name.test", "certificate_chain", testAccAWSAPIGatewayCertChain),
+					resource.TestCheckResourceAttr("aws_api_gateway_domain_name.test", "certificate_name", "tf-acc-apigateway-domain-name"),
+					resource.TestCheckResourceAttr("aws_api_gateway_domain_name.test", "certificate_private_key", testAccAWSAPIGatewayCertPrivateKey),
+					resource.TestCheckResourceAttr("aws_api_gateway_domain_name.test", "domain_name", name),
+					resource.TestCheckResourceAttrSet("aws_api_gateway_domain_name.test", "certificate_upload_date"),
+				),
+			},
+			{
+				Config: testAccAWSAPIGatewayDomainNameConfigUpdate(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAPIGatewayDomainNameExists("aws_api_gateway_domain_name.test", &conf),
+					resource.TestCheckResourceAttr("aws_api_gateway_domain_name.test", "certificate_body", testAccAWSAPIGatewayCertBody),
+					resource.TestCheckResourceAttr("aws_api_gateway_domain_name.test", "certificate_chain", testAccAWSAPIGatewayCertChain),
+					resource.TestCheckResourceAttr("aws_api_gateway_domain_name.test", "certificate_name", "tf-acc-apigateway-domain-name"),
+					resource.TestCheckResourceAttr("aws_api_gateway_domain_name.test", "certificate_private_key", testAccAWSAPIGatewayCertPrivateKey),
+					resource.TestCheckResourceAttr("aws_api_gateway_domain_name.test", "domain_name", nameModified),
+					resource.TestCheckResourceAttrSet("aws_api_gateway_domain_name.test", "certificate_upload_date"),
 				),
 			},
 		},
@@ -205,10 +207,28 @@ func testAccAWSAPIGatewayDomainNameConfigCreate(name string) string {
 	return fmt.Sprintf(`
 resource "aws_api_gateway_domain_name" "test" {
   domain_name = "%s"
-  certificate_body = "%v"
-  certificate_chain = "%v"
+  certificate_body = <<EOF
+%vEOF
+  certificate_chain = <<EOF
+%vEOF
   certificate_name = "tf-acc-apigateway-domain-name"
-  certificate_private_key = "%v"
+  certificate_private_key = <<EOF
+%vEOF
+}
+`, name, testAccAWSAPIGatewayCertBody, testAccAWSAPIGatewayCertChain, testAccAWSAPIGatewayCertPrivateKey)
+}
+
+func testAccAWSAPIGatewayDomainNameConfigUpdate(name string) string {
+	return fmt.Sprintf(`
+resource "aws_api_gateway_domain_name" "test" {
+  domain_name = "test-acc.%s"
+  certificate_body = <<EOF
+%vEOF
+  certificate_chain = <<EOF
+%vEOF
+  certificate_name = "tf-acc-apigateway-domain-name"
+  certificate_private_key = <<EOF
+%vEOF
 }
 `, name, testAccAWSAPIGatewayCertBody, testAccAWSAPIGatewayCertChain, testAccAWSAPIGatewayCertPrivateKey)
 }

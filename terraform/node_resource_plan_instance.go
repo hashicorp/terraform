@@ -19,9 +19,6 @@ func (n *NodePlannableResourceInstance) EvalTree() EvalNode {
 
 	// stateId is the ID to put into the state
 	stateId := addr.stateId()
-	if addr.Index > -1 {
-		stateId = fmt.Sprintf("%s.%d", stateId, addr.Index)
-	}
 
 	// Build the instance info. More of this will be populated during eval
 	info := &InstanceInfo{
@@ -40,13 +37,8 @@ func (n *NodePlannableResourceInstance) EvalTree() EvalNode {
 		resource.CountIndex = 0
 	}
 
-	// Determine the dependencies for the state. We use some older
-	// code for this that we've used for a long time.
-	var stateDeps []string
-	{
-		oldN := &graphNodeExpandedResource{Resource: n.Config}
-		stateDeps = oldN.StateDependencies()
-	}
+	// Determine the dependencies for the state.
+	stateDeps := n.StateReferences()
 
 	// Eval info is different depending on what kind of resource this is
 	switch n.Config.Mode {
@@ -169,6 +161,7 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(
 				Output: &state,
 			},
 			&EvalDiff{
+				Name:        stateId,
 				Info:        info,
 				Config:      &resourceConfig,
 				Resource:    n.Config,

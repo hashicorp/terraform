@@ -14,11 +14,11 @@ import (
 // Overview
 //
 // This is the AWS Lambda API Reference. The AWS Lambda Developer Guide provides
-// additional information. For the service overview, go to What is AWS Lambda
+// additional information. For the service overview, see What is AWS Lambda
 // (http://docs.aws.amazon.com/lambda/latest/dg/welcome.html), and for information
-// about how the service works, go to AWS Lambda: How it Works (http://docs.aws.amazon.com/lambda/latest/dg/lambda-introduction.html)
+// about how the service works, see AWS Lambda: How it Works (http://docs.aws.amazon.com/lambda/latest/dg/lambda-introduction.html)
 // in the AWS Lambda Developer Guide.
-//The service client's operations are safe to be used concurrently.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type Lambda struct {
 	*client.Client
@@ -30,8 +30,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "lambda"
+// Service information constants
+const (
+	ServiceName = "lambda"    // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the Lambda client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -44,17 +47,18 @@ const ServiceName = "lambda"
 //     // Create a Lambda client with additional configuration
 //     svc := lambda.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *Lambda {
-	c := p.ClientConfig(ServiceName, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
+	c := p.ClientConfig(EndpointsID, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *Lambda {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *Lambda {
 	svc := &Lambda{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2015-03-31",

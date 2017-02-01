@@ -20,6 +20,11 @@ resource "google_container_cluster" "primary" {
   zone = "us-central1-a"
   initial_node_count = 3
 
+  additional_zones = [
+    "us-central1-b",
+    "us-central1-c"
+  ]
+
   master_auth {
     username = "mr.yoda"
     password = "adoy.rm"
@@ -47,9 +52,13 @@ resource "google_container_cluster" "primary" {
 * `name` - (Required) The name of the cluster, unique within the project and
     zone.
 
-* `zone` - (Required) The zone that all resources should be created in.
+* `zone` - (Required) The zone that the master and the number of nodes specified
+    in `initial_node_count` should be created in.
 
 - - -
+* `additional_zones` - (Optional) If additional zones are configured, the number
+    of nodes specified in `initial_node_count` is created in all specified zones.
+
 * `addons_config` - (Optional) The configuration for addons supported by Google
     Container Engine
 
@@ -73,9 +82,10 @@ resource "google_container_cluster" "primary" {
 * `node_config` -  (Optional) The machine type and image to use for all nodes in
     this cluster
 
-* `node_version` - (Optional) The Kubernetes version on the nodes. Only valid
-    for upgrading of existing cluster. Defaults to latest version supported by
-    the server.
+* `node_version` - (Optional) The Kubernetes version on the nodes. Also affects
+    the initial master version on cluster creation. Updates affect nodes only. 
+    Defaults to the default version set by GKE which is not necessarily the latest 
+    version.
 
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.

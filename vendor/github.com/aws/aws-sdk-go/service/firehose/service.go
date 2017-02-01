@@ -14,8 +14,9 @@ import (
 // Amazon Kinesis Firehose is a fully-managed service that delivers real-time
 // streaming data to destinations such as Amazon Simple Storage Service (Amazon
 // S3), Amazon Elasticsearch Service (Amazon ES), and Amazon Redshift.
-//The service client's operations are safe to be used concurrently.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04
 type Firehose struct {
 	*client.Client
 }
@@ -26,8 +27,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "firehose"
+// Service information constants
+const (
+	ServiceName = "firehose"  // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the Firehose client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -40,17 +44,18 @@ const ServiceName = "firehose"
 //     // Create a Firehose client with additional configuration
 //     svc := firehose.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *Firehose {
-	c := p.ClientConfig(ServiceName, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
+	c := p.ClientConfig(EndpointsID, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *Firehose {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *Firehose {
 	svc := &Firehose{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2015-08-04",

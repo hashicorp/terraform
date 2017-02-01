@@ -37,6 +37,7 @@ const opCreateDeliveryStream = "CreateDeliveryStream"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/CreateDeliveryStream
 func (c *Firehose) CreateDeliveryStreamRequest(input *CreateDeliveryStreamInput) (req *request.Request, output *CreateDeliveryStreamOutput) {
 	op := &request.Operation{
 		Name:       opCreateDeliveryStream,
@@ -48,9 +49,8 @@ func (c *Firehose) CreateDeliveryStreamRequest(input *CreateDeliveryStreamInput)
 		input = &CreateDeliveryStreamInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDeliveryStreamOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -58,52 +58,47 @@ func (c *Firehose) CreateDeliveryStreamRequest(input *CreateDeliveryStreamInput)
 //
 // Creates a delivery stream.
 //
-// CreateDeliveryStream is an asynchronous operation that immediately returns.
-// The initial status of the delivery stream is CREATING. After the delivery
-// stream is created, its status is ACTIVE and it now accepts data. Attempts
-// to send data to a delivery stream that is not in the ACTIVE state cause an
-// exception. To check the state of a delivery stream, use DescribeDeliveryStream.
-//
-// The name of a delivery stream identifies it. You can't have two delivery
-// streams with the same name in the same region. Two delivery streams in different
-// AWS accounts or different regions in the same AWS account can have the same
-// name.
-//
 // By default, you can create up to 20 delivery streams per region.
 //
-// A delivery stream can only be configured with a single destination, Amazon
-// S3, Amazon Elasticsearch Service, or Amazon Redshift. For correct CreateDeliveryStream
-// request syntax, specify only one destination configuration parameter: either
+// This is an asynchronous operation that immediately returns. The initial status
+// of the delivery stream is CREATING. After the delivery stream is created,
+// its status is ACTIVE and it now accepts data. Attempts to send data to a
+// delivery stream that is not in the ACTIVE state cause an exception. To check
+// the state of a delivery stream, use DescribeDeliveryStream.
+//
+// A delivery stream is configured with a single destination: Amazon S3, Amazon
+// Elasticsearch Service, or Amazon Redshift. You must specify only one of the
+// following destination configuration parameters: ExtendedS3DestinationConfiguration,
 // S3DestinationConfiguration, ElasticsearchDestinationConfiguration, or RedshiftDestinationConfiguration.
 //
-// As part of S3DestinationConfiguration, optional values BufferingHints, EncryptionConfiguration,
-// and CompressionFormat can be provided. By default, if no BufferingHints value
-// is provided, Firehose buffers data up to 5 MB or for 5 minutes, whichever
-// condition is satisfied first. Note that BufferingHints is a hint, so there
-// are some cases where the service cannot adhere to these conditions strictly;
-// for example, record boundaries are such that the size is a little over or
-// under the configured buffering size. By default, no encryption is performed.
-// We strongly recommend that you enable encryption to ensure secure data storage
-// in Amazon S3.
+// When you specify S3DestinationConfiguration, you can also provide the following
+// optional values: BufferingHints, EncryptionConfiguration, and CompressionFormat.
+// By default, if no BufferingHints value is provided, Firehose buffers data
+// up to 5 MB or for 5 minutes, whichever condition is satisfied first. Note
+// that BufferingHints is a hint, so there are some cases where the service
+// cannot adhere to these conditions strictly; for example, record boundaries
+// are such that the size is a little over or under the configured buffering
+// size. By default, no encryption is performed. We strongly recommend that
+// you enable encryption to ensure secure data storage in Amazon S3.
 //
-// A few notes about RedshiftDestinationConfiguration:
+// A few notes about Amazon Redshift as a destination:
 //
 //    * An Amazon Redshift destination requires an S3 bucket as intermediate
 //    location, as Firehose first delivers data to S3 and then uses COPY syntax
 //    to load data into an Amazon Redshift table. This is specified in the RedshiftDestinationConfiguration.S3Configuration
-//    parameter element.
+//    parameter.
 //
 //    * The compression formats SNAPPY or ZIP cannot be specified in RedshiftDestinationConfiguration.S3Configuration
 //    because the Amazon Redshift COPY operation that reads from the S3 bucket
 //    doesn't support these compression formats.
 //
-//    * We strongly recommend that the username and password provided is used
-//    exclusively for Firehose purposes, and that the permissions for the account
-//    are restricted for Amazon Redshift INSERT permissions.
+//    * We strongly recommend that you use the user name and password you provide
+//    exclusively with Firehose, and that the permissions for the account are
+//    restricted for Amazon Redshift INSERT permissions.
 //
-// Firehose assumes the IAM role that is configured as part of destinations.
-// The IAM role should allow the Firehose principal to assume the role, and
-// the role should have permissions that allows the service to deliver the data.
+// Firehose assumes the IAM role that is configured as part of the destination.
+// The role should allow the Firehose principal to assume the role, and the
+// role should have permissions that allows the service to deliver the data.
 // For more information, see Amazon S3 Bucket Access (http://docs.aws.amazon.com/firehose/latest/dev/controlling-access.html#using-iam-s3)
 // in the Amazon Kinesis Firehose Developer Guide.
 //
@@ -124,6 +119,7 @@ func (c *Firehose) CreateDeliveryStreamRequest(input *CreateDeliveryStreamInput)
 //   * ResourceInUseException
 //   The resource is already in use and not available for this operation.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/CreateDeliveryStream
 func (c *Firehose) CreateDeliveryStream(input *CreateDeliveryStreamInput) (*CreateDeliveryStreamOutput, error) {
 	req, out := c.CreateDeliveryStreamRequest(input)
 	err := req.Send()
@@ -156,6 +152,7 @@ const opDeleteDeliveryStream = "DeleteDeliveryStream"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/DeleteDeliveryStream
 func (c *Firehose) DeleteDeliveryStreamRequest(input *DeleteDeliveryStreamInput) (req *request.Request, output *DeleteDeliveryStreamOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDeliveryStream,
@@ -167,9 +164,8 @@ func (c *Firehose) DeleteDeliveryStreamRequest(input *DeleteDeliveryStreamInput)
 		input = &DeleteDeliveryStreamInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteDeliveryStreamOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -202,6 +198,7 @@ func (c *Firehose) DeleteDeliveryStreamRequest(input *DeleteDeliveryStreamInput)
 //   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/DeleteDeliveryStream
 func (c *Firehose) DeleteDeliveryStream(input *DeleteDeliveryStreamInput) (*DeleteDeliveryStreamOutput, error) {
 	req, out := c.DeleteDeliveryStreamRequest(input)
 	err := req.Send()
@@ -234,6 +231,7 @@ const opDescribeDeliveryStream = "DescribeDeliveryStream"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/DescribeDeliveryStream
 func (c *Firehose) DescribeDeliveryStreamRequest(input *DescribeDeliveryStreamInput) (req *request.Request, output *DescribeDeliveryStreamOutput) {
 	op := &request.Operation{
 		Name:       opDescribeDeliveryStream,
@@ -245,9 +243,8 @@ func (c *Firehose) DescribeDeliveryStreamRequest(input *DescribeDeliveryStreamIn
 		input = &DescribeDeliveryStreamInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDeliveryStreamOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -269,6 +266,7 @@ func (c *Firehose) DescribeDeliveryStreamRequest(input *DescribeDeliveryStreamIn
 //   * ResourceNotFoundException
 //   The specified resource could not be found.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/DescribeDeliveryStream
 func (c *Firehose) DescribeDeliveryStream(input *DescribeDeliveryStreamInput) (*DescribeDeliveryStreamOutput, error) {
 	req, out := c.DescribeDeliveryStreamRequest(input)
 	err := req.Send()
@@ -301,6 +299,7 @@ const opListDeliveryStreams = "ListDeliveryStreams"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/ListDeliveryStreams
 func (c *Firehose) ListDeliveryStreamsRequest(input *ListDeliveryStreamsInput) (req *request.Request, output *ListDeliveryStreamsOutput) {
 	op := &request.Operation{
 		Name:       opListDeliveryStreams,
@@ -312,9 +311,8 @@ func (c *Firehose) ListDeliveryStreamsRequest(input *ListDeliveryStreamsInput) (
 		input = &ListDeliveryStreamsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListDeliveryStreamsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -336,6 +334,7 @@ func (c *Firehose) ListDeliveryStreamsRequest(input *ListDeliveryStreamsInput) (
 //
 // See the AWS API reference guide for Amazon Kinesis Firehose's
 // API operation ListDeliveryStreams for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/ListDeliveryStreams
 func (c *Firehose) ListDeliveryStreams(input *ListDeliveryStreamsInput) (*ListDeliveryStreamsOutput, error) {
 	req, out := c.ListDeliveryStreamsRequest(input)
 	err := req.Send()
@@ -368,6 +367,7 @@ const opPutRecord = "PutRecord"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/PutRecord
 func (c *Firehose) PutRecordRequest(input *PutRecordInput) (req *request.Request, output *PutRecordOutput) {
 	op := &request.Operation{
 		Name:       opPutRecord,
@@ -379,9 +379,8 @@ func (c *Firehose) PutRecordRequest(input *PutRecordInput) (req *request.Request
 		input = &PutRecordInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutRecordOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -441,6 +440,7 @@ func (c *Firehose) PutRecordRequest(input *PutRecordInput) (req *request.Request
 //   been exceeded. For more information about limits and how to request an increase,
 //   see Amazon Kinesis Firehose Limits (http://docs.aws.amazon.com/firehose/latest/dev/limits.html).
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/PutRecord
 func (c *Firehose) PutRecord(input *PutRecordInput) (*PutRecordOutput, error) {
 	req, out := c.PutRecordRequest(input)
 	err := req.Send()
@@ -473,6 +473,7 @@ const opPutRecordBatch = "PutRecordBatch"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/PutRecordBatch
 func (c *Firehose) PutRecordBatchRequest(input *PutRecordBatchInput) (req *request.Request, output *PutRecordBatchOutput) {
 	op := &request.Operation{
 		Name:       opPutRecordBatch,
@@ -484,9 +485,8 @@ func (c *Firehose) PutRecordBatchRequest(input *PutRecordBatchInput) (req *reque
 		input = &PutRecordBatchInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutRecordBatchOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -497,14 +497,15 @@ func (c *Firehose) PutRecordBatchRequest(input *PutRecordBatchInput) (req *reque
 // To write single data records into a delivery stream, use PutRecord. Applications
 // using these operations are referred to as producers.
 //
+// By default, each delivery stream can take in up to 2,000 transactions per
+// second, 5,000 records per second, or 5 MB per second. Note that if you use
+// PutRecord and PutRecordBatch, the limits are an aggregate across these two
+// operations for each delivery stream. For more information about limits, see
+// Amazon Kinesis Firehose Limits (http://docs.aws.amazon.com/firehose/latest/dev/limits.html).
+//
 // Each PutRecordBatch request supports up to 500 records. Each record in the
 // request can be as large as 1,000 KB (before 64-bit encoding), up to a limit
-// of 4 MB for the entire request. By default, each delivery stream can take
-// in up to 2,000 transactions per second, 5,000 records per second, or 5 MB
-// per second. Note that if you use PutRecord and PutRecordBatch, the limits
-// are an aggregate across these two operations for each delivery stream. For
-// more information about limits and how to request an increase, see Amazon
-// Kinesis Firehose Limits (http://docs.aws.amazon.com/firehose/latest/dev/limits.html).
+// of 4 MB for the entire request. These limits cannot be changed.
 //
 // You must specify the name of the delivery stream and the data record when
 // using PutRecord. The data record consists of a data blob that can be up to
@@ -517,32 +518,32 @@ func (c *Firehose) PutRecordBatchRequest(input *PutRecordBatchInput) (req *reque
 // the data. This allows the consumer application(s) to parse individual data
 // items when reading the data from the destination.
 //
-// The PutRecordBatch response includes a count of any failed records, FailedPutCount,
-// and an array of responses, RequestResponses. The FailedPutCount value is
-// a count of records that failed. Each entry in the RequestResponses array
-// gives additional information of the processed record. Each entry in RequestResponses
-// directly correlates with a record in the request array using the same ordering,
-// from the top to the bottom of the request and response. RequestResponses
-// always includes the same number of records as the request array. RequestResponses
-// both successfully and unsuccessfully processed records. Firehose attempts
-// to process all records in each PutRecordBatch request. A single record failure
-// does not stop the processing of subsequent records.
+// The PutRecordBatch response includes a count of failed records, FailedPutCount,
+// and an array of responses, RequestResponses. Each entry in the RequestResponses
+// array provides additional information about the processed record, and directly
+// correlates with a record in the request array using the same ordering, from
+// the top to the bottom. The response array always includes the same number
+// of records as the request array. RequestResponses includes both successfully
+// and unsuccessfully processed records. Firehose attempts to process all records
+// in each PutRecordBatch request. A single record failure does not stop the
+// processing of subsequent records.
 //
-// A successfully processed record includes a RecordId value, which is a unique
-// value identified for the record. An unsuccessfully processed record includes
-// ErrorCode and ErrorMessage values. ErrorCode reflects the type of error and
-// is one of the following values: ServiceUnavailable or InternalFailure. ErrorMessage
+// A successfully processed record includes a RecordId value, which is unique
+// for the record. An unsuccessfully processed record includes ErrorCode and
+// ErrorMessage values. ErrorCode reflects the type of error, and is one of
+// the following values: ServiceUnavailable or InternalFailure. ErrorMessage
 // provides more detailed information about the error.
 //
-// If FailedPutCount is greater than 0 (zero), retry the request. A retry of
-// the entire batch of records is possible; however, we strongly recommend that
-// you inspect the entire response and resend only those records that failed
-// processing. This minimizes duplicate records and also reduces the total bytes
-// sent (and corresponding charges).
+// If there is an internal server error or a timeout, the write might have completed
+// or it might have failed. If FailedPutCount is greater than 0, retry the request,
+// resending only those records that might have failed processing. This minimizes
+// the possible duplicate records and also reduces the total bytes sent (and
+// corresponding charges). We recommend that you handle any duplicates at the
+// destination.
 //
-// If the PutRecordBatch operation throws a ServiceUnavailableException, back
-// off and retry. If the exception persists, it is possible that the throughput
-// limits have been exceeded for the delivery stream.
+// If PutRecordBatch throws ServiceUnavailableException, back off and retry.
+// If the exception persists, it is possible that the throughput limits have
+// been exceeded for the delivery stream.
 //
 // Data records sent to Firehose are stored for 24 hours from the time they
 // are added to a delivery stream as it attempts to send the records to the
@@ -569,6 +570,7 @@ func (c *Firehose) PutRecordBatchRequest(input *PutRecordBatchInput) (req *reque
 //   been exceeded. For more information about limits and how to request an increase,
 //   see Amazon Kinesis Firehose Limits (http://docs.aws.amazon.com/firehose/latest/dev/limits.html).
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/PutRecordBatch
 func (c *Firehose) PutRecordBatch(input *PutRecordBatchInput) (*PutRecordBatchOutput, error) {
 	req, out := c.PutRecordBatchRequest(input)
 	err := req.Send()
@@ -601,6 +603,7 @@ const opUpdateDestination = "UpdateDestination"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/UpdateDestination
 func (c *Firehose) UpdateDestinationRequest(input *UpdateDestinationInput) (req *request.Request, output *UpdateDestinationOutput) {
 	op := &request.Operation{
 		Name:       opUpdateDestination,
@@ -612,32 +615,30 @@ func (c *Firehose) UpdateDestinationRequest(input *UpdateDestinationInput) (req 
 		input = &UpdateDestinationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateDestinationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
 // UpdateDestination API operation for Amazon Kinesis Firehose.
 //
-// Updates the specified destination of the specified delivery stream. Note:
-// Switching between Elasticsearch and other services is not supported. For
-// Elasticsearch destination, you can only update an existing Elasticsearch
-// destination with this operation.
+// Updates the specified destination of the specified delivery stream.
 //
-// This operation can be used to change the destination type (for example, to
+// You can use this operation to change the destination type (for example, to
 // replace the Amazon S3 destination with Amazon Redshift) or change the parameters
-// associated with a given destination (for example, to change the bucket name
-// of the Amazon S3 destination). The update may not occur immediately. The
-// target delivery stream remains active while the configurations are updated,
-// so data writes to the delivery stream can continue during this process. The
-// updated configurations are normally effective within a few minutes.
+// associated with a destination (for example, to change the bucket name of
+// the Amazon S3 destination). The update might not occur immediately. The target
+// delivery stream remains active while the configurations are updated, so data
+// writes to the delivery stream can continue during this process. The updated
+// configurations are usually effective within a few minutes.
+//
+// Note that switching between Amazon ES and other services is not supported.
+// For an Amazon ES destination, you can only update to another Amazon ES destination.
 //
 // If the destination type is the same, Firehose merges the configuration parameters
-// specified in the UpdateDestination request with the destination configuration
-// that already exists on the delivery stream. If any of the parameters are
-// not specified in the update request, then the existing configuration parameters
-// are retained. For example, in the Amazon S3 destination, if EncryptionConfiguration
+// specified with the destination configuration that already exists on the delivery
+// stream. If any of the parameters are not specified in the call, the existing
+// values are retained. For example, in the Amazon S3 destination, if EncryptionConfiguration
 // is not specified then the existing EncryptionConfiguration is maintained
 // on the destination.
 //
@@ -645,13 +646,12 @@ func (c *Firehose) UpdateDestinationRequest(input *UpdateDestinationInput) (req 
 // from Amazon S3 to Amazon Redshift, Firehose does not merge any parameters.
 // In this case, all parameters must be specified.
 //
-// Firehose uses the CurrentDeliveryStreamVersionId to avoid race conditions
-// and conflicting merges. This is a required field in every request and the
-// service only updates the configuration if the existing configuration matches
-// the VersionId. After the update is applied successfully, the VersionId is
-// updated, which can be retrieved with the DescribeDeliveryStream operation.
-// The new VersionId should be uses to set CurrentDeliveryStreamVersionId in
-// the next UpdateDestination operation.
+// Firehose uses CurrentDeliveryStreamVersionId to avoid race conditions and
+// conflicting merges. This is a required field, and the service updates the
+// configuration only if the existing configuration has a version ID that matches.
+// After the update is applied successfully, the version ID is updated, and
+// can be retrieved using DescribeDeliveryStream. You should use the new version
+// ID to set CurrentDeliveryStreamVersionId in the next call.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -674,6 +674,7 @@ func (c *Firehose) UpdateDestinationRequest(input *UpdateDestinationInput) (req 
 //   Another modification has already happened. Fetch VersionId again and use
 //   it to update the destination.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/UpdateDestination
 func (c *Firehose) UpdateDestination(input *UpdateDestinationInput) (*UpdateDestinationOutput, error) {
 	req, out := c.UpdateDestinationRequest(input)
 	err := req.Send()
@@ -683,6 +684,7 @@ func (c *Firehose) UpdateDestination(input *UpdateDestinationInput) (*UpdateDest
 // Describes hints for the buffering to perform before delivering data to the
 // destination. Please note that these options are treated as hints, and therefore
 // Firehose may choose to use different values when it is optimal.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/BufferingHints
 type BufferingHints struct {
 	_ struct{} `type:"structure"`
 
@@ -693,9 +695,9 @@ type BufferingHints struct {
 	// Buffer incoming data to the specified size, in MBs, before delivering it
 	// to the destination. The default value is 5.
 	//
-	// We recommend setting SizeInMBs to a value greater than the amount of data
-	// you typically ingest into the delivery stream in 10 seconds. For example,
-	// if you typically ingest data at 1 MB/sec set SizeInMBs to be 10 MB or higher.
+	// We recommend setting this parameter to a value greater than the amount of
+	// data you typically ingest into the delivery stream in 10 seconds. For example,
+	// if you typically ingest data at 1 MB/sec, the value should be 10 MB or higher.
 	SizeInMBs *int64 `min:"1" type:"integer"`
 }
 
@@ -737,19 +739,20 @@ func (s *BufferingHints) SetSizeInMBs(v int64) *BufferingHints {
 	return s
 }
 
-// Describes CloudWatch logging options for your delivery stream.
+// Describes the CloudWatch logging options for your delivery stream.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/CloudWatchLoggingOptions
 type CloudWatchLoggingOptions struct {
 	_ struct{} `type:"structure"`
 
 	// Enables or disables CloudWatch logging.
 	Enabled *bool `type:"boolean"`
 
-	// The CloudWatch group name for logging. This value is required if Enabled
-	// is true.
+	// The CloudWatch group name for logging. This value is required if CloudWatch
+	// logging is enabled.
 	LogGroupName *string `type:"string"`
 
-	// The CloudWatch log stream name for logging. This value is required if Enabled
-	// is true.
+	// The CloudWatch log stream name for logging. This value is required if CloudWatch
+	// logging is enabled.
 	LogStreamName *string `type:"string"`
 }
 
@@ -782,13 +785,14 @@ func (s *CloudWatchLoggingOptions) SetLogStreamName(v string) *CloudWatchLogging
 }
 
 // Describes a COPY command for Amazon Redshift.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/CopyCommand
 type CopyCommand struct {
 	_ struct{} `type:"structure"`
 
 	// Optional parameters to use with the Amazon Redshift COPY command. For more
 	// information, see the "Optional Parameters" section of Amazon Redshift COPY
 	// command (http://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html). Some
-	// possible examples that would apply to Firehose are as follows.
+	// possible examples that would apply to Firehose are as follows:
 	//
 	// delimiter '\t' lzop; - fields are delimited with "\t" (TAB character) and
 	// compressed using lzop.
@@ -860,28 +864,28 @@ func (s *CopyCommand) SetDataTableName(v string) *CopyCommand {
 	return s
 }
 
-// Contains the parameters for CreateDeliveryStream.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/CreateDeliveryStreamInput
 type CreateDeliveryStreamInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the delivery stream.
+	// The name of the delivery stream. This name must be unique per AWS account
+	// in the same region. You can have multiple delivery streams with the same
+	// name if they are in different accounts or different regions.
 	//
 	// DeliveryStreamName is a required field
 	DeliveryStreamName *string `min:"1" type:"string" required:"true"`
 
-	// The destination in Amazon ES. This value cannot be specified if Amazon S3
-	// or Amazon Redshift is the desired destination (see restrictions listed above).
+	// The destination in Amazon ES. You can specify only one destination.
 	ElasticsearchDestinationConfiguration *ElasticsearchDestinationConfiguration `type:"structure"`
 
-	// The destination in Amazon Redshift. This value cannot be specified if Amazon
-	// S3 or Amazon Elasticsearch is the desired destination (see restrictions listed
-	// above).
+	// The destination in Amazon S3. You can specify only one destination.
+	ExtendedS3DestinationConfiguration *ExtendedS3DestinationConfiguration `type:"structure"`
+
+	// The destination in Amazon Redshift. You can specify only one destination.
 	RedshiftDestinationConfiguration *RedshiftDestinationConfiguration `type:"structure"`
 
-	// The destination in Amazon S3. This value must be specified if ElasticsearchDestinationConfiguration
-	// or RedshiftDestinationConfiguration is specified (see restrictions listed
-	// above).
-	S3DestinationConfiguration *S3DestinationConfiguration `type:"structure"`
+	// [Deprecated] The destination in Amazon S3. You can specify only one destination.
+	S3DestinationConfiguration *S3DestinationConfiguration `deprecated:"true" type:"structure"`
 }
 
 // String returns the string representation
@@ -906,6 +910,11 @@ func (s *CreateDeliveryStreamInput) Validate() error {
 	if s.ElasticsearchDestinationConfiguration != nil {
 		if err := s.ElasticsearchDestinationConfiguration.Validate(); err != nil {
 			invalidParams.AddNested("ElasticsearchDestinationConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ExtendedS3DestinationConfiguration != nil {
+		if err := s.ExtendedS3DestinationConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("ExtendedS3DestinationConfiguration", err.(request.ErrInvalidParams))
 		}
 	}
 	if s.RedshiftDestinationConfiguration != nil {
@@ -937,6 +946,12 @@ func (s *CreateDeliveryStreamInput) SetElasticsearchDestinationConfiguration(v *
 	return s
 }
 
+// SetExtendedS3DestinationConfiguration sets the ExtendedS3DestinationConfiguration field's value.
+func (s *CreateDeliveryStreamInput) SetExtendedS3DestinationConfiguration(v *ExtendedS3DestinationConfiguration) *CreateDeliveryStreamInput {
+	s.ExtendedS3DestinationConfiguration = v
+	return s
+}
+
 // SetRedshiftDestinationConfiguration sets the RedshiftDestinationConfiguration field's value.
 func (s *CreateDeliveryStreamInput) SetRedshiftDestinationConfiguration(v *RedshiftDestinationConfiguration) *CreateDeliveryStreamInput {
 	s.RedshiftDestinationConfiguration = v
@@ -949,12 +964,12 @@ func (s *CreateDeliveryStreamInput) SetS3DestinationConfiguration(v *S3Destinati
 	return s
 }
 
-// Contains the output of CreateDeliveryStream.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/CreateDeliveryStreamOutput
 type CreateDeliveryStreamOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN of the delivery stream.
-	DeliveryStreamARN *string `type:"string"`
+	DeliveryStreamARN *string `min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -973,7 +988,7 @@ func (s *CreateDeliveryStreamOutput) SetDeliveryStreamARN(v string) *CreateDeliv
 	return s
 }
 
-// Contains the parameters for DeleteDeliveryStream.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/DeleteDeliveryStreamInput
 type DeleteDeliveryStreamInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1015,7 +1030,7 @@ func (s *DeleteDeliveryStreamInput) SetDeliveryStreamName(v string) *DeleteDeliv
 	return s
 }
 
-// Contains the output of DeleteDeliveryStream.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/DeleteDeliveryStreamOutput
 type DeleteDeliveryStreamOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1031,6 +1046,7 @@ func (s DeleteDeliveryStreamOutput) GoString() string {
 }
 
 // Contains information about a delivery stream.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/DeliveryStreamDescription
 type DeliveryStreamDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -1040,7 +1056,7 @@ type DeliveryStreamDescription struct {
 	// The Amazon Resource Name (ARN) of the delivery stream.
 	//
 	// DeliveryStreamARN is a required field
-	DeliveryStreamARN *string `type:"string" required:"true"`
+	DeliveryStreamARN *string `min:"1" type:"string" required:"true"`
 
 	// The name of the delivery stream.
 	//
@@ -1065,11 +1081,10 @@ type DeliveryStreamDescription struct {
 	// The date and time that the delivery stream was last updated.
 	LastUpdateTimestamp *time.Time `type:"timestamp" timestampFormat:"unix"`
 
-	// Used when calling the UpdateDestination operation. Each time the destination
-	// is updated for the delivery stream, the VersionId is changed, and the current
-	// VersionId is required when updating the destination. This is so that the
-	// service knows it is applying the changes to the correct version of the delivery
-	// stream.
+	// Each time the destination is updated for a delivery stream, the version ID
+	// is changed, and the current version ID is required when updating the destination.
+	// This is so that the service knows it is applying the changes to the correct
+	// version of the delivery stream.
 	//
 	// VersionId is a required field
 	VersionId *string `min:"1" type:"string" required:"true"`
@@ -1133,7 +1148,7 @@ func (s *DeliveryStreamDescription) SetVersionId(v string) *DeliveryStreamDescri
 	return s
 }
 
-// Contains the parameters for DescribeDeliveryStream.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/DescribeDeliveryStreamInput
 type DescribeDeliveryStreamInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1142,7 +1157,7 @@ type DescribeDeliveryStreamInput struct {
 	// DeliveryStreamName is a required field
 	DeliveryStreamName *string `min:"1" type:"string" required:"true"`
 
-	// Specifies the destination ID to start returning the destination information.
+	// The ID of the destination to start returning the destination information.
 	// Currently Firehose supports one destination per delivery stream.
 	ExclusiveStartDestinationId *string `min:"1" type:"string"`
 
@@ -1201,7 +1216,7 @@ func (s *DescribeDeliveryStreamInput) SetLimit(v int64) *DescribeDeliveryStreamI
 	return s
 }
 
-// Contains the output of DescribeDeliveryStream.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/DescribeDeliveryStreamOutput
 type DescribeDeliveryStreamOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1228,6 +1243,7 @@ func (s *DescribeDeliveryStreamOutput) SetDeliveryStreamDescription(v *DeliveryS
 }
 
 // Describes the destination for a delivery stream.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/DestinationDescription
 type DestinationDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -1239,10 +1255,13 @@ type DestinationDescription struct {
 	// The destination in Amazon ES.
 	ElasticsearchDestinationDescription *ElasticsearchDestinationDescription `type:"structure"`
 
+	// The destination in Amazon S3.
+	ExtendedS3DestinationDescription *ExtendedS3DestinationDescription `type:"structure"`
+
 	// The destination in Amazon Redshift.
 	RedshiftDestinationDescription *RedshiftDestinationDescription `type:"structure"`
 
-	// The Amazon S3 destination.
+	// [Deprecated] The destination in Amazon S3.
 	S3DestinationDescription *S3DestinationDescription `type:"structure"`
 }
 
@@ -1268,6 +1287,12 @@ func (s *DestinationDescription) SetElasticsearchDestinationDescription(v *Elast
 	return s
 }
 
+// SetExtendedS3DestinationDescription sets the ExtendedS3DestinationDescription field's value.
+func (s *DestinationDescription) SetExtendedS3DestinationDescription(v *ExtendedS3DestinationDescription) *DestinationDescription {
+	s.ExtendedS3DestinationDescription = v
+	return s
+}
+
 // SetRedshiftDestinationDescription sets the RedshiftDestinationDescription field's value.
 func (s *DestinationDescription) SetRedshiftDestinationDescription(v *RedshiftDestinationDescription) *DestinationDescription {
 	s.RedshiftDestinationDescription = v
@@ -1282,6 +1307,7 @@ func (s *DestinationDescription) SetS3DestinationDescription(v *S3DestinationDes
 
 // Describes the buffering to perform before delivering data to the Amazon ES
 // destination.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/ElasticsearchBufferingHints
 type ElasticsearchBufferingHints struct {
 	_ struct{} `type:"structure"`
 
@@ -1292,9 +1318,9 @@ type ElasticsearchBufferingHints struct {
 	// Buffer incoming data to the specified size, in MBs, before delivering it
 	// to the destination. The default value is 5.
 	//
-	// We recommend setting SizeInMBs to a value greater than the amount of data
-	// you typically ingest into the delivery stream in 10 seconds. For example,
-	// if you typically ingest data at 1 MB/sec, set SizeInMBs to be 10 MB or higher.
+	// We recommend setting this parameter to a value greater than the amount of
+	// data you typically ingest into the delivery stream in 10 seconds. For example,
+	// if you typically ingest data at 1 MB/sec, the value should be 10 MB or higher.
 	SizeInMBs *int64 `min:"1" type:"integer"`
 }
 
@@ -1337,19 +1363,20 @@ func (s *ElasticsearchBufferingHints) SetSizeInMBs(v int64) *ElasticsearchBuffer
 }
 
 // Describes the configuration of a destination in Amazon ES.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/ElasticsearchDestinationConfiguration
 type ElasticsearchDestinationConfiguration struct {
 	_ struct{} `type:"structure"`
 
-	// Buffering options. If no value is specified, ElasticsearchBufferingHints
-	// object default values are used.
+	// The buffering options. If no value is specified, the default values for ElasticsearchBufferingHints
+	// are used.
 	BufferingHints *ElasticsearchBufferingHints `type:"structure"`
 
-	// Describes CloudWatch logging options for your delivery stream.
+	// The CloudWatch logging options for your delivery stream.
 	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
 
-	// The ARN of the Amazon ES domain. The IAM role must have permission for DescribeElasticsearchDomain,
-	// DescribeElasticsearchDomains , and DescribeElasticsearchDomainConfig after
-	// assuming RoleARN.
+	// The ARN of the Amazon ES domain. The IAM role must have permissions for DescribeElasticsearchDomain,
+	// DescribeElasticsearchDomains, and DescribeElasticsearchDomainConfig after
+	// assuming the role specified in RoleARN.
 	//
 	// DomainARN is a required field
 	DomainARN *string `min:"1" type:"string" required:"true"`
@@ -1362,11 +1389,14 @@ type ElasticsearchDestinationConfiguration struct {
 	// The Elasticsearch index rotation period. Index rotation appends a timestamp
 	// to the IndexName to facilitate expiration of old data. For more information,
 	// see Index Rotation for Amazon Elasticsearch Service Destination (http://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html#es-index-rotation).
-	// Default value is OneDay.
+	// The default value is OneDay.
 	IndexRotationPeriod *string `type:"string" enum:"ElasticsearchIndexRotationPeriod"`
 
-	// Configures retry behavior in the event that Firehose is unable to deliver
-	// documents to Amazon ES. Default value is 300 (5 minutes).
+	// The data processing configuration.
+	ProcessingConfiguration *ProcessingConfiguration `type:"structure"`
+
+	// The retry behavior in the event that Firehose is unable to deliver documents
+	// to Amazon ES. The default value is 300 (5 minutes).
 	RetryOptions *ElasticsearchRetryOptions `type:"structure"`
 
 	// The ARN of the IAM role to be assumed by Firehose for calling the Amazon
@@ -1386,7 +1416,8 @@ type ElasticsearchDestinationConfiguration struct {
 	// Default value is FailedDocumentsOnly.
 	S3BackupMode *string `type:"string" enum:"ElasticsearchS3BackupMode"`
 
-	// Describes the configuration of a destination in Amazon S3.
+	// The configuration for the intermediate Amazon S3 location from which Amazon
+	// ES obtains data.
 	//
 	// S3Configuration is a required field
 	S3Configuration *S3DestinationConfiguration `type:"structure" required:"true"`
@@ -1442,6 +1473,11 @@ func (s *ElasticsearchDestinationConfiguration) Validate() error {
 			invalidParams.AddNested("BufferingHints", err.(request.ErrInvalidParams))
 		}
 	}
+	if s.ProcessingConfiguration != nil {
+		if err := s.ProcessingConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("ProcessingConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.S3Configuration != nil {
 		if err := s.S3Configuration.Validate(); err != nil {
 			invalidParams.AddNested("S3Configuration", err.(request.ErrInvalidParams))
@@ -1484,6 +1520,12 @@ func (s *ElasticsearchDestinationConfiguration) SetIndexRotationPeriod(v string)
 	return s
 }
 
+// SetProcessingConfiguration sets the ProcessingConfiguration field's value.
+func (s *ElasticsearchDestinationConfiguration) SetProcessingConfiguration(v *ProcessingConfiguration) *ElasticsearchDestinationConfiguration {
+	s.ProcessingConfiguration = v
+	return s
+}
+
 // SetRetryOptions sets the RetryOptions field's value.
 func (s *ElasticsearchDestinationConfiguration) SetRetryOptions(v *ElasticsearchRetryOptions) *ElasticsearchDestinationConfiguration {
 	s.RetryOptions = v
@@ -1515,13 +1557,14 @@ func (s *ElasticsearchDestinationConfiguration) SetTypeName(v string) *Elasticse
 }
 
 // The destination description in Amazon ES.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/ElasticsearchDestinationDescription
 type ElasticsearchDestinationDescription struct {
 	_ struct{} `type:"structure"`
 
-	// Buffering options.
+	// The buffering options.
 	BufferingHints *ElasticsearchBufferingHints `type:"structure"`
 
-	// CloudWatch logging options.
+	// The CloudWatch logging options.
 	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
 
 	// The ARN of the Amazon ES domain.
@@ -1533,16 +1576,19 @@ type ElasticsearchDestinationDescription struct {
 	// The Elasticsearch index rotation period
 	IndexRotationPeriod *string `type:"string" enum:"ElasticsearchIndexRotationPeriod"`
 
-	// Elasticsearch retry options.
+	// The data processing configuration.
+	ProcessingConfiguration *ProcessingConfiguration `type:"structure"`
+
+	// The Amazon ES retry options.
 	RetryOptions *ElasticsearchRetryOptions `type:"structure"`
 
 	// The ARN of the AWS credentials.
 	RoleARN *string `min:"1" type:"string"`
 
-	// Amazon S3 backup mode.
+	// The Amazon S3 backup mode.
 	S3BackupMode *string `type:"string" enum:"ElasticsearchS3BackupMode"`
 
-	// Describes a destination in Amazon S3.
+	// The Amazon S3 destination.
 	S3DestinationDescription *S3DestinationDescription `type:"structure"`
 
 	// The Elasticsearch type name.
@@ -1589,6 +1635,12 @@ func (s *ElasticsearchDestinationDescription) SetIndexRotationPeriod(v string) *
 	return s
 }
 
+// SetProcessingConfiguration sets the ProcessingConfiguration field's value.
+func (s *ElasticsearchDestinationDescription) SetProcessingConfiguration(v *ProcessingConfiguration) *ElasticsearchDestinationDescription {
+	s.ProcessingConfiguration = v
+	return s
+}
+
 // SetRetryOptions sets the RetryOptions field's value.
 func (s *ElasticsearchDestinationDescription) SetRetryOptions(v *ElasticsearchRetryOptions) *ElasticsearchDestinationDescription {
 	s.RetryOptions = v
@@ -1620,32 +1672,36 @@ func (s *ElasticsearchDestinationDescription) SetTypeName(v string) *Elasticsear
 }
 
 // Describes an update for a destination in Amazon ES.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/ElasticsearchDestinationUpdate
 type ElasticsearchDestinationUpdate struct {
 	_ struct{} `type:"structure"`
 
-	// Buffering options. If no value is specified, ElasticsearchBufferingHints
+	// The buffering options. If no value is specified, ElasticsearchBufferingHints
 	// object default values are used.
 	BufferingHints *ElasticsearchBufferingHints `type:"structure"`
 
-	// Describes CloudWatch logging options for your delivery stream.
+	// The CloudWatch logging options for your delivery stream.
 	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
 
-	// The ARN of the Amazon ES domain. The IAM role must have permission for DescribeElasticsearchDomain,
-	// DescribeElasticsearchDomains , and DescribeElasticsearchDomainConfig after
-	// assuming RoleARN.
+	// The ARN of the Amazon ES domain. The IAM role must have permissions for DescribeElasticsearchDomain,
+	// DescribeElasticsearchDomains, and DescribeElasticsearchDomainConfig after
+	// assuming the IAM role specified in RoleARN.
 	DomainARN *string `min:"1" type:"string"`
 
 	// The Elasticsearch index name.
 	IndexName *string `min:"1" type:"string"`
 
 	// The Elasticsearch index rotation period. Index rotation appends a timestamp
-	// to the IndexName to facilitate the expiration of old data. For more information,
+	// to IndexName to facilitate the expiration of old data. For more information,
 	// see Index Rotation for Amazon Elasticsearch Service Destination (http://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html#es-index-rotation).
 	// Default value is OneDay.
 	IndexRotationPeriod *string `type:"string" enum:"ElasticsearchIndexRotationPeriod"`
 
-	// Configures retry behavior in the event that Firehose is unable to deliver
-	// documents to Amazon ES. Default value is 300 (5 minutes).
+	// The data processing configuration.
+	ProcessingConfiguration *ProcessingConfiguration `type:"structure"`
+
+	// The retry behavior in the event that Firehose is unable to deliver documents
+	// to Amazon ES. Default value is 300 (5 minutes).
 	RetryOptions *ElasticsearchRetryOptions `type:"structure"`
 
 	// The ARN of the IAM role to be assumed by Firehose for calling the Amazon
@@ -1653,7 +1709,7 @@ type ElasticsearchDestinationUpdate struct {
 	// Amazon S3 Bucket Access (http://docs.aws.amazon.com/firehose/latest/dev/controlling-access.html#using-iam-s3).
 	RoleARN *string `min:"1" type:"string"`
 
-	// Describes an update for a destination in Amazon S3.
+	// The Amazon S3 destination.
 	S3Update *S3DestinationUpdate `type:"structure"`
 
 	// The Elasticsearch type name.
@@ -1688,6 +1744,11 @@ func (s *ElasticsearchDestinationUpdate) Validate() error {
 	if s.BufferingHints != nil {
 		if err := s.BufferingHints.Validate(); err != nil {
 			invalidParams.AddNested("BufferingHints", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ProcessingConfiguration != nil {
+		if err := s.ProcessingConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("ProcessingConfiguration", err.(request.ErrInvalidParams))
 		}
 	}
 	if s.S3Update != nil {
@@ -1732,6 +1793,12 @@ func (s *ElasticsearchDestinationUpdate) SetIndexRotationPeriod(v string) *Elast
 	return s
 }
 
+// SetProcessingConfiguration sets the ProcessingConfiguration field's value.
+func (s *ElasticsearchDestinationUpdate) SetProcessingConfiguration(v *ProcessingConfiguration) *ElasticsearchDestinationUpdate {
+	s.ProcessingConfiguration = v
+	return s
+}
+
 // SetRetryOptions sets the RetryOptions field's value.
 func (s *ElasticsearchDestinationUpdate) SetRetryOptions(v *ElasticsearchRetryOptions) *ElasticsearchDestinationUpdate {
 	s.RetryOptions = v
@@ -1758,6 +1825,7 @@ func (s *ElasticsearchDestinationUpdate) SetTypeName(v string) *ElasticsearchDes
 
 // Configures retry behavior in the event that Firehose is unable to deliver
 // documents to Amazon ES.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/ElasticsearchRetryOptions
 type ElasticsearchRetryOptions struct {
 	_ struct{} `type:"structure"`
 
@@ -1786,6 +1854,7 @@ func (s *ElasticsearchRetryOptions) SetDurationInSeconds(v int64) *Elasticsearch
 }
 
 // Describes the encryption for a destination in Amazon S3.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/EncryptionConfiguration
 type EncryptionConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -1834,7 +1903,436 @@ func (s *EncryptionConfiguration) SetNoEncryptionConfig(v string) *EncryptionCon
 	return s
 }
 
+// Describes the configuration of a destination in Amazon S3.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/ExtendedS3DestinationConfiguration
+type ExtendedS3DestinationConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the S3 bucket.
+	//
+	// BucketARN is a required field
+	BucketARN *string `min:"1" type:"string" required:"true"`
+
+	// The buffering option.
+	BufferingHints *BufferingHints `type:"structure"`
+
+	// The CloudWatch logging options for your delivery stream.
+	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
+
+	// The compression format. If no value is specified, the default is UNCOMPRESSED.
+	CompressionFormat *string `type:"string" enum:"CompressionFormat"`
+
+	// The encryption configuration. If no value is specified, the default is no
+	// encryption.
+	EncryptionConfiguration *EncryptionConfiguration `type:"structure"`
+
+	// The "YYYY/MM/DD/HH" time format prefix is automatically used for delivered
+	// S3 files. You can specify an extra prefix to be added in front of the time
+	// format prefix. Note that if the prefix ends with a slash, it appears as a
+	// folder in the S3 bucket. For more information, see Amazon S3 Object Name
+	// Format (http://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html)
+	// in the Amazon Kinesis Firehose Developer Guide.
+	Prefix *string `type:"string"`
+
+	// The data processing configuration.
+	ProcessingConfiguration *ProcessingConfiguration `type:"structure"`
+
+	// The ARN of the AWS credentials.
+	//
+	// RoleARN is a required field
+	RoleARN *string `min:"1" type:"string" required:"true"`
+
+	// The configuration for backup in Amazon S3.
+	S3BackupConfiguration *S3DestinationConfiguration `type:"structure"`
+
+	// The Amazon S3 backup mode.
+	S3BackupMode *string `type:"string" enum:"S3BackupMode"`
+}
+
+// String returns the string representation
+func (s ExtendedS3DestinationConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExtendedS3DestinationConfiguration) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ExtendedS3DestinationConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ExtendedS3DestinationConfiguration"}
+	if s.BucketARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("BucketARN"))
+	}
+	if s.BucketARN != nil && len(*s.BucketARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BucketARN", 1))
+	}
+	if s.RoleARN == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleARN"))
+	}
+	if s.RoleARN != nil && len(*s.RoleARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleARN", 1))
+	}
+	if s.BufferingHints != nil {
+		if err := s.BufferingHints.Validate(); err != nil {
+			invalidParams.AddNested("BufferingHints", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.EncryptionConfiguration != nil {
+		if err := s.EncryptionConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("EncryptionConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ProcessingConfiguration != nil {
+		if err := s.ProcessingConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("ProcessingConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.S3BackupConfiguration != nil {
+		if err := s.S3BackupConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("S3BackupConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBucketARN sets the BucketARN field's value.
+func (s *ExtendedS3DestinationConfiguration) SetBucketARN(v string) *ExtendedS3DestinationConfiguration {
+	s.BucketARN = &v
+	return s
+}
+
+// SetBufferingHints sets the BufferingHints field's value.
+func (s *ExtendedS3DestinationConfiguration) SetBufferingHints(v *BufferingHints) *ExtendedS3DestinationConfiguration {
+	s.BufferingHints = v
+	return s
+}
+
+// SetCloudWatchLoggingOptions sets the CloudWatchLoggingOptions field's value.
+func (s *ExtendedS3DestinationConfiguration) SetCloudWatchLoggingOptions(v *CloudWatchLoggingOptions) *ExtendedS3DestinationConfiguration {
+	s.CloudWatchLoggingOptions = v
+	return s
+}
+
+// SetCompressionFormat sets the CompressionFormat field's value.
+func (s *ExtendedS3DestinationConfiguration) SetCompressionFormat(v string) *ExtendedS3DestinationConfiguration {
+	s.CompressionFormat = &v
+	return s
+}
+
+// SetEncryptionConfiguration sets the EncryptionConfiguration field's value.
+func (s *ExtendedS3DestinationConfiguration) SetEncryptionConfiguration(v *EncryptionConfiguration) *ExtendedS3DestinationConfiguration {
+	s.EncryptionConfiguration = v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *ExtendedS3DestinationConfiguration) SetPrefix(v string) *ExtendedS3DestinationConfiguration {
+	s.Prefix = &v
+	return s
+}
+
+// SetProcessingConfiguration sets the ProcessingConfiguration field's value.
+func (s *ExtendedS3DestinationConfiguration) SetProcessingConfiguration(v *ProcessingConfiguration) *ExtendedS3DestinationConfiguration {
+	s.ProcessingConfiguration = v
+	return s
+}
+
+// SetRoleARN sets the RoleARN field's value.
+func (s *ExtendedS3DestinationConfiguration) SetRoleARN(v string) *ExtendedS3DestinationConfiguration {
+	s.RoleARN = &v
+	return s
+}
+
+// SetS3BackupConfiguration sets the S3BackupConfiguration field's value.
+func (s *ExtendedS3DestinationConfiguration) SetS3BackupConfiguration(v *S3DestinationConfiguration) *ExtendedS3DestinationConfiguration {
+	s.S3BackupConfiguration = v
+	return s
+}
+
+// SetS3BackupMode sets the S3BackupMode field's value.
+func (s *ExtendedS3DestinationConfiguration) SetS3BackupMode(v string) *ExtendedS3DestinationConfiguration {
+	s.S3BackupMode = &v
+	return s
+}
+
+// Describes a destination in Amazon S3.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/ExtendedS3DestinationDescription
+type ExtendedS3DestinationDescription struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the S3 bucket.
+	//
+	// BucketARN is a required field
+	BucketARN *string `min:"1" type:"string" required:"true"`
+
+	// The buffering option.
+	//
+	// BufferingHints is a required field
+	BufferingHints *BufferingHints `type:"structure" required:"true"`
+
+	// The CloudWatch logging options for your delivery stream.
+	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
+
+	// The compression format. If no value is specified, the default is UNCOMPRESSED.
+	//
+	// CompressionFormat is a required field
+	CompressionFormat *string `type:"string" required:"true" enum:"CompressionFormat"`
+
+	// The encryption configuration. If no value is specified, the default is no
+	// encryption.
+	//
+	// EncryptionConfiguration is a required field
+	EncryptionConfiguration *EncryptionConfiguration `type:"structure" required:"true"`
+
+	// The "YYYY/MM/DD/HH" time format prefix is automatically used for delivered
+	// S3 files. You can specify an extra prefix to be added in front of the time
+	// format prefix. Note that if the prefix ends with a slash, it appears as a
+	// folder in the S3 bucket. For more information, see Amazon S3 Object Name
+	// Format (http://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html)
+	// in the Amazon Kinesis Firehose Developer Guide.
+	Prefix *string `type:"string"`
+
+	// The data processing configuration.
+	ProcessingConfiguration *ProcessingConfiguration `type:"structure"`
+
+	// The ARN of the AWS credentials.
+	//
+	// RoleARN is a required field
+	RoleARN *string `min:"1" type:"string" required:"true"`
+
+	// The configuration for backup in Amazon S3.
+	S3BackupDescription *S3DestinationDescription `type:"structure"`
+
+	// The Amazon S3 backup mode.
+	S3BackupMode *string `type:"string" enum:"S3BackupMode"`
+}
+
+// String returns the string representation
+func (s ExtendedS3DestinationDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExtendedS3DestinationDescription) GoString() string {
+	return s.String()
+}
+
+// SetBucketARN sets the BucketARN field's value.
+func (s *ExtendedS3DestinationDescription) SetBucketARN(v string) *ExtendedS3DestinationDescription {
+	s.BucketARN = &v
+	return s
+}
+
+// SetBufferingHints sets the BufferingHints field's value.
+func (s *ExtendedS3DestinationDescription) SetBufferingHints(v *BufferingHints) *ExtendedS3DestinationDescription {
+	s.BufferingHints = v
+	return s
+}
+
+// SetCloudWatchLoggingOptions sets the CloudWatchLoggingOptions field's value.
+func (s *ExtendedS3DestinationDescription) SetCloudWatchLoggingOptions(v *CloudWatchLoggingOptions) *ExtendedS3DestinationDescription {
+	s.CloudWatchLoggingOptions = v
+	return s
+}
+
+// SetCompressionFormat sets the CompressionFormat field's value.
+func (s *ExtendedS3DestinationDescription) SetCompressionFormat(v string) *ExtendedS3DestinationDescription {
+	s.CompressionFormat = &v
+	return s
+}
+
+// SetEncryptionConfiguration sets the EncryptionConfiguration field's value.
+func (s *ExtendedS3DestinationDescription) SetEncryptionConfiguration(v *EncryptionConfiguration) *ExtendedS3DestinationDescription {
+	s.EncryptionConfiguration = v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *ExtendedS3DestinationDescription) SetPrefix(v string) *ExtendedS3DestinationDescription {
+	s.Prefix = &v
+	return s
+}
+
+// SetProcessingConfiguration sets the ProcessingConfiguration field's value.
+func (s *ExtendedS3DestinationDescription) SetProcessingConfiguration(v *ProcessingConfiguration) *ExtendedS3DestinationDescription {
+	s.ProcessingConfiguration = v
+	return s
+}
+
+// SetRoleARN sets the RoleARN field's value.
+func (s *ExtendedS3DestinationDescription) SetRoleARN(v string) *ExtendedS3DestinationDescription {
+	s.RoleARN = &v
+	return s
+}
+
+// SetS3BackupDescription sets the S3BackupDescription field's value.
+func (s *ExtendedS3DestinationDescription) SetS3BackupDescription(v *S3DestinationDescription) *ExtendedS3DestinationDescription {
+	s.S3BackupDescription = v
+	return s
+}
+
+// SetS3BackupMode sets the S3BackupMode field's value.
+func (s *ExtendedS3DestinationDescription) SetS3BackupMode(v string) *ExtendedS3DestinationDescription {
+	s.S3BackupMode = &v
+	return s
+}
+
+// Describes an update for a destination in Amazon S3.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/ExtendedS3DestinationUpdate
+type ExtendedS3DestinationUpdate struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the S3 bucket.
+	BucketARN *string `min:"1" type:"string"`
+
+	// The buffering option.
+	BufferingHints *BufferingHints `type:"structure"`
+
+	// The CloudWatch logging options for your delivery stream.
+	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
+
+	// The compression format. If no value is specified, the default is UNCOMPRESSED.
+	CompressionFormat *string `type:"string" enum:"CompressionFormat"`
+
+	// The encryption configuration. If no value is specified, the default is no
+	// encryption.
+	EncryptionConfiguration *EncryptionConfiguration `type:"structure"`
+
+	// The "YYYY/MM/DD/HH" time format prefix is automatically used for delivered
+	// S3 files. You can specify an extra prefix to be added in front of the time
+	// format prefix. Note that if the prefix ends with a slash, it appears as a
+	// folder in the S3 bucket. For more information, see Amazon S3 Object Name
+	// Format (http://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html)
+	// in the Amazon Kinesis Firehose Developer Guide.
+	Prefix *string `type:"string"`
+
+	// The data processing configuration.
+	ProcessingConfiguration *ProcessingConfiguration `type:"structure"`
+
+	// The ARN of the AWS credentials.
+	RoleARN *string `min:"1" type:"string"`
+
+	// Enables or disables Amazon S3 backup mode.
+	S3BackupMode *string `type:"string" enum:"S3BackupMode"`
+
+	// The Amazon S3 destination for backup.
+	S3BackupUpdate *S3DestinationUpdate `type:"structure"`
+}
+
+// String returns the string representation
+func (s ExtendedS3DestinationUpdate) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ExtendedS3DestinationUpdate) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ExtendedS3DestinationUpdate) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ExtendedS3DestinationUpdate"}
+	if s.BucketARN != nil && len(*s.BucketARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("BucketARN", 1))
+	}
+	if s.RoleARN != nil && len(*s.RoleARN) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleARN", 1))
+	}
+	if s.BufferingHints != nil {
+		if err := s.BufferingHints.Validate(); err != nil {
+			invalidParams.AddNested("BufferingHints", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.EncryptionConfiguration != nil {
+		if err := s.EncryptionConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("EncryptionConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ProcessingConfiguration != nil {
+		if err := s.ProcessingConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("ProcessingConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.S3BackupUpdate != nil {
+		if err := s.S3BackupUpdate.Validate(); err != nil {
+			invalidParams.AddNested("S3BackupUpdate", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBucketARN sets the BucketARN field's value.
+func (s *ExtendedS3DestinationUpdate) SetBucketARN(v string) *ExtendedS3DestinationUpdate {
+	s.BucketARN = &v
+	return s
+}
+
+// SetBufferingHints sets the BufferingHints field's value.
+func (s *ExtendedS3DestinationUpdate) SetBufferingHints(v *BufferingHints) *ExtendedS3DestinationUpdate {
+	s.BufferingHints = v
+	return s
+}
+
+// SetCloudWatchLoggingOptions sets the CloudWatchLoggingOptions field's value.
+func (s *ExtendedS3DestinationUpdate) SetCloudWatchLoggingOptions(v *CloudWatchLoggingOptions) *ExtendedS3DestinationUpdate {
+	s.CloudWatchLoggingOptions = v
+	return s
+}
+
+// SetCompressionFormat sets the CompressionFormat field's value.
+func (s *ExtendedS3DestinationUpdate) SetCompressionFormat(v string) *ExtendedS3DestinationUpdate {
+	s.CompressionFormat = &v
+	return s
+}
+
+// SetEncryptionConfiguration sets the EncryptionConfiguration field's value.
+func (s *ExtendedS3DestinationUpdate) SetEncryptionConfiguration(v *EncryptionConfiguration) *ExtendedS3DestinationUpdate {
+	s.EncryptionConfiguration = v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *ExtendedS3DestinationUpdate) SetPrefix(v string) *ExtendedS3DestinationUpdate {
+	s.Prefix = &v
+	return s
+}
+
+// SetProcessingConfiguration sets the ProcessingConfiguration field's value.
+func (s *ExtendedS3DestinationUpdate) SetProcessingConfiguration(v *ProcessingConfiguration) *ExtendedS3DestinationUpdate {
+	s.ProcessingConfiguration = v
+	return s
+}
+
+// SetRoleARN sets the RoleARN field's value.
+func (s *ExtendedS3DestinationUpdate) SetRoleARN(v string) *ExtendedS3DestinationUpdate {
+	s.RoleARN = &v
+	return s
+}
+
+// SetS3BackupMode sets the S3BackupMode field's value.
+func (s *ExtendedS3DestinationUpdate) SetS3BackupMode(v string) *ExtendedS3DestinationUpdate {
+	s.S3BackupMode = &v
+	return s
+}
+
+// SetS3BackupUpdate sets the S3BackupUpdate field's value.
+func (s *ExtendedS3DestinationUpdate) SetS3BackupUpdate(v *S3DestinationUpdate) *ExtendedS3DestinationUpdate {
+	s.S3BackupUpdate = v
+	return s
+}
+
 // Describes an encryption key for a destination in Amazon S3.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/KMSEncryptionConfig
 type KMSEncryptionConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -1877,7 +2375,7 @@ func (s *KMSEncryptionConfig) SetAWSKMSKeyARN(v string) *KMSEncryptionConfig {
 	return s
 }
 
-// Contains the parameters for ListDeliveryStreams.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/ListDeliveryStreamsInput
 type ListDeliveryStreamsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1926,7 +2424,7 @@ func (s *ListDeliveryStreamsInput) SetLimit(v int64) *ListDeliveryStreamsInput {
 	return s
 }
 
-// Contains the output of ListDeliveryStreams.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/ListDeliveryStreamsOutput
 type ListDeliveryStreamsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1963,7 +2461,177 @@ func (s *ListDeliveryStreamsOutput) SetHasMoreDeliveryStreams(v bool) *ListDeliv
 	return s
 }
 
-// Contains the parameters for PutRecordBatch.
+// Describes a data processing configuration.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/ProcessingConfiguration
+type ProcessingConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Enables or disables data processing.
+	Enabled *bool `type:"boolean"`
+
+	// The data processors.
+	Processors []*Processor `type:"list"`
+}
+
+// String returns the string representation
+func (s ProcessingConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProcessingConfiguration) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ProcessingConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ProcessingConfiguration"}
+	if s.Processors != nil {
+		for i, v := range s.Processors {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Processors", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *ProcessingConfiguration) SetEnabled(v bool) *ProcessingConfiguration {
+	s.Enabled = &v
+	return s
+}
+
+// SetProcessors sets the Processors field's value.
+func (s *ProcessingConfiguration) SetProcessors(v []*Processor) *ProcessingConfiguration {
+	s.Processors = v
+	return s
+}
+
+// Describes a data processor.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/Processor
+type Processor struct {
+	_ struct{} `type:"structure"`
+
+	// The processor parameters.
+	Parameters []*ProcessorParameter `type:"list"`
+
+	// The type of processor.
+	//
+	// Type is a required field
+	Type *string `type:"string" required:"true" enum:"ProcessorType"`
+}
+
+// String returns the string representation
+func (s Processor) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Processor) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Processor) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Processor"}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+	if s.Parameters != nil {
+		for i, v := range s.Parameters {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Parameters", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *Processor) SetParameters(v []*ProcessorParameter) *Processor {
+	s.Parameters = v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *Processor) SetType(v string) *Processor {
+	s.Type = &v
+	return s
+}
+
+// Describes the processor parameter.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/ProcessorParameter
+type ProcessorParameter struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the parameter.
+	//
+	// ParameterName is a required field
+	ParameterName *string `type:"string" required:"true" enum:"ProcessorParameterName"`
+
+	// The parameter value.
+	//
+	// ParameterValue is a required field
+	ParameterValue *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ProcessorParameter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProcessorParameter) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ProcessorParameter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ProcessorParameter"}
+	if s.ParameterName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterName"))
+	}
+	if s.ParameterValue == nil {
+		invalidParams.Add(request.NewErrParamRequired("ParameterValue"))
+	}
+	if s.ParameterValue != nil && len(*s.ParameterValue) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ParameterValue", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetParameterName sets the ParameterName field's value.
+func (s *ProcessorParameter) SetParameterName(v string) *ProcessorParameter {
+	s.ParameterName = &v
+	return s
+}
+
+// SetParameterValue sets the ParameterValue field's value.
+func (s *ProcessorParameter) SetParameterValue(v string) *ProcessorParameter {
+	s.ParameterValue = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/PutRecordBatchInput
 type PutRecordBatchInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2032,17 +2700,17 @@ func (s *PutRecordBatchInput) SetRecords(v []*Record) *PutRecordBatchInput {
 	return s
 }
 
-// Contains the output of PutRecordBatch.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/PutRecordBatchOutput
 type PutRecordBatchOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The number of unsuccessfully written records.
+	// The number of records that might have failed processing.
 	//
 	// FailedPutCount is a required field
 	FailedPutCount *int64 `type:"integer" required:"true"`
 
-	// The results for the individual records. The index of each element matches
-	// the same index in which records were sent.
+	// The results array. For each record, the index of the response element is
+	// the same as the index used in the request array.
 	//
 	// RequestResponses is a required field
 	RequestResponses []*PutRecordBatchResponseEntry `min:"1" type:"list" required:"true"`
@@ -2074,6 +2742,7 @@ func (s *PutRecordBatchOutput) SetRequestResponses(v []*PutRecordBatchResponseEn
 // If the record is successfully added to your delivery stream, it receives
 // a record ID. If the record fails to be added to your delivery stream, the
 // result includes an error code and an error message.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/PutRecordBatchResponseEntry
 type PutRecordBatchResponseEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -2115,7 +2784,7 @@ func (s *PutRecordBatchResponseEntry) SetRecordId(v string) *PutRecordBatchRespo
 	return s
 }
 
-// Contains the parameters for PutRecord.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/PutRecordInput
 type PutRecordInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2176,7 +2845,7 @@ func (s *PutRecordInput) SetRecord(v *Record) *PutRecordInput {
 	return s
 }
 
-// Contains the output of PutRecord.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/PutRecordOutput
 type PutRecordOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2203,6 +2872,7 @@ func (s *PutRecordOutput) SetRecordId(v string) *PutRecordOutput {
 }
 
 // The unit of data in a delivery stream.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/Record
 type Record struct {
 	_ struct{} `type:"structure"`
 
@@ -2245,10 +2915,11 @@ func (s *Record) SetData(v []byte) *Record {
 }
 
 // Describes the configuration of a destination in Amazon Redshift.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/RedshiftDestinationConfiguration
 type RedshiftDestinationConfiguration struct {
 	_ struct{} `type:"structure"`
 
-	// Describes CloudWatch logging options for your delivery stream.
+	// The CloudWatch logging options for your delivery stream.
 	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
 
 	// The database connection string.
@@ -2266,8 +2937,11 @@ type RedshiftDestinationConfiguration struct {
 	// Password is a required field
 	Password *string `min:"6" type:"string" required:"true"`
 
-	// Configures retry behavior in the event that Firehose is unable to deliver
-	// documents to Amazon Redshift. Default value is 3600 (60 minutes).
+	// The data processing configuration.
+	ProcessingConfiguration *ProcessingConfiguration `type:"structure"`
+
+	// The retry behavior in the event that Firehose is unable to deliver documents
+	// to Amazon Redshift. Default value is 3600 (60 minutes).
 	RetryOptions *RedshiftRetryOptions `type:"structure"`
 
 	// The ARN of the AWS credentials.
@@ -2275,8 +2949,14 @@ type RedshiftDestinationConfiguration struct {
 	// RoleARN is a required field
 	RoleARN *string `min:"1" type:"string" required:"true"`
 
-	// The S3 configuration for the intermediate location from which Amazon Redshift
-	// obtains data. Restrictions are described in the topic for CreateDeliveryStream.
+	// The configuration for backup in Amazon S3.
+	S3BackupConfiguration *S3DestinationConfiguration `type:"structure"`
+
+	// The Amazon S3 backup mode.
+	S3BackupMode *string `type:"string" enum:"RedshiftS3BackupMode"`
+
+	// The configuration for the intermediate Amazon S3 location from which Amazon
+	// Redshift obtains data. Restrictions are described in the topic for CreateDeliveryStream.
 	//
 	// The compression formats SNAPPY or ZIP cannot be specified in RedshiftDestinationConfiguration.S3Configuration
 	// because the Amazon Redshift COPY operation that reads from the S3 bucket
@@ -2339,6 +3019,16 @@ func (s *RedshiftDestinationConfiguration) Validate() error {
 			invalidParams.AddNested("CopyCommand", err.(request.ErrInvalidParams))
 		}
 	}
+	if s.ProcessingConfiguration != nil {
+		if err := s.ProcessingConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("ProcessingConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.S3BackupConfiguration != nil {
+		if err := s.S3BackupConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("S3BackupConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.S3Configuration != nil {
 		if err := s.S3Configuration.Validate(); err != nil {
 			invalidParams.AddNested("S3Configuration", err.(request.ErrInvalidParams))
@@ -2375,6 +3065,12 @@ func (s *RedshiftDestinationConfiguration) SetPassword(v string) *RedshiftDestin
 	return s
 }
 
+// SetProcessingConfiguration sets the ProcessingConfiguration field's value.
+func (s *RedshiftDestinationConfiguration) SetProcessingConfiguration(v *ProcessingConfiguration) *RedshiftDestinationConfiguration {
+	s.ProcessingConfiguration = v
+	return s
+}
+
 // SetRetryOptions sets the RetryOptions field's value.
 func (s *RedshiftDestinationConfiguration) SetRetryOptions(v *RedshiftRetryOptions) *RedshiftDestinationConfiguration {
 	s.RetryOptions = v
@@ -2384,6 +3080,18 @@ func (s *RedshiftDestinationConfiguration) SetRetryOptions(v *RedshiftRetryOptio
 // SetRoleARN sets the RoleARN field's value.
 func (s *RedshiftDestinationConfiguration) SetRoleARN(v string) *RedshiftDestinationConfiguration {
 	s.RoleARN = &v
+	return s
+}
+
+// SetS3BackupConfiguration sets the S3BackupConfiguration field's value.
+func (s *RedshiftDestinationConfiguration) SetS3BackupConfiguration(v *S3DestinationConfiguration) *RedshiftDestinationConfiguration {
+	s.S3BackupConfiguration = v
+	return s
+}
+
+// SetS3BackupMode sets the S3BackupMode field's value.
+func (s *RedshiftDestinationConfiguration) SetS3BackupMode(v string) *RedshiftDestinationConfiguration {
+	s.S3BackupMode = &v
 	return s
 }
 
@@ -2400,10 +3108,11 @@ func (s *RedshiftDestinationConfiguration) SetUsername(v string) *RedshiftDestin
 }
 
 // Describes a destination in Amazon Redshift.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/RedshiftDestinationDescription
 type RedshiftDestinationDescription struct {
 	_ struct{} `type:"structure"`
 
-	// Describes CloudWatch logging options for your delivery stream.
+	// The CloudWatch logging options for your delivery stream.
 	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
 
 	// The database connection string.
@@ -2416,14 +3125,23 @@ type RedshiftDestinationDescription struct {
 	// CopyCommand is a required field
 	CopyCommand *CopyCommand `type:"structure" required:"true"`
 
-	// Configures retry behavior in the event that Firehose is unable to deliver
-	// documents to Amazon Redshift. Default value is 3600 (60 minutes).
+	// The data processing configuration.
+	ProcessingConfiguration *ProcessingConfiguration `type:"structure"`
+
+	// The retry behavior in the event that Firehose is unable to deliver documents
+	// to Amazon Redshift. Default value is 3600 (60 minutes).
 	RetryOptions *RedshiftRetryOptions `type:"structure"`
 
 	// The ARN of the AWS credentials.
 	//
 	// RoleARN is a required field
 	RoleARN *string `min:"1" type:"string" required:"true"`
+
+	// The configuration for backup in Amazon S3.
+	S3BackupDescription *S3DestinationDescription `type:"structure"`
+
+	// The Amazon S3 backup mode.
+	S3BackupMode *string `type:"string" enum:"RedshiftS3BackupMode"`
 
 	// The Amazon S3 destination.
 	//
@@ -2464,6 +3182,12 @@ func (s *RedshiftDestinationDescription) SetCopyCommand(v *CopyCommand) *Redshif
 	return s
 }
 
+// SetProcessingConfiguration sets the ProcessingConfiguration field's value.
+func (s *RedshiftDestinationDescription) SetProcessingConfiguration(v *ProcessingConfiguration) *RedshiftDestinationDescription {
+	s.ProcessingConfiguration = v
+	return s
+}
+
 // SetRetryOptions sets the RetryOptions field's value.
 func (s *RedshiftDestinationDescription) SetRetryOptions(v *RedshiftRetryOptions) *RedshiftDestinationDescription {
 	s.RetryOptions = v
@@ -2473,6 +3197,18 @@ func (s *RedshiftDestinationDescription) SetRetryOptions(v *RedshiftRetryOptions
 // SetRoleARN sets the RoleARN field's value.
 func (s *RedshiftDestinationDescription) SetRoleARN(v string) *RedshiftDestinationDescription {
 	s.RoleARN = &v
+	return s
+}
+
+// SetS3BackupDescription sets the S3BackupDescription field's value.
+func (s *RedshiftDestinationDescription) SetS3BackupDescription(v *S3DestinationDescription) *RedshiftDestinationDescription {
+	s.S3BackupDescription = v
+	return s
+}
+
+// SetS3BackupMode sets the S3BackupMode field's value.
+func (s *RedshiftDestinationDescription) SetS3BackupMode(v string) *RedshiftDestinationDescription {
+	s.S3BackupMode = &v
 	return s
 }
 
@@ -2489,10 +3225,11 @@ func (s *RedshiftDestinationDescription) SetUsername(v string) *RedshiftDestinat
 }
 
 // Describes an update for a destination in Amazon Redshift.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/RedshiftDestinationUpdate
 type RedshiftDestinationUpdate struct {
 	_ struct{} `type:"structure"`
 
-	// Describes CloudWatch logging options for your delivery stream.
+	// The CloudWatch logging options for your delivery stream.
 	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
 
 	// The database connection string.
@@ -2504,12 +3241,21 @@ type RedshiftDestinationUpdate struct {
 	// The user password.
 	Password *string `min:"6" type:"string"`
 
-	// Configures retry behavior in the event that Firehose is unable to deliver
-	// documents to Amazon Redshift. Default value is 3600 (60 minutes).
+	// The data processing configuration.
+	ProcessingConfiguration *ProcessingConfiguration `type:"structure"`
+
+	// The retry behavior in the event that Firehose is unable to deliver documents
+	// to Amazon Redshift. Default value is 3600 (60 minutes).
 	RetryOptions *RedshiftRetryOptions `type:"structure"`
 
 	// The ARN of the AWS credentials.
 	RoleARN *string `min:"1" type:"string"`
+
+	// The Amazon S3 backup mode.
+	S3BackupMode *string `type:"string" enum:"RedshiftS3BackupMode"`
+
+	// The Amazon S3 destination for backup.
+	S3BackupUpdate *S3DestinationUpdate `type:"structure"`
 
 	// The Amazon S3 destination.
 	//
@@ -2552,6 +3298,16 @@ func (s *RedshiftDestinationUpdate) Validate() error {
 			invalidParams.AddNested("CopyCommand", err.(request.ErrInvalidParams))
 		}
 	}
+	if s.ProcessingConfiguration != nil {
+		if err := s.ProcessingConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("ProcessingConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.S3BackupUpdate != nil {
+		if err := s.S3BackupUpdate.Validate(); err != nil {
+			invalidParams.AddNested("S3BackupUpdate", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.S3Update != nil {
 		if err := s.S3Update.Validate(); err != nil {
 			invalidParams.AddNested("S3Update", err.(request.ErrInvalidParams))
@@ -2588,6 +3344,12 @@ func (s *RedshiftDestinationUpdate) SetPassword(v string) *RedshiftDestinationUp
 	return s
 }
 
+// SetProcessingConfiguration sets the ProcessingConfiguration field's value.
+func (s *RedshiftDestinationUpdate) SetProcessingConfiguration(v *ProcessingConfiguration) *RedshiftDestinationUpdate {
+	s.ProcessingConfiguration = v
+	return s
+}
+
 // SetRetryOptions sets the RetryOptions field's value.
 func (s *RedshiftDestinationUpdate) SetRetryOptions(v *RedshiftRetryOptions) *RedshiftDestinationUpdate {
 	s.RetryOptions = v
@@ -2597,6 +3359,18 @@ func (s *RedshiftDestinationUpdate) SetRetryOptions(v *RedshiftRetryOptions) *Re
 // SetRoleARN sets the RoleARN field's value.
 func (s *RedshiftDestinationUpdate) SetRoleARN(v string) *RedshiftDestinationUpdate {
 	s.RoleARN = &v
+	return s
+}
+
+// SetS3BackupMode sets the S3BackupMode field's value.
+func (s *RedshiftDestinationUpdate) SetS3BackupMode(v string) *RedshiftDestinationUpdate {
+	s.S3BackupMode = &v
+	return s
+}
+
+// SetS3BackupUpdate sets the S3BackupUpdate field's value.
+func (s *RedshiftDestinationUpdate) SetS3BackupUpdate(v *S3DestinationUpdate) *RedshiftDestinationUpdate {
+	s.S3BackupUpdate = v
 	return s
 }
 
@@ -2614,6 +3388,7 @@ func (s *RedshiftDestinationUpdate) SetUsername(v string) *RedshiftDestinationUp
 
 // Configures retry behavior in the event that Firehose is unable to deliver
 // documents to Amazon Redshift.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/RedshiftRetryOptions
 type RedshiftRetryOptions struct {
 	_ struct{} `type:"structure"`
 
@@ -2642,6 +3417,7 @@ func (s *RedshiftRetryOptions) SetDurationInSeconds(v int64) *RedshiftRetryOptio
 }
 
 // Describes the configuration of a destination in Amazon S3.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/S3DestinationConfiguration
 type S3DestinationConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -2654,7 +3430,7 @@ type S3DestinationConfiguration struct {
 	// values are used.
 	BufferingHints *BufferingHints `type:"structure"`
 
-	// Describes CloudWatch logging options for your delivery stream.
+	// The CloudWatch logging options for your delivery stream.
 	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
 
 	// The compression format. If no value is specified, the default is UNCOMPRESSED.
@@ -2673,7 +3449,7 @@ type S3DestinationConfiguration struct {
 	// format prefix. Note that if the prefix ends with a slash, it appears as a
 	// folder in the S3 bucket. For more information, see Amazon S3 Object Name
 	// Format (http://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html)
-	// in the Amazon Kinesis Firehose Developer Guide (http://docs.aws.amazon.com/firehose/latest/dev/).
+	// in the Amazon Kinesis Firehose Developer Guide.
 	Prefix *string `type:"string"`
 
 	// The ARN of the AWS credentials.
@@ -2767,6 +3543,7 @@ func (s *S3DestinationConfiguration) SetRoleARN(v string) *S3DestinationConfigur
 }
 
 // Describes a destination in Amazon S3.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/S3DestinationDescription
 type S3DestinationDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -2781,10 +3558,10 @@ type S3DestinationDescription struct {
 	// BufferingHints is a required field
 	BufferingHints *BufferingHints `type:"structure" required:"true"`
 
-	// Describes CloudWatch logging options for your delivery stream.
+	// The CloudWatch logging options for your delivery stream.
 	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
 
-	// The compression format. If no value is specified, the default is NOCOMPRESSION.
+	// The compression format. If no value is specified, the default is UNCOMPRESSED.
 	//
 	// CompressionFormat is a required field
 	CompressionFormat *string `type:"string" required:"true" enum:"CompressionFormat"`
@@ -2800,7 +3577,7 @@ type S3DestinationDescription struct {
 	// format prefix. Note that if the prefix ends with a slash, it appears as a
 	// folder in the S3 bucket. For more information, see Amazon S3 Object Name
 	// Format (http://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html)
-	// in the Amazon Kinesis Firehose Developer Guide (http://docs.aws.amazon.com/firehose/latest/dev/).
+	// in the Amazon Kinesis Firehose Developer Guide.
 	Prefix *string `type:"string"`
 
 	// The ARN of the AWS credentials.
@@ -2862,6 +3639,7 @@ func (s *S3DestinationDescription) SetRoleARN(v string) *S3DestinationDescriptio
 }
 
 // Describes an update for a destination in Amazon S3.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/S3DestinationUpdate
 type S3DestinationUpdate struct {
 	_ struct{} `type:"structure"`
 
@@ -2872,10 +3650,10 @@ type S3DestinationUpdate struct {
 	// values are used.
 	BufferingHints *BufferingHints `type:"structure"`
 
-	// Describes CloudWatch logging options for your delivery stream.
+	// The CloudWatch logging options for your delivery stream.
 	CloudWatchLoggingOptions *CloudWatchLoggingOptions `type:"structure"`
 
-	// The compression format. If no value is specified, the default is NOCOMPRESSION.
+	// The compression format. If no value is specified, the default is UNCOMPRESSED.
 	//
 	// The compression formats SNAPPY or ZIP cannot be specified for Amazon Redshift
 	// destinations because they are not supported by the Amazon Redshift COPY operation
@@ -2891,7 +3669,7 @@ type S3DestinationUpdate struct {
 	// format prefix. Note that if the prefix ends with a slash, it appears as a
 	// folder in the S3 bucket. For more information, see Amazon S3 Object Name
 	// Format (http://docs.aws.amazon.com/firehose/latest/dev/basic-deliver.html)
-	// in the Amazon Kinesis Firehose Developer Guide (http://docs.aws.amazon.com/firehose/latest/dev/).
+	// in the Amazon Kinesis Firehose Developer Guide.
 	Prefix *string `type:"string"`
 
 	// The ARN of the AWS credentials.
@@ -2976,16 +3754,16 @@ func (s *S3DestinationUpdate) SetRoleARN(v string) *S3DestinationUpdate {
 	return s
 }
 
-// Contains the parameters for UpdateDestination.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/UpdateDestinationInput
 type UpdateDestinationInput struct {
 	_ struct{} `type:"structure"`
 
-	// Obtain this value from the VersionId result of the DeliveryStreamDescription
-	// operation. This value is required, and helps the service to perform conditional
-	// operations. For example, if there is a interleaving update and this value
-	// is null, then the update destination fails. After the update is successful,
-	// the VersionId value is updated. The service then performs a merge of the
-	// old configuration with the new configuration.
+	// Obtain this value from the VersionId result of DeliveryStreamDescription.
+	// This value is required, and helps the service to perform conditional operations.
+	// For example, if there is a interleaving update and this value is null, then
+	// the update destination fails. After the update is successful, the VersionId
+	// value is updated. The service then performs a merge of the old configuration
+	// with the new configuration.
 	//
 	// CurrentDeliveryStreamVersionId is a required field
 	CurrentDeliveryStreamVersionId *string `min:"1" type:"string" required:"true"`
@@ -3003,11 +3781,14 @@ type UpdateDestinationInput struct {
 	// Describes an update for a destination in Amazon ES.
 	ElasticsearchDestinationUpdate *ElasticsearchDestinationUpdate `type:"structure"`
 
+	// Describes an update for a destination in Amazon S3.
+	ExtendedS3DestinationUpdate *ExtendedS3DestinationUpdate `type:"structure"`
+
 	// Describes an update for a destination in Amazon Redshift.
 	RedshiftDestinationUpdate *RedshiftDestinationUpdate `type:"structure"`
 
-	// Describes an update for a destination in Amazon S3.
-	S3DestinationUpdate *S3DestinationUpdate `type:"structure"`
+	// [Deprecated] Describes an update for a destination in Amazon S3.
+	S3DestinationUpdate *S3DestinationUpdate `deprecated:"true" type:"structure"`
 }
 
 // String returns the string representation
@@ -3044,6 +3825,11 @@ func (s *UpdateDestinationInput) Validate() error {
 	if s.ElasticsearchDestinationUpdate != nil {
 		if err := s.ElasticsearchDestinationUpdate.Validate(); err != nil {
 			invalidParams.AddNested("ElasticsearchDestinationUpdate", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.ExtendedS3DestinationUpdate != nil {
+		if err := s.ExtendedS3DestinationUpdate.Validate(); err != nil {
+			invalidParams.AddNested("ExtendedS3DestinationUpdate", err.(request.ErrInvalidParams))
 		}
 	}
 	if s.RedshiftDestinationUpdate != nil {
@@ -3087,6 +3873,12 @@ func (s *UpdateDestinationInput) SetElasticsearchDestinationUpdate(v *Elasticsea
 	return s
 }
 
+// SetExtendedS3DestinationUpdate sets the ExtendedS3DestinationUpdate field's value.
+func (s *UpdateDestinationInput) SetExtendedS3DestinationUpdate(v *ExtendedS3DestinationUpdate) *UpdateDestinationInput {
+	s.ExtendedS3DestinationUpdate = v
+	return s
+}
+
 // SetRedshiftDestinationUpdate sets the RedshiftDestinationUpdate field's value.
 func (s *UpdateDestinationInput) SetRedshiftDestinationUpdate(v *RedshiftDestinationUpdate) *UpdateDestinationInput {
 	s.RedshiftDestinationUpdate = v
@@ -3099,7 +3891,7 @@ func (s *UpdateDestinationInput) SetS3DestinationUpdate(v *S3DestinationUpdate) 
 	return s
 }
 
-// Contains the output of UpdateDestination.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/UpdateDestinationOutput
 type UpdateDestinationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3167,4 +3959,33 @@ const (
 const (
 	// NoEncryptionConfigNoEncryption is a NoEncryptionConfig enum value
 	NoEncryptionConfigNoEncryption = "NoEncryption"
+)
+
+const (
+	// ProcessorParameterNameLambdaArn is a ProcessorParameterName enum value
+	ProcessorParameterNameLambdaArn = "LambdaArn"
+
+	// ProcessorParameterNameNumberOfRetries is a ProcessorParameterName enum value
+	ProcessorParameterNameNumberOfRetries = "NumberOfRetries"
+)
+
+const (
+	// ProcessorTypeLambda is a ProcessorType enum value
+	ProcessorTypeLambda = "Lambda"
+)
+
+const (
+	// RedshiftS3BackupModeDisabled is a RedshiftS3BackupMode enum value
+	RedshiftS3BackupModeDisabled = "Disabled"
+
+	// RedshiftS3BackupModeEnabled is a RedshiftS3BackupMode enum value
+	RedshiftS3BackupModeEnabled = "Enabled"
+)
+
+const (
+	// S3BackupModeDisabled is a S3BackupMode enum value
+	S3BackupModeDisabled = "Disabled"
+
+	// S3BackupModeEnabled is a S3BackupMode enum value
+	S3BackupModeEnabled = "Enabled"
 )

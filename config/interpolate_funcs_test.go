@@ -6,9 +6,13 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
+
+	"path/filepath"
 
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
+	"github.com/mitchellh/go-homedir"
 )
 
 func TestInterpolateFuncZipMap(t *testing.T) {
@@ -1921,6 +1925,27 @@ func TestInterpolateFuncUUID(t *testing.T) {
 	}
 }
 
+func TestInterpolateFuncTimestamp(t *testing.T) {
+	currentTime := time.Now().UTC()
+	ast, err := hil.Parse("${timestamp()}")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	result, err := hil.Eval(ast, langEvalConfig(nil))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	resultTime, err := time.Parse(time.RFC3339, result.Value.(string))
+	if err != nil {
+		t.Fatalf("Error parsing timestamp: %s", err)
+	}
+
+	if resultTime.Sub(currentTime).Seconds() > 10.0 {
+		t.Fatalf("Timestamp Diff too large. Expected: %s\nRecieved: %s", currentTime.Format(time.RFC3339), result.Value.(string))
+	}
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable
@@ -1949,4 +1974,40 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 				i, tc.Input, result.Value, tc.Result)
 		}
 	}
+}
+
+func TestInterpolateFuncPathExpand(t *testing.T) {
+	homePath, err := homedir.Dir()
+	if err != nil {
+		t.Fatalf("Error getting home directory: %v", err)
+	}
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${pathexpand("~/test-file")}`,
+				filepath.Join(homePath, "test-file"),
+				false,
+			},
+			{
+				`${pathexpand("~/another/test/file")}`,
+				filepath.Join(homePath, "another/test/file"),
+				false,
+			},
+			{
+				`${pathexpand("/root/file")}`,
+				"/root/file",
+				false,
+			},
+			{
+				`${pathexpand("/")}`,
+				"/",
+				false,
+			},
+			{
+				`${pathexpand()}`,
+				nil,
+				true,
+			},
+		},
+	})
 }

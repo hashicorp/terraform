@@ -29,12 +29,7 @@ func resourceArmCdnEndpoint() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -153,7 +148,7 @@ func resourceArmCdnEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 	caching_behaviour := d.Get("querystring_caching_behaviour").(string)
 	tags := d.Get("tags").(map[string]interface{})
 
-	properties := cdn.EndpointPropertiesCreateParameters{
+	properties := cdn.EndpointProperties{
 		IsHTTPAllowed:              &http_allowed,
 		IsHTTPSAllowed:             &https_allowed,
 		IsCompressionEnabled:       &compression_enabled,
@@ -189,18 +184,18 @@ func resourceArmCdnEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 		properties.ContentTypesToCompress = &content_types
 	}
 
-	cdnEndpoint := cdn.EndpointCreateParameters{
-		Location:   &location,
-		Properties: &properties,
-		Tags:       expandTags(tags),
+	cdnEndpoint := cdn.Endpoint{
+		Location:           &location,
+		EndpointProperties: &properties,
+		Tags:               expandTags(tags),
 	}
 
-	_, err := cdnEndpointsClient.Create(name, cdnEndpoint, profileName, resGroup, make(chan struct{}))
+	_, err := cdnEndpointsClient.Create(resGroup, profileName, name, cdnEndpoint, make(chan struct{}))
 	if err != nil {
 		return err
 	}
 
-	read, err := cdnEndpointsClient.Get(name, profileName, resGroup)
+	read, err := cdnEndpointsClient.Get(resGroup, profileName, name)
 	if err != nil {
 		return err
 	}
@@ -227,7 +222,7 @@ func resourceArmCdnEndpointRead(d *schema.ResourceData, meta interface{}) error 
 		profileName = id.Path["Profiles"]
 	}
 	log.Printf("[INFO] Trying to find the AzureRM CDN Endpoint %s (Profile: %s, RG: %s)", name, profileName, resGroup)
-	resp, err := cdnEndpointsClient.Get(name, profileName, resGroup)
+	resp, err := cdnEndpointsClient.Get(resGroup, profileName, name)
 	if err != nil {
 		if resp.StatusCode == http.StatusNotFound {
 			d.SetId("")
@@ -240,21 +235,21 @@ func resourceArmCdnEndpointRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("resource_group_name", resGroup)
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 	d.Set("profile_name", profileName)
-	d.Set("host_name", resp.Properties.HostName)
-	d.Set("is_compression_enabled", resp.Properties.IsCompressionEnabled)
-	d.Set("is_http_allowed", resp.Properties.IsHTTPAllowed)
-	d.Set("is_https_allowed", resp.Properties.IsHTTPSAllowed)
-	d.Set("querystring_caching_behaviour", resp.Properties.QueryStringCachingBehavior)
-	if resp.Properties.OriginHostHeader != nil && *resp.Properties.OriginHostHeader != "" {
-		d.Set("origin_host_header", resp.Properties.OriginHostHeader)
+	d.Set("host_name", resp.EndpointProperties.HostName)
+	d.Set("is_compression_enabled", resp.EndpointProperties.IsCompressionEnabled)
+	d.Set("is_http_allowed", resp.EndpointProperties.IsHTTPAllowed)
+	d.Set("is_https_allowed", resp.EndpointProperties.IsHTTPSAllowed)
+	d.Set("querystring_caching_behaviour", resp.EndpointProperties.QueryStringCachingBehavior)
+	if resp.EndpointProperties.OriginHostHeader != nil && *resp.EndpointProperties.OriginHostHeader != "" {
+		d.Set("origin_host_header", resp.EndpointProperties.OriginHostHeader)
 	}
-	if resp.Properties.OriginPath != nil && *resp.Properties.OriginPath != "" {
-		d.Set("origin_path", resp.Properties.OriginPath)
+	if resp.EndpointProperties.OriginPath != nil && *resp.EndpointProperties.OriginPath != "" {
+		d.Set("origin_path", resp.EndpointProperties.OriginPath)
 	}
-	if resp.Properties.ContentTypesToCompress != nil {
-		d.Set("content_types_to_compress", flattenAzureRMCdnEndpointContentTypes(resp.Properties.ContentTypesToCompress))
+	if resp.EndpointProperties.ContentTypesToCompress != nil {
+		d.Set("content_types_to_compress", flattenAzureRMCdnEndpointContentTypes(resp.EndpointProperties.ContentTypesToCompress))
 	}
-	d.Set("origin", flattenAzureRMCdnEndpointOrigin(resp.Properties.Origins))
+	d.Set("origin", flattenAzureRMCdnEndpointOrigin(resp.EndpointProperties.Origins))
 
 	flattenAndSetTags(d, resp.Tags)
 
@@ -306,11 +301,11 @@ func resourceArmCdnEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	updateProps := cdn.EndpointUpdateParameters{
-		Tags:       expandTags(newTags),
-		Properties: &properties,
+		Tags: expandTags(newTags),
+		EndpointPropertiesUpdateParameters: &properties,
 	}
 
-	_, err := cdnEndpointsClient.Update(name, updateProps, profileName, resGroup, make(chan struct{}))
+	_, err := cdnEndpointsClient.Update(resGroup, profileName, name, updateProps, make(chan struct{}))
 	if err != nil {
 		return fmt.Errorf("Error issuing Azure ARM update request to update CDN Endpoint %q: %s", name, err)
 	}
@@ -332,7 +327,7 @@ func resourceArmCdnEndpointDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 	name := id.Path["endpoints"]
 
-	accResp, err := client.DeleteIfExists(name, profileName, resGroup, make(chan struct{}))
+	accResp, err := client.Delete(resGroup, profileName, name, make(chan struct{}))
 	if err != nil {
 		if accResp.StatusCode == http.StatusNotFound {
 			return nil
@@ -393,8 +388,8 @@ func expandAzureRmCdnEndpointOrigins(d *schema.ResourceData) ([]cdn.DeepCreatedO
 		name := data["name"].(string)
 
 		origin := cdn.DeepCreatedOrigin{
-			Name:       &name,
-			Properties: &properties,
+			Name: &name,
+			DeepCreatedOriginProperties: &properties,
 		}
 
 		origins = append(origins, origin)
@@ -408,14 +403,14 @@ func flattenAzureRMCdnEndpointOrigin(list *[]cdn.DeepCreatedOrigin) []map[string
 	for _, i := range *list {
 		l := map[string]interface{}{
 			"name":      *i.Name,
-			"host_name": *i.Properties.HostName,
+			"host_name": *i.DeepCreatedOriginProperties.HostName,
 		}
 
-		if i.Properties.HTTPPort != nil {
-			l["http_port"] = *i.Properties.HTTPPort
+		if i.DeepCreatedOriginProperties.HTTPPort != nil {
+			l["http_port"] = *i.DeepCreatedOriginProperties.HTTPPort
 		}
-		if i.Properties.HTTPSPort != nil {
-			l["https_port"] = *i.Properties.HTTPSPort
+		if i.DeepCreatedOriginProperties.HTTPSPort != nil {
+			l["https_port"] = *i.DeepCreatedOriginProperties.HTTPSPort
 		}
 		result = append(result, l)
 	}

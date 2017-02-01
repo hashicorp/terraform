@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config"
@@ -48,25 +49,6 @@ type SemanticChecker interface {
 	Check(*dag.Graph, dag.Vertex) error
 }
 
-// SemanticCheckModulesExist is an implementation of SemanticChecker that
-// verifies that all the modules that are referenced in the graph exist.
-type SemanticCheckModulesExist struct{}
-
-// TODO: test
-func (*SemanticCheckModulesExist) Check(g *dag.Graph, v dag.Vertex) error {
-	mn, ok := v.(*GraphNodeConfigModule)
-	if !ok {
-		return nil
-	}
-
-	if mn.Tree == nil {
-		return fmt.Errorf(
-			"module '%s' not found", mn.Module.Name)
-	}
-
-	return nil
-}
-
 // smcUserVariables does all the semantic checks to verify that the
 // variables given satisfy the configuration itself.
 func smcUserVariables(c *config.Config, vs map[string]interface{}) []error {
@@ -96,6 +78,21 @@ func smcUserVariables(c *config.Config, vs map[string]interface{}) []error {
 
 	// Check that types match up
 	for name, proposedValue := range vs {
+		// Check for "map.key" fields. These stopped working with Terraform
+		// 0.7 but we do this to surface a better error message informing
+		// the user what happened.
+		if idx := strings.Index(name, "."); idx > 0 {
+			key := name[:idx]
+			if _, ok := cvs[key]; ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: Overriding map keys with the format `name.key` is no "+
+						"longer allowed. You may still override keys by setting "+
+						"`name = { key = value }`. The maps will be merged. This "+
+						"behavior appeared in 0.7.0.", name))
+				continue
+			}
+		}
+
 		schema, ok := cvs[name]
 		if !ok {
 			continue

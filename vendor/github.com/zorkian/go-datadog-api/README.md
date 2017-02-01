@@ -53,15 +53,13 @@ Thanks in advance! And, as always, patches welcome!
 
 ## DEVELOPMENT
 
-* Get dependencies with `make updatedeps`.
 * Run tests tests with `make test`.
-* Integration tests can be run with `make testacc`.
+* Integration tests can be run with `make testacc`. Run specific integration tests with `make testacc TESTARGS='-run=TestCreateAndDeleteMonitor'`
 
 The acceptance tests require _DATADOG_API_KEY_ and _DATADOG_APP_KEY_ to be available
 in your environment variables.
 
-*Warning: the integrations tests will create and remove real resources in your Datadog
-account*
+*Warning: the integrations tests will create and remove real resources in your Datadog account.*
 
 ## COPYRIGHT AND LICENSE
 

@@ -53,7 +53,7 @@ func resourceComputeFloatingIPV2() *schema.Resource {
 
 func resourceComputeFloatingIPV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -74,7 +74,7 @@ func resourceComputeFloatingIPV2Create(d *schema.ResourceData, meta interface{})
 
 func resourceComputeFloatingIPV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -90,13 +90,14 @@ func resourceComputeFloatingIPV2Read(d *schema.ResourceData, meta interface{}) e
 	d.Set("instance_id", fip.InstanceID)
 	d.Set("address", fip.IP)
 	d.Set("fixed_ip", fip.FixedIP)
+	d.Set("region", GetRegion(d))
 
 	return nil
 }
 
 func resourceComputeFloatingIPV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}

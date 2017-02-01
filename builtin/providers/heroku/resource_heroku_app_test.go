@@ -100,8 +100,8 @@ func TestAccHerokuApp_NukeVars(t *testing.T) {
 					testAccCheckHerokuAppAttributesNoVars(&app, appName),
 					resource.TestCheckResourceAttr(
 						"heroku_app.foobar", "name", appName),
-					resource.TestCheckResourceAttr(
-						"heroku_app.foobar", "config_vars.0.FOO", ""),
+					resource.TestCheckNoResourceAttr(
+						"heroku_app.foobar", "config_vars.0.FOO"),
 				),
 			},
 		},

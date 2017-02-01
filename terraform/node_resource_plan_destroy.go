@@ -1,9 +1,5 @@
 package terraform
 
-import (
-	"fmt"
-)
-
 // NodePlanDestroyableResource represents a resource that is "applyable":
 // it is ready to be applied and is represented by a diff.
 type NodePlanDestroyableResource struct {
@@ -21,9 +17,6 @@ func (n *NodePlanDestroyableResource) EvalTree() EvalNode {
 
 	// stateId is the ID to put into the state
 	stateId := addr.stateId()
-	if addr.Index > -1 {
-		stateId = fmt.Sprintf("%s.%d", stateId, addr.Index)
-	}
 
 	// Build the instance info. More of this will be populated during eval
 	info := &InstanceInfo{

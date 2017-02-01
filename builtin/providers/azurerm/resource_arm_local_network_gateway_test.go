@@ -137,7 +137,7 @@ func testCheckAzureRMLocalNetworkGatewayDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Local network gateway still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Local network gateway still exists:\n%#v", resp.LocalNetworkGatewayPropertiesFormat)
 		}
 	}
 

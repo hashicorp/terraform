@@ -129,12 +129,6 @@ func init() {
 			}, nil
 		},
 
-		"remote": func() (cli.Command, error) {
-			return &command.RemoteCommand{
-				Meta: meta,
-			}, nil
-		},
-
 		"show": func() (cli.Command, error) {
 			return &command.ShowCommand{
 				Meta: meta,
@@ -209,6 +203,18 @@ func init() {
 			}, nil
 		},
 
+		"state pull": func() (cli.Command, error) {
+			return &command.StatePullCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state push": func() (cli.Command, error) {
+			return &command.StatePushCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"state show": func() (cli.Command, error) {
 			return &command.StateShowCommand{
 				Meta: meta,
@@ -223,7 +229,8 @@ func makeShutdownCh() <-chan struct{} {
 	resultCh := make(chan struct{})
 
 	signalCh := make(chan os.Signal, 4)
-	signal.Notify(signalCh, os.Interrupt)
+	signal.Notify(signalCh, ignoreSignals...)
+	signal.Notify(signalCh, forwardSignals...)
 	go func() {
 		for {
 			<-signalCh

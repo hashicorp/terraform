@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -78,6 +79,11 @@ type State struct {
 	// pull and push state files from a remote storage endpoint.
 	Remote *RemoteState `json:"remote,omitempty"`
 
+	// Backend tracks the configuration for the backend in use with
+	// this state. This is used to track any changes in the backend
+	// configuration.
+	Backend *BackendState `json:"backend,omitempty"`
+
 	// Modules contains all the modules in a breadth-first order
 	Modules []*ModuleState `json:"modules"`
 
@@ -108,6 +114,10 @@ func (s *State) Children(path []string) []*ModuleState {
 func (s *State) children(path []string) []*ModuleState {
 	result := make([]*ModuleState, 0)
 	for _, m := range s.Modules {
+		if m == nil {
+			continue
+		}
+
 		if len(m.Path) != len(path)+1 {
 			continue
 		}
@@ -161,6 +171,9 @@ func (s *State) ModuleByPath(path []string) *ModuleState {
 
 func (s *State) moduleByPath(path []string) *ModuleState {
 	for _, mod := range s.Modules {
+		if mod == nil {
+			continue
+		}
 		if mod.Path == nil {
 			panic("missing module path")
 		}
@@ -213,6 +226,10 @@ func (s *State) moduleOrphans(path []string, c *config.Config) [][]string {
 
 	// Find the orphans that are nested...
 	for _, m := range s.Modules {
+		if m == nil {
+			continue
+		}
+
 		// We only want modules that are at least grandchildren
 		if len(m.Path) < len(path)+2 {
 			continue
@@ -328,6 +345,10 @@ func (s *State) Validate() error {
 	{
 		found := make(map[string]struct{})
 		for _, ms := range s.Modules {
+			if ms == nil {
+				continue
+			}
+
 			key := strings.Join(ms.Path, ".")
 			if _, ok := found[key]; ok {
 				result = multierror.Append(result, fmt.Errorf(
@@ -644,12 +665,10 @@ func (s *State) init() {
 	}
 	s.ensureHasLineage()
 
-	// We can't trust that state read from a file doesn't have nil/empty
-	// modules
-	s.prune()
-
 	for _, mod := range s.Modules {
-		mod.init()
+		if mod != nil {
+			mod.init()
+		}
 	}
 
 	if s.Remote != nil {
@@ -726,7 +745,9 @@ func (s *State) sort() {
 
 	// Allow modules to be sorted
 	for _, m := range s.Modules {
-		m.sort()
+		if m != nil {
+			m.sort()
+		}
 	}
 }
 
@@ -761,6 +782,22 @@ func (s *State) String() string {
 	}
 
 	return strings.TrimSpace(buf.String())
+}
+
+// BackendState stores the configuration to connect to a remote backend.
+type BackendState struct {
+	Type   string                 `json:"type"`   // Backend type
+	Config map[string]interface{} `json:"config"` // Backend raw config
+
+	// Hash is the hash code to uniquely identify the original source
+	// configuration. We use this to detect when there is a change in
+	// configuration even when "type" isn't changed.
+	Hash uint64 `json:"hash"`
+}
+
+// Empty returns true if BackendState has no state.
+func (s *BackendState) Empty() bool {
+	return s == nil || s.Type == ""
 }
 
 // RemoteState is used to track the information about a remote
@@ -1649,6 +1686,32 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 		}
 	}
 
+	// Remove any now empty array, maps or sets because a parent structure
+	// won't include these entries in the count value.
+	isCount := regexp.MustCompile(`\.[%#]$`).MatchString
+	var deleted []string
+
+	for k, v := range result.Attributes {
+		if isCount(k) && v == "0" {
+			delete(result.Attributes, k)
+			deleted = append(deleted, k)
+		}
+	}
+
+	for _, k := range deleted {
+		// Sanity check for invalid structures.
+		// If we removed the primary count key, there should have been no
+		// other keys left with this prefix.
+
+		// this must have a "#" or "%" which we need to remove
+		base := k[:len(k)-1]
+		for k, _ := range result.Attributes {
+			if strings.HasPrefix(k, base) {
+				panic(fmt.Sprintf("empty structure %q has entry %q", base, k))
+			}
+		}
+	}
+
 	return result
 }
 
@@ -1810,6 +1873,10 @@ func ReadState(src io.Reader) (*State, error) {
 		panic("resulting state in load not set, assertion failed")
 	}
 
+	// Prune the state when read it. Its possible to write unpruned states or
+	// for a user to make a state unpruned (nil-ing a module state for example).
+	result.prune()
+
 	// Validate the state file is valid
 	if err := result.Validate(); err != nil {
 		return nil, err
@@ -1967,6 +2034,11 @@ func (s moduleStateSort) Len() int {
 func (s moduleStateSort) Less(i, j int) bool {
 	a := s[i]
 	b := s[j]
+
+	// If either is nil, then the nil one is "less" than
+	if a == nil || b == nil {
+		return a == nil
+	}
 
 	// If the lengths are different, then the shorter one always wins
 	if len(a.Path) != len(b.Path) {

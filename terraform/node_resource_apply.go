@@ -17,15 +17,42 @@ func (n *NodeApplyableResource) CreateAddr() *ResourceAddress {
 	return n.NodeAbstractResource.Addr
 }
 
+// GraphNodeReferencer, overriding NodeAbstractResource
+func (n *NodeApplyableResource) References() []string {
+	result := n.NodeAbstractResource.References()
+
+	// The "apply" side of a resource generally also depends on the
+	// destruction of its dependencies as well. For example, if a LB
+	// references a set of VMs with ${vm.foo.*.id}, then we must wait for
+	// the destruction so we get the newly updated list of VMs.
+	//
+	// The exception here is CBD. When CBD is set, we don't do this since
+	// it would create a cycle. By not creating a cycle, we require two
+	// applies since the first apply the creation step will use the OLD
+	// values (pre-destroy) and the second step will update.
+	//
+	// This is how Terraform behaved with "legacy" graphs (TF <= 0.7.x).
+	// We mimic that behavior here now and can improve upon it in the future.
+	//
+	// This behavior is tested in graph_build_apply_test.go to test ordering.
+	cbd := n.Config != nil && n.Config.Lifecycle.CreateBeforeDestroy
+	if !cbd {
+		// The "apply" side of a resource always depends on the destruction
+		// of all its dependencies in addition to the creation.
+		for _, v := range result {
+			result = append(result, v+".destroy")
+		}
+	}
+
+	return result
+}
+
 // GraphNodeEvalable
 func (n *NodeApplyableResource) EvalTree() EvalNode {
 	addr := n.NodeAbstractResource.Addr
 
 	// stateId is the ID to put into the state
 	stateId := addr.stateId()
-	if addr.Index > -1 {
-		stateId = fmt.Sprintf("%s.%d", stateId, addr.Index)
-	}
 
 	// Build the instance info. More of this will be populated during eval
 	info := &InstanceInfo{
@@ -43,16 +70,8 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 		resource.CountIndex = 0
 	}
 
-	// Determine the dependencies for the state. We use some older
-	// code for this that we've used for a long time.
-	var stateDeps []string
-	{
-		oldN := &graphNodeExpandedResource{
-			Resource: n.Config,
-			Index:    addr.Index,
-		}
-		stateDeps = oldN.StateDependencies()
-	}
+	// Determine the dependencies for the state.
+	stateDeps := n.StateReferences()
 
 	// Eval info is different depending on what kind of resource this is
 	switch n.Config.Mode {
@@ -271,6 +290,12 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 				Name:   stateId,
 				Output: &state,
 			},
+			// Call pre-apply hook
+			&EvalApplyPre{
+				Info:  info,
+				State: &state,
+				Diff:  &diffApply,
+			},
 			&EvalApply{
 				Info:      info,
 				State:     &state,
@@ -294,6 +319,7 @@ func (n *NodeApplyableResource) evalTreeManagedResource(
 				InterpResource: resource,
 				CreateNew:      &createNew,
 				Error:          &err,
+				When:           config.ProvisionerWhenCreate,
 			},
 			&EvalIf{
 				If: func(ctx EvalContext) (bool, error) {

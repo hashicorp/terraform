@@ -69,6 +69,7 @@ func (n *EvalCompareDiff) Eval(ctx EvalContext) (interface{}, error) {
 // EvalDiff is an EvalNode implementation that does a refresh for
 // a resource.
 type EvalDiff struct {
+	Name        string
 	Info        *InstanceInfo
 	Config      **ResourceConfig
 	Provider    *ResourceProvider
@@ -110,6 +111,18 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 	if diff == nil {
 		diff = new(InstanceDiff)
+	}
+
+	// Set DestroyDeposed if we have deposed instances
+	_, err = readInstanceFromState(ctx, n.Name, nil, func(rs *ResourceState) (*InstanceState, error) {
+		if len(rs.Deposed) > 0 {
+			diff.DestroyDeposed = true
+		}
+
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	// Preserve the DestroyTainted flag

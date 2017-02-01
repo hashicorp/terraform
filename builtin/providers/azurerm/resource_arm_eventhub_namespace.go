@@ -5,9 +5,10 @@ import (
 	"log"
 	"strings"
 
+	"net/http"
+
 	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
 	"github.com/hashicorp/terraform/helper/schema"
-	"net/http"
 )
 
 // Default Authorization Rule/Policy created by Azure, used to populate the
@@ -31,12 +32,7 @@ func resourceArmEventHubNamespace() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,

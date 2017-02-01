@@ -97,6 +97,12 @@ This purposely is very similar to accessing resource attributes. Instead of mapp
 
 Just like resources, this will create a dependency from the `aws_instance.client` resource to the module, so the module will be built first.
 
+To use module outputs via command line you have to specify the module name before the variable, for example:
+
+```
+terraform output -module=consul server_availability_zone
+```
+
 ## Plans and Graphs
 
 Commands such as the [plan command](/docs/commands/plan.html) and [graph command](/docs/commands/graph.html) will expand modules by default. You can use the `-module-depth` parameter to limit the graph.

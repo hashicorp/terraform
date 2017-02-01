@@ -58,7 +58,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			addr.Path = m.Path[1:]
 
 			// If we're destroying, add the destroy node
-			if inst.Destroy {
+			if inst.Destroy || inst.GetDestroyDeposed() {
 				abstract := &NodeAbstractResource{Addr: addr}
 				g.Add(&NodeDestroyResource{NodeAbstractResource: abstract})
 			}
