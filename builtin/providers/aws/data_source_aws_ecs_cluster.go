@@ -13,33 +13,33 @@ func dataSourceAwsEcsCluster() *schema.Resource {
 		Read: dataSourceAwsEcsClusterRead,
 
 		Schema: map[string]*schema.Schema{
-			"cluster_name": &schema.Schema{
+			"cluster_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"pending_tasks_count": &schema.Schema{
+			"pending_tasks_count": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
 
-			"running_tasks_count": &schema.Schema{
+			"running_tasks_count": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
 
-			"registered_container_instances_count": &schema.Schema{
+			"registered_container_instances_count": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
