@@ -36,6 +36,7 @@ BUG FIXES:
  * provider/aws: Fix issue with ECS Placement Strat. and type casing [GH-11565]
  * provider/aws: aws_route53_record import error processing [GH-11603]
  * provider/aws: Fix panic in aws_rds_cluster missing parameter error message [GH-11600]
+ * provider/aws: Succeed creating aws_volume_attachment if identical attachment exists [GH-11060]
  * provider/azurerm: Scale Sets Load balancer pools should not be computed [GH-11516]
  * provider/azurerm: Scale Sets ip configuration handling and update support for load balancer backend pools. [GH-11516]
  * provider/azurerm: check if lb sub resources exist when reading [GH-11553]
