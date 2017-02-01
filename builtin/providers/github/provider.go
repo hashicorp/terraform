@@ -67,5 +67,5 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		BaseURL:      d.Get("base_url").(string),
 	}
 
-	return config.Client()
+	return config.NewOrganization()
 }

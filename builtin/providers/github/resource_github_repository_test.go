@@ -87,7 +87,7 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 		}
 
 		org := testAccProvider.Meta().(*Organization)
-		conn := org.client
+		conn := org.Client()
 		gotRepo, _, err := conn.Repositories.Get(context.TODO(), org.name, repoName)
 		if err != nil {
 			return err
@@ -173,7 +173,7 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 }
 
 func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).Client()
 	orgName := testAccProvider.Meta().(*Organization).name
 
 	for _, rs := range s.RootModule().Resources {

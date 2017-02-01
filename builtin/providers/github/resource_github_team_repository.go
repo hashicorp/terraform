@@ -34,12 +34,16 @@ func resourceGithubTeamRepository() *schema.Resource {
 				Default:      "pull",
 				ValidateFunc: validateValueFunc([]string{"pull", "push", "admin"}),
 			},
+			"etag": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
 func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	t := d.Get("team_id").(string)
 	r := d.Get("repository").(string)
 	p := d.Get("permission").(string)
@@ -57,10 +61,15 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	t, r := parseTwoPartID(d.Id())
 
-	repo, _, repoErr := client.Organizations.IsTeamRepo(context.TODO(), toGithubID(t), meta.(*Organization).name, r)
+	client.Transport.etag = d.Get("etag").(string)
+	repo, rsp, repoErr := client.Organizations.IsTeamRepo(context.TODO(), toGithubID(t), meta.(*Organization).name, r)
+	if rsp.StatusCode == 304 {
+		// no changes
+		return nil
+	}
 
 	if repoErr != nil {
 		d.SetId("")
@@ -71,6 +80,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 
 	d.Set("team_id", t)
 	d.Set("repository", repositoryName)
+	d.Set("etag", rsp.Header.Get("ETag"))
 
 	permName, permErr := getRepoPermission(repo.Permissions)
 
@@ -84,7 +94,7 @@ func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	t := d.Get("team_id").(string)
 	r := d.Get("repository").(string)
 	p := d.Get("permission").(string)
@@ -102,7 +112,7 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubTeamRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	t := d.Get("team_id").(string)
 	r := d.Get("repository").(string)
 

@@ -77,7 +77,7 @@ func TestAccGithubTeamMembership_importBasic(t *testing.T) {
 }
 
 func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Organization).Client()
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_team_membership" {
@@ -110,7 +110,7 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 			return fmt.Errorf("No team membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).Client()
 		t, u := parseTwoPartID(rs.Primary.ID)
 
 		teamMembership, _, err := conn.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), u)
@@ -134,7 +134,7 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 			return fmt.Errorf("No team membership ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Organization).Client()
 		t, u := parseTwoPartID(rs.Primary.ID)
 
 		teamMembership, _, err := conn.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), u)

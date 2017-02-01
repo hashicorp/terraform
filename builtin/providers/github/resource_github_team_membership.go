@@ -37,12 +37,16 @@ func resourceGithubTeamMembership() *schema.Resource {
 				Default:      "member",
 				ValidateFunc: validateValueFunc([]string{"member", "maintainer"}),
 			},
+			"etag": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
 func resourceGithubTeamMembershipCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	t := d.Get("team_id").(string)
 	n := d.Get("username").(string)
 	r := d.Get("role").(string)
@@ -60,10 +64,15 @@ func resourceGithubTeamMembershipCreate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	t, n := parseTwoPartID(d.Id())
 
-	membership, _, err := client.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), n)
+	client.Transport.etag = d.Get("etag").(string)
+	membership, rsp, err := client.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), n)
+	if rsp.StatusCode == 304 {
+		// no changes
+		return nil
+	}
 
 	if err != nil {
 		d.SetId("")
@@ -74,11 +83,12 @@ func resourceGithubTeamMembershipRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("username", user)
 	d.Set("role", membership.Role)
 	d.Set("team_id", team)
+	d.Set("etag", rsp.Header.Get("ETag"))
 	return nil
 }
 
 func resourceGithubTeamMembershipDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Organization).Client()
 	t := d.Get("team_id").(string)
 	n := d.Get("username").(string)
 
