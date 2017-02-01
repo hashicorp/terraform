@@ -89,6 +89,18 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 								},
 							},
 						},
+						"disk_autoresize": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"disk_size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"disk_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 						"ip_configuration": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
@@ -323,6 +335,18 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 
 	if v, ok := _settings["crash_safe_replication"]; ok {
 		settings.CrashSafeReplicationEnabled = v.(bool)
+	}
+
+	if v, ok := _settings["disk_autoresize"]; ok && v.(bool) {
+		settings.StorageAutoResize = v.(bool)
+	}
+
+	if v, ok := _settings["disk_size"]; ok && v.(int) > 0 {
+		settings.DataDiskSizeGb = int64(v.(int))
+	}
+
+	if v, ok := _settings["disk_type"]; ok && len(v.(string)) > 0 {
+		settings.DataDiskType = v.(string)
 	}
 
 	if v, ok := _settings["database_flags"]; ok {
@@ -577,6 +601,24 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 
 	if v, ok := _settings["crash_safe_replication"]; ok && v != nil {
 		_settings["crash_safe_replication"] = settings.CrashSafeReplicationEnabled
+	}
+
+	if v, ok := _settings["disk_autoresize"]; ok && v != nil {
+		if v.(bool) {
+			_settings["disk_autoresize"] = settings.StorageAutoResize
+		}
+	}
+
+	if v, ok := _settings["disk_size"]; ok && v != nil {
+		if v.(int) > 0 && settings.DataDiskSizeGb < int64(v.(int)) {
+			_settings["disk_size"] = settings.DataDiskSizeGb
+		}
+	}
+
+	if v, ok := _settings["disk_type"]; ok && v != nil {
+		if len(v.(string)) > 0 {
+			_settings["disk_type"] = settings.DataDiskType
+		}
 	}
 
 	if v, ok := _settings["database_flags"]; ok && len(v.([]interface{})) > 0 {
@@ -840,6 +882,20 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 
 		if v, ok := _settings["crash_safe_replication"]; ok {
 			settings.CrashSafeReplicationEnabled = v.(bool)
+		}
+
+		if v, ok := _settings["disk_autoresize"]; ok && v.(bool) {
+			settings.StorageAutoResize = v.(bool)
+		}
+
+		if v, ok := _settings["disk_size"]; ok {
+			if v.(int) > 0 && int64(v.(int)) > instance.Settings.DataDiskSizeGb {
+				settings.DataDiskSizeGb = int64(v.(int))
+			}
+		}
+
+		if v, ok := _settings["disk_type"]; ok && len(v.(string)) > 0 {
+			settings.DataDiskType = v.(string)
 		}
 
 		_oldDatabaseFlags := make([]interface{}, 0)
