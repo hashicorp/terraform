@@ -49,6 +49,7 @@ BUG FIXES:
  * provider/rancher: return error when Rancher template not found [GH-11544]
  * provider/rancher: rancher_stack set docker_compose and rancher_compose [GH-11550]
  * provider/statuscake: Remove computed from statuscake_test timeout parameter [GH-11541]
+ * provider/vsphere: vSphere virtual machine don't ignore VM power on errors [GH-11604]
  * provisioner/chef: Attributes JSON coming from computed source validates [GH-11502]
 
 ## 0.8.5 (26 January 2017)
