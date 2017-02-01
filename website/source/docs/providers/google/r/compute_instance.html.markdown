@@ -69,6 +69,10 @@ The following arguments are supported:
 
 * `zone` - (Required) The zone that the machine should be created in.
 
+* `network_interface` - (Required) Networks to attach to the instance. This can
+    be specified multiple times for multiple networks, but GCE is currently
+    limited to just 1. Structure is documented below.
+    
 - - -
 
 * `can_ip_forward` - (Optional) Whether to allow sending and receiving of
@@ -86,14 +90,6 @@ The following arguments are supported:
     startup-script metadata key on the created instance and thus the two
     mechanisms are not allowed to be used simultaneously.
 
-* `network_interface` - (Required) Networks to attach to the instance. This can
-    be specified multiple times for multiple networks, but GCE is currently
-    limited to just 1. Structure is documented below.
-
-* `network` - (DEPRECATED, Required) Networks to attach to the instance. This
-    can be specified multiple times for multiple networks. Structure is
-    documented below.
-
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.
 
@@ -107,6 +103,12 @@ The following arguments are supported:
 
 * `create_timeout` - (Optional) Configurable timeout in minutes for creating instances. Default is 4 minutes.
     Changing this forces a new resource to be created.
+    
+---
+
+* `network` - (DEPRECATED, Required) Networks to attach to the instance. This
+    can be specified multiple times for multiple networks. Structure is
+    documented below.
 
 The `disk` block supports: (Note that either disk or image is required, unless
 the type is "local-ssd", in which case scratch must be true).
