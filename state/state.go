@@ -40,3 +40,9 @@ type StateRefresher interface {
 type StatePersister interface {
 	PersistState() error
 }
+
+// Locker is implemented to lock state during command execution.
+type Locker interface {
+	Lock(reason string) error
+	Unlock() error
+}

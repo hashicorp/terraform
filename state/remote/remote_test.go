@@ -44,6 +44,38 @@ func testClient(t *testing.T, c Client) {
 	}
 }
 
+func testClientLocks(t *testing.T, c Client) {
+	s3Client := c.(*S3Client)
+
+	// initial lock
+	if err := s3Client.Lock("test"); err != nil {
+		t.Fatal(err)
+	}
+
+	// second lock should fail
+	if err := s3Client.Lock("test"); err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	// unlock should work
+	if err := s3Client.Unlock(); err != nil {
+		t.Fatal(err)
+	}
+
+	// now we should be able to lock again
+	if err := s3Client.Lock("test"); err != nil {
+		t.Fatal(err)
+	}
+
+	// unlock should be idempotent
+	if err := s3Client.Unlock(); err != nil {
+		t.Fatal(err)
+	}
+	if err := s3Client.Unlock(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestRemoteClient_noPayload(t *testing.T) {
 	s := &State{
 		Client: nilClient{},
