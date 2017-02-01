@@ -9,6 +9,7 @@ FEATURES:
  * **New Data Source:**  `pagerduty_schedule` [GH-11614]
  * **New Resource:**  `aws_sfn_activity` [GH-11420]
  * **New Resource:**  `aws_sfn_state_machine` [GH-11420]
+ * **New Resource:**  `pagerduty_addon` [GH-11620]
 
 
 IMPROVEMENTS:
