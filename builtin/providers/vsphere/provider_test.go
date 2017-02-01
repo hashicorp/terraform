@@ -2,6 +2,7 @@ package vsphere
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -40,5 +41,23 @@ func testAccPreCheck(t *testing.T) {
 
 	if v := os.Getenv("VSPHERE_SERVER"); v == "" {
 		t.Fatal("VSPHERE_SERVER must be set for acceptance tests")
+	}
+}
+
+// validateEnvArgs is a helper function to verify that required test related environment variables are set.
+func validateEnvArgs(t *testing.T, requiredVars ...string) {
+	realEnvVars := os.Environ()
+	for _, requiredVar := range requiredVars {
+		for _, v := range realEnvVars {
+			if requiredVar == strings.Split(v, "=")[0] {
+				// Remove the variable from the list of required variables if the required variable is defined in the real environment.
+				// This way of removing the required variable from the slice preserves the order of the slice (not really needed in this case though).
+				requiredVars = requiredVars[:len(requiredVars)-1]
+			}
+		}
+	}
+
+	if len(requiredVars) > 0 {
+		t.Fatalf("Some required environment variables are missing: %s\n", requiredVars)
 	}
 }
