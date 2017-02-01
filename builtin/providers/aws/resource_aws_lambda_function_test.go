@@ -670,7 +670,9 @@ resource "aws_iam_role_policy" "iam_policy_for_lambda" {
     {
       "Effect": "Allow",
       "Action": [
-        "ec2:CreateNetworkInterface"
+        "ec2:CreateNetworkInterface",
+				"ec2:DescribeNetworkInterfaces",
+				"ec2:DeleteNetworkInterface"
       ],
       "Resource": [
         "*"
