@@ -55,7 +55,7 @@ func TestAccAWSDynamoDbTable_streamSpecification(t *testing.T) {
 	})
 }
 
-func TestAccAWSDynamoDBTable_tags(t *testing.T) {
+func TestAccAWSDynamoDbTable_tags(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,

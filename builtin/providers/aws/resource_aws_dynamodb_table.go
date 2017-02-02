@@ -591,7 +591,7 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	// Update tags
-	if err := setTagsDynamoDB(dynamodbconn, d); err != nil {
+	if err := setTagsDynamoDb(dynamodbconn, d); err != nil {
 		return err
 	}
 
@@ -923,7 +923,7 @@ func createTableTags(d *schema.ResourceData, meta interface{}) error {
 	dynamodbconn := meta.(*AWSClient).dynamodbconn
 	req := &dynamodb.TagResourceInput{
 		ResourceArn: aws.String(arn),
-		Tags:        tagsFromMapDynamoDB(tags),
+		Tags:        tagsFromMapDynamoDb(tags),
 	}
 	_, err := dynamodbconn.TagResource(req)
 	if err != nil {
@@ -948,7 +948,7 @@ func readTableTags(d *schema.ResourceData, meta interface{}) (map[string]string,
 	if err != nil {
 		return nil, fmt.Errorf("Error reading tags from dynamodb resource: %s", err)
 	}
-	result := tagsToMapDynamoDB(output.Tags)
+	result := tagsToMapDynamoDb(output.Tags)
 	// TODO Read NextToken if avail
 	return result, nil
 }
