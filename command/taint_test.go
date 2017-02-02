@@ -44,6 +44,198 @@ func TestTaint(t *testing.T) {
 	testStateOutput(t, statePath, testTaintStr)
 }
 
+func TestTaint_badwildcard(t *testing.T) {
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo.1": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "foo1",
+						},
+					},
+					"test_instance.foo.2": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "foo2",
+						},
+					},
+					"test_instance.bar": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	statePath := testStateFile(t, state)
+
+	ui := new(cli.MockUi)
+	c := &TaintCommand{
+		Meta: Meta{
+			Ui: ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance*",
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	testStateOutput(t, statePath, testTaintStrBadWildcard)
+}
+
+func TestTaint_wildcard1(t *testing.T) {
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo.1": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "foo1",
+						},
+					},
+					"test_instance.foo.2": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "foo2",
+						},
+					},
+					"test_instance.bar": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	statePath := testStateFile(t, state)
+
+	ui := new(cli.MockUi)
+	c := &TaintCommand{
+		Meta: Meta{
+			Ui: ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.*",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	testStateOutput(t, statePath, testTaintStrWildcard1)
+}
+
+func TestTaint_wildcard2(t *testing.T) {
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo.1": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "foo1",
+						},
+					},
+					"test_instance.foo.2": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "foo2",
+						},
+					},
+					"test_instance.bar": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	statePath := testStateFile(t, state)
+
+	ui := new(cli.MockUi)
+	c := &TaintCommand{
+		Meta: Meta{
+			Ui: ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo.*",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	testStateOutput(t, statePath, testTaintStrWildcard2)
+}
+
+func TestTaint_wildcard3(t *testing.T) {
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo.1": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "foo1",
+						},
+					},
+					"test_instance.foo.2": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "foo2",
+						},
+					},
+					"test_instance.bar.1": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar1",
+						},
+					},
+				},
+			},
+		},
+	}
+	statePath := testStateFile(t, state)
+
+	ui := new(cli.MockUi)
+	c := &TaintCommand{
+		Meta: Meta{
+			Ui: ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.*.1",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	testStateOutput(t, statePath, testTaintStrWildcard3)
+}
+
 func TestTaint_backup(t *testing.T) {
 	// Get a temp cwd
 	tmp, cwd := testCwd(t)
@@ -349,6 +541,42 @@ func TestTaint_module(t *testing.T) {
 const testTaintStr = `
 test_instance.foo: (tainted)
   ID = bar
+`
+
+const testTaintStrBadWildcard = `
+test_instance.bar:
+  ID = bar
+test_instance.foo.1:
+  ID = foo1
+test_instance.foo.2:
+  ID = foo2
+`
+
+const testTaintStrWildcard1 = `
+test_instance.bar: (tainted)
+  ID = bar
+test_instance.foo.1: (tainted)
+  ID = foo1
+test_instance.foo.2: (tainted)
+  ID = foo2
+`
+
+const testTaintStrWildcard2 = `
+test_instance.bar:
+  ID = bar
+test_instance.foo.1: (tainted)
+  ID = foo1
+test_instance.foo.2: (tainted)
+  ID = foo2
+`
+
+const testTaintStrWildcard3 = `
+test_instance.bar.1: (tainted)
+  ID = bar1
+test_instance.foo.1: (tainted)
+  ID = foo1
+test_instance.foo.2:
+  ID = foo2
 `
 
 const testTaintDefaultStr = `

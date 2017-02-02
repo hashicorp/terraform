@@ -61,3 +61,17 @@ The command-line flags are all optional. The list of available flags are:
 * `-state-out=path` - Path to write updated state file. By default, the
   `-state` path will be used. Ignored when
   [remote state](/docs/state/remote/index.html) is used.
+
+## Example
+
+This example will taint all resources with a given type and name:
+
+```
+$ terraform taint -module=mymodule aws_instance.foo.*
+```
+
+This example will taint all resources with a given name:
+
+```
+$ terraform taint *.baz.*
+```
