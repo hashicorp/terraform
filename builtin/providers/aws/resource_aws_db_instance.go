@@ -207,7 +207,7 @@ func resourceAwsDbInstance() *schema.Resource {
 			"skip_final_snapshot": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  true,
+				Default:  false,
 			},
 
 			"copy_tags_to_snapshot": {
