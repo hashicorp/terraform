@@ -142,7 +142,7 @@ type Graph struct {
 	Datapoints     []GraphDatapoint            `json:"datapoints,omitempt"`                  // [] len >= 0
 	Description    string                      `json:"description,omitempty"`                // string
 	Guides         []GraphGuide                `json:"guides,omitempty"`                     // [] len >= 0
-	LineStyle      string                      `json:"line_style,omitempty"`                 // string
+	LineStyle      *string                     `json:"line_style"`                           // string or null
 	LogLeftY       *int                        `json:"logarithmic_left_y,string,omitempty"`  // int encoded as string or null BUG doc: number (not string)
 	LogRightY      *int                        `json:"logarithmic_right_y,string,omitempty"` // int encoded as string or null BUG doc: number (not string)
 	MaxLeftY       *float64                    `json:"max_left_y,string,omitempty"`          // float64 encoded as string or null BUG doc: number (not string)
@@ -152,7 +152,7 @@ type Graph struct {
 	MinRightY      *float64                    `json:"min_right_y,string,omitempty"`         // float64 encoded as string or null BUG doc: number (not string)
 	Notes          *string                     `json:"notes,omitempty"`                      // string or null
 	OverlaySets    *map[string]GraphOverlaySet `json:"overlay_sets,omitempty"`               // GroupOverLaySets or null
-	Style          string                      `json:"style,omitempty"`                      // string
+	Style          *string                     `json:"style"`                                // string or null
 	Tags           []string                    `json:"tags,omitempty"`                       // [] len >= 0
 	Title          string                      `json:"title,omitempty"`                      // string
 }

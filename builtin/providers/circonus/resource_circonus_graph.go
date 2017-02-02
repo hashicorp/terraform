@@ -581,8 +581,8 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 		g.Description = s
 	}
 
-	if s, ok := ar.GetStringOK(_GraphLineStyleAttr); ok {
-		g.LineStyle = s
+	if p := ar.GetStringPtr(_GraphLineStyleAttr); p != nil {
+		g.LineStyle = p
 	}
 
 	if s, ok := ar.GetStringOK(_GraphNameAttr); ok {
@@ -722,8 +722,8 @@ func (g *_Graph) ParseConfig(ar _AttrReader) error {
 		}
 	}
 
-	if s, ok := ar.GetStringOK(_GraphStyleAttr); ok {
-		g.Style = s
+	if p := ar.GetStringPtr(_GraphStyleAttr); p != nil {
+		g.Style = p
 	}
 
 	g.Tags = tagsToAPI(ar.GetTags(_GraphTagsAttr))
@@ -757,7 +757,7 @@ func (g *_Graph) Update(ctxt *_ProviderContext) error {
 
 func (g *_Graph) Validate() error {
 	for i, datapoint := range g.Datapoints {
-		if g.Style == _APIGraphStyleLine && datapoint.Alpha != nil && *datapoint.Alpha != 0 {
+		if *g.Style == _APIGraphStyleLine && datapoint.Alpha != nil && *datapoint.Alpha != 0 {
 			return fmt.Errorf("%s can not be set on graphs with style %s", _GraphStreamAlphaAttr, _APIGraphStyleLine)
 		}
 
