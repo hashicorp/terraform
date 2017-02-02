@@ -3,7 +3,7 @@ layout: "azurerm"
 page_title: "Provider: Azure Resource Manager"
 sidebar_current: "docs-azurerm-index"
 description: |-
-  The Azure Resource Manager provider is used to interact with the many resources supported by Azure, via the ARM API. This supercedes the Azure provider, which interacts with Azure using the Service Management API. The provider needs to be configured with a credentials file, or credentials needed to generate OAuth tokens for the ARM API.
+  The Azure Resource Manager provider is used to interact with the many resources supported by Azure, via the ARM API. This supersedes the Azure provider, which interacts with Azure using the Service Management API. The provider needs to be configured with a credentials file, or credentials needed to generate OAuth tokens for the ARM API.
 ---
 
 # Microsoft Azure Provider
@@ -83,7 +83,7 @@ The following arguments are supported:
   * `german`
   * `china`
   
-* `skip_provider_registration` - (Optional) Prevents the provier from registering
+* `skip_provider_registration` - (Optional) Prevents the provider from registering
   the ARM provider namespaces, this can be used if you don't wish to give the Active
   Directory Application permission to register resource providers. It can also be
   sourced from the `ARM_SKIP_PROVIDER_REGISTRATION` environment variable, defaults

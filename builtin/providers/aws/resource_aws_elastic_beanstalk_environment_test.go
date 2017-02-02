@@ -633,7 +633,7 @@ func testAccBeanstalkWorkerEnvConfig(rInt int) string {
  }
 
  resource "aws_elastic_beanstalk_environment" "tfenvtest" {
-	 name = "tf-test-name"
+	 name = "tf-test-name-%d"
 	 application = "${aws_elastic_beanstalk_application.tftest.name}"
 	 tier = "Worker"
 	 solution_stack_name = "64bit Amazon Linux running Python"
@@ -643,7 +643,7 @@ func testAccBeanstalkWorkerEnvConfig(rInt int) string {
 		 name      = "IamInstanceProfile"
 		 value     = "${aws_iam_instance_profile.tftest.name}"
 	 }
- }`, rInt)
+ }`, rInt, rInt)
 }
 
 func testAccBeanstalkEnvCnamePrefixConfig(randString string, rInt int) string {
@@ -654,12 +654,12 @@ description = "tf-test-desc"
 }
 
 resource "aws_elastic_beanstalk_environment" "tfenvtest" {
-name = "tf-test-name"
+name = "tf-test-name-%d"
 application = "${aws_elastic_beanstalk_application.tftest.name}"
 cname_prefix = "%s"
 solution_stack_name = "64bit Amazon Linux running Python"
 }
-`, rInt, randString)
+`, rInt, rInt, randString)
 }
 
 func testAccBeanstalkConfigTemplate(rInt int) string {
@@ -670,7 +670,7 @@ func testAccBeanstalkConfigTemplate(rInt int) string {
 	}
 
 	resource "aws_elastic_beanstalk_environment" "tftest" {
-		name = "tf-test-name"
+		name = "tf-test-name-%d"
 		application = "${aws_elastic_beanstalk_application.tftest.name}"
 		template_name = "${aws_elastic_beanstalk_configuration_template.tftest.name}"
 	}
@@ -686,7 +686,7 @@ func testAccBeanstalkConfigTemplate(rInt int) string {
 			value     = "1"
 	 }
 	}
-	`, rInt)
+	`, rInt, rInt)
 }
 
 func testAccBeanstalkConfigTemplateUpdate(rInt int) string {
@@ -697,7 +697,7 @@ func testAccBeanstalkConfigTemplateUpdate(rInt int) string {
 	}
 
 	resource "aws_elastic_beanstalk_environment" "tftest" {
-		name = "tf-test-name"
+		name = "tf-test-name-%d"
 		application = "${aws_elastic_beanstalk_application.tftest.name}"
 		template_name = "${aws_elastic_beanstalk_configuration_template.tftest.name}"
 	}
@@ -713,7 +713,7 @@ func testAccBeanstalkConfigTemplateUpdate(rInt int) string {
 			value     = "2"
 		}
 	}
-	`, rInt)
+	`, rInt, rInt)
 }
 
 func testAccBeanstalkResourceOptionSetting(rInt int) string {
@@ -724,7 +724,7 @@ resource "aws_elastic_beanstalk_application" "tftest" {
 }
 
 resource "aws_elastic_beanstalk_environment" "tfenvtest" {
-  name = "tf-test-name"
+  name = "tf-test-name-%d"
   application = "${aws_elastic_beanstalk_application.tftest.name}"
   solution_stack_name = "64bit Amazon Linux running Python"
 
@@ -748,7 +748,7 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
     name = "Recurrence"
     value = "0 8 * * *"
   }
-}`, rInt)
+}`, rInt, rInt)
 }
 
 func testAccBeanstalkEnv_VPC(name string, rInt int) string {
@@ -783,7 +783,7 @@ resource "aws_elastic_beanstalk_application" "default" {
 }
 
 resource "aws_elastic_beanstalk_environment" "default" {
-  name = "tf-test-name"
+  name = "tf-test-name-%d"
   application = "${aws_elastic_beanstalk_application.default.name}"
   solution_stack_name = "64bit Amazon Linux running Python"
 
@@ -811,7 +811,7 @@ resource "aws_elastic_beanstalk_environment" "default" {
     value     = "${aws_security_group.default.id}"
   }
 }
-`, name, rInt)
+`, name, rInt, rInt)
 }
 
 func testAccBeanstalkEnv_TemplateChange_stack(r int) string {

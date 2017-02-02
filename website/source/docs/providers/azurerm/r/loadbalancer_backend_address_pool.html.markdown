@@ -60,3 +60,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the LoadBalancer to which the resource is attached.
+
+## Import
+
+Load Balancer Backend Address Pools can be imported using the `resource id`, e.g.
+
+```
+terraform import azurerm_lb_backend_address_pool.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.Network/loadBalancers/lb1/backendAddressPools/pool1
+```

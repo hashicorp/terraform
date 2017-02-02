@@ -15,17 +15,25 @@ Manages a VPN Tunnel to the GCE network. For more info, read the
 
 ```js
 resource "google_compute_network" "network1" {
-  name       = "network1"
-  ipv4_range = "10.120.0.0/16"
+  name = "network1"
+}
+
+resource "google_compute_subnetwork" "subnet1" {
+  name          = "subnet1"
+  network       = "${google_compute_network.network1.self_link}"
+  ip_cidr_range = "10.120.0.0/16"
+  region        = "us-central1"
 }
 
 resource "google_compute_vpn_gateway" "target_gateway" {
   name    = "vpn1"
   network = "${google_compute_network.network1.self_link}"
+  region  = "${google_compute_subnetwork.subnet1.region}"
 }
 
 resource "google_compute_address" "vpn_static_ip" {
   name   = "vpn-static-ip"
+  region = "${google_compute_subnetwork.subnet1.region}"
 }
 
 resource "google_compute_forwarding_rule" "fr_esp" {
@@ -57,6 +65,9 @@ resource "google_compute_vpn_tunnel" "tunnel1" {
   shared_secret = "a secret message"
 
   target_vpn_gateway = "${google_compute_vpn_gateway.target_gateway.self_link}"
+
+  local_traffic_selector = ["${google_compute_subnetwork.subnet1.ip_cidr_range}"]
+  remote_traffic_selector = ["172.16.0.0/12"]
 
   depends_on = [
     "google_compute_forwarding_rule.fr_esp",
@@ -101,6 +112,11 @@ The following arguments are supported:
 
 * `local_traffic_selector` - (Optional) Specifies which CIDR ranges are
     announced to the VPN peer. Mandatory if the VPN gateway is attached to a
+    custom subnetted network. Refer to Google documentation for more
+    information.
+
+* `remote_traffic_selector` - (Optional) Specifies which CIDR ranges the VPN
+    tunnel can route to the remote side. Mandatory if the VPN gateway is attached to a
     custom subnetted network. Refer to Google documentation for more
     information.
 

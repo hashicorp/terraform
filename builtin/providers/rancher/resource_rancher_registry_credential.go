@@ -120,6 +120,12 @@ func resourceRancherRegistryCredentialRead(d *schema.ResourceData, meta interfac
 		return nil
 	}
 
+	if removed(registryCred.State) {
+		log.Printf("[INFO] Registry Credential %s was removed on %v", d.Id(), registryCred.Removed)
+		d.SetId("")
+		return nil
+	}
+
 	log.Printf("[INFO] RegistryCredential Name: %s", registryCred.Name)
 
 	d.Set("description", registryCred.Description)
