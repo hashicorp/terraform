@@ -927,6 +927,42 @@ func expandESEBSOptions(m map[string]interface{}) *elasticsearch.EBSOptions {
 	return &options
 }
 
+func expandConfigRecordingGroup(configured []interface{}) *configservice.RecordingGroup {
+	recordingGroup := configservice.RecordingGroup{}
+	group := configured[0].(map[string]interface{})
+
+	if v, ok := group["all_supported"]; ok {
+		recordingGroup.AllSupported = aws.Bool(v.(bool))
+	}
+
+	if v, ok := group["include_global_resource_types"]; ok {
+		recordingGroup.IncludeGlobalResourceTypes = aws.Bool(v.(bool))
+	}
+
+	if v, ok := group["resource_types"]; ok {
+		recordingGroup.ResourceTypes = expandStringList(v.(*schema.Set).List())
+	}
+	return &recordingGroup
+}
+
+func flattenConfigRecordingGroup(g *configservice.RecordingGroup) []map[string]interface{} {
+	m := make(map[string]interface{}, 1)
+
+	if g.AllSupported != nil {
+		m["all_supported"] = *g.AllSupported
+	}
+
+	if g.IncludeGlobalResourceTypes != nil {
+		m["include_global_resource_types"] = *g.IncludeGlobalResourceTypes
+	}
+
+	if g.ResourceTypes != nil && len(g.ResourceTypes) > 0 {
+		m["resource_types"] = schema.NewSet(schema.HashString, flattenStringList(g.ResourceTypes))
+	}
+
+	return []map[string]interface{}{m}
+}
+
 func pointersMapToStringList(pointers map[string]*string) map[string]interface{} {
 	list := make(map[string]interface{}, len(pointers))
 	for i, v := range pointers {
