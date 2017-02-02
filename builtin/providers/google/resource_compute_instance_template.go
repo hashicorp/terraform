@@ -207,6 +207,7 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
+							Computed: true,
 						},
 
 						"access_config": &schema.Schema{
