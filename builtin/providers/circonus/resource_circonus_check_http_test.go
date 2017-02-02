@@ -17,7 +17,7 @@ func TestAccCirconusCheckHTTP_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("circonus_check.jezebel", "active", "true"),
 					resource.TestCheckResourceAttr("circonus_check.jezebel", "collector.#", "1"),
-					resource.TestCheckResourceAttr("circonus_check.jezebel", "collector.1893401625.id", "/broker/1286"),
+					resource.TestCheckResourceAttr("circonus_check.jezebel", "collector.2388330941.id", "/broker/1"),
 					resource.TestCheckResourceAttr("circonus_check.jezebel", "http.#", "1"),
 					// resource.TestCheckResourceAttr("circonus_check.jezebel", "http.4213422905.auth_method", ""),
 					// resource.TestCheckResourceAttr("circonus_check.jezebel", "http.4213422905.auth_password", ""),
@@ -133,7 +133,7 @@ resource "circonus_check" "jezebel" {
   period = "60s"
 
   collector {
-    id = "/broker/1286"
+    id = "/broker/1"
   }
 
   http {

@@ -16,7 +16,7 @@ func TestAccDataSourceCirconusAccount(t *testing.T) {
 			resource.TestStep{
 				Config: testAccDataSourceCirconusAccountConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDataSourceCirconusAccountCheck("data.circonus_account.by_current", "/account/2438"),
+					testAccDataSourceCirconusAccountCheck("data.circonus_account.by_current", "/account/3081"),
 				),
 			},
 		},
@@ -41,12 +41,6 @@ func testAccDataSourceCirconusAccountCheck(name, cid string) resource.TestCheckF
 }
 
 const testAccDataSourceCirconusAccountConfig = `
-variable circonus_api_token {}
-
-provider "circonus" {
-  key = "${var.circonus_api_token}"
-}
-
 data "circonus_account" "by_current" {
   current = true
 }
