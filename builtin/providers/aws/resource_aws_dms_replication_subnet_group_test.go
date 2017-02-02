@@ -29,6 +29,11 @@ func TestAccAwsDmsReplicationSubnetGroupBasic(t *testing.T) {
 				),
 			},
 			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
 				Config: dmsReplicationSubnetGroupConfigUpdate(randId),
 				Check: resource.ComposeTestCheckFunc(
 					checkDmsReplicationSubnetGroupExists(resourceName),
@@ -111,6 +116,7 @@ resource "aws_vpc" "dms_vpc" {
 	tags {
 		Name = "tf-test-dms-vpc-%[1]s"
 	}
+	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_subnet" "dms_subnet_1" {
@@ -120,6 +126,7 @@ resource "aws_subnet" "dms_subnet_1" {
 	tags {
 		Name = "tf-test-dms-subnet-%[1]s"
 	}
+	depends_on = ["aws_vpc.dms_vpc"]
 }
 
 resource "aws_subnet" "dms_subnet_2" {
@@ -129,6 +136,7 @@ resource "aws_subnet" "dms_subnet_2" {
 	tags {
 		Name = "tf-test-dms-subnet-%[1]s"
 	}
+	depends_on = ["aws_vpc.dms_vpc"]
 }
 
 resource "aws_subnet" "dms_subnet_3" {
@@ -138,6 +146,7 @@ resource "aws_subnet" "dms_subnet_3" {
 	tags {
 		Name = "tf-test-dms-subnet-%[1]s"
 	}
+	depends_on = ["aws_vpc.dms_vpc"]
 }
 
 resource "aws_dms_replication_subnet_group" "dms_replication_subnet_group" {
@@ -170,6 +179,7 @@ resource "aws_vpc" "dms_vpc" {
 	tags {
 		Name = "tf-test-dms-vpc-%[1]s"
 	}
+	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_subnet" "dms_subnet_1" {
@@ -179,6 +189,7 @@ resource "aws_subnet" "dms_subnet_1" {
 	tags {
 		Name = "tf-test-dms-subnet-%[1]s"
 	}
+	depends_on = ["aws_vpc.dms_vpc"]
 }
 
 resource "aws_subnet" "dms_subnet_2" {
@@ -188,6 +199,7 @@ resource "aws_subnet" "dms_subnet_2" {
 	tags {
 		Name = "tf-test-dms-subnet-%[1]s"
 	}
+	depends_on = ["aws_vpc.dms_vpc"]
 }
 
 resource "aws_subnet" "dms_subnet_3" {
@@ -197,6 +209,7 @@ resource "aws_subnet" "dms_subnet_3" {
 	tags {
 		Name = "tf-test-dms-subnet-%[1]s"
 	}
+	depends_on = ["aws_vpc.dms_vpc"]
 }
 
 resource "aws_dms_replication_subnet_group" "dms_replication_subnet_group" {

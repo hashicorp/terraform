@@ -29,6 +29,11 @@ func TestAccAwsDmsReplicationTaskBasic(t *testing.T) {
 				),
 			},
 			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
 				Config: dmsReplicationTaskConfigUpdate(randId),
 				Check: resource.ComposeTestCheckFunc(
 					checkDmsReplicationTaskExists(resourceName),
@@ -111,6 +116,7 @@ resource "aws_vpc" "dms_vpc" {
 	tags {
 		Name = "tf-test-dms-vpc-%[1]s"
 	}
+	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_subnet" "dms_subnet_1" {
@@ -120,6 +126,7 @@ resource "aws_subnet" "dms_subnet_1" {
 	tags {
 		Name = "tf-test-dms-subnet-%[1]s"
 	}
+	depends_on = ["aws_vpc.dms_vpc"]
 }
 
 resource "aws_subnet" "dms_subnet_2" {
@@ -129,6 +136,7 @@ resource "aws_subnet" "dms_subnet_2" {
 	tags {
 		Name = "tf-test-dms-subnet-%[1]s"
 	}
+	depends_on = ["aws_vpc.dms_vpc"]
 }
 
 resource "aws_dms_endpoint" "dms_endpoint_source" {
@@ -140,6 +148,7 @@ resource "aws_dms_endpoint" "dms_endpoint_source" {
 	port = 3306
 	username = "tftest"
 	password = "tftest"
+	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_dms_endpoint" "dms_endpoint_target" {
@@ -151,12 +160,14 @@ resource "aws_dms_endpoint" "dms_endpoint_target" {
 	port = 3306
 	username = "tftest"
 	password = "tftest"
+	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_dms_replication_subnet_group" "dms_replication_subnet_group" {
 	replication_subnet_group_id = "tf-test-dms-replication-subnet-group-%[1]s"
 	replication_subnet_group_description = "terraform test for replication subnet group"
 	subnet_ids = ["${aws_subnet.dms_subnet_1.id}", "${aws_subnet.dms_subnet_2.id}"]
+	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_dms_replication_instance" "dms_replication_instance" {
@@ -203,6 +214,7 @@ resource "aws_vpc" "dms_vpc" {
 	tags {
 		Name = "tf-test-dms-vpc-%[1]s"
 	}
+	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_subnet" "dms_subnet_1" {
@@ -212,6 +224,7 @@ resource "aws_subnet" "dms_subnet_1" {
 	tags {
 		Name = "tf-test-dms-subnet-%[1]s"
 	}
+	depends_on = ["aws_vpc.dms_vpc"]
 }
 
 resource "aws_subnet" "dms_subnet_2" {
@@ -221,6 +234,7 @@ resource "aws_subnet" "dms_subnet_2" {
 	tags {
 		Name = "tf-test-dms-subnet-%[1]s"
 	}
+	depends_on = ["aws_vpc.dms_vpc"]
 }
 
 resource "aws_dms_endpoint" "dms_endpoint_source" {
@@ -232,6 +246,7 @@ resource "aws_dms_endpoint" "dms_endpoint_source" {
 	port = 3306
 	username = "tftest"
 	password = "tftest"
+	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_dms_endpoint" "dms_endpoint_target" {
@@ -243,12 +258,14 @@ resource "aws_dms_endpoint" "dms_endpoint_target" {
 	port = 3306
 	username = "tftest"
 	password = "tftest"
+	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_dms_replication_subnet_group" "dms_replication_subnet_group" {
 	replication_subnet_group_id = "tf-test-dms-replication-subnet-group-%[1]s"
 	replication_subnet_group_description = "terraform test for replication subnet group"
 	subnet_ids = ["${aws_subnet.dms_subnet_1.id}", "${aws_subnet.dms_subnet_2.id}"]
+	depends_on = ["aws_iam_role_policy_attachment.dms_iam_role_policy"]
 }
 
 resource "aws_dms_replication_instance" "dms_replication_instance" {

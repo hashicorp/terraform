@@ -28,6 +28,11 @@ func TestAccAwsDmsCertificateBasic(t *testing.T) {
 					resource.TestCheckResourceAttrSet(resourceName, "certificate_arn"),
 				),
 			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
