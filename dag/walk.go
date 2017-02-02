@@ -9,17 +9,30 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-// walker performs a graph walk
+// walker performs a graph walk and supports walk-time changing of vertices
+// and edges.
+//
+// A single walker is only valid for one graph walk. After the walk is complete
+// you must construct a new walker to walk again. State for the walk is never
+// deleted in case vertices or edges are changed.
 type walker struct {
+	// Callback is what is called for each vertex
 	Callback WalkFunc
 
-	vertices  Set
-	edges     Set
-	vertexMap map[Vertex]*walkerVertex
-
-	wait       sync.WaitGroup
+	// changeLock must be held to modify any of the fields below. Only Update
+	// should modify these fields. Modifying them outside of Update can cause
+	// serious problems.
 	changeLock sync.Mutex
+	vertices   Set
+	edges      Set
+	vertexMap  map[Vertex]*walkerVertex
 
+	// wait is done when all vertices have executed. It may become "undone"
+	// if new vertices are added.
+	wait sync.WaitGroup
+
+	// errMap contains the errors recorded so far for execution. Reading
+	// and writing should hold errLock.
 	errMap  map[Vertex]error
 	errLock sync.Mutex
 }
@@ -43,7 +56,11 @@ type walkerVertex struct {
 
 // Wait waits for the completion of the walk and returns any errors (
 // in the form of a multierror) that occurred. Update should be called
-// to populate the walk with vertices and edges.
+// to populate the walk with vertices and edges prior to calling this.
+//
+// Wait will return as soon as all currently known vertices are complete.
+// If you plan on calling Update with more vertices in the future, you
+// should not call Wait until after this is done.
 func (w *walker) Wait() error {
 	// Wait for completion
 	w.wait.Wait()
@@ -272,7 +289,10 @@ func (w *walker) walkVertex(v Vertex, info *walkerVertex) {
 			// New deps, reloop
 		}
 
-		// Check if we have updated dependencies
+		// Check if we have updated dependencies. This can happen if the
+		// dependencies were satisfied exactly prior to an Update occuring.
+		// In that case, we'd like to take into account new dependencies
+		// if possible.
 		info.DepsLock.Lock()
 		if info.DepsCh != nil {
 			depsCh = info.DepsCh
