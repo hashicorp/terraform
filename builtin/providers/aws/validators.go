@@ -863,6 +863,9 @@ func validateDmsReplicationTaskId(v interface{}, k string) (ws []string, es []er
 		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
 	}
 
+	return
+}
+
 func validateAppautoscalingScalableDimension(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	dimensions := map[string]bool{
