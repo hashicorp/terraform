@@ -41,12 +41,6 @@ func testAccDataSourceCirconusCollectorCheck(name, cid string) resource.TestChec
 }
 
 const testAccDataSourceCirconusCollectorConfig = `
-variable circonus_api_token {}
-
-provider "circonus" {
-  key = "${var.circonus_api_token}"
-}
-
 data "circonus_collector" "by_id" {
   id = "/broker/1"
 }
