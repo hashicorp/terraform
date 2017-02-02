@@ -1311,5 +1311,78 @@ func TestValidateEmrEbsVolumeType(t *testing.T) {
 			t.Fatalf("Expected %d errors, got %d: %s", tc.ErrCount, len(errors), errors)
 		}
 	}
+}
 
+func TestValidateAppautoscalingScalableDimension(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "ecs:service:DesiredCount",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ec2:spot-fleet-request:TargetCapacity",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ec2:service:DesiredCount",
+			ErrCount: 1,
+		},
+		{
+			Value:    "ecs:spot-fleet-request:TargetCapacity",
+			ErrCount: 1,
+		},
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAppautoscalingScalableDimension(tc.Value, "scalable_dimension")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Scalable Dimension validation failed for value %q: %q", tc.Value, errors)
+		}
+	}
+}
+
+func TestValidateAppautoscalingServiceNamespace(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "ecs",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ec2",
+			ErrCount: 0,
+		},
+		{
+			Value:    "autoscaling",
+			ErrCount: 1,
+		},
+		{
+			Value:    "s3",
+			ErrCount: 1,
+		},
+		{
+			Value:    "es",
+			ErrCount: 1,
+		},
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAppautoscalingServiceNamespace(tc.Value, "service_namespace")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Service Namespace validation failed for value %q: %q", tc.Value, errors)
+		}
+	}
 }
