@@ -27,7 +27,8 @@ type Locations struct {
 }
 
 type Properties struct {
-	Name string `json:"name,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Features []string `json:"features,omitempty"`
 }
 
 // ListLocations returns location collection data
