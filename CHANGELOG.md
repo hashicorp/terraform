@@ -35,6 +35,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for Cross Region RDS Cluster Replica [GH-11428]
  * provider/aws: Add sensitive attribute in master_password [GH-11584]
  * provider/aws: Application Auto Scaling now supports scaling an Amazon EC2 Spot fleet [GH-8697]
+ * provider/aws: Add tag support to DynamoDb tables [GH-11617]
  * provider/azurerm: Add support for scale sets overprovision [GH-11516]
  * provider/azurerm: support import for load balancer and sub resources [GH-11610]
  * provider/fastly: Adds papertrail logging [GH-11491]
