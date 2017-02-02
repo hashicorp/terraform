@@ -14,6 +14,11 @@ FEATURES:
  * **New Data Source:**  `pagerduty_schedule` [GH-11614]
  * **New Resource:**  `aws_sfn_activity` [GH-11420]
  * **New Resource:**  `aws_sfn_state_machine` [GH-11420]
+ * **New Resource:**  `aws_dms_certificate` [GH-11122]
+ * **New Resource:**  `aws_dms_endpoint` [GH-11122]
+ * **New Resource:**  `aws_dms_replication_instance` [GH-11122]
+ * **New Resource:**  `aws_dms_replication_subnet_group` [GH-11122]
+ * **New Resource:**  `aws_dms_replication_subnet_group` [GH-11122]
  * **New Resource:**  `pagerduty_addon` [GH-11620]
 
 
