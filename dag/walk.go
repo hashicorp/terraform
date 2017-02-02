@@ -80,6 +80,7 @@ func (w *walker) Update(v, e *Set) {
 
 	// Calculate all our sets
 	newEdges := e.Difference(&w.edges)
+	oldEdges := w.edges.Difference(e)
 	newVerts := v.Difference(&w.vertices)
 	oldVerts := w.vertices.Difference(v)
 
@@ -161,6 +162,40 @@ func (w *walker) Update(v, e *Set) {
 
 		// Record that the deps changed for this waiter
 		changedDeps.Add(waiter)
+
+		log.Printf(
+			"[DEBUG] dag/walk: added edge: %q waiting on %q",
+			VertexName(waiter), VertexName(dep))
+		w.edges.Add(raw)
+	}
+
+	// Process reoved edges
+	for _, raw := range oldEdges.List() {
+		edge := raw.(Edge)
+
+		// waiter is the vertex that is "waiting" on this edge
+		waiter := edge.Target()
+
+		// dep is the dependency we're waiting on
+		dep := edge.Source()
+
+		// Get the info for the waiter
+		waiterInfo, ok := w.vertexMap[waiter]
+		if !ok {
+			// Vertex doesn't exist... shouldn't be possible but ignore.
+			continue
+		}
+
+		// Delete the dependency from the waiter
+		delete(waiterInfo.deps, dep)
+
+		// Record that the deps changed for this waiter
+		changedDeps.Add(waiter)
+
+		log.Printf(
+			"[DEBUG] dag/walk: removed edge: %q waiting on %q",
+			VertexName(waiter), VertexName(dep))
+		w.edges.Delete(raw)
 	}
 
 	// For each vertex with changed dependencies, we need to kick off

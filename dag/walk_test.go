@@ -1,6 +1,7 @@
 package dag
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 	"testing"
@@ -149,6 +150,67 @@ func TestWalker_newEdge(t *testing.T) {
 
 		// Check
 		expected := []interface{}{1, 3, 2}
+		if !reflect.DeepEqual(order, expected) {
+			t.Fatalf("bad: %#v", order)
+		}
+	}
+}
+
+func TestWalker_removeEdge(t *testing.T) {
+	// Run it a bunch of times since it is timing dependent
+	for i := 0; i < 50; i++ {
+		var g Graph
+		g.Add(1)
+		g.Add(2)
+		g.Add(3)
+		g.Connect(BasicEdge(1, 2))
+		g.Connect(BasicEdge(3, 2))
+
+		// Record function
+		var order []interface{}
+		recordF := walkCbRecord(&order)
+
+		// The way this works is that our original graph forces
+		// the order of 1 => 3 => 2. During the execution of 1, we
+		// remove the edge forcing 3 before 2. Then, during the execution
+		// of 3, we wait on a channel that is only closed by 2, implicitly
+		// forcing 2 before 3 via the callback (and not the graph). If
+		// 2 cannot execute before 3 (edge removal is non-functional), then
+		// this test will timeout.
+		var w *walker
+		gateCh := make(chan struct{})
+		cb := func(v Vertex) error {
+			if v == 1 {
+				g.RemoveEdge(BasicEdge(3, 2))
+				w.Update(g.vertices, g.edges)
+			}
+
+			if v == 2 {
+				close(gateCh)
+			}
+
+			if v == 3 {
+				select {
+				case <-gateCh:
+				case <-time.After(50 * time.Millisecond):
+					return fmt.Errorf("timeout 3 waiting for 2")
+				}
+			}
+
+			return recordF(v)
+		}
+
+		// Add the initial vertices
+		w = &walker{Callback: cb}
+		w.Update(g.vertices, g.edges)
+
+		// Wait
+		if err := w.Wait(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		// Check
+		expected := []interface{}{1, 2, 3}
 		if !reflect.DeepEqual(order, expected) {
 			t.Fatalf("bad: %#v", order)
 		}
