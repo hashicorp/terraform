@@ -17,6 +17,7 @@ FEATURES:
  * **New Data Source:**  `profitbricks_image` [GH-11520]
  * **New Resource:**  `aws_sfn_activity` [GH-11420]
  * **New Resource:**  `aws_sfn_state_machine` [GH-11420]
+ * **New Resource:**  `aws_codebuild_project` [GH-11560]
  * **New Resource:**  `aws_dms_certificate` [GH-11122]
  * **New Resource:**  `aws_dms_endpoint` [GH-11122]
  * **New Resource:**  `aws_dms_replication_instance` [GH-11122]
