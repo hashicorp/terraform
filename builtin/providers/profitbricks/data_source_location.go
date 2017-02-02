@@ -25,10 +25,6 @@ func dataSourceLocation() *schema.Resource {
 }
 
 func dataSourceLocationRead(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
-	profitbricks.SetDepth("5")
-
 	locations := profitbricks.ListLocations()
 
 	if locations.StatusCode > 299 {

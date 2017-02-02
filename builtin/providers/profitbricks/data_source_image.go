@@ -32,8 +32,6 @@ func dataSourceImage() *schema.Resource {
 }
 
 func dataSourceImageRead(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
 	profitbricks.SetDepth("5")
 
 	images := profitbricks.ListImages()

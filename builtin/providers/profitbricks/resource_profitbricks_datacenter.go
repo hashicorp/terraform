@@ -39,9 +39,6 @@ func resourceProfitBricksDatacenter() *schema.Resource {
 }
 
 func resourceProfitBricksDatacenterCreate(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
-
 	datacenter := profitbricks.Datacenter{
 		Properties: profitbricks.DatacenterProperties{
 			Name:     d.Get("name").(string),
@@ -70,8 +67,6 @@ func resourceProfitBricksDatacenterCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceProfitBricksDatacenterRead(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
 	datacenter := profitbricks.GetDatacenter(d.Id())
 	if datacenter.StatusCode > 299 {
 		return fmt.Errorf("Error while fetching a data center ID %s %s", d.Id(), datacenter.Response)
@@ -84,9 +79,6 @@ func resourceProfitBricksDatacenterRead(d *schema.ResourceData, meta interface{}
 }
 
 func resourceProfitBricksDatacenterUpdate(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
-
 	obj := profitbricks.DatacenterProperties{}
 
 	if d.HasChange("name") {
@@ -106,9 +98,6 @@ func resourceProfitBricksDatacenterUpdate(d *schema.ResourceData, meta interface
 }
 
 func resourceProfitBricksDatacenterDelete(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
-
 	dcid := d.Id()
 	resp := profitbricks.DeleteDatacenter(dcid)
 
@@ -125,8 +114,6 @@ func resourceProfitBricksDatacenterDelete(d *schema.ResourceData, meta interface
 
 func waitTillProvisioned(meta interface{}, path string) error {
 	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
-	//log.Printf("[DEBUG] Request status path: %s", path)
 	waitCount := 50
 
 	if config.Retries != 0 {

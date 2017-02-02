@@ -2,11 +2,10 @@ package profitbricks
 
 import (
 	"github.com/hashicorp/terraform/helper/resource"
-	"regexp"
 	"testing"
 )
 
-func TestAccDataSourceDatacenter_basic(t *testing.T) {
+func TestAccDataSourceDatacenter_matching(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -15,17 +14,35 @@ func TestAccDataSourceDatacenter_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 
-				Config:      testAccDataSourceProfitBricksDataCenter_basic,
-				ExpectError: regexp.MustCompile(`There are no datacenters that match the search criteria`),
+				Config: testAccDataSourceProfitBricksDataCenter_matching,
+			},
+			{
+
+				Config: testAccDataSourceProfitBricksDataCenter_matchingWithDataSource,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.profitbricks_datacenter.foobar", "name", "test_name"),
+					resource.TestCheckResourceAttr("data.profitbricks_datacenter.foobar", "location", "us/las"),
+				),
 			},
 		},
 	})
 
 }
 
-const testAccDataSourceProfitBricksDataCenter_basic = `
-	data "profitbricks_datacenter" "dc_example" {
-  	name = "test_name"
-  	location = "us/las"
-	}
-	`
+const testAccDataSourceProfitBricksDataCenter_matching = `
+resource "profitbricks_datacenter" "foobar" {
+    name       = "test_name"
+    location = "us/las"
+}
+`
+
+const testAccDataSourceProfitBricksDataCenter_matchingWithDataSource = `
+resource "profitbricks_datacenter" "foobar" {
+    name       = "test_name"
+    location = "us/las"
+}
+
+data "profitbricks_datacenter" "foobar" {
+    name = "${profitbricks_datacenter.foobar.name}"
+    location = "us/las"
+}`

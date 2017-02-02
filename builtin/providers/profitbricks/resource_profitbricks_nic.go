@@ -58,9 +58,6 @@ func resourceProfitBricksNic() *schema.Resource {
 }
 
 func resourceProfitBricksNicCreate(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
-
 	nic := profitbricks.Nic{
 		Properties: profitbricks.NicProperties{
 			Lan: d.Get("lan").(int),
@@ -110,9 +107,6 @@ func resourceProfitBricksNicCreate(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceProfitBricksNicRead(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
-
 	nic := profitbricks.GetNic(d.Get("datacenter_id").(string), d.Get("server_id").(string), d.Id())
 	if nic.StatusCode > 299 {
 		return fmt.Errorf("Error occured while fetching a nic ID %s %s", d.Id(), nic.Response)
@@ -127,9 +121,6 @@ func resourceProfitBricksNicRead(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceProfitBricksNicUpdate(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
-
 	properties := profitbricks.NicProperties{}
 
 	if d.HasChange("name") {
@@ -169,9 +160,6 @@ func resourceProfitBricksNicUpdate(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceProfitBricksNicDelete(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
-
 	resp := profitbricks.DeleteNic(d.Get("datacenter_id").(string), d.Get("server_id").(string), d.Id())
 	err := waitTillProvisioned(meta, resp.Headers.Get("Location"))
 	if err != nil {

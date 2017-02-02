@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/profitbricks/profitbricks-sdk-go"
 )
 
 // Provider returns a schema.Provider for DigitalOcean.
@@ -21,6 +22,12 @@ func Provider() terraform.ResourceProvider {
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("PROFITBRICKS_PASSWORD", nil),
 				Description: "Profitbricks password for API operations.",
+			},
+			"endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("PROFITBRICKS_API_URL", profitbricks.Endpoint),
+				Description: "Profitbricks REST API URL.",
 			},
 			"retries": {
 				Type:     schema.TypeInt,
@@ -61,6 +68,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		Username: d.Get("username").(string),
 		Password: d.Get("password").(string),
+		Endpoint: d.Get("endpoint").(string),
 		Retries:  d.Get("retries").(int),
 	}
 

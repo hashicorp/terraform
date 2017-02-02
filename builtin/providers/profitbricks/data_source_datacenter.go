@@ -25,9 +25,6 @@ func dataSourceDataCenter() *schema.Resource {
 }
 
 func dataSourceDataCenterRead(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
-
 	datacenters := profitbricks.ListDatacenters()
 
 	if datacenters.StatusCode > 299 {
