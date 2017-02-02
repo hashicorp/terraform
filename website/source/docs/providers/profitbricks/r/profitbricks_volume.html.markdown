@@ -21,7 +21,7 @@ resource "profitbricks_volume" "example" {
   image_name = "${var.ubuntu}"
   size = 5
   disk_type = "HDD"
-  sshkey_path = "${var.private_key_path}"
+  ssh_key_path = "${var.private_key_path}"
   bus = "VIRTIO"
 }
 ```
@@ -33,7 +33,9 @@ resource "profitbricks_volume" "example" {
 * `disk_type` - (Required) [string] The volume type, HDD or SSD.
 * `bus` - (Required) [boolean] The bus type of the volume.
 * `size` -  (Required)[integer] The size of the volume in GB.
+* `ssh_key_path` -  (Required)[list] List of paths to files containing a public SSH key that will be injected into ProfitBricks provided Linux images. Required if `image_password` is not provided.
 * `image_password` - [string] Required if `sshkey_path` is not provided.
 * `image_name` - [string] The image or snapshot ID. It is required if `licence_type` is not provided.
 * `licence_type` - [string] Required if `image_name` is not provided.
 * `name` - (Optional) [string] The name of the volume.
+* `availability_zone` - (Optional) [string] The storage availability zone assigned to the volume. AUTO, ZONE_1, ZONE_2, or ZONE_3

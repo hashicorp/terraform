@@ -31,4 +31,4 @@ resource "profitbricks_nic" "example" {
 * `dhcp` - (Optional) [boolean]
 * `ip` - (Optional) [string] IP assigned to the NIC.
 * `firewall_active` - (Optional) [boolean] If this resource is set to true and is nested under a server resource firewall, with open SSH port, resource must be nested under the nic.
-	
+* `nat` - (Optional) [boolean] Boolean value indicating if the private IP address has outbound access to the public internet.
