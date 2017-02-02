@@ -3,17 +3,18 @@ layout: "aws"
 page_title: "AWS: aws_vpc_peering_connection_accepter"
 sidebar_current: "docs-aws-resource-vpc-peering-accepter"
 description: |-
-  Manage the accepter's side of a cross-account VPC peering connection.
+  Manage the accepter's side of a cross-account VPC Peering Connection.
 ---
 
 # aws\_vpc\_peering\_connection\_accepter
 
-Provides a resource to manage the accepter's side of a cross-account VPC peering connection.
+Provides a resource to manage the accepter's side of a cross-account VPC Peering Connection.
 
-When a cross-account (requester's AWS account differs from the accepter's) VPC peering connection is created,
-a VPC peering connection resource is automatically created in the accepter's account. The requester can use
-the `aws_vpc_peering_connection` resource to manage its side of the connection and the accepter can use the
-`aws_vpc_peering_connection_accepter` resource to "adopt" its side of the connection into management.
+When a cross-account (requester's AWS account differs from the accepter's AWS account) VPC Peering Connection
+is created, a VPC Peering Connection resource is automatically created in the accepter's account.
+The requester can use the `aws_vpc_peering_connection` resource to manage its side of the connection
+and the accepter can use the `aws_vpc_peering_connection_accepter` resource to "adopt" its side of the
+connection into management.
 
 ## Example Usage
 
@@ -72,6 +73,14 @@ The following arguments are supported:
 * `auto_accept` - (Optional) Whether or not to accept the peering request. Defaults to `false`.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
+### Removing `aws_vpc_peering_connection_accepter` from your configuration
+
+AWS allows a cross-account VPC Peering Connection to be deleted from either the requester's or accepter's side.
+However, Terraform only allows the VPC Peering Connection to be deleted from the requester's side
+by removing the corresponding `aws_vpc_peering_connection` resource from your configuration.
+Removing a `aws_vpc_peering_connection_accepter` resource from your configuration will remove it
+from your statefile and management, **but will not destroy the VPC Peering Connection.**
+
 ## Attributes Reference
 
 All of the argument attributes except `auto_accept` are also exported as result attributes.
@@ -91,6 +100,6 @@ All of the argument attributes except `auto_accept` are also exported as result 
 * `allow_remote_vpc_dns_resolution` - Indicates whether a local VPC can resolve public DNS hostnames to
 private IP addresses when queried from instances in a peer VPC.
 * `allow_classic_link_to_remote_vpc` - Indicates whether a local ClassicLink connection can communicate
-with the peer VPC over the VPC peering connection.
+with the peer VPC over the VPC Peering Connection.
 * `allow_vpc_to_remote_classic_link` - Indicates whether a local VPC can communicate with a ClassicLink
-connection in the peer VPC over the VPC peering connection.
+connection in the peer VPC over the VPC Peering Connection.
