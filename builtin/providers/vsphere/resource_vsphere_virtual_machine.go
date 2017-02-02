@@ -372,6 +372,7 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						"template": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 						},
 
 						"type": &schema.Schema{
