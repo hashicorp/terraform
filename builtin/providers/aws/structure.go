@@ -963,6 +963,16 @@ func flattenConfigRecordingGroup(g *configservice.RecordingGroup) []map[string]i
 	return []map[string]interface{}{m}
 }
 
+func flattenConfigSnapshotDeliveryProperties(p *configservice.ConfigSnapshotDeliveryProperties) []map[string]interface{} {
+	m := make(map[string]interface{}, 0)
+
+	if p.DeliveryFrequency != nil {
+		m["delivery_frequency"] = *p.DeliveryFrequency
+	}
+
+	return []map[string]interface{}{m}
+}
+
 func pointersMapToStringList(pointers map[string]*string) map[string]interface{} {
 	list := make(map[string]interface{}, len(pointers))
 	for i, v := range pointers {
