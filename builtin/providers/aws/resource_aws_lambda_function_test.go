@@ -1127,7 +1127,7 @@ resource "aws_s3_bucket_object" "o" {
     etag = "${md5(file("%s"))}"
 }
 resource "aws_iam_role" "iam_for_lambda" {
-    name = "iam_for_lambda"
+		name = "%s"
     assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
