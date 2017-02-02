@@ -41,6 +41,11 @@ To make a resource importable, please see the
 * aws_db_parameter_group
 * aws_db_security_group
 * aws_db_subnet_group
+* aws_dms_certificate
+* aws_dms_endpoint
+* aws_dms_replication_instance
+* aws_dms_replication_subnet_group
+* aws_dms_replication_task
 * aws_dynamodb_table
 * aws_ebs_volume
 * aws_ecr_repository
