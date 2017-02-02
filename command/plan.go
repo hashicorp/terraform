@@ -31,6 +31,7 @@ func (c *PlanCommand) Run(args []string) int {
 		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
+	cmdFlags.BoolVar(&c.Meta.lockState, "state-lock", true, "lock state")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -84,6 +85,7 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq.PlanRefresh = refresh
 	opReq.PlanOutPath = outPath
 	opReq.Type = backend.OperationTypePlan
+	opReq.LockState = c.Meta.lockState
 
 	// Perform the operation
 	op, err := b.Operation(context.Background(), opReq)
