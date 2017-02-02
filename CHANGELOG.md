@@ -1,5 +1,10 @@
 ## 0.8.6 (unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * provider/aws: `aws_appautoscaling_policy` no longer has default values for `scalable_dimension` and `service_namespace`
+
+
 FEATURES:
 
  * **New Data Source:**  `aws_kms_secret` [GH-11460]
@@ -21,6 +26,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for Sever Side Encryption with default S3 KMS key to `aws_s3_bucket_object` [GH-11261]
  * provider/aws: Add support for Cross Region RDS Cluster Replica [GH-11428]
  * provider/aws: Add sensitive attribute in master_password [GH-11584]
+ * provider/aws: Application Auto Scaling now supports scaling an Amazon EC2 Spot fleet [GH-8697]
  * provider/azurerm: Add support for scale sets overprovision [GH-11516]
  * provider/azurerm: support import for load balancer and sub resources [GH-11610]
  * provider/fastly: Adds papertrail logging [GH-11491]
