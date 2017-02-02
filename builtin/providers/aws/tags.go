@@ -249,8 +249,8 @@ func tagIgnoredELBv2(t *elbv2.Tag) bool {
 	return false
 }
 
-// tagsToMapDynamoDB turns the list of tags into a map for dynamoDB
-func tagsToMapDynamoDB(ts []*dynamodb.Tag) map[string]string {
+// tagsToMapDynamoDb turns the list of tags into a map for dynamoDB
+func tagsToMapDynamoDb(ts []*dynamodb.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
 		result[*t.Key] = *t.Value
@@ -258,8 +258,8 @@ func tagsToMapDynamoDB(ts []*dynamodb.Tag) map[string]string {
 	return result
 }
 
-// tagsFromMapDynamoDB returns the tags for a given map
-func tagsFromMapDynamoDB(m map[string]interface{}) []*dynamodb.Tag {
+// tagsFromMapDynamoDb returns the tags for a given map
+func tagsFromMapDynamoDb(m map[string]interface{}) []*dynamodb.Tag {
 	result := make([]*dynamodb.Tag, 0, len(m))
 	for k, v := range m {
 		t := &dynamodb.Tag{
@@ -271,17 +271,17 @@ func tagsFromMapDynamoDB(m map[string]interface{}) []*dynamodb.Tag {
 	return result
 }
 
-// setTagsDynamoDB is a helper to set the tags for a dynamoDB resource
+// setTagsDynamoDb is a helper to set the tags for a dynamoDB resource
 // This is needed because dynamodb requires a completely different set and delete
 // method from the ec2 tag resource handling. Also the `UntagResource` method
 // for dynamoDB only requires a list of tag keys, instead of the full map of keys.
-func setTagsDynamoDB(conn *dynamodb.DynamoDB, d *schema.ResourceData) error {
+func setTagsDynamoDb(conn *dynamodb.DynamoDB, d *schema.ResourceData) error {
 	if d.HasChange("tags") {
 		arn := d.Get("arn").(string)
 		oraw, nraw := d.GetChange("tags")
 		o := oraw.(map[string]interface{})
 		n := nraw.(map[string]interface{})
-		create, remove := diffTagsDynamoDB(tagsFromMapDynamoDB(o), tagsFromMapDynamoDB(n))
+		create, remove := diffTagsDynamoDb(tagsFromMapDynamoDb(o), tagsFromMapDynamoDb(n))
 
 		// Set tags
 		if len(remove) > 0 {
@@ -329,10 +329,10 @@ func setTagsDynamoDB(conn *dynamodb.DynamoDB, d *schema.ResourceData) error {
 	return nil
 }
 
-// diffTagsDynamoDB takes a local set of dynamodb tags and the ones found remotely
+// diffTagsDynamoDb takes a local set of dynamodb tags and the ones found remotely
 // and returns the set of tags that must be created as a map, and returns a list of tag keys
 // that must be destroyed.
-func diffTagsDynamoDB(oldTags, newTags []*dynamodb.Tag) ([]*dynamodb.Tag, []*string) {
+func diffTagsDynamoDb(oldTags, newTags []*dynamodb.Tag) ([]*dynamodb.Tag, []*string) {
 	create := make(map[string]interface{})
 	for _, t := range newTags {
 		create[*t.Key] = *t.Value
@@ -346,5 +346,5 @@ func diffTagsDynamoDB(oldTags, newTags []*dynamodb.Tag) ([]*dynamodb.Tag, []*str
 			remove = append(remove, t.Key)
 		}
 	}
-	return tagsFromMapDynamoDB(create), remove
+	return tagsFromMapDynamoDb(create), remove
 }
