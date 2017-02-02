@@ -287,7 +287,7 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 
 						"key_pair": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 
 						"health_check_type": &schema.Schema{
