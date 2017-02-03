@@ -135,7 +135,7 @@ func (w *Walker) Wait() error {
 //
 // Multiple Updates can be called in parallel. Update can be called at any
 // time during a walk.
-func (w *Walker) Update(g *Graph) {
+func (w *Walker) Update(g *AcyclicGraph) {
 	var v, e *Set
 	if g != nil {
 		v, e = g.vertices, g.edges

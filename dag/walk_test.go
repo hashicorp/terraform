@@ -9,7 +9,7 @@ import (
 )
 
 func TestWalker_basic(t *testing.T) {
-	var g Graph
+	var g AcyclicGraph
 	g.Add(1)
 	g.Add(2)
 	g.Connect(BasicEdge(1, 2))
@@ -34,7 +34,7 @@ func TestWalker_basic(t *testing.T) {
 }
 
 func TestWalker_updateNilGraph(t *testing.T) {
-	var g Graph
+	var g AcyclicGraph
 	g.Add(1)
 	g.Add(2)
 	g.Connect(BasicEdge(1, 2))
@@ -54,7 +54,7 @@ func TestWalker_updateNilGraph(t *testing.T) {
 }
 
 func TestWalker_error(t *testing.T) {
-	var g Graph
+	var g AcyclicGraph
 	g.Add(1)
 	g.Add(2)
 	g.Add(3)
@@ -94,7 +94,7 @@ func TestWalker_error(t *testing.T) {
 func TestWalker_newVertex(t *testing.T) {
 	// Run it a bunch of times since it is timing dependent
 	for i := 0; i < 50; i++ {
-		var g Graph
+		var g AcyclicGraph
 		g.Add(1)
 		g.Add(2)
 		g.Connect(BasicEdge(1, 2))
@@ -130,7 +130,7 @@ func TestWalker_newVertex(t *testing.T) {
 func TestWalker_removeVertex(t *testing.T) {
 	// Run it a bunch of times since it is timing dependent
 	for i := 0; i < 50; i++ {
-		var g Graph
+		var g AcyclicGraph
 		g.Add(1)
 		g.Add(2)
 		g.Connect(BasicEdge(1, 2))
@@ -170,7 +170,7 @@ func TestWalker_removeVertex(t *testing.T) {
 func TestWalker_newEdge(t *testing.T) {
 	// Run it a bunch of times since it is timing dependent
 	for i := 0; i < 50; i++ {
-		var g Graph
+		var g AcyclicGraph
 		g.Add(1)
 		g.Add(2)
 		g.Connect(BasicEdge(1, 2))
@@ -211,7 +211,7 @@ func TestWalker_newEdge(t *testing.T) {
 func TestWalker_removeEdge(t *testing.T) {
 	// Run it a bunch of times since it is timing dependent
 	for i := 0; i < 50; i++ {
-		var g Graph
+		var g AcyclicGraph
 		g.Add(1)
 		g.Add(2)
 		g.Add(3)
