@@ -6,14 +6,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/hashicorp/go-getter"
@@ -528,4 +531,38 @@ func testRemoteState(t *testing.T, s *terraform.State, c int) (*terraform.Remote
 	}
 
 	return remote, srv
+}
+
+// testlockState calls a separate process to the lock the state file at path.
+// deferFunc should be called in the caller to properly unlock the file.
+func testLockState(path string) (func(), error) {
+	locker := exec.Command("go", "run", "testdata/statelocker.go", path)
+	pr, pw, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+	defer pr.Close()
+	defer pw.Close()
+	locker.Stderr = pw
+	locker.Stdout = pw
+
+	if err := locker.Start(); err != nil {
+		return nil, err
+	}
+	deferFunc := func() {
+		locker.Process.Signal(syscall.SIGTERM)
+		locker.Wait()
+	}
+
+	// wait for the process to lock
+	buf := make([]byte, 1024)
+	n, err := pr.Read(buf)
+	if err != nil {
+		return deferFunc, fmt.Errorf("read from statelocker returned: %s", err)
+	}
+
+	if string(buf[:n]) != "LOCKED" {
+		return deferFunc, fmt.Errorf("statelocker wrote", string(buf[:n]))
+	}
+	return deferFunc, nil
 }

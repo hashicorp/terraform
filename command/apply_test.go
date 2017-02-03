@@ -8,12 +8,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -65,13 +63,11 @@ func TestApply(t *testing.T) {
 func TestApply_lockedState(t *testing.T) {
 	statePath := testTempFile(t)
 
-	locker := exec.Command("go", "run", "testadata/statelocker.go", statePath)
-	locker.Stderr = os.Stderr
-	if err := locker.Start(); err != nil {
+	unlock, err := testLockState(statePath)
+	if err != nil {
 		t.Fatal(err)
 	}
-
-	defer locker.Process.Signal(syscall.SIGTERM)
+	defer unlock()
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -86,8 +82,13 @@ func TestApply_lockedState(t *testing.T) {
 		"-state", statePath,
 		testFixturePath("apply"),
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	if code := c.Run(args); code == 0 {
+		t.Fatal("expected error")
+	}
+
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, "locked") {
+		t.Fatal("command output does not look like a lock error:", output)
 	}
 }
 
