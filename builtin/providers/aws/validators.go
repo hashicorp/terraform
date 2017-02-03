@@ -641,9 +641,10 @@ func validateSecurityRuleType(v interface{}, k string) (ws []string, errors []er
 func validateOnceAWeekWindowFormat(v interface{}, k string) (ws []string, errors []error) {
 	// valid time format is "ddd:hh24:mi"
 	validTimeFormat := "(sun|mon|tue|wed|thu|fri|sat):([0-1][0-9]|2[0-3]):([0-5][0-9])"
+	validTimeFormatConsolidated := "^(" + validTimeFormat + "-" + validTimeFormat + "|)$"
 
 	value := strings.ToLower(v.(string))
-	if !regexp.MustCompile(validTimeFormat + "-" + validTimeFormat).MatchString(value) {
+	if !regexp.MustCompile(validTimeFormatConsolidated).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q must satisfy the format of \"ddd:hh24:mi-ddd:hh24:mi\".", k))
 	}
@@ -653,9 +654,10 @@ func validateOnceAWeekWindowFormat(v interface{}, k string) (ws []string, errors
 func validateOnceADayWindowFormat(v interface{}, k string) (ws []string, errors []error) {
 	// valid time format is "hh24:mi"
 	validTimeFormat := "([0-1][0-9]|2[0-3]):([0-5][0-9])"
+	validTimeFormatConsolidated := "^(" + validTimeFormat + "-" + validTimeFormat + "|)$"
 
 	value := v.(string)
-	if !regexp.MustCompile(validTimeFormat + "-" + validTimeFormat).MatchString(value) {
+	if !regexp.MustCompile(validTimeFormatConsolidated).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q must satisfy the format of \"hh24:mi-hh24:mi\".", k))
 	}
