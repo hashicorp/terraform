@@ -10,6 +10,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
    (from a prior remote state), it cannot be used with prior Terraform versions.
    Remote backends themselves are fully backwards compatible with prior
    Terraform versions.
+ * provider/aws: `aws_db_instance` now defaults to making a final snapshot on delete. 
 
 FEATURES:
 
@@ -27,6 +28,7 @@ IMPROVEMENTS:
    command to initialize a new or existing Terraform configuration.
  * provisioners: All provisioners now respond very quickly to interrupts for
    fast cancellation. [GH-10934]
+ * provider/aws: Set aws_db_cluster to snapshot by default [GH-11668]
  * provider/vault: read vault token from `~/.vault-token` as a fallback for the
    `VAULT_TOKEN` environment variable. [GH-11529]
 
