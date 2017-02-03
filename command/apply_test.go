@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -550,7 +551,8 @@ func TestApply_plan(t *testing.T) {
 }
 
 func TestApply_plan_backup(t *testing.T) {
-	planPath := testPlanFile(t, testPlan(t))
+	plan := testPlan(t)
+	planPath := testPlanFile(t, plan)
 	statePath := testTempFile(t)
 	backupPath := testTempFile(t)
 
@@ -561,6 +563,12 @@ func TestApply_plan_backup(t *testing.T) {
 			ContextOpts: testCtxConfig(p),
 			Ui:          ui,
 		},
+	}
+
+	// create a state file that needs to be backed up
+	err := (&state.LocalState{Path: statePath}).WriteState(plan.State)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	args := []string{
