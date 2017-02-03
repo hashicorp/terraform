@@ -25,6 +25,7 @@ func (c *UntaintCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
+	cmdFlags.BoolVar(&c.Meta.lockState, "state-lock", true, "lock state")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
