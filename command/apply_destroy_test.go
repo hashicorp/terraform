@@ -92,6 +92,58 @@ func TestApply_destroy(t *testing.T) {
 	}
 }
 
+func TestApply_destroyLockedState(t *testing.T) {
+	originalState := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	statePath := testStateFile(t, originalState)
+
+	unlock, err := testLockState(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Destroy: true,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	// Run the apply command pointing to our existing state
+	args := []string{
+		"-force",
+		"-state", statePath,
+		testFixturePath("apply"),
+	}
+
+	if code := c.Run(args); code == 0 {
+		t.Fatal("expected error")
+	}
+
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, "locked") {
+		t.Fatal("command output does not look like a lock error:", output)
+	}
+}
+
 func TestApply_destroyPlan(t *testing.T) {
 	planPath := testPlanFile(t, &terraform.Plan{
 		Module: testModule(t, "apply"),
