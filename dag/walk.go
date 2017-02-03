@@ -136,7 +136,10 @@ func (w *Walker) Wait() error {
 // Multiple Updates can be called in parallel. Update can be called at any
 // time during a walk.
 func (w *Walker) Update(g *Graph) {
-	v, e := g.vertices, g.edges
+	var v, e *Set
+	if g != nil {
+		v, e = g.vertices, g.edges
+	}
 
 	// Grab the change lock so no more updates happen but also so that
 	// no new vertices are executed during this time since we may be
