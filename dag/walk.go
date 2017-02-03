@@ -173,12 +173,8 @@ func (w *Walker) Update(g *Graph) {
 		info := &walkerVertex{
 			DoneCh:   make(chan struct{}),
 			CancelCh: make(chan struct{}),
-			DepsCh:   make(chan bool, 1),
 			deps:     make(map[Vertex]chan struct{}),
 		}
-
-		// Pass dependencies immediately assuming we have no edges
-		info.DepsCh <- true
 
 		// Add it to the map and kick off the walk
 		w.vertexMap[v] = info
