@@ -571,6 +571,38 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 	}
 }
 
+func TestContext2Refresh_dataOrphan(t *testing.T) {
+	p := testProvider("null")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"data.null_data_source.bar": &ResourceState{
+						Type: "foo",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	s, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, s, `<no state>`)
+}
+
 func TestContext2Refresh_dataState(t *testing.T) {
 	p := testProvider("null")
 	m := testModule(t, "refresh-data-resource-basic")
