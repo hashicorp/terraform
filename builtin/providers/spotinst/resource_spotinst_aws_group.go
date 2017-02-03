@@ -176,10 +176,6 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							StateFunc: func(v interface{}) string {
-								value := v.(string)
-								return strings.ToUpper(value)
-							},
 						},
 					},
 				},
@@ -817,6 +813,13 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 				return err
 			} else {
 				group.Strategy = strategy
+				if v, ok := d.GetOk("signal"); ok {
+					if signals, err := expandAwsGroupSignals(v); err != nil {
+						return err
+					} else {
+						group.Strategy.Signals = signals
+					}
+				}
 				update = true
 			}
 		}
@@ -1235,7 +1238,7 @@ func flattenAwsGroupSignals(signals []*spotinst.AwsGroupStrategySignal) []interf
 	result := make([]interface{}, 0, len(signals))
 	for _, s := range signals {
 		m := make(map[string]interface{})
-		m["name"] = spotinst.StringValue(s.Name)
+		m["name"] = strings.ToLower(spotinst.StringValue(s.Name))
 		result = append(result, m)
 	}
 	return result
