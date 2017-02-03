@@ -320,6 +320,12 @@
 			"versionExact": "v7.2.1"
 		},
 		{
+			"checksumSHA1": "ROwp9EsV5fM4il2xm5ca1YOl67s=",
+			"path": "github.com/Azure/go-ntlmssp",
+			"revision": "2d5c7863390875bc4b5f81cdb65422602d15b003",
+			"revisionTime": "2016-06-28T16:49:40Z"
+		},
+		{
 			"checksumSHA1": "ICScouhAqYHoJEpJlJMYg7EzgyY=",
 			"comment": "0.0.2-27-gedd0930",
 			"path": "github.com/CenturyLinkCloud/clc-sdk",
@@ -2450,6 +2456,12 @@
 			"revisionTime": "2016-06-08T18:30:07Z"
 		},
 		{
+			"checksumSHA1": "6uNzRk3ScsTC+olpCXkW4M/L3fg=",
+			"path": "github.com/masterzen/winrm",
+			"revision": "b7e3d2de4979ce5eae5c1c1ef450040c5d675a89",
+			"revisionTime": "2017-01-26T07:02:57Z"
+		},
+		{
 			"checksumSHA1": "S9h7TFYtCXLDiyCj6jSl2ZY7whs=",
 			"path": "github.com/masterzen/winrm/soap",
 			"revision": "54ea5d01478cfc2afccec1504bd0dfcd8c260cfa"
@@ -2714,9 +2726,10 @@
 			"revisionTime": "2017-01-24T12:11:56Z"
 		},
 		{
-			"checksumSHA1": "d1VHczIGt2bhYR0BNkTedIS/9uk=",
+			"checksumSHA1": "ImgLNIpeXsGjZGXw4rd+rwzQxpo=",
 			"path": "github.com/packer-community/winrmcp/winrmcp",
-			"revision": "3d184cea22ee1c41ec1697e0d830ff0c78f7ea97"
+			"revision": "c804d432b8b7fa77896f43cc426134348c3fd19e",
+			"revisionTime": "2017-01-28T14:33:28Z"
 		},
 		{
 			"checksumSHA1": "MexE5QPVAwVfQcJBnMGMgD+s9L0=",
