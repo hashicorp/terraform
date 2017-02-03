@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/cloudbilling/v1"
@@ -86,6 +87,10 @@ func resourceGoogleProject() *schema.Resource {
 			"number": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"billing_account": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 		},
 	}
@@ -173,6 +178,21 @@ func resourceGoogleProjectCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
+	// Set the billing account
+	if v, ok := d.GetOk("billing_account"); ok {
+		ba := cloudbilling.ProjectBillingInfo{
+			BillingAccountName: "billingAccounts/" + v.(string),
+		}
+		_, err = config.clientBilling.Projects.UpdateBillingInfo("projects/"+pid, &ba).Do()
+		if err != nil {
+			d.Set("billing_account", "")
+			if _err, ok := err.(*googleapi.Error); ok {
+				return fmt.Errorf("Error setting billing account %q for project %q: %v", ba.Name, "projects/"+pid, _err)
+			}
+			return fmt.Errorf("Error setting billing account %q for project %q: %v", ba.Name, "projects/"+pid, err)
+		}
+	}
+
 	return resourceGoogleProjectRead(d, meta)
 }
 
@@ -197,6 +217,18 @@ func resourceGoogleProjectRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("org_id", p.Parent.Id)
 	}
 
+	// Read the billing account
+	ba, err := config.clientBilling.Projects.GetBillingInfo("projects/" + pid).Do()
+	if err != nil {
+		return fmt.Errorf("Error reading billing account for project %q: %v", "projects/"+pid, err)
+	}
+	if ba.BillingAccountName != "" {
+		_ba := strings.Split(ba.BillingAccountName, "billingAccounts/")
+		if len(_ba) != 2 {
+			return fmt.Errorf("Error parsing billing account for project %q. Expected value to begin with 'billingAccounts/' but got %s", "projects/"+pid, ba.BillingAccountName)
+		}
+		d.Set("billing_account", _ba[1])
+	}
 	return nil
 }
 
@@ -225,6 +257,21 @@ func resourceGoogleProjectUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
+	// Billing account has changed
+	if ok := d.HasChange("billing_account"); ok {
+		v := d.Get("billing_account")
+		ba := cloudbilling.ProjectBillingInfo{
+			BillingAccountName: "billingAccounts/" + v.(string),
+		}
+		_, err = config.clientBilling.Projects.UpdateBillingInfo("projects/"+pid, &ba).Do()
+		if err != nil {
+			d.Set("billing_account", "")
+			if _err, ok := err.(*googleapi.Error); ok {
+				return fmt.Errorf("Error updating billing account %q for project %q: %v", ba.Name, "projects/"+pid, _err)
+			}
+			return fmt.Errorf("Error updating billing account %q for project %q: %v", ba.Name, "projects/"+pid, err)
+		}
+	}
 	return updateProjectIamPolicy(d, config, pid)
 }
 
