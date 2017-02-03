@@ -274,6 +274,8 @@ Options:
                          modifying. Defaults to the "-state-out" path with
                          ".backup" extension. Set to "-" to disable backup.
 
+  -lock-state=true       Lock the state file when locking is supported.
+
   -input=true            Ask for input for variables if not directly set.
 
   -no-color              If specified, output won't contain any color.
@@ -320,6 +322,8 @@ Options:
                          ".backup" extension. Set to "-" to disable backup.
 
   -force                 Don't ask for input for destroy confirmation.
+
+  -lock-state=true       Lock the state file when locking is supported.
 
   -no-color              If specified, output won't contain any color.
 

@@ -143,6 +143,8 @@ Options:
 
   -input=true         Ask for input for variables if not directly set.
 
+  -lock-state=true    Lock the state file when locking is supported.
+
   -module-depth=n     Specifies the depth of modules to show in the output.
                       This does not affect the plan itself, only the output
                       shown. By default, this is -1, which will expand all.

@@ -96,6 +96,8 @@ Options:
 
   -input=true         Ask for input for variables if not directly set.
 
+  -lock-state=true    Lock the state file when locking is supported.
+
   -no-color           If specified, output won't contain any color.
 
   -state=path         Path to read and save state (unless state-out
