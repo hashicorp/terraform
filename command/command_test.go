@@ -536,9 +536,26 @@ func testRemoteState(t *testing.T, s *terraform.State, c int) (*terraform.Remote
 // testlockState calls a separate process to the lock the state file at path.
 // deferFunc should be called in the caller to properly unlock the file.
 func testLockState(path string) (func(), error) {
-	locker := exec.Command("go", "run", "testdata/statelocker.go", path)
+	// build and run the binary ourselves so we can quickly terminate it for cleanup
+	buildDir, err := ioutil.TempDir("", "locker")
+	if err != nil {
+		return nil, err
+	}
+	cleanFunc := func() {
+		os.RemoveAll(buildDir)
+	}
+
+	lockBin := filepath.Join(buildDir, "statelocker")
+	out, err := exec.Command("go", "build", "-o", lockBin, "testdata/statelocker.go").CombinedOutput()
+	if err != nil {
+		cleanFunc()
+		return nil, fmt.Errorf("%s %s", err, out)
+	}
+
+	locker := exec.Command(lockBin, path)
 	pr, pw, err := os.Pipe()
 	if err != nil {
+		cleanFunc()
 		return nil, err
 	}
 	defer pr.Close()
@@ -550,6 +567,7 @@ func testLockState(path string) (func(), error) {
 		return nil, err
 	}
 	deferFunc := func() {
+		cleanFunc()
 		locker.Process.Signal(syscall.SIGTERM)
 		locker.Wait()
 	}
@@ -562,7 +580,7 @@ func testLockState(path string) (func(), error) {
 	}
 
 	if string(buf[:n]) != "LOCKED" {
-		return deferFunc, fmt.Errorf("statelocker wrote", string(buf[:n]))
+		return deferFunc, fmt.Errorf("statelocker wrote: %s", string(buf[:n]))
 	}
 	return deferFunc, nil
 }

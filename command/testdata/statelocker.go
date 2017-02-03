@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/hashicorp/terraform/state"
 )
@@ -38,6 +39,11 @@ func main() {
 	}()
 
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-	<-c
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+
+	// timeout after 10 second in case we don't get cleaned up by the test
+	select {
+	case <-time.After(10 * time.Second):
+	case <-c:
+	}
 }
