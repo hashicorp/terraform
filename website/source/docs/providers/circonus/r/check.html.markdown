@@ -108,6 +108,9 @@ resource "circonus_metric" "used" {
   disable, `-1` to enable all metrics or `N+` to collect up to the value `N`
   (both `-1` and `N+` can not exceed other account restrictions).
 
+* `mysql` - (Optional) A MySQL check.  See below for details on how to configure
+  the `mysql` check.
+
 * `name` - (Optional) The name of the check that will be displayed in the web
   interface.
 
@@ -375,6 +378,15 @@ Available metrics include: `available`, `average`, `count`, `maximum`, and
 `minimum`.  See the
 [`ping_icmp` check type](https://login.circonus.com/resources/api/calls/check_bundle)
 for additional details.
+
+### `mysql` Check Type Attributes
+
+The `mysql` check requires the `target` top-level attribute to be set.
+
+* `dsn` - (Required) The [MySQL DSN/connect
+  string](https://github.com/go-sql-driver/mysql/blob/master/README.md) to
+  use to talk to MySQL.
+* `query` - (Required) The SQL query to execute.
 
 ### `postgresql` Check Type Attributes
 
