@@ -2,11 +2,8 @@ package dag
 
 import (
 	"fmt"
-	"log"
 	"sort"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -169,94 +166,9 @@ func (g *AcyclicGraph) Cycles() [][]Vertex {
 func (g *AcyclicGraph) Walk(cb WalkFunc) error {
 	defer g.debug.BeginOperation(typeWalk, "").End("")
 
-	// Cache the vertices since we use it multiple times
-	vertices := g.Vertices()
-
-	// Build the waitgroup that signals when we're done
-	var wg sync.WaitGroup
-	wg.Add(len(vertices))
-	doneCh := make(chan struct{})
-	go func() {
-		defer close(doneCh)
-		wg.Wait()
-	}()
-
-	// The map of channels to watch to wait for vertices to finish
-	vertMap := make(map[Vertex]chan struct{})
-	for _, v := range vertices {
-		vertMap[v] = make(chan struct{})
-	}
-
-	// The map of whether a vertex errored or not during the walk
-	var errLock sync.Mutex
-	var errs error
-	errMap := make(map[Vertex]bool)
-	for _, v := range vertices {
-		// Build our list of dependencies and the list of channels to
-		// wait on until we start executing for this vertex.
-		deps := AsVertexList(g.DownEdges(v))
-		depChs := make([]<-chan struct{}, len(deps))
-		for i, dep := range deps {
-			depChs[i] = vertMap[dep]
-		}
-
-		// Get our channel so that we can close it when we're done
-		ourCh := vertMap[v]
-
-		// Start the goroutine to wait for our dependencies
-		readyCh := make(chan bool)
-		go func(v Vertex, deps []Vertex, chs []<-chan struct{}, readyCh chan<- bool) {
-			// First wait for all the dependencies
-			for i, ch := range chs {
-			DepSatisfied:
-				for {
-					select {
-					case <-ch:
-						break DepSatisfied
-					case <-time.After(time.Second * 5):
-						log.Printf("[DEBUG] vertex %q, waiting for: %q",
-							VertexName(v), VertexName(deps[i]))
-					}
-				}
-				log.Printf("[DEBUG] vertex %q, got dep: %q",
-					VertexName(v), VertexName(deps[i]))
-			}
-
-			// Then, check the map to see if any of our dependencies failed
-			errLock.Lock()
-			defer errLock.Unlock()
-			for _, dep := range deps {
-				if errMap[dep] {
-					errMap[v] = true
-					readyCh <- false
-					return
-				}
-			}
-
-			readyCh <- true
-		}(v, deps, depChs, readyCh)
-
-		// Start the goroutine that executes
-		go func(v Vertex, doneCh chan<- struct{}, readyCh <-chan bool) {
-			defer close(doneCh)
-			defer wg.Done()
-
-			var err error
-			if ready := <-readyCh; ready {
-				err = cb(v)
-			}
-
-			errLock.Lock()
-			defer errLock.Unlock()
-			if err != nil {
-				errMap[v] = true
-				errs = multierror.Append(errs, err)
-			}
-		}(v, ourCh, readyCh)
-	}
-
-	<-doneCh
-	return errs
+	w := &walker{Callback: cb, Reverse: true}
+	w.Update(g.vertices, g.edges)
+	return w.Wait()
 }
 
 // simple convenience helper for converting a dag.Set to a []Vertex

@@ -33,6 +33,44 @@ func TestWalker_basic(t *testing.T) {
 	}
 }
 
+func TestWalker_error(t *testing.T) {
+	var g Graph
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 3))
+	g.Connect(BasicEdge(3, 4))
+
+	// Record function
+	var order []interface{}
+	recordF := walkCbRecord(&order)
+
+	// Build a callback that delays until we close a channel
+	cb := func(v Vertex) error {
+		if v == 2 {
+			return fmt.Errorf("error!")
+		}
+
+		return recordF(v)
+	}
+
+	w := &walker{Callback: cb}
+	w.Update(g.vertices, g.edges)
+
+	// Wait
+	if err := w.Wait(); err == nil {
+		t.Fatal("expect error")
+	}
+
+	// Check
+	expected := []interface{}{1}
+	if !reflect.DeepEqual(order, expected) {
+		t.Fatalf("bad: %#v", order)
+	}
+}
+
 func TestWalker_newVertex(t *testing.T) {
 	// Run it a bunch of times since it is timing dependent
 	for i := 0; i < 50; i++ {
@@ -82,25 +120,19 @@ func TestWalker_removeVertex(t *testing.T) {
 		recordF := walkCbRecord(&order)
 
 		// Build a callback that delays until we close a channel
-		gateCh := make(chan struct{})
+		var w *walker
 		cb := func(v Vertex) error {
 			if v == 1 {
-				<-gateCh
+				g.Remove(2)
+				w.Update(g.vertices, g.edges)
 			}
 
 			return recordF(v)
 		}
 
 		// Add the initial vertices
-		w := &walker{Callback: cb}
+		w = &walker{Callback: cb}
 		w.Update(g.vertices, g.edges)
-
-		// Remove a vertex
-		g.Remove(2)
-		w.Update(g.vertices, g.edges)
-
-		// Open gate
-		close(gateCh)
 
 		// Wait
 		if err := w.Wait(); err != nil {
