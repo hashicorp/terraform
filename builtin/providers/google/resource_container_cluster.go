@@ -444,7 +444,10 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("name", cluster.Name)
 	d.Set("zone", cluster.Zone)
-	d.Set("additional_zones", cluster.Locations)
+
+	if _, ok := d.GetOk("additional_zones"); ok {
+		d.Set("additional_zones", cluster.Locations)
+	}
 	d.Set("endpoint", cluster.Endpoint)
 
 	masterAuth := []map[string]interface{}{
