@@ -39,6 +39,44 @@ func TestPlan(t *testing.T) {
 	}
 }
 
+func TestPlan_lockedState(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	testPath := testFixturePath("plan")
+	unlock, err := testLockState(filepath.Join(testPath, DefaultStateFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+
+	if err := os.Chdir(testPath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("expected error")
+	}
+
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, "locked") {
+		t.Fatal("command output does not look like a lock error:", output)
+	}
+}
+
 func TestPlan_plan(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
