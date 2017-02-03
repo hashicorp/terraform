@@ -10,8 +10,23 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-// walker performs a graph walk and supports walk-time changing of vertices
-// and edges.
+// Walker is used to walk every vertex of a graph in parallel.
+//
+// A vertex will only be walked when the dependencies of that vertex have
+// been walked. If two vertices can be walked at the same time, they will be.
+//
+// Update can be called to update the graph. This can be called even during
+// a walk, cahnging vertices/edges mid-walk. This should be done carefully.
+// If a vertex is removed but has already been executed, the result of that
+// execution (any error) is still returned by Wait. Changing or re-adding
+// a vertex that has already executed has no effect. Changing edges of
+// a vertex that has already executed has no effect.
+//
+// Non-parallelism can be enforced by introducing a lock in your callback
+// function. However, the goroutine overhead of a walk will remain.
+// Walker will create V*2 goroutines (one for each vertex, and dependency
+// waiter for each vertex). In general this should be of no concern unless
+// there are a huge number of vertices.
 //
 // The walk is depth first by default. This can be changed with the Reverse
 // option.
@@ -19,7 +34,7 @@ import (
 // A single walker is only valid for one graph walk. After the walk is complete
 // you must construct a new walker to walk again. State for the walk is never
 // deleted in case vertices or edges are changed.
-type walker struct {
+type Walker struct {
 	// Callback is what is called for each vertex
 	Callback WalkFunc
 
@@ -46,18 +61,34 @@ type walker struct {
 }
 
 type walkerVertex struct {
-	// These should only be set once on initialization and never written again
+	// These should only be set once on initialization and never written again.
+	// They are not protected by a lock since they don't need to be since
+	// they are write-once.
+
+	// DoneCh is closed when this vertex has completed execution, regardless
+	// of success.
+	//
+	// CancelCh is closed when the vertex should cancel execution. If execution
+	// is already complete (DoneCh is closed), this has no effect. Otherwise,
+	// execution is cancelled as quickly as possible.
 	DoneCh   chan struct{}
 	CancelCh chan struct{}
 
 	// Dependency information. Any changes to any of these fields requires
 	// holding DepsLock.
+	//
+	// DepsCh is sent a single value that denotes whether the upstream deps
+	// were successful (no errors). Any value sent means that the upstream
+	// dependencies are complete. No other values will ever be sent again.
+	//
+	// DepsUpdateCh is closed when there is a new DepsCh set.
 	DepsCh       chan bool
 	DepsUpdateCh chan struct{}
 	DepsLock     sync.Mutex
 
 	// Below is not safe to read/write in parallel. This behavior is
-	// enforced by changes only happening in Update.
+	// enforced by changes only happening in Update. Nothing else should
+	// ever modify these.
 	deps         map[Vertex]chan struct{}
 	depsCancelCh chan struct{}
 }
@@ -74,7 +105,7 @@ var errWalkUpstream = errors.New("upstream dependency failed")
 // Wait will return as soon as all currently known vertices are complete.
 // If you plan on calling Update with more vertices in the future, you
 // should not call Wait until after this is done.
-func (w *walker) Wait() error {
+func (w *Walker) Wait() error {
 	// Wait for completion
 	w.wait.Wait()
 
@@ -94,11 +125,17 @@ func (w *walker) Wait() error {
 	return result
 }
 
-// Update updates the currently executing walk with the given vertices
-// and edges. It does not block until completion.
+// Update updates the currently executing walk with the given graph.
+// This will perform a diff of the vertices and edges and update the walker.
+// Already completed vertices remain completed (including any errors during
+// their execution).
 //
-// Update can be called in parallel to Walk.
-func (w *walker) Update(g *Graph) {
+// This returns immediately once the walker is updated; it does not wait
+// for completion of the walk.
+//
+// Multiple Updates can be called in parallel. Update can be called at any
+// time during a walk.
+func (w *Walker) Update(g *Graph) {
 	v, e := g.vertices, g.edges
 
 	// Grab the change lock so no more updates happen but also so that
@@ -277,7 +314,7 @@ func (w *walker) Update(g *Graph) {
 
 // edgeParts returns the waiter and the dependency, in that order.
 // The waiter is waiting on the dependency.
-func (w *walker) edgeParts(e Edge) (Vertex, Vertex) {
+func (w *Walker) edgeParts(e Edge) (Vertex, Vertex) {
 	if w.Reverse {
 		return e.Source(), e.Target()
 	}
@@ -287,7 +324,7 @@ func (w *walker) edgeParts(e Edge) (Vertex, Vertex) {
 
 // walkVertex walks a single vertex, waiting for any dependencies before
 // executing the callback.
-func (w *walker) walkVertex(v Vertex, info *walkerVertex) {
+func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 	// When we're done executing, lower the waitgroup count
 	defer w.wait.Done()
 
@@ -297,6 +334,7 @@ func (w *walker) walkVertex(v Vertex, info *walkerVertex) {
 	// Wait for our dependencies. We create a [closed] deps channel so
 	// that we can immediately fall through to load our actual DepsCh.
 	var depsSuccess bool
+	var depsUpdateCh chan struct{}
 	depsCh := make(chan bool, 1)
 	depsCh <- true
 	close(depsCh)
@@ -310,7 +348,7 @@ func (w *walker) walkVertex(v Vertex, info *walkerVertex) {
 			// Deps complete! Mark as nil to trigger completion handling.
 			depsCh = nil
 
-		case <-info.DepsUpdateCh:
+		case <-depsUpdateCh:
 			// New deps, reloop
 		}
 
@@ -322,6 +360,9 @@ func (w *walker) walkVertex(v Vertex, info *walkerVertex) {
 		if info.DepsCh != nil {
 			depsCh = info.DepsCh
 			info.DepsCh = nil
+		}
+		if info.DepsUpdateCh != nil {
+			depsUpdateCh = info.DepsUpdateCh
 		}
 		info.DepsLock.Unlock()
 
@@ -362,7 +403,7 @@ func (w *walker) walkVertex(v Vertex, info *walkerVertex) {
 	}
 }
 
-func (w *walker) waitDeps(
+func (w *Walker) waitDeps(
 	v Vertex,
 	deps map[Vertex]<-chan struct{},
 	doneCh chan<- bool,

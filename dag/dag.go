@@ -166,7 +166,7 @@ func (g *AcyclicGraph) Cycles() [][]Vertex {
 func (g *AcyclicGraph) Walk(cb WalkFunc) error {
 	defer g.debug.BeginOperation(typeWalk, "").End("")
 
-	w := &walker{Callback: cb, Reverse: true}
+	w := &Walker{Callback: cb, Reverse: true}
 	w.Update(&g.Graph)
 	return w.Wait()
 }
