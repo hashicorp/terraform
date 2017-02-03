@@ -17,7 +17,7 @@ func resourceRancherRegistry() *schema.Resource {
 		Update: resourceRancherRegistryUpdate,
 		Delete: resourceRancherRegistryDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceRancherRegistryImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -208,6 +208,16 @@ func resourceRancherRegistryDelete(d *schema.ResourceData, meta interface{}) err
 
 	d.SetId("")
 	return nil
+}
+
+func resourceRancherRegistryImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*Config)
+	reg, err := client.Registry.ById(d.Id())
+	if err != nil {
+		return []*schema.ResourceData{}, err
+	}
+	d.Set("environment_id", reg.AccountId)
+	return []*schema.ResourceData{d}, nil
 }
 
 // RegistryStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
