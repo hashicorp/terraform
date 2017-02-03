@@ -27,6 +27,8 @@ IMPROVEMENTS:
    command to initialize a new or existing Terraform configuration.
  * provisioners: All provisioners now respond very quickly to interrupts for
    fast cancellation. [GH-10934]
+ * provider/vault: read vault token from `~/.vault-token` as a fallback for the
+   `VAULT_TOKEN` environment variable. [GH-11529]
 
 BUG FIXES:
 
