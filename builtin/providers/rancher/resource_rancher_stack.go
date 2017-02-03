@@ -19,7 +19,7 @@ func resourceRancherStack() *schema.Resource {
 		Update: resourceRancherStackUpdate,
 		Delete: resourceRancherStackDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceRancherStackImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -331,6 +331,16 @@ func resourceRancherStackDelete(d *schema.ResourceData, meta interface{}) error 
 
 	d.SetId("")
 	return nil
+}
+
+func resourceRancherStackImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*Config)
+	stack, err := client.Environment.ById(d.Id())
+	if err != nil {
+		return []*schema.ResourceData{}, err
+	}
+	d.Set("environment_id", stack.AccountId)
+	return []*schema.ResourceData{d}, nil
 }
 
 // StackStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
