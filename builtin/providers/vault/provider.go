@@ -129,7 +129,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		// Use the vault CLI's token, if present.
 		homePath, err := homedir.Dir()
 		if err != nil {
-			return nil, fmt.Errorf("No vault token found: %s", err)
+			return nil, fmt.Errorf("Can't find home directory when looking for ~/.vault-token: %s", err)
 		}
 		tokenBytes, err := ioutil.ReadFile(homePath + "/.vault-token")
 		if err != nil {
