@@ -30,7 +30,9 @@ yuwJ3+OF2DFF9I+ri7FvUkdiQsyNNG/+Xcd7oqO2vdJGAXYPK1kxUoFUtphHSh2I
 oCYSxZq4V6mAn93nfyhFpI/qb5eeUlZBLYxIYVqWHrQIEKU4HOSsQkV5aS5BzF6U
 aKII3VUjpQ==
 =porM
------END PGP MESSAGE-----`, `test-fixtures`, `supersecret`},
+-----END PGP MESSAGE-----`,
+			"test-fixtures",
+			"supersecret"},
 	}
 
 	for _, tt := range cases {
@@ -55,7 +57,9 @@ aKII3VUjpQ==
 func testTemplateConfig(ciphertext, keyDir string) string {
 	return fmt.Sprintf(`
 		data "gpg_message" "t0" {
-			encrypted_data = "%s"
+			encrypted_data = <<EOF
+%s
+EOF
 			key_directory = "%s"
 		}
 		output "rendered" {
