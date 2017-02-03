@@ -18,7 +18,7 @@ resource "azurerm_resource_group" "test" {
    location = "West US"
 }
 resource "azurerm_sql_server" "test" {
-    name = "MySqlServer"
+    name = "mysqlserver"
     resource_group_name = "${azurerm_resource_group.test.name}"
     location = "West US"
     version = "12.0"
