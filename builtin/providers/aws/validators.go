@@ -655,9 +655,15 @@ func validateOnceADayWindowFormat(v interface{}, k string) (ws []string, errors 
 	validTimeFormat := "([0-1][0-9]|2[0-3]):([0-5][0-9])"
 
 	value := v.(string)
+	// If you do not specify this parameter, ElastiCache automatically chooses an
+	// appropriate time range.
+	if value == "" {
+		return
+	}
+
 	if !regexp.MustCompile(validTimeFormat + "-" + validTimeFormat).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"%q must satisfy the format of \"hh24:mi-hh24:mi\".", k))
+			"%q must satisfy the format of \"hh24:mi-hh24:mi\". Recieved: %s", k, value))
 	}
 	return
 }

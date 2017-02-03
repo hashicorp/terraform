@@ -1042,6 +1042,10 @@ func TestValidateOnceADayWindowFormat(t *testing.T) {
 			Value:    "04:00-05:00",
 			ErrCount: 0,
 		},
+		{
+			Value:    "",
+			ErrCount: 0,
+		},
 	}
 
 	for _, tc := range cases {
