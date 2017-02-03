@@ -33,6 +33,26 @@ func TestWalker_basic(t *testing.T) {
 	}
 }
 
+func TestWalker_updateNilGraph(t *testing.T) {
+	var g Graph
+	g.Add(1)
+	g.Add(2)
+	g.Connect(BasicEdge(1, 2))
+
+	// Run it a bunch of times since it is timing dependent
+	for i := 0; i < 50; i++ {
+		var order []interface{}
+		w := &Walker{Callback: walkCbRecord(&order)}
+		w.Update(&g)
+		w.Update(nil)
+
+		// Wait
+		if err := w.Wait(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+}
+
 func TestWalker_error(t *testing.T) {
 	var g Graph
 	g.Add(1)
