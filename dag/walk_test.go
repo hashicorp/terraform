@@ -17,7 +17,7 @@ func TestWalker_basic(t *testing.T) {
 	// Run it a bunch of times since it is timing dependent
 	for i := 0; i < 50; i++ {
 		var order []interface{}
-		w := &walker{Callback: walkCbRecord(&order)}
+		w := &Walker{Callback: walkCbRecord(&order)}
 		w.Update(&g)
 
 		// Wait
@@ -56,7 +56,7 @@ func TestWalker_error(t *testing.T) {
 		return recordF(v)
 	}
 
-	w := &walker{Callback: cb}
+	w := &Walker{Callback: cb}
 	w.Update(&g)
 
 	// Wait
@@ -80,7 +80,7 @@ func TestWalker_newVertex(t *testing.T) {
 		g.Connect(BasicEdge(1, 2))
 
 		var order []interface{}
-		w := &walker{Callback: walkCbRecord(&order)}
+		w := &Walker{Callback: walkCbRecord(&order)}
 		w.Update(&g)
 
 		// Wait a bit
@@ -120,7 +120,7 @@ func TestWalker_removeVertex(t *testing.T) {
 		recordF := walkCbRecord(&order)
 
 		// Build a callback that delays until we close a channel
-		var w *walker
+		var w *Walker
 		cb := func(v Vertex) error {
 			if v == 1 {
 				g.Remove(2)
@@ -131,7 +131,7 @@ func TestWalker_removeVertex(t *testing.T) {
 		}
 
 		// Add the initial vertices
-		w = &walker{Callback: cb}
+		w = &Walker{Callback: cb}
 		w.Update(&g)
 
 		// Wait
@@ -160,7 +160,7 @@ func TestWalker_newEdge(t *testing.T) {
 		recordF := walkCbRecord(&order)
 
 		// Build a callback that delays until we close a channel
-		var w *walker
+		var w *Walker
 		cb := func(v Vertex) error {
 			if v == 1 {
 				g.Add(3)
@@ -172,7 +172,7 @@ func TestWalker_newEdge(t *testing.T) {
 		}
 
 		// Add the initial vertices
-		w = &walker{Callback: cb}
+		w = &Walker{Callback: cb}
 		w.Update(&g)
 
 		// Wait
@@ -209,7 +209,7 @@ func TestWalker_removeEdge(t *testing.T) {
 		// forcing 2 before 3 via the callback (and not the graph). If
 		// 2 cannot execute before 3 (edge removal is non-functional), then
 		// this test will timeout.
-		var w *walker
+		var w *Walker
 		gateCh := make(chan struct{})
 		cb := func(v Vertex) error {
 			if v == 1 {
@@ -233,7 +233,7 @@ func TestWalker_removeEdge(t *testing.T) {
 		}
 
 		// Add the initial vertices
-		w = &walker{Callback: cb}
+		w = &Walker{Callback: cb}
 		w.Update(&g)
 
 		// Wait
