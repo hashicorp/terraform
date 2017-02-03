@@ -18,7 +18,7 @@ func TestWalker_basic(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		var order []interface{}
 		w := &walker{Callback: walkCbRecord(&order)}
-		w.Update(g.vertices, g.edges)
+		w.Update(&g)
 
 		// Wait
 		if err := w.Wait(); err != nil {
@@ -57,7 +57,7 @@ func TestWalker_error(t *testing.T) {
 	}
 
 	w := &walker{Callback: cb}
-	w.Update(g.vertices, g.edges)
+	w.Update(&g)
 
 	// Wait
 	if err := w.Wait(); err == nil {
@@ -81,18 +81,18 @@ func TestWalker_newVertex(t *testing.T) {
 
 		var order []interface{}
 		w := &walker{Callback: walkCbRecord(&order)}
-		w.Update(g.vertices, g.edges)
+		w.Update(&g)
 
 		// Wait a bit
 		time.Sleep(10 * time.Millisecond)
 
 		// Update the graph
 		g.Add(3)
-		w.Update(g.vertices, g.edges)
+		w.Update(&g)
 
 		// Update the graph again but with the same vertex
 		g.Add(3)
-		w.Update(g.vertices, g.edges)
+		w.Update(&g)
 
 		// Wait
 		if err := w.Wait(); err != nil {
@@ -124,7 +124,7 @@ func TestWalker_removeVertex(t *testing.T) {
 		cb := func(v Vertex) error {
 			if v == 1 {
 				g.Remove(2)
-				w.Update(g.vertices, g.edges)
+				w.Update(&g)
 			}
 
 			return recordF(v)
@@ -132,7 +132,7 @@ func TestWalker_removeVertex(t *testing.T) {
 
 		// Add the initial vertices
 		w = &walker{Callback: cb}
-		w.Update(g.vertices, g.edges)
+		w.Update(&g)
 
 		// Wait
 		if err := w.Wait(); err != nil {
@@ -165,7 +165,7 @@ func TestWalker_newEdge(t *testing.T) {
 			if v == 1 {
 				g.Add(3)
 				g.Connect(BasicEdge(3, 2))
-				w.Update(g.vertices, g.edges)
+				w.Update(&g)
 			}
 
 			return recordF(v)
@@ -173,7 +173,7 @@ func TestWalker_newEdge(t *testing.T) {
 
 		// Add the initial vertices
 		w = &walker{Callback: cb}
-		w.Update(g.vertices, g.edges)
+		w.Update(&g)
 
 		// Wait
 		if err := w.Wait(); err != nil {
@@ -214,7 +214,7 @@ func TestWalker_removeEdge(t *testing.T) {
 		cb := func(v Vertex) error {
 			if v == 1 {
 				g.RemoveEdge(BasicEdge(3, 2))
-				w.Update(g.vertices, g.edges)
+				w.Update(&g)
 			}
 
 			if v == 2 {
@@ -234,7 +234,7 @@ func TestWalker_removeEdge(t *testing.T) {
 
 		// Add the initial vertices
 		w = &walker{Callback: cb}
-		w.Update(g.vertices, g.edges)
+		w.Update(&g)
 
 		// Wait
 		if err := w.Wait(); err != nil {
