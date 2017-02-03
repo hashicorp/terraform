@@ -27,6 +27,7 @@ const (
 	_APICheckTypeICMPPing   _CheckType = "ping_icmp"
 	_APICheckTypeHTTP       _CheckType = "http"
 	_APICheckTypeJSON       _CheckType = "json"
+	_APICheckTypeMySQL      _CheckType = "mysql"
 	_APICheckTypePostgreSQL _CheckType = "postgres"
 	_APICheckTypeTCP        _CheckType = "tcp"
 )
