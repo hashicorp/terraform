@@ -547,6 +547,66 @@ func TestAccComputeInstance_invalid_disk(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_forceChangeMachineTypeManually(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_basic(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists("google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceUpdateMachineType("google_compute_instance.foobar"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func testAccCheckComputeInstanceUpdateMachineType(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		config := testAccProvider.Meta().(*Config)
+
+		op, err := config.clientCompute.Instances.Stop(config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID).Do()
+		if err != nil {
+			return fmt.Errorf("Could not stop instance: %s", err)
+		}
+		err = computeOperationWaitZone(config, op, config.Project, rs.Primary.Attributes["zone"], "Waiting on stop")
+		if err != nil {
+			return fmt.Errorf("Could not stop instance: %s", err)
+		}
+
+		machineType := compute.InstancesSetMachineTypeRequest{
+			MachineType: "zones/us-central1-a/machineTypes/f1-micro",
+		}
+
+		op, err = config.clientCompute.Instances.SetMachineType(
+			config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID, &machineType).Do()
+		if err != nil {
+			return fmt.Errorf("Could not change machine type: %s", err)
+		}
+		err = computeOperationWaitZone(config, op, config.Project, rs.Primary.Attributes["zone"], "Waiting machine type change")
+		if err != nil {
+			return fmt.Errorf("Could not change machine type: %s", err)
+		}
+		return nil
+	}
+}
+
 func testAccCheckComputeInstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
