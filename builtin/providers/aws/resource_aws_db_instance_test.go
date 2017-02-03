@@ -92,7 +92,7 @@ func TestAccAWSDBInstance_subnetGroup(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
 					resource.TestCheckResourceAttr(
-						"aws_db_instance.bar", "db_subnet_group_name", "foo"),
+						"aws_db_instance.bar", "db_subnet_group_name", "foo-"+rName),
 				),
 			},
 			{
@@ -100,7 +100,7 @@ func TestAccAWSDBInstance_subnetGroup(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
 					resource.TestCheckResourceAttr(
-						"aws_db_instance.bar", "db_subnet_group_name", "bar"),
+						"aws_db_instance.bar", "db_subnet_group_name", "bar-"+rName),
 				),
 			},
 		},
@@ -897,7 +897,7 @@ resource "aws_subnet" "bar" {
 }
 
 resource "aws_db_subnet_group" "foo" {
-	name = "foo"
+	name = "foo-%s"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 	tags {
 		Name = "tf-dbsubnet-group-test"
@@ -917,8 +917,9 @@ resource "aws_db_instance" "bar" {
   port = 3305
   allocated_storage = 10
 
+	backup_retention_period = 0
   apply_immediately = true
-}`, rName)
+}`, rName, rName)
 }
 
 func testAccAWSDBInstanceConfigWithSubnetGroupUpdated(rName string) string {
@@ -951,7 +952,7 @@ resource "aws_subnet" "bar" {
 
 resource "aws_subnet" "test" {
 	cidr_block = "10.10.3.0/24"
-	availability_zone = "us-west-2c"
+	availability_zone = "us-west-2b"
 	vpc_id = "${aws_vpc.bar.id}"
 	tags {
 		Name = "tf-dbsubnet-test-3"
@@ -968,7 +969,7 @@ resource "aws_subnet" "another_test" {
 }
 
 resource "aws_db_subnet_group" "foo" {
-	name = "foo"
+	name = "foo-%s"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 	tags {
 		Name = "tf-dbsubnet-group-test"
@@ -976,7 +977,7 @@ resource "aws_db_subnet_group" "foo" {
 }
 
 resource "aws_db_subnet_group" "bar" {
-	name = "bar"
+	name = "bar-%s"
 	subnet_ids = ["${aws_subnet.test.id}", "${aws_subnet.another_test.id}"]
 	tags {
 		Name = "tf-dbsubnet-group-test-updated"
@@ -996,8 +997,10 @@ resource "aws_db_instance" "bar" {
   port = 3305
   allocated_storage = 10
 
+	backup_retention_period = 0
+
   apply_immediately = true
-}`, rName)
+}`, rName, rName, rName)
 }
 
 const testAccAWSDBMSSQL_timezone = `
