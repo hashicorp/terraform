@@ -188,7 +188,7 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 			"skip_final_snapshot": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  true,
+				Default:  false,
 			},
 
 			"endpoint": {
