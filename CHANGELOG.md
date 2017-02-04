@@ -10,6 +10,7 @@ FEATURES:
  * **New Data Source:**  `aws_kms_secret` [GH-11460]
  * **New Data Source:**  `aws_ecs_task_definition` [GH-8509]
  * **New Data Source:**  `aws_ecs_cluster` [GH-11558]
+ * **New Data Source:**  `aws_partition` [GH-11675]
  * **New Data Source:**  `pagerduty_escalation_policy` [GH-11616]
  * **New Data Source:**  `pagerduty_schedule` [GH-11614]
  * **New Data Source:**  `profitbricks_datacenter` [GH-11520]
