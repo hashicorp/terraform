@@ -571,6 +571,64 @@ func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_disable(t *testing.T
 	})
 }
 
+func TestAccAWSCodeDeployDeploymentGroup_deploymentStyle_default(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: test_config_deployment_style_default(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_option", "WITHOUT_TRAFFIC_CONTROL"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_type", "IN_PLACE"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCodeDeployDeploymentGroup_deploymentStyle_create(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: test_config_deployment_style_default(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+				),
+			},
+			resource.TestStep{
+				Config: test_config_deployment_style_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_option", "WITHOUT_TRAFFIC_CONTROL"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_type", "IN_PLACE"),
+				),
+			},
+		},
+	})
+}
+
 func TestValidateAWSCodeDeployTriggerEvent(t *testing.T) {
 	cases := []struct {
 		Value    string
@@ -843,6 +901,72 @@ func TestAlarmConfigToMap(t *testing.T) {
 	if fatal {
 		t.Fatalf("alarmConfigToMap output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
 			actual, expected)
+	}
+}
+
+func TestValidateDeploymentOption(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "WITH_TRAFFIC_CONTROL",
+			ErrCount: 0,
+		},
+		{
+			Value:    "WITHOUT_TRAFFIC_CONTROL",
+			ErrCount: 0,
+		},
+		{
+			Value:    "NOT_A_VALID_OPTION",
+			ErrCount: 1,
+		},
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateDeploymentOption(tc.Value, "deployment_option")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("DeploymentOption validation failed for value %q: %q", tc.Value, errors)
+		}
+	}
+}
+
+func TestValidateDeploymentType(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "IN_PLACE",
+			ErrCount: 0,
+		},
+		{
+			Value:    "BLUE_GREEN",
+			ErrCount: 0,
+		},
+		{
+			Value:    "GREEN_BLUE",
+			ErrCount: 1,
+		},
+		{
+			Value:    "NOT_A_VALID_TYPE",
+			ErrCount: 1,
+		},
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateDeploymentType(tc.Value, "deployment_type")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("DeploymentType validation failed for value %q: %q", tc.Value, errors)
+		}
 	}
 }
 
@@ -1453,6 +1577,35 @@ resource "aws_codedeploy_deployment_group" "foo_group" {
   alarm_configuration {
     alarms = ["foo"]
     enabled = false
+  }
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func test_config_deployment_style_default(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func test_config_deployment_style_create(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+
+  deployment_style {
+    deployment_option = "WITHOUT_TRAFFIC_CONTROL"
+    deployment_type = "IN_PLACE"
   }
 }`, baseCodeDeployConfig(rName), rName)
 }

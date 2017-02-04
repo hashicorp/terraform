@@ -52,6 +52,28 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				},
 			},
 
+			"deployment_style": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"deployment_option": &schema.Schema{
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateDeploymentOption,
+						},
+
+						"deployment_type": &schema.Schema{
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateDeploymentType,
+						},
+					},
+				},
+			},
+
 			"service_role_arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -220,20 +242,29 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 		DeploymentGroupName: aws.String(deploymentGroup),
 		ServiceRoleArn:      aws.String(d.Get("service_role_arn").(string)),
 	}
+
+	if attr, ok := d.GetOk("deployment_style"); ok {
+		input.DeploymentStyle = buildDeploymentStyle(attr.([]interface{}))
+	}
+
 	if attr, ok := d.GetOk("deployment_config_name"); ok {
 		input.DeploymentConfigName = aws.String(attr.(string))
 	}
+
 	if attr, ok := d.GetOk("autoscaling_groups"); ok {
 		input.AutoScalingGroups = expandStringList(attr.(*schema.Set).List())
 	}
+
 	if attr, ok := d.GetOk("on_premises_instance_tag_filter"); ok {
 		onPremFilters := buildOnPremTagFilters(attr.(*schema.Set).List())
 		input.OnPremisesInstanceTagFilters = onPremFilters
 	}
+
 	if attr, ok := d.GetOk("ec2_tag_filter"); ok {
 		ec2TagFilters := buildEC2TagFilters(attr.(*schema.Set).List())
 		input.Ec2TagFilters = ec2TagFilters
 	}
+
 	if attr, ok := d.GetOk("trigger_configuration"); ok {
 		triggerConfigs := buildTriggerConfigs(attr.(*schema.Set).List())
 		input.TriggerConfigurations = triggerConfigs
@@ -309,12 +340,19 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 	d.Set("deployment_config_name", resp.DeploymentGroupInfo.DeploymentConfigName)
 	d.Set("deployment_group_name", resp.DeploymentGroupInfo.DeploymentGroupName)
 	d.Set("service_role_arn", resp.DeploymentGroupInfo.ServiceRoleArn)
+
+	if err := d.Set("deployment_style", deploymentStyleToMap(resp.DeploymentGroupInfo.DeploymentStyle)); err != nil {
+		return err
+	}
+
 	if err := d.Set("ec2_tag_filter", ec2TagFiltersToMap(resp.DeploymentGroupInfo.Ec2TagFilters)); err != nil {
 		return err
 	}
+
 	if err := d.Set("on_premises_instance_tag_filter", onPremisesTagFiltersToMap(resp.DeploymentGroupInfo.OnPremisesInstanceTagFilters)); err != nil {
 		return err
 	}
+
 	if err := d.Set("trigger_configuration", triggerConfigsToMap(resp.DeploymentGroupInfo.TriggerConfigurations)); err != nil {
 		return err
 	}
@@ -343,13 +381,20 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 		_, n := d.GetChange("autoscaling_groups")
 		input.AutoScalingGroups = expandStringList(n.(*schema.Set).List())
 	}
+
 	if d.HasChange("deployment_config_name") {
 		_, n := d.GetChange("deployment_config_name")
 		input.DeploymentConfigName = aws.String(n.(string))
 	}
+
 	if d.HasChange("deployment_group_name") {
 		_, n := d.GetChange("deployment_group_name")
 		input.NewDeploymentGroupName = aws.String(n.(string))
+	}
+
+	if d.HasChange("deployment_style") {
+		_, n := d.GetChange("deployment_style")
+		input.DeploymentStyle = buildDeploymentStyle(n.([]interface{}))
 	}
 
 	// TagFilters aren't like tags. They don't append. They simply replace.
@@ -358,11 +403,13 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 		onPremFilters := buildOnPremTagFilters(n.(*schema.Set).List())
 		input.OnPremisesInstanceTagFilters = onPremFilters
 	}
+
 	if d.HasChange("ec2_tag_filter") {
 		_, n := d.GetChange("ec2_tag_filter")
 		ec2Filters := buildEC2TagFilters(n.(*schema.Set).List())
 		input.Ec2TagFilters = ec2Filters
 	}
+
 	if d.HasChange("trigger_configuration") {
 		_, n := d.GetChange("trigger_configuration")
 		triggerConfigs := buildTriggerConfigs(n.(*schema.Set).List())
@@ -538,6 +585,18 @@ func buildAlarmConfig(configured []interface{}) *codedeploy.AlarmConfiguration {
 	return result
 }
 
+func buildDeploymentStyle(list []interface{}) *codedeploy.DeploymentStyle {
+	result := &codedeploy.DeploymentStyle{}
+
+	if len(list) == 1 {
+		style := list[0].(map[string]interface{})
+		result.DeploymentOption = aws.String(style["deployment_option"].(string))
+		result.DeploymentType = aws.String(style["deployment_type"].(string))
+	}
+
+	return result
+}
+
 // ec2TagFiltersToMap converts lists of tag filters into a []map[string]string.
 func ec2TagFiltersToMap(list []*codedeploy.EC2TagFilter) []map[string]string {
 	result := make([]map[string]string, 0, len(list))
@@ -630,6 +689,19 @@ func alarmConfigToMap(config *codedeploy.AlarmConfiguration) []map[string]interf
 	return result
 }
 
+func deploymentStyleToMap(style *codedeploy.DeploymentStyle) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+	if style == nil {
+		return result
+	}
+
+	item := make(map[string]interface{})
+	item["deployment_option"] = *style.DeploymentOption
+	item["deployment_type"] = *style.DeploymentType
+	result = append(result, item)
+	return result
+}
+
 func resourceAwsCodeDeployTagFilterHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
@@ -685,6 +757,32 @@ func validateTriggerEvent(v interface{}, k string) (ws []string, errors []error)
 
 	if !triggerEvents[value] {
 		errors = append(errors, fmt.Errorf("%q must be a valid event type value: %q", k, value))
+	}
+	return
+}
+
+func validateDeploymentOption(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	validOptions := map[string]bool{
+		"WITH_TRAFFIC_CONTROL":    true,
+		"WITHOUT_TRAFFIC_CONTROL": true,
+	}
+
+	if !validOptions[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid deployment option: %q", k, value))
+	}
+	return
+}
+
+func validateDeploymentType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	validTypes := map[string]bool{
+		"IN_PLACE":   true,
+		"BLUE_GREEN": true,
+	}
+
+	if !validTypes[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid deployment type: %q", k, value))
 	}
 	return
 }
