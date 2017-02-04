@@ -239,7 +239,7 @@ func (w *interpolationWalker) splitSlice() {
 
 	split := false
 	for _, val := range s {
-		if varVal, ok := val.(ast.Variable); ok && varVal.Type == ast.TypeList {
+		if varVal, ok := val.(ast.Variable); ok && ast.TypeIsList(varVal.Type) {
 			split = true
 		}
 		if _, ok := val.([]interface{}); ok {
@@ -255,7 +255,7 @@ func (w *interpolationWalker) splitSlice() {
 	for _, v := range s {
 		switch val := v.(type) {
 		case ast.Variable:
-			switch val.Type {
+			switch val.Type.(type) {
 			case ast.TypeList:
 				elements := val.Value.([]ast.Variable)
 				for _, element := range elements {

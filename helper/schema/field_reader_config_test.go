@@ -291,7 +291,7 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 				"map": "${var.foo}",
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
-					Type: ast.TypeMap,
+					Type: ast.TypeMap{ast.TypeString},
 					Value: map[string]ast.Variable{
 						"bar": ast.Variable{
 							Type:  ast.TypeString,
@@ -321,10 +321,10 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 				"maplist": "${var.foo}",
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
-					Type: ast.TypeList,
+					Type: ast.TypeList{ast.TypeString},
 					Value: []ast.Variable{
 						{
-							Type: ast.TypeMap,
+							Type: ast.TypeMap{ast.TypeString},
 							Value: map[string]ast.Variable{
 								"key": ast.Variable{
 									Type:  ast.TypeString,
@@ -350,10 +350,10 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 				"maplist": "${var.foo}",
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
-					Type: ast.TypeList,
+					Type: ast.TypeList{ast.TypeString},
 					Value: []ast.Variable{
 						{
-							Type: ast.TypeMap,
+							Type: ast.TypeMap{ast.TypeString},
 							Value: map[string]ast.Variable{
 								"key": ast.Variable{
 									Type:  ast.TypeString,
@@ -379,10 +379,10 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 				"listmap": "${var.foo}",
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
-					Type: ast.TypeMap,
+					Type: ast.TypeMap{ast.TypeList{ast.TypeString}},
 					Value: map[string]ast.Variable{
 						"key": ast.Variable{
-							Type: ast.TypeList,
+							Type: ast.TypeList{ast.TypeString},
 							Value: []ast.Variable{
 								ast.Variable{
 									Type:  ast.TypeString,
@@ -408,10 +408,10 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 				"listmap": "${var.foo}",
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
-					Type: ast.TypeMap,
+					Type: ast.TypeMap{ast.TypeList{ast.TypeString}},
 					Value: map[string]ast.Variable{
 						"key": ast.Variable{
-							Type: ast.TypeList,
+							Type: ast.TypeList{ast.TypeString},
 							Value: []ast.Variable{
 								ast.Variable{
 									Type:  ast.TypeString,
