@@ -138,7 +138,10 @@ func testAccCheckRancherRegistryExists(n string, reg *rancherClient.Registry) re
 			return fmt.Errorf("No App Name is set")
 		}
 
-		client, _ := testAccProvider.Meta().(*Config).EnvironmentClient(rs.Primary.Attributes["environment_id"])
+		client, err := testAccProvider.Meta().(*Config).EnvironmentClient(rs.Primary.Attributes["environment_id"])
+		if err != nil {
+			return err
+		}
 
 		foundReg, err := client.Registry.ById(rs.Primary.ID)
 		if err != nil {
@@ -156,12 +159,15 @@ func testAccCheckRancherRegistryExists(n string, reg *rancherClient.Registry) re
 }
 
 func testAccCheckRancherRegistryDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config)
-
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "rancher_registry" {
 			continue
 		}
+		client, err := testAccProvider.Meta().(*Config).GlobalClient()
+		if err != nil {
+			return err
+		}
+
 		reg, err := client.Registry.ById(rs.Primary.ID)
 
 		if err == nil {
