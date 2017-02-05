@@ -205,12 +205,21 @@ func resourceRancherRegistrationTokenDelete(d *schema.ResourceData, meta interfa
 }
 
 func resourceRancherRegistrationTokenImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	client := meta.(*Config)
-	regT, err := client.RegistrationToken.ById(d.Id())
-	if err != nil {
-		return []*schema.ResourceData{}, err
+	envID, resourceID := splitID(d.Id())
+	d.SetId(resourceID)
+	if envID != "" {
+		d.Set("environment_id", envID)
+	} else {
+		client, err := meta.(*Config).GlobalClient()
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		token, err := client.RegistrationToken.ById(d.Id())
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		d.Set("environment_id", token.AccountId)
 	}
-	d.Set("environment_id", regT.AccountId)
 	return []*schema.ResourceData{d}, nil
 }
 

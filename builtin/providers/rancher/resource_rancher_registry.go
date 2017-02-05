@@ -211,12 +211,21 @@ func resourceRancherRegistryDelete(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceRancherRegistryImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	client := meta.(*Config)
-	reg, err := client.Registry.ById(d.Id())
-	if err != nil {
-		return []*schema.ResourceData{}, err
+	envID, resourceID := splitID(d.Id())
+	d.SetId(resourceID)
+	if envID != "" {
+		d.Set("environment_id", envID)
+	} else {
+		client, err := meta.(*Config).GlobalClient()
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		registry, err := client.Registry.ById(d.Id())
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		d.Set("environment_id", registry.AccountId)
 	}
-	d.Set("environment_id", reg.AccountId)
 	return []*schema.ResourceData{d}, nil
 }
 

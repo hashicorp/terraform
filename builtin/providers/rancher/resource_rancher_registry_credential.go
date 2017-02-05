@@ -233,12 +233,21 @@ func resourceRancherRegistryCredentialDelete(d *schema.ResourceData, meta interf
 }
 
 func resourceRancherRegistryCredentialImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	client := meta.(*Config)
-	regC, err := client.RegistryCredential.ById(d.Id())
-	if err != nil {
-		return []*schema.ResourceData{}, err
+	regID, resourceID := splitID(d.Id())
+	d.SetId(resourceID)
+	if regID != "" {
+		d.Set("registry_id", regID)
+	} else {
+		client, err := meta.(*Config).GlobalClient()
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		cred, err := client.RegistryCredential.ById(d.Id())
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		d.Set("registry_id", cred.RegistryId)
 	}
-	d.Set("environment_id", regC.AccountId)
 	return []*schema.ResourceData{d}, nil
 }
 

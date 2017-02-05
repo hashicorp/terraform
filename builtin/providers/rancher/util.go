@@ -1,14 +1,18 @@
 package rancher
 
-import "github.com/rancher/go-rancher/client"
+import (
+	"strings"
+
+	"github.com/rancher/go-rancher/client"
+)
 
 const (
-	REMOVED = "removed"
-	PURGED  = "purged"
+	stateRemoved = "removed"
+	statePurged  = "purged"
 )
 
 // GetActiveOrchestration get the name of the active orchestration for a environment
-func GetActiveOrchestration(project *client.Project) string {
+func getActiveOrchestration(project *client.Project) string {
 	orch := "cattle"
 
 	switch {
@@ -24,5 +28,12 @@ func GetActiveOrchestration(project *client.Project) string {
 }
 
 func removed(state string) bool {
-	return state == REMOVED || state == PURGED
+	return state == stateRemoved || state == statePurged
+}
+
+func splitID(id string) (envID, resourceID string) {
+	if strings.Contains(id, "/") {
+		return id[0:strings.Index(id, "/")], id[strings.Index(id, "/")+1:]
+	}
+	return "", id
 }
