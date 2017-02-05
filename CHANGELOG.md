@@ -67,6 +67,7 @@ BUG FIXES:
  * provider/aws: Fix spot instance request block device configs [GH-11649]
  * provider/aws: Fix validation issues for onceAWeek and onceADay validation functions [GH-11679]
  * provider/aws: Return route_table_id from aws_route_table data source [GH-11703]
+ * provider/aws: validate aws_alb_target_group name is less than 32 characters [GH-11699]
  * provider/azurerm: Scale Sets Load balancer pools should not be computed [GH-11516]
  * provider/azurerm: Scale Sets ip configuration handling and update support for load balancer backend pools. [GH-11516]
  * provider/azurerm: check if lb sub resources exist when reading [GH-11553]
