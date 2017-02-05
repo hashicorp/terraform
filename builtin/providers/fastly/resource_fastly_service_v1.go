@@ -1572,6 +1572,23 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			log.Printf("[WARN] Error setting Gzips for (%s): %s", d.Id(), err)
 		}
 
+		// refresh Healthcheck
+		log.Printf("[DEBUG] Refreshing Healthcheck for (%s)", d.Id())
+		healthcheckList, err := conn.ListHealthChecks(&gofastly.ListHealthChecksInput{
+			Service: d.Id(),
+			Version: s.ActiveVersion.Number,
+		})
+
+		if err != nil {
+			return fmt.Errorf("[ERR] Error looking up Healthcheck for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+		}
+
+		hcl := flattenHealthchecks(healthcheckList)
+
+		if err := d.Set("healthcheck", hcl); err != nil {
+			log.Printf("[WARN] Error setting Healthcheck for (%s): %s", d.Id(), err)
+		}
+
 		// refresh S3 Logging
 		log.Printf("[DEBUG] Refreshing S3 Logging for (%s)", d.Id())
 		s3List, err := conn.ListS3s(&gofastly.ListS3sInput{
@@ -1937,6 +1954,37 @@ func flattenGzips(gzipsList []*gofastly.Gzip) []map[string]interface{} {
 	}
 
 	return gl
+}
+
+func flattenHealthchecks(healthcheckList []*gofastly.HealthCheck) []map[string]interface{} {
+	var hl []map[string]interface{}
+	for _, h := range healthcheckList {
+		// Convert HealthChecks to a map for saving to state.
+		nh := map[string]interface{}{
+			"name":              h.Name,
+			"host":              h.Host,
+			"path":              h.Path,
+			"check_interval":    h.CheckInterval,
+			"expected_response": h.ExpectedResponse,
+			"http_version":      h.HTTPVersion,
+			"initial":           h.Initial,
+			"method":            h.Method,
+			"threshold":         h.Threshold,
+			"timeout":           h.Timeout,
+			"window":            h.Window,
+		}
+
+		// prune any empty values that come from the default string value in structs
+		for k, v := range nh {
+			if v == "" {
+				delete(nh, k)
+			}
+		}
+
+		hl = append(hl, nh)
+	}
+
+	return hl
 }
 
 func flattenS3s(s3List []*gofastly.S3) []map[string]interface{} {
