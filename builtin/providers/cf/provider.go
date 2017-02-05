@@ -27,12 +27,12 @@ func Provider() terraform.ResourceProvider {
 			},
 			"uaa_client_id": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CF_UAA_CLIENT_ID", "admin"),
 			},
 			"uaa_client_secret": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CF_UAA_CLIENT_SECRET", nil),
 			},
 			"ca_cert": &schema.Schema{
