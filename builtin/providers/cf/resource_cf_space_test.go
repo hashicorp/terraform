@@ -61,7 +61,6 @@ resource "cf_quota" "dev" {
     total_app_instances = 100
     total_routes = 100
     total_services = 150
-	total_route_ports = 10
 }
 
 resource "cf_space" "space1" {
