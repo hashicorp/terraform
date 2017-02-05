@@ -83,7 +83,7 @@ func resourceArmContainerService() *schema.Resource {
 							Required: true,
 						},
 						"ssh_key": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeList, // TODO: Set
 							Required: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
@@ -367,7 +367,7 @@ func flattenAzureRmContainerServiceLinuxProfile(profile containerservice.LinuxPr
 	}
 
 	values["admin_username"] = *profile.AdminUsername
-	values["ssh_key"] = sshKeys.List()
+	values["ssh_key"] = sshKeys
 	profiles.Add(values)
 
 	return &profiles
@@ -456,20 +456,14 @@ func expandAzureRmContainerServiceLinuxProfile(d *schema.ResourceData) container
 	linuxKeys := config["ssh_key"].([]interface{})
 	sshPublicKeys := []containerservice.SSHPublicKey{}
 
-	for _, key := range linuxKeys {
+	key := linuxKeys[0].(map[string]interface{})
+	keyData := key["key_data"].(string)
 
-		sshKey, ok := key.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		keyData := sshKey["key_data"].(string)
-
-		sshPublicKey := containerservice.SSHPublicKey{
-			KeyData: &keyData,
-		}
-
-		sshPublicKeys = append(sshPublicKeys, sshPublicKey)
+	sshPublicKey := containerservice.SSHPublicKey{
+		KeyData: &keyData,
 	}
+
+	sshPublicKeys = append(sshPublicKeys, sshPublicKey)
 
 	profile := containerservice.LinuxProfile{
 		AdminUsername: &adminUsername,
