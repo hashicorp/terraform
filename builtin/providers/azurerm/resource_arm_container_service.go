@@ -83,7 +83,7 @@ func resourceArmContainerService() *schema.Resource {
 							Required: true,
 						},
 						"ssh_key": {
-							Type:     schema.TypeList, // TODO: Set
+							Type:     schema.TypeSet,
 							Required: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
