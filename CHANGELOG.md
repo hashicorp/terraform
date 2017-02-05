@@ -48,6 +48,7 @@ IMPROVEMENTS:
  * provider/google: No default root user for SQL [GH-11590]
  * provider/opsgenie: Descriptions for Teams [GH-11391]
  * provider/rancher: rancher_registration_token add image parameter [GH-11551]
+ * provider/rancher: allow for importing resources using environment ID to target [GH-11688]
 
 BUG FIXES:
 
