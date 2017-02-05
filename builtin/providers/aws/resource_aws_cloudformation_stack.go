@@ -67,6 +67,10 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Computed: true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// ignore NoEcho parameters
+					return old == "****"
+				},
 			},
 			"outputs": &schema.Schema{
 				Type:     schema.TypeMap,
