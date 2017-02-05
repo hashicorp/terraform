@@ -1083,6 +1083,65 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
+		// find difference in Healthcheck
+		if d.HasChange("healthcheck") {
+			oh, nh := d.GetChange("healthcheck")
+			if oh == nil {
+				oh = new(schema.Set)
+			}
+			if nh == nil {
+				nh = new(schema.Set)
+			}
+
+			ohs := oh.(*schema.Set)
+			nhs := nh.(*schema.Set)
+			removeHealthCheck := ohs.Difference(nhs).List()
+			addHealthCheck := nhs.Difference(ohs).List()
+
+			// DELETE old healthcheck configurations
+			for _, hRaw := range removeHealthCheck {
+				hf := hRaw.(map[string]interface{})
+				opts := gofastly.DeleteHealthCheckInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    hf["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly Healthcheck removal opts: %#v", opts)
+				err := conn.DeleteHealthCheck(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new/updated Healthcheck
+			for _, hRaw := range addHealthCheck {
+				hf := hRaw.(map[string]interface{})
+
+				opts := gofastly.CreateHealthCheckInput{
+					Service:          d.Id(),
+					Version:          latestVersion,
+					Name:             hf["name"].(string),
+					Host:             hf["host"].(string),
+					Path:             hf["path"].(string),
+					CheckInterval:    uint(hf["check_interval"].(int)),
+					ExpectedResponse: uint(hf["expected_response"].(int)),
+					HTTPVersion:      hf["http_version"].(string),
+					Initial:          uint(hf["initial"].(int)),
+					Method:           hf["method"].(string),
+					Threshold:        uint(hf["threshold"].(int)),
+					Timeout:          uint(hf["timeout"].(int)),
+					Window:           uint(hf["window"].(int)),
+				}
+
+				log.Printf("[DEBUG] Create Healthcheck Opts: %#v", opts)
+				_, err := conn.CreateHealthCheck(&opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 		// find difference in s3logging
 		if d.HasChange("s3logging") {
 			os, ns := d.GetChange("s3logging")
