@@ -88,20 +88,25 @@ func TestInterpolationWalker_detect(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		var actual []string
-		detectFn := func(root ast.Node) (interface{}, error) {
-			actual = append(actual, fmt.Sprintf("%s", root))
-			return "", nil
-		}
+		t.Run(fmt.Sprintf("test%02d", i), func(t *testing.T) {
+			var actual []string
+			detectFn := func(root ast.Node) (interface{}, error) {
+				actual = append(actual, fmt.Sprintf("%s", root))
+				return "", nil
+			}
 
-		w := &interpolationWalker{F: detectFn}
-		if err := reflectwalk.Walk(tc.Input, w); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+			w := &interpolationWalker{F: detectFn}
+			if err := reflectwalk.Walk(tc.Input, w); err != nil {
+				t.Fatalf("err: %s", err)
+			}
 
-		if !reflect.DeepEqual(actual, tc.Result) {
-			t.Fatalf("%d: bad:\n\n%#v", i, actual)
-		}
+			if !reflect.DeepEqual(actual, tc.Result) {
+				t.Fatalf(
+					"input: %#v\ngot:   %#v\nwant:  %#v",
+					tc.Input, actual, tc.Result,
+				)
+			}
+		})
 	}
 }
 
