@@ -152,8 +152,9 @@ func resourceArmContainerService() *schema.Resource {
 						},
 
 						"client_secret": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							Sensitive: true,
 						},
 					},
 				},
