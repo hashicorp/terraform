@@ -82,7 +82,13 @@ func resourceArmDocumentDb() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": {
+						"id": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+						},
+
+						"location": {
 							Type:      schema.TypeString,
 							Required:  true,
 							StateFunc: azureRMNormalizeLocation,
@@ -113,7 +119,7 @@ func resourceArmDocumentDBCreateUpdate(d *schema.ResourceData, meta interface{})
 	offerType := d.Get("offer_type").(string)
 
 	consistencyPolicy := expandAzureRmDocumentDbConsistencyPolicy(d)
-	failoverPolicies, err := expandAzureRmDocumentDbFailoverPolicies(d)
+	failoverPolicies, err := expandAzureRmDocumentDbFailoverPolicies(&name, d)
 	if err != nil {
 		return err
 	}
@@ -232,18 +238,20 @@ func expandAzureRmDocumentDbConsistencyPolicy(d *schema.ResourceData) documentdb
 	return policy
 }
 
-func expandAzureRmDocumentDbFailoverPolicies(d *schema.ResourceData) ([]documentdb.Location, error) {
+func expandAzureRmDocumentDbFailoverPolicies(databaseName *string, d *schema.ResourceData) ([]documentdb.Location, error) {
 	input := d.Get("failover_policy").(*schema.Set).List()
 	locations := make([]documentdb.Location, 0, len(input))
 
 	for _, configRaw := range input {
 		data := configRaw.(map[string]interface{})
 
-		name := data["name"].(string)
+		location := azureRMNormalizeLocation(data["location"].(string))
+		id := fmt.Sprintf("%s-%s", databaseName, name)
 		failoverPriority := int32(data["priority"].(int))
 
 		location := documentdb.Location{
-			LocationName:     &name,
+			ID:               &id,
+			LocationName:     &location,
 			FailoverPriority: &failoverPriority,
 		}
 
@@ -258,6 +266,8 @@ func expandAzureRmDocumentDbFailoverPolicies(d *schema.ResourceData) ([]document
 			break
 		}
 	}
+
+	// TODO: all priorities must be unique
 
 	if !containsWriteLocation {
 		err := fmt.Errorf("DocumentDB Offer Type can only be 'Standard' or 'Premium'")
@@ -282,8 +292,9 @@ func flattenAzureRmDocumentDbFailoverPolicy(list *[]documentdb.FailoverPolicy) [
 	result := make([]map[string]interface{}, 0, len(*list))
 	for _, i := range *list {
 		l := map[string]interface{}{
-			"name":     azureRMNormalizeLocation(*i.LocationName),
-			"priority": *i.FailoverPriority,
+			"id":       *i.Id,
+			"location": azureRMNormalizeLocation(*i.LocationName),
+			"priority": *i.FailoverPriority, // TODO: check we're parsing this out correctly
 		}
 
 		result = append(result, l)
@@ -321,11 +332,10 @@ func validateAzureRmDocumentDbOfferType(v interface{}, k string) (ws []string, e
 	allowedValues := map[string]bool{
 		// TODO: Basic?!
 		"standard": true,
-		"premium":  true,
 	}
 
 	if !allowedValues[value] {
-		errors = append(errors, fmt.Errorf("DocumentDB Offer Type can only be 'Standard' or 'Premium'"))
+		errors = append(errors, fmt.Errorf("DocumentDB Offer Type can only be 'Standard''"))
 	}
 	return
 }
@@ -334,7 +344,7 @@ func resourceAzureRMDocumentDbFailoverPolicyHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 
-	locationName := m["name"].(string)
+	locationName := m["location"].(string)
 	location := azureRMNormalizeLocation(locationName)
 	priority := int32(m["priority"].(int))
 
