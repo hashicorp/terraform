@@ -39,6 +39,7 @@ The following arguments are supported:
   in the application URL
 * `application` – (Required) Name of the application that contains the version
   to be deployed
+* `version_label` - (Optional) The name of the application version to deploy.
 * `cname_prefix` - (Optional) Prefix to use for the fully qualified DNS name of
   the Environment.
 * `description` - (Optional) Short description of the Environment
