@@ -46,6 +46,12 @@ func hilMapstructureWeakDecode(m interface{}, rawVal interface{}) error {
 	return decoder.Decode(m)
 }
 
+// InterfaceToVariable takes a plain Go value and produces an ast.Variable representing
+// the same value in HIL.
+//
+// It supports as input only strings, maps and lists, where maps and lists must themselves
+// contain only strings, maps and lists. Maps and lists must also have consistent element
+// types.
 func InterfaceToVariable(input interface{}) (ast.Variable, error) {
 	if inputVariable, ok := input.(ast.Variable); ok {
 		return inputVariable, nil
@@ -68,16 +74,37 @@ func InterfaceToVariable(input interface{}) (ast.Variable, error) {
 	var mapVal map[string]interface{}
 	if err := hilMapstructureWeakDecode(input, &mapVal); err == nil {
 		elements := make(map[string]ast.Variable)
+		elemType := ast.TypeInvalid
 		for i, element := range mapVal {
 			varElement, err := InterfaceToVariable(element)
 			if err != nil {
 				return ast.Variable{}, err
 			}
 			elements[i] = varElement
+
+			if varElement.Type == ast.TypeUnknown {
+				// Ignore unknown values for the purposes of element type inference
+				continue
+			}
+
+			if elemType == ast.TypeInvalid {
+				elemType = varElement.Type
+			} else if elemType != varElement.Type {
+				return ast.Variable{}, fmt.Errorf(
+					"inconsistent map element types; previously %s but found %s at key %s",
+					elemType.Printable(), varElement.Type.Printable(), i,
+				)
+			}
+		}
+
+		// If the map is empty then we'll default to it being of type
+		// string, just so we have some sort of element type.
+		if elemType == ast.TypeInvalid {
+			elemType = ast.TypeString
 		}
 
 		return ast.Variable{
-			Type:  ast.TypeMap,
+			Type:  ast.TypeMap{elemType},
 			Value: elements,
 		}, nil
 	}
@@ -85,23 +112,51 @@ func InterfaceToVariable(input interface{}) (ast.Variable, error) {
 	var sliceVal []interface{}
 	if err := hilMapstructureWeakDecode(input, &sliceVal); err == nil {
 		elements := make([]ast.Variable, len(sliceVal))
+		elemType := ast.TypeInvalid
 		for i, element := range sliceVal {
 			varElement, err := InterfaceToVariable(element)
 			if err != nil {
 				return ast.Variable{}, err
 			}
 			elements[i] = varElement
+
+			if varElement.Type == ast.TypeUnknown {
+				// Ignore unknown values for the purposes of element type inference
+				continue
+			}
+
+			if elemType == ast.TypeInvalid || elemType == ast.TypeUnknown {
+				elemType = varElement.Type
+			} else if elemType != varElement.Type {
+				return ast.Variable{}, fmt.Errorf(
+					"inconsistent list element types; previously %s but found %s at index %d",
+					elemType.Printable(), varElement.Type.Printable(), i,
+				)
+			}
+		}
+
+		// If the map is empty then we'll default to it being of type
+		// string, just so we have some sort of element type.
+		if elemType == ast.TypeInvalid {
+			elemType = ast.TypeString
 		}
 
 		return ast.Variable{
-			Type:  ast.TypeList,
+			Type:  ast.TypeList{elemType},
 			Value: elements,
 		}, nil
 	}
 
-	return ast.Variable{}, fmt.Errorf("value for conversion must be a string, interface{} or map[string]interface: got %T", input)
+	return ast.Variable{}, fmt.Errorf("value for conversion must be a string, []interface{} or map[string]interface: got %T", input)
 }
 
+// VariableToInterface takes an ast.Variable and produces a Go value that represents the same
+// value within Go's type system.
+//
+// Only strings, maps and lists may be converted, and maps and lists must themselves have
+// consistent elements types that are either strings, maps or lists. This matches the set
+// of result types that can be produced by an ast.Output, so it should always be safe
+// to pass an ast.Output result to this function.
 func VariableToInterface(input ast.Variable) (interface{}, error) {
 	if input.Type == ast.TypeString {
 		if inputStr, ok := input.Value.(string); ok {
@@ -111,7 +166,7 @@ func VariableToInterface(input ast.Variable) (interface{}, error) {
 		}
 	}
 
-	if input.Type == ast.TypeList {
+	if ast.TypeIsList(input.Type) {
 		inputList, ok := input.Value.([]ast.Variable)
 		if !ok {
 			return nil, fmt.Errorf("ast.Variable with type list has value which is not a []ast.Variable")
@@ -133,7 +188,7 @@ func VariableToInterface(input ast.Variable) (interface{}, error) {
 		return result, nil
 	}
 
-	if input.Type == ast.TypeMap {
+	if ast.TypeIsMap(input.Type) {
 		inputMap, ok := input.Value.(map[string]ast.Variable)
 		if !ok {
 			return nil, fmt.Errorf("ast.Variable with type map has value which is not a map[string]ast.Variable")

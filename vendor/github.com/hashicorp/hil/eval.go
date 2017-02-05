@@ -54,10 +54,10 @@ func Eval(root ast.Node, config *EvalConfig) (EvaluationResult, error) {
 		return InvalidResult, err
 	}
 
-	switch outputType {
+	switch outputType.(type) {
 	case ast.TypeList:
 		val, err := VariableToInterface(ast.Variable{
-			Type:  ast.TypeList,
+			Type:  outputType,
 			Value: output,
 		})
 		return EvaluationResult{
@@ -66,13 +66,16 @@ func Eval(root ast.Node, config *EvalConfig) (EvaluationResult, error) {
 		}, err
 	case ast.TypeMap:
 		val, err := VariableToInterface(ast.Variable{
-			Type:  ast.TypeMap,
+			Type:  outputType,
 			Value: output,
 		})
 		return EvaluationResult{
 			Type:  TypeMap,
 			Value: val,
 		}, err
+	}
+
+	switch outputType {
 	case ast.TypeString:
 		return EvaluationResult{
 			Type:  TypeString,
@@ -230,7 +233,9 @@ func evalNode(raw ast.Node) (EvalNode, error) {
 	switch n := raw.(type) {
 	case *ast.Index:
 		return &evalIndex{n}, nil
-	case *ast.Call:
+	case *ast.CallTyped:
+		// Type checker replaces ast.Call with ast.CallTyped to allow
+		// us to access the computed function return type.
 		return &evalCall{n}, nil
 	case *ast.Conditional:
 		return &evalConditional{n}, nil
@@ -250,7 +255,7 @@ func evalNode(raw ast.Node) (EvalNode, error) {
 	}
 }
 
-type evalCall struct{ *ast.Call }
+type evalCall struct{ *ast.CallTyped }
 
 func (v *evalCall) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, error) {
 	// Look up the function in the map
@@ -262,18 +267,25 @@ func (v *evalCall) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, e
 
 	// The arguments are on the stack in reverse order, so pop them off.
 	args := make([]interface{}, len(v.Args))
-	for i, _ := range v.Args {
+	for i := range v.Args {
 		node := stack.Pop().(*ast.LiteralNode)
 		args[len(v.Args)-1-i] = node.Value
 	}
 
 	// Call the function
-	result, err := function.Callback(args)
+	var result interface{}
+	var err error
+	if function.CallbackTyped != nil {
+		result, err = function.CallbackTyped(args, v.ReturnType)
+	} else {
+		result, err = function.Callback(args)
+	}
+
 	if err != nil {
 		return nil, ast.TypeInvalid, fmt.Errorf("%s: %s", v.Func, err)
 	}
 
-	return result, function.ReturnType, nil
+	return result, v.ReturnType, nil
 }
 
 type evalConditional struct{ *ast.Conditional }
@@ -299,21 +311,20 @@ func (v *evalIndex) Eval(scope ast.Scope, stack *ast.Stack) (interface{}, ast.Ty
 	key := stack.Pop().(*ast.LiteralNode)
 	target := stack.Pop().(*ast.LiteralNode)
 
-	variableName := v.Index.Target.(*ast.VariableAccess).Name
-
-	switch target.Typex {
+	switch target.Typex.(type) {
 	case ast.TypeList:
-		return v.evalListIndex(variableName, target.Value, key.Value)
+		return v.evalListIndex(target.Value, key.Value)
 	case ast.TypeMap:
-		return v.evalMapIndex(variableName, target.Value, key.Value)
+		return v.evalMapIndex(target.Value, key.Value)
 	default:
 		return nil, ast.TypeInvalid, fmt.Errorf(
-			"target %q for indexing must be ast.TypeList or ast.TypeMap, is %s",
-			variableName, target.Typex)
+			"target for indexing must be ast.TypeList or ast.TypeMap, is %s",
+			target.Typex,
+		)
 	}
 }
 
-func (v *evalIndex) evalListIndex(variableName string, target interface{}, key interface{}) (interface{}, ast.Type, error) {
+func (v *evalIndex) evalListIndex(target interface{}, key interface{}) (interface{}, ast.Type, error) {
 	// We assume type checking was already done and we can assume that target
 	// is a list and key is an int
 	list, ok := target.([]ast.Variable)
@@ -334,8 +345,9 @@ func (v *evalIndex) evalListIndex(variableName string, target interface{}, key i
 
 	if keyInt < 0 || len(list) < keyInt+1 {
 		return nil, ast.TypeInvalid, fmt.Errorf(
-			"index %d out of range for list %s (max %d)",
-			keyInt, variableName, len(list))
+			"index %d out of range for list (max %d)",
+			keyInt, len(list)-1,
+		)
 	}
 
 	returnVal := list[keyInt].Value
@@ -343,7 +355,7 @@ func (v *evalIndex) evalListIndex(variableName string, target interface{}, key i
 	return returnVal, returnType, nil
 }
 
-func (v *evalIndex) evalMapIndex(variableName string, target interface{}, key interface{}) (interface{}, ast.Type, error) {
+func (v *evalIndex) evalMapIndex(target interface{}, key interface{}) (interface{}, ast.Type, error) {
 	// We assume type checking was already done and we can assume that target
 	// is a map and key is a string
 	vmap, ok := target.(map[string]ast.Variable)
@@ -365,7 +377,8 @@ func (v *evalIndex) evalMapIndex(variableName string, target interface{}, key in
 	value, ok := vmap[keyString]
 	if !ok {
 		return nil, ast.TypeInvalid, fmt.Errorf(
-			"key %q does not exist in map %s", keyString, variableName)
+			"key %q does not exist in map", keyString,
+		)
 	}
 
 	return value.Value, value.Type, nil
@@ -383,12 +396,13 @@ func (v *evalOutput) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type,
 
 	// Special case the single list and map
 	if len(nodes) == 1 {
-		switch t := nodes[0].Typex; t {
-		case ast.TypeList:
+		t := nodes[0].Typex
+		switch {
+		case ast.TypeIsList(t):
 			fallthrough
-		case ast.TypeMap:
+		case ast.TypeIsMap(t):
 			fallthrough
-		case ast.TypeUnknown:
+		case t == ast.TypeUnknown:
 			return nodes[0].Value, t, nil
 		}
 	}

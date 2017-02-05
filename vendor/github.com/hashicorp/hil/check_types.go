@@ -67,6 +67,12 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 	case *ast.Call:
 		tc := &typeCheckCall{n}
 		result, err = tc.TypeCheck(v)
+	case *ast.CallTyped:
+		// We only enter this branch if the result of type checking is
+		// passed into a second pass of type checking. In that case
+		// we just re-check the original Call embedded inside.
+		tc := &typeCheckCall{&n.Call}
+		result, err = tc.TypeCheck(v)
 	case *ast.Conditional:
 		tc := &typeCheckConditional{n}
 		result, err = tc.TypeCheck(v)
@@ -178,10 +184,13 @@ func (tc *typeCheckArithmetic) checkNumeric(v *TypeCheck, exprs []ast.Type) (ast
 		Posx:  tc.n.Pos(),
 	}
 	copy(args[1:], tc.n.Exprs)
-	return &ast.Call{
-		Func: mathFunc,
-		Args: args,
-		Posx: tc.n.Pos(),
+	return &ast.CallTyped{
+		Call: ast.Call{
+			Func: mathFunc,
+			Args: args,
+			Posx: tc.n.Pos(),
+		},
+		ReturnType: mathType,
 	}, nil
 }
 
@@ -271,10 +280,13 @@ func (tc *typeCheckArithmetic) checkComparison(v *TypeCheck, exprs []ast.Type) (
 		Posx:  tc.n.Pos(),
 	}
 	copy(args[1:], tc.n.Exprs)
-	return &ast.Call{
-		Func: compareFunc,
-		Args: args,
-		Posx: tc.n.Pos(),
+	return &ast.CallTyped{
+		Call: ast.Call{
+			Func: compareFunc,
+			Args: args,
+			Posx: tc.n.Pos(),
+		},
+		ReturnType: ast.TypeBool,
 	}, nil
 }
 
@@ -303,10 +315,13 @@ func (tc *typeCheckArithmetic) checkLogical(v *TypeCheck, exprs []ast.Type) (ast
 		Posx:  tc.n.Pos(),
 	}
 	copy(args[1:], tc.n.Exprs)
-	return &ast.Call{
-		Func: "__builtin_Logical",
-		Args: args,
-		Posx: tc.n.Pos(),
+	return &ast.CallTyped{
+		Call: ast.Call{
+			Func: "__builtin_Logical",
+			Args: args,
+			Posx: tc.n.Pos(),
+		},
+		ReturnType: ast.TypeBool,
 	}, nil
 }
 
@@ -329,48 +344,99 @@ func (tc *typeCheckCall) TypeCheck(v *TypeCheck) (ast.Node, error) {
 
 	// Verify the args
 	for i, expected := range function.ArgTypes {
-		if expected == ast.TypeAny {
-			continue
+		cn, err := tc.compatibleArg(v, tc.n.Func, i+1, tc.n.Args[i], expected, args[i])
+		if err != nil {
+			return nil, err
 		}
-
-		if args[i] != expected {
-			cn := v.ImplicitConversion(args[i], expected, tc.n.Args[i])
-			if cn != nil {
-				tc.n.Args[i] = cn
-				continue
-			}
-
-			return nil, fmt.Errorf(
-				"%s: argument %d should be %s, got %s",
-				tc.n.Func, i+1, expected.Printable(), args[i].Printable())
-		}
+		tc.n.Args[i] = cn
 	}
 
 	// If we're variadic, then verify the types there
-	if function.Variadic && function.VariadicType != ast.TypeAny {
-		args = args[len(function.ArgTypes):]
-		for i, t := range args {
-			if t != function.VariadicType {
-				realI := i + len(function.ArgTypes)
-				cn := v.ImplicitConversion(
-					t, function.VariadicType, tc.n.Args[realI])
-				if cn != nil {
-					tc.n.Args[realI] = cn
-					continue
-				}
-
-				return nil, fmt.Errorf(
-					"%s: argument %d should be %s, got %s",
-					tc.n.Func, realI,
-					function.VariadicType.Printable(), t.Printable())
+	if function.Variadic {
+		varArgs := args[len(function.ArgTypes):]
+		for i, t := range varArgs {
+			realI := i + len(function.ArgTypes)
+			cn, err := tc.compatibleArg(v, tc.n.Func, realI+1, tc.n.Args[realI], function.VariadicType, t)
+			if err != nil {
+				return nil, err
 			}
+			tc.n.Args[realI] = cn
 		}
 	}
 
 	// Return type
-	v.StackPush(function.ReturnType)
+	var returnType ast.Type
+	if function.ReturnTypeFunc != nil {
+		rt, err := function.ReturnTypeFunc(args)
+		if err != nil {
+			return nil, err
+		}
+		returnType = rt
+	} else {
+		returnType = function.ReturnType
+	}
+	v.StackPush(returnType)
 
-	return tc.n, nil
+	return &ast.CallTyped{
+		Call:       *tc.n,
+		ReturnType: returnType,
+	}, nil
+}
+
+// compatibleTypes implements the type matching and conversion rules for
+// function arguments, where TypeAny can be used as a "wildcard" type.
+//
+// If the given type matches or can be converted to the expected type,
+// returns an ast.Node representing the value in the expected type,
+// which might either just be the given node verbatim or may be it
+// wrapped in a conversion operation.
+//
+// If the given type does not match, returns a user-oriented error
+// describing the problem, using the given funcName and idx (1-based)
+// to refer to the index of the argument in the call.
+func (tc *typeCheckCall) compatibleArg(
+	v *TypeCheck, funcName string, idx int, node ast.Node, expected ast.Type, given ast.Type,
+) (ast.Node, error) {
+	if expected == ast.TypeAny {
+		return node, nil
+	}
+
+	// TypeList{TypeAny} and TypeMap{TypeAny} may be used to express
+	// that the function operates generically over a particular
+	// collection type.
+	if lt, ok := expected.(ast.TypeList); ok && lt.ElementType == ast.TypeAny {
+		if !ast.TypeIsList(given) {
+			return nil, fmt.Errorf(
+				"%s: argument %d should be list, but got %s",
+				funcName, idx, given.Printable(),
+			)
+		}
+		return node, nil
+	}
+	if mt, ok := expected.(ast.TypeMap); ok && mt.ElementType == ast.TypeAny {
+		if !ast.TypeIsMap(given) {
+			return nil, fmt.Errorf(
+				"%s: argument %d should be map, but got %s",
+				funcName, idx, given.Printable(),
+			)
+		}
+		return node, nil
+	}
+
+	if given != expected {
+		cn := v.ImplicitConversion(given, expected, node)
+		if cn == nil {
+			return nil, fmt.Errorf(
+				"%s: argument %d should be %s, but got %s",
+				funcName, idx, expected.Printable(), given.Printable(),
+			)
+		}
+		return cn, nil
+	}
+
+	// If we fall out here then the given type exactly matches the expected,
+	// so no conversion is necessary.
+	return node, nil
 }
 
 type typeCheckConditional struct {
@@ -429,7 +495,7 @@ func (tc *typeCheckConditional) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	// system or restricting usage to only variable and literal expressions,
 	// but for now this is simply prohibited because it doesn't seem to
 	// be a common enough case to be worth the complexity.
-	switch trueType {
+	switch trueType.(type) {
 	case ast.TypeList:
 		return nil, fmt.Errorf(
 			"conditional operator cannot be used with list values",
@@ -459,10 +525,8 @@ func (tc *typeCheckOutput) TypeCheck(v *TypeCheck) (ast.Node, error) {
 
 	// If there is only one argument and it is a list, we evaluate to a list
 	if len(types) == 1 {
-		switch t := types[0]; t {
-		case ast.TypeList:
-			fallthrough
-		case ast.TypeMap:
+		switch t := types[0]; t.(type) {
+		case ast.TypeList, ast.TypeMap:
 			v.StackPush(t)
 			return n, nil
 		}
@@ -530,21 +594,7 @@ func (tc *typeCheckIndex) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	keyType := v.StackPop()
 	targetType := v.StackPop()
 
-	// Ensure we have a VariableAccess as the target
-	varAccessNode, ok := tc.n.Target.(*ast.VariableAccess)
-	if !ok {
-		return nil, fmt.Errorf(
-			"target of an index must be a VariableAccess node, was %T", tc.n.Target)
-	}
-
-	// Get the variable
-	variable, ok := v.Scope.LookupVar(varAccessNode.Name)
-	if !ok {
-		return nil, fmt.Errorf(
-			"unknown variable accessed: %s", varAccessNode.Name)
-	}
-
-	switch targetType {
+	switch t := targetType.(type) {
 	case ast.TypeList:
 		if keyType != ast.TypeInt {
 			tc.n.Key = v.ImplicitConversion(keyType, ast.TypeInt, tc.n.Key)
@@ -554,13 +604,7 @@ func (tc *typeCheckIndex) TypeCheck(v *TypeCheck) (ast.Node, error) {
 			}
 		}
 
-		valType, err := ast.VariableListElementTypesAreHomogenous(
-			varAccessNode.Name, variable.Value.([]ast.Variable))
-		if err != nil {
-			return tc.n, err
-		}
-
-		v.StackPush(valType)
+		v.StackPush(t.ElementType)
 		return tc.n, nil
 	case ast.TypeMap:
 		if keyType != ast.TypeString {
@@ -571,16 +615,10 @@ func (tc *typeCheckIndex) TypeCheck(v *TypeCheck) (ast.Node, error) {
 			}
 		}
 
-		valType, err := ast.VariableMapValueTypesAreHomogenous(
-			varAccessNode.Name, variable.Value.(map[string]ast.Variable))
-		if err != nil {
-			return tc.n, err
-		}
-
-		v.StackPush(valType)
+		v.StackPush(t.ElementType)
 		return tc.n, nil
 	default:
-		return nil, fmt.Errorf("invalid index operation into non-indexable type: %s", variable.Type)
+		return nil, fmt.Errorf("index operator not supported for %s", targetType)
 	}
 }
 
@@ -600,10 +638,13 @@ func (v *TypeCheck) ImplicitConversion(
 		return nil
 	}
 
-	return &ast.Call{
-		Func: toFunc,
-		Args: []ast.Node{n},
-		Posx: n.Pos(),
+	return &ast.CallTyped{
+		Call: ast.Call{
+			Func: toFunc,
+			Args: []ast.Node{n},
+			Posx: n.Pos(),
+		},
+		ReturnType: expected,
 	}
 }
 

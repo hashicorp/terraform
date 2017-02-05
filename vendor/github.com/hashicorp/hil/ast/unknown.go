@@ -9,7 +9,7 @@ func IsUnknown(v Variable) bool {
 	}
 
 	// If it is a container type, check the values
-	switch v.Type {
+	switch v.Type.(type) {
 	case TypeList:
 		for _, el := range v.Value.([]Variable) {
 			if IsUnknown(el) {

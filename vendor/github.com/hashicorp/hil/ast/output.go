@@ -52,11 +52,11 @@ func (n *Output) Type(s Scope) (Type, error) {
 		if err != nil {
 			return TypeInvalid, err
 		}
-		switch exprType {
+		switch exprType.(type) {
 		case TypeList:
-			return TypeList, nil
+			return exprType, nil
 		case TypeMap:
-			return TypeMap, nil
+			return exprType, nil
 		}
 	}
 
@@ -67,10 +67,12 @@ func (n *Output) Type(s Scope) (Type, error) {
 			return TypeInvalid, err
 		}
 		// We only look for things we know we can't coerce with an implicit conversion func
-		if exprType == TypeList || exprType == TypeMap {
+		switch exprType.(type) {
+		case TypeList, TypeMap:
 			return TypeInvalid, fmt.Errorf(
 				"multi-expression HIL outputs may only have string inputs: %d is type %s",
-				index, exprType)
+				index, exprType,
+			)
 		}
 	}
 

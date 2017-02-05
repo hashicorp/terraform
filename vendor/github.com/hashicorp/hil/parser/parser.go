@@ -248,7 +248,7 @@ func (p *parser) parseTernaryCond() (ast.Node, error) {
 func (p *parser) parseBinaryOps(ops []map[scanner.TokenType]ast.ArithmeticOp) (ast.Node, error) {
 	if len(ops) == 0 {
 		// We've run out of operators, so now we'll just try to parse a term.
-		return p.ParseExpressionTerm()
+		return p.parsePostfixOperators()
 	}
 
 	thisLevel := ops[0]
@@ -312,6 +312,43 @@ func (p *parser) parseBinaryOps(ops []map[scanner.TokenType]ast.ArithmeticOp) (a
 	} else {
 		return lhs, nil
 	}
+}
+
+func (p *parser) parsePostfixOperators() (ast.Node, error) {
+	expr, err := p.ParseExpressionTerm()
+	if err != nil {
+		return nil, err
+	}
+
+Postfix:
+	for {
+		next := p.peeker.Peek()
+		switch next.Type {
+
+		case scanner.OBRACKET:
+			// index operator
+			startPos := p.peeker.Read().Pos // eat bracket
+			indexExpr, err := p.ParseExpression()
+			if err != nil {
+				return nil, err
+			}
+			err = p.requireTokenType(scanner.CBRACKET, `"]"`)
+			if err != nil {
+				return nil, err
+			}
+			expr = &ast.Index{
+				Target: expr,
+				Key:    indexExpr,
+				Posx:   startPos,
+			}
+
+		default:
+			break Postfix
+
+		}
+	}
+
+	return expr, nil
 }
 
 func (p *parser) ParseExpressionTerm() (ast.Node, error) {
@@ -485,24 +522,6 @@ func (p *parser) ParseScopeInteraction() (ast.Node, error) {
 	varNode := &ast.VariableAccess{
 		Name: first.Content,
 		Posx: startPos,
-	}
-
-	if p.peeker.Peek().Type == scanner.OBRACKET {
-		// index operator
-		startPos := p.peeker.Read().Pos // eat bracket
-		indexExpr, err := p.ParseExpression()
-		if err != nil {
-			return nil, err
-		}
-		err = p.requireTokenType(scanner.CBRACKET, `"]"`)
-		if err != nil {
-			return nil, err
-		}
-		return &ast.Index{
-			Target: varNode,
-			Key:    indexExpr,
-			Posx:   startPos,
-		}, nil
 	}
 
 	return varNode, nil
