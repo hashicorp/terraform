@@ -129,7 +129,10 @@ func testAccCheckRancherRegistryCredentialExists(n string, reg *rancherClient.Re
 			return fmt.Errorf("No App Name is set")
 		}
 
-		client, _ := testAccProvider.Meta().(*Config).RegistryClient(rs.Primary.Attributes["registry_id"])
+		client, err := testAccProvider.Meta().(*Config).RegistryClient(rs.Primary.Attributes["registry_id"])
+		if err != nil {
+			return err
+		}
 
 		foundReg, err := client.RegistryCredential.ById(rs.Primary.ID)
 		if err != nil {
@@ -147,12 +150,15 @@ func testAccCheckRancherRegistryCredentialExists(n string, reg *rancherClient.Re
 }
 
 func testAccCheckRancherRegistryCredentialDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config)
-
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "rancher_registry_credential" {
 			continue
 		}
+		client, err := testAccProvider.Meta().(*Config).GlobalClient()
+		if err != nil {
+			return err
+		}
+
 		reg, err := client.RegistryCredential.ById(rs.Primary.ID)
 
 		if err == nil {
