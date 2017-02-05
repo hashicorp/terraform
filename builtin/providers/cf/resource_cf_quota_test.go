@@ -216,14 +216,16 @@ func checkQuotaExists(resource string) resource.TestCheckFunc {
 		if err := assertEquals(attributes, "total_app_instances", strconv.Itoa(quota.AppInstanceLimit)); err != nil {
 			return err
 		}
-		if err := assertEquals(attributes, "total_routes", strconv.Itoa(quota.TotalRoutes)); err != nil {
-			return err
-		}
 		if err := assertEquals(attributes, "total_services", strconv.Itoa(quota.TotalServices)); err != nil {
 			return err
 		}
-		if err := assertEquals(attributes, "total_route_ports", strconv.Itoa(quota.TotalReserveredPorts)); err != nil {
+		if err := assertEquals(attributes, "total_routes", strconv.Itoa(quota.TotalRoutes)); err != nil {
 			return err
+		}
+		if quota.OrgGUID == "" {
+			if err := assertEquals(attributes, "total_route_ports", strconv.Itoa(quota.TotalReserveredPorts)); err != nil {
+				return err
+			}
 		}
 		return
 	}
