@@ -433,16 +433,14 @@ func expandAzureRmContainerServiceDiagnostics(d *schema.ResourceData) containers
 	configs := d.Get("diagnostics_profile").(*schema.Set).List()
 	profile := containerservice.DiagnosticsProfile{}
 
-	for _, configRaw := range configs {
-		data := configRaw.(map[string]interface{})
+	data := configs[0].(map[string]interface{})
 
-		enabled := data["enabled"].(bool)
+	enabled := data["enabled"].(bool)
 
-		profile = containerservice.DiagnosticsProfile{
-			VMDiagnostics: &containerservice.VMDiagnostics{
-				Enabled: &enabled,
-			},
-		}
+	profile = containerservice.DiagnosticsProfile{
+		VMDiagnostics: &containerservice.VMDiagnostics{
+			Enabled: &enabled,
+		},
 	}
 
 	return profile
