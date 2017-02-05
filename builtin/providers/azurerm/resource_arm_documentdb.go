@@ -104,6 +104,26 @@ func resourceArmDocumentDb() *schema.Resource {
 				Set: resourceAzureRMDocumentDbFailoverPolicyHash,
 			},
 
+			"primary_master_key": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"secondary_master_key": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"primary_readonly_master_key": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"secondary_readonly_master_key": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
