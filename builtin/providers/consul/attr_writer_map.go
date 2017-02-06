@@ -3,7 +3,6 @@ package consul
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -49,18 +48,6 @@ func (w *_AttrWriterMap) SetFloat64(name _SchemaAttr, f float64) error {
 
 func (w *_AttrWriterMap) SetList(name _SchemaAttr, l []interface{}) error {
 	panic(fmt.Sprintf("PROVIDER BUG: Cat set a list within a map for %s", name))
-	out := make([]string, 0, len(l))
-	for i, v := range l {
-		switch u := v.(type) {
-		case string:
-			out[i] = u
-		default:
-			panic(fmt.Sprintf("PROVIDER BUG: SetList type %T not supported (%#v)", v, v))
-		}
-	}
-
-	(*w.m)[string(name)] = strings.Join(out, ", ")
-	return nil
 }
 
 func (w *_AttrWriterMap) SetMap(name _SchemaAttr, m map[string]interface{}) error {
