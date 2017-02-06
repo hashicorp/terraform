@@ -207,7 +207,6 @@ func (c *S3Client) Lock(reason string) error {
 		Item: map[string]*dynamodb.AttributeValue{
 			"LockID":  {S: aws.String(stateName)},
 			"Created": {S: aws.String(time.Now().UTC().Format(time.RFC3339))},
-			"Expires": {S: aws.String(time.Now().Add(time.Hour).UTC().Format(time.RFC3339))},
 			"Info":    {S: aws.String(reason)},
 		},
 		TableName:           aws.String(c.lockTable),
@@ -220,7 +219,7 @@ func (c *S3Client) Lock(reason string) error {
 			Key: map[string]*dynamodb.AttributeValue{
 				"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.keyName))},
 			},
-			ProjectionExpression: aws.String("LockID, Created, Expires, Info"),
+			ProjectionExpression: aws.String("LockID, Created, Info"),
 			TableName:            aws.String(c.lockTable),
 		}
 
@@ -229,19 +228,16 @@ func (c *S3Client) Lock(reason string) error {
 			return fmt.Errorf("s3 state file %q locked, cfailed to retrive info: %s", stateName, err)
 		}
 
-		var created, expires, info string
+		var created, info string
 		if v, ok := resp.Item["Created"]; ok && v.S != nil {
 			created = *v.S
-		}
-		if v, ok := resp.Item["Expires"]; ok && v.S != nil {
-			expires = *v.S
 		}
 		if v, ok := resp.Item["Info"]; ok && v.S != nil {
 			info = *v.S
 		}
 
-		return fmt.Errorf("state file %q locked. created:%s, expires:%s, reason:%s",
-			stateName, created, expires, info)
+		return fmt.Errorf("state file %q locked. created:%s, reason:%s",
+			stateName, created, info)
 
 	}
 	return nil

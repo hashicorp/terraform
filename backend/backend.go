@@ -22,7 +22,8 @@ type Backend interface {
 
 	// State returns the current state for this environment. This state may
 	// not be loaded locally: the proper APIs should be called on state.State
-	// to load the state.
+	// to load the state. If the state.State is a state.Locker, it's up to the
+	// caller to call Lock and Unlock as needed.
 	State() (state.State, error)
 }
 
@@ -38,6 +39,9 @@ type Enhanced interface {
 	// It is up to the implementation to determine what "performing" means.
 	// This DOES NOT BLOCK. The context returned as part of RunningOperation
 	// should be used to block for completion.
+	// If the state used in the operation can be locked, it is the
+	// responsibility of the Backend to lock the state for the duration of the
+	// running operation.
 	Operation(context.Context, *Operation) (*RunningOperation, error)
 }
 
@@ -99,6 +103,10 @@ type Operation struct {
 	// Input/output/control options.
 	UIIn  terraform.UIInput
 	UIOut terraform.UIOutput
+
+	// If LockState is true, the Operation must Lock any
+	// state.Lockers for its duration, and Unlock when complete.
+	LockState bool
 }
 
 // RunningOperation is the result of starting an operation.
