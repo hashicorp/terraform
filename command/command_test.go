@@ -535,7 +535,9 @@ func testRemoteState(t *testing.T, s *terraform.State, c int) (*terraform.Remote
 
 // testlockState calls a separate process to the lock the state file at path.
 // deferFunc should be called in the caller to properly unlock the file.
-func testLockState(path string) (func(), error) {
+// Since many tests change the working durectory, the sourcedir argument must be
+// supplied to locate the statelocker.go source.
+func testLockState(sourceDir, path string) (func(), error) {
 	// build and run the binary ourselves so we can quickly terminate it for cleanup
 	buildDir, err := ioutil.TempDir("", "locker")
 	if err != nil {
@@ -545,8 +547,10 @@ func testLockState(path string) (func(), error) {
 		os.RemoveAll(buildDir)
 	}
 
+	source := filepath.Join(sourceDir, "statelocker.go")
 	lockBin := filepath.Join(buildDir, "statelocker")
-	out, err := exec.Command("go", "build", "-o", lockBin, "testdata/statelocker.go").CombinedOutput()
+
+	out, err := exec.Command("go", "build", "-o", lockBin, source).CombinedOutput()
 	if err != nil {
 		cleanFunc()
 		return nil, fmt.Errorf("%s %s", err, out)
