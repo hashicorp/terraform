@@ -134,17 +134,17 @@ resource "fastly_service_v1" "foo" {
   }
 
   healthcheck {
-		name:              "example-healthcheck1",
-		host:              "example1.com",
-		path:              "/test1.txt",
-		check_interval:    4000,
-		expected_response: 200,
-		http_version:      "1.1",
-		initial:           2,
-		method:            "HEAD",
-		threshold:         3,
-		timeout:           5000,
-		window:            5,
+		name              = "example-healthcheck1"
+		host              = "example1.com"
+		path              = "/test1.txt"
+		check_interval    = 4000
+		expected_response = 200
+		http_version      = "1.1"
+		initial           = 2
+		method            = "HEAD"
+		threshold         = 3
+		timeout           = 5000
+		window            = 5
   }
 
   force_destroy = true
@@ -167,31 +167,31 @@ resource "fastly_service_v1" "foo" {
   }
 
 	healthcheck {
-		name:              "example-healthcheck1",
-		host:              "example1.com",
-		path:              "/test1.txt",
-		check_interval:    4000,
-		expected_response: 200,
-		http_version:      "1.1",
-		initial:           2,
-		method:            "HEAD",
-		threshold:         3,
-		timeout:           5000,
-		window:            5,
+		name              = "example-healthcheck1"
+		host              = "example1.com"
+		path              = "/test1.txt"
+		check_interval    = 4000
+		expected_response = 200
+		http_version      = "1.1"
+		initial           = 2
+		method            = "HEAD"
+		threshold         = 3
+		timeout           = 5000
+		window            = 5
   }
 
 	healthcheck {
-		name:              "example-healthcheck2",
-		host:              "example2.com",
-		path:              "/test2.txt",
-		check_interval:    4500,
-		expected_response: 404,
-		http_version:      "1.0",
-		initial:           1,
-		method:            "POST",
-		threshold:         4,
-		timeout:           4000,
-		window:            10,
+		name              = "example-healthcheck2"
+		host              = "example2.com"
+		path              = "/test2.txt"
+		check_interval    = 4500
+		expected_response = 404
+		http_version      = "1.0"
+		initial           = 1
+		method            = "POST"
+		threshold         = 4
+		timeout           = 4000
+		window            = 10
   }
 
   force_destroy = true
