@@ -6,14 +6,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/hashicorp/go-getter"
@@ -528,4 +531,56 @@ func testRemoteState(t *testing.T, s *terraform.State, c int) (*terraform.Remote
 	}
 
 	return remote, srv
+}
+
+// testlockState calls a separate process to the lock the state file at path.
+// deferFunc should be called in the caller to properly unlock the file.
+func testLockState(path string) (func(), error) {
+	// build and run the binary ourselves so we can quickly terminate it for cleanup
+	buildDir, err := ioutil.TempDir("", "locker")
+	if err != nil {
+		return nil, err
+	}
+	cleanFunc := func() {
+		os.RemoveAll(buildDir)
+	}
+
+	lockBin := filepath.Join(buildDir, "statelocker")
+	out, err := exec.Command("go", "build", "-o", lockBin, "testdata/statelocker.go").CombinedOutput()
+	if err != nil {
+		cleanFunc()
+		return nil, fmt.Errorf("%s %s", err, out)
+	}
+
+	locker := exec.Command(lockBin, path)
+	pr, pw, err := os.Pipe()
+	if err != nil {
+		cleanFunc()
+		return nil, err
+	}
+	defer pr.Close()
+	defer pw.Close()
+	locker.Stderr = pw
+	locker.Stdout = pw
+
+	if err := locker.Start(); err != nil {
+		return nil, err
+	}
+	deferFunc := func() {
+		cleanFunc()
+		locker.Process.Signal(syscall.SIGTERM)
+		locker.Wait()
+	}
+
+	// wait for the process to lock
+	buf := make([]byte, 1024)
+	n, err := pr.Read(buf)
+	if err != nil {
+		return deferFunc, fmt.Errorf("read from statelocker returned: %s", err)
+	}
+
+	if string(buf[:n]) != "LOCKED" {
+		return deferFunc, fmt.Errorf("statelocker wrote: %s", string(buf[:n]))
+	}
+	return deferFunc, nil
 }
