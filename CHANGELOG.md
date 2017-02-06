@@ -43,6 +43,7 @@ IMPROVEMENTS:
  * provider/azurerm: Add support for scale sets overprovision [GH-11516]
  * provider/azurerm: support import for load balancer and sub resources [GH-11610]
  * provider/fastly: Adds papertrail logging [GH-11491]
+ * provider/fastly: Adds format_version for s3logging [GH-11725]
  * provider/google: allow instance group managers in region other than project [GH-11294]
  * provider/google: Add second generation disk specification options [GH-11571]
  * provider/google: remote_traffic_selector for google_compute_vpn_tunnel [GH-11020]
