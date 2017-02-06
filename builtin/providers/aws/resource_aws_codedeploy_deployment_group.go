@@ -107,6 +107,29 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				},
 			},
 
+			"load_balancer_info": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"elb_info": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Set:      elbInfoHash,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"name": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
 			"auto_rollback_configuration": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -278,6 +301,10 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 		input.AlarmConfiguration = buildAlarmConfig(attr.([]interface{}))
 	}
 
+	if attr, ok := d.GetOk("load_balancer_info"); ok {
+		input.LoadBalancerInfo = buildLoadBalancerInfo(attr.([]interface{}))
+	}
+
 	// Retry to handle IAM role eventual consistency.
 	var resp *codedeploy.CreateDeploymentGroupOutput
 	var err error
@@ -365,6 +392,10 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 		return err
 	}
 
+	if err := d.Set("load_balancer_info", loadBalancerInfoToMap(resp.DeploymentGroupInfo.LoadBalancerInfo)); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -424,6 +455,11 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 	if d.HasChange("alarm_configuration") {
 		_, n := d.GetChange("alarm_configuration")
 		input.AlarmConfiguration = buildAlarmConfig(n.([]interface{}))
+	}
+
+	if d.HasChange("load_balancer_info") {
+		_, n := d.GetChange("load_balancer_info")
+		input.LoadBalancerInfo = buildLoadBalancerInfo(n.([]interface{}))
 	}
 
 	log.Printf("[DEBUG] Updating CodeDeploy DeploymentGroup %s", d.Id())
@@ -585,6 +621,8 @@ func buildAlarmConfig(configured []interface{}) *codedeploy.AlarmConfiguration {
 	return result
 }
 
+// buildDeploymentStyle converts a raw schema list containing a map[string]interface{}
+// into a single codedeploy.DeploymentStyle object
 func buildDeploymentStyle(list []interface{}) *codedeploy.DeploymentStyle {
 	result := &codedeploy.DeploymentStyle{}
 
@@ -595,6 +633,30 @@ func buildDeploymentStyle(list []interface{}) *codedeploy.DeploymentStyle {
 	}
 
 	return result
+}
+
+// buildLoadBalancerInfo converts a raw schema list containing a map[string]interface{}
+// into a single codedeploy.LoadBalancerInfo object
+func buildLoadBalancerInfo(list []interface{}) *codedeploy.LoadBalancerInfo {
+	if len(list) == 0 || list[0] == nil {
+		return nil
+	}
+
+	lbInfo := list[0].(map[string]interface{})
+	elbs := lbInfo["elb_info"].(*schema.Set).List()
+
+	loadBalancerInfo := &codedeploy.LoadBalancerInfo{
+		ElbInfoList: make([]*codedeploy.ELBInfo, 0, len(elbs)),
+	}
+
+	for _, v := range elbs {
+		elb := v.(map[string]interface{})
+		loadBalancerInfo.ElbInfoList = append(loadBalancerInfo.ElbInfoList, &codedeploy.ELBInfo{
+			Name: aws.String(elb["name"].(string)),
+		})
+	}
+
+	return loadBalancerInfo
 }
 
 // ec2TagFiltersToMap converts lists of tag filters into a []map[string]string.
@@ -689,8 +751,11 @@ func alarmConfigToMap(config *codedeploy.AlarmConfiguration) []map[string]interf
 	return result
 }
 
+// deploymentStyleToMap converts a codedeploy.DeploymentStyle object
+// into a []map[string]interface{} list containing a single item
 func deploymentStyleToMap(style *codedeploy.DeploymentStyle) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
+
 	if style == nil {
 		return result
 	}
@@ -699,6 +764,29 @@ func deploymentStyleToMap(style *codedeploy.DeploymentStyle) []map[string]interf
 	item["deployment_option"] = *style.DeploymentOption
 	item["deployment_type"] = *style.DeploymentType
 	result = append(result, item)
+	return result
+}
+
+// loadBalancerInfoToMap converts a codedeploy.LoadBalancerInfo object
+// into a []map[string]interface{} list containing a single item
+func loadBalancerInfoToMap(loadBalancerInfo *codedeploy.LoadBalancerInfo) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	if loadBalancerInfo == nil {
+		return result
+	}
+
+	elbs := make([]interface{}, 0, len(loadBalancerInfo.ElbInfoList))
+	for _, elb := range loadBalancerInfo.ElbInfoList {
+		item := make(map[string]interface{})
+		item["name"] = *elb.Name
+		elbs = append(elbs, item)
+	}
+
+	lbInfo := make(map[string]interface{})
+	lbInfo["elb_info"] = schema.NewSet(elbInfoHash, elbs)
+	result = append(result, lbInfo)
+
 	return result
 }
 
@@ -739,6 +827,21 @@ func resourceAwsCodeDeployTriggerConfigHash(v interface{}) int {
 			buf.WriteString(fmt.Sprintf("%s-", s))
 		}
 	}
+	return hashcode.String(buf.String())
+}
+
+func elbInfoHash(v interface{}) int {
+	var buf bytes.Buffer
+
+	if v == nil {
+		return hashcode.String(buf.String())
+	}
+
+	m := v.(map[string]interface{})
+	if v, ok := m["name"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
 	return hashcode.String(buf.String())
 }
 

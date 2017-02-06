@@ -629,6 +629,78 @@ func TestAccAWSCodeDeployDeploymentGroup_deploymentStyle_create(t *testing.T) {
 	})
 }
 
+func TestAccAWSCodeDeployDeploymentGroup_loadBalancerInfo_create(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: test_config_load_balancer_info_default(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.#", "0"),
+				),
+			},
+			resource.TestStep{
+				Config: test_config_load_balancer_info_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.0.elb_info.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.0.elb_info.2441772102.name", "foo-elb"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCodeDeployDeploymentGroup_loadBalancerInfo_update(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: test_config_load_balancer_info_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.0.elb_info.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.0.elb_info.2441772102.name", "foo-elb"),
+				),
+			},
+			resource.TestStep{
+				Config: test_config_load_balancer_info_update(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.0.elb_info.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.0.elb_info.4206303396.name", "bar-elb"),
+				),
+			},
+		},
+	})
+}
+
 func TestValidateAWSCodeDeployTriggerEvent(t *testing.T) {
 	cases := []struct {
 		Value    string
@@ -824,6 +896,78 @@ func TestAutoRollbackConfigToMap(t *testing.T) {
 
 	if fatal {
 		t.Fatalf("autoRollbackConfigToMap output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+			actual, expected)
+	}
+}
+
+func TestBuildLoadBalancerInfo(t *testing.T) {
+	input := []interface{}{
+		map[string]interface{}{
+			"elb_info": schema.NewSet(elbInfoHash, []interface{}{
+				map[string]interface{}{
+					"name": "foo-elb",
+				},
+				map[string]interface{}{
+					"name": "bar-elb",
+				},
+			}),
+		},
+	}
+
+	expected := &codedeploy.LoadBalancerInfo{
+		ElbInfoList: []*codedeploy.ELBInfo{
+			{
+				Name: aws.String("foo-elb"),
+			},
+			{
+				Name: aws.String("bar-elb"),
+			},
+		},
+	}
+
+	actual := buildLoadBalancerInfo(input)
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("buildLoadBalancerInfo output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+			actual, expected)
+	}
+}
+
+func TestLoadBalancerInfoToMap(t *testing.T) {
+	input := &codedeploy.LoadBalancerInfo{
+		ElbInfoList: []*codedeploy.ELBInfo{
+			{
+				Name: aws.String("abc-elb"),
+			},
+			{
+				Name: aws.String("xyz-elb"),
+			},
+		},
+	}
+
+	expected := map[string]interface{}{
+		"elb_info": schema.NewSet(elbInfoHash, []interface{}{
+			map[string]interface{}{
+				"name": "abc-elb",
+			},
+			map[string]interface{}{
+				"name": "xyz-elb",
+			},
+		}),
+	}
+
+	actual := loadBalancerInfoToMap(input)[0]
+
+	fatal := false
+
+	a := actual["elb_info"].(*schema.Set)
+	e := expected["elb_info"].(*schema.Set)
+	if !a.Equal(e) {
+		fatal = true
+	}
+
+	if fatal {
+		t.Fatalf("alarmConfigToMap output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
 			actual, expected)
 	}
 }
@@ -1606,6 +1750,54 @@ resource "aws_codedeploy_deployment_group" "foo_group" {
   deployment_style {
     deployment_option = "WITHOUT_TRAFFIC_CONTROL"
     deployment_type = "IN_PLACE"
+  }
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func test_config_load_balancer_info_default(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func test_config_load_balancer_info_create(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+
+  load_balancer_info {
+    elb_info {
+      name = "foo-elb"
+    }
+  }
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func test_config_load_balancer_info_update(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+
+  load_balancer_info {
+    elb_info {
+      name = "bar-elb"
+    }
   }
 }`, baseCodeDeployConfig(rName), rName)
 }
