@@ -31,7 +31,7 @@ func (c *PlanCommand) Run(args []string) int {
 		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "state-lock", true, "lock state")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -143,7 +143,7 @@ Options:
 
   -input=true         Ask for input for variables if not directly set.
 
-  -lock-state=true    Lock the state file when locking is supported.
+  -lock=true          Lock the state file when locking is supported.
 
   -module-depth=n     Specifies the depth of modules to show in the output.
                       This does not affect the plan itself, only the output

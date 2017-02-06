@@ -23,7 +23,7 @@ func (c *RefreshCommand) Run(args []string) int {
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", 0, "parallelism")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "state-lock", true, "lock state")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -96,7 +96,7 @@ Options:
 
   -input=true         Ask for input for variables if not directly set.
 
-  -lock-state=true    Lock the state file when locking is supported.
+  -lock=true          Lock the state file when locking is supported.
 
   -no-color           If specified, output won't contain any color.
 

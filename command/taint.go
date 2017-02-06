@@ -26,7 +26,7 @@ func (c *TaintCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "state-lock", true, "lock state")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -177,7 +177,7 @@ Options:
                       modifying. Defaults to the "-state-out" path with
                       ".backup" extension. Set to "-" to disable backup.
 
-  -lock-state=true    Lock the state file when locking is supported.
+  -lock=true          Lock the state file when locking is supported.
 
   -module=path        The module path where the resource lives. By
                       default this will be root. Child modules can be specified
