@@ -63,7 +63,7 @@ func TestRefresh_lockedState(t *testing.T) {
 	state := testState()
 	statePath := testStateFile(t, state)
 
-	unlock, err := testLockState(statePath)
+	unlock, err := testLockState("./testdata", statePath)
 	if err != nil {
 		t.Fatal(err)
 	}

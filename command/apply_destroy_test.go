@@ -111,7 +111,7 @@ func TestApply_destroyLockedState(t *testing.T) {
 
 	statePath := testStateFile(t, originalState)
 
-	unlock, err := testLockState(statePath)
+	unlock, err := testLockState("./testdata", statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
