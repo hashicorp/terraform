@@ -26,7 +26,7 @@ func resourceServiceV1() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Unique name for this Service",
@@ -36,23 +36,23 @@ func resourceServiceV1() *schema.Resource {
 			// Terraform, we abstract this number away from the users and manage
 			// creating and activating. It's used internally, but also exported for
 			// users to see.
-			"active_version": &schema.Schema{
+			"active_version": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"domain": &schema.Schema{
+			"domain": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "The domain that this Service will respond to",
 						},
 
-						"comment": &schema.Schema{
+						"comment": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -60,16 +60,16 @@ func resourceServiceV1() *schema.Resource {
 				},
 			},
 
-			"condition": &schema.Schema{
+			"condition": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"statement": &schema.Schema{
+						"statement": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "The statement used to determine if the condition is met",
@@ -79,12 +79,12 @@ func resourceServiceV1() *schema.Resource {
 								return strings.TrimSpace(value)
 							},
 						},
-						"priority": &schema.Schema{
+						"priority": {
 							Type:        schema.TypeInt,
 							Required:    true,
 							Description: "A number used to determine the order in which multiple conditions execute. Lower numbers execute first",
 						},
-						"type": &schema.Schema{
+						"type": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Type of the condition, either `REQUEST`, `RESPONSE`, or `CACHE`",
@@ -93,98 +93,98 @@ func resourceServiceV1() *schema.Resource {
 				},
 			},
 
-			"default_ttl": &schema.Schema{
+			"default_ttl": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     3600,
 				Description: "The default Time-to-live (TTL) for the version",
 			},
 
-			"default_host": &schema.Schema{
+			"default_host": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
 				Description: "The default hostname for the version",
 			},
 
-			"backend": &schema.Schema{
+			"backend": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						// required fields
-						"name": &schema.Schema{
+						"name": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "A name for this Backend",
 						},
-						"address": &schema.Schema{
+						"address": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "An IPv4, hostname, or IPv6 address for the Backend",
 						},
 						// Optional fields, defaults where they exist
-						"auto_loadbalance": &schema.Schema{
+						"auto_loadbalance": {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Default:     true,
 							Description: "Should this Backend be load balanced",
 						},
-						"between_bytes_timeout": &schema.Schema{
+						"between_bytes_timeout": {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     10000,
 							Description: "How long to wait between bytes in milliseconds",
 						},
-						"connect_timeout": &schema.Schema{
+						"connect_timeout": {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     1000,
 							Description: "How long to wait for a timeout in milliseconds",
 						},
-						"error_threshold": &schema.Schema{
+						"error_threshold": {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     0,
 							Description: "Number of errors to allow before the Backend is marked as down",
 						},
-						"first_byte_timeout": &schema.Schema{
+						"first_byte_timeout": {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     15000,
 							Description: "How long to wait for the first bytes in milliseconds",
 						},
-						"max_conn": &schema.Schema{
+						"max_conn": {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     200,
 							Description: "Maximum number of connections for this Backend",
 						},
-						"port": &schema.Schema{
+						"port": {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     80,
 							Description: "The port number Backend responds on. Default 80",
 						},
-						"request_condition": &schema.Schema{
+						"request_condition": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
 							Description: "Condition, which if met, will select this backend during a request.",
 						},
-						"shield": &schema.Schema{
+						"shield": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
 							Description: "The POP of the shield designated to reduce inbound load.",
 						},
-						"ssl_check_cert": &schema.Schema{
+						"ssl_check_cert": {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Default:     true,
 							Description: "Be strict on checking SSL certs",
 						},
-						"ssl_hostname": &schema.Schema{
+						"ssl_hostname": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
@@ -199,7 +199,7 @@ func resourceServiceV1() *schema.Resource {
 						// 	Default:     false,
 						// 	Description: "Whether or not to use SSL to reach the Backend",
 						// },
-						"weight": &schema.Schema{
+						"weight": {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     100,
@@ -209,40 +209,40 @@ func resourceServiceV1() *schema.Resource {
 				},
 			},
 
-			"force_destroy": &schema.Schema{
+			"force_destroy": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"cache_setting": &schema.Schema{
+			"cache_setting": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						// required fields
-						"name": &schema.Schema{
+						"name": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "A name to refer to this Cache Setting",
 						},
-						"cache_condition": &schema.Schema{
+						"cache_condition": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Condition to check if this Cache Setting applies",
 						},
-						"action": &schema.Schema{
+						"action": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "Action to take",
 						},
 						// optional
-						"stale_ttl": &schema.Schema{
+						"stale_ttl": {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Description: "Max 'Time To Live' for stale (unreachable) objects.",
 							Default:     300,
 						},
-						"ttl": &schema.Schema{
+						"ttl": {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Description: "The 'Time To Live' for the object",
@@ -251,25 +251,25 @@ func resourceServiceV1() *schema.Resource {
 				},
 			},
 
-			"gzip": &schema.Schema{
+			"gzip": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						// required fields
-						"name": &schema.Schema{
+						"name": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "A name to refer to this gzip condition",
 						},
 						// optional fields
-						"content_types": &schema.Schema{
+						"content_types": {
 							Type:        schema.TypeSet,
 							Optional:    true,
 							Description: "Content types to apply automatic gzip to",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
-						"extensions": &schema.Schema{
+						"extensions": {
 							Type:        schema.TypeSet,
 							Optional:    true,
 							Description: "File extensions to apply automatic gzip to. Do not include '.'",
@@ -277,7 +277,7 @@ func resourceServiceV1() *schema.Resource {
 						},
 						// These fields represent Fastly options that Terraform does not
 						// currently support
-						"cache_condition": &schema.Schema{
+						"cache_condition": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "Optional name of a CacheCondition to apply.",
@@ -286,18 +286,18 @@ func resourceServiceV1() *schema.Resource {
 				},
 			},
 
-			"header": &schema.Schema{
+			"header": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						// required fields
-						"name": &schema.Schema{
+						"name": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "A name to refer to this Header object",
 						},
-						"action": &schema.Schema{
+						"action": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "One of set, append, delete, regex, or regex_repeat",
@@ -315,7 +315,7 @@ func resourceServiceV1() *schema.Resource {
 								return
 							},
 						},
-						"type": &schema.Schema{
+						"type": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Type to manipulate: request, fetch, cache, response",
@@ -333,37 +333,37 @@ func resourceServiceV1() *schema.Resource {
 								return
 							},
 						},
-						"destination": &schema.Schema{
+						"destination": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Header this affects",
 						},
 						// Optional fields, defaults where they exist
-						"ignore_if_set": &schema.Schema{
+						"ignore_if_set": {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Default:     false,
 							Description: "Don't add the header if it is already. (Only applies to 'set' action.). Default `false`",
 						},
-						"source": &schema.Schema{
+						"source": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Computed:    true,
 							Description: "Variable to be used as a source for the header content (Does not apply to 'delete' action.)",
 						},
-						"regex": &schema.Schema{
+						"regex": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Computed:    true,
 							Description: "Regular expression to use (Only applies to 'regex' and 'regex_repeat' actions.)",
 						},
-						"substitution": &schema.Schema{
+						"substitution": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Computed:    true,
 							Description: "Value to substitute in place of regular expression. (Only applies to 'regex' and 'regex_repeat'.)",
 						},
-						"priority": &schema.Schema{
+						"priority": {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     100,
@@ -371,17 +371,17 @@ func resourceServiceV1() *schema.Resource {
 						},
 						// These fields represent Fastly options that Terraform does not
 						// currently support
-						"request_condition": &schema.Schema{
+						"request_condition": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "Optional name of a RequestCondition to apply.",
 						},
-						"cache_condition": &schema.Schema{
+						"cache_condition": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "Optional name of a CacheCondition to apply.",
 						},
-						"response_condition": &schema.Schema{
+						"response_condition": {
 							Type:        schema.TypeString,
 							Computed:    true,
 							Description: "Optional name of a ResponseCondition to apply.",
@@ -390,64 +390,71 @@ func resourceServiceV1() *schema.Resource {
 				},
 			},
 
-			"s3logging": &schema.Schema{
+			"s3logging": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						// Required fields
-						"name": &schema.Schema{
+						"name": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Unique name to refer to this logging setup",
 						},
-						"bucket_name": &schema.Schema{
+						"bucket_name": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "S3 Bucket name to store logs in",
 						},
-						"s3_access_key": &schema.Schema{
+						"s3_access_key": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							DefaultFunc: schema.EnvDefaultFunc("FASTLY_S3_ACCESS_KEY", ""),
 							Description: "AWS Access Key",
 						},
-						"s3_secret_key": &schema.Schema{
+						"s3_secret_key": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							DefaultFunc: schema.EnvDefaultFunc("FASTLY_S3_SECRET_KEY", ""),
 							Description: "AWS Secret Key",
 						},
 						// Optional fields
-						"path": &schema.Schema{
+						"path": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "Path to store the files. Must end with a trailing slash",
 						},
-						"domain": &schema.Schema{
+						"domain": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "Bucket endpoint",
 						},
-						"gzip_level": &schema.Schema{
+						"gzip_level": {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     0,
 							Description: "Gzip Compression level",
 						},
-						"period": &schema.Schema{
+						"period": {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     3600,
 							Description: "How frequently the logs should be transferred, in seconds (Default 3600)",
 						},
-						"format": &schema.Schema{
+						"format": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "%h %l %u %t %r %>s",
 							Description: "Apache-style string or VCL variables to use for log formatting",
 						},
-						"timestamp_format": &schema.Schema{
+						"format_version": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Default:      1,
+							Description:  "The version of the custom logging format used for the configured endpoint. Can be either 1 or 2. (Default: 1)",
+							ValidateFunc: validateS3FormatVersion,
+						},
+						"timestamp_format": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "%Y-%m-%dT%H:%M:%S.000",
@@ -457,29 +464,29 @@ func resourceServiceV1() *schema.Resource {
 				},
 			},
 
-			"papertrail": &schema.Schema{
+			"papertrail": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						// Required fields
-						"name": &schema.Schema{
+						"name": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Unique name to refer to this logging setup",
 						},
-						"address": &schema.Schema{
+						"address": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "The address of the papertrail service",
 						},
-						"port": &schema.Schema{
+						"port": {
 							Type:        schema.TypeInt,
 							Required:    true,
 							Description: "The port of the papertrail service",
 						},
 						// Optional
-						"format": &schema.Schema{
+						"format": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "%h %l %u %t %r %>s",
@@ -489,71 +496,71 @@ func resourceServiceV1() *schema.Resource {
 				},
 			},
 
-			"request_setting": &schema.Schema{
+			"request_setting": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						// Required fields
-						"name": &schema.Schema{
+						"name": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Unique name to refer to this Request Setting",
 						},
-						"request_condition": &schema.Schema{
+						"request_condition": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Name of a RequestCondition to apply.",
 						},
 						// Optional fields
-						"max_stale_age": &schema.Schema{
+						"max_stale_age": {
 							Type:        schema.TypeInt,
 							Optional:    true,
 							Default:     60,
 							Description: "How old an object is allowed to be, in seconds. Default `60`",
 						},
-						"force_miss": &schema.Schema{
+						"force_miss": {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Description: "Force a cache miss for the request",
 						},
-						"force_ssl": &schema.Schema{
+						"force_ssl": {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Description: "Forces the request use SSL",
 						},
-						"action": &schema.Schema{
+						"action": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "Allows you to terminate request handling and immediately perform an action",
 						},
-						"bypass_busy_wait": &schema.Schema{
+						"bypass_busy_wait": {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Description: "Disable collapsed forwarding",
 						},
-						"hash_keys": &schema.Schema{
+						"hash_keys": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "Comma separated list of varnish request object fields that should be in the hash key",
 						},
-						"xff": &schema.Schema{
+						"xff": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "append",
 							Description: "X-Forwarded-For options",
 						},
-						"timer_support": &schema.Schema{
+						"timer_support": {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Description: "Injects the X-Timer info into the request",
 						},
-						"geo_headers": &schema.Schema{
+						"geo_headers": {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Description: "Inject Fastly-Geo-Country, Fastly-Geo-City, and Fastly-Geo-Region",
 						},
-						"default_host": &schema.Schema{
+						"default_host": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "the host header",
@@ -561,17 +568,17 @@ func resourceServiceV1() *schema.Resource {
 					},
 				},
 			},
-			"vcl": &schema.Schema{
+			"vcl": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "A name to refer to this VCL configuration",
 						},
-						"content": &schema.Schema{
+						"content": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "The contents of this VCL configuration",
@@ -585,7 +592,7 @@ func resourceServiceV1() *schema.Resource {
 								}
 							},
 						},
-						"main": &schema.Schema{
+						"main": {
 							Type:        schema.TypeBool,
 							Optional:    true,
 							Default:     false,
@@ -682,7 +689,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			// New versions are not immediately found in the API, or are not
 			// immediately mutable, so we need to sleep a few and let Fastly ready
 			// itself. Typically, 7 seconds is enough
-			log.Printf("[DEBUG] Sleeping 7 seconds to allow Fastly Version to be available")
+			log.Print("[DEBUG] Sleeping 7 seconds to allow Fastly Version to be available")
 			time.Sleep(7 * time.Second)
 		}
 
@@ -1056,6 +1063,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					Domain:          sf["domain"].(string),
 					Path:            sf["path"].(string),
 					Format:          sf["format"].(string),
+					FormatVersion:   uint(sf["format_version"].(int)),
 					TimestampFormat: sf["timestamp_format"].(string),
 				}
 
@@ -1811,6 +1819,7 @@ func flattenS3s(s3List []*gofastly.S3) []map[string]interface{} {
 			"domain":           s.Domain,
 			"gzip_level":       s.GzipLevel,
 			"format":           s.Format,
+			"format_version":   s.FormatVersion,
 			"timestamp_format": s.TimestampFormat,
 		}
 
@@ -2013,10 +2022,10 @@ func validateVCLs(d *schema.ResourceData) error {
 		}
 	}
 	if numberOfMainVCLs == 0 && numberOfIncludeVCLs > 0 {
-		return fmt.Errorf("if you include VCL configurations, one of them should have main = true")
+		return errors.New("if you include VCL configurations, one of them should have main = true")
 	}
 	if numberOfMainVCLs > 1 {
-		return fmt.Errorf("you cannot have more than one VCL configuration with main = true")
+		return errors.New("you cannot have more than one VCL configuration with main = true")
 	}
 	return nil
 }
