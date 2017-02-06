@@ -40,7 +40,14 @@ func (b *Local) opApply(
 	defer func() {
 		if s, ok := opState.(state.Locker); op.LockState && ok {
 			if err := s.Unlock(); err != nil {
-				log.Printf("[ERROR]: %s", err)
+				runningOp.Err = multierror.Append(runningOp.Err,
+					errwrap.Wrapf("Error unlocking state:\n\n"+
+						"{{err}}\n\n"+
+						"The Terraform operation completed but there was an error unlocking the state.\n"+
+						"This may require unlocking the state manually with the `terraform unlock` command\n",
+						err,
+					),
+				)
 			}
 		}
 	}()
