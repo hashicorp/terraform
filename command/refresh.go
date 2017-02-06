@@ -23,7 +23,7 @@ func (c *RefreshCommand) Run(args []string) int {
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", 0, "parallelism")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
-	cmdFlags.BoolVar(&c.Meta.lockState, "state-lock", true, "lock state")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "state-lock", true, "lock state")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -53,7 +53,7 @@ func (c *RefreshCommand) Run(args []string) int {
 	opReq := c.Operation()
 	opReq.Type = backend.OperationTypeRefresh
 	opReq.Module = mod
-	opReq.LockState = c.Meta.lockState
+	opReq.LockState = c.Meta.stateLock
 
 	// Perform the operation
 	op, err := b.Operation(context.Background(), opReq)

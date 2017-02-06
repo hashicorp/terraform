@@ -91,7 +91,7 @@ type Meta struct {
 	parallelism  int
 	shadow       bool
 	provider     string
-	lockState    bool
+	stateLock    bool
 }
 
 // initStatePaths is used to initialize the default values for
