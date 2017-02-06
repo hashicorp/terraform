@@ -26,6 +26,9 @@ type Backend struct {
 	Shield              string   `mapstructure:"shield"`
 	UseSSL              bool     `mapstructure:"use_ssl"`
 	SSLCheckCert        bool     `mapstructure:"ssl_check_cert"`
+	SSLCACert           string   `mapstructure:"ssl_ca_cert"`
+	SSLClientCert       string   `mapstructure:"ssl_client_cert"`
+	SSLClientKey        string   `mapstructure:"ssl_client_key"`
 	SSLHostname         string   `mapstructure:"ssl_hostname"`
 	SSLCertHostname     string   `mapstructure:"ssl_cert_hostname"`
 	SSLSNIHostname      string   `mapstructure:"ssl_sni_hostname"`
@@ -99,6 +102,9 @@ type CreateBackendInput struct {
 	Shield              string       `form:"shield,omitempty"`
 	UseSSL              *Compatibool `form:"use_ssl,omitempty"`
 	SSLCheckCert        *Compatibool `form:"ssl_check_cert,omitempty"`
+	SSLCACert           string       `form:"ssl_ca_cert,omitempty"`
+	SSLClientCert       string       `form:"ssl_client_cert,omitempty"`
+	SSLClientKey        string       `form:"ssl_client_key,omitempty"`
 	SSLHostname         string       `form:"ssl_hostname,omitempty"`
 	SSLCertHostname     string       `form:"ssl_cert_hostname,omitempty"`
 	SSLSNIHostname      string       `form:"ssl_sni_hostname,omitempty"`
@@ -193,6 +199,9 @@ type UpdateBackendInput struct {
 	Shield              string       `form:"shield,omitempty"`
 	UseSSL              *Compatibool `form:"use_ssl,omitempty"`
 	SSLCheckCert        *Compatibool `form:"ssl_check_cert,omitempty"`
+	SSLCACert           string       `form:"ssl_ca_cert,omitempty"`
+	SSLClientCert       string       `form:"ssl_client_cert,omitempty"`
+	SSLClientKey        string       `form:"ssl_client_key,omitempty"`
 	SSLHostname         string       `form:"ssl_hostname,omitempty"`
 	SSLCertHostname     string       `form:"ssl_cert_hostname,omitempty"`
 	SSLSNIHostname      string       `form:"ssl_sni_hostname,omitempty"`
