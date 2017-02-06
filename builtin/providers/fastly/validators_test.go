@@ -3,7 +3,7 @@ package fastly
 import "testing"
 
 func TestValidateS3FormatVersion(t *testing.T) {
-	validVersions := []uint{
+	validVersions := []int{
 		1,
 		2,
 	}
@@ -14,7 +14,7 @@ func TestValidateS3FormatVersion(t *testing.T) {
 		}
 	}
 
-	invalidVersions := []uint{
+	invalidVersions := []int{
 		0,
 		3,
 		4,
