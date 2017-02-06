@@ -48,16 +48,19 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						"minimum": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
+							Computed: true,
 						},
 
 						"maximum": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
+							Computed: true,
 						},
 
 						"unit": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 					},
 				},
@@ -75,33 +78,37 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 							Optional: true,
 						},
 
-						"availability_vs_cost": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "balanced",
-						},
-
 						"ondemand_count": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
 
+						"availability_vs_cost": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+						},
+
 						"draining_timeout": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
+							Computed: true,
 						},
 
 						"utilize_reserved_instances": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Computed: true,
 						},
 
 						"fallback_to_ondemand": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Computed: true,
 						},
 					},
 				},
+				Set: hashAwsGroupStrategy,
 			},
 
 			"scheduled_task": &schema.Schema{
@@ -274,6 +281,7 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						"ebs_optimized": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Computed: true,
 						},
 
 						"image_id": &schema.Schema{
@@ -349,7 +357,7 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						"delete_on_termination": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
-							Default:  true,
+							Computed: true,
 						},
 
 						"device_name": &schema.Schema{
@@ -360,6 +368,7 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						"encrypted": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Computed: true,
 						},
 
 						"iops": &schema.Schema{
@@ -380,9 +389,11 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						"volume_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 					},
 				},
+				Set: hashAwsGroupEBSBlockDevice,
 			},
 
 			"ephemeral_block_device": &schema.Schema{
@@ -431,6 +442,7 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						"delete_on_termination": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Computed: true,
 						},
 
 						"security_group_ids": &schema.Schema{
@@ -2195,6 +2207,32 @@ func hashAwsGroupCapacity(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%d-", m["target"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["minimum"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["maximum"].(int)))
+
+	return hashcode.String(buf.String())
+}
+
+func hashAwsGroupStrategy(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	buf.WriteString(fmt.Sprintf("%f-", m["risk"].(float64)))
+	buf.WriteString(fmt.Sprintf("%d-", m["ondemand_count"].(int)))
+	buf.WriteString(fmt.Sprintf("%t-", m["utilize_reserved_instances"].(bool)))
+	buf.WriteString(fmt.Sprintf("%t-", m["fallback_to_ondemand"].(bool)))
+
+	return hashcode.String(buf.String())
+}
+
+func hashAwsGroupEBSBlockDevice(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["snapshot_id"].(string)))
+	buf.WriteString(fmt.Sprintf("%d-", m["volume_size"].(int)))
+	buf.WriteString(fmt.Sprintf("%t-", m["delete_on_termination"].(bool)))
+	buf.WriteString(fmt.Sprintf("%t-", m["encrypted"].(bool)))
+	buf.WriteString(fmt.Sprintf("%d-", m["iops"].(int)))
 
 	return hashcode.String(buf.String())
 }
