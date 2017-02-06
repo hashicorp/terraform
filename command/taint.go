@@ -26,7 +26,7 @@ func (c *TaintCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
-	cmdFlags.BoolVar(&c.Meta.lockState, "state-lock", true, "lock state")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "state-lock", true, "lock state")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -72,7 +72,7 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	if s, ok := st.(state.Locker); c.Meta.lockState && ok {
+	if s, ok := st.(state.Locker); c.Meta.stateLock && ok {
 		if err := s.Lock("taint"); err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to lock state: %s", err))
 			return 1
