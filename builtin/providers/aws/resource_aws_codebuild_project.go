@@ -503,12 +503,17 @@ func flattenAwsCodebuildProjectSource(source *codebuild.ProjectSource) *schema.S
 		F: resourceAwsCodeBuildProjectSourceHash,
 	}
 
+	authSet := schema.Set{
+		F: resourceAwsCodeBuildProjectSourceAuthHash,
+	}
+
 	sourceConfig := map[string]interface{}{}
 
 	sourceConfig["type"] = *source.Type
 
 	if source.Auth != nil {
-		sourceConfig["auth"] = sourceAuthToMap(source.Auth)
+		authSet.Add(sourceAuthToMap(source.Auth))
+		sourceConfig["auth"] = &authSet
 	}
 
 	if source.Buildspec != nil {
@@ -562,6 +567,19 @@ func resourceAwsCodeBuildProjectSourceHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", sourceType))
 	buf.WriteString(fmt.Sprintf("%s-", buildspec))
 	buf.WriteString(fmt.Sprintf("%s-", location))
+
+	return hashcode.String(buf.String())
+}
+
+func resourceAwsCodeBuildProjectSourceAuthHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	authType := m["type"].(string)
+	authResource := m["resource"].(string)
+
+	buf.WriteString(fmt.Sprintf("%s-", authType))
+	buf.WriteString(fmt.Sprintf("%s-", authResource))
 
 	return hashcode.String(buf.String())
 }
