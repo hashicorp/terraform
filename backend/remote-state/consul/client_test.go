@@ -32,21 +32,28 @@ func TestRemoteClient(t *testing.T) {
 func TestConsul_stateLock(t *testing.T) {
 	addr := os.Getenv("CONSUL_HTTP_ADDR")
 	if addr == "" {
-		t.Log("consul lock tests require a running consul instance")
+		t.Log("consul lock tests require CONSUL_HTTP_ADDR")
 		t.Skip()
 	}
 
-	path := "testing" //fmt.Sprintf("tf-unit/%s", time.Now().String())
+	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// create 2 instances to get 2 remote.Clients
-	a := backend.TestBackendConfig(t, New(), map[string]interface{}{
+	sA, err := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"address": addr,
 		"path":    path,
-	})
-	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"address": addr,
-		"path":    path,
-	})
+	}).State()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	remotestate.TestRemoteLocks(t, a, b)
+	sB, err := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"address": addr,
+		"path":    path,
+	}).State()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	remote.TestRemoteLocks(t, sA.(*remote.State).Client, sB.(*remote.State).Client)
 }
