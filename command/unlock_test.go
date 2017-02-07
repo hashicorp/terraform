@@ -40,7 +40,7 @@ func TestUnlock(t *testing.T) {
 		},
 	}
 
-	if code := c.Run(nil); code != 0 {
+	if code := c.Run([]string{"-force"}); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 }

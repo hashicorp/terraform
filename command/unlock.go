@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/state"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // UnlockCommand is a cli.Command implementation that manually unlocks
@@ -16,7 +17,9 @@ type UnlockCommand struct {
 func (c *UnlockCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
 
-	cmdFlags := c.Meta.flagSet("unlock")
+	force := false
+	cmdFlags := c.Meta.flagSet("force-unlock")
+	cmdFlags.BoolVar(&force, "force", false, "force")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -47,8 +50,46 @@ func (c *UnlockCommand) Run(args []string) int {
 
 	s, ok := st.(state.Locker)
 	if !ok {
-		c.Ui.Error("Current state does not support locking")
+		c.Ui.Error("The remote state backend in use does not support locking, and therefor\n" +
+			"cannot be unlocked.")
 		return 1
+	}
+
+	isLocal := false
+	switch s := st.(type) {
+	case *state.BackupState:
+		if _, ok := s.Real.(*state.LocalState); ok {
+			isLocal = true
+		}
+	case *state.LocalState:
+		isLocal = true
+	}
+
+	if !force {
+		// Forcing this doesn't do anything, but doesn't break anything either,
+		// and allows us to run the basic command test too.
+		if isLocal {
+			c.Ui.Error("Local state cannot be unlocked by another process")
+			return 1
+		}
+
+		desc := "Terraform will remove the lock on the remote state.\n" +
+			"This will allow local Terraform commands to modify this state, even though it\n" +
+			"may be still be in use. Only 'yes' will be accepted to confirm."
+
+		v, err := c.UIInput().Input(&terraform.InputOpts{
+			Id:          "force-unlock",
+			Query:       "Do you really want to force-unlock?",
+			Description: desc,
+		})
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error asking for confirmation: %s", err))
+			return 1
+		}
+		if v != "yes" {
+			c.Ui.Output("force-unlock cancelled.")
+			return 1
+		}
 	}
 
 	if err := s.Unlock(); err != nil {
@@ -56,12 +97,13 @@ func (c *UnlockCommand) Run(args []string) int {
 		return 1
 	}
 
+	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputUnlockSuccess)))
 	return 0
 }
 
 func (c *UnlockCommand) Help() string {
 	helpText := `
-Usage: terraform unlock [DIR]
+Usage: terraform force-unlock [DIR]
 
   Manually unlock the state for the defined configuration.
 
@@ -69,6 +111,10 @@ Usage: terraform unlock [DIR]
   state for the current configuration. The behavior of this lock is dependent
   on the backend being used. Local state files cannot be unlocked by another
   process.
+
+Options:
+
+  -force                 Don't ask for input for unlock confirmation.
 `
 	return strings.TrimSpace(helpText)
 }
@@ -76,3 +122,10 @@ Usage: terraform unlock [DIR]
 func (c *UnlockCommand) Synopsis() string {
 	return "Manually unlock the terraform state"
 }
+
+const outputUnlockSuccess = `
+[reset][bold][red]Terraform state has been successfully unlocked![reset][red]
+
+The state has been unlocked, and Terraform commands should now be able to
+obtain a new lock on the remote state.
+`

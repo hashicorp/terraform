@@ -75,6 +75,12 @@ func init() {
 			}, nil
 		},
 
+		"force-unlock": func() (cli.Command, error) {
+			return &command.UnlockCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"get": func() (cli.Command, error) {
 			return &command.GetCommand{
 				Meta: meta,
