@@ -588,7 +588,7 @@ func sourceAuthToMap(sourceAuth *codebuild.SourceAuth) map[string]interface{} {
 	auth := map[string]interface{}{}
 	auth["type"] = *sourceAuth.Type
 
-	if sourceAuth.Type != nil {
+	if sourceAuth.Resource != nil {
 		auth["resource"] = *sourceAuth.Resource
 	}
 
