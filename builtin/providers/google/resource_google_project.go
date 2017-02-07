@@ -196,20 +196,6 @@ func resourceGoogleProjectRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("org_id", p.Parent.Id)
 	}
 
-	// Read the IAM policy
-	pol, err := getProjectIamPolicy(pid, config)
-	if err != nil {
-		return err
-	}
-
-	polBytes, err := json.Marshal(pol)
-	if err != nil {
-		return err
-	}
-
-	d.Set("policy_etag", pol.Etag)
-	d.Set("policy_data", string(polBytes))
-
 	return nil
 }
 
