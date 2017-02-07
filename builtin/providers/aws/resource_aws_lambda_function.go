@@ -354,9 +354,9 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 			last := p.Versions[len(p.Versions)-1]
 			lastVersion = *last.Version
 			lastQualifiedArn = *last.FunctionArn
-			return true
+			return false
 		}
-		return false
+		return true
 	})
 	if err != nil {
 		return err
@@ -381,6 +381,7 @@ func listVersionsByFunctionPages(c *lambda.Lambda, input *lambda.ListVersionsByF
 		if !shouldContinue || lastPage {
 			break
 		}
+		input.Marker = page.NextMarker
 	}
 	return nil
 }
