@@ -1,6 +1,10 @@
 package local
 
 import (
+	"fmt"
+	"log"
+	"strings"
+
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
@@ -81,7 +85,23 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 		if b.OpValidation {
 			// We ignore warnings here on purpose. We expect users to be listening
 			// to the terraform.Hook called after a validation.
-			_, es := tfCtx.Validate()
+			ws, es := tfCtx.Validate()
+			if len(ws) > 0 {
+				// Log just in case the CLI isn't enabled
+				log.Printf("[WARN] backend/local: %d warnings: %v", len(ws), ws)
+
+				// If we have a CLI, output the warnings
+				if b.CLI != nil {
+					b.CLI.Warn(strings.TrimSpace(validateWarnHeader) + "\n")
+					for _, w := range ws {
+						b.CLI.Warn(fmt.Sprintf("  * %s", w))
+					}
+
+					// Make a newline before continuing
+					b.CLI.Output("")
+				}
+			}
+
 			if len(es) > 0 {
 				return nil, nil, multierror.Append(nil, es...)
 			}
@@ -90,3 +110,11 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 
 	return tfCtx, s, nil
 }
+
+const validateWarnHeader = `
+There are warnings related to your configuration. If no errors occurred,
+Terraform will continue despite these warnings. It is a good idea to resolve
+these warnings in the near future.
+
+Warnings:
+`
