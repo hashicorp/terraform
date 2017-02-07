@@ -134,6 +134,7 @@ func (p *printer) output(n interface{}) []byte {
 				// Go through all the comments in the group. The group
 				// should be printed together, not separated by double newlines.
 				printed := false
+				newlinePrinted := false
 				for _, comment := range c.List {
 					// We only care about comments after the previous item
 					// we've printed so that comments are printed in the
@@ -144,8 +145,9 @@ func (p *printer) output(n interface{}) []byte {
 						// we don't do this if prev is invalid which means the
 						// beginning of the file since the first comment should
 						// be at the first line.
-						if p.prev.IsValid() && index == len(t.Items) {
+						if !newlinePrinted && p.prev.IsValid() && index == len(t.Items) {
 							buf.Write([]byte{newline, newline})
+							newlinePrinted = true
 						}
 
 						// Write the actual comment.
