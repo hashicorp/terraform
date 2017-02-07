@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -26,4 +27,26 @@ func TestRemoteClient(t *testing.T) {
 
 	// Test
 	remotestate.TestClient(t, b)
+}
+
+func TestConsul_stateLock(t *testing.T) {
+	addr := os.Getenv("CONSUL_HTTP_ADDR")
+	if addr == "" {
+		t.Log("consul lock tests require a running consul instance")
+		t.Skip()
+	}
+
+	path := "testing" //fmt.Sprintf("tf-unit/%s", time.Now().String())
+
+	// create 2 instances to get 2 remote.Clients
+	a := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"address": addr,
+		"path":    path,
+	})
+	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"address": addr,
+		"path":    path,
+	})
+
+	remotestate.TestRemoteLocks(t, a, b)
 }
