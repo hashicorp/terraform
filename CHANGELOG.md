@@ -77,6 +77,7 @@ BUG FIXES:
  * provider/azurerm: check if lb sub resources exist when reading [GH-11553]
  * provider/google: Fix master_instance_name to prevent slave rebuilds [GH-11477]
  * provider/google: Refresh google_compute_instance machine_type on read [GH-11645]
+ * provider/google: Added forceNew on accessConfig in google_compute_instance_template [GH-11548]
  * provider/ignition: Allow to add authorized keys without user creation [GH-11406]
  * provider/ignition: mount and path are mutually exclusive [GH-11409]
  * provider/ns1: Fix "use_client_subnet" in ns1_record [GH-11368]
