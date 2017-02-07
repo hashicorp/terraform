@@ -88,6 +88,68 @@ func TestApplyGraphBuilder(t *testing.T) {
 	}
 }
 
+// This tests the ordering of two resources where a non-CBD depends
+// on a CBD. GH-11349.
+func TestApplyGraphBuilder_depCbd(t *testing.T) {
+	diff := &Diff{
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: []string{"root"},
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.A": &InstanceDiff{
+						Destroy: true,
+						Attributes: map[string]*ResourceAttrDiff{
+							"name": &ResourceAttrDiff{
+								Old:         "",
+								New:         "foo",
+								RequiresNew: true,
+							},
+						},
+					},
+
+					"aws_instance.B": &InstanceDiff{
+						Attributes: map[string]*ResourceAttrDiff{
+							"name": &ResourceAttrDiff{
+								Old: "",
+								New: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	b := &ApplyGraphBuilder{
+		Module:        testModule(t, "graph-builder-apply-dep-cbd"),
+		Diff:          diff,
+		Providers:     []string{"aws"},
+		Provisioners:  []string{"exec"},
+		DisableReduce: true,
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	t.Logf("Graph: %s", g.String())
+
+	if !reflect.DeepEqual(g.Path, RootModulePath) {
+		t.Fatalf("bad: %#v", g.Path)
+	}
+
+	// Create A, Modify B, Destroy A
+
+	testGraphHappensBefore(
+		t, g,
+		"aws_instance.A",
+		"aws_instance.A (destroy)")
+	testGraphHappensBefore(
+		t, g,
+		"aws_instance.B",
+		"aws_instance.A (destroy)")
+}
+
 // This tests the ordering of two resources that are both CBD that
 // require destroy/create.
 func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
