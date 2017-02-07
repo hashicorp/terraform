@@ -4,6 +4,7 @@ Bug FIXES:
 
  * core: resources that depend on create-before-destroy resources don't create cycles [GH-11753]
  * core: create-before-destroy resources with a count > 1 create proper edges [GH-11753]
+ * core: fix "diffs didn't match issue" for removing or empty collections that force new [GH-11732]
  * provider/aws: Fix aws_db_event_subscription import [GH-11744]
 
 ## 0.8.6 (07 February 2017)
