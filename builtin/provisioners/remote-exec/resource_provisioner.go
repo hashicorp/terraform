@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -78,11 +79,13 @@ func applyFn(ctx context.Context) error {
 
 // generateScripts takes the configuration and creates a script from each inline config
 func generateScripts(d *schema.ResourceData) ([]string, error) {
-	var scripts []string
+	var lines []string
 	for _, l := range d.Get("inline").([]interface{}) {
-		scripts = append(scripts, l.(string))
+		lines = append(lines, l.(string))
 	}
-	return scripts, nil
+	lines = append(lines, "")
+
+	return []string{strings.Join(lines, "\n")}, nil
 }
 
 // collectScripts is used to collect all the scripts we need
