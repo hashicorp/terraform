@@ -2985,6 +2985,95 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			Name: "Removal of TypeSet should cause computed fields to be removed",
+			Schema: map[string]*Schema{
+				"type_set": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"name": &Schema{
+								Type:     TypeString,
+								Optional: true,
+							},
+							"required": &Schema{
+								Type:     TypeString,
+								Required: true,
+							},
+							"value": &Schema{
+								Type:     TypeInt,
+								Optional: true,
+							},
+							"required_value": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+							"computed_value": &Schema{
+								Type:     TypeString,
+								Optional: true,
+								Computed: true,
+							},
+						},
+					},
+					Set: func(i interface{}) int {
+						if i != nil {
+							return 12345
+						}
+						return 0
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"type_set.#":                    "1",
+					"type_set.12345.name":           "Name",
+					"type_set.12345.required":       "Required",
+					"type_set.12345.value":          "0",
+					"type_set.12345.required_value": "5",
+					"type_set.12345.computed_value": "COMPUTED",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"type_set": []interface{}{},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"type_set.#": &terraform.ResourceAttrDiff{
+						Old:        "1",
+						New:        "0",
+						NewRemoved: false,
+					},
+					"type_set.12345.name": &terraform.ResourceAttrDiff{
+						Old:        "Name",
+						New:        "",
+						NewRemoved: true,
+					},
+					"type_set.12345.required": &terraform.ResourceAttrDiff{
+						Old:        "Required",
+						New:        "",
+						NewRemoved: true,
+					},
+					"type_set.12345.value": &terraform.ResourceAttrDiff{
+						Old:        "0",
+						New:        "0",
+						NewRemoved: true,
+					},
+					"type_set.12345.required_value": &terraform.ResourceAttrDiff{
+						Old:        "5",
+						New:        "0",
+						NewRemoved: true,
+					},
+					"type_set.12345.computed_value": &terraform.ResourceAttrDiff{
+						NewRemoved: true,
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
