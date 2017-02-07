@@ -231,6 +231,20 @@ content. (Does not apply to the `delete` action.)
 * `substitution` - (Optional) Value to substitute in place of regular expression. (Only applies to the `regex` and `regex_repeat` actions.)
 * `priority` - (Optional) Lower priorities execute first. Default: `100`.
 
+The `healthcheck` block supports:
+
+* `name` - (Required) A unique name to identify this Healthcheck.
+* `host` - (Required) Address of the host to check.
+* `path` - (Required) The path to check.
+* `check_interval` - (Optional) How often to run the Healthcheck in milliseconds. Default `5000`.
+* `expected_response` - (Optional) The status code expected from the host. Default `200`.
+* `http_version` - (Optional) Whether to use version 1.0 or 1.1 HTTP. Default `1.1`.
+* `initial` - (Optional) When loading a config, the initial number of probes to be seen as OK. Default `2`.
+* `method` - (Optional) Which HTTP method to use. Default `HEAD`.
+* `threshold` - (Optional) How many Healthchecks must succeed to be considered healthy. Default `3`.
+* `timeout` - (Optional) Timeout in milliseconds. Default `500`.
+* `window` - (Optional) The number of most recent Healthcheck queries to keep for this Healthcheck. Default `5`.
+
 The `request_setting` block allow you to customize Fastly's request handling, by
 defining behavior that should change based on a predefined `condition`:
 
