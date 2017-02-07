@@ -1,5 +1,9 @@
 ## 0.8.7 (UNRELEASED)
 
+Bug FIXES:
+
+ * provider/aws: Fix aws_db_event_subscription import [GH-11744]
+
 ## 0.8.6 (07 February 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
