@@ -748,19 +748,20 @@ func (c *Context) walk(
 		shadow = nil
 	}
 
+	// Just log this so we can see it in a debug log
+	if !c.shadow {
+		log.Printf("[WARN] terraform: shadow graph disabled")
+		shadow = nil
+	}
+
 	// If we have a shadow graph, walk that as well
 	var shadowCtx *Context
 	var shadowCloser Shadow
-	if c.shadow && shadow != nil {
+	if shadow != nil {
 		// Build the shadow context. In the process, override the real context
 		// with the one that is wrapped so that the shadow context can verify
 		// the results of the real.
 		realCtx, shadowCtx, shadowCloser = newShadowContext(c)
-	}
-
-	// Just log this so we can see it in a debug log
-	if !c.shadow {
-		log.Printf("[WARN] terraform: shadow graph disabled")
 	}
 
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
