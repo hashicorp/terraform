@@ -39,7 +39,7 @@ func TestAccContainerCluster_withAdditionalZones(t *testing.T) {
 					testAccCheckContainerClusterExists(
 						"google_container_cluster.with_additional_zones"),
 					testAccCheckContainerClusterAdditionalZonesExist(
-						"google_container_cluster.with_additional_zones"),
+						"google_container_cluster.with_additional_zones", 2),
 				),
 			},
 		},
@@ -163,23 +163,19 @@ func testAccCheckContainerClusterExists(n string) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckContainerClusterAdditionalZonesExist(n string) resource.TestCheckFunc {
+func testAccCheckContainerClusterAdditionalZonesExist(n string, num int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		var (
-			additionalZonesSize int
-			err                 error
-		)
-
-		if additionalZonesSize, err = strconv.Atoi(rs.Primary.Attributes["additional_zones.#"]); err != nil {
+		additionalZonesSize, err := strconv.Atoi(rs.Primary.Attributes["additional_zones.#"])
+		if err != nil {
 			return err
 		}
-		if additionalZonesSize != 2 {
-			return fmt.Errorf("number of additional zones did not match 2")
+		if additionalZonesSize != num {
+			return fmt.Errorf("number of additional zones did not match %d, was %d", num, additionalZonesSize)
 		}
 
 		return nil
