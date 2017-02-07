@@ -9,6 +9,9 @@ import (
 )
 
 func TestGet(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
 	ui := new(cli.MockUi)
 	c := &GetCommand{
 		Meta: Meta{
@@ -87,6 +90,9 @@ func TestGet_noArgs(t *testing.T) {
 }
 
 func TestGet_update(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
 	ui := new(cli.MockUi)
 	c := &GetCommand{
 		Meta: Meta{
