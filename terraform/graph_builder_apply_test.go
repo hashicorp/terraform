@@ -146,6 +146,10 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 		"aws_instance.A (destroy)")
 	testGraphHappensBefore(
 		t, g,
+		"aws_instance.A",
+		"aws_instance.B")
+	testGraphHappensBefore(
+		t, g,
 		"aws_instance.B",
 		"aws_instance.A (destroy)")
 }
