@@ -4,12 +4,12 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/errwrap"
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 )
 
@@ -17,12 +17,6 @@ const (
 	lockSuffix     = "/.lock"
 	lockInfoSuffix = "/.lockinfo"
 )
-
-// TODO: use single LockInfo struct
-type lockInfo struct {
-	Created time.Time
-	Info    string
-}
 
 // RemoteClient is a remote client that stores data in Consul.
 type RemoteClient struct {
@@ -65,7 +59,8 @@ func (c *RemoteClient) Delete() error {
 }
 
 func (c *RemoteClient) putLockInfo(info string) error {
-	li := &lockInfo{
+	li := &state.LockInfo{
+		Path:    c.Path,
 		Created: time.Now().UTC(),
 		Info:    info,
 	}
@@ -84,7 +79,7 @@ func (c *RemoteClient) putLockInfo(info string) error {
 	return err
 }
 
-func (c *RemoteClient) getLockInfo() (*lockInfo, error) {
+func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 	path := c.Path + lockInfoSuffix
 	pair, _, err := c.Client.KV().Get(path, nil)
 	if err != nil {
@@ -94,7 +89,7 @@ func (c *RemoteClient) getLockInfo() (*lockInfo, error) {
 		return nil, nil
 	}
 
-	li := &lockInfo{}
+	li := &state.LockInfo{}
 	err = json.Unmarshal(pair.Value, li)
 	if err != nil {
 		return nil, errwrap.Wrapf("error unmarshaling lock info: {{err}}", err)
@@ -144,8 +139,7 @@ func (c *RemoteClient) Lock(info string) error {
 		if e != nil {
 			return e
 		}
-		return fmt.Errorf("state locked: created:%s, info:%q",
-			lockInfo.Created, lockInfo.Info)
+		return lockInfo.Err()
 	}
 
 	c.lockCh = lockCh
