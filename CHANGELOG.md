@@ -90,6 +90,7 @@ BUG FIXES:
  * provider/rancher: Handle deleted/purged resources from Rancher [GH-11607]
  * provider/statuscake: Remove computed from statuscake_test timeout parameter [GH-11541]
  * provider/vsphere: vSphere virtual machine don't ignore VM power on errors [GH-11604]
+ * provisioner/remote-exec: Revert change in 0.8.5 that treated each line as a script since that doesn't work for stateful scripts. [GH-11692]
  * provisioner/chef: Attributes JSON coming from computed source validates [GH-11502]
 
 ## 0.8.5 (26 January 2017)
