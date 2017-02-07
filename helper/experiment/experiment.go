@@ -52,7 +52,7 @@ import (
 var (
 	// Shadow graph. This is already on by default. Disabling it will be
 	// allowed for awhile in order for it to not block operations.
-	X_shadow = newBasicID("shadow", "SHADOW", true)
+	X_shadow = newBasicID("shadow", "SHADOW", false)
 )
 
 // Global variables this package uses because we are a package
