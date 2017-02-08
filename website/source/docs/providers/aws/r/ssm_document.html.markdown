@@ -14,7 +14,8 @@ Provides an SSM Document resource
 
 ```
 resource "aws_ssm_document" "foo" {
-  name    = "test_document",
+  name    = "test_document"
+  document_type = "Command"
   content = <<DOC
   {
     "schemaVersion": "1.2",
@@ -43,23 +44,27 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the document.
 * `content` - (Required) The json content of the document.
+* `document_type` - (Required) The type of the document. Valid document types include: `Command`, `Policy` and `Automation`
 * `permission` - (Optional) Additional Permissions to attach to the document. See [Permissions](#permissions) below for details.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `name` - The name of the document
-* `content` -  The json content of the document
-* `created_date` - The date the document was created
-* `description` - The description of the document
+* `name` - The name of the document.
+* `content` -  The json content of the document.
+* `created_date` - The date the document was created.
+* `description` - The description of the document.
+* `document_type` - The type of document created.
+* `default_version` - The default version of the document.
 * `hash` - The sha1 or sha256 of the document content
 * `hash_type` - "Sha1" "Sha256". The hashing algorithm used when hashing the content.
+* `latest_version` - The latest version of the document.
 * `owner` - The AWS user account of the person who created the document.
 * `status` - "Creating", "Active" or "Deleting". The current status of the document.
 * `parameter` - The parameters that are available to this document.
 * `permission` - The permissions of how this document should be shared.
-* `platform_type` - "Windows" or "Linux". A list of OS platforms compatible with this SSM document.
+* `platform_types` - A list of OS platforms compatible with this SSM document, either "Windows" or "Linux".
 
 ## Permissions
 
