@@ -1,5 +1,9 @@
 ## 0.8.7 (UNRELEASED)
 
+IMPROVEMENTS:
+
+ * provider/aws: Update aws_ssm_document to include `document_type`, `latest_version` and `default_version` [GH-11671]
+
 Bug FIXES:
 
  * core: resources that depend on create-before-destroy resources don't create cycles [GH-11753]
