@@ -551,6 +551,13 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] RDS Cluster delete options: %s", deleteOpts)
 	_, err := conn.DeleteDBCluster(&deleteOpts)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if "InvalidDBClusterStateFault" == awsErr.Code() {
+				return fmt.Errorf("RDS Cluster cannot be deleted: %s", awsErr.Message())
+			}
+		}
+	}
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"available", "deleting", "backing-up", "modifying"},
