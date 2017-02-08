@@ -96,6 +96,32 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 	}
 }
 
+func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.aws_instance.a"})
+	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.aws_instance.b"})
+	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.aws_instance.c"})
+	tf := &DestroyEdgeTransformer{
+		Module: testModule(t, "transform-destroy-edge-module-only"),
+	}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+module.child.aws_instance.a (destroy)
+  module.child.aws_instance.b (destroy)
+  module.child.aws_instance.c (destroy)
+module.child.aws_instance.b (destroy)
+  module.child.aws_instance.c (destroy)
+module.child.aws_instance.c (destroy)
+`)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 type graphNodeCreatorTest struct {
 	AddrString string
 	Refs       []string
