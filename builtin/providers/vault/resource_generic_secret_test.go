@@ -31,6 +31,7 @@ var testResourceGenericSecret_initialConfig = `
 
 resource "vault_generic_secret" "test" {
     path = "secret/foo"
+    allow_read = true
     data_json = <<EOT
 {
     "zip": "zap"
@@ -77,6 +78,7 @@ var testResourceGenericSecret_updateConfig = `
 
 resource "vault_generic_secret" "test" {
     path = "secret/foo"
+    allow_read = true
     data_json = <<EOT
 {
     "zip": "zoop"
