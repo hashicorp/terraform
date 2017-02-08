@@ -43,7 +43,7 @@ func genericSecretResource() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "True if the provided token is allowed to read the secret from vault, and therefore canupdate values",
+				Description: "True if the provided token is allowed to read the secret from vault",
 			},
 		},
 	}
@@ -134,16 +134,6 @@ func genericSecretResourceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(path)
+	log.Printf("[WARN] vault_generic_secret does not automatically refresh if allow_read is set to false")
 	return nil
-
-	// We don't actually attempt to read back the secret data
-	// here, so that Terraform can be configured with a token
-	// that has only write access to the relevant part of the
-	// store.
-	//
-	// This means that Terraform cannot detect drift for
-	// generic secrets, but detecting drift seems less important
-	// than being able to limit the effect of exposure of
-	// Terraform's Vault token.
-	// log.Printf("[WARN] vault_generic_secret does not automatically refresh")
 }
