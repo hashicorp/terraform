@@ -210,6 +210,76 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 	}
 }
 
+// This tests the ordering of two resources being destroyed that depend
+// on each other from only state. GH-11749
+func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
+	diff := &Diff{
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: []string{"root", "child"},
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.A": &InstanceDiff{
+						Destroy: true,
+					},
+
+					"aws_instance.B": &InstanceDiff{
+						Destroy: true,
+					},
+				},
+			},
+		},
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.A": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "foo",
+							Attributes: map[string]string{},
+						},
+					},
+
+					"aws_instance.B": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "bar",
+							Attributes: map[string]string{},
+						},
+						Dependencies: []string{"aws_instance.A"},
+					},
+				},
+			},
+		},
+	}
+
+	b := &ApplyGraphBuilder{
+		Module:        testModule(t, "empty"),
+		Diff:          diff,
+		State:         state,
+		Providers:     []string{"aws"},
+		DisableReduce: true,
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	t.Logf("Graph: %s", g.String())
+
+	if !reflect.DeepEqual(g.Path, RootModulePath) {
+		t.Fatalf("bad: %#v", g.Path)
+	}
+
+	testGraphHappensBefore(
+		t, g,
+		"module.child.aws_instance.B (destroy)",
+		"module.child.aws_instance.A (destroy)")
+}
+
 // This tests the ordering of destroying a single count of a resource.
 func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 	diff := &Diff{
