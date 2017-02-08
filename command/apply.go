@@ -280,7 +280,7 @@ Options:
 
   -no-color              If specified, output won't contain any color.
 
-  -parallelism=n         Limit the number of concurrent operations.
+  -parallelism=n         Limit the number of parallel resource operations.
                          Defaults to 10.
 
   -refresh=true          Update state prior to checking for differences. This
