@@ -11,6 +11,7 @@ Bug FIXES:
  * core: fix "diffs didn't match issue" for removing or empty collections that force new [GH-11732]
  * core: module sources ended in archive extensions without a "." won't be treated as archives [GH-11438]
  * provider/aws: Fix aws_db_event_subscription import [GH-11744]
+ * provider/aws: Raise the codebuild_project create timeout [GH-11777]
 
 ## 0.8.6 (07 February 2017)
 
