@@ -169,7 +169,7 @@ func TestS3ClientLocks(t *testing.T) {
 
 	createDynamoDBTable(t, s3Client, bucketName)
 
-	testClientLocks(t, client)
+	TestRemoteLocks(t, client, client)
 }
 
 // create the dynamoDB table, and wait until we can query it.

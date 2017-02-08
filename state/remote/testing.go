@@ -41,3 +41,47 @@ func TestClient(t *testing.T, c Client) {
 		t.Fatalf("bad: %#v", p)
 	}
 }
+
+// Test the lock implementation for a remote.Client.
+// This test requires 2 client instances, in oder to have multiple remote
+// clients since some implementations may tie the client to the lock, or may
+// have reentrant locks.
+func TestRemoteLocks(t *testing.T, a, b Client) {
+	lockerA, ok := a.(state.Locker)
+	if !ok {
+		t.Fatal("client A not a state.Locker")
+	}
+
+	lockerB, ok := b.(state.Locker)
+	if !ok {
+		t.Fatal("client B not a state.Locker")
+	}
+
+	if err := lockerA.Lock("test client A"); err != nil {
+		t.Fatal("unable to get initial lock:", err)
+	}
+
+	if err := lockerB.Lock("test client B"); err == nil {
+		lockerA.Unlock()
+		t.Fatal("client B obtained lock while held by client A")
+	} else {
+		t.Log("lock info error:", err)
+	}
+
+	if err := lockerA.Unlock(); err != nil {
+		t.Fatal("error unlocking client A", err)
+	}
+
+	if err := lockerB.Lock("test client B"); err != nil {
+		t.Fatal("unable to obtain lock from client B")
+	}
+
+	if err := lockerB.Unlock(); err != nil {
+		t.Fatal("error unlocking client B:", err)
+	}
+
+	// unlock should be repeatable
+	if err := lockerA.Unlock(); err != nil {
+		t.Fatal("Unlock error from client A when state was not locked:", err)
+	}
+}

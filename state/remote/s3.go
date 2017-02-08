@@ -2,6 +2,7 @@ package remote
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -17,6 +18,7 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
 	terraformAws "github.com/hashicorp/terraform/builtin/providers/aws"
+	"github.com/hashicorp/terraform/state"
 )
 
 func s3Factory(conf map[string]string) (Client, error) {
@@ -196,18 +198,22 @@ func (c *S3Client) Delete() error {
 	return err
 }
 
-func (c *S3Client) Lock(reason string) error {
+func (c *S3Client) Lock(info string) error {
 	if c.lockTable == "" {
 		return nil
 	}
 
 	stateName := fmt.Sprintf("%s/%s", c.bucketName, c.keyName)
+	lockInfo := &state.LockInfo{
+		Path:    stateName,
+		Created: time.Now().UTC(),
+		Info:    info,
+	}
 
 	putParams := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
-			"LockID":  {S: aws.String(stateName)},
-			"Created": {S: aws.String(time.Now().UTC().Format(time.RFC3339))},
-			"Info":    {S: aws.String(reason)},
+			"LockID": {S: aws.String(stateName)},
+			"Info":   {S: aws.String(lockInfo.String())},
 		},
 		TableName:           aws.String(c.lockTable),
 		ConditionExpression: aws.String("attribute_not_exists(LockID)"),
@@ -225,20 +231,21 @@ func (c *S3Client) Lock(reason string) error {
 
 		resp, err := c.dynClient.GetItem(getParams)
 		if err != nil {
-			return fmt.Errorf("s3 state file %q locked, cfailed to retrive info: %s", stateName, err)
+			return fmt.Errorf("s3 state file %q locked, failed to retrive info: %s", stateName, err)
 		}
 
-		var created, info string
-		if v, ok := resp.Item["Created"]; ok && v.S != nil {
-			created = *v.S
-		}
+		var infoData string
 		if v, ok := resp.Item["Info"]; ok && v.S != nil {
-			info = *v.S
+			infoData = *v.S
 		}
 
-		return fmt.Errorf("state file %q locked. created:%s, reason:%s",
-			stateName, created, info)
+		lockInfo = &state.LockInfo{}
+		err = json.Unmarshal([]byte(infoData), lockInfo)
+		if err != nil {
+			return fmt.Errorf("s3 state file %q locked, failed get lock info: %s", stateName, err)
+		}
 
+		return lockInfo.Err()
 	}
 	return nil
 }
