@@ -14,19 +14,27 @@ import (
 )
 
 // lock metadata structure for local locks
-type lockInfo struct {
+type LockInfo struct {
 	// Path to the state file
 	Path string
 	// The time the lock was taken
 	Created time.Time
 	// Extra info passed to State.Lock
-	Reason string
+	Info string
 }
 
 // return the lock info formatted in an error
-func (l *lockInfo) Err() error {
-	return fmt.Errorf("state file %q locked. created:%s, reason:%s",
-		l.Path, l.Created, l.Reason)
+func (l *LockInfo) Err() error {
+	return fmt.Errorf("state locked. path:%q, created:%s, info:%q",
+		l.Path, l.Created, l.Info)
+}
+
+func (l *LockInfo) String() string {
+	js, err := json.Marshal(l)
+	if err != nil {
+		panic(err)
+	}
+	return string(js)
 }
 
 // LocalState manages a state storage that is local to the filesystem.
@@ -224,14 +232,14 @@ func (s *LocalState) lockInfoPath() string {
 }
 
 // lockInfo returns the data in a lock info file
-func (s *LocalState) lockInfo() (*lockInfo, error) {
+func (s *LocalState) lockInfo() (*LockInfo, error) {
 	path := s.lockInfoPath()
 	infoData, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	info := lockInfo{}
+	info := LockInfo{}
 	err = json.Unmarshal(infoData, &info)
 	if err != nil {
 		return nil, fmt.Errorf("state file %q locked, but could not unmarshal lock info: %s", s.Path, err)
@@ -240,13 +248,13 @@ func (s *LocalState) lockInfo() (*lockInfo, error) {
 }
 
 // write a new lock info file
-func (s *LocalState) writeLockInfo(reason string) error {
+func (s *LocalState) writeLockInfo(info string) error {
 	path := s.lockInfoPath()
 
-	lockInfo := &lockInfo{
+	lockInfo := &LockInfo{
 		Path:    s.Path,
 		Created: time.Now().UTC(),
-		Reason:  reason,
+		Info:    info,
 	}
 
 	infoData, err := json.Marshal(lockInfo)
