@@ -234,10 +234,16 @@ func copyOutput(
 }
 
 // retryFunc is used to retry a function for a given duration
+// TODO: this should probably backoff too
 func retryFunc(ctx context.Context, timeout time.Duration, f func() error) error {
 	// Build a new context with the timeout
 	ctx, done := context.WithTimeout(ctx, timeout)
 	defer done()
+
+	// container for atomic error value
+	type errWrap struct {
+		E error
+	}
 
 	// Try the function in a goroutine
 	var errVal atomic.Value
@@ -255,19 +261,20 @@ func retryFunc(ctx context.Context, timeout time.Duration, f func() error) error
 
 			// Try the function call
 			err := f()
+			errVal.Store(&errWrap{err})
+
 			if err == nil {
 				return
 			}
 
 			log.Printf("Retryable error: %v", err)
-			errVal.Store(err)
 		}
 	}()
 
 	// Wait for completion
 	select {
-	case <-doneCh:
 	case <-ctx.Done():
+	case <-doneCh:
 	}
 
 	// Check if we have a context error to check if we're interrupted or timeout
@@ -279,8 +286,8 @@ func retryFunc(ctx context.Context, timeout time.Duration, f func() error) error
 	}
 
 	// Check if we got an error executing
-	if err, ok := errVal.Load().(error); ok {
-		return err
+	if ev, ok := errVal.Load().(errWrap); ok {
+		return ev.E
 	}
 
 	return nil
