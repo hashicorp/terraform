@@ -11,11 +11,11 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
-// AWS CodeBuild is a fully-managed build service in the cloud. AWS CodeBuild
+// AWS CodeBuild is a fully managed build service in the cloud. AWS CodeBuild
 // compiles your source code, runs unit tests, and produces artifacts that are
 // ready to deploy. AWS CodeBuild eliminates the need to provision, manage,
 // and scale your own build servers. It provides prepackaged build environments
-// for the most popular programming languages and build tools such as Apach
+// for the most popular programming languages and build tools, such as Apach
 // Maven, Gradle, and more. You can also fully customize build environments
 // in AWS CodeBuild to use your own build tools. AWS CodeBuild scales automatically
 // to meet peak build requests, and you pay only for the build time you consume.
@@ -55,8 +55,9 @@ import (
 //
 //    * ListCuratedEnvironmentImages: Gets information about Docker images that
 //    are managed by AWS CodeBuild.
-//The service client's operations are safe to be used concurrently.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codebuild-2016-10-06
 type CodeBuild struct {
 	*client.Client
 }
@@ -67,8 +68,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "codebuild"
+// Service information constants
+const (
+	ServiceName = "codebuild" // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the CodeBuild client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -81,17 +85,18 @@ const ServiceName = "codebuild"
 //     // Create a CodeBuild client with additional configuration
 //     svc := codebuild.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *CodeBuild {
-	c := p.ClientConfig(ServiceName, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
+	c := p.ClientConfig(EndpointsID, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *CodeBuild {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *CodeBuild {
 	svc := &CodeBuild{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2016-10-06",

@@ -72,11 +72,11 @@ func (c *ApplicationAutoScaling) DeleteScalingPolicyRequest(input *DeleteScaling
 // API operation DeleteScalingPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception was thrown for a validation issue. Review the available parameters
 //   for the API request.
 //
-//   * ObjectNotFoundException
+//   * ErrCodeObjectNotFoundException "ObjectNotFoundException"
 //   The specified object could not be found. For any Put or Register API operation,
 //   which depends on the existence of a scalable target, this exception is thrown
 //   if the scalable target with the specified service namespace, resource ID,
@@ -84,11 +84,11 @@ func (c *ApplicationAutoScaling) DeleteScalingPolicyRequest(input *DeleteScaling
 //   this exception is thrown if the resource that is to be deleted or deregistered
 //   cannot be found.
 //
-//   * ConcurrentUpdateException
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
-//   * InternalServiceException
+//   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeleteScalingPolicy
@@ -158,11 +158,11 @@ func (c *ApplicationAutoScaling) DeregisterScalableTargetRequest(input *Deregist
 // API operation DeregisterScalableTarget for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception was thrown for a validation issue. Review the available parameters
 //   for the API request.
 //
-//   * ObjectNotFoundException
+//   * ErrCodeObjectNotFoundException "ObjectNotFoundException"
 //   The specified object could not be found. For any Put or Register API operation,
 //   which depends on the existence of a scalable target, this exception is thrown
 //   if the scalable target with the specified service namespace, resource ID,
@@ -170,11 +170,11 @@ func (c *ApplicationAutoScaling) DeregisterScalableTargetRequest(input *Deregist
 //   this exception is thrown if the resource that is to be deleted or deregistered
 //   cannot be found.
 //
-//   * ConcurrentUpdateException
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
-//   * InternalServiceException
+//   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeregisterScalableTarget
@@ -252,18 +252,18 @@ func (c *ApplicationAutoScaling) DescribeScalableTargetsRequest(input *DescribeS
 // API operation DescribeScalableTargets for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception was thrown for a validation issue. Review the available parameters
 //   for the API request.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The next token supplied was invalid.
 //
-//   * ConcurrentUpdateException
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
-//   * InternalServiceException
+//   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalableTargets
@@ -367,18 +367,18 @@ func (c *ApplicationAutoScaling) DescribeScalingActivitiesRequest(input *Describ
 // API operation DescribeScalingActivities for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception was thrown for a validation issue. Review the available parameters
 //   for the API request.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The next token supplied was invalid.
 //
-//   * ConcurrentUpdateException
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
-//   * InternalServiceException
+//   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalingActivities
@@ -481,11 +481,11 @@ func (c *ApplicationAutoScaling) DescribeScalingPoliciesRequest(input *DescribeS
 // API operation DescribeScalingPolicies for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception was thrown for a validation issue. Review the available parameters
 //   for the API request.
 //
-//   * FailedResourceAccessException
+//   * ErrCodeFailedResourceAccessException "FailedResourceAccessException"
 //   Failed access to resources caused an exception. This exception currently
 //   only applies to DescribeScalingPolicies. It is thrown when Application Auto
 //   Scaling is unable to retrieve the alarms associated with a scaling policy
@@ -494,14 +494,14 @@ func (c *ApplicationAutoScaling) DescribeScalingPoliciesRequest(input *DescribeS
 //   (http://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_DescribeAlarms.html)
 //   API operation on behalf of your account.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The next token supplied was invalid.
 //
-//   * ConcurrentUpdateException
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
-//   * InternalServiceException
+//   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalingPolicies
@@ -603,16 +603,16 @@ func (c *ApplicationAutoScaling) PutScalingPolicyRequest(input *PutScalingPolicy
 // API operation PutScalingPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception was thrown for a validation issue. Review the available parameters
 //   for the API request.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   Your account exceeded a limit. This exception is thrown when a per-account
 //   resource limit is exceeded. For more information, see Application Auto Scaling
 //   Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_as-app).
 //
-//   * ObjectNotFoundException
+//   * ErrCodeObjectNotFoundException "ObjectNotFoundException"
 //   The specified object could not be found. For any Put or Register API operation,
 //   which depends on the existence of a scalable target, this exception is thrown
 //   if the scalable target with the specified service namespace, resource ID,
@@ -620,11 +620,11 @@ func (c *ApplicationAutoScaling) PutScalingPolicyRequest(input *PutScalingPolicy
 //   this exception is thrown if the resource that is to be deleted or deregistered
 //   cannot be found.
 //
-//   * ConcurrentUpdateException
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
-//   * InternalServiceException
+//   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScalingPolicy
@@ -697,20 +697,20 @@ func (c *ApplicationAutoScaling) RegisterScalableTargetRequest(input *RegisterSc
 // API operation RegisterScalableTarget for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception was thrown for a validation issue. Review the available parameters
 //   for the API request.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   Your account exceeded a limit. This exception is thrown when a per-account
 //   resource limit is exceeded. For more information, see Application Auto Scaling
 //   Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_as-app).
 //
-//   * ConcurrentUpdateException
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
-//   * InternalServiceException
+//   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/RegisterScalableTarget
