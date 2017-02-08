@@ -1,3 +1,23 @@
+Release v1.6.19 (2017-02-08)
+===
+
+Service Client Updates
+---
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/glacier`: Updates service examples
+	* Doc Update
+* `service/lexruntimeservice`: Adds new service
+	* Preview release
+
+SDK Bug Fixes
+---
+* `private/protocol/json`: Fixes json to throw an error if a float number is (+/-)Inf and NaN (#1068)
+* `private/model/api`: Fix documentation error listing (#1067)
+
+SDK Features
+---
+* `private/model`: Add service response error code generation (#1061)
+
 Release v1.6.18 (2017-01-27)
 ===
 

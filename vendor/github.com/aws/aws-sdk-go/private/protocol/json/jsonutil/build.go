@@ -4,7 +4,9 @@ package jsonutil
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 	"sort"
 	"strconv"
@@ -202,7 +204,11 @@ func buildScalar(v reflect.Value, buf *bytes.Buffer, tag reflect.StructTag) erro
 	case reflect.Int64:
 		buf.Write(strconv.AppendInt(scratch[:0], value.Int(), 10))
 	case reflect.Float64:
-		buf.Write(strconv.AppendFloat(scratch[:0], value.Float(), 'f', -1, 64))
+		f := value.Float()
+		if math.IsInf(f, 0) || math.IsNaN(f) {
+			return &json.UnsupportedValueError{Value: v, Str: strconv.FormatFloat(f, 'f', -1, 64)}
+		}
+		buf.Write(strconv.AppendFloat(scratch[:0], f, 'f', -1, 64))
 	default:
 		switch value.Type() {
 		case timeType:
