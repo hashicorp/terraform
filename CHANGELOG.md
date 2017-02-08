@@ -4,6 +4,10 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/aws: `kinesis_endpoint` & `dynamodb_endpoint` fields in the provider schema were deprecated in favour of `kinesis` & `dynamodb` inside the `endpoints` block. Deprecated fields will be removed in 0.9 [GH-11768]
 
+FEATURES:
+
+ * **New Resource:**  `aws_elasticsearch_domain_policy` [GH-8648]
+
 IMPROVEMENTS:
 
  * provider/aws: Update aws_ssm_document to include `document_type`, `latest_version` and `default_version` [GH-11671]
