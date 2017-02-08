@@ -69,17 +69,17 @@ func (c *Inspector) AddAttributesToFindingsRequest(input *AddAttributesToFinding
 // API operation AddAttributesToFindings for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -148,21 +148,21 @@ func (c *Inspector) CreateAssessmentTargetRequest(input *CreateAssessmentTargetI
 // API operation CreateAssessmentTarget for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error code describes the limit exceeded.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -229,21 +229,21 @@ func (c *Inspector) CreateAssessmentTemplateRequest(input *CreateAssessmentTempl
 // API operation CreateAssessmentTemplate for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error code describes the limit exceeded.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -312,18 +312,18 @@ func (c *Inspector) CreateResourceGroupRequest(input *CreateResourceGroupInput) 
 // API operation CreateResourceGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error code describes the limit exceeded.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/CreateResourceGroup
@@ -391,21 +391,21 @@ func (c *Inspector) DeleteAssessmentRunRequest(input *DeleteAssessmentRunInput) 
 // API operation DeleteAssessmentRun for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AssessmentRunInProgressException
+//   * ErrCodeAssessmentRunInProgressException "AssessmentRunInProgressException"
 //   You cannot perform a specified action if an assessment run is currently in
 //   progress.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -474,21 +474,21 @@ func (c *Inspector) DeleteAssessmentTargetRequest(input *DeleteAssessmentTargetI
 // API operation DeleteAssessmentTarget for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AssessmentRunInProgressException
+//   * ErrCodeAssessmentRunInProgressException "AssessmentRunInProgressException"
 //   You cannot perform a specified action if an assessment run is currently in
 //   progress.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -557,21 +557,21 @@ func (c *Inspector) DeleteAssessmentTemplateRequest(input *DeleteAssessmentTempl
 // API operation DeleteAssessmentTemplate for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AssessmentRunInProgressException
+//   * ErrCodeAssessmentRunInProgressException "AssessmentRunInProgressException"
 //   You cannot perform a specified action if an assessment run is currently in
 //   progress.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -638,10 +638,10 @@ func (c *Inspector) DescribeAssessmentRunsRequest(input *DescribeAssessmentRunsI
 // API operation DescribeAssessmentRuns for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
@@ -708,10 +708,10 @@ func (c *Inspector) DescribeAssessmentTargetsRequest(input *DescribeAssessmentTa
 // API operation DescribeAssessmentTargets for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
@@ -778,10 +778,10 @@ func (c *Inspector) DescribeAssessmentTemplatesRequest(input *DescribeAssessment
 // API operation DescribeAssessmentTemplates for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
@@ -847,7 +847,7 @@ func (c *Inspector) DescribeCrossAccountAccessRoleRequest(input *DescribeCrossAc
 // API operation DescribeCrossAccountAccessRole for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/DescribeCrossAccountAccessRole
@@ -912,10 +912,10 @@ func (c *Inspector) DescribeFindingsRequest(input *DescribeFindingsInput) (req *
 // API operation DescribeFindings for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
@@ -982,10 +982,10 @@ func (c *Inspector) DescribeResourceGroupsRequest(input *DescribeResourceGroupsI
 // API operation DescribeResourceGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
@@ -1052,10 +1052,10 @@ func (c *Inspector) DescribeRulesPackagesRequest(input *DescribeRulesPackagesInp
 // API operation DescribeRulesPackages for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
@@ -1122,17 +1122,17 @@ func (c *Inspector) GetTelemetryMetadataRequest(input *GetTelemetryMetadataInput
 // API operation GetTelemetryMetadata for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -1199,17 +1199,17 @@ func (c *Inspector) ListAssessmentRunAgentsRequest(input *ListAssessmentRunAgent
 // API operation ListAssessmentRunAgents for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -1276,17 +1276,17 @@ func (c *Inspector) ListAssessmentRunsRequest(input *ListAssessmentRunsInput) (r
 // API operation ListAssessmentRuns for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -1354,14 +1354,14 @@ func (c *Inspector) ListAssessmentTargetsRequest(input *ListAssessmentTargetsInp
 // API operation ListAssessmentTargets for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListAssessmentTargets
@@ -1427,17 +1427,17 @@ func (c *Inspector) ListAssessmentTemplatesRequest(input *ListAssessmentTemplate
 // API operation ListAssessmentTemplates for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -1505,17 +1505,17 @@ func (c *Inspector) ListEventSubscriptionsRequest(input *ListEventSubscriptionsI
 // API operation ListEventSubscriptions for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -1582,17 +1582,17 @@ func (c *Inspector) ListFindingsRequest(input *ListFindingsInput) (req *request.
 // API operation ListFindings for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -1658,14 +1658,14 @@ func (c *Inspector) ListRulesPackagesRequest(input *ListRulesPackagesInput) (req
 // API operation ListRulesPackages for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/inspector-2016-02-16/ListRulesPackages
@@ -1730,17 +1730,17 @@ func (c *Inspector) ListTagsForResourceRequest(input *ListTagsForResourceInput) 
 // API operation ListTagsForResource for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -1807,21 +1807,21 @@ func (c *Inspector) PreviewAgentsRequest(input *PreviewAgentsInput) (req *reques
 // API operation PreviewAgents for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-//   * InvalidCrossAccountRoleException
+//   * ErrCodeInvalidCrossAccountRoleException "InvalidCrossAccountRoleException"
 //   Amazon Inspector cannot assume the cross-account role that it needs to list
 //   your EC2 instances during the assessment run.
 //
@@ -1890,17 +1890,17 @@ func (c *Inspector) RegisterCrossAccountAccessRoleRequest(input *RegisterCrossAc
 // API operation RegisterCrossAccountAccessRole for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * InvalidCrossAccountRoleException
+//   * ErrCodeInvalidCrossAccountRoleException "InvalidCrossAccountRoleException"
 //   Amazon Inspector cannot assume the cross-account role that it needs to list
 //   your EC2 instances during the assessment run.
 //
@@ -1968,17 +1968,17 @@ func (c *Inspector) RemoveAttributesFromFindingsRequest(input *RemoveAttributesF
 // API operation RemoveAttributesFromFindings for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -2047,17 +2047,17 @@ func (c *Inspector) SetTagsForResourceRequest(input *SetTagsForResourceInput) (r
 // API operation SetTagsForResource for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -2125,29 +2125,29 @@ func (c *Inspector) StartAssessmentRunRequest(input *StartAssessmentRunInput) (r
 // API operation StartAssessmentRun for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error code describes the limit exceeded.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
-//   * InvalidCrossAccountRoleException
+//   * ErrCodeInvalidCrossAccountRoleException "InvalidCrossAccountRoleException"
 //   Amazon Inspector cannot assume the cross-account role that it needs to list
 //   your EC2 instances during the assessment run.
 //
-//   * AgentsAlreadyRunningAssessmentException
+//   * ErrCodeAgentsAlreadyRunningAssessmentException "AgentsAlreadyRunningAssessmentException"
 //   You started an assessment run, but one of the instances is already participating
 //   in another assessment run.
 //
@@ -2215,17 +2215,17 @@ func (c *Inspector) StopAssessmentRunRequest(input *StopAssessmentRunInput) (req
 // API operation StopAssessmentRun for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -2294,21 +2294,21 @@ func (c *Inspector) SubscribeToEventRequest(input *SubscribeToEventInput) (req *
 // API operation SubscribeToEvent for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error code describes the limit exceeded.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -2377,17 +2377,17 @@ func (c *Inspector) UnsubscribeFromEventRequest(input *UnsubscribeFromEventInput
 // API operation UnsubscribeFromEvent for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //
@@ -2456,17 +2456,17 @@ func (c *Inspector) UpdateAssessmentTargetRequest(input *UpdateAssessmentTargetI
 // API operation UpdateAssessmentTarget for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   Internal server error.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   You do not have required permissions to access the requested resource.
 //
-//   * NoSuchEntityException
+//   * ErrCodeNoSuchEntityException "NoSuchEntityException"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error code describes the entity.
 //

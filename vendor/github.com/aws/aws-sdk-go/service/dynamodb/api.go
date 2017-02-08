@@ -122,7 +122,7 @@ func (c *DynamoDB) BatchGetItemRequest(input *BatchGetItemInput) (req *request.R
 // API operation BatchGetItem for usage and error information.
 //
 // Returned Error Codes:
-//   * ProvisionedThroughputExceededException
+//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
 //   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
 //   requests that receive this exception. Your request is eventually successful,
 //   unless your retry queue is too large to finish. Reduce the frequency of requests
@@ -130,11 +130,11 @@ func (c *DynamoDB) BatchGetItemRequest(input *BatchGetItemInput) (req *request.R
 //   Exponential Backoff (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
 //   in the Amazon DynamoDB Developer Guide.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/BatchGetItem
@@ -292,7 +292,7 @@ func (c *DynamoDB) BatchWriteItemRequest(input *BatchWriteItemInput) (req *reque
 // API operation BatchWriteItem for usage and error information.
 //
 // Returned Error Codes:
-//   * ProvisionedThroughputExceededException
+//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
 //   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
 //   requests that receive this exception. Your request is eventually successful,
 //   unless your retry queue is too large to finish. Reduce the frequency of requests
@@ -300,15 +300,15 @@ func (c *DynamoDB) BatchWriteItemRequest(input *BatchWriteItemInput) (req *reque
 //   Exponential Backoff (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
 //   in the Amazon DynamoDB Developer Guide.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * ItemCollectionSizeLimitExceededException
+//   * ErrCodeItemCollectionSizeLimitExceededException "ItemCollectionSizeLimitExceededException"
 //   An item collection is too large. This exception is only returned for tables
 //   that have one or more local secondary indexes.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/BatchWriteItem
@@ -387,12 +387,12 @@ func (c *DynamoDB) CreateTableRequest(input *CreateTableInput) (req *request.Req
 // API operation CreateTable for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The operation conflicts with the resource's availability. For example, you
 //   attempted to recreate an existing table, or tried to delete a table currently
 //   in the CREATING state.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The number of concurrent table requests (cumulative number of tables in the
 //   CREATING, DELETING or UPDATING state) exceeds the maximum allowed of 10.
 //
@@ -402,7 +402,7 @@ func (c *DynamoDB) CreateTableRequest(input *CreateTableInput) (req *request.Req
 //
 //   The total limit of tables in the ACTIVE state is 250.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/CreateTable
@@ -480,10 +480,10 @@ func (c *DynamoDB) DeleteItemRequest(input *DeleteItemInput) (req *request.Reque
 // API operation DeleteItem for usage and error information.
 //
 // Returned Error Codes:
-//   * ConditionalCheckFailedException
+//   * ErrCodeConditionalCheckFailedException "ConditionalCheckFailedException"
 //   A condition specified in the operation could not be evaluated.
 //
-//   * ProvisionedThroughputExceededException
+//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
 //   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
 //   requests that receive this exception. Your request is eventually successful,
 //   unless your retry queue is too large to finish. Reduce the frequency of requests
@@ -491,15 +491,15 @@ func (c *DynamoDB) DeleteItemRequest(input *DeleteItemInput) (req *request.Reque
 //   Exponential Backoff (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
 //   in the Amazon DynamoDB Developer Guide.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * ItemCollectionSizeLimitExceededException
+//   * ErrCodeItemCollectionSizeLimitExceededException "ItemCollectionSizeLimitExceededException"
 //   An item collection is too large. This exception is only returned for tables
 //   that have one or more local secondary indexes.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DeleteItem
@@ -581,16 +581,16 @@ func (c *DynamoDB) DeleteTableRequest(input *DeleteTableInput) (req *request.Req
 // API operation DeleteTable for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The operation conflicts with the resource's availability. For example, you
 //   attempted to recreate an existing table, or tried to delete a table currently
 //   in the CREATING state.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The number of concurrent table requests (cumulative number of tables in the
 //   CREATING, DELETING or UPDATING state) exceeds the maximum allowed of 10.
 //
@@ -600,7 +600,7 @@ func (c *DynamoDB) DeleteTableRequest(input *DeleteTableInput) (req *request.Req
 //
 //   The total limit of tables in the ACTIVE state is 250.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DeleteTable
@@ -721,7 +721,7 @@ func (c *DynamoDB) DescribeLimitsRequest(input *DescribeLimitsInput) (req *reque
 // API operation DescribeLimits for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeLimits
@@ -794,11 +794,11 @@ func (c *DynamoDB) DescribeTableRequest(input *DescribeTableInput) (req *request
 // API operation DescribeTable for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/DescribeTable
@@ -870,7 +870,7 @@ func (c *DynamoDB) GetItemRequest(input *GetItemInput) (req *request.Request, ou
 // API operation GetItem for usage and error information.
 //
 // Returned Error Codes:
-//   * ProvisionedThroughputExceededException
+//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
 //   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
 //   requests that receive this exception. Your request is eventually successful,
 //   unless your retry queue is too large to finish. Reduce the frequency of requests
@@ -878,11 +878,11 @@ func (c *DynamoDB) GetItemRequest(input *GetItemInput) (req *request.Request, ou
 //   Exponential Backoff (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
 //   in the Amazon DynamoDB Developer Guide.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/GetItem
@@ -955,7 +955,7 @@ func (c *DynamoDB) ListTablesRequest(input *ListTablesInput) (req *request.Reque
 // API operation ListTables for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListTables
@@ -1049,11 +1049,11 @@ func (c *DynamoDB) ListTagsOfResourceRequest(input *ListTagsOfResourceInput) (re
 // API operation ListTagsOfResource for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/ListTagsOfResource
@@ -1140,10 +1140,10 @@ func (c *DynamoDB) PutItemRequest(input *PutItemInput) (req *request.Request, ou
 // API operation PutItem for usage and error information.
 //
 // Returned Error Codes:
-//   * ConditionalCheckFailedException
+//   * ErrCodeConditionalCheckFailedException "ConditionalCheckFailedException"
 //   A condition specified in the operation could not be evaluated.
 //
-//   * ProvisionedThroughputExceededException
+//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
 //   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
 //   requests that receive this exception. Your request is eventually successful,
 //   unless your retry queue is too large to finish. Reduce the frequency of requests
@@ -1151,15 +1151,15 @@ func (c *DynamoDB) PutItemRequest(input *PutItemInput) (req *request.Request, ou
 //   Exponential Backoff (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
 //   in the Amazon DynamoDB Developer Guide.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * ItemCollectionSizeLimitExceededException
+//   * ErrCodeItemCollectionSizeLimitExceededException "ItemCollectionSizeLimitExceededException"
 //   An item collection is too large. This exception is only returned for tables
 //   that have one or more local secondary indexes.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/PutItem
@@ -1255,7 +1255,7 @@ func (c *DynamoDB) QueryRequest(input *QueryInput) (req *request.Request, output
 // API operation Query for usage and error information.
 //
 // Returned Error Codes:
-//   * ProvisionedThroughputExceededException
+//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
 //   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
 //   requests that receive this exception. Your request is eventually successful,
 //   unless your retry queue is too large to finish. Reduce the frequency of requests
@@ -1263,11 +1263,11 @@ func (c *DynamoDB) QueryRequest(input *QueryInput) (req *request.Request, output
 //   Exponential Backoff (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
 //   in the Amazon DynamoDB Developer Guide.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/Query
@@ -1383,7 +1383,7 @@ func (c *DynamoDB) ScanRequest(input *ScanInput) (req *request.Request, output *
 // API operation Scan for usage and error information.
 //
 // Returned Error Codes:
-//   * ProvisionedThroughputExceededException
+//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
 //   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
 //   requests that receive this exception. Your request is eventually successful,
 //   unless your retry queue is too large to finish. Reduce the frequency of requests
@@ -1391,11 +1391,11 @@ func (c *DynamoDB) ScanRequest(input *ScanInput) (req *request.Request, output *
 //   Exponential Backoff (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
 //   in the Amazon DynamoDB Developer Guide.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/Scan
@@ -1493,7 +1493,7 @@ func (c *DynamoDB) TagResourceRequest(input *TagResourceInput) (req *request.Req
 // API operation TagResource for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The number of concurrent table requests (cumulative number of tables in the
 //   CREATING, DELETING or UPDATING state) exceeds the maximum allowed of 10.
 //
@@ -1503,14 +1503,14 @@ func (c *DynamoDB) TagResourceRequest(input *TagResourceInput) (req *request.Req
 //
 //   The total limit of tables in the ACTIVE state is 250.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The operation conflicts with the resource's availability. For example, you
 //   attempted to recreate an existing table, or tried to delete a table currently
 //   in the CREATING state.
@@ -1583,7 +1583,7 @@ func (c *DynamoDB) UntagResourceRequest(input *UntagResourceInput) (req *request
 // API operation UntagResource for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The number of concurrent table requests (cumulative number of tables in the
 //   CREATING, DELETING or UPDATING state) exceeds the maximum allowed of 10.
 //
@@ -1593,14 +1593,14 @@ func (c *DynamoDB) UntagResourceRequest(input *UntagResourceInput) (req *request
 //
 //   The total limit of tables in the ACTIVE state is 250.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The operation conflicts with the resource's availability. For example, you
 //   attempted to recreate an existing table, or tried to delete a table currently
 //   in the CREATING state.
@@ -1674,10 +1674,10 @@ func (c *DynamoDB) UpdateItemRequest(input *UpdateItemInput) (req *request.Reque
 // API operation UpdateItem for usage and error information.
 //
 // Returned Error Codes:
-//   * ConditionalCheckFailedException
+//   * ErrCodeConditionalCheckFailedException "ConditionalCheckFailedException"
 //   A condition specified in the operation could not be evaluated.
 //
-//   * ProvisionedThroughputExceededException
+//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
 //   Your request rate is too high. The AWS SDKs for DynamoDB automatically retry
 //   requests that receive this exception. Your request is eventually successful,
 //   unless your retry queue is too large to finish. Reduce the frequency of requests
@@ -1685,15 +1685,15 @@ func (c *DynamoDB) UpdateItemRequest(input *UpdateItemInput) (req *request.Reque
 //   Exponential Backoff (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html#Programming.Errors.RetryAndBackoff)
 //   in the Amazon DynamoDB Developer Guide.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * ItemCollectionSizeLimitExceededException
+//   * ErrCodeItemCollectionSizeLimitExceededException "ItemCollectionSizeLimitExceededException"
 //   An item collection is too large. This exception is only returned for tables
 //   that have one or more local secondary indexes.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateItem
@@ -1775,16 +1775,16 @@ func (c *DynamoDB) UpdateTableRequest(input *UpdateTableInput) (req *request.Req
 // API operation UpdateTable for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The operation conflicts with the resource's availability. For example, you
 //   attempted to recreate an existing table, or tried to delete a table currently
 //   in the CREATING state.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The operation tried to access a nonexistent table or index. The resource
 //   might not be specified correctly, or its status might not be ACTIVE.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The number of concurrent table requests (cumulative number of tables in the
 //   CREATING, DELETING or UPDATING state) exceeds the maximum allowed of 10.
 //
@@ -1794,7 +1794,7 @@ func (c *DynamoDB) UpdateTableRequest(input *UpdateTableInput) (req *request.Req
 //
 //   The total limit of tables in the ACTIVE state is 250.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   An error occurred on the server side.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10/UpdateTable
