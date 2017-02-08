@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/remote-state"
-	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/state/remote"
 )
 
@@ -17,11 +16,15 @@ func TestRemoteClient_impl(t *testing.T) {
 }
 
 func TestRemoteClient(t *testing.T) {
-	acctest.RemoteTestPrecheck(t)
+	addr := os.Getenv("CONSUL_HTTP_ADDR")
+	if addr == "" {
+		t.Log("consul tests require CONSUL_HTTP_ADDR")
+		t.Skip()
+	}
 
 	// Get the backend
 	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"address": "demo.consul.io:80",
+		"address": addr,
 		"path":    fmt.Sprintf("tf-unit/%s", time.Now().String()),
 	})
 
