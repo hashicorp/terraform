@@ -18,6 +18,7 @@ Bug FIXES:
  * core: create-before-destroy resources with a count > 1 create proper edges [GH-11753]
  * core: fix "diffs didn't match issue" for removing or empty collections that force new [GH-11732]
  * core: module sources ended in archive extensions without a "." won't be treated as archives [GH-11438]
+ * core: destroy ordering of resources within modules is correct [GH-11765]
  * provider/aws: Fix aws_db_event_subscription import [GH-11744]
  * provider/aws: Respect 400 returned from AWS API on RDS Cluster termination [GH-11795]
  * provider/aws: Raise the codebuild_project create timeout [GH-11777]
