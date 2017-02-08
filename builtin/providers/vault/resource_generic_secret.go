@@ -31,6 +31,25 @@ func genericSecretResource() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "JSON-encoded secret data to write.",
+				// We rebuild the attached JSON string to a simple singleline
+				// string. This makes terraform not want to change when an extra
+				// space is included in the JSON string. It is also necesarry
+				// when allow_read is true for comparing values.
+				StateFunc: func(v interface{}) string {
+					var dat map[string]interface{}
+					if err := json.Unmarshal([]byte(v.(string)), &dat); err != nil {
+						return fmt.Errorf("data_json %#v syntax error: %s", v.(string), err)
+					}
+					jsonDataBytes, _ := json.Marshal(dat)
+					return string(jsonDataBytes)
+				},
+			},
+
+			"allow_read": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "True if the provided token is allowed to read the secret from vault, and therefore canupdate values",
 			},
 		},
 	}
@@ -73,6 +92,31 @@ func genericSecretResourceDelete(d *schema.ResourceData, meta interface{}) error
 }
 
 func genericSecretResourceRead(d *schema.ResourceData, meta interface{}) error {
+	allowed_to_read := d.Get("allow_read").(bool)
+
+	if allowed_to_read {
+		path := d.Get("path").(string)
+
+		client := meta.(*api.Client)
+
+		log.Printf("[DEBUG] Reading %s from Vault", path)
+		secret, err := client.Logical().Read(path)
+		if err != nil {
+			return fmt.Errorf("error reading from Vault: %s", err)
+		}
+
+		d.SetId(path)
+
+		// Ignoring error because this value came from JSON in the
+		// first place so no reason why it should fail to re-encode.
+		jsonDataBytes, _ := json.Marshal(secret.Data)
+		d.Set("data_json", string(jsonDataBytes))
+	}
+
+	path := d.Get("path").(string)
+	d.SetId(path)
+	return nil
+
 	// We don't actually attempt to read back the secret data
 	// here, so that Terraform can be configured with a token
 	// that has only write access to the relevant part of the
@@ -82,6 +126,5 @@ func genericSecretResourceRead(d *schema.ResourceData, meta interface{}) error {
 	// generic secrets, but detecting drift seems less important
 	// than being able to limit the effect of exposure of
 	// Terraform's Vault token.
-	log.Printf("[WARN] vault_generic_secret does not automatically refresh")
-	return nil
+	// log.Printf("[WARN] vault_generic_secret does not automatically refresh")
 }
