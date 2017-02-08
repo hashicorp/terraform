@@ -10,7 +10,8 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
    (from a prior remote state), it cannot be used with prior Terraform versions.
    Remote backends themselves are fully backwards compatible with prior
    Terraform versions.
- * provider/aws: `aws_db_instance` now defaults to making a final snapshot on delete. 
+ * provider/aws: `aws_db_instance` now defaults to making a final snapshot on delete
+ * provider/aws: Deprecated fields `kinesis_endpoint` & `dynamodb_endpoint` were removed. Use `kinesis` & `dynamodb` inside the `endpoints` block instead. [GH-11778]
 
 FEATURES:
 
