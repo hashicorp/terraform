@@ -352,6 +352,26 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			PubliclyAccessible:         aws.Bool(d.Get("publicly_accessible").(bool)),
 			Tags:                       tags,
 		}
+
+		// Firstly check whether setting destination_region. If set assume cross-region replication.
+		if attr, ok := d.GetOk("destination_region"); !ok {
+			// Secondly ascertain whether encrypted (currently by requiring storage_encrypted).
+			// Can we detect between encrypted & non-encrypted without also requiring
+			// storage_encrypted to be set?
+			if storage_encrypted := d.Get("storage_encrypted").(string); storage_encrypted == "true" {
+				// If true validate kms_key_id is set.
+				if _, ok := d.GetOk("kms_key_id"); !ok {
+					return fmt.Errorf(`provider.aws: aws_db_instance: %s: "kms_key_id" is
+					 required when creating an encrypted read replica `, identifier)
+				}
+			}
+			opts.DestinationRegion = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("kms_key_id"); ok {
+			opts.KmsKeyId = aws.String(attr.(string))
+		}
+
 		if attr, ok := d.GetOk("iops"); ok {
 			opts.Iops = aws.Int64(int64(attr.(int)))
 		}
