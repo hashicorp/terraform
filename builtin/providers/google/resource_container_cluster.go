@@ -442,15 +442,15 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("name", cluster.Name)
 	d.Set("zone", cluster.Zone)
 
+	locations := []string{}
 	if len(cluster.Locations) > 1 {
-		locations := []string{}
 		for _, location := range cluster.Locations {
 			if location != cluster.Zone {
 				locations = append(locations, location)
 			}
 		}
-		d.Set("additional_zones", locations)
 	}
+	d.Set("additional_zones", locations)
 
 	d.Set("endpoint", cluster.Endpoint)
 
