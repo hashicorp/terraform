@@ -119,6 +119,8 @@ EOF
  	e.g. `arn:aws:lambda:aws-region:acct-id:function:function-name:2`
  * `source_account` - (Optional) The AWS account ID (without a hyphen) of the source owner.
  * `source_arn` - (Optional) When granting Amazon S3 or CloudWatch Events permission to
-  invoke your function, you should specify this field with the Amazon Resource Name (ARN)
-  for the S3 Bucket or CloudWatch Events Rule as its value.  This ensures that only events
-  generated from the specified bucket or rule can invoke the function.
+ 	invoke your function, you should specify this field with the Amazon Resource Name (ARN)
+ 	for the S3 Bucket or CloudWatch Events Rule as its value.  This ensures that only events
+ 	generated from the specified bucket or rule can invoke the function.
+ 	API Gateway ARNs have a unique structure described
+ 	[here](http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-control-access-using-iam-policies-to-invoke-api.html).
