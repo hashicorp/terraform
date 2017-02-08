@@ -2,8 +2,12 @@ package remoteexec
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
+	"net"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -155,6 +159,31 @@ func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
 		if out.String() != expectedScriptOut {
 			t.Fatalf("bad: %v", out.String())
 		}
+	}
+}
+
+func TestRetryFunc(t *testing.T) {
+	// succeed on the third try
+	errs := []error{io.EOF, &net.OpError{Err: errors.New("ERROR")}, nil}
+	count := 0
+
+	err := retryFunc(context.Background(), time.Second, func() error {
+		if count >= len(errs) {
+			return errors.New("failed to stop after nil error")
+		}
+
+		err := errs[count]
+		count++
+
+		return err
+	})
+
+	if count != 3 {
+		t.Fatal("retry func should have been called 3 times")
+	}
+
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
