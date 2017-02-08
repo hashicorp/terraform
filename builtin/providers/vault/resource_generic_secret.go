@@ -35,14 +35,8 @@ func genericSecretResource() *schema.Resource {
 				// string. This makes terraform not want to change when an extra
 				// space is included in the JSON string. It is also necesarry
 				// when allow_read is true for comparing values.
-				StateFunc: func(v interface{}) string {
-					var dat map[string]interface{}
-					if err := json.Unmarshal([]byte(v.(string)), &dat); err != nil {
-						return fmt.Errorf("data_json %#v syntax error: %s", v.(string), err)
-					}
-					jsonDataBytes, _ := json.Marshal(dat)
-					return string(jsonDataBytes)
-				},
+				StateFunc:    NormalizeDataJSON,
+				ValidateFunc: ValidateDataJSON,
 			},
 
 			"allow_read": &schema.Schema{
@@ -53,6 +47,35 @@ func genericSecretResource() *schema.Resource {
 			},
 		},
 	}
+}
+
+func ValidateDataJSON(configI interface{}, k string) ([]string, []error) {
+	dataJSON := configI.(string)
+	dataMap := map[string]interface{}{}
+	err := json.Unmarshal([]byte(dataJSON), &dataMap)
+	if err != nil {
+		return nil, []error{err}
+	}
+	return nil, nil
+}
+
+func NormalizeDataJSON(configI interface{}) string {
+	dataJSON := configI.(string)
+
+	dataMap := map[string]interface{}{}
+	err := json.Unmarshal([]byte(dataJSON), &dataMap)
+	if err != nil {
+		// The validate function should've taken care of this.
+		return ""
+	}
+
+	ret, err := json.Marshal(dataMap)
+	if err != nil {
+		// Should never happen.
+		return dataJSON
+	}
+
+	return string(ret)
 }
 
 func genericSecretResourceWrite(d *schema.ResourceData, meta interface{}) error {
@@ -93,10 +116,9 @@ func genericSecretResourceDelete(d *schema.ResourceData, meta interface{}) error
 
 func genericSecretResourceRead(d *schema.ResourceData, meta interface{}) error {
 	allowed_to_read := d.Get("allow_read").(bool)
+	path := d.Get("path").(string)
 
 	if allowed_to_read {
-		path := d.Get("path").(string)
-
 		client := meta.(*api.Client)
 
 		log.Printf("[DEBUG] Reading %s from Vault", path)
@@ -105,15 +127,12 @@ func genericSecretResourceRead(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("error reading from Vault: %s", err)
 		}
 
-		d.SetId(path)
-
 		// Ignoring error because this value came from JSON in the
 		// first place so no reason why it should fail to re-encode.
 		jsonDataBytes, _ := json.Marshal(secret.Data)
 		d.Set("data_json", string(jsonDataBytes))
 	}
 
-	path := d.Get("path").(string)
 	d.SetId(path)
 	return nil
 
