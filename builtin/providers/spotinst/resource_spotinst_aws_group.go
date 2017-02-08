@@ -251,13 +251,10 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						"type": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							StateFunc: func(v interface{}) string {
-								value := v.(string)
-								return strings.ToUpper(value)
-							},
 						},
 					},
 				},
+				Set: hashAwsGroupLoadBalancer,
 			},
 
 			"launch_specification": &schema.Schema{
@@ -615,6 +612,7 @@ func scalingPolicySchema() *schema.Schema {
 				"operator": &schema.Schema{
 					Type:     schema.TypeString,
 					Optional: true,
+					Computed: true,
 				},
 
 				"evaluation_periods": &schema.Schema{
@@ -1229,7 +1227,7 @@ func flattenAwsGroupLoadBalancers(balancers []*spotinst.AwsGroupComputeLoadBalan
 		m := make(map[string]interface{})
 		m["name"] = spotinst.StringValue(b.Name)
 		m["arn"] = spotinst.StringValue(b.Arn)
-		m["type"] = spotinst.StringValue(b.Type)
+		m["type"] = strings.ToLower(spotinst.StringValue(b.Type))
 		result = append(result, m)
 	}
 	return result
@@ -2223,6 +2221,19 @@ func hashAwsGroupStrategy(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
+func hashAwsGroupLoadBalancer(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["type"].(string)))
+	if v, ok := m["arn"].(string); ok && len(v) > 0 {
+		buf.WriteString(fmt.Sprintf("%s-", v))
+	}
+
+	return hashcode.String(buf.String())
+}
+
 func hashAwsGroupEBSBlockDevice(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
@@ -2244,16 +2255,19 @@ func hashAwsGroupScalingPolicy(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%d-", m["adjustment"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["cooldown"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["evaluation_periods"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["min_target_capacity"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["max_target_capacity"].(int)))
 	buf.WriteString(fmt.Sprintf("%s-", m["metric_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["namespace"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["operator"].(string)))
 	buf.WriteString(fmt.Sprintf("%d-", m["period"].(int)))
 	buf.WriteString(fmt.Sprintf("%s-", m["policy_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["statistic"].(string)))
 	buf.WriteString(fmt.Sprintf("%f-", m["threshold"].(float64)))
 	buf.WriteString(fmt.Sprintf("%s-", m["unit"].(string)))
+	buf.WriteString(fmt.Sprintf("%d-", m["min_target_capacity"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["max_target_capacity"].(int)))
+
+	// if v, ok := m["operator"].(string); ok && len(v) > 0 {
+	// 	buf.WriteString(fmt.Sprintf("%s-", v))
+	// }
 
 	if d, ok := m["dimensions"]; ok {
 		if len(d.(map[string]interface{})) > 0 {
