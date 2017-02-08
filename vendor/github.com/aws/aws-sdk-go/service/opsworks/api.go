@@ -81,10 +81,10 @@ func (c *OpsWorks) AssignInstanceRequest(input *AssignInstanceInput) (req *reque
 // API operation AssignInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/AssignInstance
@@ -160,10 +160,10 @@ func (c *OpsWorks) AssignVolumeRequest(input *AssignVolumeInput) (req *request.R
 // API operation AssignVolume for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/AssignVolume
@@ -237,10 +237,10 @@ func (c *OpsWorks) AssociateElasticIpRequest(input *AssociateElasticIpInput) (re
 // API operation AssociateElasticIp for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/AssociateElasticIp
@@ -317,10 +317,10 @@ func (c *OpsWorks) AttachElasticLoadBalancerRequest(input *AttachElasticLoadBala
 // API operation AttachElasticLoadBalancer for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/AttachElasticLoadBalancer
@@ -391,10 +391,10 @@ func (c *OpsWorks) CloneStackRequest(input *CloneStackInput) (req *request.Reque
 // API operation CloneStack for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/CloneStack
@@ -465,10 +465,10 @@ func (c *OpsWorks) CreateAppRequest(input *CreateAppInput) (req *request.Request
 // API operation CreateApp for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/CreateApp
@@ -540,10 +540,10 @@ func (c *OpsWorks) CreateDeploymentRequest(input *CreateDeploymentInput) (req *r
 // API operation CreateDeployment for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/CreateDeployment
@@ -614,10 +614,10 @@ func (c *OpsWorks) CreateInstanceRequest(input *CreateInstanceInput) (req *reque
 // API operation CreateInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/CreateInstance
@@ -694,10 +694,10 @@ func (c *OpsWorks) CreateLayerRequest(input *CreateLayerInput) (req *request.Req
 // API operation CreateLayer for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/CreateLayer
@@ -766,7 +766,7 @@ func (c *OpsWorks) CreateStackRequest(input *CreateStackInput) (req *request.Req
 // API operation CreateStack for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/CreateStack
@@ -835,7 +835,7 @@ func (c *OpsWorks) CreateUserProfileRequest(input *CreateUserProfileInput) (req 
 // API operation CreateUserProfile for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/CreateUserProfile
@@ -907,10 +907,10 @@ func (c *OpsWorks) DeleteAppRequest(input *DeleteAppInput) (req *request.Request
 // API operation DeleteApp for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DeleteApp
@@ -985,10 +985,10 @@ func (c *OpsWorks) DeleteInstanceRequest(input *DeleteInstanceInput) (req *reque
 // API operation DeleteInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DeleteInstance
@@ -1062,10 +1062,10 @@ func (c *OpsWorks) DeleteLayerRequest(input *DeleteLayerInput) (req *request.Req
 // API operation DeleteLayer for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DeleteLayer
@@ -1139,10 +1139,10 @@ func (c *OpsWorks) DeleteStackRequest(input *DeleteStackInput) (req *request.Req
 // API operation DeleteStack for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DeleteStack
@@ -1213,10 +1213,10 @@ func (c *OpsWorks) DeleteUserProfileRequest(input *DeleteUserProfileInput) (req 
 // API operation DeleteUserProfile for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DeleteUserProfile
@@ -1289,10 +1289,10 @@ func (c *OpsWorks) DeregisterEcsClusterRequest(input *DeregisterEcsClusterInput)
 // API operation DeregisterEcsCluster for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DeregisterEcsCluster
@@ -1365,10 +1365,10 @@ func (c *OpsWorks) DeregisterElasticIpRequest(input *DeregisterElasticIpInput) (
 // API operation DeregisterElasticIp for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DeregisterElasticIp
@@ -1442,10 +1442,10 @@ func (c *OpsWorks) DeregisterInstanceRequest(input *DeregisterInstanceInput) (re
 // API operation DeregisterInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DeregisterInstance
@@ -1517,10 +1517,10 @@ func (c *OpsWorks) DeregisterRdsDbInstanceRequest(input *DeregisterRdsDbInstance
 // API operation DeregisterRdsDbInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DeregisterRdsDbInstance
@@ -1593,10 +1593,10 @@ func (c *OpsWorks) DeregisterVolumeRequest(input *DeregisterVolumeInput) (req *r
 // API operation DeregisterVolume for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DeregisterVolume
@@ -1663,10 +1663,10 @@ func (c *OpsWorks) DescribeAgentVersionsRequest(input *DescribeAgentVersionsInpu
 // API operation DescribeAgentVersions for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeAgentVersions
@@ -1738,10 +1738,10 @@ func (c *OpsWorks) DescribeAppsRequest(input *DescribeAppsInput) (req *request.R
 // API operation DescribeApps for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeApps
@@ -1813,10 +1813,10 @@ func (c *OpsWorks) DescribeCommandsRequest(input *DescribeCommandsInput) (req *r
 // API operation DescribeCommands for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeCommands
@@ -1888,10 +1888,10 @@ func (c *OpsWorks) DescribeDeploymentsRequest(input *DescribeDeploymentsInput) (
 // API operation DescribeDeployments for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeDeployments
@@ -1970,10 +1970,10 @@ func (c *OpsWorks) DescribeEcsClustersRequest(input *DescribeEcsClustersInput) (
 // API operation DescribeEcsClusters for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeEcsClusters
@@ -2070,10 +2070,10 @@ func (c *OpsWorks) DescribeElasticIpsRequest(input *DescribeElasticIpsInput) (re
 // API operation DescribeElasticIps for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeElasticIps
@@ -2145,10 +2145,10 @@ func (c *OpsWorks) DescribeElasticLoadBalancersRequest(input *DescribeElasticLoa
 // API operation DescribeElasticLoadBalancers for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeElasticLoadBalancers
@@ -2220,10 +2220,10 @@ func (c *OpsWorks) DescribeInstancesRequest(input *DescribeInstancesInput) (req 
 // API operation DescribeInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeInstances
@@ -2295,10 +2295,10 @@ func (c *OpsWorks) DescribeLayersRequest(input *DescribeLayersInput) (req *reque
 // API operation DescribeLayers for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeLayers
@@ -2370,10 +2370,10 @@ func (c *OpsWorks) DescribeLoadBasedAutoScalingRequest(input *DescribeLoadBasedA
 // API operation DescribeLoadBasedAutoScaling for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeLoadBasedAutoScaling
@@ -2507,10 +2507,10 @@ func (c *OpsWorks) DescribePermissionsRequest(input *DescribePermissionsInput) (
 // API operation DescribePermissions for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribePermissions
@@ -2582,10 +2582,10 @@ func (c *OpsWorks) DescribeRaidArraysRequest(input *DescribeRaidArraysInput) (re
 // API operation DescribeRaidArrays for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeRaidArrays
@@ -2655,10 +2655,10 @@ func (c *OpsWorks) DescribeRdsDbInstancesRequest(input *DescribeRdsDbInstancesIn
 // API operation DescribeRdsDbInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeRdsDbInstances
@@ -2728,10 +2728,10 @@ func (c *OpsWorks) DescribeServiceErrorsRequest(input *DescribeServiceErrorsInpu
 // API operation DescribeServiceErrors for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeServiceErrors
@@ -2801,10 +2801,10 @@ func (c *OpsWorks) DescribeStackProvisioningParametersRequest(input *DescribeSta
 // API operation DescribeStackProvisioningParameters for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeStackProvisioningParameters
@@ -2875,10 +2875,10 @@ func (c *OpsWorks) DescribeStackSummaryRequest(input *DescribeStackSummaryInput)
 // API operation DescribeStackSummary for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeStackSummary
@@ -2948,10 +2948,10 @@ func (c *OpsWorks) DescribeStacksRequest(input *DescribeStacksInput) (req *reque
 // API operation DescribeStacks for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeStacks
@@ -3023,10 +3023,10 @@ func (c *OpsWorks) DescribeTimeBasedAutoScalingRequest(input *DescribeTimeBasedA
 // API operation DescribeTimeBasedAutoScaling for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeTimeBasedAutoScaling
@@ -3095,10 +3095,10 @@ func (c *OpsWorks) DescribeUserProfilesRequest(input *DescribeUserProfilesInput)
 // API operation DescribeUserProfiles for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeUserProfiles
@@ -3170,10 +3170,10 @@ func (c *OpsWorks) DescribeVolumesRequest(input *DescribeVolumesInput) (req *req
 // API operation DescribeVolumes for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DescribeVolumes
@@ -3245,7 +3245,7 @@ func (c *OpsWorks) DetachElasticLoadBalancerRequest(input *DetachElasticLoadBala
 // API operation DetachElasticLoadBalancer for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DetachElasticLoadBalancer
@@ -3319,10 +3319,10 @@ func (c *OpsWorks) DisassociateElasticIpRequest(input *DisassociateElasticIpInpu
 // API operation DisassociateElasticIp for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/DisassociateElasticIp
@@ -3393,10 +3393,10 @@ func (c *OpsWorks) GetHostnameSuggestionRequest(input *GetHostnameSuggestionInpu
 // API operation GetHostnameSuggestion for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/GetHostnameSuggestion
@@ -3463,10 +3463,10 @@ func (c *OpsWorks) GrantAccessRequest(input *GrantAccessInput) (req *request.Req
 // API operation GrantAccess for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/GrantAccess
@@ -3539,10 +3539,10 @@ func (c *OpsWorks) RebootInstanceRequest(input *RebootInstanceInput) (req *reque
 // API operation RebootInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/RebootInstance
@@ -3614,10 +3614,10 @@ func (c *OpsWorks) RegisterEcsClusterRequest(input *RegisterEcsClusterInput) (re
 // API operation RegisterEcsCluster for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/RegisterEcsCluster
@@ -3690,10 +3690,10 @@ func (c *OpsWorks) RegisterElasticIpRequest(input *RegisterElasticIpInput) (req 
 // API operation RegisterElasticIp for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/RegisterElasticIp
@@ -3771,10 +3771,10 @@ func (c *OpsWorks) RegisterInstanceRequest(input *RegisterInstanceInput) (req *r
 // API operation RegisterInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/RegisterInstance
@@ -3846,10 +3846,10 @@ func (c *OpsWorks) RegisterRdsDbInstanceRequest(input *RegisterRdsDbInstanceInpu
 // API operation RegisterRdsDbInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/RegisterRdsDbInstance
@@ -3922,10 +3922,10 @@ func (c *OpsWorks) RegisterVolumeRequest(input *RegisterVolumeInput) (req *reque
 // API operation RegisterVolume for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/RegisterVolume
@@ -4004,10 +4004,10 @@ func (c *OpsWorks) SetLoadBasedAutoScalingRequest(input *SetLoadBasedAutoScaling
 // API operation SetLoadBasedAutoScaling for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/SetLoadBasedAutoScaling
@@ -4080,10 +4080,10 @@ func (c *OpsWorks) SetPermissionRequest(input *SetPermissionInput) (req *request
 // API operation SetPermission for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/SetPermission
@@ -4157,10 +4157,10 @@ func (c *OpsWorks) SetTimeBasedAutoScalingRequest(input *SetTimeBasedAutoScaling
 // API operation SetTimeBasedAutoScaling for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/SetTimeBasedAutoScaling
@@ -4233,10 +4233,10 @@ func (c *OpsWorks) StartInstanceRequest(input *StartInstanceInput) (req *request
 // API operation StartInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/StartInstance
@@ -4308,10 +4308,10 @@ func (c *OpsWorks) StartStackRequest(input *StartStackInput) (req *request.Reque
 // API operation StartStack for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/StartStack
@@ -4386,10 +4386,10 @@ func (c *OpsWorks) StopInstanceRequest(input *StopInstanceInput) (req *request.R
 // API operation StopInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/StopInstance
@@ -4461,10 +4461,10 @@ func (c *OpsWorks) StopStackRequest(input *StopStackInput) (req *request.Request
 // API operation StopStack for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/StopStack
@@ -4539,10 +4539,10 @@ func (c *OpsWorks) UnassignInstanceRequest(input *UnassignInstanceInput) (req *r
 // API operation UnassignInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/UnassignInstance
@@ -4615,10 +4615,10 @@ func (c *OpsWorks) UnassignVolumeRequest(input *UnassignVolumeInput) (req *reque
 // API operation UnassignVolume for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/UnassignVolume
@@ -4690,10 +4690,10 @@ func (c *OpsWorks) UpdateAppRequest(input *UpdateAppInput) (req *request.Request
 // API operation UpdateApp for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/UpdateApp
@@ -4766,10 +4766,10 @@ func (c *OpsWorks) UpdateElasticIpRequest(input *UpdateElasticIpInput) (req *req
 // API operation UpdateElasticIp for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/UpdateElasticIp
@@ -4841,10 +4841,10 @@ func (c *OpsWorks) UpdateInstanceRequest(input *UpdateInstanceInput) (req *reque
 // API operation UpdateInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/UpdateInstance
@@ -4916,10 +4916,10 @@ func (c *OpsWorks) UpdateLayerRequest(input *UpdateLayerInput) (req *request.Req
 // API operation UpdateLayer for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/UpdateLayer
@@ -4990,7 +4990,7 @@ func (c *OpsWorks) UpdateMyUserProfileRequest(input *UpdateMyUserProfileInput) (
 // API operation UpdateMyUserProfile for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/UpdateMyUserProfile
@@ -5062,10 +5062,10 @@ func (c *OpsWorks) UpdateRdsDbInstanceRequest(input *UpdateRdsDbInstanceInput) (
 // API operation UpdateRdsDbInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/UpdateRdsDbInstance
@@ -5137,10 +5137,10 @@ func (c *OpsWorks) UpdateStackRequest(input *UpdateStackInput) (req *request.Req
 // API operation UpdateStack for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/UpdateStack
@@ -5211,10 +5211,10 @@ func (c *OpsWorks) UpdateUserProfileRequest(input *UpdateUserProfileInput) (req 
 // API operation UpdateUserProfile for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/UpdateUserProfile
@@ -5287,10 +5287,10 @@ func (c *OpsWorks) UpdateVolumeRequest(input *UpdateVolumeInput) (req *request.R
 // API operation UpdateVolume for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   Indicates that a request was not valid.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Indicates that a resource was not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18/UpdateVolume

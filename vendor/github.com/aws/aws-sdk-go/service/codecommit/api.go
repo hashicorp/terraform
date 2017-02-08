@@ -74,33 +74,33 @@ func (c *CodeCommit) BatchGetRepositoriesRequest(input *BatchGetRepositoriesInpu
 // API operation BatchGetRepositories for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNamesRequiredException
+//   * ErrCodeRepositoryNamesRequiredException "RepositoryNamesRequiredException"
 //   A repository names object is required but was not specified.
 //
-//   * MaximumRepositoryNamesExceededException
+//   * ErrCodeMaximumRepositoryNamesExceededException "MaximumRepositoryNamesExceededException"
 //   The maximum number of allowed repository names was exceeded. Currently, this
 //   number is 25.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/BatchGetRepositories
@@ -170,51 +170,51 @@ func (c *CodeCommit) CreateBranchRequest(input *CreateBranchInput) (req *request
 // API operation CreateBranch for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * BranchNameRequiredException
+//   * ErrCodeBranchNameRequiredException "BranchNameRequiredException"
 //   A branch name is required but was not specified.
 //
-//   * BranchNameExistsException
+//   * ErrCodeBranchNameExistsException "BranchNameExistsException"
 //   The specified branch name already exists.
 //
-//   * InvalidBranchNameException
+//   * ErrCodeInvalidBranchNameException "InvalidBranchNameException"
 //   The specified branch name is not valid.
 //
-//   * CommitIdRequiredException
+//   * ErrCodeCommitIdRequiredException "CommitIdRequiredException"
 //   A commit ID was not specified.
 //
-//   * CommitDoesNotExistException
+//   * ErrCodeCommitDoesNotExistException "CommitDoesNotExistException"
 //   The specified commit does not exist or no commit was specified, and the specified
 //   repository has no default branch.
 //
-//   * InvalidCommitIdException
+//   * ErrCodeInvalidCommitIdException "InvalidCommitIdException"
 //   The specified commit ID is not valid.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/CreateBranch
@@ -279,38 +279,38 @@ func (c *CodeCommit) CreateRepositoryRequest(input *CreateRepositoryInput) (req 
 // API operation CreateRepository for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameExistsException
+//   * ErrCodeRepositoryNameExistsException "RepositoryNameExistsException"
 //   The specified repository name already exists.
 //
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * InvalidRepositoryDescriptionException
+//   * ErrCodeInvalidRepositoryDescriptionException "InvalidRepositoryDescriptionException"
 //   The specified repository description is not valid.
 //
-//   * RepositoryLimitExceededException
+//   * ErrCodeRepositoryLimitExceededException "RepositoryLimitExceededException"
 //   A repository resource limit was exceeded.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/CreateRepository
@@ -380,29 +380,29 @@ func (c *CodeCommit) DeleteRepositoryRequest(input *DeleteRepositoryInput) (req 
 // API operation DeleteRepository for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteRepository
@@ -467,44 +467,44 @@ func (c *CodeCommit) GetBlobRequest(input *GetBlobInput) (req *request.Request, 
 // API operation GetBlob for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * BlobIdRequiredException
+//   * ErrCodeBlobIdRequiredException "BlobIdRequiredException"
 //   A blob ID is required but was not specified.
 //
-//   * InvalidBlobIdException
+//   * ErrCodeInvalidBlobIdException "InvalidBlobIdException"
 //   The specified blob is not valid.
 //
-//   * BlobIdDoesNotExistException
+//   * ErrCodeBlobIdDoesNotExistException "BlobIdDoesNotExistException"
 //   The specified blob does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
-//   * FileTooLargeException
+//   * ErrCodeFileTooLargeException "FileTooLargeException"
 //   The specified file exceeds the file size limit for AWS CodeCommit. For more
 //   information about limits in AWS CodeCommit, see AWS CodeCommit User Guide
 //   (http://docs.aws.amazon.com/codecommit/latest/userguide/limits.html).
@@ -572,41 +572,41 @@ func (c *CodeCommit) GetBranchRequest(input *GetBranchInput) (req *request.Reque
 // API operation GetBranch for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * BranchNameRequiredException
+//   * ErrCodeBranchNameRequiredException "BranchNameRequiredException"
 //   A branch name is required but was not specified.
 //
-//   * InvalidBranchNameException
+//   * ErrCodeInvalidBranchNameException "InvalidBranchNameException"
 //   The specified branch name is not valid.
 //
-//   * BranchDoesNotExistException
+//   * ErrCodeBranchDoesNotExistException "BranchDoesNotExistException"
 //   The specified branch does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetBranch
@@ -672,41 +672,41 @@ func (c *CodeCommit) GetCommitRequest(input *GetCommitInput) (req *request.Reque
 // API operation GetCommit for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * CommitIdRequiredException
+//   * ErrCodeCommitIdRequiredException "CommitIdRequiredException"
 //   A commit ID was not specified.
 //
-//   * InvalidCommitIdException
+//   * ErrCodeInvalidCommitIdException "InvalidCommitIdException"
 //   The specified commit ID is not valid.
 //
-//   * CommitIdDoesNotExistException
+//   * ErrCodeCommitIdDoesNotExistException "CommitIdDoesNotExistException"
 //   The specified commit ID does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetCommit
@@ -779,57 +779,57 @@ func (c *CodeCommit) GetDifferencesRequest(input *GetDifferencesInput) (req *req
 // API operation GetDifferences for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * InvalidContinuationTokenException
+//   * ErrCodeInvalidContinuationTokenException "InvalidContinuationTokenException"
 //   The specified continuation token is not valid.
 //
-//   * InvalidMaxResultsException
+//   * ErrCodeInvalidMaxResultsException "InvalidMaxResultsException"
 //   The specified number of maximum results is not valid.
 //
-//   * InvalidCommitIdException
+//   * ErrCodeInvalidCommitIdException "InvalidCommitIdException"
 //   The specified commit ID is not valid.
 //
-//   * CommitRequiredException
+//   * ErrCodeCommitRequiredException "CommitRequiredException"
 //   A commit was not specified.
 //
-//   * InvalidCommitException
+//   * ErrCodeInvalidCommitException "InvalidCommitException"
 //   The specified commit is not valid.
 //
-//   * CommitDoesNotExistException
+//   * ErrCodeCommitDoesNotExistException "CommitDoesNotExistException"
 //   The specified commit does not exist or no commit was specified, and the specified
 //   repository has no default branch.
 //
-//   * InvalidPathException
+//   * ErrCodeInvalidPathException "InvalidPathException"
 //   The specified path is not valid.
 //
-//   * PathDoesNotExistException
+//   * ErrCodePathDoesNotExistException "PathDoesNotExistException"
 //   The specified path does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetDifferences
@@ -925,32 +925,32 @@ func (c *CodeCommit) GetRepositoryRequest(input *GetRepositoryInput) (req *reque
 // API operation GetRepository for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetRepository
@@ -1015,32 +1015,32 @@ func (c *CodeCommit) GetRepositoryTriggersRequest(input *GetRepositoryTriggersIn
 // API operation GetRepositoryTriggers for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetRepositoryTriggers
@@ -1111,35 +1111,35 @@ func (c *CodeCommit) ListBranchesRequest(input *ListBranchesInput) (req *request
 // API operation ListBranches for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
-//   * InvalidContinuationTokenException
+//   * ErrCodeInvalidContinuationTokenException "InvalidContinuationTokenException"
 //   The specified continuation token is not valid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/ListBranches
@@ -1235,13 +1235,13 @@ func (c *CodeCommit) ListRepositoriesRequest(input *ListRepositoriesInput) (req 
 // API operation ListRepositories for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidSortByException
+//   * ErrCodeInvalidSortByException "InvalidSortByException"
 //   The specified sort by value is not valid.
 //
-//   * InvalidOrderException
+//   * ErrCodeInvalidOrderException "InvalidOrderException"
 //   The specified sort order is not valid.
 //
-//   * InvalidContinuationTokenException
+//   * ErrCodeInvalidContinuationTokenException "InvalidContinuationTokenException"
 //   The specified continuation token is not valid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/ListRepositories
@@ -1332,77 +1332,77 @@ func (c *CodeCommit) PutRepositoryTriggersRequest(input *PutRepositoryTriggersIn
 // API operation PutRepositoryTriggers for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * RepositoryTriggersListRequiredException
+//   * ErrCodeRepositoryTriggersListRequiredException "RepositoryTriggersListRequiredException"
 //   The list of triggers for the repository is required but was not specified.
 //
-//   * MaximumRepositoryTriggersExceededException
+//   * ErrCodeMaximumRepositoryTriggersExceededException "MaximumRepositoryTriggersExceededException"
 //   The number of triggers allowed for the repository was exceeded.
 //
-//   * InvalidRepositoryTriggerNameException
+//   * ErrCodeInvalidRepositoryTriggerNameException "InvalidRepositoryTriggerNameException"
 //   The name of the trigger is not valid.
 //
-//   * InvalidRepositoryTriggerDestinationArnException
+//   * ErrCodeInvalidRepositoryTriggerDestinationArnException "InvalidRepositoryTriggerDestinationArnException"
 //   The Amazon Resource Name (ARN) for the trigger is not valid for the specified
 //   destination. The most common reason for this error is that the ARN does not
 //   meet the requirements for the service type.
 //
-//   * InvalidRepositoryTriggerRegionException
+//   * ErrCodeInvalidRepositoryTriggerRegionException "InvalidRepositoryTriggerRegionException"
 //   The region for the trigger target does not match the region for the repository.
 //   Triggers must be created in the same region as the target for the trigger.
 //
-//   * InvalidRepositoryTriggerCustomDataException
+//   * ErrCodeInvalidRepositoryTriggerCustomDataException "InvalidRepositoryTriggerCustomDataException"
 //   The custom data provided for the trigger is not valid.
 //
-//   * MaximumBranchesExceededException
+//   * ErrCodeMaximumBranchesExceededException "MaximumBranchesExceededException"
 //   The number of branches for the trigger was exceeded.
 //
-//   * InvalidRepositoryTriggerBranchNameException
+//   * ErrCodeInvalidRepositoryTriggerBranchNameException "InvalidRepositoryTriggerBranchNameException"
 //   One or more branch names specified for the trigger is not valid.
 //
-//   * InvalidRepositoryTriggerEventsException
+//   * ErrCodeInvalidRepositoryTriggerEventsException "InvalidRepositoryTriggerEventsException"
 //   One or more events specified for the trigger is not valid. Check to make
 //   sure that all events specified match the requirements for allowed events.
 //
-//   * RepositoryTriggerNameRequiredException
+//   * ErrCodeRepositoryTriggerNameRequiredException "RepositoryTriggerNameRequiredException"
 //   A name for the trigger is required but was not specified.
 //
-//   * RepositoryTriggerDestinationArnRequiredException
+//   * ErrCodeRepositoryTriggerDestinationArnRequiredException "RepositoryTriggerDestinationArnRequiredException"
 //   A destination ARN for the target service for the trigger is required but
 //   was not specified.
 //
-//   * RepositoryTriggerBranchNameListRequiredException
+//   * ErrCodeRepositoryTriggerBranchNameListRequiredException "RepositoryTriggerBranchNameListRequiredException"
 //   At least one branch name is required but was not specified in the trigger
 //   configuration.
 //
-//   * RepositoryTriggerEventsListRequiredException
+//   * ErrCodeRepositoryTriggerEventsListRequiredException "RepositoryTriggerEventsListRequiredException"
 //   At least one event for the trigger is required but was not specified.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PutRepositoryTriggers
@@ -1470,77 +1470,77 @@ func (c *CodeCommit) TestRepositoryTriggersRequest(input *TestRepositoryTriggers
 // API operation TestRepositoryTriggers for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * RepositoryTriggersListRequiredException
+//   * ErrCodeRepositoryTriggersListRequiredException "RepositoryTriggersListRequiredException"
 //   The list of triggers for the repository is required but was not specified.
 //
-//   * MaximumRepositoryTriggersExceededException
+//   * ErrCodeMaximumRepositoryTriggersExceededException "MaximumRepositoryTriggersExceededException"
 //   The number of triggers allowed for the repository was exceeded.
 //
-//   * InvalidRepositoryTriggerNameException
+//   * ErrCodeInvalidRepositoryTriggerNameException "InvalidRepositoryTriggerNameException"
 //   The name of the trigger is not valid.
 //
-//   * InvalidRepositoryTriggerDestinationArnException
+//   * ErrCodeInvalidRepositoryTriggerDestinationArnException "InvalidRepositoryTriggerDestinationArnException"
 //   The Amazon Resource Name (ARN) for the trigger is not valid for the specified
 //   destination. The most common reason for this error is that the ARN does not
 //   meet the requirements for the service type.
 //
-//   * InvalidRepositoryTriggerRegionException
+//   * ErrCodeInvalidRepositoryTriggerRegionException "InvalidRepositoryTriggerRegionException"
 //   The region for the trigger target does not match the region for the repository.
 //   Triggers must be created in the same region as the target for the trigger.
 //
-//   * InvalidRepositoryTriggerCustomDataException
+//   * ErrCodeInvalidRepositoryTriggerCustomDataException "InvalidRepositoryTriggerCustomDataException"
 //   The custom data provided for the trigger is not valid.
 //
-//   * MaximumBranchesExceededException
+//   * ErrCodeMaximumBranchesExceededException "MaximumBranchesExceededException"
 //   The number of branches for the trigger was exceeded.
 //
-//   * InvalidRepositoryTriggerBranchNameException
+//   * ErrCodeInvalidRepositoryTriggerBranchNameException "InvalidRepositoryTriggerBranchNameException"
 //   One or more branch names specified for the trigger is not valid.
 //
-//   * InvalidRepositoryTriggerEventsException
+//   * ErrCodeInvalidRepositoryTriggerEventsException "InvalidRepositoryTriggerEventsException"
 //   One or more events specified for the trigger is not valid. Check to make
 //   sure that all events specified match the requirements for allowed events.
 //
-//   * RepositoryTriggerNameRequiredException
+//   * ErrCodeRepositoryTriggerNameRequiredException "RepositoryTriggerNameRequiredException"
 //   A name for the trigger is required but was not specified.
 //
-//   * RepositoryTriggerDestinationArnRequiredException
+//   * ErrCodeRepositoryTriggerDestinationArnRequiredException "RepositoryTriggerDestinationArnRequiredException"
 //   A destination ARN for the target service for the trigger is required but
 //   was not specified.
 //
-//   * RepositoryTriggerBranchNameListRequiredException
+//   * ErrCodeRepositoryTriggerBranchNameListRequiredException "RepositoryTriggerBranchNameListRequiredException"
 //   At least one branch name is required but was not specified in the trigger
 //   configuration.
 //
-//   * RepositoryTriggerEventsListRequiredException
+//   * ErrCodeRepositoryTriggerEventsListRequiredException "RepositoryTriggerEventsListRequiredException"
 //   At least one event for the trigger is required but was not specified.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/TestRepositoryTriggers
@@ -1611,41 +1611,41 @@ func (c *CodeCommit) UpdateDefaultBranchRequest(input *UpdateDefaultBranchInput)
 // API operation UpdateDefaultBranch for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * BranchNameRequiredException
+//   * ErrCodeBranchNameRequiredException "BranchNameRequiredException"
 //   A branch name is required but was not specified.
 //
-//   * InvalidBranchNameException
+//   * ErrCodeInvalidBranchNameException "InvalidBranchNameException"
 //   The specified branch name is not valid.
 //
-//   * BranchDoesNotExistException
+//   * ErrCodeBranchDoesNotExistException "BranchDoesNotExistException"
 //   The specified branch does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdateDefaultBranch
@@ -1718,35 +1718,35 @@ func (c *CodeCommit) UpdateRepositoryDescriptionRequest(input *UpdateRepositoryD
 // API operation UpdateRepositoryDescription for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * InvalidRepositoryDescriptionException
+//   * ErrCodeInvalidRepositoryDescriptionException "InvalidRepositoryDescriptionException"
 //   The specified repository description is not valid.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdateRepositoryDescription
@@ -1818,16 +1818,16 @@ func (c *CodeCommit) UpdateRepositoryNameRequest(input *UpdateRepositoryNameInpu
 // API operation UpdateRepositoryName for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * RepositoryNameExistsException
+//   * ErrCodeRepositoryNameExistsException "RepositoryNameExistsException"
 //   The specified repository name already exists.
 //
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.

@@ -217,14 +217,14 @@ func (c *CloudFormation) CreateChangeSetRequest(input *CreateChangeSetInput) (re
 // API operation CreateChangeSet for usage and error information.
 //
 // Returned Error Codes:
-//   * AlreadyExistsException
+//   * ErrCodeAlreadyExistsException "AlreadyExistsException"
 //   Resource with the name requested already exists.
 //
-//   * InsufficientCapabilitiesException
+//   * ErrCodeInsufficientCapabilitiesException "InsufficientCapabilitiesException"
 //   The template contains resources with capabilities that were not specified
 //   in the Capabilities parameter.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   Quota for the resource has already been reached.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/CreateChangeSet
@@ -291,13 +291,13 @@ func (c *CloudFormation) CreateStackRequest(input *CreateStackInput) (req *reque
 // API operation CreateStack for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   Quota for the resource has already been reached.
 //
-//   * AlreadyExistsException
+//   * ErrCodeAlreadyExistsException "AlreadyExistsException"
 //   Resource with the name requested already exists.
 //
-//   * InsufficientCapabilitiesException
+//   * ErrCodeInsufficientCapabilitiesException "InsufficientCapabilitiesException"
 //   The template contains resources with capabilities that were not specified
 //   in the Capabilities parameter.
 //
@@ -367,7 +367,7 @@ func (c *CloudFormation) DeleteChangeSetRequest(input *DeleteChangeSetInput) (re
 // API operation DeleteChangeSet for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidChangeSetStatus
+//   * ErrCodeInvalidChangeSetStatusException "InvalidChangeSetStatus"
 //   The specified change set cannot be used to update the stack. For example,
 //   the change set status might be CREATE_IN_PROGRESS or the stack status might
 //   be UPDATE_IN_PROGRESS.
@@ -562,7 +562,7 @@ func (c *CloudFormation) DescribeChangeSetRequest(input *DescribeChangeSetInput)
 // API operation DescribeChangeSet for usage and error information.
 //
 // Returned Error Codes:
-//   * ChangeSetNotFound
+//   * ErrCodeChangeSetNotFoundException "ChangeSetNotFound"
 //   The specified change set name or ID doesn't exit. To view valid change sets
 //   for a stack, use the ListChangeSets action.
 //
@@ -1031,16 +1031,16 @@ func (c *CloudFormation) ExecuteChangeSetRequest(input *ExecuteChangeSetInput) (
 // API operation ExecuteChangeSet for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidChangeSetStatus
+//   * ErrCodeInvalidChangeSetStatusException "InvalidChangeSetStatus"
 //   The specified change set cannot be used to update the stack. For example,
 //   the change set status might be CREATE_IN_PROGRESS or the stack status might
 //   be UPDATE_IN_PROGRESS.
 //
-//   * ChangeSetNotFound
+//   * ErrCodeChangeSetNotFoundException "ChangeSetNotFound"
 //   The specified change set name or ID doesn't exit. To view valid change sets
 //   for a stack, use the ListChangeSets action.
 //
-//   * InsufficientCapabilitiesException
+//   * ErrCodeInsufficientCapabilitiesException "InsufficientCapabilitiesException"
 //   The template contains resources with capabilities that were not specified
 //   in the Capabilities parameter.
 //
@@ -1173,7 +1173,7 @@ func (c *CloudFormation) GetTemplateRequest(input *GetTemplateInput) (req *reque
 // API operation GetTemplate for usage and error information.
 //
 // Returned Error Codes:
-//   * ChangeSetNotFound
+//   * ErrCodeChangeSetNotFoundException "ChangeSetNotFound"
 //   The specified change set name or ID doesn't exit. To view valid change sets
 //   for a stack, use the ListChangeSets action.
 //
@@ -1828,7 +1828,7 @@ func (c *CloudFormation) UpdateStackRequest(input *UpdateStackInput) (req *reque
 // API operation UpdateStack for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientCapabilitiesException
+//   * ErrCodeInsufficientCapabilitiesException "InsufficientCapabilitiesException"
 //   The template contains resources with capabilities that were not specified
 //   in the Capabilities parameter.
 //

@@ -75,10 +75,10 @@ func (c *CloudWatchEvents) DeleteRuleRequest(input *DeleteRuleInput) (req *reque
 // API operation DeleteRule for usage and error information.
 //
 // Returned Error Codes:
-//   * ConcurrentModificationException
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
 //   This exception occurs if there is concurrent modification on rule or target.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DeleteRule
@@ -143,10 +143,10 @@ func (c *CloudWatchEvents) DescribeRuleRequest(input *DescribeRuleInput) (req *r
 // API operation DescribeRule for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The rule does not exist.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeRule
@@ -218,13 +218,13 @@ func (c *CloudWatchEvents) DisableRuleRequest(input *DisableRuleInput) (req *req
 // API operation DisableRule for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The rule does not exist.
 //
-//   * ConcurrentModificationException
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
 //   This exception occurs if there is concurrent modification on rule or target.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DisableRule
@@ -295,13 +295,13 @@ func (c *CloudWatchEvents) EnableRuleRequest(input *EnableRuleInput) (req *reque
 // API operation EnableRule for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The rule does not exist.
 //
-//   * ConcurrentModificationException
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
 //   This exception occurs if there is concurrent modification on rule or target.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/EnableRule
@@ -371,7 +371,7 @@ func (c *CloudWatchEvents) ListRuleNamesByTargetRequest(input *ListRuleNamesByTa
 // API operation ListRuleNamesByTarget for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRuleNamesByTarget
@@ -440,7 +440,7 @@ func (c *CloudWatchEvents) ListRulesRequest(input *ListRulesInput) (req *request
 // API operation ListRules for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRules
@@ -505,10 +505,10 @@ func (c *CloudWatchEvents) ListTargetsByRuleRequest(input *ListTargetsByRuleInpu
 // API operation ListTargetsByRule for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The rule does not exist.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListTargetsByRule
@@ -574,7 +574,7 @@ func (c *CloudWatchEvents) PutEventsRequest(input *PutEventsInput) (req *request
 // API operation PutEvents for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEvents
@@ -655,17 +655,17 @@ func (c *CloudWatchEvents) PutRuleRequest(input *PutRuleInput) (req *request.Req
 // API operation PutRule for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidEventPatternException
+//   * ErrCodeInvalidEventPatternException "InvalidEventPatternException"
 //   The event pattern is invalid.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   This exception occurs if you try to create more rules or add more targets
 //   to a rule than allowed by default.
 //
-//   * ConcurrentModificationException
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
 //   This exception occurs if there is concurrent modification on rule or target.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutRule
@@ -755,17 +755,17 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 // API operation PutTargets for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The rule does not exist.
 //
-//   * ConcurrentModificationException
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
 //   This exception occurs if there is concurrent modification on rule or target.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   This exception occurs if you try to create more rules or add more targets
 //   to a rule than allowed by default.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutTargets
@@ -835,13 +835,13 @@ func (c *CloudWatchEvents) RemoveTargetsRequest(input *RemoveTargetsInput) (req 
 // API operation RemoveTargets for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The rule does not exist.
 //
-//   * ConcurrentModificationException
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
 //   This exception occurs if there is concurrent modification on rule or target.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemoveTargets
@@ -911,10 +911,10 @@ func (c *CloudWatchEvents) TestEventPatternRequest(input *TestEventPatternInput)
 // API operation TestEventPattern for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidEventPatternException
+//   * ErrCodeInvalidEventPatternException "InvalidEventPatternException"
 //   The event pattern is invalid.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/TestEventPattern

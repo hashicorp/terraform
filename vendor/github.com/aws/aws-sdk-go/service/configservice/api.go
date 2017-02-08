@@ -76,11 +76,11 @@ func (c *ConfigService) DeleteConfigRuleRequest(input *DeleteConfigRuleInput) (r
 // API operation DeleteConfigRule for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchConfigRuleException
+//   * ErrCodeNoSuchConfigRuleException "NoSuchConfigRuleException"
 //   One or more AWS Config rules in the request are invalid. Verify that the
 //   rule names are correct and try again.
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The rule is currently being deleted or the rule is deleting your evaluation
 //   results. Try your request again later.
 //
@@ -157,7 +157,7 @@ func (c *ConfigService) DeleteConfigurationRecorderRequest(input *DeleteConfigur
 // API operation DeleteConfigurationRecorder for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchConfigurationRecorderException
+//   * ErrCodeNoSuchConfigurationRecorderException "NoSuchConfigurationRecorderException"
 //   You have specified a configuration recorder that does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeleteConfigurationRecorder
@@ -227,10 +227,10 @@ func (c *ConfigService) DeleteDeliveryChannelRequest(input *DeleteDeliveryChanne
 // API operation DeleteDeliveryChannel for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchDeliveryChannelException
+//   * ErrCodeNoSuchDeliveryChannelException "NoSuchDeliveryChannelException"
 //   You have specified a delivery channel that does not exist.
 //
-//   * LastDeliveryChannelDeleteFailedException
+//   * ErrCodeLastDeliveryChannelDeleteFailedException "LastDeliveryChannelDeleteFailedException"
 //   You cannot delete the delivery channel you specified because the configuration
 //   recorder is running.
 //
@@ -299,11 +299,11 @@ func (c *ConfigService) DeleteEvaluationResultsRequest(input *DeleteEvaluationRe
 // API operation DeleteEvaluationResults for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchConfigRuleException
+//   * ErrCodeNoSuchConfigRuleException "NoSuchConfigRuleException"
 //   One or more AWS Config rules in the request are invalid. Verify that the
 //   rule names are correct and try again.
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The rule is currently being deleted or the rule is deleting your evaluation
 //   results. Try your request again later.
 //
@@ -378,14 +378,14 @@ func (c *ConfigService) DeliverConfigSnapshotRequest(input *DeliverConfigSnapsho
 // API operation DeliverConfigSnapshot for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchDeliveryChannelException
+//   * ErrCodeNoSuchDeliveryChannelException "NoSuchDeliveryChannelException"
 //   You have specified a delivery channel that does not exist.
 //
-//   * NoAvailableConfigurationRecorderException
+//   * ErrCodeNoAvailableConfigurationRecorderException "NoAvailableConfigurationRecorderException"
 //   There are no configuration recorders available to provide the role needed
 //   to describe your resources. Create a configuration recorder.
 //
-//   * NoRunningConfigurationRecorderException
+//   * ErrCodeNoRunningConfigurationRecorderException "NoRunningConfigurationRecorderException"
 //   There is no configuration recorder running.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DeliverConfigSnapshot
@@ -472,15 +472,15 @@ func (c *ConfigService) DescribeComplianceByConfigRuleRequest(input *DescribeCom
 // API operation DescribeComplianceByConfigRule for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One or more of the specified parameters are invalid. Verify that your parameters
 //   are valid and try again.
 //
-//   * NoSuchConfigRuleException
+//   * ErrCodeNoSuchConfigRuleException "NoSuchConfigRuleException"
 //   One or more AWS Config rules in the request are invalid. Verify that the
 //   rule names are correct and try again.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The specified next token is invalid. Specify the NextToken string that was
 //   returned in the previous response to get the next page of results.
 //
@@ -570,11 +570,11 @@ func (c *ConfigService) DescribeComplianceByResourceRequest(input *DescribeCompl
 // API operation DescribeComplianceByResource for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One or more of the specified parameters are invalid. Verify that your parameters
 //   are valid and try again.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The specified next token is invalid. Specify the NextToken string that was
 //   returned in the previous response to get the next page of results.
 //
@@ -643,15 +643,15 @@ func (c *ConfigService) DescribeConfigRuleEvaluationStatusRequest(input *Describ
 // API operation DescribeConfigRuleEvaluationStatus for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchConfigRuleException
+//   * ErrCodeNoSuchConfigRuleException "NoSuchConfigRuleException"
 //   One or more AWS Config rules in the request are invalid. Verify that the
 //   rule names are correct and try again.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One or more of the specified parameters are invalid. Verify that your parameters
 //   are valid and try again.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The specified next token is invalid. Specify the NextToken string that was
 //   returned in the previous response to get the next page of results.
 //
@@ -717,11 +717,11 @@ func (c *ConfigService) DescribeConfigRulesRequest(input *DescribeConfigRulesInp
 // API operation DescribeConfigRules for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchConfigRuleException
+//   * ErrCodeNoSuchConfigRuleException "NoSuchConfigRuleException"
 //   One or more AWS Config rules in the request are invalid. Verify that the
 //   rule names are correct and try again.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The specified next token is invalid. Specify the NextToken string that was
 //   returned in the previous response to get the next page of results.
 //
@@ -792,7 +792,7 @@ func (c *ConfigService) DescribeConfigurationRecorderStatusRequest(input *Descri
 // API operation DescribeConfigurationRecorderStatus for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchConfigurationRecorderException
+//   * ErrCodeNoSuchConfigurationRecorderException "NoSuchConfigurationRecorderException"
 //   You have specified a configuration recorder that does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorderStatus
@@ -862,7 +862,7 @@ func (c *ConfigService) DescribeConfigurationRecordersRequest(input *DescribeCon
 // API operation DescribeConfigurationRecorders for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchConfigurationRecorderException
+//   * ErrCodeNoSuchConfigurationRecorderException "NoSuchConfigurationRecorderException"
 //   You have specified a configuration recorder that does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeConfigurationRecorders
@@ -931,7 +931,7 @@ func (c *ConfigService) DescribeDeliveryChannelStatusRequest(input *DescribeDeli
 // API operation DescribeDeliveryChannelStatus for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchDeliveryChannelException
+//   * ErrCodeNoSuchDeliveryChannelException "NoSuchDeliveryChannelException"
 //   You have specified a delivery channel that does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannelStatus
@@ -1000,7 +1000,7 @@ func (c *ConfigService) DescribeDeliveryChannelsRequest(input *DescribeDeliveryC
 // API operation DescribeDeliveryChannels for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchDeliveryChannelException
+//   * ErrCodeNoSuchDeliveryChannelException "NoSuchDeliveryChannelException"
 //   You have specified a delivery channel that does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/DescribeDeliveryChannels
@@ -1067,15 +1067,15 @@ func (c *ConfigService) GetComplianceDetailsByConfigRuleRequest(input *GetCompli
 // API operation GetComplianceDetailsByConfigRule for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One or more of the specified parameters are invalid. Verify that your parameters
 //   are valid and try again.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The specified next token is invalid. Specify the NextToken string that was
 //   returned in the previous response to get the next page of results.
 //
-//   * NoSuchConfigRuleException
+//   * ErrCodeNoSuchConfigRuleException "NoSuchConfigRuleException"
 //   One or more AWS Config rules in the request are invalid. Verify that the
 //   rule names are correct and try again.
 //
@@ -1143,7 +1143,7 @@ func (c *ConfigService) GetComplianceDetailsByResourceRequest(input *GetComplian
 // API operation GetComplianceDetailsByResource for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One or more of the specified parameters are invalid. Verify that your parameters
 //   are valid and try again.
 //
@@ -1272,7 +1272,7 @@ func (c *ConfigService) GetComplianceSummaryByResourceTypeRequest(input *GetComp
 // API operation GetComplianceSummaryByResourceType for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One or more of the specified parameters are invalid. Verify that your parameters
 //   are valid and try again.
 //
@@ -1356,25 +1356,25 @@ func (c *ConfigService) GetResourceConfigHistoryRequest(input *GetResourceConfig
 // API operation GetResourceConfigHistory for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   The requested action is not valid.
 //
-//   * InvalidTimeRangeException
+//   * ErrCodeInvalidTimeRangeException "InvalidTimeRangeException"
 //   The specified time range is not valid. The earlier time is not chronologically
 //   before the later time.
 //
-//   * InvalidLimitException
+//   * ErrCodeInvalidLimitException "InvalidLimitException"
 //   The specified limit is outside the allowable range.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The specified next token is invalid. Specify the NextToken string that was
 //   returned in the previous response to get the next page of results.
 //
-//   * NoAvailableConfigurationRecorderException
+//   * ErrCodeNoAvailableConfigurationRecorderException "NoAvailableConfigurationRecorderException"
 //   There are no configuration recorders available to provide the role needed
 //   to describe your resources. Create a configuration recorder.
 //
-//   * ResourceNotDiscoveredException
+//   * ErrCodeResourceNotDiscoveredException "ResourceNotDiscoveredException"
 //   You have specified a resource that is either unknown or has not been discovered.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/GetResourceConfigHistory
@@ -1477,17 +1477,17 @@ func (c *ConfigService) ListDiscoveredResourcesRequest(input *ListDiscoveredReso
 // API operation ListDiscoveredResources for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   The requested action is not valid.
 //
-//   * InvalidLimitException
+//   * ErrCodeInvalidLimitException "InvalidLimitException"
 //   The specified limit is outside the allowable range.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The specified next token is invalid. Specify the NextToken string that was
 //   returned in the previous response to get the next page of results.
 //
-//   * NoAvailableConfigurationRecorderException
+//   * ErrCodeNoAvailableConfigurationRecorderException "NoAvailableConfigurationRecorderException"
 //   There are no configuration recorders available to provide the role needed
 //   to describe your resources. Create a configuration recorder.
 //
@@ -1589,20 +1589,20 @@ func (c *ConfigService) PutConfigRuleRequest(input *PutConfigRuleInput) (req *re
 // API operation PutConfigRule for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One or more of the specified parameters are invalid. Verify that your parameters
 //   are valid and try again.
 //
-//   * MaxNumberOfConfigRulesExceededException
+//   * ErrCodeMaxNumberOfConfigRulesExceededException "MaxNumberOfConfigRulesExceededException"
 //   Failed to add the AWS Config rule because the account already contains the
 //   maximum number of 50 rules. Consider deleting any deactivated rules before
 //   adding new rules.
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The rule is currently being deleted or the rule is deleting your evaluation
 //   results. Try your request again later.
 //
-//   * InsufficientPermissionsException
+//   * ErrCodeInsufficientPermissionsException "InsufficientPermissionsException"
 //   Indicates one of the following errors:
 //
 //      * The rule cannot be created because the IAM role assigned to AWS Config
@@ -1611,7 +1611,7 @@ func (c *ConfigService) PutConfigRuleRequest(input *PutConfigRuleInput) (req *re
 //      * The AWS Lambda function cannot be invoked. Check the function ARN, and
 //      check the function's permissions.
 //
-//   * NoAvailableConfigurationRecorderException
+//   * ErrCodeNoAvailableConfigurationRecorderException "NoAvailableConfigurationRecorderException"
 //   There are no configuration recorders available to provide the role needed
 //   to describe your resources. Create a configuration recorder.
 //
@@ -1689,16 +1689,16 @@ func (c *ConfigService) PutConfigurationRecorderRequest(input *PutConfigurationR
 // API operation PutConfigurationRecorder for usage and error information.
 //
 // Returned Error Codes:
-//   * MaxNumberOfConfigurationRecordersExceededException
+//   * ErrCodeMaxNumberOfConfigurationRecordersExceededException "MaxNumberOfConfigurationRecordersExceededException"
 //   You have reached the limit on the number of recorders you can create.
 //
-//   * InvalidConfigurationRecorderNameException
+//   * ErrCodeInvalidConfigurationRecorderNameException "InvalidConfigurationRecorderNameException"
 //   You have provided a configuration recorder name that is not valid.
 //
-//   * InvalidRoleException
+//   * ErrCodeInvalidRoleException "InvalidRoleException"
 //   You have provided a null or empty role ARN.
 //
-//   * InvalidRecordingGroupException
+//   * ErrCodeInvalidRecordingGroupException "InvalidRecordingGroupException"
 //   AWS Config throws an exception if the recording group does not contain a
 //   valid list of resource types. Invalid values could also be incorrectly formatted.
 //
@@ -1779,26 +1779,26 @@ func (c *ConfigService) PutDeliveryChannelRequest(input *PutDeliveryChannelInput
 // API operation PutDeliveryChannel for usage and error information.
 //
 // Returned Error Codes:
-//   * MaxNumberOfDeliveryChannelsExceededException
+//   * ErrCodeMaxNumberOfDeliveryChannelsExceededException "MaxNumberOfDeliveryChannelsExceededException"
 //   You have reached the limit on the number of delivery channels you can create.
 //
-//   * NoAvailableConfigurationRecorderException
+//   * ErrCodeNoAvailableConfigurationRecorderException "NoAvailableConfigurationRecorderException"
 //   There are no configuration recorders available to provide the role needed
 //   to describe your resources. Create a configuration recorder.
 //
-//   * InvalidDeliveryChannelNameException
+//   * ErrCodeInvalidDeliveryChannelNameException "InvalidDeliveryChannelNameException"
 //   The specified delivery channel name is not valid.
 //
-//   * NoSuchBucketException
+//   * ErrCodeNoSuchBucketException "NoSuchBucketException"
 //   The specified Amazon S3 bucket does not exist.
 //
-//   * InvalidS3KeyPrefixException
+//   * ErrCodeInvalidS3KeyPrefixException "InvalidS3KeyPrefixException"
 //   The specified Amazon S3 key prefix is not valid.
 //
-//   * InvalidSNSTopicARNException
+//   * ErrCodeInvalidSNSTopicARNException "InvalidSNSTopicARNException"
 //   The specified Amazon SNS topic does not exist.
 //
-//   * InsufficientDeliveryPolicyException
+//   * ErrCodeInsufficientDeliveryPolicyException "InsufficientDeliveryPolicyException"
 //   Your Amazon S3 bucket policy does not permit AWS Config to write to it.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/PutDeliveryChannel
@@ -1865,14 +1865,14 @@ func (c *ConfigService) PutEvaluationsRequest(input *PutEvaluationsInput) (req *
 // API operation PutEvaluations for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One or more of the specified parameters are invalid. Verify that your parameters
 //   are valid and try again.
 //
-//   * InvalidResultTokenException
+//   * ErrCodeInvalidResultTokenException "InvalidResultTokenException"
 //   The speNexcified token is invalid.
 //
-//   * NoSuchConfigRuleException
+//   * ErrCodeNoSuchConfigRuleException "NoSuchConfigRuleException"
 //   One or more AWS Config rules in the request are invalid. Verify that the
 //   rule names are correct and try again.
 //
@@ -1967,19 +1967,19 @@ func (c *ConfigService) StartConfigRulesEvaluationRequest(input *StartConfigRule
 // API operation StartConfigRulesEvaluation for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchConfigRuleException
+//   * ErrCodeNoSuchConfigRuleException "NoSuchConfigRuleException"
 //   One or more AWS Config rules in the request are invalid. Verify that the
 //   rule names are correct and try again.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   This exception is thrown if an evaluation is in progress or if you call the
 //   StartConfigRulesEvaluation API more than once per minute.
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The rule is currently being deleted or the rule is deleting your evaluation
 //   results. Try your request again later.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   One or more of the specified parameters are invalid. Verify that your parameters
 //   are valid and try again.
 //
@@ -2051,10 +2051,10 @@ func (c *ConfigService) StartConfigurationRecorderRequest(input *StartConfigurat
 // API operation StartConfigurationRecorder for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchConfigurationRecorderException
+//   * ErrCodeNoSuchConfigurationRecorderException "NoSuchConfigurationRecorderException"
 //   You have specified a configuration recorder that does not exist.
 //
-//   * NoAvailableDeliveryChannelException
+//   * ErrCodeNoAvailableDeliveryChannelException "NoAvailableDeliveryChannelException"
 //   There is no delivery channel available to record configurations.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StartConfigurationRecorder
@@ -2122,7 +2122,7 @@ func (c *ConfigService) StopConfigurationRecorderRequest(input *StopConfiguratio
 // API operation StopConfigurationRecorder for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchConfigurationRecorderException
+//   * ErrCodeNoSuchConfigurationRecorderException "NoSuchConfigurationRecorderException"
 //   You have specified a configuration recorder that does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/config-2014-11-12/StopConfigurationRecorder
