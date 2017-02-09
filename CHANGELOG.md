@@ -30,6 +30,7 @@ Bug FIXES:
  * provider/aws: Make aws_dms_endpoint database_name optional [GH-11792]
  * provider/aws: Bump Create and Delete timeouts to 60 mins on directory_service [GH-11793]
  * provider/google: set additional_zones to computed and disallow the original zone from appearing in the list [GH-11650]
+ * provider/google: set subnetwork_project to computed [GH-11646]
 
 ## 0.8.6 (07 February 2017)
 
