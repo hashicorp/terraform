@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/apigateway"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -20,7 +21,7 @@ func TestAccAWSAPIGatewayMethod_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAPIGatewayMethodDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAPIGatewayMethodConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayMethodExists("aws_api_gateway_method.test", &conf),
@@ -34,7 +35,7 @@ func TestAccAWSAPIGatewayMethod_basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSAPIGatewayMethodConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayMethodExists("aws_api_gateway_method.test", &conf),
@@ -47,14 +48,15 @@ func TestAccAWSAPIGatewayMethod_basic(t *testing.T) {
 
 func TestAccAWSAPIGatewayMethod_customauthorizer(t *testing.T) {
 	var conf apigateway.Method
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAPIGatewayMethodDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSAPIGatewayMethodConfigWithCustomAuthorizer,
+			{
+				Config: testAccAWSAPIGatewayMethodConfigWithCustomAuthorizer(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayMethodExists("aws_api_gateway_method.test", &conf),
 					testAccCheckAWSAPIGatewayMethodAttributes(&conf),
@@ -69,7 +71,7 @@ func TestAccAWSAPIGatewayMethod_customauthorizer(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSAPIGatewayMethodConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayMethodExists("aws_api_gateway_method.test", &conf),
@@ -194,13 +196,14 @@ func testAccCheckAWSAPIGatewayMethodDestroy(s *terraform.State) error {
 	return nil
 }
 
-const testAccAWSAPIGatewayMethodConfigWithCustomAuthorizer = `
+func testAccAWSAPIGatewayMethodConfigWithCustomAuthorizer(rInt int) string {
+	return fmt.Sprintf(`
 resource "aws_api_gateway_rest_api" "test" {
   name = "tf-acc-test-custom-auth"
 }
 
 resource "aws_iam_role" "invocation_role" {
-  name = "tf_acc_api_gateway_auth_invocation_role"
+  name = "tf_acc_api_gateway_auth_invocation_role-%d"
   path = "/"
   assume_role_policy = <<EOF
 {
@@ -220,7 +223,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "invocation_policy" {
-  name = "default"
+  name = "tf-acc-api-gateway-%d"
   role = "${aws_iam_role.invocation_role.id}"
   policy = <<EOF
 {
@@ -237,7 +240,7 @@ EOF
 }
 
 resource "aws_iam_role" "iam_for_lambda" {
-  name = "tf_acc_iam_for_lambda_api_gateway_authorizer"
+  name = "tf_acc_iam_for_lambda_api_gateway_authorizer-%d"
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -292,8 +295,8 @@ resource "aws_api_gateway_method" "test" {
     "method.request.header.Content-Type" = false
 	  "method.request.querystring.page" = true
   }
+}`, rInt, rInt, rInt)
 }
-`
 
 const testAccAWSAPIGatewayMethodConfig = `
 resource "aws_api_gateway_rest_api" "test" {
