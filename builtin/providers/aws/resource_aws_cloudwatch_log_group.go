@@ -54,7 +54,7 @@ func resourceAwsCloudWatchLogGroupCreate(d *schema.ResourceData, meta interface{
 		LogGroupName: aws.String(d.Get("name").(string)),
 	})
 	if err != nil {
-		return fmt.Errorf("Creating CloudWatch Log Group (%s) failed: %s", d.Get("name").(string), err)
+		return fmt.Errorf("Creating CloudWatch Log Group failed: %s:  The CloudWatch Log Group '%s' already exists.", err, d.Get("name").(string))
 	}
 
 	d.SetId(d.Get("name").(string))
