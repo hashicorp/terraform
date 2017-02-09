@@ -3,6 +3,7 @@ package rancher
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net/url"
 	"os"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -23,8 +24,8 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"api_url": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("RANCHER_URL", nil),
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("RANCHER_URL", ""),
 				Description: descriptions["api_url"],
 			},
 			"access_key": &schema.Schema{
@@ -74,7 +75,7 @@ func init() {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	apiURL := d.Get("api_url").(string) + "/v1"
+	apiURL := d.Get("api_url").(string)
 	accessKey := d.Get("access_key").(string)
 	secretKey := d.Get("secret_key").(string)
 
@@ -85,7 +86,11 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		}
 
 		if apiURL == "" {
-			apiURL = config.URL
+			u, err := url.Parse(config.URL)
+			if err != nil {
+				return config, err
+			}
+			apiURL = u.Scheme + "://" + u.Host
 		}
 
 		if accessKey == "" {
@@ -98,7 +103,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	config := &Config{
-		APIURL:    apiURL,
+		APIURL:    apiURL + "/v1",
 		AccessKey: accessKey,
 		SecretKey: secretKey,
 	}
