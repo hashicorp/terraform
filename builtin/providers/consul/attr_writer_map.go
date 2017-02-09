@@ -8,10 +8,10 @@ import (
 )
 
 type _AttrWriterMap struct {
-	m *map[string]interface{}
+	m map[string]interface{}
 }
 
-func _NewMapWriter(m *map[string]interface{}) *_AttrWriterMap {
+func _NewMapWriter(m map[string]interface{}) *_AttrWriterMap {
 	return &_AttrWriterMap{
 		m: m,
 	}
@@ -37,12 +37,12 @@ func (w *_AttrWriterMap) Set(name _SchemaAttr, v interface{}) error {
 }
 
 func (w *_AttrWriterMap) SetBool(name _SchemaAttr, b bool) error {
-	(*w.m)[string(name)] = fmt.Sprintf("%t", b)
+	w.m[string(name)] = fmt.Sprintf("%t", b)
 	return nil
 }
 
 func (w *_AttrWriterMap) SetFloat64(name _SchemaAttr, f float64) error {
-	(*w.m)[string(name)] = strconv.FormatFloat(f, 'g', -1, 64)
+	w.m[string(name)] = strconv.FormatFloat(f, 'g', -1, 64)
 	return nil
 }
 
@@ -51,6 +51,8 @@ func (w *_AttrWriterMap) SetList(name _SchemaAttr, l []interface{}) error {
 }
 
 func (w *_AttrWriterMap) SetMap(name _SchemaAttr, m map[string]interface{}) error {
+	w.m[string(name)] = m
+	return nil
 	panic(fmt.Sprintf("PROVIDER BUG: Cat set a map within a map for %s", name))
 }
 
@@ -59,6 +61,10 @@ func (w *_AttrWriterMap) SetSet(name _SchemaAttr, s *schema.Set) error {
 }
 
 func (w *_AttrWriterMap) SetString(name _SchemaAttr, s string) error {
-	(*w.m)[string(name)] = s
+	w.m[string(name)] = s
 	return nil
+}
+
+func (w *_AttrWriterMap) ToMap() map[string]interface{} {
+	return w.m
 }

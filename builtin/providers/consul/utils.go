@@ -242,8 +242,7 @@ func _APIToStateMap(e *_TypeEntry, v interface{}, w _AttrWriter) error {
 		return fmt.Errorf("PROVIDER BUG: unable to cast %s to a map", e.SchemaName)
 	}
 
-	m := make(map[string]interface{}, len(rawMap))
-	mWriter := _NewMapWriter(&m)
+	mWriter := _NewMapWriter(make(map[string]interface{}, len(rawMap)))
 
 	// Make a lookup map by API Schema Name
 	var setMembersLen int
@@ -271,7 +270,7 @@ func _APIToStateMap(e *_TypeEntry, v interface{}, w _AttrWriter) error {
 		}
 	}
 
-	return w.SetMap(e.SchemaName, m)
+	return w.SetMap(e.SchemaName, mWriter.ToMap())
 }
 
 func _APIToStateSet(e *_TypeEntry, v interface{}, w _AttrWriter) error {
