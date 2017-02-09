@@ -211,9 +211,10 @@ func resourceAwsLambdaPermissionRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	qualifier, err := getQualifierFromLambdaAliasOrVersionArn(statement.Resource)
-	if err == nil {
-		d.Set("qualifier", qualifier)
+	if err != nil {
+		log.Printf("[ERR] Error getting Lambda Qualifier: %s", err)
 	}
+	d.Set("qualifier", qualifier)
 
 	// Save Lambda function name in the same format
 	if strings.HasPrefix(d.Get("function_name").(string), "arn:"+meta.(*AWSClient).partition+":lambda:") {
