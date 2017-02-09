@@ -236,7 +236,7 @@ func (c *S3Client) Lock(info string) error {
 
 		resp, err := c.dynClient.GetItem(getParams)
 		if err != nil {
-			return fmt.Errorf("s3 state file %q locked, failed to retrive info: %s", stateName, err)
+			return fmt.Errorf("s3 state file %q locked, failed to retrieve info: %s", stateName, err)
 		}
 
 		var infoData string

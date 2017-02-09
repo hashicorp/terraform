@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -1574,6 +1575,20 @@ func TestReadStateNewVersion(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "does not support state version") {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestReadStateEmptyOrNilFile(t *testing.T) {
+	var emptyState bytes.Buffer
+	_, err := ReadState(&emptyState)
+	if err != ErrNoState {
+		t.Fatal("expected ErrNostate, got", err)
+	}
+
+	var nilFile *os.File
+	_, err = ReadState(nilFile)
+	if err != ErrNoState {
+		t.Fatal("expected ErrNostate, got", err)
 	}
 }
 

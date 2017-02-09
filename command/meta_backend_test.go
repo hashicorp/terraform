@@ -354,6 +354,7 @@ func TestMetaBackend_configureNewWithState(t *testing.T) {
 	if state == nil {
 		t.Fatal("state is nil")
 	}
+
 	if state.Lineage != "backend-new-migrate" {
 		t.Fatalf("bad: %#v", state)
 	}

@@ -97,6 +97,7 @@ func (s *LocalState) Unlock() error {
 	fileName := s.stateFileOut.Name()
 
 	unlockErr := s.unlock()
+
 	s.stateFileOut.Close()
 	s.stateFileOut = nil
 
@@ -201,6 +202,11 @@ func (s *LocalState) RefreshState() error {
 			reader = f
 		}
 	} else {
+		// no state to refresh
+		if s.stateFileOut == nil {
+			return nil
+		}
+
 		// we have a state file, make sure we're at the start
 		s.stateFileOut.Seek(0, os.SEEK_SET)
 		reader = s.stateFileOut
