@@ -38,7 +38,7 @@ resource "aws_dms_endpoint" "test" {
 The following arguments are supported:
 
 * `certificate_arn` - (Optional, Default: empty string) The Amazon Resource Name (ARN) for the certificate.
-* `database_name` - (Optional, Default: empty string) The name of the endpoint database.
+* `database_name` - (Optional) The name of the endpoint database.
 * `endpoint_id` - (Required) The database endpoint identifier.
 
     - Must contain from 1 to 255 alphanumeric characters or hyphens.
