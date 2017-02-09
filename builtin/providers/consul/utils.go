@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -31,6 +32,12 @@ type _TypeKey int
 // function objects that are dynamically constructed and executed.
 type _ValidatorInputs []interface{}
 
+// _ValidateDurationMin is the minimum duration to accept as input
+type _ValidateDurationMin string
+
+// _ValidateIntMin is the minimum integer value to accept as input
+type _ValidateIntMin int
+
 // _ValidateRegexp is a regexp pattern to use to validate schema input.
 type _ValidateRegexp string
 
@@ -46,29 +53,61 @@ const (
 	// _SourceAPIResult indicates the parameter may only be set by the return of
 	// an API call.
 	_SourceAPIResult
+
+	// _SourceLocalFilter indicates the parameter is only used as input to the
+	// resource or data source and not to be entered into the state file.
+	_SourceLocalFilter
+)
+
+const (
+	// _ModifyState is a mask that selects all attribute sources that can modify
+	// the state (i.e. everything but filters used in data sources).
+	_ModifyState = _SourceUserRequired | _SourceUserOptional | _SourceAPIResult
+
+	// _ComputedAttrMask is a mask that selects _Source*'s that are Computed in the
+	// schema.
+	_ComputedAttrMask = _SourceAPIResult
+
+	// _OptionalAttrMask is a mask that selects _Source*'s that are Optional in the
+	// schema.
+	_OptionalAttrMask = _SourceAPIResult | _SourceLocalFilter
+
+	// _RequiredAttrMask is a mask that selects _Source*'s that are Required in the
+	// schema.
+	_RequiredAttrMask = _SourceUserRequired
 )
 
 type _TypeEntry struct {
 	APIName       _APIAttr
 	APIAliases    []_APIAttr
 	Source        _SourceFlags
+	Default       interface{}
 	Description   string
 	SchemaName    _SchemaAttr
 	Type          schema.ValueType
 	ValidateFuncs []interface{}
 	SetMembers    map[_TypeKey]*_TypeEntry
+	ListSchema    map[_TypeKey]*_TypeEntry
 
 	// APITest, if returns true, will call APIToState.  The if the value was
 	// found, the second return parameter will include the value that should be
 	// set in the state store.
-	APITest func(*_TypeEntry, map[string]interface{}) (interface{}, bool)
+	APITest func(*_TypeEntry, interface{}) (interface{}, bool)
 
 	// APIToState takes the value from APITest and writes it to the _AttrWriter
 	APIToState func(*_TypeEntry, interface{}, _AttrWriter) error
+
+	// ConfigRead, if it returns true, returned a value that will be passed to its
+	// ConfigUse handler.
+	ConfigRead func(*_TypeEntry, _AttrReader) (interface{}, bool)
+
+	// ConfigUse takes the value returned from ConfigRead as the second argument
+	// and a 3rd optional opaque context argument.
+	ConfigUse func(e *_TypeEntry, v interface{}, target interface{}) error
 }
 
 type _TypeHandlers struct {
-	APITest    func(*_TypeEntry, map[string]interface{}) (interface{}, bool)
+	APITest    func(*_TypeEntry, interface{}) (interface{}, bool)
 	APIToState func(*_TypeEntry, interface{}, _AttrWriter) error
 }
 
@@ -99,8 +138,10 @@ var _TypeHandlerLookupMap = map[schema.ValueType]*_TypeHandlers{
 	},
 }
 
-func _APITestBool(e *_TypeEntry, self map[string]interface{}) (interface{}, bool) {
-	v, found := self[string(e.APIName)]
+func _APITestBool(e *_TypeEntry, self interface{}) (interface{}, bool) {
+	m := self.(map[string]interface{})
+
+	v, found := m[string(e.APIName)]
 	if found {
 		if b, ok := v.(bool); ok {
 			return b, true
@@ -112,8 +153,10 @@ func _APITestBool(e *_TypeEntry, self map[string]interface{}) (interface{}, bool
 	return false, false
 }
 
-func _APITestFloat64(e *_TypeEntry, self map[string]interface{}) (interface{}, bool) {
-	v, found := self[string(e.APIName)]
+func _APITestFloat64(e *_TypeEntry, self interface{}) (interface{}, bool) {
+	m := self.(map[string]interface{})
+
+	v, found := m[string(e.APIName)]
 	if found {
 		if f, ok := v.(float64); ok {
 			return f, true
@@ -124,22 +167,26 @@ func _APITestFloat64(e *_TypeEntry, self map[string]interface{}) (interface{}, b
 	return 0.0, false
 }
 
-func _APITestID(e *_TypeEntry, self map[string]interface{}) (interface{}, bool) {
-	v, _ := _APITestString(e, self)
+func _APITestID(e *_TypeEntry, self interface{}) (interface{}, bool) {
+	m := self.(map[string]interface{})
+
+	v, _ := _APITestString(e, m)
 
 	// Unconditionally return true so that the call to the APIToState handler can
 	// return an error.
 	return v, true
 }
 
-func _APITestList(e *_TypeEntry, self map[string]interface{}) (interface{}, bool) {
+func _APITestList(e *_TypeEntry, self interface{}) (interface{}, bool) {
+	m := self.(map[string]interface{})
+
 	names := append([]_APIAttr{e.APIName}, e.APIAliases...)
 	const defaultListLen = 8
 	l := make([]interface{}, 0, defaultListLen)
 
 	var foundName bool
 	for _, name := range names {
-		v, found := self[string(name)]
+		v, found := m[string(name)]
 		if found {
 			foundName = true
 			// TODO(sean@): should make a list writer that normalizes v.(type) to a
@@ -162,7 +209,9 @@ func _APITestList(e *_TypeEntry, self map[string]interface{}) (interface{}, bool
 	return []interface{}{}, false
 }
 
-func _APITestMap(e *_TypeEntry, self map[string]interface{}) (interface{}, bool) {
+func _APITestMap(e *_TypeEntry, selfRaw interface{}) (interface{}, bool) {
+	self := selfRaw.(map[string]interface{})
+
 	v, found := self[string(e.APIName)]
 	if found {
 		if m, ok := v.(map[string]interface{}); ok {
@@ -174,7 +223,9 @@ func _APITestMap(e *_TypeEntry, self map[string]interface{}) (interface{}, bool)
 	return "", false
 }
 
-func _APITestSet(e *_TypeEntry, self map[string]interface{}) (interface{}, bool) {
+func _APITestSet(e *_TypeEntry, selfRaw interface{}) (interface{}, bool) {
+	self := selfRaw.(map[string]interface{})
+
 	v, found := self[string(e.APIName)]
 	if found {
 		if m, ok := v.(map[string]interface{}); ok {
@@ -186,7 +237,9 @@ func _APITestSet(e *_TypeEntry, self map[string]interface{}) (interface{}, bool)
 	return "", false
 }
 
-func _APITestString(e *_TypeEntry, self map[string]interface{}) (interface{}, bool) {
+func _APITestString(e *_TypeEntry, selfRaw interface{}) (interface{}, bool) {
+	self := selfRaw.(map[string]interface{})
+
 	v, found := self[string(e.APIName)]
 	if found {
 		if s, ok := v.(string); ok {
@@ -361,6 +414,33 @@ func (e *_TypeEntry) LookupDefaultTypeHandler() *_TypeHandlers {
 	return h
 }
 
+func (e *_TypeEntry) MustLookupTypeHandler() *_TypeHandlers {
+	h := &_TypeHandlers{
+		APITest:    e.APITest,
+		APIToState: e.APIToState,
+	}
+
+	defaultHandler := e.LookupDefaultTypeHandler()
+
+	if h.APITest == nil {
+		h.APITest = defaultHandler.APITest
+
+		if h.APITest == nil {
+			panic(fmt.Sprint("PROVIDER BUG: %v missing APITest method", e.SchemaName))
+		}
+	}
+
+	if h.APIToState == nil {
+		h.APIToState = defaultHandler.APIToState
+
+		if h.APIToState == nil {
+			panic(fmt.Sprint("PROVIDER BUG: %v missing APIToState method", e.SchemaName))
+		}
+	}
+
+	return h
+}
+
 // _NegateBoolToState is a factory function that creates a new function that
 // negates whatever the bool is that's passed in as an argument.
 func _NegateBoolToState(fn func(*_TypeEntry, interface{}, _AttrWriter) error) func(*_TypeEntry, interface{}, _AttrWriter) error {
@@ -384,41 +464,40 @@ func _StateSet(d *schema.ResourceData, attrName _SchemaAttr, v interface{}) erro
 	return nil
 }
 
+func _TypeEntryListToSchema(e *_TypeEntry) map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		string(e.SchemaName): e.ToSchema(),
+	}
+}
+
+func _TypeEntryMapToResource(in map[_TypeKey]*_TypeEntry) *schema.Resource {
+	return &schema.Resource{
+		Schema: _TypeEntryMapToSchema(in),
+	}
+}
+
 func _TypeEntryMapToSchema(in map[_TypeKey]*_TypeEntry) map[string]*schema.Schema {
 	out := make(map[string]*schema.Schema, len(in))
 	for _, e := range in {
-		e.Validate()
-
-		attr := &schema.Schema{
-			Type:         e.Type,
-			Description:  e.Description,
-			Optional:     e.Source&_SourceAPIResult == _SourceAPIResult,
-			Required:     e.Source&_SourceUserRequired == _SourceUserRequired,
-			Computed:     e.Source&_SourceAPIResult == _SourceAPIResult,
-			ValidateFunc: e.MakeValidationFunc(),
-		}
-
-		// Fixup the type: use the real type vs a surrogate type
-		switch e.Type {
-		case schema.TypeList:
-			attr.Elem = &schema.Schema{
-				Type: schema.TypeString,
-			}
-		case schema.TypeSet:
-			attr.Elem = &schema.Resource{
-				Schema: _TypeEntryMapToSchema(e.SetMembers),
-			}
-		}
-
-		out[string(e.SchemaName)] = attr
+		out[string(e.SchemaName)] = e.ToSchema()
 	}
 
 	return out
 }
 
 func (e *_TypeEntry) Validate() {
-	if e.Source&_SourceAPIResult == _SourceAPIResult && e.Type == schema.TypeSet {
+	if e.Source&_SourceAPIResult != 0 && e.Type == schema.TypeSet {
 		panic(fmt.Sprintf("PROVIDER BUG: %s can not be computed and of type Set", e.SchemaName))
+	}
+
+	if e.Source&_SourceLocalFilter != 0 {
+		if e.ConfigRead == nil {
+			panic(fmt.Sprintf("PROVIDER BUG: %s can not be configured as a local filter and be missing a config read handler", e.SchemaName))
+		}
+
+		if e.ConfigUse == nil {
+			panic(fmt.Sprintf("PROVIDER BUG: %s can not be configured as a local filter and be missing a config use handler", e.SchemaName))
+		}
 	}
 
 	if len(e.SetMembers) != 0 && !(e.Type == schema.TypeSet || e.Type == schema.TypeMap) {
@@ -438,9 +517,13 @@ func (e *_TypeEntry) MakeValidationFunc() func(v interface{}, key string) (warni
 		return nil
 	}
 
-	fns := make([]func(v interface{}, key string) (warnings []string, errors []error), len(e.ValidateFuncs))
+	fns := make([]func(v interface{}, key string) (warnings []string, errors []error), 0, len(e.ValidateFuncs))
 	for _, v := range e.ValidateFuncs {
 		switch u := v.(type) {
+		case _ValidateDurationMin:
+			fns = append(fns, _ValidateDurationMinFactory(e, string(u)))
+		case _ValidateIntMin:
+			fns = append(fns, _ValidateIntMinFactory(e, int(u)))
 		case _ValidateRegexp:
 			fns = append(fns, _ValidateRegexpFactory(e, string(u)))
 		}
@@ -457,29 +540,73 @@ func (e *_TypeEntry) MakeValidationFunc() func(v interface{}, key string) (warni
 	}
 }
 
-// _ValidateFuncs takes a list of typed validator inputs, creates validation
-// functions for each and then runs them in serial until either a warning or
-// error is returned from the first validation function.
-func _ValidateFuncs(e *_TypeEntry, in ...interface{}) func(v interface{}, key string) (warnings []string, errors []error) {
-	if len(in) == 0 {
-		return nil
+func (e *_TypeEntry) ToSchema() *schema.Schema {
+	e.Validate()
+
+	attr := &schema.Schema{
+		Computed:     e.Source&_ComputedAttrMask != 0,
+		Default:      e.Default,
+		Description:  e.Description,
+		Optional:     e.Source&_OptionalAttrMask != 0,
+		Required:     e.Source&_RequiredAttrMask != 0,
+		Type:         e.Type,
+		ValidateFunc: e.MakeValidationFunc(),
 	}
 
-	fns := make([]func(v interface{}, key string) (warnings []string, errors []error), len(in))
-	for _, v := range in {
-		switch v.(type) {
-		case _ValidateRegexp:
-			fns = append(fns, _ValidateRegexpFactory(e, v.(string)))
+	// Fixup the type: use the real type vs a surrogate type
+	switch e.Type {
+	case schema.TypeList:
+		if e.ListSchema == nil {
+			attr.Elem = &schema.Schema{
+				Type: schema.TypeString,
+			}
+		} else {
+			attr.Elem = _TypeEntryMapToResource(e.ListSchema)
 		}
+
+	case schema.TypeSet:
+		attr.Elem = &schema.Resource{
+			Schema: _TypeEntryMapToSchema(e.SetMembers),
+		}
+	}
+
+	return attr
+}
+
+func _MapStringToMapInterface(in map[string]string) map[string]interface{} {
+	out := make(map[string]interface{}, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
+func _ValidateDurationMinFactory(e *_TypeEntry, minDuration string) func(v interface{}, key string) (warnings []string, errors []error) {
+	dMin, err := time.ParseDuration(minDuration)
+	if err != nil {
+		panic(fmt.Sprintf("PROVIDER BUG: duration %q not valid: %#v", minDuration, err))
 	}
 
 	return func(v interface{}, key string) (warnings []string, errors []error) {
-		for _, fn := range fns {
-			warnings, errors = fn(v, key)
-			if len(warnings) > 0 || len(errors) > 0 {
-				break
-			}
+		d, err := time.ParseDuration(v.(string))
+		if err != nil {
+			errors = append(errors, errwrap.Wrapf(fmt.Sprintf("Invalid %s specified (%q): {{err}}", e.SchemaName), err))
 		}
+
+		if d < dMin {
+			errors = append(errors, fmt.Errorf("Invalid %s specified: duration %q less than the required minimum %s", e.SchemaName, v.(string), dMin))
+		}
+
+		return warnings, errors
+	}
+}
+
+func _ValidateIntMinFactory(e *_TypeEntry, min int) func(v interface{}, key string) (warnings []string, errors []error) {
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		if v.(int) < min {
+			errors = append(errors, fmt.Errorf("Invalid %s specified: %d less than the required minimum %d", e.SchemaName, v.(int), min))
+		}
+
 		return warnings, errors
 	}
 }
