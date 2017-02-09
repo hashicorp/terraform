@@ -3,7 +3,7 @@ layout: "aws"
 page_title: "AWS: aws_kms_secret"
 sidebar_current: "docs-aws-datasource-kms-secret"
 description: |-
-	Provides secret data encrypted with the KMS service
+    Provides secret data encrypted with the KMS service
 ---
 
 # aws\_kms\_secret
