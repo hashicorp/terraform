@@ -64,6 +64,7 @@ if [ -z "$NO_UPLOAD" ]; then
   echo "Overriding javascript mime-types..."
   s3cmd \
     --mime-type="application/javascript" \
+    --add-header="Cache-Control: max-age=31536000" \
     --exclude "*" \
     --include "*.js" \
     --recursive \
@@ -72,6 +73,7 @@ if [ -z "$NO_UPLOAD" ]; then
   echo "Overriding css mime-types..."
   s3cmd \
     --mime-type="text/css" \
+    --add-header="Cache-Control: max-age=31536000" \
     --exclude "*" \
     --include "*.css" \
     --recursive \
@@ -80,6 +82,7 @@ if [ -z "$NO_UPLOAD" ]; then
   echo "Overriding svg mime-types..."
   s3cmd \
     --mime-type="image/svg+xml" \
+    --add-header="Cache-Control: max-age=31536000" \
     --exclude "*" \
     --include "*.svg" \
     --recursive \
