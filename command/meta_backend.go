@@ -1020,7 +1020,7 @@ func (m *Meta) backend_C_r_S_changed(
 	copy, err := m.confirm(&terraform.InputOpts{
 		Id:          "backend-migrate-to-new",
 		Query:       fmt.Sprintf("Do you want to copy the state from %q?", c.Type),
-		Description: strings.TrimSpace(inputBackendMigrateChange),
+		Description: strings.TrimSpace(fmt.Sprintf(inputBackendMigrateChange, c.Type, s.Backend.Type)),
 	})
 	if err != nil {
 		return nil, fmt.Errorf(
@@ -1572,7 +1572,7 @@ Current Serial: %[2]d
 
 const inputBackendMigrateChange = `
 Would you like to copy the state from your prior backend %q to the
-newly configured backend %q? If you're reconfiguring the same backend,
+newly configured %q backend? If you're reconfiguring the same backend,
 answering "yes" or "no" shouldn't make a difference. Please answer exactly
 "yes" or "no".
 `
