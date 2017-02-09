@@ -7,6 +7,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
 
  * **New Resource:**  `aws_elasticsearch_domain_policy` [GH-8648]
+ * **New Resource:** `aws_vpc_peering_connection_accepter` [GH-11505]
 
 IMPROVEMENTS:
 
