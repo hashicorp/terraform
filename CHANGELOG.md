@@ -23,6 +23,7 @@ Bug FIXES:
  * provider/aws: Fix aws_db_event_subscription import [GH-11744]
  * provider/aws: Respect 400 returned from AWS API on RDS Cluster termination [GH-11795]
  * provider/aws: Raise the codebuild_project create timeout [GH-11777]
+ * provider/aws: Make aws_dms_endpoint database_name optional [GH-11792]
  * provider/google: set additional_zones to computed and disallow the original zone from appearing in the list [GH-11650]
 
 ## 0.8.6 (07 February 2017)
