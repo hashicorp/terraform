@@ -530,6 +530,13 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error reading state: %s", err)
 	}
+
+	unlock, err := lockState(realMgr, "backend from plan")
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
 	if err := realMgr.RefreshState(); err != nil {
 		return nil, fmt.Errorf("Error reading state: %s", err)
 	}
@@ -574,6 +581,8 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 		newState.Remote = nil
 		newState.Backend = nil
 	}
+
+	// realMgr locked above
 	if err := realMgr.WriteState(newState); err != nil {
 		return nil, fmt.Errorf("Error writing state: %s", err)
 	}
@@ -974,6 +983,12 @@ func (m *Meta) backend_C_r_s(
 		}
 	}
 
+	unlock, err := lockState(sMgr, "backend_C_r_s")
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
 	// Store the metadata in our saved state location
 	s := sMgr.State()
 	if s == nil {
@@ -984,6 +999,7 @@ func (m *Meta) backend_C_r_s(
 		Config: c.RawConfig.Raw,
 		Hash:   c.Hash,
 	}
+
 	if err := sMgr.WriteState(s); err != nil {
 		return nil, fmt.Errorf(errBackendWriteSaved, err)
 	}
@@ -1008,6 +1024,9 @@ func (m *Meta) backend_C_r_S_changed(
 			"[reset]%s\n\n",
 			strings.TrimSpace(outputBackendReconfigure))))
 	}
+
+	// Get the old state
+	s := sMgr.State()
 
 	// Get the backend
 	b, err := m.backendInitFromConfig(c)
@@ -1037,8 +1056,6 @@ func (m *Meta) backend_C_r_S_changed(
 				"Error loading previously configured backend: %s", err)
 		}
 
-		// Get the old state
-		s := sMgr.State()
 		oldState, err := oldB.State()
 		if err != nil {
 			return nil, fmt.Errorf(
@@ -1070,8 +1087,14 @@ func (m *Meta) backend_C_r_S_changed(
 		}
 	}
 
+	unlock, err := lockState(sMgr, "backend_C_r_S_changed")
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
 	// Update the backend state
-	s := sMgr.State()
+	s = sMgr.State()
 	if s == nil {
 		s = terraform.NewState()
 	}
@@ -1080,6 +1103,7 @@ func (m *Meta) backend_C_r_S_changed(
 		Config: c.RawConfig.Raw,
 		Hash:   c.Hash,
 	}
+
 	if err := sMgr.WriteState(s); err != nil {
 		return nil, fmt.Errorf(errBackendWriteSaved, err)
 	}
@@ -1220,12 +1244,19 @@ func (m *Meta) backend_C_R_S_unchanged(
 		}
 	}
 
+	unlock, err := lockState(sMgr, "backend_C_R_S_unchanged")
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
 	// Unset the remote state
 	s = sMgr.State()
 	if s == nil {
 		s = terraform.NewState()
 	}
 	s.Remote = nil
+
 	if err := sMgr.WriteState(s); err != nil {
 		return nil, fmt.Errorf(strings.TrimSpace(errBackendClearLegacy), err)
 	}
@@ -1366,6 +1397,21 @@ func init() {
 	// Add the legacy remote backends that haven't yet been convertd to
 	// the new backend API.
 	backendlegacy.Init(Backends)
+}
+
+// simple wrapper to check for a state.Locker and always provide an unlock
+// function to defer.
+func lockState(s state.State, info string) (func() error, error) {
+	l, ok := s.(state.Locker)
+	if !ok {
+		return func() error { return nil }, nil
+	}
+
+	if err := l.Lock(info); err != nil {
+		return nil, err
+	}
+
+	return l.Unlock, nil
 }
 
 // errBackendInitRequired is the final error message shown when reinit
