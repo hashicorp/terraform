@@ -55,7 +55,7 @@ if [ -z "$NO_UPLOAD" ]; then
     --no-mime-magic \
     --acl-public \
     --recursive \
-    --add-header="Cache-Control: max-age=31536000" \
+    --add-header="Cache-Control: max-age=14400" \
     --add-header="x-amz-meta-surrogate-key: site-$PROJECT" \
     sync "$DIR/build/" "s3://hc-sites/$PROJECT/latest/"
 
