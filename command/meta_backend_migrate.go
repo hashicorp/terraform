@@ -20,7 +20,21 @@ import (
 //
 // After migrating the state, the existing state in the first backend
 // remains untouched.
+//
+// This will attempt to lock both states for the migration.
 func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
+	unlockOne, err := lockState(opts.One, "migrate from")
+	if err != nil {
+		return err
+	}
+	defer unlockOne()
+
+	unlockTwo, err := lockState(opts.Two, "migrate to")
+	if err != nil {
+		return err
+	}
+	defer unlockTwo()
+
 	one := opts.One.State()
 	two := opts.Two.State()
 

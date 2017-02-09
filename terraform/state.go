@@ -1808,7 +1808,9 @@ var ErrNoState = errors.New("no state")
 // was written by WriteState.
 func ReadState(src io.Reader) (*State, error) {
 	buf := bufio.NewReader(src)
-	if _, err := buf.Peek(1); err == io.EOF {
+	if _, err := buf.Peek(1); err != nil {
+		// the error is either io.EOF or "invalid argument", and both are from
+		// an empty state.
 		return nil, ErrNoState
 	}
 
