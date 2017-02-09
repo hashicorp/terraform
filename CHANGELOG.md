@@ -12,6 +12,7 @@ IMPROVEMENTS:
 
  * provider/aws: Update aws_ssm_document to include `document_type`, `latest_version` and `default_version` [GH-11671]
  * provider/openstack: Allow OpenStack SSL certs + keys to take path or content [GH-10271]
+ * provider/vault: Use Vault api.DefaultConfig() [GH-11523]
 
 Bug FIXES:
 
