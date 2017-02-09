@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -67,6 +68,24 @@ func resourceConsulKeys() *schema.Resource {
 				},
 			},
 
+			"dot_env": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"file": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"base_path": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+			},
+
 			"var": &schema.Schema{
 				Type:     schema.TypeMap,
 				Computed: true,
@@ -103,6 +122,20 @@ func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	dot_env := d.Get("dot_env").(*schema.Set).List()
+	for _, raw := range dot_env {
+		kv, _, err := parseDotEnv(raw)
+		if err != nil {
+			return err
+		}
+
+		for k, v := range kv {
+			if err := keyClient.Put(k, v); err != nil {
+				return err
+			}
+		}
+	}
+
 	// The ID doesn't matter, since we use provider config, datacenter,
 	// and key paths to address consul properly. So we just need to fill it in
 	// with some value to indicate the resource has been created.
@@ -121,6 +154,49 @@ func resourceConsulKeysUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	keyClient := newKeyClient(kv, dc, token)
+
+	if d.HasChange("dot_env") {
+		o, n := d.GetChange("dot_env")		
+
+		// We first concat every .env files prior to make a diff
+		oDotEnvVars, nDotEnvVars := map[string]string{}, map[string]string{}
+		for _, raw := range o.(*schema.Set).List() {
+			kv, _, err := parseDotEnv(raw)
+			if err != nil {
+				return err
+			}
+
+			// merge
+			for k, v := range kv {
+				oDotEnvVars[k] = v
+			}
+		}
+		for _, raw := range n.(*schema.Set).List() {
+			kv, _, err := parseDotEnv(raw)
+			if err != nil {
+				return err
+			}
+
+			// merge
+			for k, v := range kv {
+				nDotEnvVars[k] = v
+			}
+		}
+
+		// We will check what keys have to be created or removed
+		toPut, toRemove := diffKv(oDotEnvVars, nDotEnvVars)
+
+		for k, v := range toPut {
+			if err := keyClient.Put(k, v); err != nil {
+				return err
+			}
+		}
+		for _, k := range toRemove {
+			if err := keyClient.Delete(k); err != nil {
+				return err
+			}
+		}
+	}
 
 	if d.HasChange("key") {
 		o, n := d.GetChange("key")
@@ -240,12 +316,36 @@ func resourceConsulKeysRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	dot_env := d.Get("dot_env").(*schema.Set).List()
+	for _, raw := range dot_env {
+		kv, sub, err := parseDotEnv(raw)
+		if err != nil {
+			return err
+		}
+
+		for k, _ := range kv {
+			if v, err := keyClient.Get(k); err != nil {
+				return err
+			} else {
+				// append to dot_env->file
+				pathParts := strings.Split(k, "/")
+				k = pathParts[len(pathParts) - 1]
+				sub["file"] = sub["file"].(string) + "\n" + k + "=" + v
+				// append to the var output attribute
+				vars[k] = v
+			}
+		}
+	}
+
 	if err := d.Set("var", vars); err != nil {
 		return err
 	}
 	if err := d.Set("key", keys); err != nil {
 		return err
 	}
+	//if err := d.Set("dot_env", dot_env); err != nil {
+	//	return err
+	//}
 
 	// Store the datacenter on this resource, which can be helpful for reference
 	// in case it was read from the provider
@@ -284,6 +384,20 @@ func resourceConsulKeysDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	dot_env := d.Get("dot_env").(*schema.Set).List()
+	for _, raw := range dot_env {
+		kv, _, err := parseDotEnv(raw)
+		if err != nil {
+			return err
+		}
+
+		for k, _ := range kv {
+			if err := keyClient.Delete(k); err != nil {
+				return err
+			}
+		}
+	}
+
 	// Clear the ID
 	d.SetId("")
 	return nil
@@ -303,6 +417,59 @@ func parseKey(raw interface{}) (string, string, map[string]interface{}, error) {
 		return "", "", nil, fmt.Errorf("Failed to get path for key '%s'", key)
 	}
 	return key, path, sub, nil
+}
+
+// parseDotEnv is used to parse a .env file into a file, base_path, config or error
+func parseDotEnv(raw interface{}) (map[string]string, map[string]interface{}, error) {
+	sub, ok := raw.(map[string]interface{})
+	if !ok {
+		return nil, nil, fmt.Errorf("Failed to unroll: %#v", raw)
+	}
+
+	file := sub["file"].(string)
+
+	base_path := sub["base_path"].(string)
+
+	dotEnvMap := dotEnvToMap(file, base_path)
+
+	return dotEnvMap, sub, nil
+}
+
+// convert .env lines into a map of variables
+func dotEnvToMap(file string, base_path string) (map[string]string) {
+	variables := map[string]string{}
+
+	lines := strings.Split(file, "\n")
+	for _, line := range lines {
+		kv := strings.SplitN(line, "=", 2)
+
+		if len(kv) < 2 {
+			continue
+		}
+
+		k, v := base_path + "/" + kv[0], kv[1]
+		variables[k] = v
+	}
+
+	return variables
+}
+
+func diffKv(oldKv map[string]string, newKv map[string]string) (map[string]string, []string) {
+	toPut, toRemove := map[string]string{}, []string{}
+
+	for k, v := range newKv {
+		if o, ok := oldKv[k]; ok == false || o != v {
+			toPut[k] = v
+		}
+	}
+
+	for k, _ := range oldKv {
+		if _, ok := newKv[k]; ok == false {
+			toRemove = append(toRemove, k)
+		}
+	}
+
+	return toPut, toRemove
 }
 
 // attributeValue determines the value for a key, potentially
