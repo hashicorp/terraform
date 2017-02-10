@@ -347,62 +347,61 @@ func testAccAWSEcsTaskDefinitionWithTaskRoleArn(rInt int) string {
 		name = "tf_old_name-%d"
 		path = "/test/"
 		assume_role_policy = <<EOF
-	{
-		"Version": "2012-10-17",
-		"Statement": [
-			{
-				"Action": "sts:AssumeRole",
-				"Principal": {
-					"Service": "ec2.amazonaws.com"
-				},
-				"Effect": "Allow",
-				"Sid": ""
-			}
-		]
-	}
-	EOF
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Action": "sts:AssumeRole",
+			"Principal": {
+				"Service": "ec2.amazonaws.com"
+			},
+			"Effect": "Allow",
+			"Sid": ""
+		}
+	]
+}
+EOF
 	}
 
 	resource "aws_iam_role_policy" "role_test" {
 		name = "role_update_test-%d"
 		role = "${aws_iam_role.role_test.id}"
 		policy = <<EOF
-	{
-		"Version": "2012-10-17",
-		"Statement": [
-			{
-				"Effect": "Allow",
-				"Action": [
-					"s3:GetBucketLocation",
-					"s3:ListAllMyBuckets"
-				],
-				"Resource": "arn:aws:s3:::*"
-			}
-		]
-	}
-	EOF
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"s3:GetBucketLocation",
+				"s3:ListAllMyBuckets"
+			],
+			"Resource": "arn:aws:s3:::*"
+		}
+	]
+}
+EOF
 	}
 
 	resource "aws_ecs_task_definition" "sleep" {
 		family = "terraform-acc-sc-volume-test"
 		task_role_arn = "${aws_iam_role.role_test.arn}"
 		container_definitions = <<TASK_DEFINITION
-	[
-		{
-			"name": "sleep",
-			"image": "busybox",
-			"cpu": 10,
-			"command": ["sleep","360"],
-			"memory": 10,
-			"essential": true
-		}
-	]
-	TASK_DEFINITION
-
+[
+	{
+		"name": "sleep",
+		"image": "busybox",
+		"cpu": 10,
+		"command": ["sleep","360"],
+		"memory": 10,
+		"essential": true
+	}
+]
+TASK_DEFINITION
 		volume {
-			name = "database_scratch"
-		}
-	}`, rInt, rInt)
+		name = "database_scratch"
+	}
+}`, rInt, rInt)
 }
 
 func testAccAWSEcsTaskDefinitionWithNetworkMode(rInt int) string {
@@ -411,39 +410,39 @@ func testAccAWSEcsTaskDefinitionWithNetworkMode(rInt int) string {
 	 name = "tf_old_name-%d"
 	 path = "/test/"
 	 assume_role_policy = <<EOF
- {
-	 "Version": "2012-10-17",
-	 "Statement": [
-		 {
-			 "Action": "sts:AssumeRole",
-			 "Principal": {
-				 "Service": "ec2.amazonaws.com"
-			 },
-			 "Effect": "Allow",
-			 "Sid": ""
-		 }
-	 ]
- }
- EOF
+{
+ "Version": "2012-10-17",
+ "Statement": [
+	 {
+		 "Action": "sts:AssumeRole",
+		 "Principal": {
+			 "Service": "ec2.amazonaws.com"
+		 },
+		 "Effect": "Allow",
+		 "Sid": ""
+	 }
+ ]
+}
+EOF
  }
 
  resource "aws_iam_role_policy" "role_test" {
 	 name = "role_update_test-%d"
 	 role = "${aws_iam_role.role_test.id}"
 	 policy = <<EOF
- {
-	 "Version": "2012-10-17",
-	 "Statement": [
-		 {
-			 "Effect": "Allow",
-			 "Action": [
-				 "s3:GetBucketLocation",
-				 "s3:ListAllMyBuckets"
-			 ],
-			 "Resource": "arn:aws:s3:::*"
-		 }
-	 ]
- }
+{
+ "Version": "2012-10-17",
+ "Statement": [
+	 {
+		 "Effect": "Allow",
+		 "Action": [
+			 "s3:GetBucketLocation",
+			 "s3:ListAllMyBuckets"
+		 ],
+		 "Resource": "arn:aws:s3:::*"
+	 }
+ ]
+}
  EOF
  }
 
@@ -452,17 +451,17 @@ func testAccAWSEcsTaskDefinitionWithNetworkMode(rInt int) string {
 	 task_role_arn = "${aws_iam_role.role_test.arn}"
 	 network_mode = "bridge"
 	 container_definitions = <<TASK_DEFINITION
- [
-	 {
-		 "name": "sleep",
-		 "image": "busybox",
-		 "cpu": 10,
-		 "command": ["sleep","360"],
-		 "memory": 10,
-		 "essential": true
-	 }
- ]
- TASK_DEFINITION
+[
+ {
+	 "name": "sleep",
+	 "image": "busybox",
+	 "cpu": 10,
+	 "command": ["sleep","360"],
+	 "memory": 10,
+	 "essential": true
+ }
+]
+TASK_DEFINITION
 
 	 volume {
 		 name = "database_scratch"
