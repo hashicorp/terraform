@@ -404,6 +404,10 @@ func (s *Session) clientConfigWithErr(serviceName string, cfgs ...*aws.Config) (
 			func(opt *endpoints.Options) {
 				opt.DisableSSL = aws.BoolValue(s.Config.DisableSSL)
 				opt.UseDualStack = aws.BoolValue(s.Config.UseDualStack)
+
+				// Support the condition where the service is modeled but its
+				// endpoint metadata is not available.
+				opt.ResolveUnknownService = true
 			},
 		)
 	}
@@ -415,4 +419,28 @@ func (s *Session) clientConfigWithErr(serviceName string, cfgs ...*aws.Config) (
 		SigningRegion: resolved.SigningRegion,
 		SigningName:   resolved.SigningName,
 	}, err
+}
+
+// ClientConfigNoResolveEndpoint is the same as ClientConfig with the exception
+// that the EndpointResolver will not be used to resolve the endpoint. The only
+// endpoint set must come from the aws.Config.Endpoint field.
+func (s *Session) ClientConfigNoResolveEndpoint(cfgs ...*aws.Config) client.Config {
+	s = s.Copy(cfgs...)
+
+	var resolved endpoints.ResolvedEndpoint
+
+	region := aws.StringValue(s.Config.Region)
+
+	if ep := aws.StringValue(s.Config.Endpoint); len(ep) > 0 {
+		resolved.URL = endpoints.AddScheme(ep, aws.BoolValue(s.Config.DisableSSL))
+		resolved.SigningRegion = region
+	}
+
+	return client.Config{
+		Config:        s.Config,
+		Handlers:      s.Handlers,
+		Endpoint:      resolved.URL,
+		SigningRegion: resolved.SigningRegion,
+		SigningName:   resolved.SigningName,
+	}
 }
