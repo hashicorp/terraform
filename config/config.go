@@ -212,7 +212,14 @@ func (r *Module) Id() string {
 
 // Count returns the count of this resource.
 func (r *Resource) Count() (int, error) {
-	v, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
+	raw := r.RawCount.Value()
+	count, ok := r.RawCount.Value().(string)
+	if !ok {
+		return 0, fmt.Errorf(
+			"expected count to be a string or int, got %T", raw)
+	}
+
+	v, err := strconv.ParseInt(count, 0, 0)
 	if err != nil {
 		return 0, err
 	}
