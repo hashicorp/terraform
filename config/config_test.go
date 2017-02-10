@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/helper/logging"
 )
 
@@ -95,6 +96,24 @@ func TestConfigCount_string(t *testing.T) {
 	}
 	if actual != 5 {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+// Terraform GH-11800
+func TestConfigCount_list(t *testing.T) {
+	c := testConfig(t, "count-list")
+
+	// The key is to interpolate so it doesn't fail parsing
+	c.Resources[0].RawCount.Interpolate(map[string]ast.Variable{
+		"var.list": ast.Variable{
+			Value: []ast.Variable{},
+			Type:  ast.TypeList,
+		},
+	})
+
+	_, err := c.Resources[0].Count()
+	if err == nil {
+		t.Fatal("should error")
 	}
 }
 
