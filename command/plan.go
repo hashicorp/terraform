@@ -17,7 +17,7 @@ type PlanCommand struct {
 }
 
 func (c *PlanCommand) Run(args []string) int {
-	var destroy, refresh, detailed bool
+	var destroy, refresh, detailed, diff bool
 	var outPath string
 	var moduleDepth int
 
@@ -32,6 +32,7 @@ func (c *PlanCommand) Run(args []string) int {
 		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
+	cmdFlags.BoolVar(&diff, "diff", false, "diff")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -94,6 +95,7 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq.Destroy = destroy
 	opReq.Module = mod
 	opReq.Plan = plan
+	opReq.PlanDiff = diff
 	opReq.PlanRefresh = refresh
 	opReq.PlanOutPath = outPath
 	opReq.Type = backend.OperationTypePlan
@@ -151,6 +153,8 @@ Options:
                       0 - Succeeded, diff is empty (no changes)
                       1 - Errored
                       2 - Succeeded, there is a diff
+
+  -diff               Only output differing attributes.
 
   -input=true         Ask for input for variables if not directly set.
 

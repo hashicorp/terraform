@@ -19,6 +19,9 @@ type PlanOpts struct {
 	// Color is the colorizer. This is optional.
 	Color *colorstring.Colorize
 
+	// PlanDiff determines if only the diff is shown. This is optional.
+	PlanDiff bool
+
 	// ModuleDepth is the depth of the modules to expand. By default this
 	// is zero which will not expand modules at all.
 	ModuleDepth int
@@ -63,6 +66,8 @@ func formatPlanModuleExpand(
 	if !m.IsRoot() {
 		modulePath = m.Path[1:]
 	}
+
+	diff := opts.PlanDiff
 
 	// We want to output the resources in sorted order to make things
 	// easier to scan through, so get all the resource names and sort them.
@@ -161,8 +166,12 @@ func formatPlanModuleExpand(
 		// Go through and output each attribute
 		for _, attrK := range keys {
 			attrDiff := rdiff.Attributes[attrK]
+			u, v := attrDiff.Old, attrDiff.New
 
-			v := attrDiff.New
+			if diff && u == v {
+				continue
+			}
+
 			if v == "" && attrDiff.NewComputed {
 				v = "<computed>"
 			}
@@ -182,8 +191,6 @@ func formatPlanModuleExpand(
 				var u string
 				if attrDiff.Sensitive {
 					u = "<sensitive>"
-				} else {
-					u = attrDiff.Old
 				}
 				buf.WriteString(fmt.Sprintf(
 					"      %s:%s %#v => %#v%s\n",
