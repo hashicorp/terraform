@@ -97,7 +97,7 @@ resource "ultradns_tcpool" "test-probe-ping-record" {
     run_probes     = true
     priority       = 1
     failover_delay = 0
-    threshold      = 2
+    threshold      = 1
     weight         = 2
   }
 
@@ -108,7 +108,7 @@ resource "ultradns_tcpool" "test-probe-ping-record" {
     run_probes     = true
     priority       = 2
     failover_delay = 0
-    threshold      = 2
+    threshold      = 1
     weight         = 2
   }
 
@@ -168,7 +168,7 @@ resource "ultradns_tcpool" "test-probe-ping-pool" {
     run_probes     = true
     priority       = 1
     failover_delay = 0
-    threshold      = 2
+    threshold      = 1
     weight         = 2
   }
 
@@ -179,7 +179,7 @@ resource "ultradns_tcpool" "test-probe-ping-pool" {
     run_probes     = true
     priority       = 2
     failover_delay = 0
-    threshold      = 2
+    threshold      = 1
     weight         = 2
   }
 
