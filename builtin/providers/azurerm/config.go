@@ -39,14 +39,13 @@ type ArmClient struct {
 
 	rivieraClient *riviera.Client
 
-	availSetClient          compute.AvailabilitySetsClient
-	usageOpsClient          compute.UsageOperationsClient
-	vmExtensionImageClient  compute.VirtualMachineExtensionImagesClient
-	vmExtensionClient       compute.VirtualMachineExtensionsClient
-	vmScaleSetClient        compute.VirtualMachineScaleSetsClient
-	vmImageClient           compute.VirtualMachineImagesClient
-	vmClient                compute.VirtualMachinesClient
-	containerServicesClient containerservice.ContainerServicesClient
+	availSetClient         compute.AvailabilitySetsClient
+	usageOpsClient         compute.UsageOperationsClient
+	vmExtensionImageClient compute.VirtualMachineExtensionImagesClient
+	vmExtensionClient      compute.VirtualMachineExtensionsClient
+	vmScaleSetClient       compute.VirtualMachineScaleSetsClient
+	vmImageClient          compute.VirtualMachineImagesClient
+	vmClient               compute.VirtualMachinesClient
 
 	appGatewayClient             network.ApplicationGatewaysClient
 	ifaceClient                  network.InterfacesClient
@@ -68,6 +67,7 @@ type ArmClient struct {
 	cdnEndpointsClient cdn.EndpointsClient
 
 	containerRegistryClient containerregistry.RegistriesClient
+	containerServicesClient containerservice.ContainerServicesClient
 
 	eventHubClient              eventhub.EventHubsClient
 	eventHubConsumerGroupClient eventhub.ConsumerGroupsClient
@@ -227,12 +227,6 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	vmc.Sender = autorest.CreateSender(withRequestLogging())
 	client.vmClient = vmc
 
-	csc := containerservice.NewContainerServicesClientWithBaseURI(endpoint, c.SubscriptionID)
-	setUserAgent(&csc.Client)
-	csc.Authorizer = spt
-	csc.Sender = autorest.CreateSender(withRequestLogging())
-	client.containerServicesClient = csc
-
 	agc := network.NewApplicationGatewaysClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&agc.Client)
 	agc.Authorizer = spt
@@ -244,6 +238,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	crc.Authorizer = spt
 	crc.Sender = autorest.CreateSender(withRequestLogging())
 	client.containerRegistryClient = crc
+
+	csc := containerservice.NewContainerServicesClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&csc.Client)
+	csc.Authorizer = spt
+	csc.Sender = autorest.CreateSender(withRequestLogging())
+	client.containerServicesClient = csc
 
 	ehc := eventhub.NewEventHubsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&ehc.Client)
