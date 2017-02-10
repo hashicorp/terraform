@@ -123,7 +123,7 @@ To create the App Registration using the 'Classic' portal:
 - In the **Keys** section of the page, select a suitable duration and click **Save** at the bottom of the page. This will then display the value for `client_secret`. This will disappear once you move off the page
 - Click **View Endpoints** at the bottom of the page. This will display a list of URIs. Extract the GUID from the bottom URI for **OAUTH 2.0 AUTHORIZATION ENDPOINT**. This is the `tenant_id`
 
-To grant permissions to the App Registration to your subscription, you now must to use to the 'ARM' Portal:
+To grant permissions to the App Registration to your subscription, you now must move to use of the 'ARM' Portal.  This applies whether you used the Azure Resource Manager or the 'Classic' portal to create your App Registration:
 
 - Select **Subscriptions** from the left panel. Select the subscription that you want to use. In the Subscription details pane, click **Access Control (IAM)**
 - Click **Add**.  For Step 1 select an appropriate role for the tasks you want to complete with Terraform. You can find details on the built in roles [here](https://azure.microsoft.com/en-gb/documentation/articles/role-based-access-built-in-roles/)
