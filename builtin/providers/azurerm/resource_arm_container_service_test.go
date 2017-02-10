@@ -180,7 +180,6 @@ resource "azurerm_container_service" "test" {
     name       = "default"
     count      = 1
     dns_prefix = "acctestagent%d"
-    fqdn       = "you.demo.com"
     vm_size    = "Standard_A0"
   }
 
@@ -219,7 +218,6 @@ resource "azurerm_container_service" "test" {
     name       = "default"
     count      = 1
     dns_prefix = "acctestagent%d"
-    fqdn       = "you.demo.com"
     vm_size    = "Standard_A0"
   }
 
@@ -263,7 +261,6 @@ resource "azurerm_container_service" "test" {
     name       = "default"
     count      = 1
     dns_prefix = "acctestagent%d"
-    fqdn       = "you.demo.com"
     vm_size    = "Standard_A0"
   }
 
@@ -311,7 +308,6 @@ resource "azurerm_container_service" "test" {
     name       = "default"
     count      = 1
     dns_prefix = "acctestagent%d"
-    fqdn       = "you.demo.com"
     vm_size    = "Standard_A0"
   }
 
