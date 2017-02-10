@@ -40,7 +40,7 @@ func (c *Client) HandleChannelOpen(channelType string) <-chan NewChannel {
 		return nil
 	}
 
-	ch = make(chan NewChannel, 16)
+	ch = make(chan NewChannel, chanSize)
 	c.channelHandlers[channelType] = ch
 	return ch
 }
