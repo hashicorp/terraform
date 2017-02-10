@@ -2,13 +2,13 @@ package consul
 
 import "github.com/hashicorp/terraform/helper/schema"
 
-type _AttrWriter interface {
+type attrWriter interface {
 	BackingType() string
 
-	SetBool(_SchemaAttr, bool) error
-	SetFloat64(_SchemaAttr, float64) error
-	SetList(_SchemaAttr, []interface{}) error
-	SetMap(_SchemaAttr, map[string]interface{}) error
-	SetSet(_SchemaAttr, *schema.Set) error
-	SetString(_SchemaAttr, string) error
+	SetBool(schemaAttr, bool) error
+	SetFloat64(schemaAttr, float64) error
+	SetList(schemaAttr, []interface{}) error
+	SetMap(schemaAttr, map[string]interface{}) error
+	SetSet(schemaAttr, *schema.Set) error
+	SetString(schemaAttr, string) error
 }

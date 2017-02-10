@@ -11,41 +11,41 @@ import (
 
 // Top-level consul_catalog_nodes attributes
 const (
-	_CatalogNodes _TypeKey = iota
-	_CatalogNodesAllowStale
-	_CatalogNodesDatacenter
-	_CatalogNodesNear
-	_CatalogNodesRequireConsistent
-	_CatalogNodesToken
-	_CatalogNodesWaitIndex
-	_CatalogNodesWaitTime
+	catalogNodes typeKey = iota
+	catalogNodesAllowStale
+	catalogNodesDatacenter
+	catalogNodesNear
+	catalogNodesRequireConsistent
+	catalogNodesToken
+	catalogNodesWaitIndex
+	catalogNodesWaitTime
 )
 
 // node.* attributes
 const (
-	_CatalogNodeID _TypeKey = iota
-	_CatalogNodeName
-	_CatalogNodeAddress
-	_CatalogNodeTaggedAddresses
-	_CatalogNodeMeta
+	catalogNodeID typeKey = iota
+	catalogNodeName
+	catalogNodeAddress
+	catalogNodeTaggedAddresses
+	catalogNodeMeta
 )
 
 // node.tagged_addresses.* attributes
 const (
-	_CatalogNodeTaggedAddressesLAN _TypeKey = iota
-	_CatalogNodeTaggedAddressesWAN
+	catalogNodeTaggedAddressesLAN typeKey = iota
+	catalogNodeTaggedAddressesWAN
 )
 
-var _CatalogNodeAttrs = map[_TypeKey]*_TypeEntry{
-	_CatalogNodeID: {
+var catalogNodeAttrs = map[typeKey]*typeEntry{
+	catalogNodeID: {
 		APIName:    "ID",
 		SchemaName: "id",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 		ValidateFuncs: []interface{}{
-			_ValidateRegexp(`^[\S]+$`),
+			validateRegexp(`^[\S]+$`),
 		},
-		APITest: func(e *_TypeEntry, v interface{}) (interface{}, bool) {
+		APITest: func(e *typeEntry, v interface{}) (interface{}, bool) {
 			node := v.(*consulapi.Node)
 
 			if id := node.ID; id != "" {
@@ -61,15 +61,15 @@ var _CatalogNodeAttrs = map[_TypeKey]*_TypeEntry{
 			return "", false
 		},
 	},
-	_CatalogNodeName: {
+	catalogNodeName: {
 		APIName:    "Name",
 		SchemaName: "name",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 		ValidateFuncs: []interface{}{
-			_ValidateRegexp(`^[\S]+$`),
+			validateRegexp(`^[\S]+$`),
 		},
-		APITest: func(e *_TypeEntry, v interface{}) (interface{}, bool) {
+		APITest: func(e *typeEntry, v interface{}) (interface{}, bool) {
 			node := v.(*consulapi.Node)
 
 			if name := node.Node; name != "" {
@@ -79,12 +79,12 @@ var _CatalogNodeAttrs = map[_TypeKey]*_TypeEntry{
 			return "", false
 		},
 	},
-	_CatalogNodeAddress: {
+	catalogNodeAddress: {
 		APIName:    "Address",
 		SchemaName: "address",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
-		APITest: func(e *_TypeEntry, v interface{}) (interface{}, bool) {
+		APITest: func(e *typeEntry, v interface{}) (interface{}, bool) {
 			node := v.(*consulapi.Node)
 
 			if addr := node.Address; addr != "" {
@@ -94,18 +94,18 @@ var _CatalogNodeAttrs = map[_TypeKey]*_TypeEntry{
 			return "", false
 		},
 	},
-	_CatalogNodeTaggedAddresses: {
+	catalogNodeTaggedAddresses: {
 		APIName:    "TaggedAddresses",
 		SchemaName: "tagged_addresses",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeMap,
-		SetMembers: map[_TypeKey]*_TypeEntry{
-			_CatalogNodeTaggedAddressesLAN: {
+		SetMembers: map[typeKey]*typeEntry{
+			catalogNodeTaggedAddressesLAN: {
 				APIName:    "LAN",
 				SchemaName: "lan",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
-				APITest: func(e *_TypeEntry, v interface{}) (interface{}, bool) {
+				APITest: func(e *typeEntry, v interface{}) (interface{}, bool) {
 					m := v.(map[string]string)
 
 					if addr, found := m[string(e.SchemaName)]; found {
@@ -115,12 +115,12 @@ var _CatalogNodeAttrs = map[_TypeKey]*_TypeEntry{
 					return nil, false
 				},
 			},
-			_CatalogNodeTaggedAddressesWAN: {
+			catalogNodeTaggedAddressesWAN: {
 				APIName:    "WAN",
 				SchemaName: "wan",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
-				APITest: func(e *_TypeEntry, v interface{}) (interface{}, bool) {
+				APITest: func(e *typeEntry, v interface{}) (interface{}, bool) {
 					m := v.(map[string]string)
 
 					if addr, found := m[string(e.SchemaName)]; found {
@@ -131,26 +131,26 @@ var _CatalogNodeAttrs = map[_TypeKey]*_TypeEntry{
 				},
 			},
 		},
-		APITest: func(e *_TypeEntry, v interface{}) (interface{}, bool) {
+		APITest: func(e *typeEntry, v interface{}) (interface{}, bool) {
 			node := v.(*consulapi.Node)
 
 			if addrs := node.TaggedAddresses; len(addrs) > 0 {
-				return _MapStringToMapInterface(addrs), true
+				return mapStringToMapInterface(addrs), true
 			}
 
 			return nil, false
 		},
 	},
-	_CatalogNodeMeta: {
+	catalogNodeMeta: {
 		APIName:    "Meta",
 		SchemaName: "meta",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeMap,
-		APITest: func(e *_TypeEntry, v interface{}) (interface{}, bool) {
+		APITest: func(e *typeEntry, v interface{}) (interface{}, bool) {
 			node := v.(*consulapi.Node)
 
 			if meta := node.Meta; len(meta) > 0 {
-				return _MapStringToMapInterface(meta), true
+				return mapStringToMapInterface(meta), true
 			}
 
 			return nil, false
@@ -158,13 +158,13 @@ var _CatalogNodeAttrs = map[_TypeKey]*_TypeEntry{
 	},
 }
 
-var _CatalogNodesAttrs = map[_TypeKey]*_TypeEntry{
-	_CatalogNodesAllowStale: {
+var catalogNodesAttrs = map[typeKey]*typeEntry{
+	catalogNodesAllowStale: {
 		SchemaName: "allow_stale",
-		Source:     _SourceLocalFilter,
+		Source:     sourceLocalFilter,
 		Type:       schema.TypeBool,
 		Default:    true,
-		ConfigRead: func(e *_TypeEntry, r _AttrReader) (interface{}, bool) {
+		ConfigRead: func(e *typeEntry, r attrReader) (interface{}, bool) {
 			b, ok := r.GetBoolOK(e.SchemaName)
 			if !ok {
 				return nil, false
@@ -172,18 +172,18 @@ var _CatalogNodesAttrs = map[_TypeKey]*_TypeEntry{
 
 			return b, true
 		},
-		ConfigUse: func(e *_TypeEntry, v interface{}, target interface{}) error {
+		ConfigUse: func(e *typeEntry, v interface{}, target interface{}) error {
 			b := v.(bool)
 			queryOpts := target.(*consulapi.QueryOptions)
 			queryOpts.AllowStale = b
 			return nil
 		},
 	},
-	_CatalogNodesDatacenter: {
+	catalogNodesDatacenter: {
 		SchemaName: "datacenter",
-		Source:     _SourceLocalFilter,
+		Source:     sourceLocalFilter,
 		Type:       schema.TypeString,
-		ConfigRead: func(e *_TypeEntry, r _AttrReader) (interface{}, bool) {
+		ConfigRead: func(e *typeEntry, r attrReader) (interface{}, bool) {
 			s, ok := r.GetStringOK(e.SchemaName)
 			if !ok {
 				return nil, false
@@ -191,18 +191,18 @@ var _CatalogNodesAttrs = map[_TypeKey]*_TypeEntry{
 
 			return s, true
 		},
-		ConfigUse: func(e *_TypeEntry, v interface{}, target interface{}) error {
+		ConfigUse: func(e *typeEntry, v interface{}, target interface{}) error {
 			s := v.(string)
 			queryOpts := target.(*consulapi.QueryOptions)
 			queryOpts.Datacenter = s
 			return nil
 		},
 	},
-	_CatalogNodesNear: {
+	catalogNodesNear: {
 		SchemaName: "near",
-		Source:     _SourceLocalFilter,
+		Source:     sourceLocalFilter,
 		Type:       schema.TypeString,
-		ConfigRead: func(e *_TypeEntry, r _AttrReader) (interface{}, bool) {
+		ConfigRead: func(e *typeEntry, r attrReader) (interface{}, bool) {
 			s, ok := r.GetStringOK(e.SchemaName)
 			if !ok {
 				return nil, false
@@ -210,25 +210,25 @@ var _CatalogNodesAttrs = map[_TypeKey]*_TypeEntry{
 
 			return s, true
 		},
-		ConfigUse: func(e *_TypeEntry, v interface{}, target interface{}) error {
+		ConfigUse: func(e *typeEntry, v interface{}, target interface{}) error {
 			s := v.(string)
 			queryOpts := target.(*consulapi.QueryOptions)
 			queryOpts.Near = s
 			return nil
 		},
 	},
-	_CatalogNodes: {
+	catalogNodes: {
 		SchemaName: "nodes",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeList,
-		ListSchema: _CatalogNodeAttrs,
+		ListSchema: catalogNodeAttrs,
 	},
-	_CatalogNodesRequireConsistent: {
+	catalogNodesRequireConsistent: {
 		SchemaName: "require_consistent",
-		Source:     _SourceLocalFilter,
+		Source:     sourceLocalFilter,
 		Type:       schema.TypeBool,
 		Default:    false,
-		ConfigRead: func(e *_TypeEntry, r _AttrReader) (interface{}, bool) {
+		ConfigRead: func(e *typeEntry, r attrReader) (interface{}, bool) {
 			b, ok := r.GetBoolOK(e.SchemaName)
 			if !ok {
 				return nil, false
@@ -236,18 +236,18 @@ var _CatalogNodesAttrs = map[_TypeKey]*_TypeEntry{
 
 			return b, true
 		},
-		ConfigUse: func(e *_TypeEntry, v interface{}, target interface{}) error {
+		ConfigUse: func(e *typeEntry, v interface{}, target interface{}) error {
 			b := v.(bool)
 			queryOpts := target.(*consulapi.QueryOptions)
 			queryOpts.RequireConsistent = b
 			return nil
 		},
 	},
-	_CatalogNodesToken: {
+	catalogNodesToken: {
 		SchemaName: "token",
-		Source:     _SourceLocalFilter,
+		Source:     sourceLocalFilter,
 		Type:       schema.TypeString,
-		ConfigRead: func(e *_TypeEntry, r _AttrReader) (interface{}, bool) {
+		ConfigRead: func(e *typeEntry, r attrReader) (interface{}, bool) {
 			s, ok := r.GetStringOK(e.SchemaName)
 			if !ok {
 				return nil, false
@@ -255,21 +255,21 @@ var _CatalogNodesAttrs = map[_TypeKey]*_TypeEntry{
 
 			return s, true
 		},
-		ConfigUse: func(e *_TypeEntry, v interface{}, target interface{}) error {
+		ConfigUse: func(e *typeEntry, v interface{}, target interface{}) error {
 			s := v.(string)
 			queryOpts := target.(*consulapi.QueryOptions)
 			queryOpts.Token = s
 			return nil
 		},
 	},
-	_CatalogNodesWaitIndex: {
+	catalogNodesWaitIndex: {
 		SchemaName: "wait_index",
-		Source:     _SourceLocalFilter,
+		Source:     sourceLocalFilter,
 		Type:       schema.TypeInt,
 		ValidateFuncs: []interface{}{
-			_ValidateIntMin(0),
+			validateIntMin(0),
 		},
-		ConfigRead: func(e *_TypeEntry, r _AttrReader) (interface{}, bool) {
+		ConfigRead: func(e *typeEntry, r attrReader) (interface{}, bool) {
 			i, ok := r.GetIntOK(e.SchemaName)
 			if !ok {
 				return nil, false
@@ -277,21 +277,21 @@ var _CatalogNodesAttrs = map[_TypeKey]*_TypeEntry{
 
 			return uint64(i), true
 		},
-		ConfigUse: func(e *_TypeEntry, v interface{}, target interface{}) error {
+		ConfigUse: func(e *typeEntry, v interface{}, target interface{}) error {
 			i := v.(uint64)
 			queryOpts := target.(*consulapi.QueryOptions)
 			queryOpts.WaitIndex = i
 			return nil
 		},
 	},
-	_CatalogNodesWaitTime: {
+	catalogNodesWaitTime: {
 		SchemaName: "wait_time",
-		Source:     _SourceLocalFilter,
+		Source:     sourceLocalFilter,
 		Type:       schema.TypeString,
 		ValidateFuncs: []interface{}{
-			_ValidateDurationMin("0ns"),
+			validateDurationMin("0ns"),
 		},
-		ConfigRead: func(e *_TypeEntry, r _AttrReader) (interface{}, bool) {
+		ConfigRead: func(e *typeEntry, r attrReader) (interface{}, bool) {
 			d, ok := r.GetDurationOK(e.SchemaName)
 			if !ok {
 				return nil, false
@@ -299,7 +299,7 @@ var _CatalogNodesAttrs = map[_TypeKey]*_TypeEntry{
 
 			return d, true
 		},
-		ConfigUse: func(e *_TypeEntry, v interface{}, target interface{}) error {
+		ConfigUse: func(e *typeEntry, v interface{}, target interface{}) error {
 			d := v.(time.Duration)
 			queryOpts := target.(*consulapi.QueryOptions)
 			queryOpts.WaitTime = d
@@ -311,7 +311,7 @@ var _CatalogNodesAttrs = map[_TypeKey]*_TypeEntry{
 func dataSourceConsulCatalogNodes() *schema.Resource {
 	return &schema.Resource{
 		Read:   dataSourceConsulCatalogNodesRead,
-		Schema: _TypeEntryMapToSchema(_CatalogNodesAttrs),
+		Schema: typeEntryMapToSchema(catalogNodesAttrs),
 	}
 }
 
@@ -327,12 +327,12 @@ func dataSourceConsulCatalogNodesRead(d *schema.ResourceData, meta interface{}) 
 		Datacenter: dc,
 	}
 
-	cfgReader := _NewConfigReader(d)
+	cfgReader := newConfigReader(d)
 
 	// Construct the query options
-	for _, e := range _CatalogNodesAttrs[_CatalogNodes].ListSchema {
+	for _, e := range catalogNodesAttrs[catalogNodes].ListSchema {
 		// Only evaluate attributes that impact the state
-		if e.Source&_SourceLocalFilter == 0 {
+		if e.Source&sourceLocalFilter == 0 {
 			continue
 		}
 
@@ -357,12 +357,12 @@ func dataSourceConsulCatalogNodesRead(d *schema.ResourceData, meta interface{}) 
 	l := make([]interface{}, 0, len(nodes))
 
 	for _, node := range nodes {
-		mWriter := _NewMapWriter(make(map[string]interface{}, len(_CatalogNodeAttrs)))
+		mWriter := newMapWriter(make(map[string]interface{}, len(catalogNodeAttrs)))
 
 		// /v1/catalog/nodes returns a list of node objects
-		for _, e := range _CatalogNodesAttrs[_CatalogNodes].ListSchema {
+		for _, e := range catalogNodesAttrs[catalogNodes].ListSchema {
 			// Only evaluate attributes that impact the state
-			if e.Source&_ModifyState == 0 {
+			if e.Source&modifyState == 0 {
 				continue
 			}
 
@@ -378,9 +378,9 @@ func dataSourceConsulCatalogNodesRead(d *schema.ResourceData, meta interface{}) 
 		l = append(l, mWriter.ToMap())
 	}
 
-	dataSourceWriter := _NewStateWriter(d)
-	dataSourceWriter.SetList(_CatalogNodesAttrs[_CatalogNodes].SchemaName, l)
-	dataSourceWriter.SetString(_CatalogNodesAttrs[_CatalogNodesDatacenter].SchemaName, dc)
+	dataSourceWriter := newStateWriter(d)
+	dataSourceWriter.SetList(catalogNodesAttrs[catalogNodes].SchemaName, l)
+	dataSourceWriter.SetString(catalogNodesAttrs[catalogNodesDatacenter].SchemaName, dc)
 	const idKeyFmt = "catalog-nodes-%s"
 	dataSourceWriter.SetID(fmt.Sprintf(idKeyFmt, dc))
 

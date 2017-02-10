@@ -9,810 +9,810 @@ import (
 )
 
 const (
-	_AgentSelfACLDatacenter _TypeKey = iota
-	_AgentSelfACLDefaultPolicy
-	_AgentSelfACLDisableTTL
-	_AgentSelfACLDownPolicy
-	_AgentSelfACLEnforceVersion8
-	_AgentSelfACLTTL
-	_AgentSelfAddresses
-	_AgentSelfAdvertiseAddr
-	_AgentSelfAdvertiseAddrWAN
-	_AgentSelfAdvertiseAddrs
-	_AgentSelfAtlasJoin
-	_AgentSelfBindAddr
-	_AgentSelfBootstrap
-	_AgentSelfBootstrapExpect
-	_AgentSelfCAFile
-	_AgentSelfCertFile
-	_AgentSelfCheckDeregisterIntervalMin
-	_AgentSelfCheckDisableAnonymousSignature
-	_AgentSelfCheckDisableRemoteExec
-	_AgentSelfCheckReapInterval
-	_AgentSelfCheckUpdateInterval
-	_AgentSelfClientAddr
-	_AgentSelfDNSConfig
-	_AgentSelfDNSRecursors
-	_AgentSelfDataDir
-	_AgentSelfDatacenter
-	_AgentSelfDevMode
-	_AgentSelfDisableCoordinates
-	_AgentSelfDisableUpdateCheck
-	_AgentSelfDomain
-	_AgentSelfEnableDebug
-	_AgentSelfEnableSyslog
-	_AgentSelfEnableUI
-	_AgentSelfID
-	_AgentSelfKeyFile
-	_AgentSelfLeaveOnInt
-	_AgentSelfLeaveOnTerm
-	_AgentSelfLogLevel
-	_AgentSelfName
-	_AgentSelfPerformance
-	_AgentSelfPidFile
-	_AgentSelfPorts
-	_AgentSelfProtocol
-	_AgentSelfReconnectTimeoutLAN
-	_AgentSelfReconnectTimeoutWAN
-	_AgentSelfRejoinAfterLeave
-	_AgentSelfRetryJoin
-	_AgentSelfRetryJoinEC2
-	_AgentSelfRetryJoinGCE
-	_AgentSelfRetryJoinWAN
-	_AgentSelfRetryMaxAttempts
-	_AgentSelfRetryMaxAttemptsWAN
-	_AgentSelfRevision
-	_AgentSelfSerfLANBindAddr
-	_AgentSelfSerfWANBindAddr
-	_AgentSelfServer
-	_AgentSelfServerName
-	_AgentSelfSessionTTLMin
-	_AgentSelfStartJoin
-	_AgentSelfStartJoinWAN
-	_AgentSelfSyslogFacility
-	_AgentSelfTLSMinVersion
-	_AgentSelfTaggedAddresses
-	_AgentSelfTelemetry
-	_AgentSelfTranslateWANAddrs
-	_AgentSelfUIDir
-	_AgentSelfUnixSockets
-	_AgentSelfVerifyIncoming
-	_AgentSelfVerifyOutgoing
-	_AgentSelfVerifyServerHostname
-	_AgentSelfVersion
-	_AgentSelfVersionPrerelease
+	agentSelfACLDatacenter typeKey = iota
+	agentSelfACLDefaultPolicy
+	agentSelfACLDisableTTL
+	agentSelfACLDownPolicy
+	agentSelfACLEnforceVersion8
+	agentSelfACLTTL
+	agentSelfAddresses
+	agentSelfAdvertiseAddr
+	agentSelfAdvertiseAddrWAN
+	agentSelfAdvertiseAddrs
+	agentSelfAtlasJoin
+	agentSelfBindAddr
+	agentSelfBootstrap
+	agentSelfBootstrapExpect
+	agentSelfCAFile
+	agentSelfCertFile
+	agentSelfCheckDeregisterIntervalMin
+	agentSelfCheckDisableAnonymousSignature
+	agentSelfCheckDisableRemoteExec
+	agentSelfCheckReapInterval
+	agentSelfCheckUpdateInterval
+	agentSelfClientAddr
+	agentSelfDNSConfig
+	agentSelfDNSRecursors
+	agentSelfDataDir
+	agentSelfDatacenter
+	agentSelfDevMode
+	agentSelfDisableCoordinates
+	agentSelfDisableUpdateCheck
+	agentSelfDomain
+	agentSelfEnableDebug
+	agentSelfEnableSyslog
+	agentSelfEnableUI
+	agentSelfID
+	agentSelfKeyFile
+	agentSelfLeaveOnInt
+	agentSelfLeaveOnTerm
+	agentSelfLogLevel
+	agentSelfName
+	agentSelfPerformance
+	agentSelfPidFile
+	agentSelfPorts
+	agentSelfProtocol
+	agentSelfReconnectTimeoutLAN
+	agentSelfReconnectTimeoutWAN
+	agentSelfRejoinAfterLeave
+	agentSelfRetryJoin
+	agentSelfRetryJoinEC2
+	agentSelfRetryJoinGCE
+	agentSelfRetryJoinWAN
+	agentSelfRetryMaxAttempts
+	agentSelfRetryMaxAttemptsWAN
+	agentSelfRevision
+	agentSelfSerfLANBindAddr
+	agentSelfSerfWANBindAddr
+	agentSelfServer
+	agentSelfServerName
+	agentSelfSessionTTLMin
+	agentSelfStartJoin
+	agentSelfStartJoinWAN
+	agentSelfSyslogFacility
+	agentSelfTLSMinVersion
+	agentSelfTaggedAddresses
+	agentSelfTelemetry
+	agentSelfTranslateWANAddrs
+	agentSelfUIDir
+	agentSelfUnixSockets
+	agentSelfVerifyIncoming
+	agentSelfVerifyOutgoing
+	agentSelfVerifyServerHostname
+	agentSelfVersion
+	agentSelfVersionPrerelease
 )
 
 const (
-	_AgentSelfDNSAllowStale _TypeKey = iota
-	_AgentSelfDNSMaxStale
-	_AgentSelfRecursorTimeout
-	_AgentSelfDNSDisableCompression
-	_AgentSelfDNSEnableTruncate
-	_AgentSelfDNSNodeTTL
-	_AgentSelfDNSOnlyPassing
-	_AgentSelfDNSUDPAnswerLimit
-	_AgentSelfServiceTTL
+	agentSelfDNSAllowStale typeKey = iota
+	agentSelfDNSMaxStale
+	agentSelfRecursorTimeout
+	agentSelfDNSDisableCompression
+	agentSelfDNSEnableTruncate
+	agentSelfDNSNodeTTL
+	agentSelfDNSOnlyPassing
+	agentSelfDNSUDPAnswerLimit
+	agentSelfServiceTTL
 )
 
 const (
-	_AgentSelfPerformanceRaftMultiplier _TypeKey = iota
+	agentSelfPerformanceRaftMultiplier typeKey = iota
 )
 
 const (
-	_AgentSelfPortsDNS _TypeKey = iota
-	_AgentSelfPortsHTTP
-	_AgentSelfPortsHTTPS
-	_AgentSelfPortsRPC
-	_AgentSelfPortsSerfLAN
-	_AgentSelfPortsSerfWAN
-	_AgentSelfPortsServer
+	agentSelfPortsDNS typeKey = iota
+	agentSelfPortsHTTP
+	agentSelfPortsHTTPS
+	agentSelfPortsRPC
+	agentSelfPortsSerfLAN
+	agentSelfPortsSerfWAN
+	agentSelfPortsServer
 )
 
 const (
-	_AgentSelfTaggedAddressesLAN _TypeKey = iota
-	_AgentSelfTaggedAddressesWAN
+	agentSelfTaggedAddressesLAN typeKey = iota
+	agentSelfTaggedAddressesWAN
 )
 
 const (
-	_AgentSelfTelemetryCirconusAPIApp _TypeKey = iota
-	_AgentSelfTelemetryCirconusAPIURL
-	_AgentSelfTelemetryCirconusBrokerID
-	_AgentSelfTelemetryCirconusBrokerSelectTag
-	_AgentSelfTelemetryCirconusCheckDisplayName
-	_AgentSelfTelemetryCirconusCheckForceMetricActiation
-	_AgentSelfTelemetryCirconusCheckID
-	_AgentSelfTelemetryCirconusCheckInstanceID
-	_AgentSelfTelemetryCirconusCheckSearchTag
-	_AgentSelfTelemetryCirconusCheckSubmissionURL
-	_AgentSelfTelemetryCirconusCheckTags
-	_AgentSelfTelemetryCirconusSubmissionInterval
-	_AgentSelfTelemetryDisableHostname
-	_AgentSelfTelemetryDogStatsdAddr
-	_AgentSelfTelemetryDogStatsdTags
-	_AgentSelfTelemetryStatsdAddr
-	_AgentSelfTelemetryStatsiteAddr
-	_AgentSelfTelemetryStatsitePrefix
+	agentSelfTelemetryCirconusAPIApp typeKey = iota
+	agentSelfTelemetryCirconusAPIURL
+	agentSelfTelemetryCirconusBrokerID
+	agentSelfTelemetryCirconusBrokerSelectTag
+	agentSelfTelemetryCirconusCheckDisplayName
+	agentSelfTelemetryCirconusCheckForceMetricActiation
+	agentSelfTelemetryCirconusCheckID
+	agentSelfTelemetryCirconusCheckInstanceID
+	agentSelfTelemetryCirconusCheckSearchTag
+	agentSelfTelemetryCirconusCheckSubmissionURL
+	agentSelfTelemetryCirconusCheckTags
+	agentSelfTelemetryCirconusSubmissionInterval
+	agentSelfTelemetryDisableHostname
+	agentSelfTelemetryDogStatsdAddr
+	agentSelfTelemetryDogStatsdTags
+	agentSelfTelemetryStatsdAddr
+	agentSelfTelemetryStatsiteAddr
+	agentSelfTelemetryStatsitePrefix
 )
 
 // Schema for consul's /v1/agent/self endpoint
-var _AgentSelfMap = map[_TypeKey]*_TypeEntry{
-	_AgentSelfACLDatacenter: {
+var agentSelfMap = map[typeKey]*typeEntry{
+	agentSelfACLDatacenter: {
 		APIName:    "ACLDatacenter",
 		SchemaName: "acl_datacenter",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfACLDefaultPolicy: {
+	agentSelfACLDefaultPolicy: {
 		APIName:    "ACLDefaultPolicy",
 		SchemaName: "acl_default_policy",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfACLDisableTTL: {
+	agentSelfACLDisableTTL: {
 		APIName:    "ACLDisabledTTL",
 		SchemaName: "acl_disable_ttl",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeFloat,
 	},
-	_AgentSelfACLDownPolicy: {
+	agentSelfACLDownPolicy: {
 		APIName:    "ACLDownPolicy",
 		SchemaName: "acl_down_policy",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfACLEnforceVersion8: {
+	agentSelfACLEnforceVersion8: {
 		APIName:    "ACLEnforceVersion8",
 		SchemaName: "acl_enforce_version_8",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfACLTTL: {
+	agentSelfACLTTL: {
 		APIName:    "ACLTTL",
 		SchemaName: "acl_ttl",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeFloat,
 	},
-	_AgentSelfAddresses: {
+	agentSelfAddresses: {
 		APIName:    "Addresses",
 		SchemaName: "addresses",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeMap,
 	},
-	_AgentSelfAdvertiseAddr: {
+	agentSelfAdvertiseAddr: {
 		APIName:    "AdvertiseAddr",
 		SchemaName: "advertise_addr",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfAdvertiseAddrs: {
+	agentSelfAdvertiseAddrs: {
 		APIName:    "AdvertiseAddrs",
 		SchemaName: "advertise_addrs",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeMap,
 	},
-	_AgentSelfAdvertiseAddrWAN: {
+	agentSelfAdvertiseAddrWAN: {
 		APIName:    "AdvertiseAddrWan",
 		SchemaName: "advertise_addr_wan",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
 	// Omitting the following since they've been depreciated:
 	//
 	// "AtlasInfrastructure":        "",
 	// "AtlasEndpoint":       "",
-	_AgentSelfAtlasJoin: {
+	agentSelfAtlasJoin: {
 		APIName:    "AtlasJoin",
 		SchemaName: "atlas_join",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfBindAddr: {
+	agentSelfBindAddr: {
 		APIName:    "BindAddr",
 		SchemaName: "bind_addr",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfBootstrap: {
+	agentSelfBootstrap: {
 		APIName:    "Bootstrap",
 		SchemaName: "bootstrap",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfBootstrapExpect: {
+	agentSelfBootstrapExpect: {
 		APIName:    "BootstrapExpect",
 		SchemaName: "bootstrap_expect",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeFloat,
 	},
-	_AgentSelfCAFile: {
+	agentSelfCAFile: {
 		APIName:    "CAFile",
 		SchemaName: "ca_file",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfCertFile: {
+	agentSelfCertFile: {
 		APIName:    "CertFile",
 		SchemaName: "cert_file",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfCheckDeregisterIntervalMin: {
+	agentSelfCheckDeregisterIntervalMin: {
 		APIName:    "CheckDeregisterIntervalMin",
 		SchemaName: "check_deregister_interval_min",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeFloat,
 	},
-	_AgentSelfCheckDisableAnonymousSignature: {
+	agentSelfCheckDisableAnonymousSignature: {
 		APIName:    "DisableAnonymousSignature",
 		SchemaName: "disable_anonymous_signature",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfCheckDisableRemoteExec: {
+	agentSelfCheckDisableRemoteExec: {
 		APIName:    "DisableRemoteExec",
 		SchemaName: "disable_remote_exec",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfCheckReapInterval: {
+	agentSelfCheckReapInterval: {
 		APIName:    "CheckReapInterval",
 		SchemaName: "check_reap_interval",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeFloat,
 	},
-	_AgentSelfCheckUpdateInterval: {
+	agentSelfCheckUpdateInterval: {
 		APIName:    "CheckUpdateInterval",
 		SchemaName: "check_update_interval",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeFloat,
 	},
-	_AgentSelfClientAddr: {
+	agentSelfClientAddr: {
 		APIName:    "ClientAddr",
 		SchemaName: "client_addr",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfDNSConfig: {
+	agentSelfDNSConfig: {
 		APIName:    "DNSConfig",
 		SchemaName: "dns_config",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeMap,
-		SetMembers: map[_TypeKey]*_TypeEntry{
-			_AgentSelfDNSAllowStale: {
+		SetMembers: map[typeKey]*typeEntry{
+			agentSelfDNSAllowStale: {
 				APIName:    "AllowStale",
 				SchemaName: "allow_stale",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeBool,
 			},
-			_AgentSelfDNSDisableCompression: {
+			agentSelfDNSDisableCompression: {
 				APIName:    "DisableCompression",
 				SchemaName: "disable_compression",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeBool,
 			},
-			_AgentSelfDNSEnableTruncate: {
+			agentSelfDNSEnableTruncate: {
 				APIName:    "EnableTruncate",
 				SchemaName: "enable_truncate",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeBool,
 			},
-			_AgentSelfDNSMaxStale: {
+			agentSelfDNSMaxStale: {
 				APIName:    "MaxStale",
 				SchemaName: "max_stale",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeFloat,
 			},
-			_AgentSelfDNSNodeTTL: {
+			agentSelfDNSNodeTTL: {
 				APIName:    "NodeTTL",
 				SchemaName: "node_ttl",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeFloat,
 			},
-			_AgentSelfDNSOnlyPassing: {
+			agentSelfDNSOnlyPassing: {
 				APIName:    "OnlyPassing",
 				SchemaName: "only_passing",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeBool,
 			},
-			_AgentSelfRecursorTimeout: {
+			agentSelfRecursorTimeout: {
 				APIName:    "RecursorTimeout",
 				SchemaName: "recursor_timeout",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeFloat,
 			},
-			_AgentSelfServiceTTL: {
+			agentSelfServiceTTL: {
 				APIName:    "ServiceTTL",
 				SchemaName: "service_ttl",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeFloat,
 			},
-			_AgentSelfDNSUDPAnswerLimit: {
+			agentSelfDNSUDPAnswerLimit: {
 				APIName:    "UDPAnswerLimit",
 				SchemaName: "udp_answer_limit",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeFloat,
 			},
 		},
 	},
-	_AgentSelfDataDir: {
+	agentSelfDataDir: {
 		APIName:    "DataDir",
 		SchemaName: "data_dir",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfDatacenter: {
+	agentSelfDatacenter: {
 		APIName:    "Datacenter",
 		SchemaName: "datacenter",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfDevMode: {
+	agentSelfDevMode: {
 		APIName:    "DevMode",
 		SchemaName: "dev_mode",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfDisableCoordinates: {
+	agentSelfDisableCoordinates: {
 		APIName:    "DisableCoordinates",
 		SchemaName: "coordinates",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfDisableUpdateCheck: {
+	agentSelfDisableUpdateCheck: {
 		APIName:    "DisableUpdateCheck",
 		SchemaName: "update_check",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfDNSRecursors: {
+	agentSelfDNSRecursors: {
 		APIName:    "DNSRecursors",
-		APIAliases: []_APIAttr{"DNSRecursor"},
+		APIAliases: []apiAttr{"DNSRecursor"},
 		SchemaName: "dns_recursors",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeList,
 	},
-	_AgentSelfDomain: {
+	agentSelfDomain: {
 		APIName:    "Domain",
 		SchemaName: "domain",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfEnableDebug: {
+	agentSelfEnableDebug: {
 		APIName:    "EnableDebug",
 		SchemaName: "debug",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfEnableSyslog: {
+	agentSelfEnableSyslog: {
 		APIName:    "EnableSyslog",
 		SchemaName: "syslog",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfEnableUI: {
+	agentSelfEnableUI: {
 		APIName:    "EnableUi",
 		SchemaName: "ui",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
 	// "HTTPAPIResponseHeaders": nil,
-	_AgentSelfID: {
+	agentSelfID: {
 		APIName:    "NodeID",
 		SchemaName: "id",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 		ValidateFuncs: []interface{}{
-			_ValidateRegexp(`(?i)^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$`),
+			validateRegexp(`(?i)^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$`),
 		},
-		APITest:    _APITestID,
-		APIToState: _APIToStateID,
+		APITest:    apiTestID,
+		APIToState: apiToStateID,
 	},
-	_AgentSelfKeyFile: {
+	agentSelfKeyFile: {
 		APIName:    "KeyFile",
 		SchemaName: "key_file",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfLeaveOnInt: {
+	agentSelfLeaveOnInt: {
 		APIName:    "SkipLeaveOnInt",
 		SchemaName: "leave_on_int",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
-		APITest:    _APITestBool,
-		APIToState: _NegateBoolToState(_APIToStateBool),
+		APITest:    apiTestBool,
+		APIToState: negateBoolToState(apiToStateBool),
 	},
-	_AgentSelfLeaveOnTerm: {
+	agentSelfLeaveOnTerm: {
 		APIName:    "LeaveOnTerm",
 		SchemaName: "leave_on_term",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfLogLevel: {
+	agentSelfLogLevel: {
 		APIName:    "LogLevel",
 		SchemaName: "log_level",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfName: {
+	agentSelfName: {
 		APIName:    "NodeName",
 		SchemaName: "name",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfPerformance: {
+	agentSelfPerformance: {
 		APIName:    "Performance",
 		SchemaName: "performance",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeMap,
-		SetMembers: map[_TypeKey]*_TypeEntry{
-			_AgentSelfPerformanceRaftMultiplier: {
+		SetMembers: map[typeKey]*typeEntry{
+			agentSelfPerformanceRaftMultiplier: {
 				APIName:    "RaftMultiplier",
 				SchemaName: "raft_multiplier",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeFloat,
 			},
 		},
 	},
-	_AgentSelfPidFile: {
+	agentSelfPidFile: {
 		APIName:    "PidFile",
 		SchemaName: "pid_file",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfPorts: {
+	agentSelfPorts: {
 		APIName:    "Ports",
 		SchemaName: "ports",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeMap,
-		SetMembers: map[_TypeKey]*_TypeEntry{
-			_AgentSelfPortsDNS: {
+		SetMembers: map[typeKey]*typeEntry{
+			agentSelfPortsDNS: {
 				APIName:    "DNS",
 				SchemaName: "dns",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeFloat,
 			},
-			_AgentSelfPortsHTTP: {
+			agentSelfPortsHTTP: {
 				APIName:    "HTTP",
 				SchemaName: "http",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeFloat,
 			},
-			_AgentSelfPortsHTTPS: {
+			agentSelfPortsHTTPS: {
 				APIName:    "HTTPS",
 				SchemaName: "https",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeFloat,
 			},
-			_AgentSelfPortsRPC: {
+			agentSelfPortsRPC: {
 				APIName:    "RPC",
 				SchemaName: "rpc",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeFloat,
 			},
-			_AgentSelfPortsSerfLAN: {
+			agentSelfPortsSerfLAN: {
 				APIName:    "SerfLan",
 				SchemaName: "serf_lan",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeFloat,
 			},
-			_AgentSelfPortsSerfWAN: {
+			agentSelfPortsSerfWAN: {
 				APIName:    "SerfWan",
 				SchemaName: "serf_wan",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeFloat,
 			},
-			_AgentSelfPortsServer: {
+			agentSelfPortsServer: {
 				APIName:    "Server",
 				SchemaName: "server",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeFloat,
 			},
 		},
 	},
-	_AgentSelfProtocol: {
+	agentSelfProtocol: {
 		APIName:    "Protocol",
 		SchemaName: "protocol",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeFloat,
 	},
-	_AgentSelfReconnectTimeoutLAN: {
+	agentSelfReconnectTimeoutLAN: {
 		APIName:    "ReconnectTimeoutLan",
 		SchemaName: "reconnect_timeout_lan",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeFloat,
 	},
-	_AgentSelfReconnectTimeoutWAN: {
+	agentSelfReconnectTimeoutWAN: {
 		APIName:    "ReconnectTimeoutWan",
 		SchemaName: "reconnect_timeout_wan",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeFloat,
 	},
-	_AgentSelfRejoinAfterLeave: {
+	agentSelfRejoinAfterLeave: {
 		APIName:    "RejoinAfterLeave",
 		SchemaName: "rejoin_after_leave",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
 	// "RetryIntervalWanRaw": "",
-	_AgentSelfRetryJoin: {
+	agentSelfRetryJoin: {
 		APIName:    "RetryJoin",
 		SchemaName: "retry_join",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeList,
 	},
-	_AgentSelfRetryJoinWAN: {
+	agentSelfRetryJoinWAN: {
 		APIName:    "RetryJoinWan",
 		SchemaName: "retry_join_wan",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeList,
 	},
-	_AgentSelfRetryMaxAttempts: {
+	agentSelfRetryMaxAttempts: {
 		APIName:    "RetryMaxAttempts",
 		SchemaName: "retry_max_attempts",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeFloat,
 	},
-	_AgentSelfRetryMaxAttemptsWAN: {
+	agentSelfRetryMaxAttemptsWAN: {
 		APIName:    "RetryMaxAttemptsWan",
 		SchemaName: "retry_max_attempts_wan",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeFloat,
 	},
-	_AgentSelfRetryJoinEC2: {
+	agentSelfRetryJoinEC2: {
 		APIName:    "RetryJoinEC2",
 		SchemaName: "retry_join_ec2",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeMap,
 	},
-	_AgentSelfRetryJoinGCE: {
+	agentSelfRetryJoinGCE: {
 		APIName:    "RetryJoinGCE",
 		SchemaName: "retry_join_GCE",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeMap,
 	},
-	_AgentSelfRevision: {
+	agentSelfRevision: {
 		APIName:    "Revision",
 		SchemaName: "revision",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfSerfLANBindAddr: {
+	agentSelfSerfLANBindAddr: {
 		APIName:    "SerfLanBindAddr",
 		SchemaName: "serf_lan_bind_addr",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfSerfWANBindAddr: {
+	agentSelfSerfWANBindAddr: {
 		APIName:    "SerfWanBindAddr",
 		SchemaName: "serf_wan_bind_addr",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfServer: {
+	agentSelfServer: {
 		APIName:    "Server",
 		SchemaName: "server",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfServerName: {
+	agentSelfServerName: {
 		APIName:    "ServerName",
 		SchemaName: "server_name",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfSessionTTLMin: {
+	agentSelfSessionTTLMin: {
 		APIName:    "SessionTTLMin",
 		SchemaName: "session_ttl_min",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeFloat,
 	},
-	_AgentSelfStartJoin: {
+	agentSelfStartJoin: {
 		APIName:    "StartJoin",
 		SchemaName: "start_join",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeList,
 	},
-	_AgentSelfStartJoinWAN: {
+	agentSelfStartJoinWAN: {
 		APIName:    "StartJoinWan",
 		SchemaName: "start_join_wan",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeList,
 	},
-	_AgentSelfSyslogFacility: {
+	agentSelfSyslogFacility: {
 		APIName:    "SyslogFacility",
 		SchemaName: "syslog_facility",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfTaggedAddresses: {
+	agentSelfTaggedAddresses: {
 		APIName:    "TaggedAddresses",
 		SchemaName: "tagged_addresses",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeMap,
-		SetMembers: map[_TypeKey]*_TypeEntry{
-			_AgentSelfTaggedAddressesLAN: {
+		SetMembers: map[typeKey]*typeEntry{
+			agentSelfTaggedAddressesLAN: {
 				APIName:    "LAN",
 				SchemaName: "lan",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTaggedAddressesWAN: {
+			agentSelfTaggedAddressesWAN: {
 				APIName:    "WAN",
 				SchemaName: "wan",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
 		},
 	},
-	_AgentSelfTelemetry: {
+	agentSelfTelemetry: {
 		APIName:    "Telemetry",
 		SchemaName: "telemetry",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeMap,
-		SetMembers: map[_TypeKey]*_TypeEntry{
-			_AgentSelfTelemetryCirconusAPIApp: {
+		SetMembers: map[typeKey]*typeEntry{
+			agentSelfTelemetryCirconusAPIApp: {
 				APIName:    "CirconusAPIApp",
 				SchemaName: "circonus_api_app",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryCirconusAPIURL: {
+			agentSelfTelemetryCirconusAPIURL: {
 				APIName:    "CirconusAPIURL",
 				SchemaName: "circonus_api_url",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryCirconusBrokerID: {
+			agentSelfTelemetryCirconusBrokerID: {
 				APIName:    "CirconusBrokerID",
 				SchemaName: "circonus_broker_id",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryCirconusBrokerSelectTag: {
+			agentSelfTelemetryCirconusBrokerSelectTag: {
 				APIName:    "CirconusBrokerSelectTag",
 				SchemaName: "circonus_broker_select_tag",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryCirconusCheckDisplayName: {
+			agentSelfTelemetryCirconusCheckDisplayName: {
 				APIName:    "CirconusCheckDisplayName",
 				SchemaName: "circonus_check_display_name",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryCirconusCheckForceMetricActiation: {
+			agentSelfTelemetryCirconusCheckForceMetricActiation: {
 				APIName:    "CirconusCheckForceMetricActivation",
 				SchemaName: "circonus_check_force_metric_activation",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryCirconusCheckID: {
+			agentSelfTelemetryCirconusCheckID: {
 				APIName:    "CirconusCheckID",
 				SchemaName: "circonus_check_id",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryCirconusCheckInstanceID: {
+			agentSelfTelemetryCirconusCheckInstanceID: {
 				APIName:    "CirconusCheckInstanceID",
 				SchemaName: "circonus_check_instance_id",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryCirconusCheckSearchTag: {
+			agentSelfTelemetryCirconusCheckSearchTag: {
 				APIName:    "CirconusCheckSearchTag",
 				SchemaName: "circonus_check_search_tag",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryCirconusCheckSubmissionURL: {
+			agentSelfTelemetryCirconusCheckSubmissionURL: {
 				APIName:    "CirconusCheckSubmissionURL",
 				SchemaName: "circonus_check_submission_url",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryCirconusCheckTags: {
+			agentSelfTelemetryCirconusCheckTags: {
 				APIName:    "CirconusCheckTags",
 				SchemaName: "circonus_check_tags",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryCirconusSubmissionInterval: {
+			agentSelfTelemetryCirconusSubmissionInterval: {
 				APIName:    "CirconusSubmissionInterval",
 				SchemaName: "circonus_submission_interval",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryDisableHostname: {
+			agentSelfTelemetryDisableHostname: {
 				APIName:    "DisableHostname",
 				SchemaName: "disable_hostname",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeBool,
 			},
-			_AgentSelfTelemetryDogStatsdAddr: {
+			agentSelfTelemetryDogStatsdAddr: {
 				APIName:    "DogStatsdAddr",
 				SchemaName: "dog_statsd_addr",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryDogStatsdTags: {
+			agentSelfTelemetryDogStatsdTags: {
 				APIName:    "DogStatsdTags",
 				SchemaName: "dog_statsd_tags",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryStatsdAddr: {
+			agentSelfTelemetryStatsdAddr: {
 				APIName:    "StatsdTags",
 				SchemaName: "statsd_tags",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryStatsiteAddr: {
+			agentSelfTelemetryStatsiteAddr: {
 				APIName:    "StatsiteAddr",
 				SchemaName: "statsite_addr",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
-			_AgentSelfTelemetryStatsitePrefix: {
+			agentSelfTelemetryStatsitePrefix: {
 				APIName:    "StatsitePrefix",
 				SchemaName: "statsite_prefix",
-				Source:     _SourceAPIResult,
+				Source:     sourceAPIResult,
 				Type:       schema.TypeString,
 			},
 		},
 	},
-	_AgentSelfTLSMinVersion: {
+	agentSelfTLSMinVersion: {
 		APIName:    "TLSMinVersion",
 		SchemaName: "tls_min_version",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfTranslateWANAddrs: {
+	agentSelfTranslateWANAddrs: {
 		APIName:    "TranslateWanAddrs",
 		SchemaName: "translate_wan_addrs",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfUIDir: {
+	agentSelfUIDir: {
 		APIName:    "UiDir",
 		SchemaName: "ui_dir",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfUnixSockets: {
+	agentSelfUnixSockets: {
 		APIName:    "UnixSockets",
 		SchemaName: "unix_sockets",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeMap,
 	},
-	_AgentSelfVerifyIncoming: {
+	agentSelfVerifyIncoming: {
 		APIName:    "VerifyIncoming",
 		SchemaName: "verify_incoming",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfVerifyServerHostname: {
+	agentSelfVerifyServerHostname: {
 		APIName:    "VerifyServerHostname",
 		SchemaName: "verify_server_hostname",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfVerifyOutgoing: {
+	agentSelfVerifyOutgoing: {
 		APIName:    "VerifyOutgoing",
 		SchemaName: "verify_outgoing",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeBool,
 	},
-	_AgentSelfVersion: {
+	agentSelfVersion: {
 		APIName:    "Version",
 		SchemaName: "version",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
-	_AgentSelfVersionPrerelease: {
+	agentSelfVersionPrerelease: {
 		APIName:    "VersionPrerelease",
 		SchemaName: "version_prerelease",
-		Source:     _SourceAPIResult,
+		Source:     sourceAPIResult,
 		Type:       schema.TypeString,
 	},
 	// "Watches":                nil,
@@ -821,7 +821,7 @@ var _AgentSelfMap = map[_TypeKey]*_TypeEntry{
 func dataSourceConsulAgentSelf() *schema.Resource {
 	return &schema.Resource{
 		Read:   dataSourceConsulAgentSelfRead,
-		Schema: _TypeEntryMapToSchema(_AgentSelfMap),
+		Schema: typeEntryMapToSchema(agentSelfMap),
 	}
 }
 
@@ -832,19 +832,19 @@ func dataSourceConsulAgentSelfRead(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	const _APIAgentConfig = "Config"
-	cfg, ok := info[_APIAgentConfig]
+	const apiAgentConfig = "Config"
+	cfg, ok := info[apiAgentConfig]
 	if !ok {
-		return fmt.Errorf("No %s info available within provider's agent/self endpoint", _APIAgentConfig)
+		return fmt.Errorf("No %s info available within provider's agent/self endpoint", apiAgentConfig)
 	}
 
 	// TODO(sean@): It'd be nice if this data source had a way of filtering out
 	// irrelevant data so only the important bits are persisted in the state file.
 	// Something like an attribute mask or even a regexp of matching schema names
 	// would be sufficient in the most basic case.  Food for thought.
-	dataSourceWriter := _NewStateWriter(d)
+	dataSourceWriter := newStateWriter(d)
 
-	for k, e := range _AgentSelfMap {
+	for k, e := range agentSelfMap {
 		apiTest := e.APITest
 		if apiTest == nil {
 			apiTest = e.LookupDefaultTypeHandler().APITest
