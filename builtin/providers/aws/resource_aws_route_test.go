@@ -176,68 +176,6 @@ func TestAccAWSRoute_doesNotCrashWithVPCEndpoint(t *testing.T) {
 	})
 }
 
-// Acceptance test if mixed inline and external routes are implemented
-/*
-func TestAccAWSRoute_mix(t *testing.T) {
-	var rt ec2.RouteTable
-	var route ec2.Route
-
-	//aws creates a default route
-	testCheck := func(s *terraform.State) error {
-		if *route.DestinationCidrBlock != "0.0.0.0/0" {
-			return fmt.Errorf("Destination Cidr (Expected=%s, Actual=%s)\n", "0.0.0.0/0", *route.DestinationCidrBlock)
-		}
-
-		name := "aws_internet_gateway.foo"
-		gwres, ok := s.RootModule().Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s\n", name)
-		}
-
-		if *route.GatewayId != gwres.Primary.ID {
-			return fmt.Errorf("Internet Gateway Id (Expected=%s, Actual=%s)\n", gwres.Primary.ID, *route.GatewayId)
-		}
-
-		if len(rt.Routes) != 3 {
-			return fmt.Errorf("bad routes: %#v", rt.Routes)
-		}
-
-		routes := make(map[string]*ec2.Route)
-		for _, r := range rt.Routes {
-			routes[*r.DestinationCidrBlock] = r
-		}
-
-		if _, ok := routes["10.1.0.0/16"]; !ok {
-			return fmt.Errorf("Missing route %s: %#v", "10.1.0.0/16", rt.Routes)
-		}
-		if _, ok := routes["10.2.0.0/16"]; !ok {
-			return fmt.Errorf("Missing route %s: %#v", "10.2.0.0/16", rt.Routes)
-		}
-		if _, ok := routes["0.0.0.0/0"]; !ok {
-			return fmt.Errorf("Missing route %s: %#v", "0.0.0.0/0", rt.Routes)
-		}
-
-		return nil
-	}
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSRouteDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSRouteMixConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRouteTableExists("aws_route_table.foo", &rt),
-					testAccCheckAWSRouteExists("aws_route.bar", &route),
-					testCheck,
-				),
-			},
-		},
-	})
-}
-*/
-
 func testAccCheckAWSRouteExists(n string, res *ec2.Route) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
