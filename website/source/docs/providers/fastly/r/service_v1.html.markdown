@@ -232,6 +232,10 @@ content. (Does not apply to the `delete` action.)
 * `regex` - (Optional) Regular expression to use (Only applies to the `regex` and `regex_repeat` actions.)
 * `substitution` - (Optional) Value to substitute in place of regular expression. (Only applies to the `regex` and `regex_repeat` actions.)
 * `priority` - (Optional) Lower priorities execute first. Default: `100`.
+* `request_condition` - (Optional) Name of a RequestCondition to apply.
+* `cache_condition` - (Optional) Name of a CacheCondition to apply.
+* `response_condition` - (Optional) Name of a ResponseCondition to apply.For detailed information about Conditionals,
+see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
 The `healthcheck` block supports:
 

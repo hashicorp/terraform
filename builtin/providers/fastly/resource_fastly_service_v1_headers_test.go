@@ -109,6 +109,12 @@ func TestAccFastlyServiceV1_headers_basic(t *testing.T) {
 						"fastly_service_v1.foo", "header.#", "3"),
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "header.1147514417.source", "server.identity"),
+					resource.TestCheckResourceAttr(
+						"fastly_service_v1.foo", "header.1147514417.request_condition", "req.url ~ \"^/foo/bar$\""),
+					resource.TestCheckResourceAttr(
+						"fastly_service_v1.foo", "header.1147514417.cache_condition", "!beresp.cachable"),
+					resource.TestCheckResourceAttr(
+						"fastly_service_v1.foo", "header.1147514417.response_condition", "resp.status == 404"),
 				),
 			},
 		},
@@ -223,11 +229,14 @@ resource "fastly_service_v1" "foo" {
   }
 
   header {
-    destination = "http.server-name"
-    type        = "request"
-    action      = "set"
-    source      = "server.identity"
-    name        = "Add server name"
+    destination 			 = "http.server-name"
+    type        			 = "request"
+    action      			 = "set"
+    source      			 = "server.identity"
+    name        			 = "Add server name"
+		request_condition  = "req.url ~ \"^/foo/bar$\""
+		cache_condition    = "!beresp.cachable"
+		response_condition = "resp.status == 404"
   }
 
   force_destroy = true

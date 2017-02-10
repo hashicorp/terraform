@@ -368,21 +368,22 @@ func resourceServiceV1() *schema.Resource {
 							Default:     100,
 							Description: "Lower priorities execute first. (Default: 100.)",
 						},
-						// These fields represent Fastly options that Terraform does not
-						// currently support
 						"request_condition": {
 							Type:        schema.TypeString,
-							Computed:    true,
+							Optional:    true,
+							Default:     "",
 							Description: "Optional name of a RequestCondition to apply.",
 						},
 						"cache_condition": {
 							Type:        schema.TypeString,
-							Computed:    true,
+							Optional:    true,
+							Default:     "",
 							Description: "Optional name of a CacheCondition to apply.",
 						},
 						"response_condition": {
 							Type:        schema.TypeString,
-							Computed:    true,
+							Optional:    true,
+							Default:     "",
 							Description: "Optional name of a ResponseCondition to apply.",
 						},
 					},
