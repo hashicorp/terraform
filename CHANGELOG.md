@@ -24,6 +24,7 @@ Bug FIXES:
  * core: destroy ordering of resources within modules is correct [GH-11765]
  * state/remote/s3: Fix Bug with Assume Role for Federated IAM Account [GH-10067]
  * provider/aws: Fix security_group_rule resource timeout errors [GH-11809]
+ * provider/aws: Fix default values for AMI volume size [GH-11842]
  * provider/aws: Fix aws_db_event_subscription import [GH-11744]
  * provider/aws: Respect 400 returned from AWS API on RDS Cluster termination [GH-11795]
  * provider/aws: Raise the codebuild_project create timeout [GH-11777]
