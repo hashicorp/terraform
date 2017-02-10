@@ -329,7 +329,7 @@ func testAccCheckPagerDutyServiceExists(n string) resource.TestCheckFunc {
 }
 
 const testAccCheckPagerDutyServiceConfig = `
-	resource "pagerduty_user" "foo" {
+resource "pagerduty_user" "foo" {
 	name        = "foo"
 	email       = "foo@example.com"
 	color       = "green"
@@ -365,7 +365,7 @@ resource "pagerduty_service" "foo" {
 `
 
 const testAccCheckPagerDutyServiceConfigUpdated = `
-	resource "pagerduty_user" "foo" {
+resource "pagerduty_user" "foo" {
 	name        = "foo"
 	email       = "foo@example.com"
 	color       = "green"

@@ -188,9 +188,14 @@ func expandStringList(configured []interface{}) []string {
 // Expands attribute slice to incident urgency rule, returns it and true if successful
 func expandIncidentUrgencyRule(incidentUrgencyList interface{}) (*pagerduty.IncidentUrgencyRule, bool) {
 	i := incidentUrgencyList.([]interface{})
-	m := i[0].(map[string]interface{})
 
-	if len(m) == 0 {
+	i, ok := incidentUrgencyList.([]interface{})
+	if !ok {
+		return nil, false
+	}
+
+	m, ok := i[0].(map[string]interface{})
+	if !ok || len(m) == 0 {
 		return nil, false
 	}
 
@@ -355,7 +360,7 @@ func expandScheduledActions(input interface{}) (scheduledActions []pagerduty.Sch
 	return scheduledActions
 }
 
-// Returns service's scheduled actions as slice of length one
+// Returns service's scheduled actions
 func flattenScheduledActions(service *pagerduty.Service) []interface{} {
 	scheduledActions := []interface{}{}
 
@@ -364,7 +369,7 @@ func flattenScheduledActions(service *pagerduty.Service) []interface{} {
 			m := map[string]interface{}{}
 			m["to_urgency"] = sa.ToUrgency
 			m["type"] = sa.Type
-			if at, ok := atMap(sa.At); ok {
+			if at, ok := scheduledActionsAt(sa.At); ok {
 				m["at"] = at
 			}
 			scheduledActions = append(scheduledActions, m)
@@ -375,7 +380,7 @@ func flattenScheduledActions(service *pagerduty.Service) []interface{} {
 }
 
 // Returns service's scheduled action's at attribute as slice of length one
-func atMap(inlineModel pagerduty.InlineModel) ([]interface{}, bool) {
+func scheduledActionsAt(inlineModel pagerduty.InlineModel) ([]interface{}, bool) {
 	if inlineModel.Type == "" || inlineModel.Name == "" {
 		return nil, false
 	}
