@@ -275,12 +275,11 @@ func resourceServiceV1() *schema.Resource {
 							Description: "File extensions to apply automatic gzip to. Do not include '.'",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
-						// These fields represent Fastly options that Terraform does not
-						// currently support
 						"cache_condition": {
 							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Optional name of a CacheCondition to apply.",
+							Optional:    true,
+							Default:     "",
+							Description: "The cache condition controlling when this gzip configuration applies.",
 						},
 					},
 				},
@@ -1056,9 +1055,10 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			for _, dRaw := range add {
 				df := dRaw.(map[string]interface{})
 				opts := gofastly.CreateGzipInput{
-					Service: d.Id(),
-					Version: latestVersion,
-					Name:    df["name"].(string),
+					Service:        d.Id(),
+					Version:        latestVersion,
+					Name:           df["name"].(string),
+					CacheCondition: df["cache_condition"].(string),
 				}
 
 				if v, ok := df["content_types"]; ok {

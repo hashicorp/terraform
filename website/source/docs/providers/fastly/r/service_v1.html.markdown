@@ -213,6 +213,8 @@ The `gzip` block supports:
 have dynamically gzip'ed. Example: `["text/html", "text/css"]`.
 * `extensions` - (Optional) File extensions for each file type to dynamically
 gzip. Example: `["css", "js"]`.
+* `cache_condition` - (Optional) The cache condition controlling when this gzip configuration applies. For detailed information about Conditionals,
+see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
 
 The `Header` block supports adding, removing, or modifying Request and Response
