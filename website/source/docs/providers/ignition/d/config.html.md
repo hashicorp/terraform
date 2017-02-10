@@ -1,7 +1,7 @@
 ---
 layout: "ignition"
 page_title: "Ignition: ignition_config"
-sidebar_current: "docs-ignition-resource-config"
+sidebar_current: "docs-ignition-datasource-config"
 description: |-
   Renders an ignition configuration as JSON
 ---
@@ -13,7 +13,7 @@ Renders an ignition configuration as JSON. It  contains all the disks, partition
 ## Example Usage
 
 ```
-resource "ignition_config" "example" {
+data "ignition_config" "example" {
 	systemd = [
 		"${ignition_systemd_unit.example.id}",
 	]
@@ -46,7 +46,7 @@ The following arguments are supported:
 
 
 The `append` and `replace` blocks supports:
- 
+
 * `source` - (Required) The URL of the config. Supported schemes are http. Note: When using http, it is advisable to use the verification option to ensure the contents haven’t been modified.
 
 * `verification` - (Optional) The hash of the config, in the form _\<type\>-\<value\>_ where type is sha512.

@@ -1,7 +1,7 @@
 ---
 layout: "ignition"
 page_title: "Ignition: ignition_raid"
-sidebar_current: "docs-ignition-resource-raid"
+sidebar_current: "docs-ignition-datasource-raid"
 description: |-
   Describes the desired state of the system’s RAID.
 ---
@@ -13,7 +13,7 @@ Describes the desired state of the system’s RAID.
 ## Example Usage
 
 ```
-resource "ignition_raid" "md" {
+data "ignition_raid" "md" {
 	name = "data"
 	level = "stripe"
 	devices = [
@@ -22,7 +22,7 @@ resource "ignition_raid" "md" {
 	]
 }
 
-resource "ignition_disk" "disk1" {
+data "ignition_disk" "disk1" {
 	device = "/dev/sdb"
 	wipe_table = true
 	partition {
@@ -33,7 +33,7 @@ resource "ignition_disk" "disk1" {
 	}
 }
 
-resource "ignition_disk" "disk2" {
+data "ignition_disk" "disk2" {
 	device = "/dev/sdc"
 	wipe_table = true
 	partition {
