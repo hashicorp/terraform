@@ -208,3 +208,9 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The Container Service ID.
+
+* `master_profile.fqdn` - FDQN for the master.
+
+* `agent_pool_profile.fqdn` - FDQN for the agent pool.
+
+* `diagnostics_profile.storage_uri` - The FQDN associated with the Master Profile.
