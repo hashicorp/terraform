@@ -1113,8 +1113,10 @@ func expandAzureRmVirtualMachineOsProfileLinuxConfig(d *schema.ResourceData) (*c
 		sshPublicKeys = append(sshPublicKeys, sshPublicKey)
 	}
 
-	config.SSH = &compute.SSHConfiguration{
-		PublicKeys: &sshPublicKeys,
+	if len(sshPublicKeys) > 0 {
+		config.SSH = &compute.SSHConfiguration{
+			PublicKeys: &sshPublicKeys,
+		}
 	}
 
 	return config, nil
