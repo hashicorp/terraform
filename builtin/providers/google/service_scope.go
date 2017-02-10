@@ -5,6 +5,8 @@ func canonicalizeServiceScope(scope string) string {
 	// to the GCE auth endpoints they alias to.
 	scopeMap := map[string]string{
 		"bigquery":              "https://www.googleapis.com/auth/bigquery",
+		"cloud-dns-ro":          "https://www.googleapis.com/auth/ndev.clouddns.readonly",
+		"cloud-dns-rw":          "https://www.googleapis.com/auth/ndev.clouddns.readwrite",
 		"cloud-platform":        "https://www.googleapis.com/auth/cloud-platform",
 		"cloud-source-repos":    "https://www.googleapis.com/auth/source.full_control",
 		"cloud-source-repos-ro": "https://www.googleapis.com/auth/source.read_only",
