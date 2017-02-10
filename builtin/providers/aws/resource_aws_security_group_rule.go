@@ -608,9 +608,10 @@ func validateAwsSecurityGroupRule(d *schema.ResourceData) error {
 	_, blocksOk := d.GetOk("cidr_blocks")
 	_, sourceOk := d.GetOk("source_security_group_id")
 	_, selfOk := d.GetOk("self")
-	if !blocksOk && !sourceOk && !selfOk {
+	_, prefixOk := d.GetOk("prefix_list_ids")
+	if !blocksOk && !sourceOk && !selfOk && !prefixOk {
 		return fmt.Errorf(
-			"One of ['cidr_blocks', 'self', 'source_security_group_id'] must be set to create an AWS Security Group Rule")
+			"One of ['cidr_blocks', 'self', 'source_security_group_id', 'prefix_list_ids'] must be set to create an AWS Security Group Rule")
 	}
 	return nil
 }
