@@ -50,6 +50,124 @@ func resourcePagerDutyService() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"incident_urgency_rule": &schema.Schema{
+				Type:     schema.TypeList,
+				Required: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"urgency": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"during_support_hours": {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							MinItems: 1,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"type": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"urgency": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
+						"outside_support_hours": {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							MinItems: 1,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"type": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"urgency": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"support_hours": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				MinItems: 1,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"time_zone": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"start_time": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"end_time": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"days_of_week": {
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 7,
+							Elem:     &schema.Schema{Type: schema.TypeInt},
+						},
+					},
+				},
+			},
+			"scheduled_actions": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"type": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"to_urgency": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"at": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"type": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"name": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -85,6 +203,18 @@ func buildServiceStruct(d *schema.ResourceData) *pagerduty.Service {
 	}
 
 	service.EscalationPolicy = *escalationPolicy
+
+	if attr, ok := d.GetOk("incident_urgency_rule"); ok {
+		if iur, ok := expandIncidentUrgencyRule(attr); ok {
+			service.IncidentUrgencyRule = iur
+		}
+	}
+	if attr, ok := d.GetOk("support_hours"); ok {
+		service.SupportHours = expandSupportHours(attr)
+	}
+	if attr, ok := d.GetOk("scheduled_actions"); ok {
+		service.ScheduledActions = expandScheduledActions(attr)
+	}
 
 	return &service
 }
@@ -133,6 +263,16 @@ func resourcePagerDutyServiceRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("last_incident_timestamp", service.LastIncidentTimestamp)
 	d.Set("acknowledgement_timeout", service.AcknowledgementTimeout)
 
+	if incidentUrgencyRule, ok := flattenIncidentUrgencyRule(service); ok {
+		d.Set("incident_urgency_rule", incidentUrgencyRule)
+	}
+
+	supportHours := flattenSupportHours(service)
+	d.Set("support_hours", supportHours)
+
+	scheduledActions := flattenScheduledActions(service)
+	d.Set("scheduled_actions", scheduledActions)
+
 	return nil
 }
 
@@ -168,5 +308,6 @@ func resourcePagerDutyServiceImport(d *schema.ResourceData, meta interface{}) ([
 	if err := resourcePagerDutyServiceRead(d, meta); err != nil {
 		return nil, err
 	}
+
 	return []*schema.ResourceData{d}, nil
 }
