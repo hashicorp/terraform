@@ -553,6 +553,67 @@ func (c *EC2) AssociateDhcpOptions(input *AssociateDhcpOptionsInput) (*Associate
 	return out, err
 }
 
+const opAssociateIamInstanceProfile = "AssociateIamInstanceProfile"
+
+// AssociateIamInstanceProfileRequest generates a "aws/request.Request" representing the
+// client's request for the AssociateIamInstanceProfile operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See AssociateIamInstanceProfile for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssociateIamInstanceProfile method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssociateIamInstanceProfileRequest method.
+//    req, resp := client.AssociateIamInstanceProfileRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfile
+func (c *EC2) AssociateIamInstanceProfileRequest(input *AssociateIamInstanceProfileInput) (req *request.Request, output *AssociateIamInstanceProfileOutput) {
+	op := &request.Operation{
+		Name:       opAssociateIamInstanceProfile,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AssociateIamInstanceProfileInput{}
+	}
+
+	output = &AssociateIamInstanceProfileOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// AssociateIamInstanceProfile API operation for Amazon Elastic Compute Cloud.
+//
+// Associates an IAM instance profile with a running or stopped instance. You
+// cannot associate more than one IAM instance profile with an instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AssociateIamInstanceProfile for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfile
+func (c *EC2) AssociateIamInstanceProfile(input *AssociateIamInstanceProfileInput) (*AssociateIamInstanceProfileOutput, error) {
+	req, out := c.AssociateIamInstanceProfileRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opAssociateRouteTable = "AssociateRouteTable"
 
 // AssociateRouteTableRequest generates a "aws/request.Request" representing the
@@ -6592,6 +6653,66 @@ func (c *EC2) DescribeHosts(input *DescribeHostsInput) (*DescribeHostsOutput, er
 	return out, err
 }
 
+const opDescribeIamInstanceProfileAssociations = "DescribeIamInstanceProfileAssociations"
+
+// DescribeIamInstanceProfileAssociationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeIamInstanceProfileAssociations operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeIamInstanceProfileAssociations for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeIamInstanceProfileAssociations method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeIamInstanceProfileAssociationsRequest method.
+//    req, resp := client.DescribeIamInstanceProfileAssociationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociations
+func (c *EC2) DescribeIamInstanceProfileAssociationsRequest(input *DescribeIamInstanceProfileAssociationsInput) (req *request.Request, output *DescribeIamInstanceProfileAssociationsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeIamInstanceProfileAssociations,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeIamInstanceProfileAssociationsInput{}
+	}
+
+	output = &DescribeIamInstanceProfileAssociationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeIamInstanceProfileAssociations API operation for Amazon Elastic Compute Cloud.
+//
+// Describes your IAM instance profile associations.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeIamInstanceProfileAssociations for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociations
+func (c *EC2) DescribeIamInstanceProfileAssociations(input *DescribeIamInstanceProfileAssociationsInput) (*DescribeIamInstanceProfileAssociationsOutput, error) {
+	req, out := c.DescribeIamInstanceProfileAssociationsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeIdFormat = "DescribeIdFormat"
 
 // DescribeIdFormatRequest generates a "aws/request.Request" representing the
@@ -10857,6 +10978,68 @@ func (c *EC2) DisassociateAddress(input *DisassociateAddressInput) (*Disassociat
 	return out, err
 }
 
+const opDisassociateIamInstanceProfile = "DisassociateIamInstanceProfile"
+
+// DisassociateIamInstanceProfileRequest generates a "aws/request.Request" representing the
+// client's request for the DisassociateIamInstanceProfile operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DisassociateIamInstanceProfile for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisassociateIamInstanceProfile method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisassociateIamInstanceProfileRequest method.
+//    req, resp := client.DisassociateIamInstanceProfileRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfile
+func (c *EC2) DisassociateIamInstanceProfileRequest(input *DisassociateIamInstanceProfileInput) (req *request.Request, output *DisassociateIamInstanceProfileOutput) {
+	op := &request.Operation{
+		Name:       opDisassociateIamInstanceProfile,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DisassociateIamInstanceProfileInput{}
+	}
+
+	output = &DisassociateIamInstanceProfileOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DisassociateIamInstanceProfile API operation for Amazon Elastic Compute Cloud.
+//
+// Disassociates an IAM instance profile from a running or stopped instance.
+//
+// Use DescribeIamInstanceProfileAssociations to get the association ID.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DisassociateIamInstanceProfile for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfile
+func (c *EC2) DisassociateIamInstanceProfile(input *DisassociateIamInstanceProfileInput) (*DisassociateIamInstanceProfileOutput, error) {
+	req, out := c.DisassociateIamInstanceProfileRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDisassociateRouteTable = "DisassociateRouteTable"
 
 // DisassociateRouteTableRequest generates a "aws/request.Request" representing the
@@ -13724,6 +13907,71 @@ func (c *EC2) ReleaseHosts(input *ReleaseHostsInput) (*ReleaseHostsOutput, error
 	return out, err
 }
 
+const opReplaceIamInstanceProfileAssociation = "ReplaceIamInstanceProfileAssociation"
+
+// ReplaceIamInstanceProfileAssociationRequest generates a "aws/request.Request" representing the
+// client's request for the ReplaceIamInstanceProfileAssociation operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ReplaceIamInstanceProfileAssociation for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ReplaceIamInstanceProfileAssociation method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ReplaceIamInstanceProfileAssociationRequest method.
+//    req, resp := client.ReplaceIamInstanceProfileAssociationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociation
+func (c *EC2) ReplaceIamInstanceProfileAssociationRequest(input *ReplaceIamInstanceProfileAssociationInput) (req *request.Request, output *ReplaceIamInstanceProfileAssociationOutput) {
+	op := &request.Operation{
+		Name:       opReplaceIamInstanceProfileAssociation,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ReplaceIamInstanceProfileAssociationInput{}
+	}
+
+	output = &ReplaceIamInstanceProfileAssociationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ReplaceIamInstanceProfileAssociation API operation for Amazon Elastic Compute Cloud.
+//
+// Replaces an IAM instance profile for the specified instance. You can use
+// this action to change the IAM instance profile that's associated with an
+// instance without having to disassociate the existing IAM instance profile
+// first.
+//
+// Use DescribeIamInstanceProfileAssociations to get the association ID.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ReplaceIamInstanceProfileAssociation for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociation
+func (c *EC2) ReplaceIamInstanceProfileAssociation(input *ReplaceIamInstanceProfileAssociationInput) (*ReplaceIamInstanceProfileAssociationOutput, error) {
+	req, out := c.ReplaceIamInstanceProfileAssociationRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opReplaceNetworkAclAssociation = "ReplaceNetworkAclAssociation"
 
 // ReplaceNetworkAclAssociationRequest generates a "aws/request.Request" representing the
@@ -14734,7 +14982,7 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 //    IPv4 range of your subnet.
 //
 //    * Not all instance types support IPv6 addresses. For more information,
-//    see Amazon EC2 Instance Types (http://aws.amazon.com/ec2/instance-types/).
+//    see Instance Types (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html).
 //
 //    * If you don't specify a security group ID, we use the default security
 //    group. For more information, see Security Groups (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html).
@@ -16229,6 +16477,83 @@ func (s AssociateDhcpOptionsOutput) String() string {
 // GoString returns the string representation
 func (s AssociateDhcpOptionsOutput) GoString() string {
 	return s.String()
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfileRequest
+type AssociateIamInstanceProfileInput struct {
+	_ struct{} `type:"structure"`
+
+	// The IAM instance profile.
+	//
+	// IamInstanceProfile is a required field
+	IamInstanceProfile *IamInstanceProfileSpecification `type:"structure" required:"true"`
+
+	// The ID of the instance.
+	//
+	// InstanceId is a required field
+	InstanceId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AssociateIamInstanceProfileInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateIamInstanceProfileInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateIamInstanceProfileInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateIamInstanceProfileInput"}
+	if s.IamInstanceProfile == nil {
+		invalidParams.Add(request.NewErrParamRequired("IamInstanceProfile"))
+	}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetIamInstanceProfile sets the IamInstanceProfile field's value.
+func (s *AssociateIamInstanceProfileInput) SetIamInstanceProfile(v *IamInstanceProfileSpecification) *AssociateIamInstanceProfileInput {
+	s.IamInstanceProfile = v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *AssociateIamInstanceProfileInput) SetInstanceId(v string) *AssociateIamInstanceProfileInput {
+	s.InstanceId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfileResult
+type AssociateIamInstanceProfileOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IAM instance profile association.
+	IamInstanceProfileAssociation *IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociation" type:"structure"`
+}
+
+// String returns the string representation
+func (s AssociateIamInstanceProfileOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateIamInstanceProfileOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociation sets the IamInstanceProfileAssociation field's value.
+func (s *AssociateIamInstanceProfileOutput) SetIamInstanceProfileAssociation(v *IamInstanceProfileAssociation) *AssociateIamInstanceProfileOutput {
+	s.IamInstanceProfileAssociation = v
+	return s
 }
 
 // Contains the parameters for AssociateRouteTable.
@@ -25213,6 +25538,113 @@ func (s *DescribeHostsOutput) SetNextToken(v string) *DescribeHostsOutput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociationsRequest
+type DescribeIamInstanceProfileAssociationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// One or more IAM instance profile associations.
+	AssociationIds []*string `locationName:"AssociationId" locationNameList:"AssociationId" type:"list"`
+
+	// One or more filters.
+	//
+	//    * instance-id - The ID of the instance.
+	//
+	//    * state - The state of the association (associating | associated | disassociating
+	//    | disassociated).
+	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
+
+	// The maximum number of results to return in a single call. To retrieve the
+	// remaining results, make another call with the returned NextToken value.
+	MaxResults *int64 `min:"5" type:"integer"`
+
+	// The token to request the next page of results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeIamInstanceProfileAssociationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeIamInstanceProfileAssociationsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeIamInstanceProfileAssociationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeIamInstanceProfileAssociationsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 5 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 5))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationIds sets the AssociationIds field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetAssociationIds(v []*string) *DescribeIamInstanceProfileAssociationsInput {
+	s.AssociationIds = v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetFilters(v []*Filter) *DescribeIamInstanceProfileAssociationsInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetMaxResults(v int64) *DescribeIamInstanceProfileAssociationsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetNextToken(v string) *DescribeIamInstanceProfileAssociationsInput {
+	s.NextToken = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociationsResult
+type DescribeIamInstanceProfileAssociationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about one or more IAM instance profile associations.
+	IamInstanceProfileAssociations []*IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociationSet" locationNameList:"item" type:"list"`
+
+	// The token to use to retrieve the next page of results. This value is null
+	// when there are no more results to return.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeIamInstanceProfileAssociationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeIamInstanceProfileAssociationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociations sets the IamInstanceProfileAssociations field's value.
+func (s *DescribeIamInstanceProfileAssociationsOutput) SetIamInstanceProfileAssociations(v []*IamInstanceProfileAssociation) *DescribeIamInstanceProfileAssociationsOutput {
+	s.IamInstanceProfileAssociations = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeIamInstanceProfileAssociationsOutput) SetNextToken(v string) *DescribeIamInstanceProfileAssociationsOutput {
+	s.NextToken = &v
+	return s
+}
+
 // Contains the parameters for DescribeIdFormat.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIdFormatRequest
 type DescribeIdFormatInput struct {
@@ -32356,6 +32788,69 @@ func (s DisassociateAddressOutput) GoString() string {
 	return s.String()
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfileRequest
+type DisassociateIamInstanceProfileInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the IAM instance profile association.
+	//
+	// AssociationId is a required field
+	AssociationId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DisassociateIamInstanceProfileInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateIamInstanceProfileInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisassociateIamInstanceProfileInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisassociateIamInstanceProfileInput"}
+	if s.AssociationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *DisassociateIamInstanceProfileInput) SetAssociationId(v string) *DisassociateIamInstanceProfileInput {
+	s.AssociationId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfileResult
+type DisassociateIamInstanceProfileOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IAM instance profile association.
+	IamInstanceProfileAssociation *IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociation" type:"structure"`
+}
+
+// String returns the string representation
+func (s DisassociateIamInstanceProfileOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateIamInstanceProfileOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociation sets the IamInstanceProfileAssociation field's value.
+func (s *DisassociateIamInstanceProfileOutput) SetIamInstanceProfileAssociation(v *IamInstanceProfileAssociation) *DisassociateIamInstanceProfileOutput {
+	s.IamInstanceProfileAssociation = v
+	return s
+}
+
 // Contains the parameters for DisassociateRouteTable.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateRouteTableRequest
 type DisassociateRouteTableInput struct {
@@ -34784,6 +35279,67 @@ func (s *IamInstanceProfile) SetArn(v string) *IamInstanceProfile {
 // SetId sets the Id field's value.
 func (s *IamInstanceProfile) SetId(v string) *IamInstanceProfile {
 	s.Id = &v
+	return s
+}
+
+// Describes an association between an IAM instance profile and an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/IamInstanceProfileAssociation
+type IamInstanceProfileAssociation struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the association.
+	AssociationId *string `locationName:"associationId" type:"string"`
+
+	// The IAM instance profile.
+	IamInstanceProfile *IamInstanceProfile `locationName:"iamInstanceProfile" type:"structure"`
+
+	// The ID of the instance.
+	InstanceId *string `locationName:"instanceId" type:"string"`
+
+	// The state of the association.
+	State *string `locationName:"state" type:"string" enum:"IamInstanceProfileAssociationState"`
+
+	// The time the IAM instance profile was associated with the instance.
+	Timestamp *time.Time `locationName:"timestamp" type:"timestamp" timestampFormat:"iso8601"`
+}
+
+// String returns the string representation
+func (s IamInstanceProfileAssociation) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IamInstanceProfileAssociation) GoString() string {
+	return s.String()
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *IamInstanceProfileAssociation) SetAssociationId(v string) *IamInstanceProfileAssociation {
+	s.AssociationId = &v
+	return s
+}
+
+// SetIamInstanceProfile sets the IamInstanceProfile field's value.
+func (s *IamInstanceProfileAssociation) SetIamInstanceProfile(v *IamInstanceProfile) *IamInstanceProfileAssociation {
+	s.IamInstanceProfile = v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *IamInstanceProfileAssociation) SetInstanceId(v string) *IamInstanceProfileAssociation {
+	s.InstanceId = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *IamInstanceProfileAssociation) SetState(v string) *IamInstanceProfileAssociation {
+	s.State = &v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *IamInstanceProfileAssociation) SetTimestamp(v time.Time) *IamInstanceProfileAssociation {
+	s.Timestamp = &v
 	return s
 }
 
@@ -42672,6 +43228,83 @@ func (s *ReleaseHostsOutput) SetUnsuccessful(v []*UnsuccessfulItem) *ReleaseHost
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociationRequest
+type ReplaceIamInstanceProfileAssociationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the existing IAM instance profile association.
+	//
+	// AssociationId is a required field
+	AssociationId *string `type:"string" required:"true"`
+
+	// The IAM instance profile.
+	//
+	// IamInstanceProfile is a required field
+	IamInstanceProfile *IamInstanceProfileSpecification `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s ReplaceIamInstanceProfileAssociationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReplaceIamInstanceProfileAssociationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ReplaceIamInstanceProfileAssociationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ReplaceIamInstanceProfileAssociationInput"}
+	if s.AssociationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
+	}
+	if s.IamInstanceProfile == nil {
+		invalidParams.Add(request.NewErrParamRequired("IamInstanceProfile"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *ReplaceIamInstanceProfileAssociationInput) SetAssociationId(v string) *ReplaceIamInstanceProfileAssociationInput {
+	s.AssociationId = &v
+	return s
+}
+
+// SetIamInstanceProfile sets the IamInstanceProfile field's value.
+func (s *ReplaceIamInstanceProfileAssociationInput) SetIamInstanceProfile(v *IamInstanceProfileSpecification) *ReplaceIamInstanceProfileAssociationInput {
+	s.IamInstanceProfile = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociationResult
+type ReplaceIamInstanceProfileAssociationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IAM instance profile association.
+	IamInstanceProfileAssociation *IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociation" type:"structure"`
+}
+
+// String returns the string representation
+func (s ReplaceIamInstanceProfileAssociationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReplaceIamInstanceProfileAssociationOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociation sets the IamInstanceProfileAssociation field's value.
+func (s *ReplaceIamInstanceProfileAssociationOutput) SetIamInstanceProfileAssociation(v *IamInstanceProfileAssociation) *ReplaceIamInstanceProfileAssociationOutput {
+	s.IamInstanceProfileAssociation = v
+	return s
+}
+
 // Contains the parameters for ReplaceNetworkAclAssociation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceNetworkAclAssociationRequest
 type ReplaceNetworkAclAssociationInput struct {
@@ -49030,14 +49663,16 @@ type StateReason struct {
 
 	// The message for the state change.
 	//
-	//    * Server.SpotInstanceTermination: A Spot instance was terminated due to
-	//    an increase in the market price.
+	//    * Server.InsufficientInstanceCapacity: There was insufficient instance
+	//    capacity to satisfy the launch request.
 	//
 	//    * Server.InternalError: An internal error occurred during instance launch,
 	//    resulting in termination.
 	//
-	//    * Server.InsufficientInstanceCapacity: There was insufficient instance
-	//    capacity to satisfy the launch request.
+	//    * Server.ScheduledStop: The instance was stopped due to a scheduled retirement.
+	//
+	//    * Server.SpotInstanceTermination: A Spot instance was terminated due to
+	//    an increase in the market price.
 	//
 	//    * Client.InternalError: A client error caused the instance to terminate
 	//    on launch.
@@ -51860,6 +52495,20 @@ const (
 
 	// HypervisorTypeXen is a HypervisorType enum value
 	HypervisorTypeXen = "xen"
+)
+
+const (
+	// IamInstanceProfileAssociationStateAssociating is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateAssociating = "associating"
+
+	// IamInstanceProfileAssociationStateAssociated is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateAssociated = "associated"
+
+	// IamInstanceProfileAssociationStateDisassociating is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateDisassociating = "disassociating"
+
+	// IamInstanceProfileAssociationStateDisassociated is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateDisassociated = "disassociated"
 )
 
 const (
