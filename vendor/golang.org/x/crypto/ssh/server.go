@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 )
 
 // The Permissions type holds fine-grained permissions that are
@@ -231,7 +232,7 @@ func isAcceptableAlgo(algo string) bool {
 	return false
 }
 
-func checkSourceAddress(addr net.Addr, sourceAddr string) error {
+func checkSourceAddress(addr net.Addr, sourceAddrs string) error {
 	if addr == nil {
 		return errors.New("ssh: no address known for client, but source-address match required")
 	}
@@ -241,18 +242,20 @@ func checkSourceAddress(addr net.Addr, sourceAddr string) error {
 		return fmt.Errorf("ssh: remote address %v is not an TCP address when checking source-address match", addr)
 	}
 
-	if allowedIP := net.ParseIP(sourceAddr); allowedIP != nil {
-		if allowedIP.Equal(tcpAddr.IP) {
-			return nil
-		}
-	} else {
-		_, ipNet, err := net.ParseCIDR(sourceAddr)
-		if err != nil {
-			return fmt.Errorf("ssh: error parsing source-address restriction %q: %v", sourceAddr, err)
-		}
+	for _, sourceAddr := range strings.Split(sourceAddrs, ",") {
+		if allowedIP := net.ParseIP(sourceAddr); allowedIP != nil {
+			if allowedIP.Equal(tcpAddr.IP) {
+				return nil
+			}
+		} else {
+			_, ipNet, err := net.ParseCIDR(sourceAddr)
+			if err != nil {
+				return fmt.Errorf("ssh: error parsing source-address restriction %q: %v", sourceAddr, err)
+			}
 
-		if ipNet.Contains(tcpAddr.IP) {
-			return nil
+			if ipNet.Contains(tcpAddr.IP) {
+				return nil
+			}
 		}
 	}
 
