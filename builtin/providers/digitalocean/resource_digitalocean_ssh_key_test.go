@@ -20,7 +20,7 @@ func TestAccDigitalOceanSSHKey_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckDigitalOceanSSHKeyDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckDigitalOceanSSHKeyConfig_basic,
+				Config: testAccCheckDigitalOceanSSHKeyConfig_basic(testAccValidPublicKey),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanSSHKeyExists("digitalocean_ssh_key.foobar", &key),
 					testAccCheckDigitalOceanSSHKeyAttributes(&key),
@@ -105,10 +105,13 @@ func testAccCheckDigitalOceanSSHKeyExists(n string, key *godo.Key) resource.Test
 	}
 }
 
-var testAccCheckDigitalOceanSSHKeyConfig_basic = fmt.Sprintf(`
+func testAccCheckDigitalOceanSSHKeyConfig_basic(key string) string {
+	return fmt.Sprintf(`
 resource "digitalocean_ssh_key" "foobar" {
     name = "foobar"
     public_key = "%s"
-}`, testAccValidPublicKey)
+}`, key)
+}
 
 var testAccValidPublicKey = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCKVmnMOlHKcZK8tpt3MP1lqOLAcqcJzhsvJcjscgVERRN7/9484SOBJ3HSKxxNG5JN8owAjy5f9yYwcUg+JaUVuytn5Pv3aeYROHGGg+5G346xaq3DAwX6Y5ykr2fvjObgncQBnuU5KHWCECO/4h8uWuwh/kfniXPVjFToc+gnkqA+3RKpAecZhFXwfalQ9mMuYGFxn+fwn8cYEApsJbsEmb0iJwPiZ5hjFC8wREuiTlhPHDgkBLOiycd20op2nXzDbHfCHInquEe/gYxEitALONxm0swBOwJZwlTDOB7C6y2dzlrtxr1L59m7pCkWI4EtTRLvleehBoj3u7jB4usR`
+var testAccValidImportPublicKey = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCwelf/LV8TKOd6ZCcDwU9L8YRdVwfR2q8E+Bzamcxwb1U41vnfyvEZbzx0aeXimdHipOql0SG2tu9Z+bzekROVc13OP/gtGRlWwZ9RoKE8hFHanhi0K2tC6OWagsvmHpW/xptsYAo2k+eRJJo0iy/hLNG2c1v5rrjg6xwnSL3+a7bFM4xNDux5sNYCmxIBfIL+4rQ8XBlxsjMrGoev/uumZ0yc75JtBCOSZbdie936pvVmoAf4nhxNbe5lOxp+18zHhBbO2fjhux4xmf4hLM2gHsdBGqtnphzLh3d1+uMIpv7ZMTKN7pBw53xQxw7hhDYuNKc8FkQ8xK6IL5bu/Ar/`
