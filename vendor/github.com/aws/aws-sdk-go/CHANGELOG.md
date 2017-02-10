@@ -1,3 +1,16 @@
+Release v1.6.20 (2017-02-09)
+===
+
+Service Client Updates
+---
+* `service/ec2`: Updates service API and documentation
+  * This feature allows customers to associate an IAM profile to running instances that do not have any.
+* `service/rekognition`: Updates service API and documentation
+  * DetectFaces and IndexFaces operations now return an estimate of the age of the face as an age range.
+
+SDK Features
+---
+* `aws/endpoints`: Add option to resolve unknown endpoints (#1074)
 Release v1.6.19 (2017-02-08)
 ===
 
