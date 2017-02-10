@@ -345,12 +345,12 @@ func expandLambdaFunctionAssociation(lf map[string]interface{}) *cloudfront.Lamb
 	return &lfa
 }
 
-func flattenLambdaFunctionAssociations(lfa *cloudfront.LambdaFunctionAssociations) []interface{} {
+func flattenLambdaFunctionAssociations(lfa *cloudfront.LambdaFunctionAssociations) *schema.Set {
 	s := make([]interface{}, len(lfa.Items))
 	for i, v := range lfa.Items {
 		s[i] = flattenLambdaFunctionAssociation(v)
 	}
-	return s
+	return schema.NewSet(lambdaFunctionAssociationHash, s)
 }
 
 func flattenLambdaFunctionAssociation(lfa *cloudfront.LambdaFunctionAssociation) map[string]interface{} {
