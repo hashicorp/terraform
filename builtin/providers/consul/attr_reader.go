@@ -2,16 +2,16 @@ package consul
 
 import "time"
 
-type _AttrReader interface {
-	GetBool(_SchemaAttr) bool
-	GetBoolOK(_SchemaAttr) (b, ok bool)
-	GetDurationOK(_SchemaAttr) (time.Duration, bool)
-	GetFloat64OK(_SchemaAttr) (float64, bool)
-	GetIntOK(_SchemaAttr) (int, bool)
-	GetIntPtr(_SchemaAttr) *int
-	GetString(_SchemaAttr) string
-	GetStringOK(_SchemaAttr) (string, bool)
-	GetStringPtr(_SchemaAttr) *string
-	GetStringSlice(attrName _SchemaAttr) []string
+type attrReader interface {
+	GetBool(schemaAttr) bool
+	GetBoolOK(schemaAttr) (b, ok bool)
+	GetDurationOK(schemaAttr) (time.Duration, bool)
+	GetFloat64OK(schemaAttr) (float64, bool)
+	GetIntOK(schemaAttr) (int, bool)
+	GetIntPtr(schemaAttr) *int
+	GetString(schemaAttr) string
+	GetStringOK(schemaAttr) (string, bool)
+	GetStringPtr(schemaAttr) *string
+	GetStringSlice(attrName schemaAttr) []string
 	BackingType() string
 }

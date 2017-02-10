@@ -2,44 +2,44 @@ package consul
 
 import "github.com/hashicorp/terraform/helper/schema"
 
-type _AttrWriterState struct {
+type attrWriterState struct {
 	d *schema.ResourceData
 }
 
-func _NewStateWriter(d *schema.ResourceData) *_AttrWriterState {
-	return &_AttrWriterState{
+func newStateWriter(d *schema.ResourceData) *attrWriterState {
+	return &attrWriterState{
 		d: d,
 	}
 }
 
-func (w *_AttrWriterState) BackingType() string {
+func (w *attrWriterState) BackingType() string {
 	return "state"
 }
 
-func (w *_AttrWriterState) SetBool(name _SchemaAttr, b bool) error {
-	return _StateSet(w.d, name, b)
+func (w *attrWriterState) SetBool(name schemaAttr, b bool) error {
+	return stateSet(w.d, name, b)
 }
 
-func (w *_AttrWriterState) SetID(id string) {
+func (w *attrWriterState) SetID(id string) {
 	w.d.SetId(id)
 }
 
-func (w *_AttrWriterState) SetFloat64(name _SchemaAttr, f float64) error {
-	return _StateSet(w.d, name, f)
+func (w *attrWriterState) SetFloat64(name schemaAttr, f float64) error {
+	return stateSet(w.d, name, f)
 }
 
-func (w *_AttrWriterState) SetList(name _SchemaAttr, l []interface{}) error {
-	return _StateSet(w.d, name, l)
+func (w *attrWriterState) SetList(name schemaAttr, l []interface{}) error {
+	return stateSet(w.d, name, l)
 }
 
-func (w *_AttrWriterState) SetMap(name _SchemaAttr, m map[string]interface{}) error {
-	return _StateSet(w.d, name, m)
+func (w *attrWriterState) SetMap(name schemaAttr, m map[string]interface{}) error {
+	return stateSet(w.d, name, m)
 }
 
-func (w *_AttrWriterState) SetSet(name _SchemaAttr, s *schema.Set) error {
-	return _StateSet(w.d, name, []interface{}{s})
+func (w *attrWriterState) SetSet(name schemaAttr, s *schema.Set) error {
+	return stateSet(w.d, name, []interface{}{s})
 }
 
-func (w *_AttrWriterState) SetString(name _SchemaAttr, s string) error {
-	return _StateSet(w.d, name, s)
+func (w *attrWriterState) SetString(name schemaAttr, s string) error {
+	return stateSet(w.d, name, s)
 }
