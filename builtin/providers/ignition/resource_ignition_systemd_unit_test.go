@@ -9,7 +9,7 @@ import (
 
 func TestIngnitionSystemdUnit(t *testing.T) {
 	testIgnition(t, `
-		resource "ignition_systemd_unit" "foo" {
+		data "ignition_systemd_unit" "foo" {
 			name = "foo.service"
 			content = "[Match]\nName=eth0\n\n[Network]\nAddress=10.0.1.7\n"
 			enable = false
@@ -21,9 +21,9 @@ func TestIngnitionSystemdUnit(t *testing.T) {
 			}
 		}
 
-		resource "ignition_config" "test" {
+		data "ignition_config" "test" {
 			systemd = [
-				"${ignition_systemd_unit.foo.id}",
+				"${data.ignition_systemd_unit.foo.id}",
 			]
 		}
 	`, func(c *types.Config) error {
@@ -59,7 +59,7 @@ func TestIngnitionSystemdUnit(t *testing.T) {
 
 func TestIngnitionSystemdUnitEmptyContentWithDropIn(t *testing.T) {
 	testIgnition(t, `
-		resource "ignition_systemd_unit" "foo" {
+		data "ignition_systemd_unit" "foo" {
 			name = "foo.service"
 			dropin {
 				name = "foo.conf"
@@ -67,9 +67,9 @@ func TestIngnitionSystemdUnitEmptyContentWithDropIn(t *testing.T) {
 			}
 		}
 
-		resource "ignition_config" "test" {
+		data "ignition_config" "test" {
 			systemd = [
-				"${ignition_systemd_unit.foo.id}",
+				"${data.ignition_systemd_unit.foo.id}",
 			]
 		}
 	`, func(c *types.Config) error {
@@ -98,14 +98,14 @@ func TestIngnitionSystemdUnitEmptyContentWithDropIn(t *testing.T) {
 // #11325
 func TestIgnitionSystemdUnit_emptyContent(t *testing.T) {
 	testIgnition(t, `
-		resource "ignition_systemd_unit" "foo" {
+		data "ignition_systemd_unit" "foo" {
 			name = "foo.service"
-      enable = true
+			enable = true
 		}
 
-		resource "ignition_config" "test" {
+		data "ignition_config" "test" {
 			systemd = [
-				"${ignition_systemd_unit.foo.id}",
+				"${data.ignition_systemd_unit.foo.id}",
 			]
 		}
 	`, func(c *types.Config) error {

@@ -17,7 +17,7 @@ import (
 
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
-		ResourcesMap: map[string]*schema.Resource{
+		DataSourcesMap: map[string]*schema.Resource{
 			"ignition_config":        resourceConfig(),
 			"ignition_disk":          resourceDisk(),
 			"ignition_raid":          resourceRaid(),
@@ -27,6 +27,9 @@ func Provider() terraform.ResourceProvider {
 			"ignition_networkd_unit": resourceNetworkdUnit(),
 			"ignition_user":          resourceUser(),
 			"ignition_group":         resourceGroup(),
+		},
+		ResourcesMap: map[string]*schema.Resource{
+			"ignition_config": schema.DataSourceResourceShim("ignition_config", resourceConfig()),
 		},
 		ConfigureFunc: func(*schema.ResourceData) (interface{}, error) {
 			return &cache{

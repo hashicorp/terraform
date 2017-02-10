@@ -12,7 +12,7 @@ import (
 
 func TestIngnitionFileReplace(t *testing.T) {
 	testIgnition(t, `
-		resource "ignition_config" "test" {
+		data "ignition_config" "test" {
 			replace {
 				source = "foo"
 				verification = "sha512-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -38,7 +38,7 @@ func TestIngnitionFileReplace(t *testing.T) {
 
 func TestIngnitionFileAppend(t *testing.T) {
 	testIgnition(t, `
-		resource "ignition_config" "test" {
+		data "ignition_config" "test" {
 			append {
 				source = "foo"
 				verification = "sha512-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -95,7 +95,7 @@ var testTemplate = `
 %s
 
 output "rendered" {
-	value = "${ignition_config.test.rendered}"
+	value = "${data.ignition_config.test.rendered}"
 }
 
 `

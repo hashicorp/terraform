@@ -9,7 +9,7 @@ import (
 
 func TestIngnitionUser(t *testing.T) {
 	testIgnition(t, `
-		resource "ignition_user" "foo" {
+		data "ignition_user" "foo" {
 			name = "foo"
 			password_hash = "password"
 			ssh_authorized_keys = ["keys"]
@@ -24,14 +24,14 @@ func TestIngnitionUser(t *testing.T) {
 			shell = "shell"
 		}
 
-		resource "ignition_user" "qux" {
+		data "ignition_user" "qux" {
 			name = "qux"
 		}
 
-		resource "ignition_config" "test" {
+		data "ignition_config" "test" {
 			users = [
-				"${ignition_user.foo.id}",
-				"${ignition_user.qux.id}",
+				"${data.ignition_user.foo.id}",
+				"${data.ignition_user.qux.id}",
 			]
 		}
 	`, func(c *types.Config) error {
