@@ -498,7 +498,7 @@ func (c *EC2) WaitUntilKeyPairExists(input *DescribeKeyPairsInput) error {
 		Acceptors: []waiter.WaitAcceptor{
 			{
 				State:    "success",
-				Matcher:  "pathAll",
+				Matcher:  "path",
 				Argument: "length(KeyPairs[].KeyName) > `0`",
 				Expected: true,
 			},
