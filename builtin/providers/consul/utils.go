@@ -3,10 +3,8 @@ package consul
 import (
 	"bytes"
 	"fmt"
-	"regexp"
 	"sort"
 	"strconv"
-	"time"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -27,19 +25,6 @@ type sourceFlags int
 
 // typeKey is the lookup mechanism for the generated schema.
 type typeKey int
-
-// An array of inputs used as typed arguments and converted from their type into
-// function objects that are dynamically constructed and executed.
-type validatorInputs []interface{}
-
-// validateDurationMin is the minimum duration to accept as input
-type validateDurationMin string
-
-// validateIntMin is the minimum integer value to accept as input
-type validateIntMin int
-
-// validateRegexp is a regexp pattern to use to validate schema input.
-type validateRegexp string
 
 const (
 	// sourceUserRequired indicates the parameter must be provided by the user in
@@ -509,48 +494,17 @@ func (e *typeEntry) Validate() {
 	}
 }
 
-// MakeValidateionFunc takes a list of typed validator inputs from the receiver
-// and creates a validation closure that calls each validator in serial until
-// either a warning or error is returned from the first validation function.
-func (e *typeEntry) MakeValidationFunc() func(v interface{}, key string) (warnings []string, errors []error) {
-	if len(e.ValidateFuncs) == 0 {
-		return nil
-	}
-
-	fns := make([]func(v interface{}, key string) (warnings []string, errors []error), 0, len(e.ValidateFuncs))
-	for _, v := range e.ValidateFuncs {
-		switch u := v.(type) {
-		case validateDurationMin:
-			fns = append(fns, validateDurationMinFactory(e, string(u)))
-		case validateIntMin:
-			fns = append(fns, validateIntMinFactory(e, int(u)))
-		case validateRegexp:
-			fns = append(fns, validateRegexpFactory(e, string(u)))
-		}
-	}
-
-	return func(v interface{}, key string) (warnings []string, errors []error) {
-		for _, fn := range fns {
-			warnings, errors = fn(v, key)
-			if len(warnings) > 0 || len(errors) > 0 {
-				break
-			}
-		}
-		return warnings, errors
-	}
-}
-
 func (e *typeEntry) ToSchema() *schema.Schema {
 	e.Validate()
 
 	attr := &schema.Schema{
-		Computed:     e.Source&computedAttrMask != 0,
-		Default:      e.Default,
-		Description:  e.Description,
-		Optional:     e.Source&optionalAttrMask != 0,
-		Required:     e.Source&requiredAttrMask != 0,
-		Type:         e.Type,
-		ValidateFunc: e.MakeValidationFunc(),
+		Computed:    e.Source&computedAttrMask != 0,
+		Default:     e.Default,
+		Description: e.Description,
+		Optional:    e.Source&optionalAttrMask != 0,
+		Required:    e.Source&requiredAttrMask != 0,
+		Type:        e.Type,
+		// ValidateFunc: e.MakeValidationFunc(),
 	}
 
 	// Fixup the type: use the real type vs a surrogate type
@@ -579,46 +533,4 @@ func mapStringToMapInterface(in map[string]string) map[string]interface{} {
 		out[k] = v
 	}
 	return out
-}
-
-func validateDurationMinFactory(e *typeEntry, minDuration string) func(v interface{}, key string) (warnings []string, errors []error) {
-	dMin, err := time.ParseDuration(minDuration)
-	if err != nil {
-		panic(fmt.Sprintf("PROVIDER BUG: duration %q not valid: %#v", minDuration, err))
-	}
-
-	return func(v interface{}, key string) (warnings []string, errors []error) {
-		d, err := time.ParseDuration(v.(string))
-		if err != nil {
-			errors = append(errors, errwrap.Wrapf(fmt.Sprintf("Invalid %s specified (%q): {{err}}", e.SchemaName), err))
-		}
-
-		if d < dMin {
-			errors = append(errors, fmt.Errorf("Invalid %s specified: duration %q less than the required minimum %s", e.SchemaName, v.(string), dMin))
-		}
-
-		return warnings, errors
-	}
-}
-
-func validateIntMinFactory(e *typeEntry, min int) func(v interface{}, key string) (warnings []string, errors []error) {
-	return func(v interface{}, key string) (warnings []string, errors []error) {
-		if v.(int) < min {
-			errors = append(errors, fmt.Errorf("Invalid %s specified: %d less than the required minimum %d", e.SchemaName, v.(int), min))
-		}
-
-		return warnings, errors
-	}
-}
-
-func validateRegexpFactory(e *typeEntry, reString string) func(v interface{}, key string) (warnings []string, errors []error) {
-	re := regexp.MustCompile(reString)
-
-	return func(v interface{}, key string) (warnings []string, errors []error) {
-		if !re.MatchString(v.(string)) {
-			errors = append(errors, fmt.Errorf("Invalid %s specified (%q): regexp failed to match string", e.SchemaName, v.(string)))
-		}
-
-		return warnings, errors
-	}
 }

@@ -28,7 +28,6 @@ const testAccDataConsulCatalogNodesConfig = `
 data "consul_catalog_nodes" "read" {
   allow_stale = true
   require_consistent = false
-  near = "_agent"
   token = ""
   wait_index = 0
   wait_time = "1m"
