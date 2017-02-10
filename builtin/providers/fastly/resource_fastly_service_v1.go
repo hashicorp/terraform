@@ -534,6 +534,12 @@ func resourceServiceV1() *schema.Resource {
 							Default:     "%Y-%m-%dT%H:%M:%S.000",
 							Description: "specified timestamp formatting (default `%Y-%m-%dT%H:%M:%S.000`)",
 						},
+						"response_condition": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "When to execute the s3. If empty, always execute.",
+						},
 					},
 				},
 			},
@@ -1193,19 +1199,20 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 				}
 
 				opts := gofastly.CreateS3Input{
-					Service:         d.Id(),
-					Version:         latestVersion,
-					Name:            sf["name"].(string),
-					BucketName:      sf["bucket_name"].(string),
-					AccessKey:       sf["s3_access_key"].(string),
-					SecretKey:       sf["s3_secret_key"].(string),
-					Period:          uint(sf["period"].(int)),
-					GzipLevel:       uint(sf["gzip_level"].(int)),
-					Domain:          sf["domain"].(string),
-					Path:            sf["path"].(string),
-					Format:          sf["format"].(string),
-					FormatVersion:   uint(sf["format_version"].(int)),
-					TimestampFormat: sf["timestamp_format"].(string),
+					Service:           d.Id(),
+					Version:           latestVersion,
+					Name:              sf["name"].(string),
+					BucketName:        sf["bucket_name"].(string),
+					AccessKey:         sf["s3_access_key"].(string),
+					SecretKey:         sf["s3_secret_key"].(string),
+					Period:            uint(sf["period"].(int)),
+					GzipLevel:         uint(sf["gzip_level"].(int)),
+					Domain:            sf["domain"].(string),
+					Path:              sf["path"].(string),
+					Format:            sf["format"].(string),
+					FormatVersion:     uint(sf["format_version"].(int)),
+					TimestampFormat:   sf["timestamp_format"].(string),
+					ResponseCondition: sf["response_condition"].(string),
 				}
 
 				log.Printf("[DEBUG] Create S3 Logging Opts: %#v", opts)
@@ -2000,17 +2007,18 @@ func flattenS3s(s3List []*gofastly.S3) []map[string]interface{} {
 	for _, s := range s3List {
 		// Convert S3s to a map for saving to state.
 		ns := map[string]interface{}{
-			"name":             s.Name,
-			"bucket_name":      s.BucketName,
-			"s3_access_key":    s.AccessKey,
-			"s3_secret_key":    s.SecretKey,
-			"path":             s.Path,
-			"period":           s.Period,
-			"domain":           s.Domain,
-			"gzip_level":       s.GzipLevel,
-			"format":           s.Format,
-			"format_version":   s.FormatVersion,
-			"timestamp_format": s.TimestampFormat,
+			"name":               s.Name,
+			"bucket_name":        s.BucketName,
+			"s3_access_key":      s.AccessKey,
+			"s3_secret_key":      s.SecretKey,
+			"path":               s.Path,
+			"period":             s.Period,
+			"domain":             s.Domain,
+			"gzip_level":         s.GzipLevel,
+			"format":             s.Format,
+			"format_version":     s.FormatVersion,
+			"timestamp_format":   s.TimestampFormat,
+			"response_condition": s.ResponseCondition,
 		}
 
 		// prune any empty values that come from the default string value in structs

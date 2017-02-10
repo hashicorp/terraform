@@ -300,8 +300,7 @@ compression. `1` is fastest and least compressed, `9` is slowest and most
 compressed. Default `0`.
 * `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Defaults to Apache Common Log format (`%h %l %u %t %r %>s`)
 * `timestamp_format` - (Optional) `strftime` specified timestamp formatting (default `%Y-%m-%dT%H:%M:%S.000`).
-* `request_condition` - (Optional) The VCL request condition to check if this
-Request Setting should be applied. For detailed information about Conditionals,
+* `request_condition` - (Optional) When to execute the s3. If empty, always execute. For detailed information about Conditionals,
 see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
 The `papertrail` block supports:

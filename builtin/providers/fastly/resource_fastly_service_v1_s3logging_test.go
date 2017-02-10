@@ -18,17 +18,18 @@ func TestAccFastlyServiceV1_s3logging_basic(t *testing.T) {
 	domainName1 := fmt.Sprintf("%s.notadomain.com", acctest.RandString(10))
 
 	log1 := gofastly.S3{
-		Version:         "1",
-		Name:            "somebucketlog",
-		BucketName:      "fastlytestlogging",
-		Domain:          "s3-us-west-2.amazonaws.com",
-		AccessKey:       "somekey",
-		SecretKey:       "somesecret",
-		Period:          uint(3600),
-		GzipLevel:       uint(0),
-		Format:          "%h %l %u %t %r %>s",
-		FormatVersion:   1,
-		TimestampFormat: "%Y-%m-%dT%H:%M:%S.000",
+		Version:           "1",
+		Name:              "somebucketlog",
+		BucketName:        "fastlytestlogging",
+		Domain:            "s3-us-west-2.amazonaws.com",
+		AccessKey:         "somekey",
+		SecretKey:         "somesecret",
+		Period:            uint(3600),
+		GzipLevel:         uint(0),
+		Format:            "%h %l %u %t %r %>s",
+		FormatVersion:     1,
+		TimestampFormat:   "%Y-%m-%dT%H:%M:%S.000",
+		ResponseCondition: "resp.status == 418",
 	}
 
 	log2 := gofastly.S3{
@@ -220,11 +221,12 @@ resource "fastly_service_v1" "foo" {
   }
 
   s3logging {
-    name       = "somebucketlog"
-    bucket_name = "fastlytestlogging"
-    domain     = "s3-us-west-2.amazonaws.com"
-    s3_access_key = "somekey"
-    s3_secret_key = "somesecret"
+    name               = "somebucketlog"
+    bucket_name        = "fastlytestlogging"
+    domain             = "s3-us-west-2.amazonaws.com"
+    s3_access_key      = "somekey"
+    s3_secret_key      = "somesecret"
+		response_condition = "resp.status == 418"
   }
 
   force_destroy = true
