@@ -559,12 +559,18 @@ func resourceServiceV1() *schema.Resource {
 							Required:    true,
 							Description: "The port of the papertrail service",
 						},
-						// Optional
+						// Optional fields
 						"format": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "%h %l %u %t %r %>s",
 							Description: "Apache-style string or VCL variables to use for log formatting",
+						},
+						"response_condition": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "When to execute logging to papertrail. If empty, always execute.",
 						},
 					},
 				},
@@ -1245,12 +1251,13 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 				pf := pRaw.(map[string]interface{})
 
 				opts := gofastly.CreatePapertrailInput{
-					Service: d.Id(),
-					Version: latestVersion,
-					Name:    pf["name"].(string),
-					Address: pf["address"].(string),
-					Port:    uint(pf["port"].(int)),
-					Format:  pf["format"].(string),
+					Service:           d.Id(),
+					Version:           latestVersion,
+					Name:              pf["name"].(string),
+					Address:           pf["address"].(string),
+					Port:              uint(pf["port"].(int)),
+					Format:            pf["format"].(string),
+					ResponseCondition: pf["response_condition"].(string),
 				}
 
 				log.Printf("[DEBUG] Create Papertrail Opts: %#v", opts)
@@ -2023,10 +2030,11 @@ func flattenPapertrails(papertrailList []*gofastly.Papertrail) []map[string]inte
 	for _, p := range papertrailList {
 		// Convert S3s to a map for saving to state.
 		ns := map[string]interface{}{
-			"name":    p.Name,
-			"address": p.Address,
-			"port":    p.Port,
-			"format":  p.Format,
+			"name":               p.Name,
+			"address":            p.Address,
+			"port":               p.Port,
+			"format":             p.Format,
+			"response_condition": p.ResponseCondition,
 		}
 
 		// prune any empty values that come from the default string value in structs
