@@ -17,38 +17,38 @@ import (
 func resourceAwsElastiCacheCommonSchema() map[string]*schema.Schema {
 
 	return map[string]*schema.Schema{
-		"availability_zones": &schema.Schema{
+		"availability_zones": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			ForceNew: true,
 			Elem:     &schema.Schema{Type: schema.TypeString},
 			Set:      schema.HashString,
 		},
-		"node_type": &schema.Schema{
+		"node_type": {
 			Type:     schema.TypeString,
 			Required: true,
 		},
-		"engine": &schema.Schema{
+		"engine": {
 			Type:     schema.TypeString,
 			Required: true,
 		},
-		"engine_version": &schema.Schema{
+		"engine_version": {
 			Type:     schema.TypeString,
 			Optional: true,
 			Computed: true,
 		},
-		"parameter_group_name": &schema.Schema{
+		"parameter_group_name": {
 			Type:     schema.TypeString,
 			Optional: true,
 			Computed: true,
 		},
-		"subnet_group_name": &schema.Schema{
+		"subnet_group_name": {
 			Type:     schema.TypeString,
 			Optional: true,
 			Computed: true,
 			ForceNew: true,
 		},
-		"security_group_names": &schema.Schema{
+		"security_group_names": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			Computed: true,
@@ -56,7 +56,7 @@ func resourceAwsElastiCacheCommonSchema() map[string]*schema.Schema {
 			Elem:     &schema.Schema{Type: schema.TypeString},
 			Set:      schema.HashString,
 		},
-		"security_group_ids": &schema.Schema{
+		"security_group_ids": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			Computed: true,
@@ -69,26 +69,26 @@ func resourceAwsElastiCacheCommonSchema() map[string]*schema.Schema {
 		//
 		// See also:
 		// https://github.com/aws/aws-sdk-go/blob/4862a174f7fc92fb523fc39e68f00b87d91d2c3d/service/elasticache/api.go#L2079
-		"snapshot_arns": &schema.Schema{
+		"snapshot_arns": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			ForceNew: true,
 			Elem:     &schema.Schema{Type: schema.TypeString},
 			Set:      schema.HashString,
 		},
-		"snapshot_window": &schema.Schema{
+		"snapshot_window": {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Computed:     true,
 			ValidateFunc: validateOnceADayWindowFormat,
 		},
-		"snapshot_name": &schema.Schema{
+		"snapshot_name": {
 			Type:     schema.TypeString,
 			Optional: true,
 			ForceNew: true,
 		},
 
-		"maintenance_window": &schema.Schema{
+		"maintenance_window": {
 			Type:     schema.TypeString,
 			Optional: true,
 			Computed: true,
@@ -99,17 +99,17 @@ func resourceAwsElastiCacheCommonSchema() map[string]*schema.Schema {
 			},
 			ValidateFunc: validateOnceAWeekWindowFormat,
 		},
-		"port": &schema.Schema{
+		"port": {
 			Type:     schema.TypeInt,
 			Required: true,
 			ForceNew: true,
 		},
-		"notification_topic_arn": &schema.Schema{
+		"notification_topic_arn": {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
 
-		"snapshot_retention_limit": &schema.Schema{
+		"snapshot_retention_limit": {
 			Type:     schema.TypeInt,
 			Optional: true,
 			ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
@@ -122,7 +122,7 @@ func resourceAwsElastiCacheCommonSchema() map[string]*schema.Schema {
 			},
 		},
 
-		"apply_immediately": &schema.Schema{
+		"apply_immediately": {
 			Type:     schema.TypeBool,
 			Optional: true,
 			Computed: true,
@@ -187,19 +187,19 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 		Computed: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"id": &schema.Schema{
+				"id": {
 					Type:     schema.TypeString,
 					Computed: true,
 				},
-				"address": &schema.Schema{
+				"address": {
 					Type:     schema.TypeString,
 					Computed: true,
 				},
-				"port": &schema.Schema{
+				"port": {
 					Type:     schema.TypeInt,
 					Computed: true,
 				},
-				"availability_zone": &schema.Schema{
+				"availability_zone": {
 					Type:     schema.TypeString,
 					Computed: true,
 				},
