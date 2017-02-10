@@ -215,7 +215,7 @@ var testAccContainerCluster_withVersion = fmt.Sprintf(`
 resource "google_container_cluster" "with_version" {
 	name = "cluster-test-%s"
 	zone = "us-central1-a"
-	node_version = "1.4.7"
+	node_version = "1.5.2"
 	initial_node_count = 1
 
 	master_auth {
