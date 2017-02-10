@@ -350,8 +350,17 @@ func test_compareCacheBehavior(t *testing.T, in, out map[string]interface{}) {
 	delete(inToCompare, "allowed_methods")
 	delete(outToCompare, "allowed_methods")
 
+	inLambdaFuncAssoc := inToCompare["lambda_function_association"].(*schema.Set)
+	outLambdaFuncAssoc := outToCompare["lambda_function_association"].(*schema.Set)
+	if !inLambdaFuncAssoc.Equal(outLambdaFuncAssoc) {
+		t.Fatalf("lambda_function_association don't match:\nGiven: %q\nExpected: %q",
+			outLambdaFuncAssoc.List(), inLambdaFuncAssoc.List())
+	}
+	delete(inToCompare, "lambda_function_association")
+	delete(outToCompare, "lambda_function_association")
+
 	if !reflect.DeepEqual(inToCompare, outToCompare) {
-		t.Fatalf("Expected out to be %v, got %v", in, out)
+		t.Fatalf("Expected: %#v\nGot: %#v\n", in, out)
 	}
 }
 
@@ -418,15 +427,9 @@ func TestCloudFrontStructure_flattenCacheBehavior(t *testing.T) {
 		t.Fatalf("Expected out[target_origin_id] to be myS3Origin, got %v", out["target_origin_id"])
 	}
 
-	// the flattened lambda function associations are a slice of maps,
-	// where as the default cache behavior LFAs are a set. Here we double check
-	// that and conver the slice to a set, and use Set's Equal() method to check
-	// equality
-	var outSet *schema.Set
-	if outSlice, ok := out["lambda_function_association"].([]interface{}); ok {
-		outSet = schema.NewSet(lambdaFunctionAssociationHash, outSlice)
-	} else {
-		t.Fatalf("out['lambda_function_association'] is not a slice as expected: %#v", out["lambda_function_association"])
+	outSet, ok := out["lambda_function_association"].(*schema.Set)
+	if !ok {
+		t.Fatalf("out['lambda_function_association'] is not a set as expected: %#v", out["lambda_function_association"])
 	}
 
 	inSet, ok := in["lambda_function_association"].(*schema.Set)
@@ -549,8 +552,8 @@ func TestCloudFrontStructure_flattenlambdaFunctionAssociations(t *testing.T) {
 	lfa := expandLambdaFunctionAssociations(in.List())
 	out := flattenLambdaFunctionAssociations(lfa)
 
-	if reflect.DeepEqual(in.List(), out) != true {
-		t.Fatalf("Expected out to be %v, got %v", in, out)
+	if reflect.DeepEqual(in.List(), out.List()) != true {
+		t.Fatalf("Expected: %#v\nGot: %#v", in, out)
 	}
 }
 
