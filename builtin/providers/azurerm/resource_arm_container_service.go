@@ -127,8 +127,7 @@ func resourceArmContainerService() *schema.Resource {
 
 						"fqdn": {
 							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
+							Computed: true,
 						},
 
 						"vm_size": {
@@ -282,19 +281,13 @@ func resourceArmContainerServiceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("orchestration_platform", string(resp.Properties.OrchestratorProfile.OrchestratorType))
 
 	masterProfiles := flattenAzureRmContainerServiceMasterProfile(*resp.Properties.MasterProfile)
-	if masterProfiles != nil {
-		d.Set("master_profile", masterProfiles)
-	}
+	d.Set("master_profile", &masterProfiles)
 
 	linuxProfile := flattenAzureRmContainerServiceLinuxProfile(*resp.Properties.LinuxProfile)
-	if linuxProfile != nil {
-		d.Set("linux_profile", linuxProfile)
-	}
+	d.Set("linux_profile", &linuxProfile)
 
 	agentPoolProfiles := flattenAzureRmContainerServiceAgentPoolProfiles(resp.Properties.AgentPoolProfiles)
-	if agentPoolProfiles != nil {
-		d.Set("agent_pool_profile", agentPoolProfiles)
-	}
+	d.Set("agent_pool_profile", &agentPoolProfiles)
 
 	servicePrincipal := flattenAzureRmContainerServiceServicePrincipalProfile(resp.Properties.ServicePrincipalProfile)
 	if servicePrincipal != nil {
@@ -335,8 +328,8 @@ func resourceArmContainerServiceDelete(d *schema.ResourceData, meta interface{})
 
 }
 
-func flattenAzureRmContainerServiceMasterProfile(profile containerservice.MasterProfile) *schema.Set {
-	masterProfiles := &schema.Set{
+func flattenAzureRmContainerServiceMasterProfile(profile containerservice.MasterProfile) schema.Set {
+	masterProfiles := schema.Set{
 		F: resourceAzureRMContainerServiceMasterProfileHash,
 	}
 
@@ -350,7 +343,7 @@ func flattenAzureRmContainerServiceMasterProfile(profile containerservice.Master
 	return masterProfiles
 }
 
-func flattenAzureRmContainerServiceLinuxProfile(profile containerservice.LinuxProfile) *schema.Set {
+func flattenAzureRmContainerServiceLinuxProfile(profile containerservice.LinuxProfile) schema.Set {
 	profiles := schema.Set{
 		F: resourceAzureRMContainerServiceLinuxProfilesHash,
 	}
@@ -367,13 +360,13 @@ func flattenAzureRmContainerServiceLinuxProfile(profile containerservice.LinuxPr
 	}
 
 	values["admin_username"] = *profile.AdminUsername
-	values["ssh_key"] = sshKeys
+	values["ssh_key"] = &sshKeys
 	profiles.Add(values)
 
-	return &profiles
+	return profiles
 }
 
-func flattenAzureRmContainerServiceAgentPoolProfiles(profiles *[]containerservice.AgentPoolProfile) *schema.Set {
+func flattenAzureRmContainerServiceAgentPoolProfiles(profiles *[]containerservice.AgentPoolProfile) schema.Set {
 	agentPoolProfiles := schema.Set{
 		F: resourceAzureRMContainerServiceAgentPoolProfilesHash,
 	}
@@ -388,7 +381,7 @@ func flattenAzureRmContainerServiceAgentPoolProfiles(profiles *[]containerservic
 		agentPoolProfiles.Add(agentPoolProfile)
 	}
 
-	return &agentPoolProfiles
+	return agentPoolProfiles
 }
 
 func flattenAzureRmContainerServiceServicePrincipalProfile(profile *containerservice.ServicePrincipalProfile) *schema.Set {
@@ -397,7 +390,7 @@ func flattenAzureRmContainerServiceServicePrincipalProfile(profile *containerser
 		return nil
 	}
 
-	servicePrincipalProfiles := schema.Set{
+	servicePrincipalProfiles := &schema.Set{
 		F: resourceAzureRMContainerServiceServicePrincipalProfileHash,
 	}
 
@@ -410,11 +403,11 @@ func flattenAzureRmContainerServiceServicePrincipalProfile(profile *containerser
 
 	servicePrincipalProfiles.Add(values)
 
-	return &servicePrincipalProfiles
+	return servicePrincipalProfiles
 }
 
 func flattenAzureRmContainerServiceDiagnosticsProfile(profile *containerservice.DiagnosticsProfile) *schema.Set {
-	diagnosticProfiles := schema.Set{
+	diagnosticProfiles := &schema.Set{
 		F: resourceAzureRMContainerServiceDiagnosticProfilesHash,
 	}
 
@@ -426,7 +419,7 @@ func flattenAzureRmContainerServiceDiagnosticsProfile(profile *containerservice.
 	}
 	diagnosticProfiles.Add(values)
 
-	return &diagnosticProfiles
+	return diagnosticProfiles
 }
 
 func expandAzureRmContainerServiceDiagnostics(d *schema.ResourceData) containerservice.DiagnosticsProfile {
@@ -451,7 +444,8 @@ func expandAzureRmContainerServiceLinuxProfile(d *schema.ResourceData) container
 	config := profiles[0].(map[string]interface{})
 
 	adminUsername := config["admin_username"].(string)
-	linuxKeys := config["ssh_key"].([]interface{})
+
+	linuxKeys := config["ssh_key"].(*schema.Set).List()
 	sshPublicKeys := []containerservice.SSHPublicKey{}
 
 	key := linuxKeys[0].(map[string]interface{})
@@ -475,18 +469,14 @@ func expandAzureRmContainerServiceLinuxProfile(d *schema.ResourceData) container
 
 func expandAzureRmContainerServiceMasterProfile(d *schema.ResourceData) containerservice.MasterProfile {
 	configs := d.Get("master_profile").(*schema.Set).List()
-	profile := containerservice.MasterProfile{}
+	config := configs[0].(map[string]interface{})
 
-	for _, configRaw := range configs {
-		data := configRaw.(map[string]interface{})
+	count := int32(config["count"].(int))
+	dnsPrefix := config["dns_prefix"].(string)
 
-		count := int32(data["count"].(int))
-		dnsPrefix := data["dns_prefix"].(string)
-
-		profile = containerservice.MasterProfile{
-			Count:     &count,
-			DNSPrefix: &dnsPrefix,
-		}
+	profile := containerservice.MasterProfile{
+		Count:     &count,
+		DNSPrefix: &dnsPrefix,
 	}
 
 	return profile
@@ -516,27 +506,22 @@ func expandAzureRmContainerServiceServicePrincipal(d *schema.ResourceData) *cont
 
 func expandAzureRmContainerServiceAgentProfiles(d *schema.ResourceData) []containerservice.AgentPoolProfile {
 	configs := d.Get("agent_pool_profile").(*schema.Set).List()
+	config := configs[0].(map[string]interface{})
 	profiles := make([]containerservice.AgentPoolProfile, 0, len(configs))
 
-	for _, configRaw := range configs {
-		data := configRaw.(map[string]interface{})
+	name := config["name"].(string)
+	count := int32(config["count"].(int))
+	dnsPrefix := config["dns_prefix"].(string)
+	vmSize := config["vm_size"].(string)
 
-		name := data["name"].(string)
-		count := int32(data["count"].(int))
-		dnsPrefix := data["dns_prefix"].(string)
-		fqdn := data["fqdn"].(string)
-		vmSize := data["vm_size"].(string)
-
-		profile := containerservice.AgentPoolProfile{
-			Name:      &name,
-			Count:     &count,
-			VMSize:    containerservice.VMSizeTypes(vmSize),
-			DNSPrefix: &dnsPrefix,
-			Fqdn:      &fqdn,
-		}
-
-		profiles = append(profiles, profile)
+	profile := containerservice.AgentPoolProfile{
+		Name:      &name,
+		Count:     &count,
+		VMSize:    containerservice.VMSizeTypes(vmSize),
+		DNSPrefix: &dnsPrefix,
 	}
+
+	profiles = append(profiles, profile)
 
 	return profiles
 }
