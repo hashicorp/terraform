@@ -62,8 +62,7 @@ func resourceAwsAmiCreate(d *schema.ResourceData, meta interface{}) error {
 			DeviceName: aws.String(ebsBlockDev["device_name"].(string)),
 			Ebs: &ec2.EbsBlockDevice{
 				DeleteOnTermination: aws.Bool(ebsBlockDev["delete_on_termination"].(bool)),
-				//				VolumeSize:          aws.Int64(int64(ebsBlockDev["volume_size"].(int))),
-				VolumeType: aws.String(ebsBlockDev["volume_type"].(string)),
+				VolumeType:          aws.String(ebsBlockDev["volume_type"].(string)),
 			},
 		}
 		if iops, ok := ebsBlockDev["iops"]; ok {
