@@ -3,12 +3,15 @@ package aws
 import (
 	"fmt"
 	"log"
+	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/service/rds"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -322,6 +325,16 @@ func resourceAwsDbInstance() *schema.Resource {
 			},
 
 			"tags": tagsSchema(),
+
+			"destination_region": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"source_region": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -344,6 +357,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if v, ok := d.GetOk("replicate_source_db"); ok {
+
 		opts := rds.CreateDBInstanceReadReplicaInput{
 			SourceDBInstanceIdentifier: aws.String(v.(string)),
 			CopyTagsToSnapshot:         aws.Bool(d.Get("copy_tags_to_snapshot").(bool)),
@@ -352,24 +366,62 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			PubliclyAccessible:         aws.Bool(d.Get("publicly_accessible").(bool)),
 			Tags:                       tags,
 		}
+		kms_attr, kms_ok := d.GetOk("kms_key_id")
+		if kms_ok {
+			opts.KmsKeyId = aws.String(kms_attr.(string))
+		}
+
+		storage_encrypted := d.Get("storage_encrypted").(bool)
 
 		// Firstly check whether setting destination_region. If set assume cross-region replication.
-		if attr, ok := d.GetOk("destination_region"); !ok {
+		if attr, ok := d.GetOk("destination_region"); ok {
+			opts.DestinationRegion = aws.String(attr.(string))
+
 			// Secondly ascertain whether encrypted (currently by requiring storage_encrypted).
 			// Can we detect between encrypted & non-encrypted without also requiring
 			// storage_encrypted to be set?
-			if storage_encrypted := d.Get("storage_encrypted").(string); storage_encrypted == "true" {
+			if storage_encrypted {
 				// If true validate kms_key_id is set.
-				if _, ok := d.GetOk("kms_key_id"); !ok {
+				if !kms_ok {
 					return fmt.Errorf(`provider.aws: aws_db_instance: %s: "kms_key_id" is
-					 required when creating an encrypted read replica `, identifier)
+					 required when creating an encrypted cross-region read replica`, identifier)
 				}
 			}
-			opts.DestinationRegion = aws.String(attr.(string))
-		}
 
-		if attr, ok := d.GetOk("kms_key_id"); ok {
-			opts.KmsKeyId = aws.String(attr.(string))
+			creds, cred_err := GetCredentials(meta.(*Config))
+			if cred_err != nil {
+				return fmt.Errorf(`provider.aws: aws_db_instance: error encountered retrieving credentials: %s`, cred_err)
+			}
+
+			signer := v4.Signer{
+				Credentials: creds,
+			}
+
+			sourceRegion, s_r_ok := d.GetOk("source_region")
+			if !s_r_ok {
+				return fmt.Errorf(`provider.aws: aws_db_instance: %s: "source_region" is
+					 required when creating an encrypted cross-region read replica `, identifier)
+			}
+
+			// build Request
+			endpoint := "https://rds." + sourceRegion.(string) + ".amazonaws.com"
+			data := url.Values{}
+			data.Set("Action", "CreateDBInstanceReadReplica")
+			data.Add("DestinationRegion", attr.(string))
+			data.Add("SourceDBInstanceIdentifier", v.(string))
+			data.Add("KmsKeyId", kms_attr.(string))
+
+			reader := strings.NewReader(data.Encode())
+			req, _ := http.NewRequest("POST", endpoint, reader)
+
+			//signRequest
+			_, presign_err := signer.Presign(req, reader, "rds", sourceRegion.(string), 5*time.Minute, time.Now())
+
+			if presign_err != nil {
+				return fmt.Errorf(`provider.aws: aws_db_instance: error encountered presigning URL: %s`, presign_err)
+			}
+
+			opts.PreSignedUrl = aws.String(req.URL.String())
 		}
 
 		if attr, ok := d.GetOk("iops"); ok {
