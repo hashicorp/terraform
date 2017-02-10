@@ -855,7 +855,7 @@ POLICY
 	resource "aws_db_instance" "replica" {
 		identifier = "tf-replica-db-%d"
 		backup_retention_period = 0
-		replicate_source_db = "${aws_db_instance.bar.identifier}"
+		replicate_source_db = "${aws_db_instance.bar.arn}"
 		allocated_storage = "${aws_db_instance.bar.allocated_storage}"
 		engine = "${aws_db_instance.bar.engine}"
 		engine_version = "${aws_db_instance.bar.engine_version}"
@@ -957,7 +957,7 @@ func testAccReplicaInstanceCrossRegionUnEncryptedConfig(val int) string {
 		provider                = "aws.eu"
 		identifier              = "tf-replica-db-%d"
 		backup_retention_period = 0
-		replicate_source_db     = "${aws_db_instance.bar.identifier}"
+		replicate_source_db     = "${aws_db_instance.bar.arn}"
 		allocated_storage       = "${aws_db_instance.bar.allocated_storage}"
 		engine                  = "${aws_db_instance.bar.engine}"
 		engine_version          = "${aws_db_instance.bar.engine_version}"
