@@ -119,7 +119,7 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 		},
 	)
 	req.Filters = append(req.Filters, buildEC2TagFilterList(
-		tagsFromMap(tags.(map[string]interface{})),
+		tagsFromMap(tags.(map[string]interface{}), true),
 	)...)
 	req.Filters = append(req.Filters, buildEC2CustomFilterList(
 		filter.(*schema.Set),
@@ -142,7 +142,7 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 	d.SetId(aws.StringValue(rt.RouteTableId))
 	d.Set("route_table_id", rt.RouteTableId)
 	d.Set("vpc_id", rt.VpcId)
-	d.Set("tags", tagsToMap(rt.Tags))
+	d.Set("tags", tagsToMap(rt.Tags, true))
 	if err := d.Set("routes", dataSourceRoutesRead(rt.Routes)); err != nil {
 		return err
 	}

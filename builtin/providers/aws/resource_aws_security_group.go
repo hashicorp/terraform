@@ -314,7 +314,7 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 		log.Printf("[WARN] Error setting Egress rule set for (%s): %s", d.Id(), err)
 	}
 
-	d.Set("tags", tagsToMap(sg.Tags))
+	d.Set("tags", tagsToMap(sg.Tags, false))
 	return nil
 }
 

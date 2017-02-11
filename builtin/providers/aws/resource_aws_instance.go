@@ -518,7 +518,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("monitoring", monitoringState == "enabled" || monitoringState == "pending")
 	}
 
-	d.Set("tags", tagsToMap(instance.Tags))
+	d.Set("tags", tagsToMap(instance.Tags, false))
 
 	if err := readSecurityGroups(d, instance); err != nil {
 		return err

@@ -208,7 +208,7 @@ func resourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("ebs_block_device", ebsBlockDevs)
 	d.Set("ephemeral_block_device", ephemeralBlockDevs)
 
-	d.Set("tags", tagsToMap(image.Tags))
+	d.Set("tags", tagsToMap(image.Tags, false))
 
 	return nil
 }

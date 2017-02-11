@@ -258,7 +258,7 @@ func readVolume(d *schema.ResourceData, volume *ec2.Volume) error {
 	}
 
 	if volume.Tags != nil {
-		d.Set("tags", tagsToMap(volume.Tags))
+		d.Set("tags", tagsToMap(volume.Tags, false))
 	}
 
 	return nil

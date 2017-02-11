@@ -60,7 +60,7 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 	name = hostedZoneName(name.(string))
 	id, idExists := d.GetOk("zone_id")
 	vpcId, vpcIdExists := d.GetOk("vpc_id")
-	tags := tagsFromMap(d.Get("tags").(map[string]interface{}))
+	tags := tagsFromMap(d.Get("tags").(map[string]interface{}), true)
 	if nameExists && idExists {
 		return fmt.Errorf("zone_id and name arguments can't be used together")
 	} else if !nameExists && !idExists {

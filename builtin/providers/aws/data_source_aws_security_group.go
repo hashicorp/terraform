@@ -51,7 +51,7 @@ func dataSourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 		},
 	)
 	req.Filters = append(req.Filters, buildEC2TagFilterList(
-		tagsFromMap(d.Get("tags").(map[string]interface{})),
+		tagsFromMap(d.Get("tags").(map[string]interface{}), true),
 	)...)
 	req.Filters = append(req.Filters, buildEC2CustomFilterList(
 		d.Get("filter").(*schema.Set),
@@ -80,7 +80,7 @@ func dataSourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("name", sg.GroupName)
 	d.Set("description", sg.Description)
 	d.Set("vpc_id", sg.VpcId)
-	d.Set("tags", tagsToMap(sg.Tags))
+	d.Set("tags", tagsToMap(sg.Tags, true))
 
 	return nil
 }

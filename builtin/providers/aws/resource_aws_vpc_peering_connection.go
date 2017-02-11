@@ -170,7 +170,7 @@ func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	err = d.Set("tags", tagsToMap(pc.Tags))
+	err = d.Set("tags", tagsToMap(pc.Tags, false))
 	if err != nil {
 		return errwrap.Wrapf("Error setting VPC Peering Connection tags: {{err}}", err)
 	}
