@@ -150,6 +150,7 @@ func flattenScheduleLayers(list []pagerduty.ScheduleLayer) []map[string]interfac
 				restriction := map[string]interface{}{
 					"duration_seconds":  r.DurationSeconds,
 					"start_time_of_day": r.StartTimeOfDay,
+					"start_day_of_week": r.StartDayOfWeek,
 					"type":              r.Type,
 				}
 
