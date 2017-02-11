@@ -58,3 +58,26 @@ func TestIngnitionDisk(t *testing.T) {
 		return nil
 	})
 }
+
+func TestIngnitionDiskResource(t *testing.T) {
+	testIgnition(t, `
+		resource "ignition_disk" "foo" {
+			device = "/foo"
+			partition {
+				label = "qux"
+			}
+		}
+
+		data "ignition_config" "test" {
+			disks = [
+				"${ignition_disk.foo.id}",
+			]
+		}
+	`, func(c *types.Config) error {
+		if len(c.Storage.Disks) != 1 {
+			return fmt.Errorf("disks, found %d", len(c.Storage.Disks))
+		}
+
+		return nil
+	})
+}

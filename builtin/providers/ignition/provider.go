@@ -29,7 +29,42 @@ func Provider() terraform.ResourceProvider {
 			"ignition_group":         resourceGroup(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"ignition_config": schema.DataSourceResourceShim("ignition_config", resourceConfig()),
+			"ignition_config": schema.DataSourceResourceShim(
+				"ignition_config",
+				resourceConfig(),
+			),
+			"ignition_disk": schema.DataSourceResourceShim(
+				"ignition_disk",
+				resourceDisk(),
+			),
+			"ignition_raid": schema.DataSourceResourceShim(
+				"ignition_raid",
+				resourceRaid(),
+			),
+			"ignition_filesystem": schema.DataSourceResourceShim(
+				"ignition_filesystem",
+				resourceFilesystem(),
+			),
+			"ignition_file": schema.DataSourceResourceShim(
+				"ignition_file",
+				resourceFile(),
+			),
+			"ignition_systemd_unit": schema.DataSourceResourceShim(
+				"ignition_systemd_unit",
+				resourceSystemdUnit(),
+			),
+			"ignition_networkd_unit": schema.DataSourceResourceShim(
+				"ignition_networkd_unit",
+				resourceNetworkdUnit(),
+			),
+			"ignition_user": schema.DataSourceResourceShim(
+				"ignition_user",
+				resourceUser(),
+			),
+			"ignition_group": schema.DataSourceResourceShim(
+				"ignition_group",
+				resourceGroup(),
+			),
 		},
 		ConfigureFunc: func(*schema.ResourceData) (interface{}, error) {
 			return &cache{
