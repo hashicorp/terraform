@@ -134,6 +134,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"openstack_images_image_v2": dataSourceImagesImageV2(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"openstack_blockstorage_volume_v1":         resourceBlockStorageVolumeV1(),
 			"openstack_blockstorage_volume_v2":         resourceBlockStorageVolumeV2(),
