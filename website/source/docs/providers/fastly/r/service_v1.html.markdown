@@ -142,6 +142,7 @@ when an item is not to be cached based on an above `condition`. Defined below
 content. Defined below.
 * `header` - (Optional) A set of Headers to manipulate for each request. Defined
 below.
+* `healthcheck` - (Optional) Automated healthchecks on the cache that can change how fastly interacts with the cache based on its health.
 * `default_host` - (Optional) The default hostname.
 * `default_ttl` - (Optional) The default Time-to-live (TTL) for
 requests.
