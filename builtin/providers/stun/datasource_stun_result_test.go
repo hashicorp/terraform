@@ -5,7 +5,7 @@ import (
 	"net"
 	"testing"
 
-	r "github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/pixelbender/go-stun/stun"
 )
@@ -14,7 +14,7 @@ var testProviders = map[string]terraform.ResourceProvider{
 	"stun": Provider(),
 }
 
-func TestStun(t *testing.T) {
+func TestAccStun(t *testing.T) {
 	var hosts = []string{
 		"stun.ekiga.net",
 		"stun.ekiga.net:3478",
@@ -22,70 +22,70 @@ func TestStun(t *testing.T) {
 	}
 
 	for _, host := range hosts {
-		r.UnitTest(t, r.TestCase{
+		resource.Test(t, resource.TestCase{
 			Providers: testProviders,
-			Steps: []r.TestStep{
+			Steps: []resource.TestStep{
 				{
 					Config: testStunConfig(host),
-					Check: func(s *terraform.State) error {
-						got := s.RootModule().Outputs["ip_address"]
-						if got.Value == "" {
-							return fmt.Errorf("host:\n%s\nip_address:\n%s", host, got)
-						}
-						got = s.RootModule().Outputs["ip_family"]
-						if got.Value == "" {
-							return fmt.Errorf("host:\n%s\nip_family:\n%s", host, got)
-						}
-						return nil
-					},
+					Check: resource.ComposeTestCheckFunc(
+						notEmpty("ip_address"),
+					),
 				},
 			},
 		})
 	}
 }
 
-func TestStunIPV(t *testing.T) {
-	for _, ipv := range []string{"4", "6"} {
+func TestStun_IPv4(t *testing.T) {
+	testStun(t, "4")
+}
 
-		// start a UDP listener
-		l, err := net.ListenPacket("udp"+ipv, "")
-		if err != nil {
-			t.Fatal("listen error", err)
-		}
-		defer l.Close()
+func TestStun_IPv6(t *testing.T) {
+	testStun(t, "6")
+}
 
-		// hand off the UDP listener to a STUN server in a goroutine
-		go stun.NewServer(nil).ServePacket(l)
+func testStun(t *testing.T, ipv string) {
+	// start a UDP listener
+	l, err := net.ListenPacket("udp"+ipv, "")
+	if err != nil {
+		t.Fatal("listen error", err)
+	}
+	defer l.Close()
 
-		// setup our test
-		host := l.LocalAddr().String()
-		var loopback net.IP
-		switch ipv {
-		case "4":
-			loopback = net.ParseIP("127.0.0.1")
-		case "6":
-			loopback = net.IPv6loopback
-		}
-		r.UnitTest(t, r.TestCase{
-			Providers: testProviders,
-			Steps: []r.TestStep{
-				{
-					Config: testStunConfig(host),
-					Check: func(s *terraform.State) error {
-						ip_address := s.RootModule().Outputs["ip_address"]
-						if want := loopback.String(); ip_address.Value != want {
-							return fmt.Errorf("host:\n%s\nip_address:\n%s\nwant:\n%s", host, ip_address.Value, want)
-						}
-						ip_family := s.RootModule().Outputs["ip_family"]
-						want := "ipv" + ipv
-						if ip_family.Value != want {
-							return fmt.Errorf("host:\n%s\nip_family:\n%s\nwant:\n%s", host, ip_family, want)
-						}
-						return nil
-					},
-				},
+	// hand off the UDP listener to a STUN server in a goroutine
+	go stun.NewServer(nil).ServePacket(l)
+
+	// setup our test
+	host := l.LocalAddr().String()
+	var loopback net.IP
+	switch ipv {
+	case "4":
+		loopback = net.ParseIP("127.0.0.1")
+	case "6":
+		loopback = net.IPv6loopback
+	}
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testStunConfig(host),
+				Check: resource.ComposeTestCheckFunc(
+					assert("ip_address", loopback.String()),
+					assert("ip_family", "ipv"+ipv),
+				),
 			},
-		})
+		},
+	})
+}
+
+func assert(attribute, want string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		r := s.RootModule().Resources["data.stun.local"]
+		got := r.Primary.Attributes[attribute]
+		if got != want {
+			return fmt.Errorf("%s expected to be %q but got %q", attribute, want, got)
+		}
+		return nil
 	}
 }
 
@@ -93,11 +93,16 @@ func testStunConfig(host string) string {
 	return fmt.Sprintf(`
 	data "stun" "local" {
 		server = %q
-	}
-	output "ip_address" {
-		value = "${data.stun.local.ip_address}"
-	}
-	output "ip_family" {
-		value = "${data.stun.local.ip_family}"
 	}`, host)
+}
+
+func notEmpty(attribute string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		r := s.RootModule().Resources["data.stun.local"]
+		got := r.Primary.Attributes[attribute]
+		if got == "" {
+			return fmt.Errorf("%s expected not to be empty, but it was", attribute)
+		}
+		return nil
+	}
 }
