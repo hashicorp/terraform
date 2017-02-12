@@ -2333,6 +2333,12 @@
 			"revisionTime": "2015-10-22T18:22:18Z"
 		},
 		{
+			"checksumSHA1": "Rg+ECEfwYLhrBk189Rn2xGKyQy0=",
+			"path": "github.com/pixelbender/go-stun/stun",
+			"revision": "0b7811ed3bc852c024c91e052179c2d5f9812049",
+			"revisionTime": "2016-08-28T01:33:38Z"
+		},
+		{
 			"checksumSHA1": "ynJSWoF6v+3zMnh9R0QmmG6iGV8=",
 			"comment": "v0.3.0",
 			"path": "github.com/pkg/errors",
