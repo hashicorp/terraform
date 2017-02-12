@@ -293,8 +293,6 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("task_definition", taskDefinition)
 	}
 
-	d.Set("desired_count", service.DesiredCount)
-
 	// Save cluster in the same format
 	if strings.HasPrefix(d.Get("cluster").(string), "arn:"+meta.(*AWSClient).partition+":ecs:") {
 		d.Set("cluster", service.ClusterArn)
