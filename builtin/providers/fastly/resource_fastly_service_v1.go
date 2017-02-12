@@ -170,7 +170,7 @@ func resourceServiceV1() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "Condition, which if met, will select this backend during a request.",
+							Description: "Name of a condition, which if met, will select this backend during a request.",
 						},
 						"shield": {
 							Type:        schema.TypeString,
@@ -228,7 +228,7 @@ func resourceServiceV1() *schema.Resource {
 						"cache_condition": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "Condition to check if this Cache Setting applies",
+							Description: "Name of a condition to check if this Cache Setting applies",
 						},
 						"action": {
 							Type:        schema.TypeString,
@@ -279,7 +279,7 @@ func resourceServiceV1() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "The cache condition controlling when this gzip configuration applies.",
+							Description: "Name of a condition controlling when this gzip configuration applies.",
 						},
 					},
 				},
@@ -372,19 +372,19 @@ func resourceServiceV1() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "Optional name of a RequestCondition to apply.",
+							Description: "Optional name of a request condition to apply.",
 						},
 						"cache_condition": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "Optional name of a CacheCondition to apply.",
+							Description: "Optional name of a cache condition to apply.",
 						},
 						"response_condition": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "Optional name of a ResponseCondition to apply.",
+							Description: "Optional name of a response condition to apply.",
 						},
 					},
 				},
@@ -538,7 +538,7 @@ func resourceServiceV1() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "When to execute the s3. If empty, always execute.",
+							Description: "Name of a condition to apply this logging.",
 						},
 					},
 				},
@@ -576,7 +576,7 @@ func resourceServiceV1() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "When to execute logging to papertrail. If empty, always execute.",
+							Description: "Name of a condition to apply this logging",
 						},
 					},
 				},
@@ -596,7 +596,7 @@ func resourceServiceV1() *schema.Resource {
 						"request_condition": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "Name of a RequestCondition to apply.",
+							Description: "Name of a request condition to apply.",
 						},
 						// Optional fields
 						"max_stale_age": {
