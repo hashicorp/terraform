@@ -35,6 +35,7 @@ Bug FIXES:
  * provider/aws: aws_codecommit_trigger fix typo that causes serialization to fail when events is non-empty [GH-11839]
  * provider/aws: Fix bug to allow update of maintenance_window in elasticache_replication_group [GH-11850]
  * provider/azurerm: Don't push an empty set of ssh keys to virtual machine or they cannot be ammended [GH-11804]
+ * provider/azurerm: Refresh from state when VM Extension Resource not found [GH-11894]
  * provider/google: set additional_zones to computed and disallow the original zone from appearing in the list [GH-11650]
  * provider/google: set subnetwork_project to computed [GH-11646]
 
