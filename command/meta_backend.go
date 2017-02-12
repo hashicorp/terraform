@@ -1490,7 +1490,7 @@ const errBackendRemoteRead = `
 Error reading backend state: %s
 
 Terraform is trying to read the state from your configured backend to
-determien if there is any migration steps necessary. Terraform can't continue
+determine if there is any migration steps necessary. Terraform can't continue
 without this check because that would risk losing state. Please resolve the
 error above and try again.
 `
