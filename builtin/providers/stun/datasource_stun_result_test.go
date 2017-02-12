@@ -46,18 +46,6 @@ func TestStun(t *testing.T) {
 
 func TestStunIPV(t *testing.T) {
 	for _, ipv := range []string{"4", "6"} {
-		// start up a STUN server that will always respond with our target IP
-		s := stun.NewServer(nil)
-		s.Handler = stun.HandlerFunc(func(rw stun.ResponseWriter, _ *stun.Message) {
-			rw.WriteMessage(&stun.Message{
-				Method: stun.TypeResponse,
-				Attributes: stun.Attributes{
-					stun.AttrXorMappedAddress: rw.RemoteAddr(),
-					stun.AttrMappedAddress:    rw.RemoteAddr(),
-					stun.AttrResponseOrigin:   rw.LocalAddr(),
-				},
-			})
-		})
 
 		// start a UDP listener
 		l, err := net.ListenPacket("udp"+ipv, "")
@@ -66,8 +54,8 @@ func TestStunIPV(t *testing.T) {
 		}
 		defer l.Close()
 
-		// hand off the UDP listener to the STUN server in a goroutine
-		go s.ServePacket(l)
+		// hand off the UDP listener to a STUN server in a goroutine
+		go stun.NewServer(nil).ServePacket(l)
 
 		// setup our test
 		host := l.LocalAddr().String()
