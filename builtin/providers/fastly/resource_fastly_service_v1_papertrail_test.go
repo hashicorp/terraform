@@ -22,7 +22,7 @@ func TestAccFastlyServiceV1_papertrail_basic(t *testing.T) {
 		Address:           "test1.papertrailapp.com",
 		Port:              uint(3600),
 		Format:            "%h %l %u %t %r %>s",
-		ResponseCondition: "resp.status >= 400 && resp.status < 600",
+		ResponseCondition: "test_response_condition",
 	}
 
 	log2 := gofastly.Papertrail{
@@ -31,7 +31,6 @@ func TestAccFastlyServiceV1_papertrail_basic(t *testing.T) {
 		Address:           "test2.papertrailapp.com",
 		Port:              uint(8080),
 		Format:            "%h %l %u %t %r %>s",
-		ResponseCondition: "resp.status = 418",
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -125,11 +124,18 @@ resource "fastly_service_v1" "foo" {
     name    = "amazon docs"
   }
 
+	condition {
+    name      = "test_response_condition"
+    type      = "RESPONSE"
+    priority  = 5
+    statement = "resp.status >= 400 && resp.status < 600"
+  }
+
   papertrail {
     name               = "papertrailtesting"
     address            = "test1.papertrailapp.com"
     port               = 3600
-		response_condition = "resp.status >= 400 && resp.status < 600"
+		response_condition = "test_response_condition"
   }
 
   force_destroy = true
@@ -151,18 +157,24 @@ resource "fastly_service_v1" "foo" {
     name    = "amazon docs"
   }
 
+	condition {
+    name      = "test_response_condition"
+    type      = "RESPONSE"
+    priority  = 5
+    statement = "resp.status >= 400 && resp.status < 600"
+  }
+
 	papertrail {
     name               = "papertrailtesting"
     address            = "test1.papertrailapp.com"
     port               = 3600
-		response_condition = "resp.status >= 400 && resp.status < 600"
+		response_condition = "test_response_condition"
   }
 
 	papertrail {
     name               = "papertrailtesting2"
     address            = "test2.papertrailapp.com"
     port               = 8080
-		response_condition = "resp.status = 418"
   }
 
   force_destroy = true

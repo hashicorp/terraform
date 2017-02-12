@@ -121,7 +121,7 @@ func TestAccFastlyServiceV1_gzips_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "gzip.#", "2"),
 					resource.TestCheckResourceAttr(
-						"fastly_service_v1.foo", "gzip.3704620722.cache_condition", "!beresp.cachable"),
+						"fastly_service_v1.foo", "gzip.3704620722.cache_condition", "testing_condition"),
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "gzip.3704620722.extensions.#", "2"),
 					resource.TestCheckResourceAttr(
@@ -192,11 +192,17 @@ resource "fastly_service_v1" "foo" {
     name    = "amazon docs"
   }
 
+	condition {
+    name      = "testing_condition"
+    type      = "CACHE"
+    priority  = 10
+    statement = "!beresp.cachable"
+  }
+
   gzip {
     name       			= "gzip file types"
     extensions 			= ["css", "js"]
-		cache_condition = "!beresp.cachable"
-
+		cache_condition = "testing_condition"
   }
 
   gzip {

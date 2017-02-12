@@ -29,7 +29,7 @@ func TestAccFastlyServiceV1_s3logging_basic(t *testing.T) {
 		Format:            "%h %l %u %t %r %>s",
 		FormatVersion:     1,
 		TimestampFormat:   "%Y-%m-%dT%H:%M:%S.000",
-		ResponseCondition: "resp.status == 418",
+		ResponseCondition: "response_condition_test",
 	}
 
 	log2 := gofastly.S3{
@@ -220,13 +220,20 @@ resource "fastly_service_v1" "foo" {
     name    = "amazon docs"
   }
 
+	condition {
+    name      = "response_condition_test"
+    type      = "RESPONSE"
+    priority  = 8
+    statement = "resp.status = 418"
+  }
+
   s3logging {
     name               = "somebucketlog"
     bucket_name        = "fastlytestlogging"
     domain             = "s3-us-west-2.amazonaws.com"
     s3_access_key      = "somekey"
     s3_secret_key      = "somesecret"
-		response_condition = "resp.status == 418"
+		response_condition = "response_condition_test"
   }
 
   force_destroy = true

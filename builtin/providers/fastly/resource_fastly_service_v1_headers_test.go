@@ -110,11 +110,11 @@ func TestAccFastlyServiceV1_headers_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "header.1147514417.source", "server.identity"),
 					resource.TestCheckResourceAttr(
-						"fastly_service_v1.foo", "header.1147514417.request_condition", "req.url ~ \"^/foo/bar$\""),
+						"fastly_service_v1.foo", "header.1147514417.request_condition", "test_req_condition"),
 					resource.TestCheckResourceAttr(
-						"fastly_service_v1.foo", "header.1147514417.cache_condition", "!beresp.cachable"),
+						"fastly_service_v1.foo", "header.1147514417.cache_condition", "test_cache_condition"),
 					resource.TestCheckResourceAttr(
-						"fastly_service_v1.foo", "header.1147514417.response_condition", "resp.status == 404"),
+						"fastly_service_v1.foo", "header.1147514417.response_condition", "test_res_condition"),
 				),
 			},
 		},
@@ -228,15 +228,36 @@ resource "fastly_service_v1" "foo" {
     name        = "DESTROY S3"
   }
 
+	condition {
+    name      = "test_req_condition"
+    type      = "REQUEST"
+    priority  = 5
+    statement = "req.url ~ \"^/foo/bar$\""
+  }
+
+	condition {
+    name      = "test_cache_condition"
+    type      = "CACHE"
+    priority  = 9
+    statement = "!beresp.cachable"
+  }
+
+	condition {
+    name      = "test_res_condition"
+    type      = "RESPONSE"
+    priority  = 10
+    statement = "resp.status == 404"
+  }
+
   header {
     destination 			 = "http.server-name"
     type        			 = "request"
     action      			 = "set"
     source      			 = "server.identity"
     name        			 = "Add server name"
-		request_condition  = "req.url ~ \"^/foo/bar$\""
-		cache_condition    = "!beresp.cachable"
-		response_condition = "resp.status == 404"
+		request_condition  = "test_req_condition"
+		cache_condition    = "test_cache_condition"
+		response_condition = "test_res_condition"
   }
 
   force_destroy = true
