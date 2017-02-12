@@ -105,10 +105,7 @@ func TestAccDigitalOceanVolume_Droplet(t *testing.T) {
 		CheckDestroy: testAccCheckDigitalOceanVolumeDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(
-					testAccCheckDigitalOceanVolumeConfig_droplet(rInt, volume.Name),
-					testAccValidPublicKey, volume.Name,
-				),
+				Config: testAccCheckDigitalOceanVolumeConfig_droplet(rInt, volume.Name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanVolumeExists("digitalocean_volume.foobar", &volume),
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
@@ -133,11 +130,10 @@ resource "digitalocean_volume" "foobar" {
 resource "digitalocean_droplet" "foobar" {
   name               = "baz-%d"
   size               = "1gb"
-  image              = "coreos-stable"
+  image              = "centos-7-x64"
   region             = "nyc1"
   ipv6               = true
   private_networking = true
-  ssh_keys           = ["${digitalocean_ssh_key.foobar.id}"]
   volume_ids         = ["${digitalocean_volume.foobar.id}"]
 }`, vName, rInt)
 }
