@@ -70,11 +70,13 @@ func policyRead(d *schema.ResourceData, meta interface{}) error {
 
 	name := d.Id()
 
-	_, err := client.Sys().GetPolicy(name)
+	policy, err := client.Sys().GetPolicy(name)
 
 	if err != nil {
 		return fmt.Errorf("error reading from Vault: %s", err)
 	}
+
+	d.Set("policy", policy)
 
 	return nil
 }
