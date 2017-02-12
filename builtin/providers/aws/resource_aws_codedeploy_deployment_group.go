@@ -74,6 +74,65 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 				},
 			},
 
+			"blue_green_deployment_config": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"deployment_ready_option": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"action_on_timeout": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"wait_time_in_minutes": &schema.Schema{
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
+								},
+							},
+						},
+
+						"green_fleet_provisioning_option": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"action": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
+
+						"terminate_blue_instances_on_deployment_success": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"action": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"termination_wait_time_in_minutes": &schema.Schema{
+										Type:     schema.TypeInt,
+										Optional: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
 			"service_role_arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -659,6 +718,43 @@ func buildLoadBalancerInfo(list []interface{}) *codedeploy.LoadBalancerInfo {
 	return loadBalancerInfo
 }
 
+// buildBlueGreenDeploymentConfig converts a raw schema list containing a map[string]interface{}
+// into a single codedeploy.BlueGreenDeploymentConfiguration object
+func buildBlueGreenDeploymentConfig(list []interface{}) *codedeploy.BlueGreenDeploymentConfiguration {
+
+	blueGreenDeploymentConfig := &codedeploy.BlueGreenDeploymentConfiguration{}
+
+	config := list[0].(map[string]interface{})
+
+	if attr, ok := config["deployment_ready_option"]; ok {
+		m := attr.([]map[string]interface{})[0]
+		deploymentReadyOption := &codedeploy.DeploymentReadyOption{
+			ActionOnTimeout:   aws.String(m["action_on_timeout"].(string)),
+			WaitTimeInMinutes: aws.Int64(int64(m["wait_time_in_minutes"].(int))),
+		}
+		blueGreenDeploymentConfig.DeploymentReadyOption = deploymentReadyOption
+	}
+
+	if attr, ok := config["green_fleet_provisioning_option"]; ok {
+		m := attr.([]map[string]interface{})[0]
+		greenFleetProvisioningOption := &codedeploy.GreenFleetProvisioningOption{
+			Action: aws.String(m["action"].(string)),
+		}
+		blueGreenDeploymentConfig.GreenFleetProvisioningOption = greenFleetProvisioningOption
+	}
+
+	if attr, ok := config["terminate_blue_instances_on_deployment_success"]; ok {
+		m := attr.([]map[string]interface{})[0]
+		blueInstanceTerminationOption := &codedeploy.BlueInstanceTerminationOption{
+			Action: aws.String(m["action"].(string)),
+			TerminationWaitTimeInMinutes: aws.Int64(int64(m["termination_wait_time_in_minutes"].(int))),
+		}
+		blueGreenDeploymentConfig.TerminateBlueInstancesOnDeploymentSuccess = blueInstanceTerminationOption
+	}
+
+	return blueGreenDeploymentConfig
+}
+
 // ec2TagFiltersToMap converts lists of tag filters into a []map[string]string.
 func ec2TagFiltersToMap(list []*codedeploy.EC2TagFilter) []map[string]string {
 	result := make([]map[string]string, 0, len(list))
@@ -788,6 +884,33 @@ func loadBalancerInfoToMap(loadBalancerInfo *codedeploy.LoadBalancerInfo) []map[
 	result = append(result, lbInfo)
 
 	return result
+}
+
+// blueGreenDeploymentConfigToMap converts a codedeploy.BlueGreenDeploymentConfiguration object
+// into a []map[string]interface{} list containing a single item
+func blueGreenDeploymentConfigToMap(config *codedeploy.BlueGreenDeploymentConfiguration) []map[string]interface{} {
+	list := make([]map[string]interface{}, 0)
+	m := make(map[string]interface{})
+
+	a := make([]map[string]interface{}, 0)
+	deploymentReadyOption := make(map[string]interface{})
+	deploymentReadyOption["action_on_timeout"] = *config.DeploymentReadyOption.ActionOnTimeout
+	deploymentReadyOption["wait_time_in_minutes"] = *config.DeploymentReadyOption.WaitTimeInMinutes
+	m["deployment_ready_option"] = append(a, deploymentReadyOption)
+
+	b := make([]map[string]interface{}, 0)
+	greenFleetProvisioningOption := make(map[string]interface{})
+	greenFleetProvisioningOption["action"] = *config.GreenFleetProvisioningOption.Action
+	m["green_fleet_provisioning_option"] = append(b, greenFleetProvisioningOption)
+
+	c := make([]map[string]interface{}, 0)
+	blueInstanceTerminationOption := make(map[string]interface{})
+	blueInstanceTerminationOption["action"] = *config.TerminateBlueInstancesOnDeploymentSuccess.Action
+	blueInstanceTerminationOption["termination_wait_time_in_minutes"] = *config.TerminateBlueInstancesOnDeploymentSuccess.TerminationWaitTimeInMinutes
+	m["terminate_blue_instances_on_deployment_success"] = append(c, blueInstanceTerminationOption)
+
+	list = append(list, m)
+	return list
 }
 
 func resourceAwsCodeDeployTagFilterHash(v interface{}) int {

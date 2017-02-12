@@ -1091,6 +1091,127 @@ func TestLoadBalancerInfoToMap(t *testing.T) {
 	}
 }
 
+func TestBuildBlueGreenDeploymentConfig(t *testing.T) {
+	input := []interface{}{
+		map[string]interface{}{
+			"deployment_ready_option": []map[string]interface{}{
+				map[string]interface{}{
+					"action_on_timeout":    "CONTINUE_DEPLOYMENT",
+					"wait_time_in_minutes": 60,
+				},
+			},
+
+			"green_fleet_provisioning_option": []map[string]interface{}{
+				map[string]interface{}{
+					"action": "COPY_AUTO_SCALING_GROUP",
+				},
+			},
+
+			"terminate_blue_instances_on_deployment_success": []map[string]interface{}{
+				map[string]interface{}{
+					"action": "TERMINATE",
+					"termination_wait_time_in_minutes": 90,
+				},
+			},
+		},
+	}
+
+	expected := &codedeploy.BlueGreenDeploymentConfiguration{
+		DeploymentReadyOption: &codedeploy.DeploymentReadyOption{
+			ActionOnTimeout:   aws.String("CONTINUE_DEPLOYMENT"),
+			WaitTimeInMinutes: aws.Int64(60),
+		},
+
+		GreenFleetProvisioningOption: &codedeploy.GreenFleetProvisioningOption{
+			Action: aws.String("COPY_AUTO_SCALING_GROUP"),
+		},
+
+		TerminateBlueInstancesOnDeploymentSuccess: &codedeploy.BlueInstanceTerminationOption{
+			Action: aws.String("TERMINATE"),
+			TerminationWaitTimeInMinutes: aws.Int64(90),
+		},
+	}
+
+	actual := buildBlueGreenDeploymentConfig(input)
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("buildBlueGreenDeploymentConfig output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+			actual, expected)
+	}
+}
+
+func TestBlueGreenDeploymentConfigToMap(t *testing.T) {
+	input := &codedeploy.BlueGreenDeploymentConfiguration{
+		DeploymentReadyOption: &codedeploy.DeploymentReadyOption{
+			ActionOnTimeout:   aws.String("STOP_DEPLOYMENT"),
+			WaitTimeInMinutes: aws.Int64(120),
+		},
+
+		GreenFleetProvisioningOption: &codedeploy.GreenFleetProvisioningOption{
+			Action: aws.String("DISCOVER_EXISTING"),
+		},
+
+		TerminateBlueInstancesOnDeploymentSuccess: &codedeploy.BlueInstanceTerminationOption{
+			Action: aws.String("KEEP_ALIVE"),
+			TerminationWaitTimeInMinutes: aws.Int64(90),
+		},
+	}
+
+	expected := map[string]interface{}{
+		"deployment_ready_option": []map[string]interface{}{
+			map[string]interface{}{
+				"action_on_timeout":    "STOP_DEPLOYMENT",
+				"wait_time_in_minutes": 120,
+			},
+		},
+
+		"green_fleet_provisioning_option": []map[string]interface{}{
+			map[string]interface{}{
+				"action": "DISCOVER_EXISTING",
+			},
+		},
+
+		"terminate_blue_instances_on_deployment_success": []map[string]interface{}{
+			map[string]interface{}{
+				"action": "KEEP_ALIVE",
+				"termination_wait_time_in_minutes": 90,
+			},
+		},
+	}
+
+	actual := blueGreenDeploymentConfigToMap(input)[0]
+
+	fatal := false
+
+	a := actual["deployment_ready_option"].([]map[string]interface{})[0]
+	if a["action_on_timeout"].(string) != "STOP_DEPLOYMENT" {
+		fatal = true
+	}
+
+	if a["wait_time_in_minutes"].(int64) != 120 {
+		fatal = true
+	}
+
+	b := actual["green_fleet_provisioning_option"].([]map[string]interface{})[0]
+	if b["action"].(string) != "DISCOVER_EXISTING" {
+		fatal = true
+	}
+
+	c := actual["terminate_blue_instances_on_deployment_success"].([]map[string]interface{})[0]
+	if c["action"].(string) != "KEEP_ALIVE" {
+		fatal = true
+	}
+
+	if c["termination_wait_time_in_minutes"].(int64) != 90 {
+		fatal = true
+	}
+
+	if fatal {
+		t.Fatalf("blueGreenDeploymentConfigToMap output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+			actual, expected)
+	}
+}
+
 func TestBuildAlarmConfig(t *testing.T) {
 	input := []interface{}{
 		map[string]interface{}{
