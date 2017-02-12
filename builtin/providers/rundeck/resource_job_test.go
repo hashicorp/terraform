@@ -92,6 +92,7 @@ resource "rundeck_job" "test" {
   allow_concurrent_executions = 1
   max_thread_count = 1
   rank_order = "ascending"
+  schedule = "0 0 12 * * * *"
   option {
     name = "foo"
     default_value = "bar"

@@ -91,12 +91,17 @@ func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
+	network, err := getNetworkLink(d, config, "network")
+	if err != nil {
+		return err
+	}
+
 	// Build the subnetwork parameters
 	subnetwork := &compute.Subnetwork{
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
 		IpCidrRange: d.Get("ip_cidr_range").(string),
-		Network:     d.Get("network").(string),
+		Network:     network,
 	}
 
 	log.Printf("[DEBUG] Subnetwork insert request: %#v", subnetwork)

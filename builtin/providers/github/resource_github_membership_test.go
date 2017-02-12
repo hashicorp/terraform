@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/google/go-github/github"
@@ -12,14 +11,6 @@ import (
 
 func TestAccGithubMembership_basic(t *testing.T) {
 	var membership github.Membership
-
-	testUser := os.Getenv("GITHUB_TEST_USER")
-	testAccGithubMembershipConfig := fmt.Sprintf(`
-		resource "github_membership" "test_org_membership" {
-			username = "%s"
-			role = "member"
-		}
-	`, testUser)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -32,6 +23,24 @@ func TestAccGithubMembership_basic(t *testing.T) {
 					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
 					testAccCheckGithubMembershipRoleState("github_membership.test_org_membership", &membership),
 				),
+			},
+		},
+	})
+}
+
+func TestAccGithubMembership_importBasic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubMembershipDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccGithubMembershipConfig,
+			},
+			resource.TestStep{
+				ResourceName:      "github_membership.test_org_membership",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -113,3 +122,10 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 		return nil
 	}
 }
+
+var testAccGithubMembershipConfig string = fmt.Sprintf(`
+  resource "github_membership" "test_org_membership" {
+    username = "%s"
+    role = "member"
+  }
+`, testUser)

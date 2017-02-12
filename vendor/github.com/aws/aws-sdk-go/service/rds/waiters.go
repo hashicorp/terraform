@@ -6,6 +6,10 @@ import (
 	"github.com/aws/aws-sdk-go/private/waiter"
 )
 
+// WaitUntilDBInstanceAvailable uses the Amazon RDS API operation
+// DescribeDBInstances to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *RDS) WaitUntilDBInstanceAvailable(input *DescribeDBInstancesInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeDBInstances",
@@ -59,6 +63,10 @@ func (c *RDS) WaitUntilDBInstanceAvailable(input *DescribeDBInstancesInput) erro
 	return w.Wait()
 }
 
+// WaitUntilDBInstanceDeleted uses the Amazon RDS API operation
+// DescribeDBInstances to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *RDS) WaitUntilDBInstanceDeleted(input *DescribeDBInstancesInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeDBInstances",

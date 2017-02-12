@@ -23,40 +23,50 @@ func resourceAwsApiGatewayApiKey() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Managed by Terraform",
 			},
 
-			"enabled": &schema.Schema{
+			"enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"stage_key": &schema.Schema{
+			"stage_key": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"rest_api_id": &schema.Schema{
+						"rest_api_id": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"stage_name": &schema.Schema{
+						"stage_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 					},
 				},
+			},
+
+			"created_date": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"last_updated_date": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -101,6 +111,14 @@ func resourceAwsApiGatewayApiKeyRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("description", apiKey.Description)
 	d.Set("enabled", apiKey.Enabled)
 	d.Set("stage_key", flattenApiGatewayStageKeys(apiKey.StageKeys))
+
+	if err := d.Set("created_date", apiKey.CreatedDate.Format(time.RFC3339)); err != nil {
+		log.Printf("[DEBUG] Error setting created_date: %s", err)
+	}
+
+	if err := d.Set("last_updated_date", apiKey.LastUpdatedDate.Format(time.RFC3339)); err != nil {
+		log.Printf("[DEBUG] Error setting last_updated_date: %s", err)
+	}
 
 	return nil
 }

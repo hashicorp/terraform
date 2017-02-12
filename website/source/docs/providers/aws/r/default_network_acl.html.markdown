@@ -25,6 +25,11 @@ rules in the ACL**. It then proceeds to create any rules specified in the
 configuration. This step is required so that only the rules specified in the 
 configuration are created.
 
+This resource treats its inline rules as absolute; only the rules defined
+inline are created, and any additions/removals external to this resource will
+result in diffs being shown. For these reasons, this resource is incompatible with the 
+`aws_network_acl_rule` resource.
+
 For more information about Network ACLs, see the AWS Documentation on 
 [Network ACLs][aws-network-acls].
 
@@ -111,7 +116,7 @@ The following arguments are supported:
 * `default_network_acl_id` - (Required) The Network ACL ID to manage. This
 attribute is exported from `aws_vpc`, or manually found via the AWS Console.
 * `subnet_ids` - (Optional) A list of Subnet IDs to apply the ACL to. See the
-notes below on managing Subnets in the Default VPC
+notes below on managing Subnets in the Default Network ACL
 * `ingress` - (Optional) Specifies an ingress rule. Parameters defined below.
 * `egress` - (Optional) Specifies an egress rule. Parameters defined below.
 * `tags` - (Optional) A mapping of tags to assign to the resource.

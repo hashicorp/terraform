@@ -21,7 +21,7 @@ func TestAccAWSCloudwatchLogSubscriptionFilter_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudwatchLogSubscriptionFilterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudwatchLogSubscriptionFilterConfig(rstring),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsCloudwatchLogSubscriptionFilterExists("aws_cloudwatch_log_subscription_filter.test_lambdafunction_logfilter", &conf, rstring),
@@ -112,6 +112,7 @@ resource "aws_lambda_function" "test_lambdafunction" {
   filename      = "test-fixtures/lambdatest.zip"
   function_name = "example_lambda_name_%s"
   role          = "${aws_iam_role.iam_for_lambda.arn}"
+  runtime       = "nodejs4.3"
   handler       = "exports.handler"
 }
 

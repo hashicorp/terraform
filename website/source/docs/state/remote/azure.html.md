@@ -12,9 +12,11 @@ Stores the state as a given key in a given bucket on [Microsoft Azure Storage](h
 
 -> **Note:** Passing credentials directly via config options will
 make them included in cleartext inside the persisted state.
-Use of environment variables or config file is recommended.
+Access key should, ideally, be passed using the environment variable
+`ARM_ACCESS_KEY` to follow this convention.
 
 ## Example Usage
+
 
 ```
 terraform remote config \
@@ -45,13 +47,5 @@ The following configuration options are supported:
  * `storage_account_name` - (Required) The name of the storage account
  * `container_name` - (Required) The name of the container to use within the storage account
  * `key` - (Required) The key where to place/look for state file inside the container
- * `access_key` / `ARM_ACCESS_KEY` - (Optional) Storage account access key
- * `resource_group_name` - (Optional) The name of the resource group for the storage account. This is required when using the ARM credentials described below.
- * `arm_subscription_id` - (Optional) The subscription ID to use. It can also
-  be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
- * `arm_client_id` - (Optional) The client ID to use. It can also be sourced from
-  the `ARM_CLIENT_ID` environment variable.
- * `arm_client_secret` - (Optional) The client secret to use. It can also be sourced from
-  the `ARM_CLIENT_SECRET` environment variable.
- * `arm_tenant_id` - (Optional) The tenant ID to use. It can also be sourced from the
-  `ARM_TENANT_ID` environment variable.
+ * `access_key` / `ARM_ACCESS_KEY` - (Required) Storage account access key
+ * `lease_id` / `ARM_LEASE_ID` - (Optional) If set, will be used when writing to storage blob.

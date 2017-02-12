@@ -22,9 +22,10 @@ var (
 //
 // See https://goo.gl/FZA4BK for more details.
 type Volume struct {
-	Name       string `json:"Name" yaml:"Name"`
-	Driver     string `json:"Driver,omitempty" yaml:"Driver,omitempty"`
-	Mountpoint string `json:"Mountpoint,omitempty" yaml:"Mountpoint,omitempty"`
+	Name       string            `json:"Name" yaml:"Name"`
+	Driver     string            `json:"Driver,omitempty" yaml:"Driver,omitempty"`
+	Mountpoint string            `json:"Mountpoint,omitempty" yaml:"Mountpoint,omitempty"`
+	Labels     map[string]string `json:"Labels,omitempty" yaml:"Labels,omitempty"`
 }
 
 // ListVolumesOptions specify parameters to the ListVolumes function.

@@ -22,28 +22,26 @@ type reqGetHostTags struct {
 }
 
 // GetTags returns a map of tags.
-func (self *Client) GetTags(source string) (TagMap, error) {
+func (client *Client) GetTags(source string) (TagMap, error) {
 	var out reqGetTags
 	uri := "/v1/tags/hosts"
 	if source != "" {
 		uri += "?source=" + source
 	}
-	err := self.doJsonRequest("GET", uri, nil, &out)
-	if err != nil {
+	if err := client.doJsonRequest("GET", uri, nil, &out); err != nil {
 		return nil, err
 	}
 	return out.Tags, nil
 }
 
 // GetHostTags returns a slice of tags for a given host and source.
-func (self *Client) GetHostTags(host, source string) ([]string, error) {
+func (client *Client) GetHostTags(host, source string) ([]string, error) {
 	var out reqGetHostTags
 	uri := "/v1/tags/hosts/" + host
 	if source != "" {
 		uri += "?source=" + source
 	}
-	err := self.doJsonRequest("GET", uri, nil, &out)
-	if err != nil {
+	if err := client.doJsonRequest("GET", uri, nil, &out); err != nil {
 		return nil, err
 	}
 	return out.Tags, nil
@@ -51,14 +49,13 @@ func (self *Client) GetHostTags(host, source string) ([]string, error) {
 
 // GetHostTagsBySource is a different way of viewing the tags. It returns a map
 // of source:[tag,tag].
-func (self *Client) GetHostTagsBySource(host, source string) (TagMap, error) {
+func (client *Client) GetHostTagsBySource(host, source string) (TagMap, error) {
 	var out reqGetTags
 	uri := "/v1/tags/hosts/" + host + "?by_source=true"
 	if source != "" {
 		uri += "&source=" + source
 	}
-	err := self.doJsonRequest("GET", uri, nil, &out)
-	if err != nil {
+	if err := client.doJsonRequest("GET", uri, nil, &out); err != nil {
 		return nil, err
 	}
 	return out.Tags, nil
@@ -67,30 +64,30 @@ func (self *Client) GetHostTagsBySource(host, source string) (TagMap, error) {
 // AddTagsToHost does exactly what it says on the tin. Given a list of tags,
 // add them to the host. The source is optionally specificed, and defaults to
 // "users" as per the API documentation.
-func (self *Client) AddTagsToHost(host, source string, tags []string) error {
+func (client *Client) AddTagsToHost(host, source string, tags []string) error {
 	uri := "/v1/tags/hosts/" + host
 	if source != "" {
 		uri += "?source=" + source
 	}
-	return self.doJsonRequest("POST", uri, reqGetHostTags{Tags: tags}, nil)
+	return client.doJsonRequest("POST", uri, reqGetHostTags{Tags: tags}, nil)
 }
 
 // UpdateHostTags overwrites existing tags for a host, allowing you to specify
 // a new set of tags for the given source. This defaults to "users".
-func (self *Client) UpdateHostTags(host, source string, tags []string) error {
+func (client *Client) UpdateHostTags(host, source string, tags []string) error {
 	uri := "/v1/tags/hosts/" + host
 	if source != "" {
 		uri += "?source=" + source
 	}
-	return self.doJsonRequest("PUT", uri, reqGetHostTags{Tags: tags}, nil)
+	return client.doJsonRequest("PUT", uri, reqGetHostTags{Tags: tags}, nil)
 }
 
 // RemoveHostTags removes all tags from a host for the given source. If none is
 // given, the API defaults to "users".
-func (self *Client) RemoveHostTags(host, source string) error {
+func (client *Client) RemoveHostTags(host, source string) error {
 	uri := "/v1/tags/hosts/" + host
 	if source != "" {
 		uri += "?source=" + source
 	}
-	return self.doJsonRequest("DELETE", uri, nil, nil)
+	return client.doJsonRequest("DELETE", uri, nil, nil)
 }

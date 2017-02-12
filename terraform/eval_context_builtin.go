@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -12,6 +13,9 @@ import (
 // BuiltinEvalContext is an EvalContext implementation that is used by
 // Terraform by default.
 type BuiltinEvalContext struct {
+	// StopContext is the context used to track whether we're complete
+	StopContext context.Context
+
 	// PathValue is the Path that this context is operating within.
 	PathValue []string
 
@@ -26,14 +30,13 @@ type BuiltinEvalContext struct {
 	InterpolaterVars    map[string]map[string]interface{}
 	InterpolaterVarLock *sync.Mutex
 
+	Components          contextComponentFactory
 	Hooks               []Hook
 	InputValue          UIInput
-	Providers           map[string]ResourceProviderFactory
 	ProviderCache       map[string]ResourceProvider
 	ProviderConfigCache map[string]*ResourceConfig
 	ProviderInputConfig map[string]map[string]interface{}
 	ProviderLock        *sync.Mutex
-	Provisioners        map[string]ResourceProvisionerFactory
 	ProvisionerCache    map[string]ResourceProvisioner
 	ProvisionerLock     *sync.Mutex
 	DiffValue           *Diff
@@ -42,6 +45,15 @@ type BuiltinEvalContext struct {
 	StateLock           *sync.RWMutex
 
 	once sync.Once
+}
+
+func (ctx *BuiltinEvalContext) Stopped() <-chan struct{} {
+	// This can happen during tests. During tests, we just block forever.
+	if ctx.StopContext == nil {
+		return nil
+	}
+
+	return ctx.StopContext.Done()
 }
 
 func (ctx *BuiltinEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
@@ -81,23 +93,18 @@ func (ctx *BuiltinEvalContext) InitProvider(n string) (ResourceProvider, error) 
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
+	providerPath := make([]string, len(ctx.Path())+1)
+	copy(providerPath, ctx.Path())
+	providerPath[len(providerPath)-1] = n
+	key := PathCacheKey(providerPath)
+
 	typeName := strings.SplitN(n, ".", 2)[0]
-
-	f, ok := ctx.Providers[typeName]
-	if !ok {
-		return nil, fmt.Errorf("Provider '%s' not found", typeName)
-	}
-
-	p, err := f()
+	p, err := ctx.Components.ResourceProvider(typeName, key)
 	if err != nil {
 		return nil, err
 	}
 
-	providerPath := make([]string, len(ctx.Path())+1)
-	copy(providerPath, ctx.Path())
-	providerPath[len(providerPath)-1] = n
-
-	ctx.ProviderCache[PathCacheKey(providerPath)] = p
+	ctx.ProviderCache[key] = p
 	return p, nil
 }
 
@@ -231,21 +238,17 @@ func (ctx *BuiltinEvalContext) InitProvisioner(
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
 
-	f, ok := ctx.Provisioners[n]
-	if !ok {
-		return nil, fmt.Errorf("Provisioner '%s' not found", n)
-	}
+	provPath := make([]string, len(ctx.Path())+1)
+	copy(provPath, ctx.Path())
+	provPath[len(provPath)-1] = n
+	key := PathCacheKey(provPath)
 
-	p, err := f()
+	p, err := ctx.Components.ResourceProvisioner(n, key)
 	if err != nil {
 		return nil, err
 	}
 
-	provPath := make([]string, len(ctx.Path())+1)
-	copy(provPath, ctx.Path())
-	provPath[len(provPath)-1] = n
-
-	ctx.ProvisionerCache[PathCacheKey(provPath)] = p
+	ctx.ProvisionerCache[key] = p
 	return p, nil
 }
 
@@ -341,9 +344,4 @@ func (ctx *BuiltinEvalContext) State() (*State, *sync.RWMutex) {
 }
 
 func (ctx *BuiltinEvalContext) init() {
-	// We nil-check the things below because they're meant to be configured,
-	// and we just default them to non-nil.
-	if ctx.Providers == nil {
-		ctx.Providers = make(map[string]ResourceProviderFactory)
-	}
 }

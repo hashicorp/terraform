@@ -58,6 +58,29 @@ func TestAccAzureRMStorageContainer_disappears(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMStorageContainer_root(t *testing.T) {
+	var c storage.Container
+
+	ri := acctest.RandInt()
+	rs := strings.ToLower(acctest.RandString(11))
+	config := fmt.Sprintf(testAccAzureRMStorageContainer_root, ri, rs)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMStorageContainerDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageContainerExists("azurerm_storage_container.test", &c),
+					resource.TestCheckResourceAttr("azurerm_storage_container.test", "name", "$root"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMStorageContainerExists(name string, c *storage.Container) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
@@ -191,6 +214,7 @@ func TestValidateArmStorageContainerName(t *testing.T) {
 	validNames := []string{
 		"valid-name",
 		"valid02-name",
+		"$root",
 	}
 	for _, v := range validNames {
 		_, errors := validateArmStorageContainerName(v, "name")
@@ -205,6 +229,7 @@ func TestValidateArmStorageContainerName(t *testing.T) {
 		"invalid_name",
 		"invalid!",
 		"ww",
+		"$notroot",
 		strings.Repeat("w", 65),
 	}
 	for _, v := range invalidNames {
@@ -217,7 +242,7 @@ func TestValidateArmStorageContainerName(t *testing.T) {
 
 var testAccAzureRMStorageContainer_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "westus"
 }
 
@@ -234,6 +259,31 @@ resource "azurerm_storage_account" "test" {
 
 resource "azurerm_storage_container" "test" {
     name = "vhds"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    storage_account_name = "${azurerm_storage_account.test.name}"
+    container_access_type = "private"
+}
+`
+
+var testAccAzureRMStorageContainer_root = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "westus"
+}
+
+resource "azurerm_storage_account" "test" {
+    name = "acctestacc%s"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    location = "westus"
+    account_type = "Standard_LRS"
+
+    tags {
+        environment = "staging"
+    }
+}
+
+resource "azurerm_storage_container" "test" {
+    name = "$root"
     resource_group_name = "${azurerm_resource_group.test.name}"
     storage_account_name = "${azurerm_storage_account.test.name}"
     container_access_type = "private"

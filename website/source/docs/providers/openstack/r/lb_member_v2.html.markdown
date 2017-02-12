@@ -1,6 +1,6 @@
 ---
 layout: "openstack"
-page_title: "OpenStack: openstack_lbaas_member_v2"
+page_title: "OpenStack: openstack_lb_member_v2"
 sidebar_current: "docs-openstack-resource-lbaas-member-v2"
 description: |-
   Manages a V2 member resource within OpenStack.
@@ -13,7 +13,7 @@ Manages a V2 member resource within OpenStack.
 ## Example Usage
 
 ```
-resource "openstack_lbaas_member_v2" "member_1" {
+resource "openstack_lb_member_v2" "member_1" {
   address = "192.168.199.23"
   protocol_port = 8080
 }
@@ -27,6 +27,11 @@ The following arguments are supported:
     A Networking client is needed to create an . If omitted, the
     `OS_REGION_NAME` environment variable is used. Changing this creates a new
     member.
+
+* `pool_id` - (Required) The id of the pool that this member will be
+    assigned to.
+
+* `subnet_id` - (Required) The subnet in which to access the member
 
 * `name` - (Optional) Human-readable name for the member.
 

@@ -10,7 +10,7 @@ description: |-
 
 Provides an [EC2 key pair](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html) resource. A key pair is used to control login access to EC2 instances. 
 
-Currently this resource only supports importing an existing key pair, not creating a new key pair.
+Currently this resource only supports importing a user-supplied key pair, not the creation of a new key pair.
 
 When importing an existing key pair the public key material may be in any format supported by AWS. Supported formats (per the [AWS documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#how-to-generate-your-own-key-and-import-it-to-aws)) are:
 
@@ -31,8 +31,9 @@ resource "aws_key_pair" "deployer" {
 
 The following arguments are supported:
 
-* `key_name` - (Required) The name for the key pair.
-* `public_key` - (Required) The public key material. 
+* `key_name` - (Optional) The name for the key pair.
+* `key_name_prefix` - (Optional) Creates a unique name beginning with the specified prefix. Conflicts with `key_name`.
+* `public_key` - (Required) The public key material.
 
 ## Attributes Reference
 

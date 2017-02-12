@@ -18,24 +18,27 @@ func resourceAwsIamInstanceProfile() *schema.Resource {
 		Read:   resourceAwsIamInstanceProfileRead,
 		Update: resourceAwsIamInstanceProfileUpdate,
 		Delete: resourceAwsIamInstanceProfileDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"create_date": &schema.Schema{
+			"create_date": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"unique_id": &schema.Schema{
+			"unique_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
@@ -56,7 +59,7 @@ func resourceAwsIamInstanceProfile() *schema.Resource {
 				},
 			},
 
-			"name_prefix": &schema.Schema{
+			"name_prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -75,14 +78,14 @@ func resourceAwsIamInstanceProfile() *schema.Resource {
 				},
 			},
 
-			"path": &schema.Schema{
+			"path": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "/",
 				ForceNew: true,
 			},
 
-			"roles": &schema.Schema{
+			"roles": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -116,6 +119,17 @@ func resourceAwsIamInstanceProfileCreate(d *schema.ResourceData, meta interface{
 	}
 	if err != nil {
 		return fmt.Errorf("Error creating IAM instance profile %s: %s", name, err)
+	}
+
+	waiterRequest := &iam.GetInstanceProfileInput{
+		InstanceProfileName: aws.String(name),
+	}
+	// don't return until the IAM service reports that the instance profile is ready.
+	// this ensures that terraform resources which rely on the instance profile will 'see'
+	// that the instance profile exists.
+	err = iamconn.WaitUntilInstanceProfileExists(waiterRequest)
+	if err != nil {
+		return fmt.Errorf("Timed out while waiting for instance profile %s: %s", name, err)
 	}
 
 	return instanceProfileSetRoles(d, iamconn)

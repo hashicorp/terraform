@@ -447,7 +447,27 @@ func TestExpandStringList(t *testing.T) {
 			stringList,
 			expected)
 	}
+}
 
+func TestExpandStringListEmptyItems(t *testing.T) {
+	initialList := []string{"foo", "bar", "", "baz"}
+	l := make([]interface{}, len(initialList))
+	for i, v := range initialList {
+		l[i] = v
+	}
+	stringList := expandStringList(l)
+	expected := []*string{
+		aws.String("foo"),
+		aws.String("bar"),
+		aws.String("baz"),
+	}
+
+	if !reflect.DeepEqual(stringList, expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			stringList,
+			expected)
+	}
 }
 
 func TestExpandParameters(t *testing.T) {
@@ -899,7 +919,7 @@ func TestFlattenSecurityGroups(t *testing.T) {
 		},
 
 		// include the owner id, but from a different account. This is reflects
-		// EC2 Classic when refering to groups by name
+		// EC2 Classic when referring to groups by name
 		{
 			ownerId: aws.String("user1234"),
 			pairs: []*ec2.UserIdGroupPair{
@@ -918,7 +938,7 @@ func TestFlattenSecurityGroups(t *testing.T) {
 		},
 
 		// include the owner id, but from a different account. This reflects in
-		// EC2 VPC when refering to groups by id
+		// EC2 VPC when referring to groups by id
 		{
 			ownerId: aws.String("user1234"),
 			pairs: []*ec2.UserIdGroupPair{
@@ -1114,5 +1134,117 @@ func TestFlattenPolicyAttributes(t *testing.T) {
 		if !reflect.DeepEqual(output, tc.Output) {
 			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
 		}
+	}
+}
+
+func TestNormalizeJsonString(t *testing.T) {
+	var err error
+	var actual string
+
+	// Well formatted and valid.
+	validJson := `{
+   "abc": {
+      "def": 123,
+      "xyz": [
+         {
+            "a": "ホリネズミ"
+         },
+         {
+            "b": "1\\n2"
+         }
+      ]
+   }
+}`
+	expected := `{"abc":{"def":123,"xyz":[{"a":"ホリネズミ"},{"b":"1\\n2"}]}}`
+
+	actual, err = normalizeJsonString(validJson)
+	if err != nil {
+		t.Fatalf("Expected not to throw an error while parsing JSON, but got: %s", err)
+	}
+
+	if actual != expected {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, expected)
+	}
+
+	// Well formatted but not valid,
+	// missing closing squre bracket.
+	invalidJson := `{
+   "abc": {
+      "def": 123,
+      "xyz": [
+         {
+            "a": "1"
+         }
+      }
+   }
+}`
+	actual, err = normalizeJsonString(invalidJson)
+	if err == nil {
+		t.Fatalf("Expected to throw an error while parsing JSON, but got: %s", err)
+	}
+
+	// We expect the invalid JSON to be shown back to us again.
+	if actual != invalidJson {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", expected, invalidJson)
+	}
+}
+
+func TestCheckYamlString(t *testing.T) {
+	var err error
+	var actual string
+
+	validYaml := `---
+abc:
+  def: 123
+  xyz:
+    -
+      a: "ホリネズミ"
+      b: "1"
+`
+
+	actual, err = checkYamlString(validYaml)
+	if err != nil {
+		t.Fatalf("Expected not to throw an error while parsing YAML, but got: %s", err)
+	}
+
+	// We expect the same YAML string back
+	if actual != validYaml {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, validYaml)
+	}
+
+	invalidYaml := `abc: [`
+
+	actual, err = checkYamlString(invalidYaml)
+	if err == nil {
+		t.Fatalf("Expected to throw an error while parsing YAML, but got: %s", err)
+	}
+
+	// We expect the invalid YAML to be shown back to us again.
+	if actual != invalidYaml {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, invalidYaml)
+	}
+}
+
+func TestNormalizeCloudFormationTemplate(t *testing.T) {
+	var err error
+	var actual string
+
+	validNormalizedJson := `{"abc":"1"}`
+	actual, err = normalizeCloudFormationTemplate(validNormalizedJson)
+	if err != nil {
+		t.Fatalf("Expected not to throw an error while parsing template, but got: %s", err)
+	}
+	if actual != validNormalizedJson {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, validNormalizedJson)
+	}
+
+	validNormalizedYaml := `abc: 1
+`
+	actual, err = normalizeCloudFormationTemplate(validNormalizedYaml)
+	if err != nil {
+		t.Fatalf("Expected not to throw an error while parsing template, but got: %s", err)
+	}
+	if actual != validNormalizedYaml {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, validNormalizedYaml)
 	}
 }

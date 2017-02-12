@@ -3,7 +3,7 @@ layout: "scaleway"
 page_title: "Provider: Scaleway"
 sidebar_current: "docs-scaleway-index"
 description: |-
-  The Scaleway provider is used to interact with Scaleway ARM cloud provider.
+  The Scaleway provider is used to interact with Scaleway bare metal & VPS provider.
 ---
 
 # Scaleway Provider
@@ -23,8 +23,9 @@ Here is an example that will setup the following:
 
 ```hcl
 provider "scaleway" {
-  access_key = ""
   organization = ""
+  access_key = ""
+  region = "par1"
 }
 
 resource "scaleway_ip" "ip" {
@@ -60,7 +61,7 @@ resource "scaleway_security_group_rule" "http_accept" {
   direction = "inbound"
   ip_range = "0.0.0.0/0"
   protocol = "TCP"
-  dest_port_from = 80
+  port = 80
 }
 
 resource "scaleway_security_group_rule" "https_accept" {
@@ -70,21 +71,27 @@ resource "scaleway_security_group_rule" "https_accept" {
   direction = "inbound"
   ip_range = "0.0.0.0/0"
   protocol = "TCP"
-  dest_port_from = 443
+  port = 443
 }
 
 ```
 
-You'll need to provide your Scaleway organization and access key,
-so that Terraform can connect. If you don't want to put
-credentials in your configuration file, you can leave them
-out:
+You'll need to provide your Scaleway organization access key
+(available in Scaleway panel in *Credentials > Tokens > access key*)
+and token (you can generate it in the same section), so that Terraform can connect.
+If you don't want to put credentials in your configuration file,
+you can leave them out:
 
 ```
-provider "scaleway" {}
+provider "scaleway" {
+  organization = ""
+  token = ""
+  region = "par1"
+}
 ```
 
 ...and instead set these environment variables:
 
-- **SCALEWAY_ORGANIZATION**: Your Scaleway organization
-- **SCALEWAY_ACCESS_KEY**: Your API Access key
+- **SCALEWAY_ORGANIZATION**: Your Scaleway `organization` access key
+- **SCALEWAY_TOKEN**: Your API access `token`
+- **SCALEWAY_REGION**: The Scaleway region

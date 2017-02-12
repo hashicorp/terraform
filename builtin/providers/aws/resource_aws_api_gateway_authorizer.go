@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -200,7 +201,11 @@ func resourceAwsApiGatewayAuthorizerDelete(d *schema.ResourceData, meta interfac
 	log.Printf("[INFO] Deleting API Gateway Authorizer: %s", input)
 	_, err := conn.DeleteAuthorizer(&input)
 	if err != nil {
-		return fmt.Errorf("Deleting API Gateway Authorizer failed: %s", err)
+		// XXX: Figure out a way to delete the method that depends on the authorizer first
+		// otherwise the authorizer will be dangling until the API is deleted
+		if !strings.Contains(err.Error(), "ConflictException") {
+			return fmt.Errorf("Deleting API Gateway Authorizer failed: %s", err)
+		}
 	}
 
 	return nil

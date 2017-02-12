@@ -14,6 +14,10 @@ func resourceScalewaySecurityGroup() *schema.Resource {
 		Read:   resourceScalewaySecurityGroupRead,
 		Update: resourceScalewaySecurityGroupUpdate,
 		Delete: resourceScalewaySecurityGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,

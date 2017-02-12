@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/helper/schema"
+	"gopkg.in/yaml.v2"
 )
 
 // Takes the result of flatmap.Expand for an array of listeners and
@@ -35,7 +36,7 @@ func expandListeners(configured []interface{}) ([]*elb.Listener, error) {
 	listeners := make([]*elb.Listener, 0, len(configured))
 
 	// Loop over our configured listeners and create
-	// an array of aws-sdk-go compatabile objects
+	// an array of aws-sdk-go compatible objects
 	for _, lRaw := range configured {
 		data := lRaw.(map[string]interface{})
 
@@ -166,7 +167,7 @@ func expandIPPerms(
 		// AWS's behavior in the error message.
 		if *perm.IpProtocol == "-1" && (*perm.FromPort != 0 || *perm.ToPort != 0) {
 			return nil, fmt.Errorf(
-				"from_port (%d) and to_port (%d) must both be 0 to use the the 'ALL' \"-1\" protocol!",
+				"from_port (%d) and to_port (%d) must both be 0 to use the 'ALL' \"-1\" protocol!",
 				*perm.FromPort, *perm.ToPort)
 		}
 
@@ -234,7 +235,7 @@ func expandParameters(configured []interface{}) ([]*rds.Parameter, error) {
 	var parameters []*rds.Parameter
 
 	// Loop over our configured parameters and create
-	// an array of aws-sdk-go compatabile objects
+	// an array of aws-sdk-go compatible objects
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
 
@@ -258,7 +259,7 @@ func expandRedshiftParameters(configured []interface{}) ([]*redshift.Parameter, 
 	var parameters []*redshift.Parameter
 
 	// Loop over our configured parameters and create
-	// an array of aws-sdk-go compatabile objects
+	// an array of aws-sdk-go compatible objects
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
 
@@ -341,7 +342,7 @@ func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.Param
 	parameters := make([]*elasticache.ParameterNameValue, 0, len(configured))
 
 	// Loop over our configured parameters and create
-	// an array of aws-sdk-go compatabile objects
+	// an array of aws-sdk-go compatible objects
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
 
@@ -360,22 +361,28 @@ func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.Param
 func flattenAccessLog(l *elb.AccessLog) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
 
-	if l != nil && *l.Enabled {
-		r := make(map[string]interface{})
-		if l.S3BucketName != nil {
-			r["bucket"] = *l.S3BucketName
-		}
-
-		if l.S3BucketPrefix != nil {
-			r["bucket_prefix"] = *l.S3BucketPrefix
-		}
-
-		if l.EmitInterval != nil {
-			r["interval"] = *l.EmitInterval
-		}
-
-		result = append(result, r)
+	if l == nil {
+		return nil
 	}
+
+	r := make(map[string]interface{})
+	if l.S3BucketName != nil {
+		r["bucket"] = *l.S3BucketName
+	}
+
+	if l.S3BucketPrefix != nil {
+		r["bucket_prefix"] = *l.S3BucketPrefix
+	}
+
+	if l.EmitInterval != nil {
+		r["interval"] = *l.EmitInterval
+	}
+
+	if l.Enabled != nil {
+		r["enabled"] = *l.Enabled
+	}
+
+	result = append(result, r)
 
 	return result
 }
@@ -620,10 +627,14 @@ func flattenOptions(list []*rds.Option) []map[string]interface{} {
 			if i.OptionSettings != nil {
 				settings := make([]map[string]interface{}, 0, len(i.OptionSettings))
 				for _, j := range i.OptionSettings {
-					settings = append(settings, map[string]interface{}{
-						"name":  *j.Name,
-						"value": *j.Value,
-					})
+					setting := map[string]interface{}{
+						"name": *j.Name,
+					}
+					if j.Value != nil {
+						setting["value"] = *j.Value
+					}
+
+					settings = append(settings, setting)
 				}
 
 				r["option_settings"] = settings
@@ -646,6 +657,10 @@ func flattenParameters(list []*rds.Parameter) []map[string]interface{} {
 			if i.ParameterValue != nil {
 				r["value"] = strings.ToLower(*i.ParameterValue)
 			}
+			if i.ApplyMethod != nil {
+				r["apply_method"] = strings.ToLower(*i.ApplyMethod)
+			}
+
 			result = append(result, r)
 		}
 	}
@@ -671,7 +686,7 @@ func flattenElastiCacheParameters(list []*elasticache.Parameter) []map[string]in
 		if i.ParameterValue != nil {
 			result = append(result, map[string]interface{}{
 				"name":  strings.ToLower(*i.ParameterName),
-				"value": strings.ToLower(*i.ParameterValue),
+				"value": *i.ParameterValue,
 			})
 		}
 	}
@@ -683,7 +698,10 @@ func flattenElastiCacheParameters(list []*elasticache.Parameter) []map[string]in
 func expandStringList(configured []interface{}) []*string {
 	vs := make([]*string, 0, len(configured))
 	for _, v := range configured {
-		vs = append(vs, aws.String(v.(string)))
+		val, ok := v.(string)
+		if ok && val != "" {
+			vs = append(vs, aws.String(v.(string)))
+		}
 	}
 	return vs
 }
@@ -748,6 +766,26 @@ func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{}
 	att["device_index"] = *a.DeviceIndex
 	att["attachment_id"] = *a.AttachmentId
 	return att
+}
+
+func flattenElastiCacheSecurityGroupNames(securityGroups []*elasticache.CacheSecurityGroupMembership) []string {
+	result := make([]string, 0, len(securityGroups))
+	for _, sg := range securityGroups {
+		if sg.CacheSecurityGroupName != nil {
+			result = append(result, *sg.CacheSecurityGroupName)
+		}
+	}
+	return result
+}
+
+func flattenElastiCacheSecurityGroupIds(securityGroups []*elasticache.SecurityGroupMembership) []string {
+	result := make([]string, 0, len(securityGroups))
+	for _, sg := range securityGroups {
+		if sg.SecurityGroupId != nil {
+			result = append(result, *sg.SecurityGroupId)
+		}
+	}
+	return result
 }
 
 // Flattens step adjustments into a list of map[string]interface.
@@ -918,6 +956,24 @@ func flattenDSVpcSettings(
 	return []map[string]interface{}{settings}
 }
 
+func flattenLambdaEnvironment(lambdaEnv *lambda.EnvironmentResponse) []interface{} {
+	envs := make(map[string]interface{})
+	en := make(map[string]string)
+
+	if lambdaEnv == nil {
+		return nil
+	}
+
+	for k, v := range lambdaEnv.Variables {
+		en[k] = *v
+	}
+	if len(en) > 0 {
+		envs["variables"] = en
+	}
+
+	return []interface{}{envs}
+}
+
 func flattenLambdaVpcConfigResponse(s *lambda.VpcConfigResponse) []map[string]interface{} {
 	settings := make(map[string]interface{}, 0)
 
@@ -925,7 +981,11 @@ func flattenLambdaVpcConfigResponse(s *lambda.VpcConfigResponse) []map[string]in
 		return nil
 	}
 
-	if len(s.SubnetIds) == 0 && len(s.SecurityGroupIds) == 0 && s.VpcId == nil {
+	var emptyVpc bool
+	if s.VpcId == nil || *s.VpcId == "" {
+		emptyVpc = true
+	}
+	if len(s.SubnetIds) == 0 && len(s.SecurityGroupIds) == 0 && emptyVpc {
 		return nil
 	}
 
@@ -983,6 +1043,14 @@ func flattenCloudFormationParameters(cfParams []*cloudformation.Parameter,
 	return params
 }
 
+func flattenAllCloudFormationParameters(cfParams []*cloudformation.Parameter) map[string]interface{} {
+	params := make(map[string]interface{}, len(cfParams))
+	for _, p := range cfParams {
+		params[*p.ParameterKey] = *p.ParameterValue
+	}
+	return params
+}
+
 func expandCloudFormationTags(tags map[string]interface{}) []*cloudformation.Tag {
 	var cfTags []*cloudformation.Tag
 	for k, v := range tags {
@@ -1008,6 +1076,16 @@ func flattenCloudFormationOutputs(cfOutputs []*cloudformation.Output) map[string
 		outputs[*o.OutputKey] = *o.OutputValue
 	}
 	return outputs
+}
+
+func flattenAsgSuspendedProcesses(list []*autoscaling.SuspendedProcess) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.ProcessName != nil {
+			strs = append(strs, *r.ProcessName)
+		}
+	}
+	return strs
 }
 
 func flattenAsgEnabledMetrics(list []*autoscaling.EnabledMetric) []string {
@@ -1340,7 +1418,7 @@ func flattenBeanstalkTrigger(list []*elasticbeanstalk.Trigger) []string {
 }
 
 // There are several parts of the AWS API that will sort lists of strings,
-// causing diffs inbetweeen resources that use lists. This avoids a bit of
+// causing diffs inbetween resources that use lists. This avoids a bit of
 // code duplication for pre-sorts that can be used for things like hash
 // functions, etc.
 func sortInterfaceSlice(in []interface{}) []interface{} {
@@ -1550,4 +1628,61 @@ func flattenPolicyAttributes(list []*elb.PolicyAttributeDescription) []interface
 	}
 
 	return attributes
+}
+
+// Takes a value containing JSON string and passes it through
+// the JSON parser to normalize it, returns either a parsing
+// error or normalized JSON string.
+func normalizeJsonString(jsonString interface{}) (string, error) {
+	var j interface{}
+
+	if jsonString == nil || jsonString.(string) == "" {
+		return "", nil
+	}
+
+	s := jsonString.(string)
+
+	err := json.Unmarshal([]byte(s), &j)
+	if err != nil {
+		return s, err
+	}
+
+	bytes, _ := json.Marshal(j)
+	return string(bytes[:]), nil
+}
+
+// Takes a value containing YAML string and passes it through
+// the YAML parser. Returns either a parsing
+// error or original YAML string.
+func checkYamlString(yamlString interface{}) (string, error) {
+	var y interface{}
+
+	if yamlString == nil || yamlString.(string) == "" {
+		return "", nil
+	}
+
+	s := yamlString.(string)
+
+	err := yaml.Unmarshal([]byte(s), &y)
+	if err != nil {
+		return s, err
+	}
+
+	return s, nil
+}
+
+func normalizeCloudFormationTemplate(templateString interface{}) (string, error) {
+	if looksLikeJsonString(templateString) {
+		return normalizeJsonString(templateString)
+	} else {
+		return checkYamlString(templateString)
+	}
+}
+
+func flattenInspectorTags(cfTags []*cloudformation.Tag) map[string]string {
+	tags := make(map[string]string, len(cfTags))
+	for _, t := range cfTags {
+		tags[*t.Key] = *t.Value
+	}
+	return tags
 }

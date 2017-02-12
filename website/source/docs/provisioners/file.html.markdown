@@ -48,14 +48,15 @@ resource "aws_instance" "web" {
 
 The following arguments are supported:
 
-* `source` - This is the source file or folder. It can be specified as relative
-  to the current working directory or as an absolute path. This cannot be provided with `content`.
+* `source` - This is the source file or folder. It can be specified as
+  relative to the current working directory or as an absolute path. This
+  attribute cannot be specified with `content`.
 
 * `content` - This is the content to copy on the destination. If destination is a file,
   the content will be written on that file, in case of a directory a file named
-  *tf-file-content* is created. It's recommended to use a file as destination. A
-  [`template_file`](/docs/providers/template/r/file.html) might be referenced in here, or
-  any interpolation syntax for that matter. This cannot be provided with `source`.
+  `tf-file-content` is created. It's recommended to use a file as the destination. A
+  [`template_file`](/docs/providers/template/d/file.html) might be referenced in here, or
+  any interpolation syntax. This attribute cannot be specified with `source`.
 
 * `destination` - (Required) This is the destination path. It must be specified as an
   absolute path.
@@ -81,5 +82,7 @@ of `/foo` on the local machine will be uploaded to `/tmp/foo` on the remote mach
 If the source, however, is `/foo/` (a trailing slash is present), and the destination is
 `/tmp`, then the contents of `/foo` will be uploaded directly into `/tmp` directly.
 
-This behavior was adopted from the standard behavior of rsync. Note that under the covers,
-rsync may or may not be used.
+This behavior was adopted from the standard behavior of
+[rsync](https://linux.die.net/man/1/rsync).
+
+-> **Note:** Under the covers, rsync may or may not be used.

@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -9,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -21,37 +21,37 @@ func resourceAwsAutoscalingLifecycleHook() *schema.Resource {
 		Delete: resourceAwsAutoscalingLifecycleHookDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"autoscaling_group_name": &schema.Schema{
+			"autoscaling_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"default_result": &schema.Schema{
+			"default_result": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"heartbeat_timeout": &schema.Schema{
+			"heartbeat_timeout": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"lifecycle_transition": &schema.Schema{
+			"lifecycle_transition": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"notification_metadata": &schema.Schema{
+			"notification_metadata": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"notification_target_arn": &schema.Schema{
+			"notification_target_arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"role_arn": &schema.Schema{
+			"role_arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -59,26 +59,28 @@ func resourceAwsAutoscalingLifecycleHook() *schema.Resource {
 	}
 }
 
-func resourceAwsAutoscalingLifecycleHookPut(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).autoscalingconn
-	params := getAwsAutoscalingPutLifecycleHookInput(d)
-
+func resourceAwsAutoscalingLifecycleHookPutOp(conn *autoscaling.AutoScaling, params *autoscaling.PutLifecycleHookInput) error {
 	log.Printf("[DEBUG] AutoScaling PutLifecyleHook: %s", params)
-	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
-		_, err := conn.PutLifecycleHook(&params)
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+		_, err := conn.PutLifecycleHook(params)
 
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if strings.Contains(awsErr.Message(), "Unable to publish test message to notification target") {
-					return resource.RetryableError(fmt.Errorf("[DEBUG] Retrying AWS AutoScaling Lifecycle Hook: %s", params))
+					return resource.RetryableError(errwrap.Wrapf("[DEBUG] Retrying AWS AutoScaling Lifecycle Hook: {{err}}", awsErr))
 				}
 			}
-			return resource.NonRetryableError(fmt.Errorf("Error putting lifecycle hook: %s", err))
+			return resource.NonRetryableError(errwrap.Wrapf("Error putting lifecycle hook: {{err}}", err))
 		}
 		return nil
 	})
+}
 
-	if err != nil {
+func resourceAwsAutoscalingLifecycleHookPut(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).autoscalingconn
+	params := getAwsAutoscalingPutLifecycleHookInput(d)
+
+	if err := resourceAwsAutoscalingLifecycleHookPutOp(conn, &params); err != nil {
 		return err
 	}
 
@@ -125,7 +127,7 @@ func resourceAwsAutoscalingLifecycleHookDelete(d *schema.ResourceData, meta inte
 		LifecycleHookName:    aws.String(d.Get("name").(string)),
 	}
 	if _, err := autoscalingconn.DeleteLifecycleHook(&params); err != nil {
-		return fmt.Errorf("Autoscaling Lifecycle Hook: %s ", err)
+		return errwrap.Wrapf("Autoscaling Lifecycle Hook: {{err}}", err)
 	}
 
 	d.SetId("")
@@ -176,7 +178,7 @@ func getAwsAutoscalingLifecycleHook(d *schema.ResourceData, meta interface{}) (*
 	log.Printf("[DEBUG] AutoScaling Lifecycle Hook Describe Params: %#v", params)
 	resp, err := autoscalingconn.DescribeLifecycleHooks(&params)
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving lifecycle hooks: %s", err)
+		return nil, errwrap.Wrapf("Error retrieving lifecycle hooks: {{err}}", err)
 	}
 
 	// find lifecycle hooks

@@ -32,6 +32,58 @@ func TestAccAWSNetworkAclRule_basic(t *testing.T) {
 	})
 }
 
+func TestResourceAWSNetworkAclRule_validateICMPArgumentValue(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+		{
+			Value:    "not-a-number",
+			ErrCount: 1,
+		},
+		{
+			Value:    "1.0",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateICMPArgumentValue(tc.Value, "icmp_type")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    "0",
+			ErrCount: 0,
+		},
+		{
+			Value:    "-1",
+			ErrCount: 0,
+		},
+		{
+			Value:    "1",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateICMPArgumentValue(tc.Value, "icmp_type")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+
+}
+
 func testAccCheckAWSNetworkAclRuleDestroy(s *terraform.State) error {
 
 	for _, rs := range s.RootModule().Resources {

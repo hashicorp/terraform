@@ -127,7 +127,7 @@ func TestCapacitySatisfiedCreate(t *testing.T) {
 				t.Fatalf("err: %s", err)
 			}
 		}
-		gotSatisfied, gotReason := capacitySatifiedCreate(d, tc.HaveASG, tc.HaveELB)
+		gotSatisfied, gotReason := capacitySatisfiedCreate(d, tc.HaveASG, tc.HaveELB)
 
 		if gotSatisfied != tc.ExpectSatisfied {
 			t.Fatalf("%s: expected satisfied: %t, got: %t (reason: %s)",
@@ -209,7 +209,7 @@ func TestCapacitySatisfiedUpdate(t *testing.T) {
 				t.Fatalf("err: %s", err)
 			}
 		}
-		gotSatisfied, gotReason := capacitySatifiedUpdate(d, tc.HaveASG, tc.HaveELB)
+		gotSatisfied, gotReason := capacitySatisfiedUpdate(d, tc.HaveASG, tc.HaveELB)
 
 		if gotSatisfied != tc.ExpectSatisfied {
 			t.Fatalf("%s: expected satisfied: %t, got: %t (reason: %s)",

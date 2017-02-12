@@ -8,7 +8,9 @@ description: |-
 
 # consul\_agent\_service
 
-Provides access to Agent Service data in Consul. This can be used to define a service associated with a particular agent. Currently, defining health checks for an agent service is not supported.
+Provides access to the agent service data in Consul. This can be used to
+define a service associated with a particular agent. Currently, defining
+health checks for an agent service is not supported.
 
 ## Example Usage
 
@@ -34,14 +36,13 @@ The following arguments are supported:
 
 * `tags` - (Optional) A list of values that are opaque to Consul,
   but can be used to distinguish between services or nodes.
-  
 
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `address` - The address of the service.
-* `id` - The id of the service, defaults to the value of `name`.
+* `id` - The ID of the service, defaults to the value of `name`.
 * `name` - The name of the service.
 * `port` - The port of the service.
 * `tags` - The tags of the service.

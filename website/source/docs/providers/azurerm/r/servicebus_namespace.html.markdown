@@ -53,3 +53,24 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ServiceBus Namespace ID.
+
+The following attributes are exported only if there is an authorization rule named
+`RootManageSharedAccessKey` which is created automatically by Azure.
+
+* `default_primary_connection_string` - The primary connection string for the authorization
+    rule `RootManageSharedAccessKey`.
+
+* `default_secondary_connection_string` - The secondary connection string for the
+    authorization rule `RootManageSharedAccessKey`.
+
+* `default_primary_key` - The primary access key for the authorization rule `RootManageSharedAccessKey`.
+
+* `default_secondary_key` - The secondary access key for the authorization rule `RootManageSharedAccessKey`.
+
+## Import
+
+Service Bus Namespace can be imported using the `resource id`, e.g. 
+
+```
+terraform import azurerm_servicebus_namespace.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.servicebus/namespaces/sbns1
+```

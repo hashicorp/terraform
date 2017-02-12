@@ -419,7 +419,7 @@ func (s *ImageStoreService) NewListImageStoresParams() *ListImageStoresParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ImageStoreService) GetImageStoreID(name string, opts ...OptionFunc) (string, error) {
+func (s *ImageStoreService) GetImageStoreID(name string, opts ...OptionFunc) (string, int, error) {
 	p := &ListImageStoresParams{}
 	p.p = make(map[string]interface{})
 
@@ -427,38 +427,38 @@ func (s *ImageStoreService) GetImageStoreID(name string, opts ...OptionFunc) (st
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListImageStores(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", name, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", name, l)
 	}
 
 	if l.Count == 1 {
-		return l.ImageStores[0].Id, nil
+		return l.ImageStores[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.ImageStores {
 			if v.Name == name {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
 func (s *ImageStoreService) GetImageStoreByName(name string, opts ...OptionFunc) (*ImageStore, int, error) {
-	id, err := s.GetImageStoreID(name, opts...)
+	id, count, err := s.GetImageStoreID(name, opts...)
 	if err != nil {
-		return nil, -1, err
+		return nil, count, err
 	}
 
 	r, count, err := s.GetImageStoreByID(id, opts...)
@@ -801,7 +801,7 @@ func (s *ImageStoreService) NewListSecondaryStagingStoresParams() *ListSecondary
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *ImageStoreService) GetSecondaryStagingStoreID(name string, opts ...OptionFunc) (string, error) {
+func (s *ImageStoreService) GetSecondaryStagingStoreID(name string, opts ...OptionFunc) (string, int, error) {
 	p := &ListSecondaryStagingStoresParams{}
 	p.p = make(map[string]interface{})
 
@@ -809,38 +809,38 @@ func (s *ImageStoreService) GetSecondaryStagingStoreID(name string, opts ...Opti
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListSecondaryStagingStores(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", name, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", name, l)
 	}
 
 	if l.Count == 1 {
-		return l.SecondaryStagingStores[0].Id, nil
+		return l.SecondaryStagingStores[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.SecondaryStagingStores {
 			if v.Name == name {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
 func (s *ImageStoreService) GetSecondaryStagingStoreByName(name string, opts ...OptionFunc) (*SecondaryStagingStore, int, error) {
-	id, err := s.GetSecondaryStagingStoreID(name, opts...)
+	id, count, err := s.GetSecondaryStagingStoreID(name, opts...)
 	if err != nil {
-		return nil, -1, err
+		return nil, count, err
 	}
 
 	r, count, err := s.GetSecondaryStagingStoreByID(id, opts...)

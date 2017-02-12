@@ -71,7 +71,10 @@ func resourceComputeVpnGatewayCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	name := d.Get("name").(string)
-	network := d.Get("network").(string)
+	network, err := getNetworkLink(d, config, "network")
+	if err != nil {
+		return err
+	}
 
 	vpnGatewaysService := compute.NewTargetVpnGatewaysService(config.clientCompute)
 

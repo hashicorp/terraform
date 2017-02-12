@@ -6,7 +6,7 @@ description: |-
   Manages Scaleway security group rules.
 ---
 
-# scaleway\security_group_rule
+# scaleway\_security\_group\_rule
 
 Provides security group rules. This allows security group rules to be created, updated and deleted.
 For additional details please refer to [API documentation](https://developer.scaleway.com/#security-groups-manage-rules).
@@ -26,7 +26,7 @@ resource "scaleway_security_group_rule" "smtp_drop_1" {
   direction = "inbound"
   ip_range = "0.0.0.0/0"
   protocol = "TCP"
-  dest_port_from = 25
+  port = 25
 }
 
 ```
@@ -39,10 +39,9 @@ The following arguments are supported:
 * `direction` - (Required) direction of rule (`inbound`, `outbound`)
 * `ip_range` - (Required) ip_range of rule
 * `protocol` - (Required) protocol of rule (`ICMP`, `TCP`, `UDP`)
-* `dest_port_from` - (Optional) port range from
-* `dest_port_to` - (Optional) port from to
+* `port` - (Optional) port of the rule
 
-Field `action`, `direction`, `ip_range`, `protocol`, `dest_port_from`, `dest_port_to` are editable.
+Fields `action`, `direction`, `ip_range`, `protocol`, `port` are editable.
 
 ## Attributes Reference
 

@@ -23,36 +23,43 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 					"CONSUL_ADDRESS",
 					"CONSUL_HTTP_ADDR",
-				}, nil),
+				}, "localhost:8500"),
 			},
 
 			"scheme": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CONSUL_SCHEME", nil),
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"CONSUL_SCHEME",
+					"CONSUL_HTTP_SCHEME",
+				}, "http"),
 			},
 
 			"ca_file": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CA_FILE", nil),
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CA_FILE", ""),
 			},
 
 			"cert_file": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CERT_FILE", nil),
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CERT_FILE", ""),
 			},
 
 			"key_file": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CONSUL_KEY_FILE", nil),
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_KEY_FILE", ""),
 			},
 
 			"token": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"CONSUL_TOKEN",
+					"CONSUL_HTTP_TOKEN",
+				}, ""),
 			},
 		},
 

@@ -7,7 +7,7 @@ $enterprise-bnr-consul-color: #B52A55;
 $enterprise-color-dark-white: #A9B1B5;
 
 body{
-  // when _announcment-bnr.erb (ie. Consul Enterprise Announcment) is being used in layout we need to push down content to accomodate
+  // when _announcment-bnr.erb (ie. Consul Enterprise Announcment) is being used in layout we need to push down content to accommodate
   // add this class to body
   &.-displaying-bnr{
     #header{

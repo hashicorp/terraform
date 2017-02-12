@@ -86,8 +86,8 @@ func resourceArmVirtualNetworkPeeringCreate(d *schema.ResourceData, meta interfa
 	resGroup := d.Get("resource_group_name").(string)
 
 	peer := network.VirtualNetworkPeering{
-		Name:       &name,
-		Properties: getVirtualNetworkPeeringProperties(d),
+		Name: &name,
+		VirtualNetworkPeeringPropertiesFormat: getVirtualNetworkPeeringProperties(d),
 	}
 
 	peerMutex.Lock()
@@ -123,16 +123,18 @@ func resourceArmVirtualNetworkPeeringRead(d *schema.ResourceData, meta interface
 	name := id.Path["virtualNetworkPeerings"]
 
 	resp, err := client.Get(resGroup, vnetName, name)
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure virtual network peering %s: %s", name, err)
 	}
-	peer := *resp.Properties
+
+	peer := *resp.VirtualNetworkPeeringPropertiesFormat
 
 	// update appropriate values
+	d.Set("resource_group_name", resGroup)
 	d.Set("name", resp.Name)
 	d.Set("virtual_network_name", vnetName)
 	d.Set("allow_virtual_network_access", peer.AllowVirtualNetworkAccess)

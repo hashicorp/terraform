@@ -58,6 +58,26 @@ func TestAccAWSVpnGateway_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSVpnGateway_withAvailabilityZoneSetToState(t *testing.T) {
+	var v ec2.VpnGateway
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVpnGatewayDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccVpnGatewayConfigWithAZ,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVpnGatewayExists("aws_vpn_gateway.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_vpn_gateway.foo", "availability_zone", "us-west-2a"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSVpnGateway_disappears(t *testing.T) {
 	var v ec2.VpnGateway
 
@@ -433,5 +453,16 @@ resource "aws_vpn_gateway" "foo" {
 
 resource "aws_vpn_gateway" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
+}
+`
+
+const testAccVpnGatewayConfigWithAZ = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_vpn_gateway" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+	availability_zone = "us-west-2a"
 }
 `

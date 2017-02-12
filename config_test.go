@@ -66,3 +66,41 @@ func TestConfig_Merge(t *testing.T) {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
+
+func TestConfig_Merge_disableCheckpoint(t *testing.T) {
+	c1 := &Config{
+		DisableCheckpoint: true,
+	}
+
+	c2 := &Config{}
+
+	expected := &Config{
+		Providers:         map[string]string{},
+		Provisioners:      map[string]string{},
+		DisableCheckpoint: true,
+	}
+
+	actual := c1.Merge(c2)
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestConfig_Merge_disableCheckpointSignature(t *testing.T) {
+	c1 := &Config{
+		DisableCheckpointSignature: true,
+	}
+
+	c2 := &Config{}
+
+	expected := &Config{
+		Providers:                  map[string]string{},
+		Provisioners:               map[string]string{},
+		DisableCheckpointSignature: true,
+	}
+
+	actual := c1.Merge(c2)
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}

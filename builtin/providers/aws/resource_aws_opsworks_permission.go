@@ -14,8 +14,8 @@ import (
 
 func resourceAwsOpsworksPermission() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsOpsworksPermissionCreate,
-		Update: resourceAwsOpsworksPermissionCreate,
+		Create: resourceAwsOpsworksSetPermission,
+		Update: resourceAwsOpsworksSetPermission,
 		Delete: resourceAwsOpsworksPermissionDelete,
 		Read:   resourceAwsOpsworksPermissionRead,
 
@@ -105,10 +105,11 @@ func resourceAwsOpsworksPermissionRead(d *schema.ResourceData, meta interface{})
 			found = true
 			d.SetId(id)
 			d.Set("id", id)
-			d.Set("allow_ssh", permission.AllowSudo)
-			d.Set("allow_sodo", permission.AllowSudo)
+			d.Set("allow_ssh", permission.AllowSsh)
+			d.Set("allow_sudo", permission.AllowSudo)
 			d.Set("user_arn", permission.IamUserArn)
 			d.Set("stack_id", permission.StackId)
+			d.Set("level", permission.Level)
 		}
 
 	}
@@ -121,12 +122,13 @@ func resourceAwsOpsworksPermissionRead(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func resourceAwsOpsworksPermissionCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsOpsworksSetPermission(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*AWSClient).opsworksconn
 
 	req := &opsworks.SetPermissionInput{
 		AllowSudo:  aws.Bool(d.Get("allow_sudo").(bool)),
 		AllowSsh:   aws.Bool(d.Get("allow_ssh").(bool)),
+		Level:      aws.String(d.Get("level").(string)),
 		IamUserArn: aws.String(d.Get("user_arn").(string)),
 		StackId:    aws.String(d.Get("stack_id").(string)),
 	}

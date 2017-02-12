@@ -16,7 +16,7 @@ body.page-sub{
       font-size: 20px;
       text-transform: uppercase;
       @include lato-light();
-      background: image-url('../images/logo-header.png') 0 0 no-repeat;
+      background: image-url('logo-header.png') 0 0 no-repeat;
       @include img-retina("../images/logo-header.png", "../images/logo-header@2x.png", $project-logo-width, $project-logo-height);
       background-position: 0 45%;
 

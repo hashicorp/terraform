@@ -2,19 +2,23 @@ package remote
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
 	terraformAws "github.com/hashicorp/terraform/builtin/providers/aws"
+	"github.com/hashicorp/terraform/state"
 )
 
 func s3Factory(conf map[string]string) (Client, error) {
@@ -60,16 +64,21 @@ func s3Factory(conf map[string]string) (Client, error) {
 	kmsKeyID := conf["kms_key_id"]
 
 	var errs []error
-	creds := terraformAws.GetCredentials(&terraformAws.Config{
+	creds, err := terraformAws.GetCredentials(&terraformAws.Config{
 		AccessKey:     conf["access_key"],
 		SecretKey:     conf["secret_key"],
 		Token:         conf["token"],
 		Profile:       conf["profile"],
 		CredsFilename: conf["shared_credentials_file"],
+		AssumeRoleARN: conf["role_arn"],
 	})
+	if err != nil {
+		return nil, err
+	}
+
 	// Call Get to check for credential provider. If nothing found, we'll get an
 	// error, and we can present it nicely to the user
-	_, err := creds.Get()
+	_, err = creds.Get()
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoCredentialProviders" {
 			errs = append(errs, fmt.Errorf(`No valid credential sources found for AWS S3 remote.
@@ -89,6 +98,7 @@ providing credentials for the AWS S3 remote`))
 	}
 	sess := session.New(awsConfig)
 	nativeClient := s3.New(sess)
+	dynClient := dynamodb.New(sess)
 
 	return &S3Client{
 		nativeClient:         nativeClient,
@@ -97,6 +107,8 @@ providing credentials for the AWS S3 remote`))
 		serverSideEncryption: serverSideEncryption,
 		acl:                  acl,
 		kmsKeyID:             kmsKeyID,
+		dynClient:            dynClient,
+		lockTable:            conf["lock_table"],
 	}, nil
 }
 
@@ -107,6 +119,8 @@ type S3Client struct {
 	serverSideEncryption bool
 	acl                  string
 	kmsKeyID             string
+	dynClient            *dynamodb.DynamoDB
+	lockTable            string
 }
 
 func (c *S3Client) Get() (*Payload, error) {
@@ -187,4 +201,75 @@ func (c *S3Client) Delete() error {
 	})
 
 	return err
+}
+
+func (c *S3Client) Lock(info string) error {
+	if c.lockTable == "" {
+		return nil
+	}
+
+	stateName := fmt.Sprintf("%s/%s", c.bucketName, c.keyName)
+	lockInfo := &state.LockInfo{
+		Path:    stateName,
+		Created: time.Now().UTC(),
+		Info:    info,
+	}
+
+	putParams := &dynamodb.PutItemInput{
+		Item: map[string]*dynamodb.AttributeValue{
+			"LockID": {S: aws.String(stateName)},
+			"Info":   {S: aws.String(lockInfo.String())},
+		},
+		TableName:           aws.String(c.lockTable),
+		ConditionExpression: aws.String("attribute_not_exists(LockID)"),
+	}
+	_, err := c.dynClient.PutItem(putParams)
+
+	if err != nil {
+		getParams := &dynamodb.GetItemInput{
+			Key: map[string]*dynamodb.AttributeValue{
+				"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.keyName))},
+			},
+			ProjectionExpression: aws.String("LockID, Created, Info"),
+			TableName:            aws.String(c.lockTable),
+		}
+
+		resp, err := c.dynClient.GetItem(getParams)
+		if err != nil {
+			return fmt.Errorf("s3 state file %q locked, failed to retrieve info: %s", stateName, err)
+		}
+
+		var infoData string
+		if v, ok := resp.Item["Info"]; ok && v.S != nil {
+			infoData = *v.S
+		}
+
+		lockInfo = &state.LockInfo{}
+		err = json.Unmarshal([]byte(infoData), lockInfo)
+		if err != nil {
+			return fmt.Errorf("s3 state file %q locked, failed get lock info: %s", stateName, err)
+		}
+
+		return lockInfo.Err()
+	}
+	return nil
+}
+
+func (c *S3Client) Unlock() error {
+	if c.lockTable == "" {
+		return nil
+	}
+
+	params := &dynamodb.DeleteItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.keyName))},
+		},
+		TableName: aws.String(c.lockTable),
+	}
+	_, err := c.dynClient.DeleteItem(params)
+
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -22,7 +22,7 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterConfig(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
@@ -30,7 +30,25 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 						"aws_rds_cluster.default", "storage_encrypted", "false"),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster.default", "db_cluster_parameter_group_name", "default.aurora5.6"),
+					resource.TestCheckResourceAttrSet(
+						"aws_rds_cluster.default", "reader_endpoint"),
 				),
+			},
+		},
+	})
+}
+
+/// This is a regression test to make sure that we always cover the scenario as hightlighted in
+/// https://github.com/hashicorp/terraform/issues/11568
+func TestAccAWSRDSCluster_missingUserNameCausesError(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAWSClusterConfigWithoutUserNameAndPassword(acctest.RandInt()),
+				ExpectError: regexp.MustCompile(`required field is not set`),
 			},
 		},
 	})
@@ -45,7 +63,7 @@ func TestAccAWSRDSCluster_updateTags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterConfig(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
@@ -53,7 +71,7 @@ func TestAccAWSRDSCluster_updateTags(t *testing.T) {
 						"aws_rds_cluster.default", "tags.%", "1"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterConfigUpdatedTags(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
@@ -74,7 +92,7 @@ func TestAccAWSRDSCluster_kmsKey(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterConfig_kmsKey(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
@@ -94,7 +112,7 @@ func TestAccAWSRDSCluster_encrypted(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterConfig_encrypted(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
@@ -117,7 +135,7 @@ func TestAccAWSRDSCluster_backupsUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterConfig_backups(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
@@ -223,6 +241,15 @@ resource "aws_rds_cluster" "default" {
   tags {
     Environment = "production"
   }
+}`, n)
+}
+
+func testAccAWSClusterConfigWithoutUserNameAndPassword(n int) string {
+	return fmt.Sprintf(`
+resource "aws_rds_cluster" "default" {
+  cluster_identifier = "tf-aurora-cluster-%d"
+  availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
+  database_name = "mydb"
 }`, n)
 }
 

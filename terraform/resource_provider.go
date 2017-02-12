@@ -3,6 +3,12 @@ package terraform
 // ResourceProvider is an interface that must be implemented by any
 // resource provider: the thing that creates and manages the resources in
 // a Terraform configuration.
+//
+// Important implementation note: All returned pointers, such as
+// *ResourceConfig, *InstanceState, *InstanceDiff, etc. must not point to
+// shared data. Terraform is highly parallel and assumes that this data is safe
+// to read/write in parallel so it must be unique references. Note that it is
+// safe to return arguments as results, however.
 type ResourceProvider interface {
 	/*********************************************************************
 	* Functions related to the provider
@@ -40,6 +46,26 @@ type ResourceProvider interface {
 	// Resources returns all the available resource types that this provider
 	// knows how to manage.
 	Resources() []ResourceType
+
+	// Stop is called when the provider should halt any in-flight actions.
+	//
+	// This can be used to make a nicer Ctrl-C experience for Terraform.
+	// Even if this isn't implemented to do anything (just returns nil),
+	// Terraform will still cleanly stop after the currently executing
+	// graph node is complete. However, this API can be used to make more
+	// efficient halts.
+	//
+	// Stop doesn't have to and shouldn't block waiting for in-flight actions
+	// to complete. It should take any action it wants and return immediately
+	// acknowledging it has received the stop request. Terraform core will
+	// automatically not make any further API calls to the provider soon
+	// after Stop is called (technically exactly once the currently executing
+	// graph nodes are complete).
+	//
+	// The error returned, if non-nil, is assumed to mean that signaling the
+	// stop somehow failed and that the user should expect potentially waiting
+	// a longer period of time.
+	Stop() error
 
 	/*********************************************************************
 	* Functions related to individual resources

@@ -135,6 +135,78 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
 }
 ```
 
+### Trigger multiple Lambda functions
+
+```
+resource "aws_iam_role" "iam_for_lambda" {
+    name = "iam_for_lambda"
+    assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Effect": "Allow"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_lambda_permission" "allow_bucket1" {
+    statement_id = "AllowExecutionFromS3Bucket1"
+    action = "lambda:InvokeFunction"
+    function_name = "${aws_lambda_function.func1.arn}"
+    principal = "s3.amazonaws.com"
+    source_arn = "${aws_s3_bucket.bucket.arn}"
+}
+
+resource "aws_lambda_function" "func1" {
+    filename = "your-function1.zip"
+    function_name = "example_lambda_name1"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+}
+
+resource "aws_lambda_permission" "allow_bucket2" {
+    statement_id = "AllowExecutionFromS3Bucket2"
+    action = "lambda:InvokeFunction"
+    function_name = "${aws_lambda_function.func2.arn}"
+    principal = "s3.amazonaws.com"
+    source_arn = "${aws_s3_bucket.bucket.arn}"
+}
+
+resource "aws_lambda_function" "func2" {
+    filename = "your-function2.zip"
+    function_name = "example_lambda_name2"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+}
+
+resource "aws_s3_bucket" "bucket" {
+	bucket = "your_bucket_name"
+}
+
+resource "aws_s3_bucket_notification" "bucket_notification" {
+	bucket = "${aws_s3_bucket.bucket.id}"
+	lambda_function {
+		lambda_function_arn = "${aws_lambda_function.func1.arn}"
+		events = ["s3:ObjectCreated:*"]
+		filter_prefix = "AWSLogs/"
+		filter_suffix = ".log"
+	}
+	lambda_function {
+		lambda_function_arn = "${aws_lambda_function.func2.arn}"
+		events = ["s3:ObjectCreated:*"]
+		filter_prefix = "OtherLogs/"
+		filter_suffix = ".log"
+	}
+}
+```
+
 ### Add multiple notification configurations to SQS Queue
 
 ```
@@ -208,7 +280,7 @@ The following arguments are supported:
 * `bucket` - (Required) The name of the bucket to put notification configuration.
 * `topic` - (Optional) The notification configuration to SNS Topic (documented below).
 * `queue` - (Optional) The notification configuration to SQS Queue (documented below).
-* `lambda_function` - (Optional) The notification configuration to Lambda Function (documented below).
+* `lambda_function` - (Optional, Multiple) Used to configure notifications to a Lambda Function (documented below).
 
 The `topic` notification configuration supports the following:
 
@@ -234,3 +306,10 @@ The `lambda_function` notification configuration supports the following:
 * `filter_prefix` - (Optional) Specifies object key name prefix.
 * `filter_suffix` - (Optional) Specifies object key name suffix.
 
+## Import
+
+S3 bucket notification can be imported using the `bucket`, e.g.
+
+```
+$ terraform import aws_s3_bucket_notification.bucket_notification bucket-name
+```

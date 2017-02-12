@@ -176,7 +176,7 @@ func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("ingress", rules)
 
 	conn := meta.(*AWSClient).rdsconn
-	arn, err := buildRDSSecurityGroupARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	arn, err := buildRDSSecurityGroupARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		name := "<empty>"
 		if sg.DBSecurityGroupName != nil && *sg.DBSecurityGroupName != "" {
@@ -207,7 +207,7 @@ func resourceAwsDbSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) 
 	conn := meta.(*AWSClient).rdsconn
 
 	d.Partial(true)
-	if arn, err := buildRDSSecurityGroupARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
+	if arn, err := buildRDSSecurityGroupARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(conn, d, arn); err != nil {
 			return err
 		} else {
@@ -421,11 +421,14 @@ func resourceAwsDbSecurityGroupStateRefreshFunc(
 	}
 }
 
-func buildRDSSecurityGroupARN(identifier, accountid, region string) (string, error) {
+func buildRDSSecurityGroupARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS partition")
+	}
 	if accountid == "" {
 		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS Account ID")
 	}
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:secgrp:%s", region, accountid, identifier)
+	arn := fmt.Sprintf("arn:%s:rds:%s:%s:secgrp:%s", partition, region, accountid, identifier)
 	return arn, nil
 
 }

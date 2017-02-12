@@ -68,3 +68,4 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the deployment
+* `created_date` - The creation date of the deployment

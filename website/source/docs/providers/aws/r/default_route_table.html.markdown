@@ -13,7 +13,7 @@ Provides a resource to manage a Default VPC Routing Table.
 Each VPC created in AWS comes with a Default Route Table that can be managed, but not
 destroyed. **This is an advanced resource**, and has special caveats to be aware
 of when using it. Please read this document in its entirety before using this
-resource. It is recommened you **do not** use both `aws_default_route_table` to
+resource. It is recommended you **do not** use both `aws_default_route_table` to
 manage the default route table **and** use the `aws_main_route_table_association`,
 due to possible conflict in routes.
 

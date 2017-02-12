@@ -89,8 +89,8 @@ The following arguments are supported:
 * `name` - (Required) A unique name for the resource, required by GCE. Changing
     this forces a new resource to be created.
 
-* `network` - (Required) A link to the network this VPN gateway is accepting
-    traffic for. Changing this forces a new resource to be created.
+* `network` - (Required) The name or resource link to the network this VPN gateway 
+    is accepting traffic for. Changing this forces a new resource to be created.
 
 - - -
 

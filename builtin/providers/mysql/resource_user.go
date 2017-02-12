@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -69,15 +71,14 @@ func UpdateUser(d *schema.ResourceData, meta interface{}) error {
 		var stmtSQL string
 
 		/* ALTER USER syntax introduced in MySQL 5.7.6 deprecates SET PASSWORD (GH-8230) */
-		if conf.VersionMajor > 5 ||
-			(conf.VersionMajor == 5 && conf.VersionMinor > 7) ||
-			(conf.VersionMajor == 5 && conf.VersionMinor == 7 && conf.VersionPatch >= 6) {
-			stmtSQL = fmt.Sprintf("ALTER USER '%s'@'%s' IDENTIFIED BY '%s'",
+		ver, _ := version.NewVersion("5.7.6")
+		if conf.ServerVersion.LessThan(ver) {
+			stmtSQL = fmt.Sprintf("SET PASSWORD FOR '%s'@'%s' = PASSWORD('%s')",
 				d.Get("user").(string),
 				d.Get("host").(string),
 				newpw.(string))
 		} else {
-			stmtSQL = fmt.Sprintf("SET PASSWORD FOR '%s'@'%s' = PASSWORD('%s')",
+			stmtSQL = fmt.Sprintf("ALTER USER '%s'@'%s' IDENTIFIED BY '%s'",
 				d.Get("user").(string),
 				d.Get("host").(string),
 				newpw.(string))

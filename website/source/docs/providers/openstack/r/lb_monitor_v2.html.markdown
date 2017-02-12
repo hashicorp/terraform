@@ -1,6 +1,6 @@
 ---
 layout: "openstack"
-page_title: "OpenStack: openstack_lbaas_monitor_v2"
+page_title: "OpenStack: openstack_lb_monitor_v2"
 sidebar_current: "docs-openstack-resource-lbaas-monitor-v2"
 description: |-
   Manages a V2 monitor resource within OpenStack.
@@ -13,7 +13,7 @@ Manages a V2 monitor resource within OpenStack.
 ## Example Usage
 
 ```
-resource "openstack_lbaas_monitor_v2" "monitor_1" {
+resource "openstack_lb_monitor_v2" "monitor_1" {
   type = "PING"
   delay = 20
   timeout = 10

@@ -44,6 +44,12 @@ func (v *TypeCheck) Visit(root ast.Node) error {
 	defer v.lock.Unlock()
 	defer v.reset()
 	root.Accept(v.visit)
+
+	// If the resulting type is unknown, then just let the whole thing go.
+	if v.err == errExitUnknown {
+		v.err = nil
+	}
+
 	return v.err
 }
 
@@ -60,6 +66,9 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 		result, err = tc.TypeCheck(v)
 	case *ast.Call:
 		tc := &typeCheckCall{n}
+		result, err = tc.TypeCheck(v)
+	case *ast.Conditional:
+		tc := &typeCheckConditional{n}
 		result, err = tc.TypeCheck(v)
 	case *ast.Index:
 		tc := &typeCheckIndex{n}
@@ -89,6 +98,10 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 			pos.Column, pos.Line, err)
 	}
 
+	if v.StackPeek() == ast.TypeUnknown {
+		v.err = errExitUnknown
+	}
+
 	return result
 }
 
@@ -103,6 +116,20 @@ func (tc *typeCheckArithmetic) TypeCheck(v *TypeCheck) (ast.Node, error) {
 		exprs[len(tc.n.Exprs)-1-i] = v.StackPop()
 	}
 
+	switch tc.n.Op {
+	case ast.ArithmeticOpLogicalAnd, ast.ArithmeticOpLogicalOr:
+		return tc.checkLogical(v, exprs)
+	case ast.ArithmeticOpEqual, ast.ArithmeticOpNotEqual,
+		ast.ArithmeticOpLessThan, ast.ArithmeticOpGreaterThan,
+		ast.ArithmeticOpGreaterThanOrEqual, ast.ArithmeticOpLessThanOrEqual:
+		return tc.checkComparison(v, exprs)
+	default:
+		return tc.checkNumeric(v, exprs)
+	}
+
+}
+
+func (tc *typeCheckArithmetic) checkNumeric(v *TypeCheck, exprs []ast.Type) (ast.Node, error) {
 	// Determine the resulting type we want. We do this by going over
 	// every expression until we find one with a type we recognize.
 	// We do this because the first expr might be a string ("var.foo")
@@ -110,20 +137,11 @@ func (tc *typeCheckArithmetic) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	mathFunc := "__builtin_IntMath"
 	mathType := ast.TypeInt
 	for _, v := range exprs {
-		exit := true
-		switch v {
-		case ast.TypeInt:
-			mathFunc = "__builtin_IntMath"
-			mathType = v
-		case ast.TypeFloat:
+		// We assume int math but if we find ANY float, the entire
+		// expression turns into floating point math.
+		if v == ast.TypeFloat {
 			mathFunc = "__builtin_FloatMath"
 			mathType = v
-		default:
-			exit = false
-		}
-
-		// We found the type, so leave
-		if exit {
 			break
 		}
 	}
@@ -162,6 +180,131 @@ func (tc *typeCheckArithmetic) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	copy(args[1:], tc.n.Exprs)
 	return &ast.Call{
 		Func: mathFunc,
+		Args: args,
+		Posx: tc.n.Pos(),
+	}, nil
+}
+
+func (tc *typeCheckArithmetic) checkComparison(v *TypeCheck, exprs []ast.Type) (ast.Node, error) {
+	if len(exprs) != 2 {
+		// This should never happen, because the parser never produces
+		// nodes that violate this.
+		return nil, fmt.Errorf(
+			"comparison operators must have exactly two operands",
+		)
+	}
+
+	// The first operand always dictates the type for a comparison.
+	compareFunc := ""
+	compareType := exprs[0]
+	switch compareType {
+	case ast.TypeBool:
+		compareFunc = "__builtin_BoolCompare"
+	case ast.TypeFloat:
+		compareFunc = "__builtin_FloatCompare"
+	case ast.TypeInt:
+		compareFunc = "__builtin_IntCompare"
+	case ast.TypeString:
+		compareFunc = "__builtin_StringCompare"
+	default:
+		return nil, fmt.Errorf(
+			"comparison operators apply only to bool, float, int, and string",
+		)
+	}
+
+	// For non-equality comparisons, we will do implicit conversions to
+	// integer types if possible. In this case, we need to go through and
+	// determine the type of comparison we're doing to enable the implicit
+	// conversion.
+	if tc.n.Op != ast.ArithmeticOpEqual && tc.n.Op != ast.ArithmeticOpNotEqual {
+		compareFunc = "__builtin_IntCompare"
+		compareType = ast.TypeInt
+		for _, expr := range exprs {
+			if expr == ast.TypeFloat {
+				compareFunc = "__builtin_FloatCompare"
+				compareType = ast.TypeFloat
+				break
+			}
+		}
+	}
+
+	// Verify (and possibly, convert) the args
+	for i, arg := range exprs {
+		if arg != compareType {
+			cn := v.ImplicitConversion(exprs[i], compareType, tc.n.Exprs[i])
+			if cn != nil {
+				tc.n.Exprs[i] = cn
+				continue
+			}
+
+			return nil, fmt.Errorf(
+				"operand %d should be %s, got %s",
+				i+1, compareType, arg,
+			)
+		}
+	}
+
+	// Only ints and floats can have the <, >, <= and >= operators applied
+	switch tc.n.Op {
+	case ast.ArithmeticOpEqual, ast.ArithmeticOpNotEqual:
+		// anything goes
+	default:
+		switch compareType {
+		case ast.TypeFloat, ast.TypeInt:
+			// fine
+		default:
+			return nil, fmt.Errorf(
+				"<, >, <= and >= may apply only to int and float values",
+			)
+		}
+	}
+
+	// Comparison operators always return bool
+	v.StackPush(ast.TypeBool)
+
+	// Replace our node with a call to the proper function. This isn't
+	// type checked but we already verified types.
+	args := make([]ast.Node, len(tc.n.Exprs)+1)
+	args[0] = &ast.LiteralNode{
+		Value: tc.n.Op,
+		Typex: ast.TypeInt,
+		Posx:  tc.n.Pos(),
+	}
+	copy(args[1:], tc.n.Exprs)
+	return &ast.Call{
+		Func: compareFunc,
+		Args: args,
+		Posx: tc.n.Pos(),
+	}, nil
+}
+
+func (tc *typeCheckArithmetic) checkLogical(v *TypeCheck, exprs []ast.Type) (ast.Node, error) {
+	for i, t := range exprs {
+		if t != ast.TypeBool {
+			cn := v.ImplicitConversion(t, ast.TypeBool, tc.n.Exprs[i])
+			if cn == nil {
+				return nil, fmt.Errorf(
+					"logical operators require boolean operands, not %s",
+					t,
+				)
+			}
+			tc.n.Exprs[i] = cn
+		}
+	}
+
+	// Return type is always boolean
+	v.StackPush(ast.TypeBool)
+
+	// Arithmetic nodes are replaced with a call to a built-in function
+	args := make([]ast.Node, len(tc.n.Exprs)+1)
+	args[0] = &ast.LiteralNode{
+		Value: tc.n.Op,
+		Typex: ast.TypeInt,
+		Posx:  tc.n.Pos(),
+	}
+	copy(args[1:], tc.n.Exprs)
+	return &ast.Call{
+		Func: "__builtin_Logical",
 		Args: args,
 		Posx: tc.n.Pos(),
 	}, nil
@@ -230,6 +373,79 @@ func (tc *typeCheckCall) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	return tc.n, nil
 }
 
+type typeCheckConditional struct {
+	n *ast.Conditional
+}
+
+func (tc *typeCheckConditional) TypeCheck(v *TypeCheck) (ast.Node, error) {
+	// On the stack we have the types of the condition, true and false
+	// expressions, but they are in reverse order.
+	falseType := v.StackPop()
+	trueType := v.StackPop()
+	condType := v.StackPop()
+
+	if condType != ast.TypeBool {
+		cn := v.ImplicitConversion(condType, ast.TypeBool, tc.n.CondExpr)
+		if cn == nil {
+			return nil, fmt.Errorf(
+				"condition must be type bool, not %s", condType.Printable(),
+			)
+		}
+		tc.n.CondExpr = cn
+	}
+
+	// The types of the true and false expression must match
+	if trueType != falseType {
+
+		// Since passing around stringified versions of other types is
+		// common, we pragmatically allow the false expression to dictate
+		// the result type when the true expression is a string.
+		if trueType == ast.TypeString {
+			cn := v.ImplicitConversion(trueType, falseType, tc.n.TrueExpr)
+			if cn == nil {
+				return nil, fmt.Errorf(
+					"true and false expression types must match; have %s and %s",
+					trueType.Printable(), falseType.Printable(),
+				)
+			}
+			tc.n.TrueExpr = cn
+			trueType = falseType
+		} else {
+			cn := v.ImplicitConversion(falseType, trueType, tc.n.FalseExpr)
+			if cn == nil {
+				return nil, fmt.Errorf(
+					"true and false expression types must match; have %s and %s",
+					trueType.Printable(), falseType.Printable(),
+				)
+			}
+			tc.n.FalseExpr = cn
+			falseType = trueType
+		}
+	}
+
+	// Currently list and map types cannot be used, because we cannot
+	// generally assert that their element types are consistent.
+	// Such support might be added later, either by improving the type
+	// system or restricting usage to only variable and literal expressions,
+	// but for now this is simply prohibited because it doesn't seem to
+	// be a common enough case to be worth the complexity.
+	switch trueType {
+	case ast.TypeList:
+		return nil, fmt.Errorf(
+			"conditional operator cannot be used with list values",
+		)
+	case ast.TypeMap:
+		return nil, fmt.Errorf(
+			"conditional operator cannot be used with map values",
+		)
+	}
+
+	// Result type (guaranteed to also match falseType due to the above)
+	v.StackPush(trueType)
+
+	return tc.n, nil
+}
+
 type typeCheckOutput struct {
 	n *ast.Output
 }
@@ -242,15 +458,14 @@ func (tc *typeCheckOutput) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	}
 
 	// If there is only one argument and it is a list, we evaluate to a list
-	if len(types) == 1 && types[0] == ast.TypeList {
-		v.StackPush(ast.TypeList)
-		return n, nil
-	}
-
-	// If there is only one argument and it is a map, we evaluate to a map
-	if len(types) == 1 && types[0] == ast.TypeMap {
-		v.StackPush(ast.TypeMap)
-		return n, nil
+	if len(types) == 1 {
+		switch t := types[0]; t {
+		case ast.TypeList:
+			fallthrough
+		case ast.TypeMap:
+			v.StackPush(t)
+			return n, nil
+		}
 	}
 
 	// Otherwise, all concat args must be strings, so validate that
@@ -294,6 +509,13 @@ func (tc *typeCheckVariableAccess) TypeCheck(v *TypeCheck) (ast.Node, error) {
 			"unknown variable accessed: %s", tc.n.Name)
 	}
 
+	// Check if the variable contains any unknown types. If so, then
+	// mark it as unknown.
+	if ast.IsUnknown(variable) {
+		v.StackPush(ast.TypeUnknown)
+		return tc.n, nil
+	}
+
 	// Add the type to the stack
 	v.StackPush(variable.Type)
 
@@ -305,30 +527,35 @@ type typeCheckIndex struct {
 }
 
 func (tc *typeCheckIndex) TypeCheck(v *TypeCheck) (ast.Node, error) {
+	keyType := v.StackPop()
+	targetType := v.StackPop()
+
 	// Ensure we have a VariableAccess as the target
 	varAccessNode, ok := tc.n.Target.(*ast.VariableAccess)
 	if !ok {
-		return nil, fmt.Errorf("target of an index must be a VariableAccess node, was %T", tc.n.Target)
+		return nil, fmt.Errorf(
+			"target of an index must be a VariableAccess node, was %T", tc.n.Target)
 	}
 
 	// Get the variable
 	variable, ok := v.Scope.LookupVar(varAccessNode.Name)
 	if !ok {
-		return nil, fmt.Errorf("unknown variable accessed: %s", varAccessNode.Name)
+		return nil, fmt.Errorf(
+			"unknown variable accessed: %s", varAccessNode.Name)
 	}
 
-	keyType, err := tc.n.Key.Type(v.Scope)
-	if err != nil {
-		return nil, err
-	}
-
-	switch variable.Type {
+	switch targetType {
 	case ast.TypeList:
 		if keyType != ast.TypeInt {
-			return nil, fmt.Errorf("key of an index must be an int, was %s", keyType)
+			tc.n.Key = v.ImplicitConversion(keyType, ast.TypeInt, tc.n.Key)
+			if tc.n.Key == nil {
+				return nil, fmt.Errorf(
+					"key of an index must be an int, was %s", keyType)
+			}
 		}
 
-		valType, err := ast.VariableListElementTypesAreHomogenous(varAccessNode.Name, variable.Value.([]ast.Variable))
+		valType, err := ast.VariableListElementTypesAreHomogenous(
+			varAccessNode.Name, variable.Value.([]ast.Variable))
 		if err != nil {
 			return tc.n, err
 		}
@@ -337,10 +564,15 @@ func (tc *typeCheckIndex) TypeCheck(v *TypeCheck) (ast.Node, error) {
 		return tc.n, nil
 	case ast.TypeMap:
 		if keyType != ast.TypeString {
-			return nil, fmt.Errorf("key of an index must be a string, was %s", keyType)
+			tc.n.Key = v.ImplicitConversion(keyType, ast.TypeString, tc.n.Key)
+			if tc.n.Key == nil {
+				return nil, fmt.Errorf(
+					"key of an index must be a string, was %s", keyType)
+			}
 		}
 
-		valType, err := ast.VariableMapValueTypesAreHomogenous(varAccessNode.Name, variable.Value.(map[string]ast.Variable))
+		valType, err := ast.VariableMapValueTypesAreHomogenous(
+			varAccessNode.Name, variable.Value.(map[string]ast.Variable))
 		if err != nil {
 			return tc.n, err
 		}
@@ -388,4 +620,12 @@ func (v *TypeCheck) StackPop() ast.Type {
 	var x ast.Type
 	x, v.Stack = v.Stack[len(v.Stack)-1], v.Stack[:len(v.Stack)-1]
 	return x
+}
+
+func (v *TypeCheck) StackPeek() ast.Type {
+	if len(v.Stack) == 0 {
+		return ast.TypeInvalid
+	}
+
+	return v.Stack[len(v.Stack)-1]
 }

@@ -106,6 +106,24 @@ data "aws_iam_policy_document" "test" {
         not_resources = ["arn:aws:s3:::*"]
     }
 
+    # Normalization of wildcard principals
+    statement {
+        effect = "Allow"
+        actions = ["kinesis:*"]
+        principals {
+            type = "AWS"
+            identifiers = ["*"]
+        }
+    }
+    statement {
+        effect = "Allow"
+        actions = ["firehose:*"]
+        principals {
+            type = "*"
+            identifiers = ["*"]
+        }
+    }
+
 }
 `
 
@@ -156,6 +174,18 @@ var testAccAWSIAMPolicyDocumentExpectedJSON = `{
       "Effect": "Deny",
       "NotAction": "s3:*",
       "NotResource": "arn:aws:s3:::*"
+    },
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Action": "kinesis:*",
+      "Principal": "*"
+    },
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Action": "firehose:*",
+      "Principal": "*"
     }
   ]
 }`

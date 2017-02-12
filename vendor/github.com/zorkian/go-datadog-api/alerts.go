@@ -32,10 +32,9 @@ type reqAlerts struct {
 
 // CreateAlert adds a new alert to the system. This returns a pointer to an
 // Alert so you can pass that to UpdateAlert later if needed.
-func (self *Client) CreateAlert(alert *Alert) (*Alert, error) {
+func (client *Client) CreateAlert(alert *Alert) (*Alert, error) {
 	var out Alert
-	err := self.doJsonRequest("POST", "/v1/alert", alert, &out)
-	if err != nil {
+	if err := client.doJsonRequest("POST", "/v1/alert", alert, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -43,43 +42,41 @@ func (self *Client) CreateAlert(alert *Alert) (*Alert, error) {
 
 // UpdateAlert takes an alert that was previously retrieved through some method
 // and sends it back to the server.
-func (self *Client) UpdateAlert(alert *Alert) error {
-	return self.doJsonRequest("PUT", fmt.Sprintf("/v1/alert/%d", alert.Id),
+func (client *Client) UpdateAlert(alert *Alert) error {
+	return client.doJsonRequest("PUT", fmt.Sprintf("/v1/alert/%d", alert.Id),
 		alert, nil)
 }
 
 // GetAlert retrieves an alert by identifier.
-func (self *Client) GetAlert(id int) (*Alert, error) {
+func (client *Client) GetAlert(id int) (*Alert, error) {
 	var out Alert
-	err := self.doJsonRequest("GET", fmt.Sprintf("/v1/alert/%d", id), nil, &out)
-	if err != nil {
+	if err := client.doJsonRequest("GET", fmt.Sprintf("/v1/alert/%d", id), nil, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
 }
 
 // DeleteAlert removes an alert from the system.
-func (self *Client) DeleteAlert(id int) error {
-	return self.doJsonRequest("DELETE", fmt.Sprintf("/v1/alert/%d", id),
+func (client *Client) DeleteAlert(id int) error {
+	return client.doJsonRequest("DELETE", fmt.Sprintf("/v1/alert/%d", id),
 		nil, nil)
 }
 
 // GetAlerts returns a slice of all alerts.
-func (self *Client) GetAlerts() ([]Alert, error) {
+func (client *Client) GetAlerts() ([]Alert, error) {
 	var out reqAlerts
-	err := self.doJsonRequest("GET", "/v1/alert", nil, &out)
-	if err != nil {
+	if err := client.doJsonRequest("GET", "/v1/alert", nil, &out); err != nil {
 		return nil, err
 	}
 	return out.Alerts, nil
 }
 
 // MuteAlerts turns off alerting notifications.
-func (self *Client) MuteAlerts() error {
-	return self.doJsonRequest("POST", "/v1/mute_alerts", nil, nil)
+func (client *Client) MuteAlerts() error {
+	return client.doJsonRequest("POST", "/v1/mute_alerts", nil, nil)
 }
 
 // UnmuteAlerts turns on alerting notifications.
-func (self *Client) UnmuteAlerts() error {
-	return self.doJsonRequest("POST", "/v1/unmute_alerts", nil, nil)
+func (client *Client) UnmuteAlerts() error {
+	return client.doJsonRequest("POST", "/v1/unmute_alerts", nil, nil)
 }

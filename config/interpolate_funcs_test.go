@@ -6,10 +6,123 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
+
+	"path/filepath"
 
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
+	"github.com/mitchellh/go-homedir"
 )
+
+func TestInterpolateFuncZipMap(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${zipmap(var.list, var.list2)}`,
+				map[string]interface{}{
+					"Hello": "bar",
+					"World": "baz",
+				},
+				false,
+			},
+			{
+				`${zipmap(var.list, var.nonstrings)}`,
+				map[string]interface{}{
+					"Hello": []interface{}{"bar", "baz"},
+					"World": []interface{}{"boo", "foo"},
+				},
+				false,
+			},
+			{
+				`${zipmap(var.nonstrings, var.list2)}`,
+				nil,
+				true,
+			},
+			{
+				`${zipmap(var.list, var.differentlengthlist)}`,
+				nil,
+				true,
+			},
+		},
+		Vars: map[string]ast.Variable{
+			"var.list": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeString,
+						Value: "Hello",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "World",
+					},
+				},
+			},
+			"var.list2": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeString,
+						Value: "bar",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "baz",
+					},
+				},
+			},
+			"var.differentlengthlist": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeString,
+						Value: "bar",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "baz",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "boo",
+					},
+				},
+			},
+			"var.nonstrings": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{
+								Type:  ast.TypeString,
+								Value: "bar",
+							},
+							{
+								Type:  ast.TypeString,
+								Value: "baz",
+							},
+						},
+					},
+					{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{
+								Type:  ast.TypeString,
+								Value: "boo",
+							},
+							{
+								Type:  ast.TypeString,
+								Value: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+}
 
 func TestInterpolateFuncList(t *testing.T) {
 	testFunction(t, testFunctionConfig{
@@ -108,6 +221,150 @@ func TestInterpolateFuncList(t *testing.T) {
 						Value: "baz",
 					},
 				},
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncMax(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${max()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${max("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${max(-1, 0, 1)}`,
+				"1",
+				false,
+			},
+
+			{
+				`${max(1, 0, -1)}`,
+				"1",
+				false,
+			},
+
+			{
+				`${max(-1, -2)}`,
+				"-1",
+				false,
+			},
+
+			{
+				`${max(-1)}`,
+				"-1",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncMin(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${min()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${min("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${min(-1, 0, 1)}`,
+				"-1",
+				false,
+			},
+
+			{
+				`${min(1, 0, -1)}`,
+				"-1",
+				false,
+			},
+
+			{
+				`${min(-1, -2)}`,
+				"-2",
+				false,
+			},
+
+			{
+				`${min(-1)}`,
+				"-1",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncFloor(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${floor()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${floor("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${floor("-1.3")}`, // there appears to be a AST bug where the parsed argument ends up being -1 without the "s
+				"-2",
+				false,
+			},
+
+			{
+				`${floor(1.7)}`,
+				"1",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncCeil(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${ceil()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${ceil("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${ceil(-1.8)}`,
+				"-1",
+				false,
+			},
+
+			{
+				`${ceil(1.2)}`,
+				"2",
+				false,
 			},
 		},
 	})
@@ -740,6 +997,18 @@ func TestInterpolateFuncFormatList(t *testing.T) {
 				`${formatlist("%s.id", split(",", "demo-rest-elb"))}`,
 				[]interface{}{"demo-rest-elb.id"},
 				false,
+			},
+			// Works with empty lists [GH-7607]
+			{
+				`${formatlist("%s", var.emptylist)}`,
+				[]interface{}{},
+				false,
+			},
+		},
+		Vars: map[string]ast.Variable{
+			"var.emptylist": {
+				Type:  ast.TypeList,
+				Value: []ast.Variable{},
 			},
 		},
 	})
@@ -1553,6 +1822,36 @@ func TestInterpolateFuncSha256(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncTitle(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${title("hello")}`,
+				"Hello",
+				false,
+			},
+
+			{
+				`${title("hello world")}`,
+				"Hello World",
+				false,
+			},
+
+			{
+				`${title("")}`,
+				"",
+				false,
+			},
+
+			{
+				`${title()}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncTrimSpace(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -1626,6 +1925,27 @@ func TestInterpolateFuncUUID(t *testing.T) {
 	}
 }
 
+func TestInterpolateFuncTimestamp(t *testing.T) {
+	currentTime := time.Now().UTC()
+	ast, err := hil.Parse("${timestamp()}")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	result, err := hil.Eval(ast, langEvalConfig(nil))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	resultTime, err := time.Parse(time.RFC3339, result.Value.(string))
+	if err != nil {
+		t.Fatalf("Error parsing timestamp: %s", err)
+	}
+
+	if resultTime.Sub(currentTime).Seconds() > 10.0 {
+		t.Fatalf("Timestamp Diff too large. Expected: %s\nRecieved: %s", currentTime.Format(time.RFC3339), result.Value.(string))
+	}
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable
@@ -1645,7 +1965,6 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 		}
 
 		result, err := hil.Eval(ast, langEvalConfig(config.Vars))
-		t.Logf("err: %v", err)
 		if err != nil != tc.Error {
 			t.Fatalf("Case #%d:\ninput: %#v\nerr: %v", i, tc.Input, err)
 		}
@@ -1655,4 +1974,40 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 				i, tc.Input, result.Value, tc.Result)
 		}
 	}
+}
+
+func TestInterpolateFuncPathExpand(t *testing.T) {
+	homePath, err := homedir.Dir()
+	if err != nil {
+		t.Fatalf("Error getting home directory: %v", err)
+	}
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${pathexpand("~/test-file")}`,
+				filepath.Join(homePath, "test-file"),
+				false,
+			},
+			{
+				`${pathexpand("~/another/test/file")}`,
+				filepath.Join(homePath, "another/test/file"),
+				false,
+			},
+			{
+				`${pathexpand("/root/file")}`,
+				"/root/file",
+				false,
+			},
+			{
+				`${pathexpand("/")}`,
+				"/",
+				false,
+			},
+			{
+				`${pathexpand()}`,
+				nil,
+				true,
+			},
+		},
+	})
 }

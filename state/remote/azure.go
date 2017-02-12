@@ -46,11 +46,13 @@ func azureFactory(conf map[string]string) (Client, error) {
 	}
 
 	blobClient := storageClient.GetBlobService()
+	leaseID, _ := confOrEnv(conf, "lease_id", "ARM_LEASE_ID")
 
 	return &AzureClient{
 		blobClient:    &blobClient,
 		containerName: containerName,
 		keyName:       keyName,
+		leaseID:       leaseID,
 	}, nil
 }
 
@@ -86,7 +88,7 @@ func getStorageAccountAccessKey(conf map[string]string, resourceGroupName, stora
 	}
 
 	accessKeys := *keys.Keys
-	return *accessKeys[0].KeyName, nil
+	return *accessKeys[0].Value, nil
 }
 
 func getCredentialsFromConf(conf map[string]string) (*riviera.AzureResourceManagerCredentials, error) {
@@ -130,6 +132,7 @@ type AzureClient struct {
 	blobClient    *mainStorage.BlobStorageClient
 	containerName string
 	keyName       string
+	leaseID       string
 }
 
 func (c *AzureClient) Get() (*Payload, error) {
@@ -163,17 +166,28 @@ func (c *AzureClient) Get() (*Payload, error) {
 }
 
 func (c *AzureClient) Put(data []byte) error {
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	if c.leaseID != "" {
+		headers["x-ms-lease-id"] = c.leaseID
+	}
+
 	return c.blobClient.CreateBlockBlobFromReader(
 		c.containerName,
 		c.keyName,
 		uint64(len(data)),
 		bytes.NewReader(data),
-		map[string]string{
-			"Content-Type": "application/json",
-		},
+		headers,
 	)
 }
 
 func (c *AzureClient) Delete() error {
-	return c.blobClient.DeleteBlob(c.containerName, c.keyName, nil)
+	headers := map[string]string{}
+	if c.leaseID != "" {
+		headers["x-ms-lease-id"] = c.leaseID
+	}
+
+	return c.blobClient.DeleteBlob(c.containerName, c.keyName, headers)
 }

@@ -60,8 +60,8 @@ The configuration is dependent on the type, and is documented
 ## Multiple Provider Instances
 
 You can define multiple instances of the same provider in order to support
-multiple regions, multiple hosts, etc. The primary use case for this for
-multiple cloud regions. Other use cases including targeting multiple
+multiple regions, multiple hosts, etc. The primary use case for this is
+utilizing multiple cloud regions. Other use cases include targeting multiple
 Docker hosts, multiple Consul hosts, etc.
 
 To define multiple provider instances, repeat the provider configuration

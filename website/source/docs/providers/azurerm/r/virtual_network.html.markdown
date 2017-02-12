@@ -34,6 +34,7 @@ resource "azurerm_virtual_network" "test" {
   subnet {
     name           = "subnet3"
     address_prefix = "10.0.3.0/24"
+    security_group = "${azurerm_network_security_group.test.id}"
   }
   
   tags {
@@ -73,7 +74,7 @@ The `subnet` block supports:
 * `address_prefix` - (Required) The address prefix to use for the subnet.
 
 * `security_group` - (Optional) The Network Security Group to associate with
-    the subnet.
+    the subnet. (Referenced by `id`, ie. `azurerm_network_security_group.test.id`)
 
 ## Attributes Reference
 

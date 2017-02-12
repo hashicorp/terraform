@@ -24,6 +24,38 @@ import (
 	"strings"
 )
 
+// Helper function for maintaining backwards compatibility
+func convertAuthorizeSecurityGroupIngressResponse(b []byte) ([]byte, error) {
+	var raw struct {
+		Ingressrule []interface{} `json:"ingressrule"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return nil, err
+	}
+
+	if len(raw.Ingressrule) != 1 {
+		return b, nil
+	}
+
+	return json.Marshal(raw.Ingressrule[0])
+}
+
+// Helper function for maintaining backwards compatibility
+func convertAuthorizeSecurityGroupEgressResponse(b []byte) ([]byte, error) {
+	var raw struct {
+		Egressrule []interface{} `json:"egressrule"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return nil, err
+	}
+
+	if len(raw.Egressrule) != 1 {
+		return b, nil
+	}
+
+	return json.Marshal(raw.Egressrule[0])
+}
+
 type CreateSecurityGroupParams struct {
 	p map[string]interface{}
 }
@@ -104,6 +136,10 @@ func (s *SecurityGroupService) NewCreateSecurityGroupParams(name string) *Create
 func (s *SecurityGroupService) CreateSecurityGroup(p *CreateSecurityGroupParams) (*CreateSecurityGroupResponse, error) {
 	resp, err := s.cs.newRequest("createSecurityGroup", p.toURLValues())
 	if err != nil {
+		return nil, err
+	}
+
+	if resp, err = getRawValue(resp); err != nil {
 		return nil, err
 	}
 
@@ -329,8 +365,8 @@ func (p *AuthorizeSecurityGroupIngressParams) toURLValues() url.Values {
 	if v, found := p.p["usersecuritygrouplist"]; found {
 		i := 0
 		for k, vv := range v.(map[string]string) {
-			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].key", i), k)
-			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].value", i), vv)
+			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].account", i), k)
+			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].group", i), vv)
 			i++
 		}
 	}
@@ -464,6 +500,11 @@ func (s *SecurityGroupService) AuthorizeSecurityGroupIngress(p *AuthorizeSecurit
 		}
 
 		b, err = getRawValue(b)
+		if err != nil {
+			return nil, err
+		}
+
+		b, err = convertAuthorizeSecurityGroupIngressResponse(b)
 		if err != nil {
 			return nil, err
 		}
@@ -617,8 +658,8 @@ func (p *AuthorizeSecurityGroupEgressParams) toURLValues() url.Values {
 	if v, found := p.p["usersecuritygrouplist"]; found {
 		i := 0
 		for k, vv := range v.(map[string]string) {
-			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].key", i), k)
-			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].value", i), vv)
+			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].account", i), k)
+			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].group", i), vv)
 			i++
 		}
 	}
@@ -752,6 +793,11 @@ func (s *SecurityGroupService) AuthorizeSecurityGroupEgress(p *AuthorizeSecurity
 		}
 
 		b, err = getRawValue(b)
+		if err != nil {
+			return nil, err
+		}
+
+		b, err = convertAuthorizeSecurityGroupEgressResponse(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1017,7 +1063,7 @@ func (s *SecurityGroupService) NewListSecurityGroupsParams() *ListSecurityGroups
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *SecurityGroupService) GetSecurityGroupID(keyword string, opts ...OptionFunc) (string, error) {
+func (s *SecurityGroupService) GetSecurityGroupID(keyword string, opts ...OptionFunc) (string, int, error) {
 	p := &ListSecurityGroupsParams{}
 	p.p = make(map[string]interface{})
 
@@ -1025,38 +1071,38 @@ func (s *SecurityGroupService) GetSecurityGroupID(keyword string, opts ...Option
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListSecurityGroups(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", keyword, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", keyword, l)
 	}
 
 	if l.Count == 1 {
-		return l.SecurityGroups[0].Id, nil
+		return l.SecurityGroups[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.SecurityGroups {
 			if v.Name == keyword {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
 func (s *SecurityGroupService) GetSecurityGroupByName(name string, opts ...OptionFunc) (*SecurityGroup, int, error) {
-	id, err := s.GetSecurityGroupID(name, opts...)
+	id, count, err := s.GetSecurityGroupID(name, opts...)
 	if err != nil {
-		return nil, -1, err
+		return nil, count, err
 	}
 
 	r, count, err := s.GetSecurityGroupByID(id, opts...)

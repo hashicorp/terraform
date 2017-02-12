@@ -42,7 +42,7 @@ resource "template_file" "bar" {
   template = "${greeting}"
 
   vars {
-    greeting = "${data.terraform_remote_state.foo.output.greeting}"
+    greeting = "${data.terraform_remote_state.foo.greeting}"
   }
 }
 ```

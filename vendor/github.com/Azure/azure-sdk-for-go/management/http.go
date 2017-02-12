@@ -2,10 +2,9 @@ package management
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
-
-	"github.com/Azure/azure-sdk-for-go/core/http"
-	"github.com/Azure/azure-sdk-for-go/core/tls"
+	"net/http"
 )
 
 const (
@@ -71,7 +70,10 @@ func (client client) sendAzureRequest(method, url, contentType string, data []by
 		return nil, fmt.Errorf(errParamNotSpecified, "url")
 	}
 
-	httpClient := client.createHTTPClient()
+	httpClient, err := client.createHTTPClient()
+	if err != nil {
+		return nil, err
+	}
 
 	response, err := client.sendRequest(httpClient, url, method, contentType, data, 5)
 	if err != nil {
@@ -83,20 +85,21 @@ func (client client) sendAzureRequest(method, url, contentType string, data []by
 
 // createHTTPClient creates an HTTP Client configured with the key pair for
 // the subscription for this client.
-func (client client) createHTTPClient() *http.Client {
-	cert, _ := tls.X509KeyPair(client.publishSettings.SubscriptionCert, client.publishSettings.SubscriptionKey)
-
-	ssl := &tls.Config{}
-	ssl.Certificates = []tls.Certificate{cert}
-
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			Proxy:           http.ProxyFromEnvironment,
-			TLSClientConfig: ssl,
-		},
+func (client client) createHTTPClient() (*http.Client, error) {
+	cert, err := tls.X509KeyPair(client.publishSettings.SubscriptionCert, client.publishSettings.SubscriptionKey)
+	if err != nil {
+		return nil, err
 	}
 
-	return httpClient
+	return &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			TLSClientConfig: &tls.Config{
+				Renegotiation: tls.RenegotiateOnceAsClient,
+				Certificates:  []tls.Certificate{cert},
+			},
+		},
+	}, nil
 }
 
 // sendRequest sends a request to the Azure management API using the given

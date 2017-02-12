@@ -53,6 +53,9 @@ func deepMerge(dst, src reflect.Value, visited map[uintptr]*visit, depth int, ov
 				}
 				fallthrough
 			default:
+				if !srcElement.CanInterface() {
+					continue
+				}
 				switch reflect.TypeOf(srcElement.Interface()).Kind() {
 				case reflect.Struct:
 					fallthrough
@@ -76,7 +79,7 @@ func deepMerge(dst, src reflect.Value, visited map[uintptr]*visit, depth int, ov
 	case reflect.Interface:
 		if src.IsNil() {
 			break
-		} else if dst.IsNil() {
+		} else if dst.IsNil() || overwrite {
 			if dst.CanSet() && (overwrite || isEmptyValue(dst)) {
 				dst.Set(src)
 			}
@@ -99,7 +102,7 @@ func Merge(dst, src interface{}) error {
 	return merge(dst, src, false)
 }
 
-// The same as Merge except that non-empty dst attributes will be overriden by
+// MergeWithOverwrite will do the same as Merge except that non-empty dst attributes will be overriden by
 // non-empty src attribute values.
 func MergeWithOverwrite(dst, src interface{}) error {
 	return merge(dst, src, true)

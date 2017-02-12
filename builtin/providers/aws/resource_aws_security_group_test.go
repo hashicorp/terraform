@@ -471,6 +471,47 @@ func TestAccAWSSecurityGroup_vpcNegOneIngress(t *testing.T) {
 		},
 	})
 }
+func TestAccAWSSecurityGroup_vpcProtoNumIngress(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	testCheck := func(*terraform.State) error {
+		if *group.VpcId == "" {
+			return fmt.Errorf("should have vpc ID")
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_security_group.web",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfigVpcProtoNumIngress,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "name", "terraform_acceptance_test_example"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.2449525218.protocol", "50"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.2449525218.from_port", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.2449525218.to_port", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.2449525218.cidr_blocks.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.2449525218.cidr_blocks.0", "10.0.0.0/8"),
+					testCheck,
+				),
+			},
+		},
+	})
+}
 func TestAccAWSSecurityGroup_MultiIngress(t *testing.T) {
 	var group ec2.SecurityGroup
 
@@ -1240,6 +1281,26 @@ resource "aws_security_group" "web" {
 	}
 }
 `
+
+const testAccAWSSecurityGroupConfigVpcProtoNumIngress = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_security_group" "web" {
+	name = "terraform_acceptance_test_example"
+	description = "Used in the terraform acceptance tests"
+	vpc_id = "${aws_vpc.foo.id}"
+
+	ingress {
+		protocol = "50"
+		from_port = 0
+		to_port = 0
+		cidr_blocks = ["10.0.0.0/8"]
+	}
+}
+`
+
 const testAccAWSSecurityGroupConfigMultiIngress = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
@@ -1749,6 +1810,51 @@ resource "aws_security_group_rule" "allow_all-1" {
 
   self              = true
   security_group_id = "${aws_security_group.allow_all.id}"
+}
+`
+
+const testAccAWSSecurityGroupConfig_importSourceSecurityGroup = `
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+
+  tags {
+    Name = "tf_sg_import_test"
+  }
+}
+
+resource "aws_security_group" "test_group_1" {
+  name        = "test group 1"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group" "test_group_2" {
+  name        = "test group 2"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group" "test_group_3" {
+  name        = "test group 3"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group_rule" "allow_test_group_2" {
+  type      = "ingress"
+  from_port = 0
+  to_port   = 0
+  protocol  = "tcp"
+
+  source_security_group_id = "${aws_security_group.test_group_1.id}"
+  security_group_id = "${aws_security_group.test_group_2.id}"
+}
+
+resource "aws_security_group_rule" "allow_test_group_3" {
+  type      = "ingress"
+  from_port = 0
+  to_port   = 0
+  protocol  = "tcp"
+
+  source_security_group_id = "${aws_security_group.test_group_1.id}"
+  security_group_id = "${aws_security_group.test_group_3.id}"
 }
 `
 

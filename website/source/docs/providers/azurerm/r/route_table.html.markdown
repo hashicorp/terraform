@@ -25,8 +25,8 @@ resource "azurerm_route_table" "test" {
 
     route {
     	name = "route1"
-    	address_prefix = "*"
-    	next_hop_type = "internet"
+        address_prefix = "10.1.0.0/16"
+        next_hop_type = "vnetlocal"
     }
     
     tags {
@@ -69,3 +69,11 @@ The following attributes are exported:
 
 * `id` - The Route Table ID.
 * `subnets` - The collection of Subnets associated with this route table.
+
+## Import
+
+
+Route Tables can be imported using the `resource id`, e.g. 
+```
+terraform import azurerm_route_table.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/routeTables/mytable1
+```

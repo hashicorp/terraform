@@ -7,14 +7,14 @@
 > **Note**: This library is under active development as we expand it to cover our (expanding!) API.
 Consider the public API of this package a little unstable as we work towards a v1.0.
 
-A Go library for interacting with [CloudFlare's API v4](https://api.cloudflare.com/). This library
+A Go library for interacting with [Cloudflare's API v4](https://api.cloudflare.com/). This library
 allows you to:
 
-* Manage and automate changes to your DNS records within CloudFlare
-* Manage and automate changes to your zones (domains) on CloudFlare, including adding new zones to
+* Manage and automate changes to your DNS records within Cloudflare
+* Manage and automate changes to your zones (domains) on Cloudflare, including adding new zones to
   your account
 * List and modify the status of WAF (Web Application Firewall) rules for your zones
-* Fetch CloudFlare's IP ranges for automating your firewall whitelisting
+* Fetch Cloudflare's IP ranges for automating your firewall whitelisting
 
 A command-line client, [flarectl](cmd/flarectl), is also available as part of this project.
 
@@ -25,7 +25,7 @@ The current feature list includes:
 - [x] DNS Records
 - [x] Zones
 - [x] Web Application Firewall (WAF)
-- [x] CloudFlare IPs
+- [x] Cloudflare IPs
 - [x] User Administration (partial)
 - [x] Virtual DNS Management
 - [ ] Organization Administration
@@ -73,7 +73,7 @@ func main() {
 	fmt.Println(u)
 
 	// Fetch the zone ID
-	id, err := api.ZoneIDByName("example.com") // Assuming example.com exists in your CloudFlare account already
+	id, err := api.ZoneIDByName("example.com") // Assuming example.com exists in your Cloudflare account already
 	if err != nil {
 		log.Fatal(err)
 	}

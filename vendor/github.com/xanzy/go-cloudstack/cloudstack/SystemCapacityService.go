@@ -125,7 +125,7 @@ func (p *ListCapacityParams) SetType(v int) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
 	}
-	p.p["systemCapacityType"] = v
+	p.p["type"] = v
 	return
 }
 

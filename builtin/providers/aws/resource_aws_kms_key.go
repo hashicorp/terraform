@@ -5,11 +5,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceAwsKmsKey() *schema.Resource {
@@ -52,10 +52,11 @@ func resourceAwsKmsKey() *schema.Resource {
 				},
 			},
 			"policy": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				Computed:  true,
-				StateFunc: normalizeJson,
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				ValidateFunc:     validateJsonString,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 			"is_enabled": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -98,7 +99,19 @@ func resourceAwsKmsKeyCreate(d *schema.ResourceData, meta interface{}) error {
 		req.Policy = aws.String(v.(string))
 	}
 
-	resp, err := conn.CreateKey(&req)
+	var resp *kms.CreateKeyOutput
+	// AWS requires any principal in the policy to exist before the key is created.
+	// The KMS service's awareness of principals is limited by "eventual consistency".
+	// They acknowledge this here:
+	// http://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html
+	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+		var err error
+		resp, err = conn.CreateKey(&req)
+		if isAWSErr(err, "MalformedPolicyDocumentException", "") {
+			return resource.RetryableError(err)
+		}
+		return resource.NonRetryableError(err)
+	})
 	if err != nil {
 		return err
 	}
@@ -143,7 +156,11 @@ func resourceAwsKmsKeyRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("policy", normalizeJson(*p.Policy))
+	policy, err := normalizeJsonString(*p.Policy)
+	if err != nil {
+		return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
+	}
+	d.Set("policy", policy)
 
 	krs, err := conn.GetKeyRotationStatus(&kms.GetKeyRotationStatusInput{
 		KeyId: metadata.KeyId,
@@ -216,17 +233,20 @@ func resourceAwsKmsKeyDescriptionUpdate(conn *kms.KMS, d *schema.ResourceData) e
 }
 
 func resourceAwsKmsKeyPolicyUpdate(conn *kms.KMS, d *schema.ResourceData) error {
-	policy := d.Get("policy").(string)
+	policy, err := normalizeJsonString(d.Get("policy").(string))
+	if err != nil {
+		return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
+	}
 	keyId := d.Get("key_id").(string)
 
 	log.Printf("[DEBUG] KMS key: %s, update policy: %s", keyId, policy)
 
 	req := &kms.PutKeyPolicyInput{
 		KeyId:      aws.String(keyId),
-		Policy:     aws.String(normalizeJson(policy)),
+		Policy:     aws.String(policy),
 		PolicyName: aws.String("default"),
 	}
-	_, err := conn.PutKeyPolicy(req)
+	_, err = conn.PutKeyPolicy(req)
 	return err
 }
 

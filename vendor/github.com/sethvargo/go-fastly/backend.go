@@ -23,8 +23,12 @@ type Backend struct {
 	RequestCondition    string   `mapstructure:"request_condition"`
 	HealthCheck         string   `mapstructure:"healthcheck"`
 	Hostname            string   `mapstructure:"hostname"`
+	Shield              string   `mapstructure:"shield"`
 	UseSSL              bool     `mapstructure:"use_ssl"`
 	SSLCheckCert        bool     `mapstructure:"ssl_check_cert"`
+	SSLCACert           string   `mapstructure:"ssl_ca_cert"`
+	SSLClientCert       string   `mapstructure:"ssl_client_cert"`
+	SSLClientKey        string   `mapstructure:"ssl_client_key"`
 	SSLHostname         string   `mapstructure:"ssl_hostname"`
 	SSLCertHostname     string   `mapstructure:"ssl_cert_hostname"`
 	SSLSNIHostname      string   `mapstructure:"ssl_sni_hostname"`
@@ -83,26 +87,30 @@ type CreateBackendInput struct {
 	Service string
 	Version string
 
-	Name                string   `form:"name,omitempty"`
-	Address             string   `form:"address,omitempty"`
-	Port                uint     `form:"port,omitempty"`
-	ConnectTimeout      uint     `form:"connect_timeout,omitempty"`
-	MaxConn             uint     `form:"max_conn,omitempty"`
-	ErrorThreshold      uint     `form:"error_threshold,omitempty"`
-	FirstByteTimeout    uint     `form:"first_byte_timeout,omitempty"`
-	BetweenBytesTimeout uint     `form:"between_bytes_timeout,omitempty"`
-	AutoLoadbalance     bool     `form:"auto_loadbalance,omitempty"`
-	Weight              uint     `form:"weight,omitempty"`
-	RequestCondition    string   `form:"request_condition,omitempty"`
-	HealthCheck         string   `form:"healthcheck,omitempty"`
-	UseSSL              bool     `form:"use_ssl,omitempty"`
-	SSLCheckCert        bool     `form:"ssl_check_cert,omitempty"`
-	SSLHostname         string   `form:"ssl_hostname,omitempty"`
-	SSLCertHostname     string   `form:"ssl_cert_hostname,omitempty"`
-	SSLSNIHostname      string   `form:"ssl_sni_hostname,omitempty"`
-	MinTLSVersion       string   `form:"min_tls_version,omitempty"`
-	MaxTLSVersion       string   `form:"max_tls_version,omitempty"`
-	SSLCiphers          []string `form:"ssl_ciphers,omitempty"`
+	Name                string       `form:"name,omitempty"`
+	Address             string       `form:"address,omitempty"`
+	Port                uint         `form:"port,omitempty"`
+	ConnectTimeout      uint         `form:"connect_timeout,omitempty"`
+	MaxConn             uint         `form:"max_conn,omitempty"`
+	ErrorThreshold      uint         `form:"error_threshold,omitempty"`
+	FirstByteTimeout    uint         `form:"first_byte_timeout,omitempty"`
+	BetweenBytesTimeout uint         `form:"between_bytes_timeout,omitempty"`
+	AutoLoadbalance     *Compatibool `form:"auto_loadbalance,omitempty"`
+	Weight              uint         `form:"weight,omitempty"`
+	RequestCondition    string       `form:"request_condition,omitempty"`
+	HealthCheck         string       `form:"healthcheck,omitempty"`
+	Shield              string       `form:"shield,omitempty"`
+	UseSSL              *Compatibool `form:"use_ssl,omitempty"`
+	SSLCheckCert        *Compatibool `form:"ssl_check_cert,omitempty"`
+	SSLCACert           string       `form:"ssl_ca_cert,omitempty"`
+	SSLClientCert       string       `form:"ssl_client_cert,omitempty"`
+	SSLClientKey        string       `form:"ssl_client_key,omitempty"`
+	SSLHostname         string       `form:"ssl_hostname,omitempty"`
+	SSLCertHostname     string       `form:"ssl_cert_hostname,omitempty"`
+	SSLSNIHostname      string       `form:"ssl_sni_hostname,omitempty"`
+	MinTLSVersion       string       `form:"min_tls_version,omitempty"`
+	MaxTLSVersion       string       `form:"max_tls_version,omitempty"`
+	SSLCiphers          []string     `form:"ssl_ciphers,omitempty"`
 }
 
 // CreateBackend creates a new Fastly backend.
@@ -176,26 +184,30 @@ type UpdateBackendInput struct {
 	// Name is the name of the backend to update.
 	Name string
 
-	NewName             string   `form:"name,omitempty"`
-	Address             string   `form:"address,omitempty"`
-	Port                uint     `form:"port,omitempty"`
-	ConnectTimeout      uint     `form:"connect_timeout,omitempty"`
-	MaxConn             uint     `form:"max_conn,omitempty"`
-	ErrorThreshold      uint     `form:"error_threshold,omitempty"`
-	FirstByteTimeout    uint     `form:"first_byte_timeout,omitempty"`
-	BetweenBytesTimeout uint     `form:"between_bytes_timeout,omitempty"`
-	AutoLoadbalance     bool     `form:"auto_loadbalance,omitempty"`
-	Weight              uint     `form:"weight,omitempty"`
-	RequestCondition    string   `form:"request_condition,omitempty"`
-	HealthCheck         string   `form:"healthcheck,omitempty"`
-	UseSSL              bool     `form:"use_ssl,omitempty"`
-	SSLCheckCert        bool     `form:"ssl_check_cert,omitempty"`
-	SSLHostname         string   `form:"ssl_hostname,omitempty"`
-	SSLCertHostname     string   `form:"ssl_cert_hostname,omitempty"`
-	SSLSNIHostname      string   `form:"ssl_sni_hostname,omitempty"`
-	MinTLSVersion       string   `form:"min_tls_version,omitempty"`
-	MaxTLSVersion       string   `form:"max_tls_version,omitempty"`
-	SSLCiphers          []string `form:"ssl_ciphers,omitempty"`
+	NewName             string       `form:"name,omitempty"`
+	Address             string       `form:"address,omitempty"`
+	Port                uint         `form:"port,omitempty"`
+	ConnectTimeout      uint         `form:"connect_timeout,omitempty"`
+	MaxConn             uint         `form:"max_conn,omitempty"`
+	ErrorThreshold      uint         `form:"error_threshold,omitempty"`
+	FirstByteTimeout    uint         `form:"first_byte_timeout,omitempty"`
+	BetweenBytesTimeout uint         `form:"between_bytes_timeout,omitempty"`
+	AutoLoadbalance     *Compatibool `form:"auto_loadbalance,omitempty"`
+	Weight              uint         `form:"weight,omitempty"`
+	RequestCondition    string       `form:"request_condition,omitempty"`
+	HealthCheck         string       `form:"healthcheck,omitempty"`
+	Shield              string       `form:"shield,omitempty"`
+	UseSSL              *Compatibool `form:"use_ssl,omitempty"`
+	SSLCheckCert        *Compatibool `form:"ssl_check_cert,omitempty"`
+	SSLCACert           string       `form:"ssl_ca_cert,omitempty"`
+	SSLClientCert       string       `form:"ssl_client_cert,omitempty"`
+	SSLClientKey        string       `form:"ssl_client_key,omitempty"`
+	SSLHostname         string       `form:"ssl_hostname,omitempty"`
+	SSLCertHostname     string       `form:"ssl_cert_hostname,omitempty"`
+	SSLSNIHostname      string       `form:"ssl_sni_hostname,omitempty"`
+	MinTLSVersion       string       `form:"min_tls_version,omitempty"`
+	MaxTLSVersion       string       `form:"max_tls_version,omitempty"`
+	SSLCiphers          []string     `form:"ssl_ciphers,omitempty"`
 }
 
 // UpdateBackend updates a specific backend.

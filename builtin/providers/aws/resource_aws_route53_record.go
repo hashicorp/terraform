@@ -27,7 +27,9 @@ func resourceAwsRoute53Record() *schema.Resource {
 		Read:   resourceAwsRoute53RecordRead,
 		Update: resourceAwsRoute53RecordUpdate,
 		Delete: resourceAwsRoute53RecordDelete,
-
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 		SchemaVersion: 2,
 		MigrateState:  resourceAwsRoute53RecordMigrateState,
 		Schema: map[string]*schema.Schema{
@@ -47,9 +49,9 @@ func resourceAwsRoute53Record() *schema.Resource {
 			},
 
 			"type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateRoute53RecordType,
 			},
 
 			"zone_id": &schema.Schema{
@@ -80,7 +82,6 @@ func resourceAwsRoute53Record() *schema.Resource {
 			"set_identifier": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"alias": &schema.Schema{
@@ -95,8 +96,9 @@ func resourceAwsRoute53Record() *schema.Resource {
 						},
 
 						"name": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							StateFunc: normalizeAwsAliasName,
 						},
 
 						"evaluate_target_health": &schema.Schema{
@@ -221,13 +223,124 @@ func resourceAwsRoute53RecordUpdate(d *schema.ResourceData, meta interface{}) er
 	// Route 53 supports CREATE, DELETE, and UPSERT actions. We use UPSERT, and
 	// AWS dynamically determines if a record should be created or updated.
 	// Amazon Route 53 can update an existing resource record set only when all
-	// of the following values match: Name, Type
-	// (and SetIdentifier, which we don't use yet).
-	// See http://docs.aws.amazon.com/Route53/latest/APIReference/API_ChangeResourceRecordSets_Requests.html#change-rrsets-request-action
-	//
-	// Because we use UPSERT, for resouce update here we simply fall through to
-	// our resource create function.
-	return resourceAwsRoute53RecordCreate(d, meta)
+	// of the following values match: Name, Type and SetIdentifier
+	// See http://docs.aws.amazon.com/Route53/latest/APIReference/API_ChangeResourceRecordSets.html
+
+	if !d.HasChange("type") && !d.HasChange("set_identifier") {
+		// If neither type nor set_identifier changed we use UPSERT,
+		// for resouce update here we simply fall through to
+		// our resource create function.
+		return resourceAwsRoute53RecordCreate(d, meta)
+	}
+
+	// Otherwise we delete the existing record and create a new record within
+	// a transactional change
+	conn := meta.(*AWSClient).r53conn
+	zone := cleanZoneID(d.Get("zone_id").(string))
+
+	var err error
+	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{Id: aws.String(zone)})
+	if err != nil {
+		return err
+	}
+	if zoneRecord.HostedZone == nil {
+		return fmt.Errorf("[WARN] No Route53 Zone found for id (%s)", zone)
+	}
+
+	// Build the to be deleted record
+	en := expandRecordName(d.Get("name").(string), *zoneRecord.HostedZone.Name)
+	typeo, _ := d.GetChange("type")
+
+	oldRec := &route53.ResourceRecordSet{
+		Name: aws.String(en),
+		Type: aws.String(typeo.(string)),
+	}
+
+	if v, _ := d.GetChange("ttl"); v.(int) != 0 {
+		oldRec.TTL = aws.Int64(int64(v.(int)))
+	}
+
+	// Resource records
+	if v, _ := d.GetChange("records"); v != nil {
+		recs := v.(*schema.Set).List()
+		if len(recs) > 0 {
+			oldRec.ResourceRecords = expandResourceRecords(recs, typeo.(string))
+		}
+	}
+
+	// Alias record
+	if v, _ := d.GetChange("alias"); v != nil {
+		aliases := v.(*schema.Set).List()
+		if len(aliases) == 1 {
+			alias := aliases[0].(map[string]interface{})
+			oldRec.AliasTarget = &route53.AliasTarget{
+				DNSName:              aws.String(alias["name"].(string)),
+				EvaluateTargetHealth: aws.Bool(alias["evaluate_target_health"].(bool)),
+				HostedZoneId:         aws.String(alias["zone_id"].(string)),
+			}
+		}
+	}
+
+	if v, _ := d.GetChange("set_identifier"); v.(string) != "" {
+		oldRec.SetIdentifier = aws.String(v.(string))
+	}
+
+	// Build the to be created record
+	rec, err := resourceAwsRoute53RecordBuildSet(d, *zoneRecord.HostedZone.Name)
+	if err != nil {
+		return err
+	}
+
+	// Delete the old and create the new records in a single batch. We abuse
+	// StateChangeConf for this to retry for us since Route53 sometimes returns
+	// errors about another operation happening at the same time.
+	changeBatch := &route53.ChangeBatch{
+		Comment: aws.String("Managed by Terraform"),
+		Changes: []*route53.Change{
+			&route53.Change{
+				Action:            aws.String("DELETE"),
+				ResourceRecordSet: oldRec,
+			},
+			&route53.Change{
+				Action:            aws.String("CREATE"),
+				ResourceRecordSet: rec,
+			},
+		},
+	}
+
+	req := &route53.ChangeResourceRecordSetsInput{
+		HostedZoneId: aws.String(cleanZoneID(*zoneRecord.HostedZone.Id)),
+		ChangeBatch:  changeBatch,
+	}
+
+	log.Printf("[DEBUG] Updating resource records for zone: %s, name: %s\n\n%s",
+		zone, *rec.Name, req)
+
+	respRaw, err := changeRoute53RecordSet(conn, req)
+	if err != nil {
+		return errwrap.Wrapf("[ERR]: Error building changeset: {{err}}", err)
+	}
+
+	changeInfo := respRaw.(*route53.ChangeResourceRecordSetsOutput).ChangeInfo
+
+	// Generate an ID
+	vars := []string{
+		zone,
+		strings.ToLower(d.Get("name").(string)),
+		d.Get("type").(string),
+	}
+	if v, ok := d.GetOk("set_identifier"); ok {
+		vars = append(vars, v.(string))
+	}
+
+	d.SetId(strings.Join(vars, "_"))
+
+	err = waitForRoute53RecordSetToSync(conn, cleanChangeID(*changeInfo.Id))
+	if err != nil {
+		return err
+	}
+
+	return resourceAwsRoute53RecordRead(d, meta)
 }
 
 func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) error {
@@ -346,6 +459,11 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	// If we don't have a zone ID we're doing an import. Parse it from the ID.
 	if _, ok := d.GetOk("zone_id"); !ok {
 		parts := strings.Split(d.Id(), "_")
+
+		if len(parts) == 1 {
+			return fmt.Errorf("Error Importing aws_route_53 record. Please make sure the record ID is in the form ZONEID_RECORDNAME_TYPE (i.e. Z4KAPRWWNC7JR_dev_A")
+		}
+
 		d.Set("zone_id", parts[0])
 		d.Set("name", parts[1])
 		d.Set("type", parts[2])
@@ -374,15 +492,14 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if alias := record.AliasTarget; alias != nil {
-		if _, ok := d.GetOk("alias"); !ok {
-			d.Set("alias", []interface{}{
-				map[string]interface{}{
-					"zone_id": *alias.HostedZoneId,
-					"name":    *alias.DNSName,
-					"evaluate_target_health": *alias.EvaluateTargetHealth,
-				},
-			})
-		}
+		name := normalizeAwsAliasName(*alias.DNSName)
+		d.Set("alias", []interface{}{
+			map[string]interface{}{
+				"zone_id": *alias.HostedZoneId,
+				"name":    name,
+				"evaluate_target_health": *alias.EvaluateTargetHealth,
+			},
+		})
 	}
 
 	d.Set("ttl", record.TTL)
@@ -528,7 +645,22 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 		ChangeBatch:  changeBatch,
 	}
 
-	_, err = deleteRoute53RecordSet(conn, req)
+	respRaw, err := deleteRoute53RecordSet(conn, req)
+	if err != nil {
+		return errwrap.Wrapf("[ERR]: Error building changeset: {{err}}", err)
+	}
+
+	changeInfo := respRaw.(*route53.ChangeResourceRecordSetsOutput).ChangeInfo
+	if changeInfo == nil {
+		log.Printf("[INFO] No ChangeInfo Found. Waiting for Sync not required")
+		return nil
+	}
+
+	err = waitForRoute53RecordSetToSync(conn, cleanChangeID(*changeInfo.Id))
+	if err != nil {
+		return err
+	}
+
 	return err
 }
 
@@ -718,7 +850,7 @@ func expandRecordName(name, zone string) string {
 func resourceAwsRoute53AliasRecordHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", normalizeAwsAliasName(m["name"].(string))))
 	buf.WriteString(fmt.Sprintf("%s-", m["zone_id"].(string)))
 	buf.WriteString(fmt.Sprintf("%t-", m["evaluate_target_health"].(bool)))
 
@@ -733,4 +865,13 @@ func nilString(s string) *string {
 		return nil
 	}
 	return aws.String(s)
+}
+
+func normalizeAwsAliasName(alias interface{}) string {
+	input := alias.(string)
+	if strings.HasPrefix(input, "dualstack.") {
+		return strings.Replace(input, "dualstack.", "", -1)
+	}
+
+	return strings.TrimRight(input, ".")
 }

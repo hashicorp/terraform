@@ -228,7 +228,25 @@ func TestAccAWSNetworkAcl_Subnets(t *testing.T) {
 			},
 		},
 	})
+}
 
+func TestAccAWSNetworkAcl_espProtocol(t *testing.T) {
+	var networkAcl ec2.NetworkAcl
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_network_acl.testesp",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSNetworkAclDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSNetworkAclEsp,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSNetworkAclExists("aws_network_acl.testesp", &networkAcl),
+				),
+			},
+		},
+	})
 }
 
 func testAccCheckAWSNetworkAclDestroy(s *terraform.State) error {
@@ -636,5 +654,28 @@ resource "aws_network_acl" "bar" {
 	tags {
 		Name = "acl-subnets-test"
 	}
+}
+`
+
+const testAccAWSNetworkAclEsp = `
+resource "aws_vpc" "testespvpc" {
+  cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_network_acl" "testesp" {
+  vpc_id = "${aws_vpc.testespvpc.id}"
+
+  egress {
+    protocol   = "esp"
+    rule_no    = 5
+    action     = "allow"
+    cidr_block = "10.3.0.0/18"
+    from_port  = 0
+    to_port    = 0
+  }
+
+  tags {
+    Name = "test_esp"
+  }
 }
 `

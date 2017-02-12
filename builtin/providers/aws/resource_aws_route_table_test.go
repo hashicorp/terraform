@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -241,17 +240,12 @@ func TestAccAWSRouteTable_vpcPeering(t *testing.T) {
 		return nil
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			if os.Getenv("AWS_ACCOUNT_ID") == "" {
-				t.Fatal("Error: Test TestAccAWSRouteTable_vpcPeering requires an Account ID in AWS_ACCOUNT_ID ")
-			}
-		},
+		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccRouteTableVpcPeeringConfig(os.Getenv("AWS_ACCOUNT_ID")),
+				Config: testAccRouteTableVpcPeeringConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
 						"aws_route_table.foo", &v),
@@ -404,9 +398,8 @@ resource "aws_route_table" "foo" {
 `
 
 // VPC Peering connections are prefixed with pcx
-// This test requires an ENV var, AWS_ACCOUNT_ID, with a valid AWS Account ID
-func testAccRouteTableVpcPeeringConfig(acc string) string {
-	cfg := `resource "aws_vpc" "foo" {
+const testAccRouteTableVpcPeeringConfig = `
+resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 }
 
@@ -425,7 +418,6 @@ resource "aws_internet_gateway" "bar" {
 resource "aws_vpc_peering_connection" "foo" {
 		vpc_id = "${aws_vpc.foo.id}"
 		peer_vpc_id = "${aws_vpc.bar.id}"
-		peer_owner_id = "%s"
 		tags {
 			foo = "bar"
 		}
@@ -440,8 +432,6 @@ resource "aws_route_table" "foo" {
 	}
 }
 `
-	return fmt.Sprintf(cfg, acc)
-}
 
 const testAccRouteTableVgwRoutePropagationConfig = `
 resource "aws_vpc" "foo" {

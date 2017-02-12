@@ -13,6 +13,34 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+func cloudWatchLoggingOptionsSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeSet,
+		MaxItems: 1,
+		Optional: true,
+		Computed: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"enabled": {
+					Type:     schema.TypeBool,
+					Optional: true,
+					Default:  false,
+				},
+
+				"log_group_name": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+
+				"log_stream_name": {
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+			},
+		},
+	}
+}
+
 func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsKinesisFirehoseDeliveryStreamCreate,
@@ -23,7 +51,7 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 		SchemaVersion: 1,
 		MigrateState:  resourceAwsKinesisFirehoseMigrateState,
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -37,7 +65,7 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 				},
 			},
 
-			"destination": &schema.Schema{
+			"destination": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -55,141 +83,123 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 				},
 			},
 
-			// elements removed in v0.7.0
-			"role_arn": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "role_arn has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
-			},
-
-			"s3_bucket_arn": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "s3_bucket_arn has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
-			},
-
-			"s3_prefix": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "s3_prefix has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
-			},
-
-			"s3_buffer_size": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Removed:  "s3_buffer_size has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
-			},
-
-			"s3_buffer_interval": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Removed:  "s3_buffer_interval has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
-			},
-
-			"s3_data_compression": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "s3_data_compression has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
-			},
-
-			"s3_configuration": &schema.Schema{
+			"s3_configuration": {
 				Type:     schema.TypeList,
 				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"bucket_arn": &schema.Schema{
+						"bucket_arn": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"buffer_size": &schema.Schema{
+						"buffer_size": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Default:  5,
 						},
 
-						"buffer_interval": &schema.Schema{
+						"buffer_interval": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Default:  300,
 						},
 
-						"compression_format": &schema.Schema{
+						"compression_format": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "UNCOMPRESSED",
 						},
 
-						"kms_key_arn": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
+						"kms_key_arn": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateArn,
 						},
 
-						"role_arn": &schema.Schema{
+						"role_arn": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"prefix": &schema.Schema{
+						"prefix": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+
+						"cloudwatch_logging_options": cloudWatchLoggingOptionsSchema(),
 					},
 				},
 			},
 
-			"redshift_configuration": &schema.Schema{
+			"redshift_configuration": {
 				Type:     schema.TypeList,
 				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"cluster_jdbcurl": &schema.Schema{
+						"cluster_jdbcurl": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"username": &schema.Schema{
+						"username": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"password": &schema.Schema{
+						"password": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"role_arn": &schema.Schema{
+						"role_arn": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"copy_options": &schema.Schema{
+						"retry_duration": {
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  3600,
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(int)
+								if value < 0 || value > 7200 {
+									errors = append(errors, fmt.Errorf(
+										"%q must be in the range from 0 to 7200 seconds.", k))
+								}
+								return
+							},
+						},
+
+						"copy_options": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"data_table_columns": &schema.Schema{
+						"data_table_columns": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"data_table_name": &schema.Schema{
+						"data_table_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
+
+						"cloudwatch_logging_options": cloudWatchLoggingOptionsSchema(),
 					},
 				},
 			},
 
-			"elasticsearch_configuration": &schema.Schema{
+			"elasticsearch_configuration": {
 				Type:     schema.TypeList,
 				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"buffering_interval": &schema.Schema{
+						"buffering_interval": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Default:  300,
@@ -203,7 +213,7 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 							},
 						},
 
-						"buffering_size": &schema.Schema{
+						"buffering_size": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Default:  5,
@@ -217,17 +227,17 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 							},
 						},
 
-						"domain_arn": &schema.Schema{
+						"domain_arn": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"index_name": &schema.Schema{
+						"index_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"index_rotation_period": &schema.Schema{
+						"index_rotation_period": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "OneDay",
@@ -241,7 +251,7 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 							},
 						},
 
-						"retry_duration": &schema.Schema{
+						"retry_duration": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Default:  300,
@@ -255,12 +265,12 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 							},
 						},
 
-						"role_arn": &schema.Schema{
+						"role_arn": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"s3_backup_mode": &schema.Schema{
+						"s3_backup_mode": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "FailedDocumentsOnly",
@@ -274,7 +284,7 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 							},
 						},
 
-						"type_name": &schema.Schema{
+						"type_name": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
@@ -286,23 +296,25 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 								return
 							},
 						},
+
+						"cloudwatch_logging_options": cloudWatchLoggingOptionsSchema(),
 					},
 				},
 			},
 
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"version_id": &schema.Schema{
+			"version_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"destination_id": &schema.Schema{
+			"destination_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -314,7 +326,7 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 func createS3Config(d *schema.ResourceData) *firehose.S3DestinationConfiguration {
 	s3 := d.Get("s3_configuration").([]interface{})[0].(map[string]interface{})
 
-	return &firehose.S3DestinationConfiguration{
+	configuration := &firehose.S3DestinationConfiguration{
 		BucketARN: aws.String(s3["bucket_arn"].(string)),
 		RoleARN:   aws.String(s3["role_arn"].(string)),
 		BufferingHints: &firehose.BufferingHints{
@@ -325,22 +337,35 @@ func createS3Config(d *schema.ResourceData) *firehose.S3DestinationConfiguration
 		CompressionFormat:       aws.String(s3["compression_format"].(string)),
 		EncryptionConfiguration: extractEncryptionConfiguration(s3),
 	}
+
+	if _, ok := s3["cloudwatch_logging_options"]; ok {
+		configuration.CloudWatchLoggingOptions = extractCloudWatchLoggingConfiguration(s3)
+	}
+
+	return configuration
 }
 
 func updateS3Config(d *schema.ResourceData) *firehose.S3DestinationUpdate {
 	s3 := d.Get("s3_configuration").([]interface{})[0].(map[string]interface{})
 
-	return &firehose.S3DestinationUpdate{
+	configuration := &firehose.S3DestinationUpdate{
 		BucketARN: aws.String(s3["bucket_arn"].(string)),
 		RoleARN:   aws.String(s3["role_arn"].(string)),
 		BufferingHints: &firehose.BufferingHints{
 			IntervalInSeconds: aws.Int64((int64)(s3["buffer_interval"].(int))),
 			SizeInMBs:         aws.Int64((int64)(s3["buffer_size"].(int))),
 		},
-		Prefix:                  extractPrefixConfiguration(s3),
-		CompressionFormat:       aws.String(s3["compression_format"].(string)),
-		EncryptionConfiguration: extractEncryptionConfiguration(s3),
+		Prefix:                   extractPrefixConfiguration(s3),
+		CompressionFormat:        aws.String(s3["compression_format"].(string)),
+		EncryptionConfiguration:  extractEncryptionConfiguration(s3),
+		CloudWatchLoggingOptions: extractCloudWatchLoggingConfiguration(s3),
 	}
+
+	if _, ok := s3["cloudwatch_logging_options"]; ok {
+		configuration.CloudWatchLoggingOptions = extractCloudWatchLoggingConfiguration(s3)
+	}
+
+	return configuration
 }
 
 func extractEncryptionConfiguration(s3 map[string]interface{}) *firehose.EncryptionConfiguration {
@@ -355,6 +380,29 @@ func extractEncryptionConfiguration(s3 map[string]interface{}) *firehose.Encrypt
 	return &firehose.EncryptionConfiguration{
 		NoEncryptionConfig: aws.String("NoEncryption"),
 	}
+}
+
+func extractCloudWatchLoggingConfiguration(s3 map[string]interface{}) *firehose.CloudWatchLoggingOptions {
+	config := s3["cloudwatch_logging_options"].(*schema.Set).List()
+	if len(config) == 0 {
+		return nil
+	}
+
+	loggingConfig := config[0].(map[string]interface{})
+	loggingOptions := &firehose.CloudWatchLoggingOptions{
+		Enabled: aws.Bool(loggingConfig["enabled"].(bool)),
+	}
+
+	if v, ok := loggingConfig["log_group_name"]; ok {
+		loggingOptions.LogGroupName = aws.String(v.(string))
+	}
+
+	if v, ok := loggingConfig["log_stream_name"]; ok {
+		loggingOptions.LogStreamName = aws.String(v.(string))
+	}
+
+	return loggingOptions
+
 }
 
 func extractPrefixConfiguration(s3 map[string]interface{}) *string {
@@ -374,14 +422,21 @@ func createRedshiftConfig(d *schema.ResourceData, s3Config *firehose.S3Destinati
 
 	redshift := rl[0].(map[string]interface{})
 
-	return &firehose.RedshiftDestinationConfiguration{
+	configuration := &firehose.RedshiftDestinationConfiguration{
 		ClusterJDBCURL:  aws.String(redshift["cluster_jdbcurl"].(string)),
+		RetryOptions:    extractRedshiftRetryOptions(redshift),
 		Password:        aws.String(redshift["password"].(string)),
 		Username:        aws.String(redshift["username"].(string)),
 		RoleARN:         aws.String(redshift["role_arn"].(string)),
 		CopyCommand:     extractCopyCommandConfiguration(redshift),
 		S3Configuration: s3Config,
-	}, nil
+	}
+
+	if _, ok := redshift["cloudwatch_logging_options"]; ok {
+		configuration.CloudWatchLoggingOptions = extractCloudWatchLoggingConfiguration(redshift)
+	}
+
+	return configuration, nil
 }
 
 func updateRedshiftConfig(d *schema.ResourceData, s3Update *firehose.S3DestinationUpdate) (*firehose.RedshiftDestinationUpdate, error) {
@@ -393,14 +448,21 @@ func updateRedshiftConfig(d *schema.ResourceData, s3Update *firehose.S3Destinati
 
 	redshift := rl[0].(map[string]interface{})
 
-	return &firehose.RedshiftDestinationUpdate{
+	configuration := &firehose.RedshiftDestinationUpdate{
 		ClusterJDBCURL: aws.String(redshift["cluster_jdbcurl"].(string)),
+		RetryOptions:   extractRedshiftRetryOptions(redshift),
 		Password:       aws.String(redshift["password"].(string)),
 		Username:       aws.String(redshift["username"].(string)),
 		RoleARN:        aws.String(redshift["role_arn"].(string)),
 		CopyCommand:    extractCopyCommandConfiguration(redshift),
 		S3Update:       s3Update,
-	}, nil
+	}
+
+	if _, ok := redshift["cloudwatch_logging_options"]; ok {
+		configuration.CloudWatchLoggingOptions = extractCloudWatchLoggingConfiguration(redshift)
+	}
+
+	return configuration, nil
 }
 
 func createElasticsearchConfig(d *schema.ResourceData, s3Config *firehose.S3DestinationConfiguration) (*firehose.ElasticsearchDestinationConfiguration, error) {
@@ -416,10 +478,14 @@ func createElasticsearchConfig(d *schema.ResourceData, s3Config *firehose.S3Dest
 		BufferingHints:  extractBufferingHints(es),
 		DomainARN:       aws.String(es["domain_arn"].(string)),
 		IndexName:       aws.String(es["index_name"].(string)),
-		RetryOptions:    extractRetryOptions(es),
+		RetryOptions:    extractElasticSearchRetryOptions(es),
 		RoleARN:         aws.String(es["role_arn"].(string)),
 		TypeName:        aws.String(es["type_name"].(string)),
 		S3Configuration: s3Config,
+	}
+
+	if _, ok := es["cloudwatch_logging_options"]; ok {
+		config.CloudWatchLoggingOptions = extractCloudWatchLoggingConfiguration(es)
 	}
 
 	if indexRotationPeriod, ok := es["index_rotation_period"]; ok {
@@ -445,10 +511,14 @@ func updateElasticsearchConfig(d *schema.ResourceData, s3Update *firehose.S3Dest
 		BufferingHints: extractBufferingHints(es),
 		DomainARN:      aws.String(es["domain_arn"].(string)),
 		IndexName:      aws.String(es["index_name"].(string)),
-		RetryOptions:   extractRetryOptions(es),
+		RetryOptions:   extractElasticSearchRetryOptions(es),
 		RoleARN:        aws.String(es["role_arn"].(string)),
 		TypeName:       aws.String(es["type_name"].(string)),
 		S3Update:       s3Update,
+	}
+
+	if _, ok := es["cloudwatch_logging_options"]; ok {
+		update.CloudWatchLoggingOptions = extractCloudWatchLoggingConfiguration(es)
 	}
 
 	if indexRotationPeriod, ok := es["index_rotation_period"]; ok {
@@ -461,7 +531,7 @@ func updateElasticsearchConfig(d *schema.ResourceData, s3Update *firehose.S3Dest
 func extractBufferingHints(es map[string]interface{}) *firehose.ElasticsearchBufferingHints {
 	bufferingHints := &firehose.ElasticsearchBufferingHints{}
 
-	if bufferingInterval, ok := es["buffering_hints"].(int); ok {
+	if bufferingInterval, ok := es["buffering_interval"].(int); ok {
 		bufferingHints.IntervalInSeconds = aws.Int64(int64(bufferingInterval))
 	}
 	if bufferingSize, ok := es["buffering_size"].(int); ok {
@@ -469,13 +539,22 @@ func extractBufferingHints(es map[string]interface{}) *firehose.ElasticsearchBuf
 	}
 
 	return bufferingHints
-
 }
 
-func extractRetryOptions(es map[string]interface{}) *firehose.ElasticsearchRetryOptions {
+func extractElasticSearchRetryOptions(es map[string]interface{}) *firehose.ElasticsearchRetryOptions {
 	retryOptions := &firehose.ElasticsearchRetryOptions{}
 
 	if retryDuration, ok := es["retry_duration"].(int); ok {
+		retryOptions.DurationInSeconds = aws.Int64(int64(retryDuration))
+	}
+
+	return retryOptions
+}
+
+func extractRedshiftRetryOptions(redshift map[string]interface{}) *firehose.RedshiftRetryOptions {
+	retryOptions := &firehose.RedshiftRetryOptions{}
+
+	if retryDuration, ok := redshift["retry_duration"].(int); ok {
 		retryOptions.DurationInSeconds = aws.Int64(int64(retryDuration))
 	}
 

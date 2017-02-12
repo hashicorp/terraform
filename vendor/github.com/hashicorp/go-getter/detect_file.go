@@ -36,6 +36,13 @@ func (d *FileDetector) Detect(src, pwd string) (string, bool, error) {
 				if err != nil {
 					return "", true, err
 				}
+
+				// The symlink itself might be a relative path, so we have to
+				// resolve this to have a correctly rooted URL.
+				pwd, err = filepath.Abs(pwd)
+				if err != nil {
+					return "", true, err
+				}
 			}
 		}
 

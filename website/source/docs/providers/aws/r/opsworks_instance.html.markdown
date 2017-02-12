@@ -47,6 +47,7 @@ The following arguments are supported:
 * `ssh_key_name` - (Optional) Name of the SSH keypair that instances will have by default.
 * `agent_version` - (Optional) The AWS OpsWorks agent to install.  Defaults to `"INHERIT"`.
 * `subnet_id` - (Optional) Subnet ID to attach to
+* `tenancy` - (Optional) Instance tenancy to use. Can be one of `"default"`, `"dedicated"` or `"host"`
 * `virtualization_type` - (Optional) Keyword to choose what virtualization mode created instances
   will use. Can be either `"paravirtual"` or `"hvm"`.
 * `root_block_device` - (Optional) Customize details about the root block
@@ -128,5 +129,14 @@ The following attributes are exported:
   for your VPC
 * `private_ip` - The private IP address assigned to the instance
 * `subnet_id` - The VPC subnet ID.
+* `tenancy` - The Instance tenancy
 * `security_group_ids` - The associated security groups.
+
+## Import
+
+Opsworks Instances can be imported using the `instance id`, e.g.
+
+```
+$ terraform import aws_opsworks_instance.my_instance 4d6d1710-ded9-42a1-b08e-b043ad7af1e2
+```
 

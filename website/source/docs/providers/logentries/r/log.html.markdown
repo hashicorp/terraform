@@ -35,4 +35,4 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `token` - If the the log `source` is `token`, this value holds the generated log token that is used by logging clients. See the Logentries [token-based input documentation](https://logentries.com/doc/input-token/) for more information.
+* `token` - If the log `source` is `token`, this value holds the generated log token that is used by logging clients. See the Logentries [token-based input documentation](https://logentries.com/doc/input-token/) for more information.

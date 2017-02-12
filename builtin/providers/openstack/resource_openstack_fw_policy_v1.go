@@ -5,9 +5,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 )
 
 func resourceFWPolicyV1() *schema.Resource {
@@ -43,7 +44,6 @@ func resourceFWPolicyV1() *schema.Resource {
 			"shared": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
 			},
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -56,14 +56,18 @@ func resourceFWPolicyV1() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
+			"value_specs": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
 
 func resourceFWPolicyV1Create(d *schema.ResourceData, meta interface{}) error {
-
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -79,15 +83,21 @@ func resourceFWPolicyV1Create(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	audited := d.Get("audited").(bool)
-	shared := d.Get("shared").(bool)
 
-	opts := policies.CreateOpts{
-		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
-		Audited:     &audited,
-		Shared:      &shared,
-		TenantID:    d.Get("tenant_id").(string),
-		Rules:       rules,
+	opts := PolicyCreateOpts{
+		policies.CreateOpts{
+			Name:        d.Get("name").(string),
+			Description: d.Get("description").(string),
+			Audited:     &audited,
+			TenantID:    d.Get("tenant_id").(string),
+			Rules:       rules,
+		},
+		MapValueSpecs(d),
+	}
+
+	if r, ok := d.GetOk("shared"); ok {
+		shared := r.(bool)
+		opts.Shared = &shared
 	}
 
 	log.Printf("[DEBUG] Create firewall policy: %#v", opts)
@@ -108,7 +118,7 @@ func resourceFWPolicyV1Read(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Retrieve information about firewall policy: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -126,13 +136,14 @@ func resourceFWPolicyV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("audited", policy.Audited)
 	d.Set("tenant_id", policy.TenantID)
 	d.Set("rules", policy.Rules)
+	d.Set("region", GetRegion(d))
+
 	return nil
 }
 
 func resourceFWPolicyV1Update(d *schema.ResourceData, meta interface{}) error {
-
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -174,29 +185,43 @@ func resourceFWPolicyV1Delete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Destroy firewall policy: %s", d.Id())
 
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	for i := 0; i < 15; i++ {
-
-		err = policies.Delete(networkingClient, d.Id()).Err
-		if err == nil {
-			break
-		}
-
-		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-		if !ok || httpError.Actual != 409 {
-			return err
-		}
-
-		// This error usually means that the policy is attached
-		// to a firewall. At this point, the firewall is probably
-		// being delete. So, we retry a few times.
-
-		time.Sleep(time.Second * 2)
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
+		Target:     []string{"DELETED"},
+		Refresh:    waitForFirewallPolicyDeletion(networkingClient, d.Id()),
+		Timeout:    120 * time.Second,
+		Delay:      0,
+		MinTimeout: 2 * time.Second,
 	}
 
-	return err
+	if _, err = stateConf.WaitForState(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func waitForFirewallPolicyDeletion(networkingClient *gophercloud.ServiceClient, id string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		err := policies.Delete(networkingClient, id).Err
+		if err == nil {
+			return "", "DELETED", nil
+		}
+
+		if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+			if errCode.Actual == 409 {
+				// This error usually means that the policy is attached
+				// to a firewall. At this point, the firewall is probably
+				// being delete. So, we retry a few times.
+				return nil, "ACTIVE", nil
+			}
+		}
+
+		return nil, "ACTIVE", err
+	}
 }

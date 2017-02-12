@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -119,13 +120,16 @@ func autoscalingTagsFromMap(m map[string]interface{}, resourceID string) []*auto
 	result := make([]*autoscaling.Tag, 0, len(m))
 	for k, v := range m {
 		attr := v.(map[string]interface{})
-		result = append(result, &autoscaling.Tag{
+		t := &autoscaling.Tag{
 			Key:               aws.String(k),
 			Value:             aws.String(attr["value"].(string)),
 			PropagateAtLaunch: aws.Bool(attr["propagate_at_launch"].(bool)),
 			ResourceId:        aws.String(resourceID),
 			ResourceType:      aws.String("auto-scaling-group"),
-		})
+		}
+		if !tagIgnoredAutoscaling(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -181,4 +185,18 @@ func setToMapByKey(s *schema.Set, key string) map[string]interface{} {
 	}
 
 	return result
+}
+
+// compare a tag against a list of strings and checks if it should
+// be ignored or not
+func tagIgnoredAutoscaling(t *autoscaling.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
 }

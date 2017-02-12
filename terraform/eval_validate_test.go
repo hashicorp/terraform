@@ -24,9 +24,7 @@ func TestEvalValidateResource_managedResource(t *testing.T) {
 	}
 
 	p := ResourceProvider(mp)
-	rc := &ResourceConfig{
-		Raw: map[string]interface{}{"foo": "bar"},
-	}
+	rc := testResourceConfig(t, map[string]interface{}{"foo": "bar"})
 	node := &EvalValidateResource{
 		Provider:     &p,
 		Config:       &rc,
@@ -61,9 +59,7 @@ func TestEvalValidateResource_dataSource(t *testing.T) {
 	}
 
 	p := ResourceProvider(mp)
-	rc := &ResourceConfig{
-		Raw: map[string]interface{}{"foo": "bar"},
-	}
+	rc := testResourceConfig(t, map[string]interface{}{"foo": "bar"})
 	node := &EvalValidateResource{
 		Provider:     &p,
 		Config:       &rc,

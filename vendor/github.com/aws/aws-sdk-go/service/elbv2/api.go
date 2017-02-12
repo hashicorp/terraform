@@ -18,6 +18,8 @@ const opAddTags = "AddTags"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See AddTags for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -35,6 +37,7 @@ const opAddTags = "AddTags"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/AddTags
 func (c *ELBV2) AddTagsRequest(input *AddTagsInput) (req *request.Request, output *AddTagsOutput) {
 	op := &request.Operation{
 		Name:       opAddTags,
@@ -46,20 +49,43 @@ func (c *ELBV2) AddTagsRequest(input *AddTagsInput) (req *request.Request, outpu
 		input = &AddTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
-// Adds the specified tags to the specified resource. You can tag your Application
-// load balancers and your target groups.
+// AddTags API operation for Elastic Load Balancing.
 //
-// Each tag consists of a key and an optional value. If a resource already
-// has a tag with the same key, AddTags updates its value.
+// Adds the specified tags to the specified resource. You can tag your Application
+// Load Balancers and your target groups.
+//
+// Each tag consists of a key and an optional value. If a resource already has
+// a tag with the same key, AddTags updates its value.
 //
 // To list the current tags for your resources, use DescribeTags. To remove
 // tags from your resources, use RemoveTags.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation AddTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeDuplicateTagKeysException "DuplicateTagKeys"
+//   A tag key was specified more than once.
+//
+//   * ErrCodeTooManyTagsException "TooManyTags"
+//   You've reached the limit on the number of tags per load balancer.
+//
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
+//   The specified load balancer does not exist.
+//
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
+//   The specified target group does not exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/AddTags
 func (c *ELBV2) AddTags(input *AddTagsInput) (*AddTagsOutput, error) {
 	req, out := c.AddTagsRequest(input)
 	err := req.Send()
@@ -72,6 +98,8 @@ const opCreateListener = "CreateListener"
 // client's request for the CreateListener operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateListener for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -90,6 +118,7 @@ const opCreateListener = "CreateListener"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateListener
 func (c *ELBV2) CreateListenerRequest(input *CreateListenerInput) (req *request.Request, output *CreateListenerOutput) {
 	op := &request.Operation{
 		Name:       opCreateListener,
@@ -101,21 +130,70 @@ func (c *ELBV2) CreateListenerRequest(input *CreateListenerInput) (req *request.
 		input = &CreateListenerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateListenerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
-// Creates a listener for the specified Application load balancer.
+// CreateListener API operation for Elastic Load Balancing.
+//
+// Creates a listener for the specified Application Load Balancer.
+//
+// You can create up to 10 listeners per load balancer.
 //
 // To update a listener, use ModifyListener. When you are finished with a listener,
 // you can delete it using DeleteListener. If you are finished with both the
 // listener and the load balancer, you can delete them both using DeleteLoadBalancer.
 //
-// For more information, see Listeners for Your Application Load Balancers
-// (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html)
+// For more information, see Listeners for Your Application Load Balancers (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html)
 // in the Application Load Balancers Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation CreateListener for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeDuplicateListenerException "DuplicateListener"
+//   A listener with the specified port already exists.
+//
+//   * ErrCodeTooManyListenersException "TooManyListeners"
+//   You've reached the limit on the number of listeners per load balancer.
+//
+//   * ErrCodeTooManyCertificatesException "TooManyCertificates"
+//   You've reached the limit on the number of certificates per listener.
+//
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
+//   The specified load balancer does not exist.
+//
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
+//   The specified target group does not exist.
+//
+//   * ErrCodeTargetGroupAssociationLimitException "TargetGroupAssociationLimit"
+//   You've reached the limit on the number of load balancers per target group.
+//
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
+//   The requested configuration is not valid.
+//
+//   * ErrCodeIncompatibleProtocolsException "IncompatibleProtocols"
+//   The specified configuration is not valid with this protocol.
+//
+//   * ErrCodeSSLPolicyNotFoundException "SSLPolicyNotFound"
+//   The specified SSL policy does not exist.
+//
+//   * ErrCodeCertificateNotFoundException "CertificateNotFound"
+//   The specified certificate does not exist.
+//
+//   * ErrCodeUnsupportedProtocolException "UnsupportedProtocol"
+//   The specified protocol is not supported.
+//
+//   * ErrCodeTooManyRegistrationsForTargetIdException "TooManyRegistrationsForTargetId"
+//   You've reached the limit on the number of times a target can be registered
+//   with a load balancer.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateListener
 func (c *ELBV2) CreateListener(input *CreateListenerInput) (*CreateListenerOutput, error) {
 	req, out := c.CreateListenerRequest(input)
 	err := req.Send()
@@ -128,6 +206,8 @@ const opCreateLoadBalancer = "CreateLoadBalancer"
 // client's request for the CreateLoadBalancer operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateLoadBalancer for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -146,6 +226,7 @@ const opCreateLoadBalancer = "CreateLoadBalancer"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateLoadBalancer
 func (c *ELBV2) CreateLoadBalancerRequest(input *CreateLoadBalancerInput) (req *request.Request, output *CreateLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opCreateLoadBalancer,
@@ -157,25 +238,67 @@ func (c *ELBV2) CreateLoadBalancerRequest(input *CreateLoadBalancerInput) (req *
 		input = &CreateLoadBalancerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateLoadBalancerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
-// Creates an Application load balancer.
+// CreateLoadBalancer API operation for Elastic Load Balancing.
 //
-// To create listeners for your load balancer, use CreateListener. You can
-// add security groups, subnets, and tags when you create your load balancer,
-// or you can add them later using SetSecurityGroups, SetSubnets, and AddTags.
+// Creates an Application Load Balancer.
 //
-// To describe your current load balancers, see DescribeLoadBalancers. When
-// you are finished with a load balancer, you can delete it using DeleteLoadBalancer.
+// When you create a load balancer, you can specify security groups, subnets,
+// IP address type, and tags. Otherwise, you could do so later using SetSecurityGroups,
+// SetSubnets, SetIpAddressType, and AddTags.
+//
+// To create listeners for your load balancer, use CreateListener. To describe
+// your current load balancers, see DescribeLoadBalancers. When you are finished
+// with a load balancer, you can delete it using DeleteLoadBalancer.
 //
 // You can create up to 20 load balancers per region per account. You can request
 // an increase for the number of load balancers for your account. For more information,
 // see Limits for Your Application Load Balancer (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-limits.html)
 // in the Application Load Balancers Guide.
+//
+// For more information, see Application Load Balancers (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html)
+// in the Application Load Balancers Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation CreateLoadBalancer for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeDuplicateLoadBalancerNameException "DuplicateLoadBalancerName"
+//   A load balancer with the specified name already exists for this account.
+//
+//   * ErrCodeTooManyLoadBalancersException "TooManyLoadBalancers"
+//   You've reached the limit on the number of load balancers for your AWS account.
+//
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
+//   The requested configuration is not valid.
+//
+//   * ErrCodeSubnetNotFoundException "SubnetNotFound"
+//   The specified subnet does not exist.
+//
+//   * ErrCodeInvalidSubnetException "InvalidSubnet"
+//   The specified subnet is out of available addresses.
+//
+//   * ErrCodeInvalidSecurityGroupException "InvalidSecurityGroup"
+//   The specified security group does not exist.
+//
+//   * ErrCodeInvalidSchemeException "InvalidScheme"
+//   The requested scheme is not valid.
+//
+//   * ErrCodeTooManyTagsException "TooManyTags"
+//   You've reached the limit on the number of tags per load balancer.
+//
+//   * ErrCodeDuplicateTagKeysException "DuplicateTagKeys"
+//   A tag key was specified more than once.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateLoadBalancer
 func (c *ELBV2) CreateLoadBalancer(input *CreateLoadBalancerInput) (*CreateLoadBalancerOutput, error) {
 	req, out := c.CreateLoadBalancerRequest(input)
 	err := req.Send()
@@ -188,6 +311,8 @@ const opCreateRule = "CreateRule"
 // client's request for the CreateRule operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateRule for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -206,6 +331,7 @@ const opCreateRule = "CreateRule"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateRule
 func (c *ELBV2) CreateRuleRequest(input *CreateRuleInput) (req *request.Request, output *CreateRuleOutput) {
 	op := &request.Operation{
 		Name:       opCreateRule,
@@ -217,22 +343,60 @@ func (c *ELBV2) CreateRuleRequest(input *CreateRuleInput) (req *request.Request,
 		input = &CreateRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// CreateRule API operation for Elastic Load Balancing.
+//
 // Creates a rule for the specified listener.
 //
-// A rule consists conditions and actions. Rules are evaluated in priority
-// order, from the lowest value to the highest value. When the conditions for
-// a rule are met, the specified actions are taken. If no rule's conditions
-// are met, the default actions for the listener are taken.
+// Each rule can have one action and one condition. Rules are evaluated in priority
+// order, from the lowest value to the highest value. When the condition for
+// a rule is met, the specified action is taken. If no conditions are met, the
+// default action for the default rule is taken. For more information, see Listener
+// Rules (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#listener-rules)
+// in the Application Load Balancers Guide.
 //
 // To view your current rules, use DescribeRules. To update a rule, use ModifyRule.
 // To set the priorities of your rules, use SetRulePriorities. To delete a rule,
 // use DeleteRule.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation CreateRule for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodePriorityInUseException "PriorityInUse"
+//   The specified priority is in use.
+//
+//   * ErrCodeTooManyTargetGroupsException "TooManyTargetGroups"
+//   You've reached the limit on the number of target groups for your AWS account.
+//
+//   * ErrCodeTooManyRulesException "TooManyRules"
+//   You've reached the limit on the number of rules per load balancer.
+//
+//   * ErrCodeTargetGroupAssociationLimitException "TargetGroupAssociationLimit"
+//   You've reached the limit on the number of load balancers per target group.
+//
+//   * ErrCodeListenerNotFoundException "ListenerNotFound"
+//   The specified listener does not exist.
+//
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
+//   The specified target group does not exist.
+//
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
+//   The requested configuration is not valid.
+//
+//   * ErrCodeTooManyRegistrationsForTargetIdException "TooManyRegistrationsForTargetId"
+//   You've reached the limit on the number of times a target can be registered
+//   with a load balancer.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateRule
 func (c *ELBV2) CreateRule(input *CreateRuleInput) (*CreateRuleOutput, error) {
 	req, out := c.CreateRuleRequest(input)
 	err := req.Send()
@@ -245,6 +409,8 @@ const opCreateTargetGroup = "CreateTargetGroup"
 // client's request for the CreateTargetGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateTargetGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -263,6 +429,7 @@ const opCreateTargetGroup = "CreateTargetGroup"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateTargetGroup
 func (c *ELBV2) CreateTargetGroupRequest(input *CreateTargetGroupInput) (req *request.Request, output *CreateTargetGroupOutput) {
 	op := &request.Operation{
 		Name:       opCreateTargetGroup,
@@ -274,12 +441,13 @@ func (c *ELBV2) CreateTargetGroupRequest(input *CreateTargetGroupInput) (req *re
 		input = &CreateTargetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateTargetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// CreateTargetGroup API operation for Elastic Load Balancing.
+//
 // Creates a target group.
 //
 // To register targets with the target group, use RegisterTargets. To update
@@ -294,6 +462,22 @@ func (c *ELBV2) CreateTargetGroupRequest(input *CreateTargetGroupInput) (req *re
 // For more information, see Target Groups for Your Application Load Balancers
 // (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html)
 // in the Application Load Balancers Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation CreateTargetGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeDuplicateTargetGroupNameException "DuplicateTargetGroupName"
+//   A target group with the specified name already exists.
+//
+//   * ErrCodeTooManyTargetGroupsException "TooManyTargetGroups"
+//   You've reached the limit on the number of target groups for your AWS account.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateTargetGroup
 func (c *ELBV2) CreateTargetGroup(input *CreateTargetGroupInput) (*CreateTargetGroupOutput, error) {
 	req, out := c.CreateTargetGroupRequest(input)
 	err := req.Send()
@@ -306,6 +490,8 @@ const opDeleteListener = "DeleteListener"
 // client's request for the DeleteListener operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteListener for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -324,6 +510,7 @@ const opDeleteListener = "DeleteListener"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteListener
 func (c *ELBV2) DeleteListenerRequest(input *DeleteListenerInput) (req *request.Request, output *DeleteListenerOutput) {
 	op := &request.Operation{
 		Name:       opDeleteListener,
@@ -335,16 +522,30 @@ func (c *ELBV2) DeleteListenerRequest(input *DeleteListenerInput) (req *request.
 		input = &DeleteListenerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteListenerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// DeleteListener API operation for Elastic Load Balancing.
+//
 // Deletes the specified listener.
 //
 // Alternatively, your listener is deleted when you delete the load balancer
 // it is attached to using DeleteLoadBalancer.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation DeleteListener for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeListenerNotFoundException "ListenerNotFound"
+//   The specified listener does not exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteListener
 func (c *ELBV2) DeleteListener(input *DeleteListenerInput) (*DeleteListenerOutput, error) {
 	req, out := c.DeleteListenerRequest(input)
 	err := req.Send()
@@ -357,6 +558,8 @@ const opDeleteLoadBalancer = "DeleteLoadBalancer"
 // client's request for the DeleteLoadBalancer operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteLoadBalancer for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -375,6 +578,7 @@ const opDeleteLoadBalancer = "DeleteLoadBalancer"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteLoadBalancer
 func (c *ELBV2) DeleteLoadBalancerRequest(input *DeleteLoadBalancerInput) (req *request.Request, output *DeleteLoadBalancerOutput) {
 	op := &request.Operation{
 		Name:       opDeleteLoadBalancer,
@@ -386,13 +590,14 @@ func (c *ELBV2) DeleteLoadBalancerRequest(input *DeleteLoadBalancerInput) (req *
 		input = &DeleteLoadBalancerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteLoadBalancerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
-// Deletes the specified load balancer and its attached listeners.
+// DeleteLoadBalancer API operation for Elastic Load Balancing.
+//
+// Deletes the specified Application Load Balancer and its attached listeners.
 //
 // You can't delete a load balancer if deletion protection is enabled. If the
 // load balancer does not exist or has already been deleted, the call succeeds.
@@ -401,6 +606,22 @@ func (c *ELBV2) DeleteLoadBalancerRequest(input *DeleteLoadBalancerInput) (req *
 // your EC2 instances continue to run and are still registered to their target
 // groups. If you no longer need these EC2 instances, you can stop or terminate
 // them.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation DeleteLoadBalancer for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
+//   The specified load balancer does not exist.
+//
+//   * ErrCodeOperationNotPermittedException "OperationNotPermitted"
+//   This operation is not allowed.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteLoadBalancer
 func (c *ELBV2) DeleteLoadBalancer(input *DeleteLoadBalancerInput) (*DeleteLoadBalancerOutput, error) {
 	req, out := c.DeleteLoadBalancerRequest(input)
 	err := req.Send()
@@ -413,6 +634,8 @@ const opDeleteRule = "DeleteRule"
 // client's request for the DeleteRule operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteRule for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -431,6 +654,7 @@ const opDeleteRule = "DeleteRule"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteRule
 func (c *ELBV2) DeleteRuleRequest(input *DeleteRuleInput) (req *request.Request, output *DeleteRuleOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRule,
@@ -442,13 +666,30 @@ func (c *ELBV2) DeleteRuleRequest(input *DeleteRuleInput) (req *request.Request,
 		input = &DeleteRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// DeleteRule API operation for Elastic Load Balancing.
+//
 // Deletes the specified rule.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation DeleteRule for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeRuleNotFoundException "RuleNotFound"
+//   The specified rule does not exist.
+//
+//   * ErrCodeOperationNotPermittedException "OperationNotPermitted"
+//   This operation is not allowed.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteRule
 func (c *ELBV2) DeleteRule(input *DeleteRuleInput) (*DeleteRuleOutput, error) {
 	req, out := c.DeleteRuleRequest(input)
 	err := req.Send()
@@ -461,6 +702,8 @@ const opDeleteTargetGroup = "DeleteTargetGroup"
 // client's request for the DeleteTargetGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteTargetGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -479,6 +722,7 @@ const opDeleteTargetGroup = "DeleteTargetGroup"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteTargetGroup
 func (c *ELBV2) DeleteTargetGroupRequest(input *DeleteTargetGroupInput) (req *request.Request, output *DeleteTargetGroupOutput) {
 	op := &request.Operation{
 		Name:       opDeleteTargetGroup,
@@ -490,16 +734,30 @@ func (c *ELBV2) DeleteTargetGroupRequest(input *DeleteTargetGroupInput) (req *re
 		input = &DeleteTargetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteTargetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// DeleteTargetGroup API operation for Elastic Load Balancing.
+//
 // Deletes the specified target group.
 //
 // You can delete a target group if it is not referenced by any actions. Deleting
 // a target group also deletes any associated health checks.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation DeleteTargetGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeResourceInUseException "ResourceInUse"
+//   A specified resource is in use.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteTargetGroup
 func (c *ELBV2) DeleteTargetGroup(input *DeleteTargetGroupInput) (*DeleteTargetGroupOutput, error) {
 	req, out := c.DeleteTargetGroupRequest(input)
 	err := req.Send()
@@ -512,6 +770,8 @@ const opDeregisterTargets = "DeregisterTargets"
 // client's request for the DeregisterTargets operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeregisterTargets for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -530,6 +790,7 @@ const opDeregisterTargets = "DeregisterTargets"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeregisterTargets
 func (c *ELBV2) DeregisterTargetsRequest(input *DeregisterTargetsInput) (req *request.Request, output *DeregisterTargetsOutput) {
 	op := &request.Operation{
 		Name:       opDeregisterTargets,
@@ -541,15 +802,33 @@ func (c *ELBV2) DeregisterTargetsRequest(input *DeregisterTargetsInput) (req *re
 		input = &DeregisterTargetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeregisterTargetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// DeregisterTargets API operation for Elastic Load Balancing.
+//
 // Deregisters the specified targets from the specified target group. After
 // the targets are deregistered, they no longer receive traffic from the load
 // balancer.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation DeregisterTargets for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
+//   The specified target group does not exist.
+//
+//   * ErrCodeInvalidTargetException "InvalidTarget"
+//   The specified target does not exist or is not in the same VPC as the target
+//   group.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeregisterTargets
 func (c *ELBV2) DeregisterTargets(input *DeregisterTargetsInput) (*DeregisterTargetsOutput, error) {
 	req, out := c.DeregisterTargetsRequest(input)
 	err := req.Send()
@@ -562,6 +841,8 @@ const opDescribeListeners = "DescribeListeners"
 // client's request for the DescribeListeners operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeListeners for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -580,6 +861,7 @@ const opDescribeListeners = "DescribeListeners"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeListeners
 func (c *ELBV2) DescribeListenersRequest(input *DescribeListenersInput) (req *request.Request, output *DescribeListenersOutput) {
 	op := &request.Operation{
 		Name:       opDescribeListeners,
@@ -597,14 +879,31 @@ func (c *ELBV2) DescribeListenersRequest(input *DescribeListenersInput) (req *re
 		input = &DescribeListenersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeListenersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
-// Describes the specified listeners or the listeners for the specified load
-// balancer. You must specify either a load balancer or one or more listeners.
+// DescribeListeners API operation for Elastic Load Balancing.
+//
+// Describes the specified listeners or the listeners for the specified Application
+// Load Balancer. You must specify either a load balancer or one or more listeners.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation DescribeListeners for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeListenerNotFoundException "ListenerNotFound"
+//   The specified listener does not exist.
+//
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
+//   The specified load balancer does not exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeListeners
 func (c *ELBV2) DescribeListeners(input *DescribeListenersInput) (*DescribeListenersOutput, error) {
 	req, out := c.DescribeListenersRequest(input)
 	err := req.Send()
@@ -643,6 +942,8 @@ const opDescribeLoadBalancerAttributes = "DescribeLoadBalancerAttributes"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See DescribeLoadBalancerAttributes for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -660,6 +961,7 @@ const opDescribeLoadBalancerAttributes = "DescribeLoadBalancerAttributes"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeLoadBalancerAttributes
 func (c *ELBV2) DescribeLoadBalancerAttributesRequest(input *DescribeLoadBalancerAttributesInput) (req *request.Request, output *DescribeLoadBalancerAttributesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeLoadBalancerAttributes,
@@ -671,13 +973,27 @@ func (c *ELBV2) DescribeLoadBalancerAttributesRequest(input *DescribeLoadBalance
 		input = &DescribeLoadBalancerAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeLoadBalancerAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
-// Describes the attributes for the specified load balancer.
+// DescribeLoadBalancerAttributes API operation for Elastic Load Balancing.
+//
+// Describes the attributes for the specified Application Load Balancer.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation DescribeLoadBalancerAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
+//   The specified load balancer does not exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeLoadBalancerAttributes
 func (c *ELBV2) DescribeLoadBalancerAttributes(input *DescribeLoadBalancerAttributesInput) (*DescribeLoadBalancerAttributesOutput, error) {
 	req, out := c.DescribeLoadBalancerAttributesRequest(input)
 	err := req.Send()
@@ -690,6 +1006,8 @@ const opDescribeLoadBalancers = "DescribeLoadBalancers"
 // client's request for the DescribeLoadBalancers operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeLoadBalancers for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -708,6 +1026,7 @@ const opDescribeLoadBalancers = "DescribeLoadBalancers"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeLoadBalancers
 func (c *ELBV2) DescribeLoadBalancersRequest(input *DescribeLoadBalancersInput) (req *request.Request, output *DescribeLoadBalancersOutput) {
 	op := &request.Operation{
 		Name:       opDescribeLoadBalancers,
@@ -725,17 +1044,31 @@ func (c *ELBV2) DescribeLoadBalancersRequest(input *DescribeLoadBalancersInput) 
 		input = &DescribeLoadBalancersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeLoadBalancersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
-// Describes the specified Application load balancers or all of your Application
-// load balancers.
+// DescribeLoadBalancers API operation for Elastic Load Balancing.
+//
+// Describes the specified Application Load Balancers or all of your Application
+// Load Balancers.
 //
 // To describe the listeners for a load balancer, use DescribeListeners. To
 // describe the attributes for a load balancer, use DescribeLoadBalancerAttributes.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation DescribeLoadBalancers for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
+//   The specified load balancer does not exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeLoadBalancers
 func (c *ELBV2) DescribeLoadBalancers(input *DescribeLoadBalancersInput) (*DescribeLoadBalancersOutput, error) {
 	req, out := c.DescribeLoadBalancersRequest(input)
 	err := req.Send()
@@ -774,6 +1107,8 @@ const opDescribeRules = "DescribeRules"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See DescribeRules for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -791,6 +1126,7 @@ const opDescribeRules = "DescribeRules"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeRules
 func (c *ELBV2) DescribeRulesRequest(input *DescribeRulesInput) (req *request.Request, output *DescribeRulesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeRules,
@@ -802,14 +1138,31 @@ func (c *ELBV2) DescribeRulesRequest(input *DescribeRulesInput) (req *request.Re
 		input = &DescribeRulesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeRulesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// DescribeRules API operation for Elastic Load Balancing.
+//
 // Describes the specified rules or the rules for the specified listener. You
 // must specify either a listener or one or more rules.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation DescribeRules for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeListenerNotFoundException "ListenerNotFound"
+//   The specified listener does not exist.
+//
+//   * ErrCodeRuleNotFoundException "RuleNotFound"
+//   The specified rule does not exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeRules
 func (c *ELBV2) DescribeRules(input *DescribeRulesInput) (*DescribeRulesOutput, error) {
 	req, out := c.DescribeRulesRequest(input)
 	err := req.Send()
@@ -822,6 +1175,8 @@ const opDescribeSSLPolicies = "DescribeSSLPolicies"
 // client's request for the DescribeSSLPolicies operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeSSLPolicies for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -840,6 +1195,7 @@ const opDescribeSSLPolicies = "DescribeSSLPolicies"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeSSLPolicies
 func (c *ELBV2) DescribeSSLPoliciesRequest(input *DescribeSSLPoliciesInput) (req *request.Request, output *DescribeSSLPoliciesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSSLPolicies,
@@ -851,15 +1207,29 @@ func (c *ELBV2) DescribeSSLPoliciesRequest(input *DescribeSSLPoliciesInput) (req
 		input = &DescribeSSLPoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSSLPoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// DescribeSSLPolicies API operation for Elastic Load Balancing.
+//
 // Describes the specified policies or all policies used for SSL negotiation.
 //
 // Note that the only supported policy at this time is ELBSecurityPolicy-2015-05.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation DescribeSSLPolicies for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeSSLPolicyNotFoundException "SSLPolicyNotFound"
+//   The specified SSL policy does not exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeSSLPolicies
 func (c *ELBV2) DescribeSSLPolicies(input *DescribeSSLPoliciesInput) (*DescribeSSLPoliciesOutput, error) {
 	req, out := c.DescribeSSLPoliciesRequest(input)
 	err := req.Send()
@@ -872,6 +1242,8 @@ const opDescribeTags = "DescribeTags"
 // client's request for the DescribeTags operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeTags for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -890,6 +1262,7 @@ const opDescribeTags = "DescribeTags"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTags
 func (c *ELBV2) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Request, output *DescribeTagsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTags,
@@ -901,13 +1274,36 @@ func (c *ELBV2) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Requ
 		input = &DescribeTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// DescribeTags API operation for Elastic Load Balancing.
+//
 // Describes the tags for the specified resources.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation DescribeTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
+//   The specified load balancer does not exist.
+//
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
+//   The specified target group does not exist.
+//
+//   * ErrCodeListenerNotFoundException "ListenerNotFound"
+//   The specified listener does not exist.
+//
+//   * ErrCodeRuleNotFoundException "RuleNotFound"
+//   The specified rule does not exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTags
 func (c *ELBV2) DescribeTags(input *DescribeTagsInput) (*DescribeTagsOutput, error) {
 	req, out := c.DescribeTagsRequest(input)
 	err := req.Send()
@@ -920,6 +1316,8 @@ const opDescribeTargetGroupAttributes = "DescribeTargetGroupAttributes"
 // client's request for the DescribeTargetGroupAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeTargetGroupAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -938,6 +1336,7 @@ const opDescribeTargetGroupAttributes = "DescribeTargetGroupAttributes"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTargetGroupAttributes
 func (c *ELBV2) DescribeTargetGroupAttributesRequest(input *DescribeTargetGroupAttributesInput) (req *request.Request, output *DescribeTargetGroupAttributesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTargetGroupAttributes,
@@ -949,13 +1348,27 @@ func (c *ELBV2) DescribeTargetGroupAttributesRequest(input *DescribeTargetGroupA
 		input = &DescribeTargetGroupAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTargetGroupAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// DescribeTargetGroupAttributes API operation for Elastic Load Balancing.
+//
 // Describes the attributes for the specified target group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation DescribeTargetGroupAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
+//   The specified target group does not exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTargetGroupAttributes
 func (c *ELBV2) DescribeTargetGroupAttributes(input *DescribeTargetGroupAttributesInput) (*DescribeTargetGroupAttributesOutput, error) {
 	req, out := c.DescribeTargetGroupAttributesRequest(input)
 	err := req.Send()
@@ -968,6 +1381,8 @@ const opDescribeTargetGroups = "DescribeTargetGroups"
 // client's request for the DescribeTargetGroups operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeTargetGroups for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -986,6 +1401,7 @@ const opDescribeTargetGroups = "DescribeTargetGroups"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTargetGroups
 func (c *ELBV2) DescribeTargetGroupsRequest(input *DescribeTargetGroupsInput) (req *request.Request, output *DescribeTargetGroupsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTargetGroups,
@@ -1003,12 +1419,13 @@ func (c *ELBV2) DescribeTargetGroupsRequest(input *DescribeTargetGroupsInput) (r
 		input = &DescribeTargetGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTargetGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// DescribeTargetGroups API operation for Elastic Load Balancing.
+//
 // Describes the specified target groups or all of your target groups. By default,
 // all target groups are described. Alternatively, you can specify one of the
 // following to filter the results: the ARN of the load balancer, the names
@@ -1016,6 +1433,22 @@ func (c *ELBV2) DescribeTargetGroupsRequest(input *DescribeTargetGroupsInput) (r
 //
 // To describe the targets for a target group, use DescribeTargetHealth. To
 // describe the attributes of a target group, use DescribeTargetGroupAttributes.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation DescribeTargetGroups for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
+//   The specified load balancer does not exist.
+//
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
+//   The specified target group does not exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTargetGroups
 func (c *ELBV2) DescribeTargetGroups(input *DescribeTargetGroupsInput) (*DescribeTargetGroupsOutput, error) {
 	req, out := c.DescribeTargetGroupsRequest(input)
 	err := req.Send()
@@ -1054,6 +1487,8 @@ const opDescribeTargetHealth = "DescribeTargetHealth"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See DescribeTargetHealth for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -1071,6 +1506,7 @@ const opDescribeTargetHealth = "DescribeTargetHealth"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTargetHealth
 func (c *ELBV2) DescribeTargetHealthRequest(input *DescribeTargetHealthInput) (req *request.Request, output *DescribeTargetHealthOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTargetHealth,
@@ -1082,13 +1518,35 @@ func (c *ELBV2) DescribeTargetHealthRequest(input *DescribeTargetHealthInput) (r
 		input = &DescribeTargetHealthInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTargetHealthOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// DescribeTargetHealth API operation for Elastic Load Balancing.
+//
 // Describes the health of the specified targets or all of your targets.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation DescribeTargetHealth for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidTargetException "InvalidTarget"
+//   The specified target does not exist or is not in the same VPC as the target
+//   group.
+//
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
+//   The specified target group does not exist.
+//
+//   * ErrCodeHealthUnavailableException "HealthUnavailable"
+//   The health of the specified targets could not be retrieved due to an internal
+//   error.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTargetHealth
 func (c *ELBV2) DescribeTargetHealth(input *DescribeTargetHealthInput) (*DescribeTargetHealthOutput, error) {
 	req, out := c.DescribeTargetHealthRequest(input)
 	err := req.Send()
@@ -1101,6 +1559,8 @@ const opModifyListener = "ModifyListener"
 // client's request for the ModifyListener operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyListener for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1119,6 +1579,7 @@ const opModifyListener = "ModifyListener"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyListener
 func (c *ELBV2) ModifyListenerRequest(input *ModifyListenerInput) (req *request.Request, output *ModifyListenerOutput) {
 	op := &request.Operation{
 		Name:       opModifyListener,
@@ -1130,18 +1591,66 @@ func (c *ELBV2) ModifyListenerRequest(input *ModifyListenerInput) (req *request.
 		input = &ModifyListenerInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyListenerOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// ModifyListener API operation for Elastic Load Balancing.
+//
 // Modifies the specified properties of the specified listener.
 //
 // Any properties that you do not specify retain their current values. However,
 // changing the protocol from HTTPS to HTTP removes the security policy and
 // SSL certificate properties. If you change the protocol from HTTP to HTTPS,
 // you must add the security policy.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation ModifyListener for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeDuplicateListenerException "DuplicateListener"
+//   A listener with the specified port already exists.
+//
+//   * ErrCodeTooManyListenersException "TooManyListeners"
+//   You've reached the limit on the number of listeners per load balancer.
+//
+//   * ErrCodeTooManyCertificatesException "TooManyCertificates"
+//   You've reached the limit on the number of certificates per listener.
+//
+//   * ErrCodeListenerNotFoundException "ListenerNotFound"
+//   The specified listener does not exist.
+//
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
+//   The specified target group does not exist.
+//
+//   * ErrCodeTargetGroupAssociationLimitException "TargetGroupAssociationLimit"
+//   You've reached the limit on the number of load balancers per target group.
+//
+//   * ErrCodeIncompatibleProtocolsException "IncompatibleProtocols"
+//   The specified configuration is not valid with this protocol.
+//
+//   * ErrCodeSSLPolicyNotFoundException "SSLPolicyNotFound"
+//   The specified SSL policy does not exist.
+//
+//   * ErrCodeCertificateNotFoundException "CertificateNotFound"
+//   The specified certificate does not exist.
+//
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
+//   The requested configuration is not valid.
+//
+//   * ErrCodeUnsupportedProtocolException "UnsupportedProtocol"
+//   The specified protocol is not supported.
+//
+//   * ErrCodeTooManyRegistrationsForTargetIdException "TooManyRegistrationsForTargetId"
+//   You've reached the limit on the number of times a target can be registered
+//   with a load balancer.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyListener
 func (c *ELBV2) ModifyListener(input *ModifyListenerInput) (*ModifyListenerOutput, error) {
 	req, out := c.ModifyListenerRequest(input)
 	err := req.Send()
@@ -1154,6 +1663,8 @@ const opModifyLoadBalancerAttributes = "ModifyLoadBalancerAttributes"
 // client's request for the ModifyLoadBalancerAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyLoadBalancerAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1172,6 +1683,7 @@ const opModifyLoadBalancerAttributes = "ModifyLoadBalancerAttributes"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyLoadBalancerAttributes
 func (c *ELBV2) ModifyLoadBalancerAttributesRequest(input *ModifyLoadBalancerAttributesInput) (req *request.Request, output *ModifyLoadBalancerAttributesOutput) {
 	op := &request.Operation{
 		Name:       opModifyLoadBalancerAttributes,
@@ -1183,17 +1695,34 @@ func (c *ELBV2) ModifyLoadBalancerAttributesRequest(input *ModifyLoadBalancerAtt
 		input = &ModifyLoadBalancerAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyLoadBalancerAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
-// Modifies the specified attributes of the specified load balancer.
+// ModifyLoadBalancerAttributes API operation for Elastic Load Balancing.
+//
+// Modifies the specified attributes of the specified Application Load Balancer.
 //
 // If any of the specified attributes can't be modified as requested, the call
 // fails. Any existing attributes that you do not modify retain their current
 // values.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation ModifyLoadBalancerAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
+//   The specified load balancer does not exist.
+//
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
+//   The requested configuration is not valid.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyLoadBalancerAttributes
 func (c *ELBV2) ModifyLoadBalancerAttributes(input *ModifyLoadBalancerAttributesInput) (*ModifyLoadBalancerAttributesOutput, error) {
 	req, out := c.ModifyLoadBalancerAttributesRequest(input)
 	err := req.Send()
@@ -1206,6 +1735,8 @@ const opModifyRule = "ModifyRule"
 // client's request for the ModifyRule operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyRule for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1224,6 +1755,7 @@ const opModifyRule = "ModifyRule"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyRule
 func (c *ELBV2) ModifyRuleRequest(input *ModifyRuleInput) (req *request.Request, output *ModifyRuleOutput) {
 	op := &request.Operation{
 		Name:       opModifyRule,
@@ -1235,17 +1767,41 @@ func (c *ELBV2) ModifyRuleRequest(input *ModifyRuleInput) (req *request.Request,
 		input = &ModifyRuleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyRuleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// ModifyRule API operation for Elastic Load Balancing.
+//
 // Modifies the specified rule.
 //
 // Any existing properties that you do not modify retain their current values.
 //
 // To modify the default action, use ModifyListener.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation ModifyRule for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeTargetGroupAssociationLimitException "TargetGroupAssociationLimit"
+//   You've reached the limit on the number of load balancers per target group.
+//
+//   * ErrCodeRuleNotFoundException "RuleNotFound"
+//   The specified rule does not exist.
+//
+//   * ErrCodeOperationNotPermittedException "OperationNotPermitted"
+//   This operation is not allowed.
+//
+//   * ErrCodeTooManyRegistrationsForTargetIdException "TooManyRegistrationsForTargetId"
+//   You've reached the limit on the number of times a target can be registered
+//   with a load balancer.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyRule
 func (c *ELBV2) ModifyRule(input *ModifyRuleInput) (*ModifyRuleOutput, error) {
 	req, out := c.ModifyRuleRequest(input)
 	err := req.Send()
@@ -1258,6 +1814,8 @@ const opModifyTargetGroup = "ModifyTargetGroup"
 // client's request for the ModifyTargetGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyTargetGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1276,6 +1834,7 @@ const opModifyTargetGroup = "ModifyTargetGroup"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyTargetGroup
 func (c *ELBV2) ModifyTargetGroupRequest(input *ModifyTargetGroupInput) (req *request.Request, output *ModifyTargetGroupOutput) {
 	op := &request.Operation{
 		Name:       opModifyTargetGroup,
@@ -1287,16 +1846,30 @@ func (c *ELBV2) ModifyTargetGroupRequest(input *ModifyTargetGroupInput) (req *re
 		input = &ModifyTargetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyTargetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// ModifyTargetGroup API operation for Elastic Load Balancing.
+//
 // Modifies the health checks used when evaluating the health state of the targets
 // in the specified target group.
 //
 // To monitor the health of the targets, use DescribeTargetHealth.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation ModifyTargetGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
+//   The specified target group does not exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyTargetGroup
 func (c *ELBV2) ModifyTargetGroup(input *ModifyTargetGroupInput) (*ModifyTargetGroupOutput, error) {
 	req, out := c.ModifyTargetGroupRequest(input)
 	err := req.Send()
@@ -1309,6 +1882,8 @@ const opModifyTargetGroupAttributes = "ModifyTargetGroupAttributes"
 // client's request for the ModifyTargetGroupAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyTargetGroupAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1327,6 +1902,7 @@ const opModifyTargetGroupAttributes = "ModifyTargetGroupAttributes"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyTargetGroupAttributes
 func (c *ELBV2) ModifyTargetGroupAttributesRequest(input *ModifyTargetGroupAttributesInput) (req *request.Request, output *ModifyTargetGroupAttributesOutput) {
 	op := &request.Operation{
 		Name:       opModifyTargetGroupAttributes,
@@ -1338,13 +1914,27 @@ func (c *ELBV2) ModifyTargetGroupAttributesRequest(input *ModifyTargetGroupAttri
 		input = &ModifyTargetGroupAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyTargetGroupAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// ModifyTargetGroupAttributes API operation for Elastic Load Balancing.
+//
 // Modifies the specified attributes of the specified target group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation ModifyTargetGroupAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
+//   The specified target group does not exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyTargetGroupAttributes
 func (c *ELBV2) ModifyTargetGroupAttributes(input *ModifyTargetGroupAttributesInput) (*ModifyTargetGroupAttributesOutput, error) {
 	req, out := c.ModifyTargetGroupAttributesRequest(input)
 	err := req.Send()
@@ -1357,6 +1947,8 @@ const opRegisterTargets = "RegisterTargets"
 // client's request for the RegisterTargets operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RegisterTargets for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1375,6 +1967,7 @@ const opRegisterTargets = "RegisterTargets"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/RegisterTargets
 func (c *ELBV2) RegisterTargetsRequest(input *RegisterTargetsInput) (req *request.Request, output *RegisterTargetsOutput) {
 	op := &request.Operation{
 		Name:       opRegisterTargets,
@@ -1386,18 +1979,48 @@ func (c *ELBV2) RegisterTargetsRequest(input *RegisterTargetsInput) (req *reques
 		input = &RegisterTargetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RegisterTargetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// RegisterTargets API operation for Elastic Load Balancing.
+//
 // Registers the specified targets with the specified target group.
 //
+// By default, the load balancer routes requests to registered targets using
+// the protocol and port number for the target group. Alternatively, you can
+// override the port for a target when you register it.
+//
 // The target must be in the virtual private cloud (VPC) that you specified
-// for the target group.
+// for the target group. If the target is an EC2 instance, it must be in the
+// running state when you register it.
 //
 // To remove a target from a target group, use DeregisterTargets.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation RegisterTargets for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
+//   The specified target group does not exist.
+//
+//   * ErrCodeTooManyTargetsException "TooManyTargets"
+//   You've reached the limit on the number of targets.
+//
+//   * ErrCodeInvalidTargetException "InvalidTarget"
+//   The specified target does not exist or is not in the same VPC as the target
+//   group.
+//
+//   * ErrCodeTooManyRegistrationsForTargetIdException "TooManyRegistrationsForTargetId"
+//   You've reached the limit on the number of times a target can be registered
+//   with a load balancer.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/RegisterTargets
 func (c *ELBV2) RegisterTargets(input *RegisterTargetsInput) (*RegisterTargetsOutput, error) {
 	req, out := c.RegisterTargetsRequest(input)
 	err := req.Send()
@@ -1410,6 +2033,8 @@ const opRemoveTags = "RemoveTags"
 // client's request for the RemoveTags operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RemoveTags for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1428,6 +2053,7 @@ const opRemoveTags = "RemoveTags"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/RemoveTags
 func (c *ELBV2) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Request, output *RemoveTagsOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTags,
@@ -1439,17 +2065,115 @@ func (c *ELBV2) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Request,
 		input = &RemoveTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RemoveTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// RemoveTags API operation for Elastic Load Balancing.
+//
 // Removes the specified tags from the specified resource.
 //
 // To list the current tags for your resources, use DescribeTags.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation RemoveTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
+//   The specified load balancer does not exist.
+//
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
+//   The specified target group does not exist.
+//
+//   * ErrCodeListenerNotFoundException "ListenerNotFound"
+//   The specified listener does not exist.
+//
+//   * ErrCodeRuleNotFoundException "RuleNotFound"
+//   The specified rule does not exist.
+//
+//   * ErrCodeTooManyTagsException "TooManyTags"
+//   You've reached the limit on the number of tags per load balancer.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/RemoveTags
 func (c *ELBV2) RemoveTags(input *RemoveTagsInput) (*RemoveTagsOutput, error) {
 	req, out := c.RemoveTagsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opSetIpAddressType = "SetIpAddressType"
+
+// SetIpAddressTypeRequest generates a "aws/request.Request" representing the
+// client's request for the SetIpAddressType operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See SetIpAddressType for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the SetIpAddressType method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the SetIpAddressTypeRequest method.
+//    req, resp := client.SetIpAddressTypeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetIpAddressType
+func (c *ELBV2) SetIpAddressTypeRequest(input *SetIpAddressTypeInput) (req *request.Request, output *SetIpAddressTypeOutput) {
+	op := &request.Operation{
+		Name:       opSetIpAddressType,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &SetIpAddressTypeInput{}
+	}
+
+	output = &SetIpAddressTypeOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// SetIpAddressType API operation for Elastic Load Balancing.
+//
+// Sets the type of IP addresses used by the subnets of the specified Application
+// Load Balancer.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation SetIpAddressType for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
+//   The specified load balancer does not exist.
+//
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
+//   The requested configuration is not valid.
+//
+//   * ErrCodeInvalidSubnetException "InvalidSubnet"
+//   The specified subnet is out of available addresses.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetIpAddressType
+func (c *ELBV2) SetIpAddressType(input *SetIpAddressTypeInput) (*SetIpAddressTypeOutput, error) {
+	req, out := c.SetIpAddressTypeRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -1460,6 +2184,8 @@ const opSetRulePriorities = "SetRulePriorities"
 // client's request for the SetRulePriorities operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetRulePriorities for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1478,6 +2204,7 @@ const opSetRulePriorities = "SetRulePriorities"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetRulePriorities
 func (c *ELBV2) SetRulePrioritiesRequest(input *SetRulePrioritiesInput) (req *request.Request, output *SetRulePrioritiesOutput) {
 	op := &request.Operation{
 		Name:       opSetRulePriorities,
@@ -1489,17 +2216,37 @@ func (c *ELBV2) SetRulePrioritiesRequest(input *SetRulePrioritiesInput) (req *re
 		input = &SetRulePrioritiesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetRulePrioritiesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// SetRulePriorities API operation for Elastic Load Balancing.
+//
 // Sets the priorities of the specified rules.
 //
-// You can reorder the rules as long as there are no priority conflicts in
-// the new order. Any existing rules that you do not specify retain their current
+// You can reorder the rules as long as there are no priority conflicts in the
+// new order. Any existing rules that you do not specify retain their current
 // priority.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation SetRulePriorities for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeRuleNotFoundException "RuleNotFound"
+//   The specified rule does not exist.
+//
+//   * ErrCodePriorityInUseException "PriorityInUse"
+//   The specified priority is in use.
+//
+//   * ErrCodeOperationNotPermittedException "OperationNotPermitted"
+//   This operation is not allowed.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetRulePriorities
 func (c *ELBV2) SetRulePriorities(input *SetRulePrioritiesInput) (*SetRulePrioritiesOutput, error) {
 	req, out := c.SetRulePrioritiesRequest(input)
 	err := req.Send()
@@ -1512,6 +2259,8 @@ const opSetSecurityGroups = "SetSecurityGroups"
 // client's request for the SetSecurityGroups operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetSecurityGroups for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1530,6 +2279,7 @@ const opSetSecurityGroups = "SetSecurityGroups"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetSecurityGroups
 func (c *ELBV2) SetSecurityGroupsRequest(input *SetSecurityGroupsInput) (req *request.Request, output *SetSecurityGroupsOutput) {
 	op := &request.Operation{
 		Name:       opSetSecurityGroups,
@@ -1541,15 +2291,35 @@ func (c *ELBV2) SetSecurityGroupsRequest(input *SetSecurityGroupsInput) (req *re
 		input = &SetSecurityGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetSecurityGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// SetSecurityGroups API operation for Elastic Load Balancing.
+//
 // Associates the specified security groups with the specified load balancer.
 // The specified security groups override the previously associated security
 // groups.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation SetSecurityGroups for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
+//   The specified load balancer does not exist.
+//
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
+//   The requested configuration is not valid.
+//
+//   * ErrCodeInvalidSecurityGroupException "InvalidSecurityGroup"
+//   The specified security group does not exist.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetSecurityGroups
 func (c *ELBV2) SetSecurityGroups(input *SetSecurityGroupsInput) (*SetSecurityGroupsOutput, error) {
 	req, out := c.SetSecurityGroupsRequest(input)
 	err := req.Send()
@@ -1562,6 +2332,8 @@ const opSetSubnets = "SetSubnets"
 // client's request for the SetSubnets operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetSubnets for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1580,6 +2352,7 @@ const opSetSubnets = "SetSubnets"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetSubnets
 func (c *ELBV2) SetSubnetsRequest(input *SetSubnetsInput) (req *request.Request, output *SetSubnetsOutput) {
 	op := &request.Operation{
 		Name:       opSetSubnets,
@@ -1591,14 +2364,37 @@ func (c *ELBV2) SetSubnetsRequest(input *SetSubnetsInput) (req *request.Request,
 		input = &SetSubnetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetSubnetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
+// SetSubnets API operation for Elastic Load Balancing.
+//
 // Enables the Availability Zone for the specified subnets for the specified
 // load balancer. The specified subnets replace the previously enabled subnets.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Elastic Load Balancing's
+// API operation SetSubnets for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
+//   The specified load balancer does not exist.
+//
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
+//   The requested configuration is not valid.
+//
+//   * ErrCodeSubnetNotFoundException "SubnetNotFound"
+//   The specified subnet does not exist.
+//
+//   * ErrCodeInvalidSubnetException "InvalidSubnet"
+//   The specified subnet is out of available addresses.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetSubnets
 func (c *ELBV2) SetSubnets(input *SetSubnetsInput) (*SetSubnetsOutput, error) {
 	req, out := c.SetSubnetsRequest(input)
 	err := req.Send()
@@ -1606,13 +2402,18 @@ func (c *ELBV2) SetSubnets(input *SetSubnetsInput) (*SetSubnetsOutput, error) {
 }
 
 // Information about an action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/Action
 type Action struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the target group.
+	//
+	// TargetGroupArn is a required field
 	TargetGroupArn *string `type:"string" required:"true"`
 
 	// The type of action.
+	//
+	// Type is a required field
 	Type *string `type:"string" required:"true" enum:"ActionTypeEnum"`
 }
 
@@ -1642,14 +2443,30 @@ func (s *Action) Validate() error {
 	return nil
 }
 
-// Contains the parameters for AddTags.
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *Action) SetTargetGroupArn(v string) *Action {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *Action) SetType(v string) *Action {
+	s.Type = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/AddTagsInput
 type AddTagsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the resource.
+	//
+	// ResourceArns is a required field
 	ResourceArns []*string `type:"list" required:"true"`
 
 	// The tags. Each resource can have a maximum of 10 tags.
+	//
+	// Tags is a required field
 	Tags []*Tag `min:"1" type:"list" required:"true"`
 }
 
@@ -1692,7 +2509,19 @@ func (s *AddTagsInput) Validate() error {
 	return nil
 }
 
-// Contains the output of AddTags.
+// SetResourceArns sets the ResourceArns field's value.
+func (s *AddTagsInput) SetResourceArns(v []*string) *AddTagsInput {
+	s.ResourceArns = v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *AddTagsInput) SetTags(v []*Tag) *AddTagsInput {
+	s.Tags = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/AddTagsOutput
 type AddTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1708,6 +2537,7 @@ func (s AddTagsOutput) GoString() string {
 }
 
 // Information about an Availability Zone.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/AvailabilityZone
 type AvailabilityZone struct {
 	_ struct{} `type:"structure"`
 
@@ -1728,7 +2558,20 @@ func (s AvailabilityZone) GoString() string {
 	return s.String()
 }
 
+// SetSubnetId sets the SubnetId field's value.
+func (s *AvailabilityZone) SetSubnetId(v string) *AvailabilityZone {
+	s.SubnetId = &v
+	return s
+}
+
+// SetZoneName sets the ZoneName field's value.
+func (s *AvailabilityZone) SetZoneName(v string) *AvailabilityZone {
+	s.ZoneName = &v
+	return s
+}
+
 // Information about an SSL server certificate deployed on a load balancer.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/Certificate
 type Certificate struct {
 	_ struct{} `type:"structure"`
 
@@ -1746,7 +2589,14 @@ func (s Certificate) GoString() string {
 	return s.String()
 }
 
+// SetCertificateArn sets the CertificateArn field's value.
+func (s *Certificate) SetCertificateArn(v string) *Certificate {
+	s.CertificateArn = &v
+	return s
+}
+
 // Information about a cipher used in a policy.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/Cipher
 type Cipher struct {
 	_ struct{} `type:"structure"`
 
@@ -1767,7 +2617,19 @@ func (s Cipher) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for CreateListener.
+// SetName sets the Name field's value.
+func (s *Cipher) SetName(v string) *Cipher {
+	s.Name = &v
+	return s
+}
+
+// SetPriority sets the Priority field's value.
+func (s *Cipher) SetPriority(v int64) *Cipher {
+	s.Priority = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateListenerInput
 type CreateListenerInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1775,16 +2637,24 @@ type CreateListenerInput struct {
 	// protocol is HTTPS.
 	Certificates []*Certificate `type:"list"`
 
-	// The default actions for the listener.
+	// The default action for the listener.
+	//
+	// DefaultActions is a required field
 	DefaultActions []*Action `type:"list" required:"true"`
 
 	// The Amazon Resource Name (ARN) of the load balancer.
+	//
+	// LoadBalancerArn is a required field
 	LoadBalancerArn *string `type:"string" required:"true"`
 
 	// The port on which the load balancer is listening.
+	//
+	// Port is a required field
 	Port *int64 `min:"1" type:"integer" required:"true"`
 
 	// The protocol for connections from clients to the load balancer.
+	//
+	// Protocol is a required field
 	Protocol *string `type:"string" required:"true" enum:"ProtocolEnum"`
 
 	// The security policy that defines which ciphers and protocols are supported.
@@ -1837,7 +2707,43 @@ func (s *CreateListenerInput) Validate() error {
 	return nil
 }
 
-// Contains the output of CreateListener.
+// SetCertificates sets the Certificates field's value.
+func (s *CreateListenerInput) SetCertificates(v []*Certificate) *CreateListenerInput {
+	s.Certificates = v
+	return s
+}
+
+// SetDefaultActions sets the DefaultActions field's value.
+func (s *CreateListenerInput) SetDefaultActions(v []*Action) *CreateListenerInput {
+	s.DefaultActions = v
+	return s
+}
+
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *CreateListenerInput) SetLoadBalancerArn(v string) *CreateListenerInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *CreateListenerInput) SetPort(v int64) *CreateListenerInput {
+	s.Port = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *CreateListenerInput) SetProtocol(v string) *CreateListenerInput {
+	s.Protocol = &v
+	return s
+}
+
+// SetSslPolicy sets the SslPolicy field's value.
+func (s *CreateListenerInput) SetSslPolicy(v string) *CreateListenerInput {
+	s.SslPolicy = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateListenerOutput
 type CreateListenerOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1855,15 +2761,28 @@ func (s CreateListenerOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for CreateLoadBalancer.
+// SetListeners sets the Listeners field's value.
+func (s *CreateListenerOutput) SetListeners(v []*Listener) *CreateListenerOutput {
+	s.Listeners = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateLoadBalancerInput
 type CreateLoadBalancerInput struct {
 	_ struct{} `type:"structure"`
 
+	// The type of IP addresses used by the subnets for your load balancer. The
+	// possible values are ipv4 (for IPv4 addresses) and dualstack (for IPv4 and
+	// IPv6 addresses). Internal load balancers must use ipv4.
+	IpAddressType *string `type:"string" enum:"IpAddressType"`
+
 	// The name of the load balancer.
 	//
-	// This name must be unique within your AWS account, can have a maximum of
-	// 32 characters, must contain only alphanumeric characters or hyphens, and
-	// must not begin or end with a hyphen.
+	// This name must be unique within your AWS account, can have a maximum of 32
+	// characters, must contain only alphanumeric characters or hyphens, and must
+	// not begin or end with a hyphen.
+	//
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 
 	// The nodes of an Internet-facing load balancer have public IP addresses. The
@@ -1885,6 +2804,8 @@ type CreateLoadBalancerInput struct {
 	// The IDs of the subnets to attach to the load balancer. You can specify only
 	// one subnet per Availability Zone. You must specify subnets from at least
 	// two Availability Zones.
+	//
+	// Subnets is a required field
 	Subnets []*string `type:"list" required:"true"`
 
 	// One or more tags to assign to the load balancer.
@@ -1930,7 +2851,43 @@ func (s *CreateLoadBalancerInput) Validate() error {
 	return nil
 }
 
-// Contains the output of CreateLoadBalancer.
+// SetIpAddressType sets the IpAddressType field's value.
+func (s *CreateLoadBalancerInput) SetIpAddressType(v string) *CreateLoadBalancerInput {
+	s.IpAddressType = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateLoadBalancerInput) SetName(v string) *CreateLoadBalancerInput {
+	s.Name = &v
+	return s
+}
+
+// SetScheme sets the Scheme field's value.
+func (s *CreateLoadBalancerInput) SetScheme(v string) *CreateLoadBalancerInput {
+	s.Scheme = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *CreateLoadBalancerInput) SetSecurityGroups(v []*string) *CreateLoadBalancerInput {
+	s.SecurityGroups = v
+	return s
+}
+
+// SetSubnets sets the Subnets field's value.
+func (s *CreateLoadBalancerInput) SetSubnets(v []*string) *CreateLoadBalancerInput {
+	s.Subnets = v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateLoadBalancerInput) SetTags(v []*Tag) *CreateLoadBalancerInput {
+	s.Tags = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateLoadBalancerOutput
 type CreateLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1948,21 +2905,48 @@ func (s CreateLoadBalancerOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for CreateRule.
+// SetLoadBalancers sets the LoadBalancers field's value.
+func (s *CreateLoadBalancerOutput) SetLoadBalancers(v []*LoadBalancer) *CreateLoadBalancerOutput {
+	s.LoadBalancers = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateRuleInput
 type CreateRuleInput struct {
 	_ struct{} `type:"structure"`
 
-	// The actions for the rule.
+	// An action. Each action has the type forward and specifies a target group.
+	//
+	// Actions is a required field
 	Actions []*Action `type:"list" required:"true"`
 
-	// The conditions.
+	// A condition. Each condition has the field path-pattern and specifies one
+	// path pattern. A path pattern is case sensitive, can be up to 128 characters
+	// in length, and can contain any of the following characters. Note that you
+	// can include up to three wildcard characters in a path pattern.
+	//
+	//    * A-Z, a-z, 0-9
+	//
+	//    * _ - . $ / ~ " ' @ : +
+	//
+	//    * & (using &)
+	//
+	//    * * (matches 0 or more characters)
+	//
+	//    * ? (matches exactly 1 character)
+	//
+	// Conditions is a required field
 	Conditions []*RuleCondition `type:"list" required:"true"`
 
 	// The Amazon Resource Name (ARN) of the listener.
+	//
+	// ListenerArn is a required field
 	ListenerArn *string `type:"string" required:"true"`
 
 	// The priority for the rule. A listener can't have multiple rules with the
 	// same priority.
+	//
+	// Priority is a required field
 	Priority *int64 `min:"1" type:"integer" required:"true"`
 }
 
@@ -2011,7 +2995,31 @@ func (s *CreateRuleInput) Validate() error {
 	return nil
 }
 
-// Contains the output of CreateRule.
+// SetActions sets the Actions field's value.
+func (s *CreateRuleInput) SetActions(v []*Action) *CreateRuleInput {
+	s.Actions = v
+	return s
+}
+
+// SetConditions sets the Conditions field's value.
+func (s *CreateRuleInput) SetConditions(v []*RuleCondition) *CreateRuleInput {
+	s.Conditions = v
+	return s
+}
+
+// SetListenerArn sets the ListenerArn field's value.
+func (s *CreateRuleInput) SetListenerArn(v string) *CreateRuleInput {
+	s.ListenerArn = &v
+	return s
+}
+
+// SetPriority sets the Priority field's value.
+func (s *CreateRuleInput) SetPriority(v int64) *CreateRuleInput {
+	s.Priority = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateRuleOutput
 type CreateRuleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2029,7 +3037,13 @@ func (s CreateRuleOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for CreateTargetGroup.
+// SetRules sets the Rules field's value.
+func (s *CreateRuleOutput) SetRules(v []*Rule) *CreateRuleOutput {
+	s.Rules = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateTargetGroupInput
 type CreateTargetGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2063,13 +3077,19 @@ type CreateTargetGroupInput struct {
 	Matcher *Matcher `type:"structure"`
 
 	// The name of the target group.
+	//
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 
 	// The port on which the targets receive traffic. This port is used unless you
 	// specify a port override when registering the target.
+	//
+	// Port is a required field
 	Port *int64 `min:"1" type:"integer" required:"true"`
 
 	// The protocol to use for routing traffic to the targets.
+	//
+	// Protocol is a required field
 	Protocol *string `type:"string" required:"true" enum:"ProtocolEnum"`
 
 	// The number of consecutive health check failures required before considering
@@ -2077,6 +3097,8 @@ type CreateTargetGroupInput struct {
 	UnhealthyThresholdCount *int64 `min:"2" type:"integer"`
 
 	// The identifier of the virtual private cloud (VPC).
+	//
+	// VpcId is a required field
 	VpcId *string `type:"string" required:"true"`
 }
 
@@ -2135,7 +3157,79 @@ func (s *CreateTargetGroupInput) Validate() error {
 	return nil
 }
 
-// Contains the output of CreateTargetGroup.
+// SetHealthCheckIntervalSeconds sets the HealthCheckIntervalSeconds field's value.
+func (s *CreateTargetGroupInput) SetHealthCheckIntervalSeconds(v int64) *CreateTargetGroupInput {
+	s.HealthCheckIntervalSeconds = &v
+	return s
+}
+
+// SetHealthCheckPath sets the HealthCheckPath field's value.
+func (s *CreateTargetGroupInput) SetHealthCheckPath(v string) *CreateTargetGroupInput {
+	s.HealthCheckPath = &v
+	return s
+}
+
+// SetHealthCheckPort sets the HealthCheckPort field's value.
+func (s *CreateTargetGroupInput) SetHealthCheckPort(v string) *CreateTargetGroupInput {
+	s.HealthCheckPort = &v
+	return s
+}
+
+// SetHealthCheckProtocol sets the HealthCheckProtocol field's value.
+func (s *CreateTargetGroupInput) SetHealthCheckProtocol(v string) *CreateTargetGroupInput {
+	s.HealthCheckProtocol = &v
+	return s
+}
+
+// SetHealthCheckTimeoutSeconds sets the HealthCheckTimeoutSeconds field's value.
+func (s *CreateTargetGroupInput) SetHealthCheckTimeoutSeconds(v int64) *CreateTargetGroupInput {
+	s.HealthCheckTimeoutSeconds = &v
+	return s
+}
+
+// SetHealthyThresholdCount sets the HealthyThresholdCount field's value.
+func (s *CreateTargetGroupInput) SetHealthyThresholdCount(v int64) *CreateTargetGroupInput {
+	s.HealthyThresholdCount = &v
+	return s
+}
+
+// SetMatcher sets the Matcher field's value.
+func (s *CreateTargetGroupInput) SetMatcher(v *Matcher) *CreateTargetGroupInput {
+	s.Matcher = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateTargetGroupInput) SetName(v string) *CreateTargetGroupInput {
+	s.Name = &v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *CreateTargetGroupInput) SetPort(v int64) *CreateTargetGroupInput {
+	s.Port = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *CreateTargetGroupInput) SetProtocol(v string) *CreateTargetGroupInput {
+	s.Protocol = &v
+	return s
+}
+
+// SetUnhealthyThresholdCount sets the UnhealthyThresholdCount field's value.
+func (s *CreateTargetGroupInput) SetUnhealthyThresholdCount(v int64) *CreateTargetGroupInput {
+	s.UnhealthyThresholdCount = &v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *CreateTargetGroupInput) SetVpcId(v string) *CreateTargetGroupInput {
+	s.VpcId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateTargetGroupOutput
 type CreateTargetGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2153,11 +3247,19 @@ func (s CreateTargetGroupOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for DeleteListener.
+// SetTargetGroups sets the TargetGroups field's value.
+func (s *CreateTargetGroupOutput) SetTargetGroups(v []*TargetGroup) *CreateTargetGroupOutput {
+	s.TargetGroups = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteListenerInput
 type DeleteListenerInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the listener.
+	//
+	// ListenerArn is a required field
 	ListenerArn *string `type:"string" required:"true"`
 }
 
@@ -2184,7 +3286,13 @@ func (s *DeleteListenerInput) Validate() error {
 	return nil
 }
 
-// Contains the output of DeleteListener.
+// SetListenerArn sets the ListenerArn field's value.
+func (s *DeleteListenerInput) SetListenerArn(v string) *DeleteListenerInput {
+	s.ListenerArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteListenerOutput
 type DeleteListenerOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2199,11 +3307,13 @@ func (s DeleteListenerOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for DeleteLoadBalancer.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteLoadBalancerInput
 type DeleteLoadBalancerInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the load balancer.
+	//
+	// LoadBalancerArn is a required field
 	LoadBalancerArn *string `type:"string" required:"true"`
 }
 
@@ -2230,7 +3340,13 @@ func (s *DeleteLoadBalancerInput) Validate() error {
 	return nil
 }
 
-// Contains the output of DeleteLoadBalancer.
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *DeleteLoadBalancerInput) SetLoadBalancerArn(v string) *DeleteLoadBalancerInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteLoadBalancerOutput
 type DeleteLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2245,11 +3361,13 @@ func (s DeleteLoadBalancerOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for DeleteRule.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteRuleInput
 type DeleteRuleInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the rule.
+	//
+	// RuleArn is a required field
 	RuleArn *string `type:"string" required:"true"`
 }
 
@@ -2276,7 +3394,13 @@ func (s *DeleteRuleInput) Validate() error {
 	return nil
 }
 
-// Contains the output of DeleteRule.
+// SetRuleArn sets the RuleArn field's value.
+func (s *DeleteRuleInput) SetRuleArn(v string) *DeleteRuleInput {
+	s.RuleArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteRuleOutput
 type DeleteRuleOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2291,11 +3415,13 @@ func (s DeleteRuleOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for DeleteTargetGroup.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteTargetGroupInput
 type DeleteTargetGroupInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the target group.
+	//
+	// TargetGroupArn is a required field
 	TargetGroupArn *string `type:"string" required:"true"`
 }
 
@@ -2322,7 +3448,13 @@ func (s *DeleteTargetGroupInput) Validate() error {
 	return nil
 }
 
-// Contains the output of DeleteTargetGroup.
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *DeleteTargetGroupInput) SetTargetGroupArn(v string) *DeleteTargetGroupInput {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteTargetGroupOutput
 type DeleteTargetGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2337,14 +3469,19 @@ func (s DeleteTargetGroupOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for DeregisterTargets.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeregisterTargetsInput
 type DeregisterTargetsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the target group.
+	//
+	// TargetGroupArn is a required field
 	TargetGroupArn *string `type:"string" required:"true"`
 
-	// The targets.
+	// The targets. If you specified a port override when you registered a target,
+	// you must specify both the target ID and the port when you deregister it.
+	//
+	// Targets is a required field
 	Targets []*TargetDescription `type:"list" required:"true"`
 }
 
@@ -2384,7 +3521,19 @@ func (s *DeregisterTargetsInput) Validate() error {
 	return nil
 }
 
-// Contains the output of DeregisterTargets.
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *DeregisterTargetsInput) SetTargetGroupArn(v string) *DeregisterTargetsInput {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// SetTargets sets the Targets field's value.
+func (s *DeregisterTargetsInput) SetTargets(v []*TargetDescription) *DeregisterTargetsInput {
+	s.Targets = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeregisterTargetsOutput
 type DeregisterTargetsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2399,7 +3548,7 @@ func (s DeregisterTargetsOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for DescribeListeners.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeListenersInput
 type DescribeListenersInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2440,7 +3589,31 @@ func (s *DescribeListenersInput) Validate() error {
 	return nil
 }
 
-// Contains the output of DescribeListeners.
+// SetListenerArns sets the ListenerArns field's value.
+func (s *DescribeListenersInput) SetListenerArns(v []*string) *DescribeListenersInput {
+	s.ListenerArns = v
+	return s
+}
+
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *DescribeListenersInput) SetLoadBalancerArn(v string) *DescribeListenersInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeListenersInput) SetMarker(v string) *DescribeListenersInput {
+	s.Marker = &v
+	return s
+}
+
+// SetPageSize sets the PageSize field's value.
+func (s *DescribeListenersInput) SetPageSize(v int64) *DescribeListenersInput {
+	s.PageSize = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeListenersOutput
 type DescribeListenersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2462,11 +3635,25 @@ func (s DescribeListenersOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for DescribeLoadBalancerAttributes.
+// SetListeners sets the Listeners field's value.
+func (s *DescribeListenersOutput) SetListeners(v []*Listener) *DescribeListenersOutput {
+	s.Listeners = v
+	return s
+}
+
+// SetNextMarker sets the NextMarker field's value.
+func (s *DescribeListenersOutput) SetNextMarker(v string) *DescribeListenersOutput {
+	s.NextMarker = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeLoadBalancerAttributesInput
 type DescribeLoadBalancerAttributesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the load balancer.
+	//
+	// LoadBalancerArn is a required field
 	LoadBalancerArn *string `type:"string" required:"true"`
 }
 
@@ -2493,7 +3680,13 @@ func (s *DescribeLoadBalancerAttributesInput) Validate() error {
 	return nil
 }
 
-// Contains the output of DescribeLoadBalancerAttributes.
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *DescribeLoadBalancerAttributesInput) SetLoadBalancerArn(v string) *DescribeLoadBalancerAttributesInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeLoadBalancerAttributesOutput
 type DescribeLoadBalancerAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2511,7 +3704,13 @@ func (s DescribeLoadBalancerAttributesOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for DescribeLoadBalancers.
+// SetAttributes sets the Attributes field's value.
+func (s *DescribeLoadBalancerAttributesOutput) SetAttributes(v []*LoadBalancerAttribute) *DescribeLoadBalancerAttributesOutput {
+	s.Attributes = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeLoadBalancersInput
 type DescribeLoadBalancersInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2552,7 +3751,31 @@ func (s *DescribeLoadBalancersInput) Validate() error {
 	return nil
 }
 
-// Contains the output of DescribeLoadBalancers.
+// SetLoadBalancerArns sets the LoadBalancerArns field's value.
+func (s *DescribeLoadBalancersInput) SetLoadBalancerArns(v []*string) *DescribeLoadBalancersInput {
+	s.LoadBalancerArns = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeLoadBalancersInput) SetMarker(v string) *DescribeLoadBalancersInput {
+	s.Marker = &v
+	return s
+}
+
+// SetNames sets the Names field's value.
+func (s *DescribeLoadBalancersInput) SetNames(v []*string) *DescribeLoadBalancersInput {
+	s.Names = v
+	return s
+}
+
+// SetPageSize sets the PageSize field's value.
+func (s *DescribeLoadBalancersInput) SetPageSize(v int64) *DescribeLoadBalancersInput {
+	s.PageSize = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeLoadBalancersOutput
 type DescribeLoadBalancersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2574,7 +3797,19 @@ func (s DescribeLoadBalancersOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for DescribeRules.
+// SetLoadBalancers sets the LoadBalancers field's value.
+func (s *DescribeLoadBalancersOutput) SetLoadBalancers(v []*LoadBalancer) *DescribeLoadBalancersOutput {
+	s.LoadBalancers = v
+	return s
+}
+
+// SetNextMarker sets the NextMarker field's value.
+func (s *DescribeLoadBalancersOutput) SetNextMarker(v string) *DescribeLoadBalancersOutput {
+	s.NextMarker = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeRulesInput
 type DescribeRulesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2595,7 +3830,19 @@ func (s DescribeRulesInput) GoString() string {
 	return s.String()
 }
 
-// Contains the output of DescribeRules.
+// SetListenerArn sets the ListenerArn field's value.
+func (s *DescribeRulesInput) SetListenerArn(v string) *DescribeRulesInput {
+	s.ListenerArn = &v
+	return s
+}
+
+// SetRuleArns sets the RuleArns field's value.
+func (s *DescribeRulesInput) SetRuleArns(v []*string) *DescribeRulesInput {
+	s.RuleArns = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeRulesOutput
 type DescribeRulesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2613,7 +3860,13 @@ func (s DescribeRulesOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for DescribeSSLPolicies.
+// SetRules sets the Rules field's value.
+func (s *DescribeRulesOutput) SetRules(v []*Rule) *DescribeRulesOutput {
+	s.Rules = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeSSLPoliciesInput
 type DescribeSSLPoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2651,7 +3904,25 @@ func (s *DescribeSSLPoliciesInput) Validate() error {
 	return nil
 }
 
-// Contains the output of DescribeSSLPolicies.
+// SetMarker sets the Marker field's value.
+func (s *DescribeSSLPoliciesInput) SetMarker(v string) *DescribeSSLPoliciesInput {
+	s.Marker = &v
+	return s
+}
+
+// SetNames sets the Names field's value.
+func (s *DescribeSSLPoliciesInput) SetNames(v []*string) *DescribeSSLPoliciesInput {
+	s.Names = v
+	return s
+}
+
+// SetPageSize sets the PageSize field's value.
+func (s *DescribeSSLPoliciesInput) SetPageSize(v int64) *DescribeSSLPoliciesInput {
+	s.PageSize = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeSSLPoliciesOutput
 type DescribeSSLPoliciesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2673,11 +3944,25 @@ func (s DescribeSSLPoliciesOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for DescribeTags.
+// SetNextMarker sets the NextMarker field's value.
+func (s *DescribeSSLPoliciesOutput) SetNextMarker(v string) *DescribeSSLPoliciesOutput {
+	s.NextMarker = &v
+	return s
+}
+
+// SetSslPolicies sets the SslPolicies field's value.
+func (s *DescribeSSLPoliciesOutput) SetSslPolicies(v []*SslPolicy) *DescribeSSLPoliciesOutput {
+	s.SslPolicies = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTagsInput
 type DescribeTagsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Names (ARN) of the resources.
+	//
+	// ResourceArns is a required field
 	ResourceArns []*string `type:"list" required:"true"`
 }
 
@@ -2704,7 +3989,13 @@ func (s *DescribeTagsInput) Validate() error {
 	return nil
 }
 
-// Contains the output of DescribeTags.
+// SetResourceArns sets the ResourceArns field's value.
+func (s *DescribeTagsInput) SetResourceArns(v []*string) *DescribeTagsInput {
+	s.ResourceArns = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTagsOutput
 type DescribeTagsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2722,11 +4013,19 @@ func (s DescribeTagsOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for DescribeTargetGroupAttributes.
+// SetTagDescriptions sets the TagDescriptions field's value.
+func (s *DescribeTagsOutput) SetTagDescriptions(v []*TagDescription) *DescribeTagsOutput {
+	s.TagDescriptions = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTargetGroupAttributesInput
 type DescribeTargetGroupAttributesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the target group.
+	//
+	// TargetGroupArn is a required field
 	TargetGroupArn *string `type:"string" required:"true"`
 }
 
@@ -2753,7 +4052,13 @@ func (s *DescribeTargetGroupAttributesInput) Validate() error {
 	return nil
 }
 
-// Contains the output of DescribeTargetGroupAttributes.
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *DescribeTargetGroupAttributesInput) SetTargetGroupArn(v string) *DescribeTargetGroupAttributesInput {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTargetGroupAttributesOutput
 type DescribeTargetGroupAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2771,7 +4076,13 @@ func (s DescribeTargetGroupAttributesOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for DescribeTargetGroups.
+// SetAttributes sets the Attributes field's value.
+func (s *DescribeTargetGroupAttributesOutput) SetAttributes(v []*TargetGroupAttribute) *DescribeTargetGroupAttributesOutput {
+	s.Attributes = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTargetGroupsInput
 type DescribeTargetGroupsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2815,7 +4126,37 @@ func (s *DescribeTargetGroupsInput) Validate() error {
 	return nil
 }
 
-// Contains the output of DescribeTargetGroups.
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *DescribeTargetGroupsInput) SetLoadBalancerArn(v string) *DescribeTargetGroupsInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeTargetGroupsInput) SetMarker(v string) *DescribeTargetGroupsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetNames sets the Names field's value.
+func (s *DescribeTargetGroupsInput) SetNames(v []*string) *DescribeTargetGroupsInput {
+	s.Names = v
+	return s
+}
+
+// SetPageSize sets the PageSize field's value.
+func (s *DescribeTargetGroupsInput) SetPageSize(v int64) *DescribeTargetGroupsInput {
+	s.PageSize = &v
+	return s
+}
+
+// SetTargetGroupArns sets the TargetGroupArns field's value.
+func (s *DescribeTargetGroupsInput) SetTargetGroupArns(v []*string) *DescribeTargetGroupsInput {
+	s.TargetGroupArns = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTargetGroupsOutput
 type DescribeTargetGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2837,11 +4178,25 @@ func (s DescribeTargetGroupsOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for DescribeTargetHealth.
+// SetNextMarker sets the NextMarker field's value.
+func (s *DescribeTargetGroupsOutput) SetNextMarker(v string) *DescribeTargetGroupsOutput {
+	s.NextMarker = &v
+	return s
+}
+
+// SetTargetGroups sets the TargetGroups field's value.
+func (s *DescribeTargetGroupsOutput) SetTargetGroups(v []*TargetGroup) *DescribeTargetGroupsOutput {
+	s.TargetGroups = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTargetHealthInput
 type DescribeTargetHealthInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the target group.
+	//
+	// TargetGroupArn is a required field
 	TargetGroupArn *string `type:"string" required:"true"`
 
 	// The targets.
@@ -2881,7 +4236,19 @@ func (s *DescribeTargetHealthInput) Validate() error {
 	return nil
 }
 
-// Contains the output of DescribeTargetHealth.
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *DescribeTargetHealthInput) SetTargetGroupArn(v string) *DescribeTargetHealthInput {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// SetTargets sets the Targets field's value.
+func (s *DescribeTargetHealthInput) SetTargets(v []*TargetDescription) *DescribeTargetHealthInput {
+	s.Targets = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTargetHealthOutput
 type DescribeTargetHealthOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2899,7 +4266,14 @@ func (s DescribeTargetHealthOutput) GoString() string {
 	return s.String()
 }
 
+// SetTargetHealthDescriptions sets the TargetHealthDescriptions field's value.
+func (s *DescribeTargetHealthOutput) SetTargetHealthDescriptions(v []*TargetHealthDescription) *DescribeTargetHealthOutput {
+	s.TargetHealthDescriptions = v
+	return s
+}
+
 // Information about a listener.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/Listener
 type Listener struct {
 	_ struct{} `type:"structure"`
 
@@ -2937,7 +4311,50 @@ func (s Listener) GoString() string {
 	return s.String()
 }
 
+// SetCertificates sets the Certificates field's value.
+func (s *Listener) SetCertificates(v []*Certificate) *Listener {
+	s.Certificates = v
+	return s
+}
+
+// SetDefaultActions sets the DefaultActions field's value.
+func (s *Listener) SetDefaultActions(v []*Action) *Listener {
+	s.DefaultActions = v
+	return s
+}
+
+// SetListenerArn sets the ListenerArn field's value.
+func (s *Listener) SetListenerArn(v string) *Listener {
+	s.ListenerArn = &v
+	return s
+}
+
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *Listener) SetLoadBalancerArn(v string) *Listener {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *Listener) SetPort(v int64) *Listener {
+	s.Port = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *Listener) SetProtocol(v string) *Listener {
+	s.Protocol = &v
+	return s
+}
+
+// SetSslPolicy sets the SslPolicy field's value.
+func (s *Listener) SetSslPolicy(v string) *Listener {
+	s.SslPolicy = &v
+	return s
+}
+
 // Information about a load balancer.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/LoadBalancer
 type LoadBalancer struct {
 	_ struct{} `type:"structure"`
 
@@ -2952,6 +4369,11 @@ type LoadBalancer struct {
 
 	// The public DNS name of the load balancer.
 	DNSName *string `type:"string"`
+
+	// The type of IP addresses used by the subnets for your load balancer. The
+	// possible values are ipv4 (for IPv4 addresses) and dualstack (for IPv4 and
+	// IPv6 addresses).
+	IpAddressType *string `type:"string" enum:"IpAddressType"`
 
 	// The Amazon Resource Name (ARN) of the load balancer.
 	LoadBalancerArn *string `type:"string"`
@@ -2993,29 +4415,102 @@ func (s LoadBalancer) GoString() string {
 	return s.String()
 }
 
+// SetAvailabilityZones sets the AvailabilityZones field's value.
+func (s *LoadBalancer) SetAvailabilityZones(v []*AvailabilityZone) *LoadBalancer {
+	s.AvailabilityZones = v
+	return s
+}
+
+// SetCanonicalHostedZoneId sets the CanonicalHostedZoneId field's value.
+func (s *LoadBalancer) SetCanonicalHostedZoneId(v string) *LoadBalancer {
+	s.CanonicalHostedZoneId = &v
+	return s
+}
+
+// SetCreatedTime sets the CreatedTime field's value.
+func (s *LoadBalancer) SetCreatedTime(v time.Time) *LoadBalancer {
+	s.CreatedTime = &v
+	return s
+}
+
+// SetDNSName sets the DNSName field's value.
+func (s *LoadBalancer) SetDNSName(v string) *LoadBalancer {
+	s.DNSName = &v
+	return s
+}
+
+// SetIpAddressType sets the IpAddressType field's value.
+func (s *LoadBalancer) SetIpAddressType(v string) *LoadBalancer {
+	s.IpAddressType = &v
+	return s
+}
+
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *LoadBalancer) SetLoadBalancerArn(v string) *LoadBalancer {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *LoadBalancer) SetLoadBalancerName(v string) *LoadBalancer {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetScheme sets the Scheme field's value.
+func (s *LoadBalancer) SetScheme(v string) *LoadBalancer {
+	s.Scheme = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *LoadBalancer) SetSecurityGroups(v []*string) *LoadBalancer {
+	s.SecurityGroups = v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *LoadBalancer) SetState(v *LoadBalancerState) *LoadBalancer {
+	s.State = v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *LoadBalancer) SetType(v string) *LoadBalancer {
+	s.Type = &v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *LoadBalancer) SetVpcId(v string) *LoadBalancer {
+	s.VpcId = &v
+	return s
+}
+
 // Information about a load balancer attribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/LoadBalancerAttribute
 type LoadBalancerAttribute struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the attribute.
 	//
-	//    access_logs.s3.enabled - Indicates whether access logs stored in Amazon
-	// S3 are enabled.
+	//    * access_logs.s3.enabled - Indicates whether access logs stored in Amazon
+	//    S3 are enabled. The value is true or false.
 	//
-	//    access_logs.s3.bucket - The name of the S3 bucket for the access logs.
-	// This attribute is required if access logs in Amazon S3 are enabled. The bucket
-	// must exist in the same region as the load balancer and have a bucket policy
-	// that grants Elastic Load Balancing permission to write to the bucket.
+	//    * access_logs.s3.bucket - The name of the S3 bucket for the access logs.
+	//    This attribute is required if access logs in Amazon S3 are enabled. The
+	//    bucket must exist in the same region as the load balancer and have a bucket
+	//    policy that grants Elastic Load Balancing permission to write to the bucket.
 	//
-	//    access_logs.s3.prefix - The prefix for the location in the S3 bucket.
-	// If you don't specify a prefix, the access logs are stored in the root of
-	// the bucket.
+	//    * access_logs.s3.prefix - The prefix for the location in the S3 bucket.
+	//    If you don't specify a prefix, the access logs are stored in the root
+	//    of the bucket.
 	//
-	//    deletion_protection.enabled - Indicates whether deletion protection is
-	// enabled.
+	//    * deletion_protection.enabled - Indicates whether deletion protection
+	//    is enabled. The value is true or false.
 	//
-	//    idle_timeout.timeout_seconds - The idle timeout value, in seconds. The
-	// valid range is 1-3600. The default is 60 seconds.
+	//    * idle_timeout.timeout_seconds - The idle timeout value, in seconds. The
+	//    valid range is 1-3600. The default is 60 seconds.
 	Key *string `type:"string"`
 
 	// The value of the attribute.
@@ -3032,7 +4527,20 @@ func (s LoadBalancerAttribute) GoString() string {
 	return s.String()
 }
 
+// SetKey sets the Key field's value.
+func (s *LoadBalancerAttribute) SetKey(v string) *LoadBalancerAttribute {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *LoadBalancerAttribute) SetValue(v string) *LoadBalancerAttribute {
+	s.Value = &v
+	return s
+}
+
 // Information about the state of the load balancer.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/LoadBalancerState
 type LoadBalancerState struct {
 	_ struct{} `type:"structure"`
 
@@ -3055,12 +4563,27 @@ func (s LoadBalancerState) GoString() string {
 	return s.String()
 }
 
+// SetCode sets the Code field's value.
+func (s *LoadBalancerState) SetCode(v string) *LoadBalancerState {
+	s.Code = &v
+	return s
+}
+
+// SetReason sets the Reason field's value.
+func (s *LoadBalancerState) SetReason(v string) *LoadBalancerState {
+	s.Reason = &v
+	return s
+}
+
 // Information to use when checking for a successful response from a target.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/Matcher
 type Matcher struct {
 	_ struct{} `type:"structure"`
 
 	// The HTTP codes. The default value is 200. You can specify multiple values
 	// (for example, "200,202") or a range of values (for example, "200-299").
+	//
+	// HttpCode is a required field
 	HttpCode *string `type:"string" required:"true"`
 }
 
@@ -3087,7 +4610,13 @@ func (s *Matcher) Validate() error {
 	return nil
 }
 
-// Contains the parameters for ModifyListener.
+// SetHttpCode sets the HttpCode field's value.
+func (s *Matcher) SetHttpCode(v string) *Matcher {
+	s.HttpCode = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyListenerInput
 type ModifyListenerInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3098,6 +4627,8 @@ type ModifyListenerInput struct {
 	DefaultActions []*Action `type:"list"`
 
 	// The Amazon Resource Name (ARN) of the listener.
+	//
+	// ListenerArn is a required field
 	ListenerArn *string `type:"string" required:"true"`
 
 	// The port for connections from clients to the load balancer.
@@ -3146,7 +4677,43 @@ func (s *ModifyListenerInput) Validate() error {
 	return nil
 }
 
-// Contains the output of ModifyListener.
+// SetCertificates sets the Certificates field's value.
+func (s *ModifyListenerInput) SetCertificates(v []*Certificate) *ModifyListenerInput {
+	s.Certificates = v
+	return s
+}
+
+// SetDefaultActions sets the DefaultActions field's value.
+func (s *ModifyListenerInput) SetDefaultActions(v []*Action) *ModifyListenerInput {
+	s.DefaultActions = v
+	return s
+}
+
+// SetListenerArn sets the ListenerArn field's value.
+func (s *ModifyListenerInput) SetListenerArn(v string) *ModifyListenerInput {
+	s.ListenerArn = &v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *ModifyListenerInput) SetPort(v int64) *ModifyListenerInput {
+	s.Port = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *ModifyListenerInput) SetProtocol(v string) *ModifyListenerInput {
+	s.Protocol = &v
+	return s
+}
+
+// SetSslPolicy sets the SslPolicy field's value.
+func (s *ModifyListenerInput) SetSslPolicy(v string) *ModifyListenerInput {
+	s.SslPolicy = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyListenerOutput
 type ModifyListenerOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3164,14 +4731,24 @@ func (s ModifyListenerOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for ModifyLoadBalancerAttributes.
+// SetListeners sets the Listeners field's value.
+func (s *ModifyListenerOutput) SetListeners(v []*Listener) *ModifyListenerOutput {
+	s.Listeners = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyLoadBalancerAttributesInput
 type ModifyLoadBalancerAttributesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The load balancer attributes.
+	//
+	// Attributes is a required field
 	Attributes []*LoadBalancerAttribute `type:"list" required:"true"`
 
 	// The Amazon Resource Name (ARN) of the load balancer.
+	//
+	// LoadBalancerArn is a required field
 	LoadBalancerArn *string `type:"string" required:"true"`
 }
 
@@ -3201,7 +4778,19 @@ func (s *ModifyLoadBalancerAttributesInput) Validate() error {
 	return nil
 }
 
-// Contains the output of ModifyLoadBalancerAttributes.
+// SetAttributes sets the Attributes field's value.
+func (s *ModifyLoadBalancerAttributesInput) SetAttributes(v []*LoadBalancerAttribute) *ModifyLoadBalancerAttributesInput {
+	s.Attributes = v
+	return s
+}
+
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *ModifyLoadBalancerAttributesInput) SetLoadBalancerArn(v string) *ModifyLoadBalancerAttributesInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyLoadBalancerAttributesOutput
 type ModifyLoadBalancerAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3219,7 +4808,13 @@ func (s ModifyLoadBalancerAttributesOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for ModifyRules.
+// SetAttributes sets the Attributes field's value.
+func (s *ModifyLoadBalancerAttributesOutput) SetAttributes(v []*LoadBalancerAttribute) *ModifyLoadBalancerAttributesOutput {
+	s.Attributes = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyRuleInput
 type ModifyRuleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3230,6 +4825,8 @@ type ModifyRuleInput struct {
 	Conditions []*RuleCondition `type:"list"`
 
 	// The Amazon Resource Name (ARN) of the rule.
+	//
+	// RuleArn is a required field
 	RuleArn *string `type:"string" required:"true"`
 }
 
@@ -3266,7 +4863,25 @@ func (s *ModifyRuleInput) Validate() error {
 	return nil
 }
 
-// Contains the output of ModifyRules.
+// SetActions sets the Actions field's value.
+func (s *ModifyRuleInput) SetActions(v []*Action) *ModifyRuleInput {
+	s.Actions = v
+	return s
+}
+
+// SetConditions sets the Conditions field's value.
+func (s *ModifyRuleInput) SetConditions(v []*RuleCondition) *ModifyRuleInput {
+	s.Conditions = v
+	return s
+}
+
+// SetRuleArn sets the RuleArn field's value.
+func (s *ModifyRuleInput) SetRuleArn(v string) *ModifyRuleInput {
+	s.RuleArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyRuleOutput
 type ModifyRuleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3284,14 +4899,24 @@ func (s ModifyRuleOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for ModifyTargetGroupAttributes.
+// SetRules sets the Rules field's value.
+func (s *ModifyRuleOutput) SetRules(v []*Rule) *ModifyRuleOutput {
+	s.Rules = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyTargetGroupAttributesInput
 type ModifyTargetGroupAttributesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The attributes.
+	//
+	// Attributes is a required field
 	Attributes []*TargetGroupAttribute `type:"list" required:"true"`
 
 	// The Amazon Resource Name (ARN) of the target group.
+	//
+	// TargetGroupArn is a required field
 	TargetGroupArn *string `type:"string" required:"true"`
 }
 
@@ -3321,7 +4946,19 @@ func (s *ModifyTargetGroupAttributesInput) Validate() error {
 	return nil
 }
 
-// Contains the output of ModifyTargetGroupAttributes.
+// SetAttributes sets the Attributes field's value.
+func (s *ModifyTargetGroupAttributesInput) SetAttributes(v []*TargetGroupAttribute) *ModifyTargetGroupAttributesInput {
+	s.Attributes = v
+	return s
+}
+
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *ModifyTargetGroupAttributesInput) SetTargetGroupArn(v string) *ModifyTargetGroupAttributesInput {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyTargetGroupAttributesOutput
 type ModifyTargetGroupAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3339,7 +4976,13 @@ func (s ModifyTargetGroupAttributesOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for ModifyTargetGroup.
+// SetAttributes sets the Attributes field's value.
+func (s *ModifyTargetGroupAttributesOutput) SetAttributes(v []*TargetGroupAttribute) *ModifyTargetGroupAttributesOutput {
+	s.Attributes = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyTargetGroupInput
 type ModifyTargetGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3368,6 +5011,8 @@ type ModifyTargetGroupInput struct {
 	Matcher *Matcher `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the target group.
+	//
+	// TargetGroupArn is a required field
 	TargetGroupArn *string `type:"string" required:"true"`
 
 	// The number of consecutive health check failures required before considering
@@ -3418,7 +5063,61 @@ func (s *ModifyTargetGroupInput) Validate() error {
 	return nil
 }
 
-// Contains the output of ModifyTargetGroup.
+// SetHealthCheckIntervalSeconds sets the HealthCheckIntervalSeconds field's value.
+func (s *ModifyTargetGroupInput) SetHealthCheckIntervalSeconds(v int64) *ModifyTargetGroupInput {
+	s.HealthCheckIntervalSeconds = &v
+	return s
+}
+
+// SetHealthCheckPath sets the HealthCheckPath field's value.
+func (s *ModifyTargetGroupInput) SetHealthCheckPath(v string) *ModifyTargetGroupInput {
+	s.HealthCheckPath = &v
+	return s
+}
+
+// SetHealthCheckPort sets the HealthCheckPort field's value.
+func (s *ModifyTargetGroupInput) SetHealthCheckPort(v string) *ModifyTargetGroupInput {
+	s.HealthCheckPort = &v
+	return s
+}
+
+// SetHealthCheckProtocol sets the HealthCheckProtocol field's value.
+func (s *ModifyTargetGroupInput) SetHealthCheckProtocol(v string) *ModifyTargetGroupInput {
+	s.HealthCheckProtocol = &v
+	return s
+}
+
+// SetHealthCheckTimeoutSeconds sets the HealthCheckTimeoutSeconds field's value.
+func (s *ModifyTargetGroupInput) SetHealthCheckTimeoutSeconds(v int64) *ModifyTargetGroupInput {
+	s.HealthCheckTimeoutSeconds = &v
+	return s
+}
+
+// SetHealthyThresholdCount sets the HealthyThresholdCount field's value.
+func (s *ModifyTargetGroupInput) SetHealthyThresholdCount(v int64) *ModifyTargetGroupInput {
+	s.HealthyThresholdCount = &v
+	return s
+}
+
+// SetMatcher sets the Matcher field's value.
+func (s *ModifyTargetGroupInput) SetMatcher(v *Matcher) *ModifyTargetGroupInput {
+	s.Matcher = v
+	return s
+}
+
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *ModifyTargetGroupInput) SetTargetGroupArn(v string) *ModifyTargetGroupInput {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// SetUnhealthyThresholdCount sets the UnhealthyThresholdCount field's value.
+func (s *ModifyTargetGroupInput) SetUnhealthyThresholdCount(v int64) *ModifyTargetGroupInput {
+	s.UnhealthyThresholdCount = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyTargetGroupOutput
 type ModifyTargetGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3436,14 +5135,26 @@ func (s ModifyTargetGroupOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for RegisterTargets.
+// SetTargetGroups sets the TargetGroups field's value.
+func (s *ModifyTargetGroupOutput) SetTargetGroups(v []*TargetGroup) *ModifyTargetGroupOutput {
+	s.TargetGroups = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/RegisterTargetsInput
 type RegisterTargetsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the target group.
+	//
+	// TargetGroupArn is a required field
 	TargetGroupArn *string `type:"string" required:"true"`
 
-	// The targets.
+	// The targets. The default port for a target is the port for the target group.
+	// You can specify a port override. If a target is already registered, you can
+	// register it again using a different port.
+	//
+	// Targets is a required field
 	Targets []*TargetDescription `type:"list" required:"true"`
 }
 
@@ -3483,7 +5194,19 @@ func (s *RegisterTargetsInput) Validate() error {
 	return nil
 }
 
-// Contains the output of RegisterTargets.
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *RegisterTargetsInput) SetTargetGroupArn(v string) *RegisterTargetsInput {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// SetTargets sets the Targets field's value.
+func (s *RegisterTargetsInput) SetTargets(v []*TargetDescription) *RegisterTargetsInput {
+	s.Targets = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/RegisterTargetsOutput
 type RegisterTargetsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3498,14 +5221,18 @@ func (s RegisterTargetsOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for RemoveTags.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/RemoveTagsInput
 type RemoveTagsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the resource.
+	//
+	// ResourceArns is a required field
 	ResourceArns []*string `type:"list" required:"true"`
 
 	// The tag keys for the tags to remove.
+	//
+	// TagKeys is a required field
 	TagKeys []*string `type:"list" required:"true"`
 }
 
@@ -3535,7 +5262,19 @@ func (s *RemoveTagsInput) Validate() error {
 	return nil
 }
 
-// Contains the output of RemoveTags.
+// SetResourceArns sets the ResourceArns field's value.
+func (s *RemoveTagsInput) SetResourceArns(v []*string) *RemoveTagsInput {
+	s.ResourceArns = v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *RemoveTagsInput) SetTagKeys(v []*string) *RemoveTagsInput {
+	s.TagKeys = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/RemoveTagsOutput
 type RemoveTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3551,6 +5290,7 @@ func (s RemoveTagsOutput) GoString() string {
 }
 
 // Information about a rule.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/Rule
 type Rule struct {
 	_ struct{} `type:"structure"`
 
@@ -3580,27 +5320,59 @@ func (s Rule) GoString() string {
 	return s.String()
 }
 
+// SetActions sets the Actions field's value.
+func (s *Rule) SetActions(v []*Action) *Rule {
+	s.Actions = v
+	return s
+}
+
+// SetConditions sets the Conditions field's value.
+func (s *Rule) SetConditions(v []*RuleCondition) *Rule {
+	s.Conditions = v
+	return s
+}
+
+// SetIsDefault sets the IsDefault field's value.
+func (s *Rule) SetIsDefault(v bool) *Rule {
+	s.IsDefault = &v
+	return s
+}
+
+// SetPriority sets the Priority field's value.
+func (s *Rule) SetPriority(v string) *Rule {
+	s.Priority = &v
+	return s
+}
+
+// SetRuleArn sets the RuleArn field's value.
+func (s *Rule) SetRuleArn(v string) *Rule {
+	s.RuleArn = &v
+	return s
+}
+
 // Information about a condition for a rule.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/RuleCondition
 type RuleCondition struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the field. The possible value is path-pattern.
+	// The only possible value is path-pattern.
 	Field *string `type:"string"`
 
-	// The values for the field.
+	// The path pattern. You can specify a single path pattern.
 	//
-	// A path pattern is case sensitive, can be up to 255 characters in length,
-	// and can contain any of the following characters:
+	// A path pattern is case sensitive, can be up to 128 characters in length,
+	// and can contain any of the following characters. Note that you can include
+	// up to three wildcard characters in a path pattern.
 	//
-	//   A-Z, a-z, 0-9
+	//    * A-Z, a-z, 0-9
 	//
-	//   _ - . $ / ~ " ' @ : +
+	//    * _ - . $ / ~ " ' @ : +
 	//
-	//   &amp; (using &amp;amp;)
+	//    * & (using &)
 	//
-	//   * (matches 0 or more characters)
+	//    * * (matches 0 or more characters)
 	//
-	//   ? (matches exactly 1 character)
+	//    * ? (matches exactly 1 character)
 	Values []*string `type:"list"`
 }
 
@@ -3614,7 +5386,20 @@ func (s RuleCondition) GoString() string {
 	return s.String()
 }
 
+// SetField sets the Field field's value.
+func (s *RuleCondition) SetField(v string) *RuleCondition {
+	s.Field = &v
+	return s
+}
+
+// SetValues sets the Values field's value.
+func (s *RuleCondition) SetValues(v []*string) *RuleCondition {
+	s.Values = v
+	return s
+}
+
 // Information about the priorities for the rules for a listener.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/RulePriorityPair
 type RulePriorityPair struct {
 	_ struct{} `type:"structure"`
 
@@ -3648,11 +5433,104 @@ func (s *RulePriorityPair) Validate() error {
 	return nil
 }
 
-// Contains the parameters for SetRulePriorities.
+// SetPriority sets the Priority field's value.
+func (s *RulePriorityPair) SetPriority(v int64) *RulePriorityPair {
+	s.Priority = &v
+	return s
+}
+
+// SetRuleArn sets the RuleArn field's value.
+func (s *RulePriorityPair) SetRuleArn(v string) *RulePriorityPair {
+	s.RuleArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetIpAddressTypeInput
+type SetIpAddressTypeInput struct {
+	_ struct{} `type:"structure"`
+
+	// The IP address type. The possible values are ipv4 (for IPv4 addresses) and
+	// dualstack (for IPv4 and IPv6 addresses). Internal load balancers must use
+	// ipv4.
+	//
+	// IpAddressType is a required field
+	IpAddressType *string `type:"string" required:"true" enum:"IpAddressType"`
+
+	// The Amazon Resource Name (ARN) of the load balancer.
+	//
+	// LoadBalancerArn is a required field
+	LoadBalancerArn *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s SetIpAddressTypeInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SetIpAddressTypeInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *SetIpAddressTypeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "SetIpAddressTypeInput"}
+	if s.IpAddressType == nil {
+		invalidParams.Add(request.NewErrParamRequired("IpAddressType"))
+	}
+	if s.LoadBalancerArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("LoadBalancerArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetIpAddressType sets the IpAddressType field's value.
+func (s *SetIpAddressTypeInput) SetIpAddressType(v string) *SetIpAddressTypeInput {
+	s.IpAddressType = &v
+	return s
+}
+
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *SetIpAddressTypeInput) SetLoadBalancerArn(v string) *SetIpAddressTypeInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetIpAddressTypeOutput
+type SetIpAddressTypeOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The IP address type.
+	IpAddressType *string `type:"string" enum:"IpAddressType"`
+}
+
+// String returns the string representation
+func (s SetIpAddressTypeOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SetIpAddressTypeOutput) GoString() string {
+	return s.String()
+}
+
+// SetIpAddressType sets the IpAddressType field's value.
+func (s *SetIpAddressTypeOutput) SetIpAddressType(v string) *SetIpAddressTypeOutput {
+	s.IpAddressType = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetRulePrioritiesInput
 type SetRulePrioritiesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The rule priorities.
+	//
+	// RulePriorities is a required field
 	RulePriorities []*RulePriorityPair `type:"list" required:"true"`
 }
 
@@ -3689,7 +5567,13 @@ func (s *SetRulePrioritiesInput) Validate() error {
 	return nil
 }
 
-// Contains the output of SetRulePriorities.
+// SetRulePriorities sets the RulePriorities field's value.
+func (s *SetRulePrioritiesInput) SetRulePriorities(v []*RulePriorityPair) *SetRulePrioritiesInput {
+	s.RulePriorities = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetRulePrioritiesOutput
 type SetRulePrioritiesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3707,14 +5591,24 @@ func (s SetRulePrioritiesOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for SetSecurityGroups.
+// SetRules sets the Rules field's value.
+func (s *SetRulePrioritiesOutput) SetRules(v []*Rule) *SetRulePrioritiesOutput {
+	s.Rules = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetSecurityGroupsInput
 type SetSecurityGroupsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the load balancer.
+	//
+	// LoadBalancerArn is a required field
 	LoadBalancerArn *string `type:"string" required:"true"`
 
 	// The IDs of the security groups.
+	//
+	// SecurityGroups is a required field
 	SecurityGroups []*string `type:"list" required:"true"`
 }
 
@@ -3744,7 +5638,19 @@ func (s *SetSecurityGroupsInput) Validate() error {
 	return nil
 }
 
-// Contains the output of SetSecurityGroups.
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *SetSecurityGroupsInput) SetLoadBalancerArn(v string) *SetSecurityGroupsInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *SetSecurityGroupsInput) SetSecurityGroups(v []*string) *SetSecurityGroupsInput {
+	s.SecurityGroups = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetSecurityGroupsOutput
 type SetSecurityGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3762,15 +5668,25 @@ func (s SetSecurityGroupsOutput) GoString() string {
 	return s.String()
 }
 
-// Contains the parameters for SetSubnets.
+// SetSecurityGroupIds sets the SecurityGroupIds field's value.
+func (s *SetSecurityGroupsOutput) SetSecurityGroupIds(v []*string) *SetSecurityGroupsOutput {
+	s.SecurityGroupIds = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetSubnetsInput
 type SetSubnetsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the load balancer.
+	//
+	// LoadBalancerArn is a required field
 	LoadBalancerArn *string `type:"string" required:"true"`
 
 	// The IDs of the subnets. You must specify at least two subnets. You can add
 	// only one subnet per Availability Zone.
+	//
+	// Subnets is a required field
 	Subnets []*string `type:"list" required:"true"`
 }
 
@@ -3800,7 +5716,19 @@ func (s *SetSubnetsInput) Validate() error {
 	return nil
 }
 
-// Contains the output of SetSubnets.
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *SetSubnetsInput) SetLoadBalancerArn(v string) *SetSubnetsInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// SetSubnets sets the Subnets field's value.
+func (s *SetSubnetsInput) SetSubnets(v []*string) *SetSubnetsInput {
+	s.Subnets = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetSubnetsOutput
 type SetSubnetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3818,7 +5746,14 @@ func (s SetSubnetsOutput) GoString() string {
 	return s.String()
 }
 
+// SetAvailabilityZones sets the AvailabilityZones field's value.
+func (s *SetSubnetsOutput) SetAvailabilityZones(v []*AvailabilityZone) *SetSubnetsOutput {
+	s.AvailabilityZones = v
+	return s
+}
+
 // Information about a policy used for SSL negotiation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SslPolicy
 type SslPolicy struct {
 	_ struct{} `type:"structure"`
 
@@ -3842,11 +5777,32 @@ func (s SslPolicy) GoString() string {
 	return s.String()
 }
 
+// SetCiphers sets the Ciphers field's value.
+func (s *SslPolicy) SetCiphers(v []*Cipher) *SslPolicy {
+	s.Ciphers = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *SslPolicy) SetName(v string) *SslPolicy {
+	s.Name = &v
+	return s
+}
+
+// SetSslProtocols sets the SslProtocols field's value.
+func (s *SslPolicy) SetSslProtocols(v []*string) *SslPolicy {
+	s.SslProtocols = v
+	return s
+}
+
 // Information about a tag.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/Tag
 type Tag struct {
 	_ struct{} `type:"structure"`
 
 	// The key of the tag.
+	//
+	// Key is a required field
 	Key *string `min:"1" type:"string" required:"true"`
 
 	// The value of the tag.
@@ -3879,7 +5835,20 @@ func (s *Tag) Validate() error {
 	return nil
 }
 
+// SetKey sets the Key field's value.
+func (s *Tag) SetKey(v string) *Tag {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Tag) SetValue(v string) *Tag {
+	s.Value = &v
+	return s
+}
+
 // The tags associated with a resource.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/TagDescription
 type TagDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -3900,11 +5869,26 @@ func (s TagDescription) GoString() string {
 	return s.String()
 }
 
+// SetResourceArn sets the ResourceArn field's value.
+func (s *TagDescription) SetResourceArn(v string) *TagDescription {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagDescription) SetTags(v []*Tag) *TagDescription {
+	s.Tags = v
+	return s
+}
+
 // Information about a target.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/TargetDescription
 type TargetDescription struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the target.
+	//
+	// Id is a required field
 	Id *string `type:"string" required:"true"`
 
 	// The port on which the target is listening.
@@ -3937,7 +5921,20 @@ func (s *TargetDescription) Validate() error {
 	return nil
 }
 
+// SetId sets the Id field's value.
+func (s *TargetDescription) SetId(v string) *TargetDescription {
+	s.Id = &v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *TargetDescription) SetPort(v int64) *TargetDescription {
+	s.Port = &v
+	return s
+}
+
 // Information about a target group.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/TargetGroup
 type TargetGroup struct {
 	_ struct{} `type:"structure"`
 
@@ -3999,27 +5996,113 @@ func (s TargetGroup) GoString() string {
 	return s.String()
 }
 
+// SetHealthCheckIntervalSeconds sets the HealthCheckIntervalSeconds field's value.
+func (s *TargetGroup) SetHealthCheckIntervalSeconds(v int64) *TargetGroup {
+	s.HealthCheckIntervalSeconds = &v
+	return s
+}
+
+// SetHealthCheckPath sets the HealthCheckPath field's value.
+func (s *TargetGroup) SetHealthCheckPath(v string) *TargetGroup {
+	s.HealthCheckPath = &v
+	return s
+}
+
+// SetHealthCheckPort sets the HealthCheckPort field's value.
+func (s *TargetGroup) SetHealthCheckPort(v string) *TargetGroup {
+	s.HealthCheckPort = &v
+	return s
+}
+
+// SetHealthCheckProtocol sets the HealthCheckProtocol field's value.
+func (s *TargetGroup) SetHealthCheckProtocol(v string) *TargetGroup {
+	s.HealthCheckProtocol = &v
+	return s
+}
+
+// SetHealthCheckTimeoutSeconds sets the HealthCheckTimeoutSeconds field's value.
+func (s *TargetGroup) SetHealthCheckTimeoutSeconds(v int64) *TargetGroup {
+	s.HealthCheckTimeoutSeconds = &v
+	return s
+}
+
+// SetHealthyThresholdCount sets the HealthyThresholdCount field's value.
+func (s *TargetGroup) SetHealthyThresholdCount(v int64) *TargetGroup {
+	s.HealthyThresholdCount = &v
+	return s
+}
+
+// SetLoadBalancerArns sets the LoadBalancerArns field's value.
+func (s *TargetGroup) SetLoadBalancerArns(v []*string) *TargetGroup {
+	s.LoadBalancerArns = v
+	return s
+}
+
+// SetMatcher sets the Matcher field's value.
+func (s *TargetGroup) SetMatcher(v *Matcher) *TargetGroup {
+	s.Matcher = v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *TargetGroup) SetPort(v int64) *TargetGroup {
+	s.Port = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *TargetGroup) SetProtocol(v string) *TargetGroup {
+	s.Protocol = &v
+	return s
+}
+
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *TargetGroup) SetTargetGroupArn(v string) *TargetGroup {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// SetTargetGroupName sets the TargetGroupName field's value.
+func (s *TargetGroup) SetTargetGroupName(v string) *TargetGroup {
+	s.TargetGroupName = &v
+	return s
+}
+
+// SetUnhealthyThresholdCount sets the UnhealthyThresholdCount field's value.
+func (s *TargetGroup) SetUnhealthyThresholdCount(v int64) *TargetGroup {
+	s.UnhealthyThresholdCount = &v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *TargetGroup) SetVpcId(v string) *TargetGroup {
+	s.VpcId = &v
+	return s
+}
+
 // Information about a target group attribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/TargetGroupAttribute
 type TargetGroupAttribute struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the attribute.
 	//
-	//    deregistration_delay.timeout_seconds - The amount time for Elastic Load
-	// Balancing to wait before changing the state of a deregistering target from
-	// draining to unused. The range is 0-3600 seconds. The default value is 300
-	// seconds.
+	//    * deregistration_delay.timeout_seconds - The amount time for Elastic Load
+	//    Balancing to wait before changing the state of a deregistering target
+	//    from draining to unused. The range is 0-3600 seconds. The default value
+	//    is 300 seconds.
 	//
-	//    stickiness.enabled - Indicates whether sticky sessions are enabled.
+	//    * stickiness.enabled - Indicates whether sticky sessions are enabled.
+	//    The value is true or false.
 	//
-	//    stickiness.type - The type of sticky sessions. The possible value is
-	// lb_cookie.
+	//    * stickiness.type - The type of sticky sessions. The possible value is
+	//    lb_cookie.
 	//
-	//    stickiness.lb_cookie.duration_seconds - The time period, in seconds,
-	// during which requests from a client should be routed to the same target.
-	// After this time period expires, the load balancer-generated cookie is considered
-	// stale. The range is 1 second to 1 week (604800 seconds). The default value
-	// is 1 day (86400 seconds).
+	//    * stickiness.lb_cookie.duration_seconds - The time period, in seconds,
+	//    during which requests from a client should be routed to the same target.
+	//    After this time period expires, the load balancer-generated cookie is
+	//    considered stale. The range is 1 second to 1 week (604800 seconds). The
+	//    default value is 1 day (86400 seconds).
 	Key *string `type:"string"`
 
 	// The value of the attribute.
@@ -4036,7 +6119,20 @@ func (s TargetGroupAttribute) GoString() string {
 	return s.String()
 }
 
+// SetKey sets the Key field's value.
+func (s *TargetGroupAttribute) SetKey(v string) *TargetGroupAttribute {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *TargetGroupAttribute) SetValue(v string) *TargetGroupAttribute {
+	s.Value = &v
+	return s
+}
+
 // Information about the current health of a target.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/TargetHealth
 type TargetHealth struct {
 	_ struct{} `type:"structure"`
 
@@ -4049,41 +6145,42 @@ type TargetHealth struct {
 	// If the target state is initial, the reason code can be one of the following
 	// values:
 	//
-	//    Elb.RegistrationInProgress - The target is in the process of being registered
-	// with the load balancer.
+	//    * Elb.RegistrationInProgress - The target is in the process of being registered
+	//    with the load balancer.
 	//
-	//    Elb.InitialHealthChecking - The load balancer is still sending the target
-	// the minimum number of health checks required to determine its health status.
+	//    * Elb.InitialHealthChecking - The load balancer is still sending the target
+	//    the minimum number of health checks required to determine its health status.
 	//
-	//   If the target state is unhealthy, the reason code can be one of the following
+	// If the target state is unhealthy, the reason code can be one of the following
 	// values:
 	//
-	//    Target.ResponseCodeMismatch - The health checks did not return an expected
-	// HTTP code.
+	//    * Target.ResponseCodeMismatch - The health checks did not return an expected
+	//    HTTP code.
 	//
-	//    Target.Timeout - The health check requests timed out.
+	//    * Target.Timeout - The health check requests timed out.
 	//
-	//    Target.FailedHealthChecks - The health checks failed because the connection
-	// to the target timed out, the target response was malformed, or the target
-	// failed the health check for an unknown reason.
+	//    * Target.FailedHealthChecks - The health checks failed because the connection
+	//    to the target timed out, the target response was malformed, or the target
+	//    failed the health check for an unknown reason.
 	//
-	//    Elb.InternalError - The health checks failed due to an internal error.
+	//    * Elb.InternalError - The health checks failed due to an internal error.
 	//
-	//   If the target state is unused, the reason code can be one of the following
+	// If the target state is unused, the reason code can be one of the following
 	// values:
 	//
-	//    Target.NotRegistered - The target is not registered with the target group.
+	//    * Target.NotRegistered - The target is not registered with the target
+	//    group.
 	//
-	//    Target.NotInUse - The target group is not used by any load balancer or
-	// the target is in an Availability Zone that is not enabled for its load balancer.
+	//    * Target.NotInUse - The target group is not used by any load balancer
+	//    or the target is in an Availability Zone that is not enabled for its load
+	//    balancer.
 	//
-	//    Target.InvalidState - The target is in the stopped or terminated state.
+	//    * Target.InvalidState - The target is in the stopped or terminated state.
 	//
-	//   If the target state is draining, the reason code can be the following
-	// value:
+	// If the target state is draining, the reason code can be the following value:
 	//
-	//    Target.DeregistrationInProgress - The target is in the process of being
-	// deregistered and the deregistration delay period has not expired.
+	//    * Target.DeregistrationInProgress - The target is in the process of being
+	//    deregistered and the deregistration delay period has not expired.
 	Reason *string `type:"string" enum:"TargetHealthReasonEnum"`
 
 	// The state of the target.
@@ -4100,7 +6197,26 @@ func (s TargetHealth) GoString() string {
 	return s.String()
 }
 
+// SetDescription sets the Description field's value.
+func (s *TargetHealth) SetDescription(v string) *TargetHealth {
+	s.Description = &v
+	return s
+}
+
+// SetReason sets the Reason field's value.
+func (s *TargetHealth) SetReason(v string) *TargetHealth {
+	s.Reason = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *TargetHealth) SetState(v string) *TargetHealth {
+	s.State = &v
+	return s
+}
+
 // Information about the health of a target.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/TargetHealthDescription
 type TargetHealthDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -4124,71 +6240,114 @@ func (s TargetHealthDescription) GoString() string {
 	return s.String()
 }
 
+// SetHealthCheckPort sets the HealthCheckPort field's value.
+func (s *TargetHealthDescription) SetHealthCheckPort(v string) *TargetHealthDescription {
+	s.HealthCheckPort = &v
+	return s
+}
+
+// SetTarget sets the Target field's value.
+func (s *TargetHealthDescription) SetTarget(v *TargetDescription) *TargetHealthDescription {
+	s.Target = v
+	return s
+}
+
+// SetTargetHealth sets the TargetHealth field's value.
+func (s *TargetHealthDescription) SetTargetHealth(v *TargetHealth) *TargetHealthDescription {
+	s.TargetHealth = v
+	return s
+}
+
 const (
-	// @enum ActionTypeEnum
+	// ActionTypeEnumForward is a ActionTypeEnum enum value
 	ActionTypeEnumForward = "forward"
 )
 
 const (
-	// @enum LoadBalancerSchemeEnum
+	// IpAddressTypeIpv4 is a IpAddressType enum value
+	IpAddressTypeIpv4 = "ipv4"
+
+	// IpAddressTypeDualstack is a IpAddressType enum value
+	IpAddressTypeDualstack = "dualstack"
+)
+
+const (
+	// LoadBalancerSchemeEnumInternetFacing is a LoadBalancerSchemeEnum enum value
 	LoadBalancerSchemeEnumInternetFacing = "internet-facing"
-	// @enum LoadBalancerSchemeEnum
+
+	// LoadBalancerSchemeEnumInternal is a LoadBalancerSchemeEnum enum value
 	LoadBalancerSchemeEnumInternal = "internal"
 )
 
 const (
-	// @enum LoadBalancerStateEnum
+	// LoadBalancerStateEnumActive is a LoadBalancerStateEnum enum value
 	LoadBalancerStateEnumActive = "active"
-	// @enum LoadBalancerStateEnum
+
+	// LoadBalancerStateEnumProvisioning is a LoadBalancerStateEnum enum value
 	LoadBalancerStateEnumProvisioning = "provisioning"
-	// @enum LoadBalancerStateEnum
+
+	// LoadBalancerStateEnumFailed is a LoadBalancerStateEnum enum value
 	LoadBalancerStateEnumFailed = "failed"
 )
 
 const (
-	// @enum LoadBalancerTypeEnum
+	// LoadBalancerTypeEnumApplication is a LoadBalancerTypeEnum enum value
 	LoadBalancerTypeEnumApplication = "application"
 )
 
 const (
-	// @enum ProtocolEnum
+	// ProtocolEnumHttp is a ProtocolEnum enum value
 	ProtocolEnumHttp = "HTTP"
-	// @enum ProtocolEnum
+
+	// ProtocolEnumHttps is a ProtocolEnum enum value
 	ProtocolEnumHttps = "HTTPS"
 )
 
 const (
-	// @enum TargetHealthReasonEnum
+	// TargetHealthReasonEnumElbRegistrationInProgress is a TargetHealthReasonEnum enum value
 	TargetHealthReasonEnumElbRegistrationInProgress = "Elb.RegistrationInProgress"
-	// @enum TargetHealthReasonEnum
+
+	// TargetHealthReasonEnumElbInitialHealthChecking is a TargetHealthReasonEnum enum value
 	TargetHealthReasonEnumElbInitialHealthChecking = "Elb.InitialHealthChecking"
-	// @enum TargetHealthReasonEnum
+
+	// TargetHealthReasonEnumTargetResponseCodeMismatch is a TargetHealthReasonEnum enum value
 	TargetHealthReasonEnumTargetResponseCodeMismatch = "Target.ResponseCodeMismatch"
-	// @enum TargetHealthReasonEnum
+
+	// TargetHealthReasonEnumTargetTimeout is a TargetHealthReasonEnum enum value
 	TargetHealthReasonEnumTargetTimeout = "Target.Timeout"
-	// @enum TargetHealthReasonEnum
+
+	// TargetHealthReasonEnumTargetFailedHealthChecks is a TargetHealthReasonEnum enum value
 	TargetHealthReasonEnumTargetFailedHealthChecks = "Target.FailedHealthChecks"
-	// @enum TargetHealthReasonEnum
+
+	// TargetHealthReasonEnumTargetNotRegistered is a TargetHealthReasonEnum enum value
 	TargetHealthReasonEnumTargetNotRegistered = "Target.NotRegistered"
-	// @enum TargetHealthReasonEnum
+
+	// TargetHealthReasonEnumTargetNotInUse is a TargetHealthReasonEnum enum value
 	TargetHealthReasonEnumTargetNotInUse = "Target.NotInUse"
-	// @enum TargetHealthReasonEnum
+
+	// TargetHealthReasonEnumTargetDeregistrationInProgress is a TargetHealthReasonEnum enum value
 	TargetHealthReasonEnumTargetDeregistrationInProgress = "Target.DeregistrationInProgress"
-	// @enum TargetHealthReasonEnum
+
+	// TargetHealthReasonEnumTargetInvalidState is a TargetHealthReasonEnum enum value
 	TargetHealthReasonEnumTargetInvalidState = "Target.InvalidState"
-	// @enum TargetHealthReasonEnum
+
+	// TargetHealthReasonEnumElbInternalError is a TargetHealthReasonEnum enum value
 	TargetHealthReasonEnumElbInternalError = "Elb.InternalError"
 )
 
 const (
-	// @enum TargetHealthStateEnum
+	// TargetHealthStateEnumInitial is a TargetHealthStateEnum enum value
 	TargetHealthStateEnumInitial = "initial"
-	// @enum TargetHealthStateEnum
+
+	// TargetHealthStateEnumHealthy is a TargetHealthStateEnum enum value
 	TargetHealthStateEnumHealthy = "healthy"
-	// @enum TargetHealthStateEnum
+
+	// TargetHealthStateEnumUnhealthy is a TargetHealthStateEnum enum value
 	TargetHealthStateEnumUnhealthy = "unhealthy"
-	// @enum TargetHealthStateEnum
+
+	// TargetHealthStateEnumUnused is a TargetHealthStateEnum enum value
 	TargetHealthStateEnumUnused = "unused"
-	// @enum TargetHealthStateEnum
+
+	// TargetHealthStateEnumDraining is a TargetHealthStateEnum enum value
 	TargetHealthStateEnumDraining = "draining"
 )

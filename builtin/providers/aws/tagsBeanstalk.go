@@ -1,6 +1,9 @@
 package aws
 
 import (
+	"log"
+	"regexp"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 )
@@ -32,10 +35,13 @@ func diffTagsBeanstalk(oldTags, newTags []*elasticbeanstalk.Tag) ([]*elasticbean
 func tagsFromMapBeanstalk(m map[string]interface{}) []*elasticbeanstalk.Tag {
 	var result []*elasticbeanstalk.Tag
 	for k, v := range m {
-		result = append(result, &elasticbeanstalk.Tag{
+		t := &elasticbeanstalk.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnoredBeanstalk(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -45,8 +51,24 @@ func tagsFromMapBeanstalk(m map[string]interface{}) []*elasticbeanstalk.Tag {
 func tagsToMapBeanstalk(ts []*elasticbeanstalk.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnoredBeanstalk(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
+}
+
+// compare a tag against a list of strings and checks if it should
+// be ignored or not
+func tagIgnoredBeanstalk(t *elasticbeanstalk.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
 }

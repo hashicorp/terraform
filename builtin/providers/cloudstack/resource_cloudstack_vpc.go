@@ -182,8 +182,26 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 func resourceCloudStackVPCUpdate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	// Check if the name or display text is changed
-	if d.HasChange("name") || d.HasChange("display_text") {
+	name := d.Get("name").(string)
+
+	// Check if the name is changed
+	if d.HasChange("name") {
+		// Create a new parameter struct
+		p := cs.VPC.NewUpdateVPCParams(d.Id())
+
+		// Set the new name
+		p.SetName(name)
+
+		// Update the VPC
+		_, err := cs.VPC.UpdateVPC(p)
+		if err != nil {
+			return fmt.Errorf(
+				"Error updating name of VPC %s: %s", name, err)
+		}
+	}
+
+	// Check if the display text is changed
+	if d.HasChange("display_text") {
 		// Create a new parameter struct
 		p := cs.VPC.NewUpdateVPCParams(d.Id())
 
@@ -192,14 +210,15 @@ func resourceCloudStackVPCUpdate(d *schema.ResourceData, meta interface{}) error
 		if !ok {
 			displaytext = d.Get("name")
 		}
-		// Set the (new) display text
+
+		// Set the new display text
 		p.SetDisplaytext(displaytext.(string))
 
 		// Update the VPC
 		_, err := cs.VPC.UpdateVPC(p)
 		if err != nil {
 			return fmt.Errorf(
-				"Error updating VPC %s: %s", d.Get("name").(string), err)
+				"Error updating display test of VPC %s: %s", name, err)
 		}
 	}
 

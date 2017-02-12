@@ -11,7 +11,8 @@ import (
 )
 
 func TestAccComputeSubnetwork_basic(t *testing.T) {
-	var subnetwork compute.Subnetwork
+	var subnetwork1 compute.Subnetwork
+	var subnetwork2 compute.Subnetwork
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,7 +23,9 @@ func TestAccComputeSubnetwork_basic(t *testing.T) {
 				Config: testAccComputeSubnetwork_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeSubnetworkExists(
-						"google_compute_subnetwork.foobar", &subnetwork),
+						"google_compute_subnetwork.network-ref-by-url", &subnetwork1),
+					testAccCheckComputeSubnetworkExists(
+						"google_compute_subnetwork.network-ref-by-name", &subnetwork2),
 				),
 			},
 		},
@@ -84,9 +87,19 @@ resource "google_compute_network" "custom-test" {
 	auto_create_subnetworks = false
 }
 
-resource "google_compute_subnetwork" "foobar" {
+resource "google_compute_subnetwork" "network-ref-by-url" {
 	name = "subnetwork-test-%s"
 	ip_cidr_range = "10.0.0.0/16"
 	region = "us-central1"
 	network = "${google_compute_network.custom-test.self_link}"
-}`, acctest.RandString(10), acctest.RandString(10))
+}
+
+
+resource "google_compute_subnetwork" "network-ref-by-name" {
+	name = "subnetwork-test-%s"
+	ip_cidr_range = "10.1.0.0/16"
+	region = "us-central1"
+	network = "${google_compute_network.custom-test.name}"
+}
+
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))

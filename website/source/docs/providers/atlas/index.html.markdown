@@ -25,7 +25,7 @@ provider "atlas" {
 }
 
 # Fetch an artifact configuration
-resource "atlas_artifact" "web" {
+data "atlas_artifact" "web" {
     ...
 }
 ```

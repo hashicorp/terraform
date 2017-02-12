@@ -2,11 +2,12 @@ package azurerm
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
-
 	"sync"
 
+	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -17,7 +18,8 @@ import (
 
 // Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
-	return &schema.Provider{
+	var p *schema.Provider
+	p = &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"subscription_id": {
 				Type:        schema.TypeString,
@@ -42,30 +44,66 @@ func Provider() terraform.ResourceProvider {
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ARM_TENANT_ID", ""),
 			},
+
+			"environment": {
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_ENVIRONMENT", "public"),
+			},
+
+			"skip_provider_registration": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_SKIP_PROVIDER_REGISTRATION", false),
+			},
+		},
+
+		DataSourcesMap: map[string]*schema.Resource{
+			"azurerm_client_config": dataSourceArmClientConfig(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
 			// These resources use the Azure ARM SDK
-			"azurerm_availability_set":          resourceArmAvailabilitySet(),
-			"azurerm_cdn_endpoint":              resourceArmCdnEndpoint(),
-			"azurerm_cdn_profile":               resourceArmCdnProfile(),
+			"azurerm_availability_set":   resourceArmAvailabilitySet(),
+			"azurerm_cdn_endpoint":       resourceArmCdnEndpoint(),
+			"azurerm_cdn_profile":        resourceArmCdnProfile(),
+			"azurerm_container_registry": resourceArmContainerRegistry(),
+
+			"azurerm_eventhub":                    resourceArmEventHub(),
+			"azurerm_eventhub_authorization_rule": resourceArmEventHubAuthorizationRule(),
+			"azurerm_eventhub_consumer_group":     resourceArmEventHubConsumerGroup(),
+			"azurerm_eventhub_namespace":          resourceArmEventHubNamespace(),
+
+			"azurerm_lb":                      resourceArmLoadBalancer(),
+			"azurerm_lb_backend_address_pool": resourceArmLoadBalancerBackendAddressPool(),
+			"azurerm_lb_nat_rule":             resourceArmLoadBalancerNatRule(),
+			"azurerm_lb_nat_pool":             resourceArmLoadBalancerNatPool(),
+			"azurerm_lb_probe":                resourceArmLoadBalancerProbe(),
+			"azurerm_lb_rule":                 resourceArmLoadBalancerRule(),
+
+			"azurerm_key_vault":                 resourceArmKeyVault(),
 			"azurerm_local_network_gateway":     resourceArmLocalNetworkGateway(),
 			"azurerm_network_interface":         resourceArmNetworkInterface(),
 			"azurerm_network_security_group":    resourceArmNetworkSecurityGroup(),
 			"azurerm_network_security_rule":     resourceArmNetworkSecurityRule(),
 			"azurerm_public_ip":                 resourceArmPublicIp(),
+			"azurerm_redis_cache":               resourceArmRedisCache(),
 			"azurerm_route":                     resourceArmRoute(),
 			"azurerm_route_table":               resourceArmRouteTable(),
 			"azurerm_servicebus_namespace":      resourceArmServiceBusNamespace(),
+			"azurerm_servicebus_subscription":   resourceArmServiceBusSubscription(),
+			"azurerm_servicebus_topic":          resourceArmServiceBusTopic(),
 			"azurerm_storage_account":           resourceArmStorageAccount(),
 			"azurerm_storage_blob":              resourceArmStorageBlob(),
 			"azurerm_storage_container":         resourceArmStorageContainer(),
+			"azurerm_storage_share":             resourceArmStorageShare(),
 			"azurerm_storage_queue":             resourceArmStorageQueue(),
 			"azurerm_storage_table":             resourceArmStorageTable(),
 			"azurerm_subnet":                    resourceArmSubnet(),
 			"azurerm_template_deployment":       resourceArmTemplateDeployment(),
 			"azurerm_traffic_manager_endpoint":  resourceArmTrafficManagerEndpoint(),
 			"azurerm_traffic_manager_profile":   resourceArmTrafficManagerProfile(),
+			"azurerm_virtual_machine_extension": resourceArmVirtualMachineExtensions(),
 			"azurerm_virtual_machine":           resourceArmVirtualMachine(),
 			"azurerm_virtual_machine_scale_set": resourceArmVirtualMachineScaleSet(),
 			"azurerm_virtual_network":           resourceArmVirtualNetwork(),
@@ -86,8 +124,11 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_sql_firewall_rule": resourceArmSqlFirewallRule(),
 			"azurerm_sql_server":        resourceArmSqlServer(),
 		},
-		ConfigureFunc: providerConfigure,
 	}
+
+	p.ConfigureFunc = providerConfigure(p)
+
+	return p
 }
 
 // Config is the configuration structure used to instantiate a
@@ -95,10 +136,12 @@ func Provider() terraform.ResourceProvider {
 type Config struct {
 	ManagementURL string
 
-	SubscriptionID string
-	ClientID       string
-	ClientSecret   string
-	TenantID       string
+	SubscriptionID           string
+	ClientID                 string
+	ClientSecret             string
+	TenantID                 string
+	Environment              string
+	SkipProviderRegistration bool
 
 	validateCredentialsOnce sync.Once
 }
@@ -118,50 +161,59 @@ func (c *Config) validate() error {
 	if c.TenantID == "" {
 		err = multierror.Append(err, fmt.Errorf("Tenant ID must be configured for the AzureRM provider"))
 	}
+	if c.Environment == "" {
+		err = multierror.Append(err, fmt.Errorf("Environment must be configured for the AzureRM provider"))
+	}
 
 	return err.ErrorOrNil()
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	config := &Config{
-		SubscriptionID: d.Get("subscription_id").(string),
-		ClientID:       d.Get("client_id").(string),
-		ClientSecret:   d.Get("client_secret").(string),
-		TenantID:       d.Get("tenant_id").(string),
-	}
+func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
+	return func(d *schema.ResourceData) (interface{}, error) {
+		config := &Config{
+			SubscriptionID:           d.Get("subscription_id").(string),
+			ClientID:                 d.Get("client_id").(string),
+			ClientSecret:             d.Get("client_secret").(string),
+			TenantID:                 d.Get("tenant_id").(string),
+			Environment:              d.Get("environment").(string),
+			SkipProviderRegistration: d.Get("skip_provider_registration").(bool),
+		}
 
-	if err := config.validate(); err != nil {
-		return nil, err
-	}
+		if err := config.validate(); err != nil {
+			return nil, err
+		}
 
-	client, err := config.getArmClient()
-	if err != nil {
-		return nil, err
-	}
+		client, err := config.getArmClient()
+		if err != nil {
+			return nil, err
+		}
 
-	err = registerAzureResourceProvidersWithSubscription(client.rivieraClient)
-	if err != nil {
-		return nil, err
-	}
+		client.StopContext = p.StopContext()
 
-	return client, nil
+		// List all the available providers and their registration state to avoid unnecessary
+		// requests. This also lets us check if the provider credentials are correct.
+		providerList, err := client.providers.List(nil, "")
+		if err != nil {
+			return nil, fmt.Errorf("Unable to list provider registration status, it is possible that this is due to invalid "+
+				"credentials or the service principal does not have permission to use the Resource Manager API, Azure "+
+				"error: %s", err)
+		}
+
+		if !config.SkipProviderRegistration {
+			err = registerAzureResourceProvidersWithSubscription(*providerList.Value, client.providers)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return client, nil
+	}
 }
 
-func registerProviderWithSubscription(providerName string, client *riviera.Client) error {
-	request := client.NewRequest()
-	request.Command = riviera.RegisterResourceProvider{
-		Namespace: providerName,
-	}
-
-	response, err := request.Execute()
+func registerProviderWithSubscription(providerName string, client resources.ProvidersClient) error {
+	_, err := client.Register(providerName)
 	if err != nil {
-		return fmt.Errorf("Cannot request provider registration for Azure Resource Manager: %s.", err)
-	}
-
-	if !response.IsSuccessful() {
-		return fmt.Errorf("Credentials for acessing the Azure Resource Manager API are likely " +
-			"to be incorrect, or\n  the service principal does not have permission to use " +
-			"the Azure Service Management\n  API.")
+		return fmt.Errorf("Cannot register provider %s with Azure Resource Manager: %s.", providerName, err)
 	}
 
 	return nil
@@ -173,17 +225,42 @@ var providerRegistrationOnce sync.Once
 // all Azure resource providers which the Terraform provider may require (regardless of
 // whether they are actually used by the configuration or not). It was confirmed by Microsoft
 // that this is the approach their own internal tools also take.
-func registerAzureResourceProvidersWithSubscription(client *riviera.Client) error {
+func registerAzureResourceProvidersWithSubscription(providerList []resources.Provider, client resources.ProvidersClient) error {
 	var err error
 	providerRegistrationOnce.Do(func() {
-		// We register Microsoft.Compute during client initialization
-		providers := []string{"Microsoft.Network", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search", "Microsoft.Resources", "Microsoft.ServiceBus"}
+		providers := map[string]struct{}{
+			"Microsoft.Compute":           struct{}{},
+			"Microsoft.Cache":             struct{}{},
+			"Microsoft.ContainerRegistry": struct{}{},
+			"Microsoft.Network":           struct{}{},
+			"Microsoft.Cdn":               struct{}{},
+			"Microsoft.Storage":           struct{}{},
+			"Microsoft.Sql":               struct{}{},
+			"Microsoft.Search":            struct{}{},
+			"Microsoft.Resources":         struct{}{},
+			"Microsoft.ServiceBus":        struct{}{},
+			"Microsoft.KeyVault":          struct{}{},
+			"Microsoft.EventHub":          struct{}{},
+		}
+
+		// filter out any providers already registered
+		for _, p := range providerList {
+			if _, ok := providers[*p.Namespace]; !ok {
+				continue
+			}
+
+			if strings.ToLower(*p.RegistrationState) == "registered" {
+				log.Printf("[DEBUG] Skipping provider registration for namespace %s\n", *p.Namespace)
+				delete(providers, *p.Namespace)
+			}
+		}
 
 		var wg sync.WaitGroup
 		wg.Add(len(providers))
-		for _, providerName := range providers {
+		for providerName := range providers {
 			go func(p string) {
 				defer wg.Done()
+				log.Printf("[DEBUG] Registering provider with namespace %s\n", p)
 				if innerErr := registerProviderWithSubscription(p, client); err != nil {
 					err = innerErr
 				}
@@ -193,15 +270,6 @@ func registerAzureResourceProvidersWithSubscription(client *riviera.Client) erro
 	})
 
 	return err
-}
-
-// azureRMNormalizeLocation is a function which normalises human-readable region/location
-// names (e.g. "West US") to the values used and returned by the Azure API (e.g. "westus").
-// In state we track the API internal version as it is easier to go from the human form
-// to the canonical form than the other way around.
-func azureRMNormalizeLocation(location interface{}) string {
-	input := location.(string)
-	return strings.Replace(strings.ToLower(input), " ", "", -1)
 }
 
 // armMutexKV is the instance of MutexKV for ARM resources
@@ -234,4 +302,10 @@ func azureStateRefreshFunc(resourceURI string, client *ArmClient, command rivier
 
 		panic(fmt.Errorf("azureStateRefreshFunc called on structure %T with no mapstructure:provisioningState tag. This is a bug", res.Parsed))
 	}
+}
+
+// Resource group names can be capitalised, but we store them in lowercase.
+// Use a custom diff function to avoid creation of new resources.
+func resourceAzurermResourceGroupNameDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
+	return strings.ToLower(old) == strings.ToLower(new)
 }

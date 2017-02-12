@@ -66,14 +66,14 @@ are exported:
 ~> **NOTE:** Some values are not always set and may not be available for
 interpolation.
 
-* `architecture` - The OS architecture of the AMI (ie: `i368` or `x86_64`).
+* `architecture` - The OS architecture of the AMI (ie: `i386` or `x86_64`).
 * `block_device_mappings` - The block device mappings of the AMI.
   * `block_device_mappings.#.device_name` - The physical name of the device.
   * `block_device_mappings.#.ebs.delete_on_termination` - `true` if the EBS volume
     will be deleted on termination.
   * `block_device_mappings.#.ebs.encrypted` - `true` if the EBS volume
     is encrypted.
-  * `block_device_mappings.#.ebs.encrypted` - `0` if the EBS volume
+  * `block_device_mappings.#.ebs.iops` - `0` if the EBS volume is
     not a provisioned IOPS image, otherwise the supported IOPS count.
   * `block_device_mappings.#.ebs.snapshot_id` - The ID of the snapshot.
   * `block_device_mappings.#.ebs.volume_size` - The size of the volume, in GiB.

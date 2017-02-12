@@ -70,24 +70,22 @@ func testAccCheckScalewayVolumeAttachmentExists(n string) resource.TestCheckFunc
 	}
 }
 
-var x86_64ImageIdentifier = "aecaed73-51a5-4439-a127-6d8229847145"
-
 var testAccCheckScalewayVolumeAttachmentConfig = fmt.Sprintf(`
 resource "scaleway_server" "base" {
   name = "test"
   # ubuntu 14.04
   image = "%s"
-  type = "C2S"
+  type = "C1"
   # state = "stopped"
 }
 
 resource "scaleway_volume" "test" {
   name = "test"
-  size_in_gb = 20
+  size_in_gb = 5
   type = "l_ssd"
 }
 
 resource "scaleway_volume_attachment" "test" {
   server = "${scaleway_server.base.id}"
   volume = "${scaleway_volume.test.id}"
-}`, x86_64ImageIdentifier)
+}`, armImageIdentifier)

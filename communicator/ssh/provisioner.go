@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/pathorcontents"
+	"github.com/hashicorp/terraform/communicator/shared"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
 	"github.com/xanzy/ssh-agent"
@@ -32,7 +32,7 @@ const (
 )
 
 // connectionInfo is decoded from the ConnInfo of the resource. These are the
-// only keys we look at. If a KeyFile is given, that is used instead
+// only keys we look at. If a PrivateKey is given, that is used instead
 // of a password.
 type connectionInfo struct {
 	User       string
@@ -50,10 +50,6 @@ type connectionInfo struct {
 	BastionPrivateKey string `mapstructure:"bastion_private_key"`
 	BastionHost       string `mapstructure:"bastion_host"`
 	BastionPort       int    `mapstructure:"bastion_port"`
-
-	// Deprecated
-	KeyFile        string `mapstructure:"key_file"`
-	BastionKeyFile string `mapstructure:"bastion_key_file"`
 }
 
 // parseConnectionInfo is used to convert the ConnInfo of the InstanceState into
@@ -84,6 +80,11 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	if connInfo.User == "" {
 		connInfo.User = DefaultUser
 	}
+
+	// Format the host if needed.
+	// Needed for IPv6 support.
+	connInfo.Host = shared.IpFormat(connInfo.Host)
+
 	if connInfo.Port == 0 {
 		connInfo.Port = DefaultPort
 	}
@@ -96,17 +97,12 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 		connInfo.TimeoutVal = DefaultTimeout
 	}
 
-	// Load deprecated fields; we can handle either path or contents in
-	// underlying implementation.
-	if connInfo.PrivateKey == "" && connInfo.KeyFile != "" {
-		connInfo.PrivateKey = connInfo.KeyFile
-	}
-	if connInfo.BastionPrivateKey == "" && connInfo.BastionKeyFile != "" {
-		connInfo.BastionPrivateKey = connInfo.BastionKeyFile
-	}
-
 	// Default all bastion config attrs to their non-bastion counterparts
 	if connInfo.BastionHost != "" {
+		// Format the bastion host if needed.
+		// Needed for IPv6 support.
+		connInfo.BastionHost = shared.IpFormat(connInfo.BastionHost)
+
 		if connInfo.BastionUser == "" {
 			connInfo.BastionUser = connInfo.User
 		}
@@ -215,14 +211,9 @@ func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
 }
 
 func readPrivateKey(pk string) (ssh.AuthMethod, error) {
-	key, _, err := pathorcontents.Read(pk)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to read private key %q: %s", pk, err)
-	}
-
 	// We parse the private key on our own first so that we can
 	// show a nicer error if the private key has a password.
-	block, _ := pem.Decode([]byte(key))
+	block, _ := pem.Decode([]byte(pk))
 	if block == nil {
 		return nil, fmt.Errorf("Failed to read key %q: no key found", pk)
 	}
@@ -232,7 +223,7 @@ func readPrivateKey(pk string) (ssh.AuthMethod, error) {
 				"not supported. Please decrypt the key prior to use.", pk)
 	}
 
-	signer, err := ssh.ParsePrivateKey([]byte(key))
+	signer, err := ssh.ParsePrivateKey([]byte(pk))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse key file %q: %s", pk, err)
 	}

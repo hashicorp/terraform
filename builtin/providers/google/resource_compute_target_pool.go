@@ -21,38 +21,38 @@ func resourceComputeTargetPool() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"backup_pool": &schema.Schema{
+			"backup_pool": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"failover_ratio": &schema.Schema{
+			"failover_ratio": {
 				Type:     schema.TypeFloat,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"health_checks": &schema.Schema{
+			"health_checks": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: false,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"instances": &schema.Schema{
+			"instances": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
@@ -60,26 +60,26 @@ func resourceComputeTargetPool() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"project": &schema.Schema{
+			"project": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			"self_link": &schema.Schema{
+			"self_link": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"session_affinity": &schema.Schema{
+			"session_affinity": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -89,9 +89,12 @@ func resourceComputeTargetPool() *schema.Resource {
 }
 
 func convertStringArr(ifaceArr []interface{}) []string {
-	arr := make([]string, len(ifaceArr))
-	for i, v := range ifaceArr {
-		arr[i] = v.(string)
+	var arr []string
+	for _, v := range ifaceArr {
+		if v == nil {
+			continue
+		}
+		arr = append(arr, v.(string))
 	}
 	return arr
 }
@@ -362,6 +365,16 @@ func convertInstancesFromUrls(urls []string) []string {
 	return result
 }
 
+func convertHealthChecksFromUrls(urls []string) []string {
+	result := make([]string, 0, len(urls))
+	for _, url := range urls {
+		urlArray := strings.Split(url, "/")
+		healthCheck := fmt.Sprintf("%s", urlArray[len(urlArray)-1])
+		result = append(result, healthCheck)
+	}
+	return result
+}
+
 func resourceComputeTargetPoolRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -394,7 +407,11 @@ func resourceComputeTargetPoolRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("backup_pool", tpool.BackupPool)
 	d.Set("description", tpool.Description)
 	d.Set("failover_ratio", tpool.FailoverRatio)
-	d.Set("health_checks", tpool.HealthChecks)
+	if tpool.HealthChecks != nil {
+		d.Set("health_checks", convertHealthChecksFromUrls(tpool.HealthChecks))
+	} else {
+		d.Set("health_checks", nil)
+	}
 	if tpool.Instances != nil {
 		d.Set("instances", convertInstancesFromUrls(tpool.Instances))
 	} else {

@@ -3,8 +3,8 @@ package aws
 import (
 	"fmt"
 	"log"
-	"os"
 	"reflect"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,13 +17,7 @@ func TestAccAWSVPCPeeringConnection_basic(t *testing.T) {
 	var connection ec2.VpcPeeringConnection
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			if os.Getenv("AWS_ACCOUNT_ID") == "" {
-				t.Fatal("AWS_ACCOUNT_ID must be set.")
-			}
-		},
-
+		PreCheck:        func() { testAccPreCheck(t) },
 		IDRefreshName:   "aws_vpc_peering_connection.foo",
 		IDRefreshIgnore: []string{"auto_accept"},
 
@@ -60,17 +54,10 @@ func TestAccAWSVPCPeeringConnection_plan(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			if os.Getenv("AWS_ACCOUNT_ID") == "" {
-				t.Fatal("AWS_ACCOUNT_ID must be set.")
-			}
-		},
-
+		PreCheck:        func() { testAccPreCheck(t) },
 		IDRefreshIgnore: []string{"auto_accept"},
-
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSVpcPeeringConnectionDestroy,
+		Providers:       testAccProviders,
+		CheckDestroy:    testAccCheckAWSVpcPeeringConnectionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccVpcPeeringConfig,
@@ -90,13 +77,7 @@ func TestAccAWSVPCPeeringConnection_tags(t *testing.T) {
 	var connection ec2.VpcPeeringConnection
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			if os.Getenv("AWS_ACCOUNT_ID") == "" {
-				t.Fatal("AWS_ACCOUNT_ID must be set.")
-			}
-		},
-
+		PreCheck:        func() { testAccPreCheck(t) },
 		IDRefreshName:   "aws_vpc_peering_connection.foo",
 		IDRefreshIgnore: []string{"auto_accept"},
 
@@ -137,13 +118,7 @@ func TestAccAWSVPCPeeringConnection_options(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			if os.Getenv("AWS_ACCOUNT_ID") == "" {
-				t.Fatal("AWS_ACCOUNT_ID must be set")
-			}
-		},
-
+		PreCheck:        func() { testAccPreCheck(t) },
 		IDRefreshName:   "aws_vpc_peering_connection.foo",
 		IDRefreshIgnore: []string{"auto_accept"},
 
@@ -216,6 +191,21 @@ func TestAccAWSVPCPeeringConnection_options(t *testing.T) {
 	})
 }
 
+func TestAccAWSVPCPeeringConnection_failedState(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:        func() { testAccPreCheck(t) },
+		IDRefreshIgnore: []string{"auto_accept"},
+		Providers:       testAccProviders,
+		CheckDestroy:    testAccCheckAWSVpcPeeringConnectionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config:      testAccVpcPeeringConfigFailedState,
+				ExpectError: regexp.MustCompile(`.*Error waiting.*\(pcx-\w+\).*incorrect.*VPC-ID.*`),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSVpcPeeringConnectionDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -280,7 +270,7 @@ func testAccCheckAWSVpcPeeringConnectionExists(n string, connection *ec2.VpcPeer
 			return err
 		}
 		if len(resp.VpcPeeringConnections) == 0 {
-			return fmt.Errorf("VPC Peering Connection could not be found.")
+			return fmt.Errorf("VPC Peering Connection could not be found")
 		}
 
 		*connection = *resp.VpcPeeringConnections[0]
@@ -392,5 +382,23 @@ resource "aws_vpc_peering_connection" "foo" {
 		allow_vpc_to_remote_classic_link = true
 		allow_classic_link_to_remote_vpc = true
 	}
+}
+`
+
+const testAccVpcPeeringConfigFailedState = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.0.0.0/16"
+	tags {
+		Name = "TestAccAWSVPCPeeringConnection_failedState"
+	}
+}
+
+resource "aws_vpc" "bar" {
+	cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_vpc_peering_connection" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+	peer_vpc_id = "${aws_vpc.bar.id}"
 }
 `

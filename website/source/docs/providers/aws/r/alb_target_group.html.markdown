@@ -31,10 +31,10 @@ resource "aws_vpc" "main" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the target group.
-* `port` - (Required) The port on which targets receive traffic, unless overriden when registering a specific target.
-* `protocol` - (Required) The protocol to use for routing traffic to the targets.
-* `vpc_id` - (Required) The identifier of the VPC in which to create the target group.
+* `name` - (Required) The name of the target group. 
+* `port` - (Required) The port on which targets receive traffic, unless overridden when registering a specific target. 
+* `protocol` - (Required) The protocol to use for routing traffic to the targets. 
+* `vpc_id` - (Required) The identifier of the VPC in which to create the target group. 
 * `deregistration_delay` - (Optional) The amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused. The range is 0-3600 seconds. The default value is 300 seconds. 
 * `stickiness` - (Optional) A Stickiness block. Stickiness blocks are documented below.
 * `health_check` - (Optional) A Health Check block. Health Check blocks are documented below.
@@ -44,6 +44,7 @@ Stickiness Blocks (`stickiness`) support the following:
 
 * `type` - (Required) The type of sticky sessions. The only current possible value is `lb_cookie`.
 * `cookie_duration` - (Optional) The time period, in seconds, during which requests from a client should be routed to the same target. After this time period expires, the load balancer-generated cookie is considered stale. The range is 1 second to 1 week (604800 seconds). The default value is 1 day (86400 seconds).
+* `enabled` - (Optional) Boolean to enable / disable `stickiness`. Default is `true`
 
 Health Check Blocks (`health_check`) support the following:
 
@@ -62,6 +63,7 @@ The following attributes are exported in addition to the arguments listed above:
 
 * `id` - The ARN of the Target Group (matches `arn`)
 * `arn` - The ARN of the Target Group (matches `id`)
+* `arn_suffix` - The ARN suffix for use with CloudWatch Metrics.
 
 ## Import
 

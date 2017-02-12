@@ -13,6 +13,10 @@ func resourceScalewayIP() *schema.Resource {
 		Read:   resourceScalewayIPRead,
 		Update: resourceScalewayIPUpdate,
 		Delete: resourceScalewayIPDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"server": &schema.Schema{
 				Type:     schema.TypeString,
@@ -70,7 +74,7 @@ func resourceScalewayIPUpdate(d *schema.ResourceData, m interface{}) error {
 			}
 		} else {
 			log.Printf("[DEBUG] Detaching IP %q\n", d.Id())
-			return DetachIP(scaleway, d.Id())
+			return scaleway.DetachIP(d.Id())
 		}
 	}
 

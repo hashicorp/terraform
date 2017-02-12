@@ -1,7 +1,7 @@
 ---
 layout: "tls"
 page_title: "TLS: tls_self_signed_cert"
-sidebar_current: "docs-tls-resourse-self-signed-cert"
+sidebar_current: "docs-tls-resource-self-signed-cert"
 description: |-
   Creates a self-signed TLS certificate in PEM format.
 ---

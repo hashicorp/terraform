@@ -14,7 +14,7 @@ func TestAccAWSAmiDataSource_natInstance(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckAwsAmiDataSourceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsAmiDataSourceID("data.aws_ami.nat_ami"),
@@ -57,7 +57,7 @@ func TestAccAWSAmiDataSource_windowsInstance(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckAwsAmiDataSourceWindowsConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsAmiDataSourceID("data.aws_ami.windows_ami"),
@@ -95,7 +95,7 @@ func TestAccAWSAmiDataSource_instanceStore(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckAwsAmiDataSourceInstanceStoreConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsAmiDataSourceID("data.aws_ami.instance_store_ami"),
@@ -129,8 +129,24 @@ func TestAccAWSAmiDataSource_owners(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckAwsAmiDataSourceOwnersConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsAmiDataSourceID("data.aws_ami.amazon_ami"),
+				),
+			},
+		},
+	})
+}
+
+// Acceptance test for: https://github.com/hashicorp/terraform/issues/10758
+func TestAccAWSAmiDataSource_ownersEmpty(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckAwsAmiDataSourceEmptyOwnersConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsAmiDataSourceID("data.aws_ami.amazon_ami"),
 				),
@@ -144,7 +160,7 @@ func TestAccAWSAmiDataSource_localNameFilter(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckAwsAmiDataSourceNameRegexConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsAmiDataSourceID("data.aws_ami.name_regex_filtered_ami"),
@@ -153,6 +169,57 @@ func TestAccAWSAmiDataSource_localNameFilter(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestResourceValidateNameRegex(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    `\`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `**`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `(.+`,
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateNameRegex(tc.Value, "name_regex")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    `\/`,
+			ErrCount: 0,
+		},
+		{
+			Value:    `.*`,
+			ErrCount: 0,
+		},
+		{
+			Value:    `\b(?:\d{1,3}\.){3}\d{1,3}\b`,
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateNameRegex(tc.Value, "name_regex")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
 }
 
 func testAccCheckAwsAmiDataSourceDestroy(s *terraform.State) error {
@@ -259,6 +326,13 @@ const testAccCheckAwsAmiDataSourceOwnersConfig = `
 data "aws_ami" "amazon_ami" {
 	most_recent = true
 	owners = ["amazon"]
+}
+`
+
+const testAccCheckAwsAmiDataSourceEmptyOwnersConfig = `
+data "aws_ami" "amazon_ami" {
+	most_recent = true
+	owners = [""]
 }
 `
 

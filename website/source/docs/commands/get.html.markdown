@@ -16,7 +16,9 @@ The `terraform get` command is used to download and update
 Usage: `terraform get [options] [dir]`
 
 The modules are downloaded into a local `.terraform` folder. This
-folder should not be committed to version control.
+folder should not be committed to version control. The `.terraform`
+folder is created relative to your current working directory
+regardless of the `dir` argument given to this command.
 
 If a module is already downloaded and the `-update` flag is _not_ set,
 Terraform will do nothing. As a result, it is safe (and fast) to run this

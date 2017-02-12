@@ -2959,6 +2959,111 @@ func TestResourceDataState_schema(t *testing.T) {
 	}
 }
 
+func TestResourceData_nonStringValuesInMap(t *testing.T) {
+	cases := []struct {
+		Schema       map[string]*Schema
+		Diff         *terraform.InstanceDiff
+		MapFieldName string
+		ItemName     string
+		ExpectedType string
+	}{
+		{
+			Schema: map[string]*Schema{
+				"boolMap": &Schema{
+					Type:     TypeMap,
+					Elem:     TypeBool,
+					Optional: true,
+				},
+			},
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"boolMap.%": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"boolMap.boolField": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "true",
+					},
+				},
+			},
+			MapFieldName: "boolMap",
+			ItemName:     "boolField",
+			ExpectedType: "bool",
+		},
+		{
+			Schema: map[string]*Schema{
+				"intMap": &Schema{
+					Type:     TypeMap,
+					Elem:     TypeInt,
+					Optional: true,
+				},
+			},
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"intMap.%": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"intMap.intField": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "8",
+					},
+				},
+			},
+			MapFieldName: "intMap",
+			ItemName:     "intField",
+			ExpectedType: "int",
+		},
+		{
+			Schema: map[string]*Schema{
+				"floatMap": &Schema{
+					Type:     TypeMap,
+					Elem:     TypeFloat,
+					Optional: true,
+				},
+			},
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"floatMap.%": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"floatMap.floatField": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "8.22",
+					},
+				},
+			},
+			MapFieldName: "floatMap",
+			ItemName:     "floatField",
+			ExpectedType: "float64",
+		},
+	}
+
+	for _, c := range cases {
+		d, err := schemaMap(c.Schema).Data(nil, c.Diff)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		m, ok := d.Get(c.MapFieldName).(map[string]interface{})
+		if !ok {
+			t.Fatalf("expected %q to be castable to a map", c.MapFieldName)
+		}
+		field, ok := m[c.ItemName]
+		if !ok {
+			t.Fatalf("expected %q in the map", c.ItemName)
+		}
+
+		typeName := reflect.TypeOf(field).Name()
+		if typeName != c.ExpectedType {
+			t.Fatalf("expected %q to be %q, it is %q.",
+				c.ItemName, c.ExpectedType, typeName)
+		}
+	}
+}
+
 func TestResourceDataSetConnInfo(t *testing.T) {
 	d := &ResourceData{}
 	d.SetId("foo")

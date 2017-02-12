@@ -62,6 +62,8 @@ func resourceKeyCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	d.SetId(d.Get("name").(string))
+
 	err = resourceKeyRead(d, meta)
 	if err != nil {
 		return err
@@ -95,7 +97,6 @@ func resourceKeyRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.SetId(key.Name)
 	d.Set("name", key.Name)
 	d.Set("key", key.Key)
 

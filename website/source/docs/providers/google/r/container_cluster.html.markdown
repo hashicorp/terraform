@@ -20,6 +20,11 @@ resource "google_container_cluster" "primary" {
   zone = "us-central1-a"
   initial_node_count = 3
 
+  additional_zones = [
+    "us-central1-b",
+    "us-central1-c"
+  ]
+
   master_auth {
     username = "mr.yoda"
     password = "adoy.rm"
@@ -47,10 +52,15 @@ resource "google_container_cluster" "primary" {
 * `name` - (Required) The name of the cluster, unique within the project and
     zone.
 
-* `zone` - (Required) The zone that all resources should be created in.
+* `zone` - (Required) The zone that the master and the number of nodes specified
+    in `initial_node_count` should be created in.
 
 - - -
-* `addons_config` - (Optional) The configuration for addons supported by Google Container Engine
+* `additional_zones` - (Optional) If additional zones are configured, the number
+    of nodes specified in `initial_node_count` is created in all specified zones.
+
+* `addons_config` - (Optional) The configuration for addons supported by Google
+    Container Engine
 
 * `cluster_ipv4_cidr` - (Optional) The IP address range of the container pods in
     this cluster. Default is an automatically assigned CIDR.
@@ -66,20 +76,22 @@ resource "google_container_cluster" "primary" {
     `monitoring.googleapis.com` and `none`. Defaults to
     `monitoring.googleapis.com`
 
-* `network` - (Optional) The name of the Google Compute Engine network to which
-    the cluster is connected
+* `network` - (Optional) The name or self_link of the Google Compute Engine
+    network to which the cluster is connected
 
 * `node_config` -  (Optional) The machine type and image to use for all nodes in
     this cluster
 
-* `node_version` - (Optional) The Kubernetes version on the nodes. Only valid
-    for upgrading of existing cluster. Defaults to latest version supported by
-    the server.
+* `node_version` - (Optional) The Kubernetes version on the nodes. Also affects
+    the initial master version on cluster creation. Updates affect nodes only. 
+    Defaults to the default version set by GKE which is not necessarily the latest 
+    version.
 
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.
 
-* `subnetwork` - (Optional) The name of the Google Compute Engine subnetwork in which the cluster's instances are launched
+* `subnetwork` - (Optional) The name of the Google Compute Engine subnetwork in
+which the cluster's instances are launched
 
 **Master Auth** supports the following arguments:
 
@@ -98,27 +110,34 @@ resource "google_container_cluster" "primary" {
     in GB. The smallest allowed disk size is 10GB. Defaults to 100GB.
 
 * `oauth_scopes` - (Optional) The set of Google API scopes to be made available
-    on all of the node VMs under the "default" service account. The following
-    scopes are necessary to ensure the correct functioning of the cluster:
+    on all of the node VMs under the "default" service account. These can be
+    either FQDNs, or scope aliases. The following scopes are necessary to ensure
+    the correct functioning of the cluster:
 
-  * `https://www.googleapis.com/auth/compute`
-  * `https://www.googleapis.com/auth/devstorage.read_only`
-  * `https://www.googleapis.com/auth/logging.write` (if `logging_service` points to Google)
-  * `https://www.googleapis.com/auth/monitoring` (if `monitoring_service` points to Google)
+  * `compute-rw` (`https://www.googleapis.com/auth/compute`)
+  * `storage-ro` (`https://www.googleapis.com/auth/devstorage.read_only`)
+  * `logging-write` (`https://www.googleapis.com/auth/logging.write`),
+    if `logging_service` points to Google
+  * `monitoring` (`https://www.googleapis.com/auth/monitoring`),
+    if `monitoring_service` points to Google
 
 **Addons Config** supports the following addons:
 
-* `http_load_balancing` - (Optional) The status of the HTTP Load Balancing addon. It is enabled by default; set `disabled = true` to disable.
-* `horizontal_pod_autoscaling` - (Optional) The status of the Horizontal Pod Autoscaling addon. It is enabled by default; set `disabled = true` to disable.
+* `http_load_balancing` - (Optional) The status of the HTTP Load Balancing
+    add-on. It is enabled by default; set `disabled = true` to disable.
+* `horizontal_pod_autoscaling` - (Optional) The status of the Horizontal Pod
+    Autoscaling addon. It is enabled by default; set `disabled = true` to
+    disable.
 
 This example `addons_config` disables both addons:
+
 ```
 addons_config {
-  http_load_balancing { 
-    disabled = false
+  http_load_balancing {
+    disabled = true
   }
   horizontal_pod_autoscaling {
-    disabled = false
+    disabled = true
   }
 }
 ```

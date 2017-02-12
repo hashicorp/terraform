@@ -56,6 +56,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"google_iam_policy": dataSourceGoogleIamPolicy(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"google_compute_autoscaler":             resourceComputeAutoscaler(),
 			"google_compute_address":                resourceComputeAddress(),
@@ -65,6 +69,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_forwarding_rule":        resourceComputeForwardingRule(),
 			"google_compute_global_address":         resourceComputeGlobalAddress(),
 			"google_compute_global_forwarding_rule": resourceComputeGlobalForwardingRule(),
+			"google_compute_health_check":           resourceComputeHealthCheck(),
 			"google_compute_http_health_check":      resourceComputeHttpHealthCheck(),
 			"google_compute_https_health_check":     resourceComputeHttpsHealthCheck(),
 			"google_compute_image":                  resourceComputeImage(),
@@ -74,6 +79,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_instance_template":      resourceComputeInstanceTemplate(),
 			"google_compute_network":                resourceComputeNetwork(),
 			"google_compute_project_metadata":       resourceComputeProjectMetadata(),
+			"google_compute_region_backend_service": resourceComputeRegionBackendService(),
 			"google_compute_route":                  resourceComputeRoute(),
 			"google_compute_ssl_certificate":        resourceComputeSslCertificate(),
 			"google_compute_subnetwork":             resourceComputeSubnetwork(),
@@ -89,8 +95,12 @@ func Provider() terraform.ResourceProvider {
 			"google_sql_database":                   resourceSqlDatabase(),
 			"google_sql_database_instance":          resourceSqlDatabaseInstance(),
 			"google_sql_user":                       resourceSqlUser(),
+			"google_project":                        resourceGoogleProject(),
+			"google_project_iam_policy":             resourceGoogleProjectIamPolicy(),
+			"google_project_services":               resourceGoogleProjectServices(),
 			"google_pubsub_topic":                   resourcePubsubTopic(),
 			"google_pubsub_subscription":            resourcePubsubSubscription(),
+			"google_service_account":                resourceGoogleServiceAccount(),
 			"google_storage_bucket":                 resourceStorageBucket(),
 			"google_storage_bucket_acl":             resourceStorageBucketAcl(),
 			"google_storage_bucket_object":          resourceStorageBucketObject(),
@@ -222,4 +232,54 @@ func getZonalResourceFromRegion(getResource func(string) (interface{}, error), r
 	}
 	// Resource does not exist in this region
 	return nil, nil
+}
+
+// getNetworkLink reads the "network" field from the given resource data and if the value:
+// - is a resource URL, returns the string unchanged
+// - is the network name only, then looks up the resource URL using the google client
+func getNetworkLink(d *schema.ResourceData, config *Config, field string) (string, error) {
+	if v, ok := d.GetOk(field); ok {
+		network := v.(string)
+
+		project, err := getProject(d, config)
+		if err != nil {
+			return "", err
+		}
+
+		if !strings.HasPrefix(network, "https://www.googleapis.com/compute/") {
+			// Network value provided is just the name, lookup the network SelfLink
+			networkData, err := config.clientCompute.Networks.Get(
+				project, network).Do()
+			if err != nil {
+				return "", fmt.Errorf("Error reading network: %s", err)
+			}
+			network = networkData.SelfLink
+		}
+
+		return network, nil
+
+	} else {
+		return "", nil
+	}
+}
+
+// getNetworkName reads the "network" field from the given resource data and if the value:
+// - is a resource URL, extracts the network name from the URL and returns it
+// - is the network name only (i.e not prefixed with http://www.googleapis.com/compute/...), is returned unchanged
+func getNetworkName(d *schema.ResourceData, field string) (string, error) {
+	if v, ok := d.GetOk(field); ok {
+		network := v.(string)
+
+		if strings.HasPrefix(network, "https://www.googleapis.com/compute/") {
+			// extract the network name from SelfLink URL
+			networkName := network[strings.LastIndex(network, "/")+1:]
+			if networkName == "" {
+				return "", fmt.Errorf("network url not valid")
+			}
+			return networkName, nil
+		}
+
+		return network, nil
+	}
+	return "", nil
 }

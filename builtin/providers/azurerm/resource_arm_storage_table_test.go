@@ -214,7 +214,7 @@ func TestValidateArmStorageTableName(t *testing.T) {
 
 var testAccAzureRMStorageTable_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "westus"
 }
 

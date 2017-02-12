@@ -59,3 +59,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The Route ID.
+
+## Import
+
+
+Routes can be imported using the `resource id`, e.g. 
+```
+terraform import azurerm_route.testRoute /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/routeTables/mytable1/routes/myroute1
+```

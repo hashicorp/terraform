@@ -12,36 +12,38 @@ import (
 )
 
 // You can use Amazon CloudWatch Logs to monitor, store, and access your log
-// files from Amazon Elastic Compute Cloud (Amazon EC2) instances, Amazon CloudTrail,
-// or other sources. You can then retrieve the associated log data from CloudWatch
-// Logs using the Amazon CloudWatch console, the CloudWatch Logs commands in
-// the AWS CLI, the CloudWatch Logs API, or the CloudWatch Logs SDK.
+// files from EC2 instances, Amazon CloudTrail, or other sources. You can then
+// retrieve the associated log data from CloudWatch Logs using the Amazon CloudWatch
+// console, the CloudWatch Logs commands in the AWS CLI, the CloudWatch Logs
+// API, or the CloudWatch Logs SDK.
 //
 // You can use CloudWatch Logs to:
 //
-//    Monitor Logs from Amazon EC2 Instances in Real-time: You can use CloudWatch
-// Logs to monitor applications and systems using log data. For example, CloudWatch
-// Logs can track the number of errors that occur in your application logs and
-// send you a notification whenever the rate of errors exceeds a threshold you
-// specify. CloudWatch Logs uses your log data for monitoring; so, no code changes
-// are required. For example, you can monitor application logs for specific
-// literal terms (such as "NullReferenceException") or count the number of occurrences
-// of a literal term at a particular position in log data (such as "404" status
-// codes in an Apache access log). When the term you are searching for is found,
-// CloudWatch Logs reports the data to a Amazon CloudWatch metric that you specify.
+//    * Monitor Logs from Amazon EC2 Instances in Real-time: You can use CloudWatch
+//    Logs to monitor applications and systems using log data. For example,
+//    CloudWatch Logs can track the number of errors that occur in your application
+//    logs and send you a notification whenever the rate of errors exceeds a
+//    threshold you specify. CloudWatch Logs uses your log data for monitoring;
+//    so, no code changes are required. For example, you can monitor application
+//    logs for specific literal terms (such as "NullReferenceException") or
+//    count the number of occurrences of a literal term at a particular position
+//    in log data (such as "404" status codes in an Apache access log). When
+//    the term you are searching for is found, CloudWatch Logs reports the data
+//    to a Amazon CloudWatch metric that you specify.
 //
-//    Monitor Amazon CloudTrail Logged Events: You can create alarms in Amazon
-// CloudWatch and receive notifications of particular API activity as captured
-// by CloudTrail and use the notification to perform troubleshooting.
+//    * Monitor Amazon CloudTrail Logged Events: You can create alarms in Amazon
+//    CloudWatch and receive notifications of particular API activity as captured
+//    by CloudTrail and use the notification to perform troubleshooting.
 //
-//    Archive Log Data: You can use CloudWatch Logs to store your log data
-// in highly durable storage. You can change the log retention setting so that
-// any log events older than this setting are automatically deleted. The CloudWatch
-// Logs agent makes it easy to quickly send both rotated and non-rotated log
-// data off of a host and into the log service. You can then access the raw
-// log data when you need it.
-//The service client's operations are safe to be used concurrently.
+//    * Archive Log Data: You can use CloudWatch Logs to store your log data
+//    in highly durable storage. You can change the log retention setting so
+//    that any log events older than this setting are automatically deleted.
+//    The CloudWatch Logs agent makes it easy to quickly send both rotated and
+//    non-rotated log data off of a host and into the log service. You can then
+//    access the raw log data when you need it.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/logs-2014-03-28
 type CloudWatchLogs struct {
 	*client.Client
 }
@@ -52,8 +54,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "logs"
+// Service information constants
+const (
+	ServiceName = "logs"      // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the CloudWatchLogs client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -66,17 +71,18 @@ const ServiceName = "logs"
 //     // Create a CloudWatchLogs client with additional configuration
 //     svc := cloudwatchlogs.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *CloudWatchLogs {
-	c := p.ClientConfig(ServiceName, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
+	c := p.ClientConfig(EndpointsID, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *CloudWatchLogs {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *CloudWatchLogs {
 	svc := &CloudWatchLogs{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2014-03-28",

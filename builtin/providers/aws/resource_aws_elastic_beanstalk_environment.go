@@ -334,14 +334,15 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 		// Additions and removals of options are done in a single API call, so we
 		// can't do our normal "remove these" and then later "add these", re-adding
 		// any updated settings.
-		// Because of this, we need to remove any settings in the "removable"
+		// Because of this, we need to exclude any settings in the "removable"
 		// settings that are also found in the "add" settings, otherwise they
 		// conflict. Here we loop through all the initial removables from the set
-		// difference, and we build up a slice of settings not found in the "add"
-		// set
+		// difference, and create a new slice `remove` that contains those settings
+		// found in `rm` but not in `add`
 		var remove []*elasticbeanstalk.ConfigurationOptionSetting
 		if len(add) > 0 {
 			for _, r := range rm {
+				var update = false
 				for _, a := range add {
 					// ResourceNames are optional. Some defaults come with it, some do
 					// not. We need to guard against nil/empty in state as well as
@@ -355,8 +356,13 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 						}
 					}
 					if *r.Namespace == *a.Namespace && *r.OptionName == *a.OptionName {
-						continue
+						log.Printf("[DEBUG] Updating Beanstalk setting (%s::%s) \"%s\" => \"%s\"", *a.Namespace, *a.OptionName, *r.Value, *a.Value)
+						update = true
+						break
 					}
+				}
+				// Only remove options that are not updates
+				if !update {
 					remove = append(remove, r)
 				}
 			}

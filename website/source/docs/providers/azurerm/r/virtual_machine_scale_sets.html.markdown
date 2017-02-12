@@ -112,6 +112,7 @@ The following arguments are supported:
 * `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
 * `sku` - (Required) A sku block as documented below.
 * `upgrade_policy_mode` - (Required) Specifies the mode of an upgrade to virtual machines in the scale set. Possible values, `Manual` or `Automatic`.
+* `overprovision` - (Optional) Specifies whether the virtual machine scale set should be overprovisioned.
 * `os_profile` - (Required) A Virtual Machine OS Profile block as documented below.
 * `os_profile_secrets` - (Optional) A collection of Secret blocks as documented below.
 * `os_profile_windows_config` - (Required, when a windows machine) A Windows config block as documented below.
@@ -119,7 +120,7 @@ The following arguments are supported:
 * `network_profile` - (Required) A collection of network profile block as documented below.
 * `storage_profile_os_disk` - (Required) A storage profile os disk block as documented below
 * `storage_profile_image_reference` - (Optional) A storage profile image reference block as documented below.
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 
 `sku` supports the following:
@@ -168,7 +169,7 @@ The following arguments are supported:
 `os_profile_linux_config` supports the following:
 
 * `disable_password_authentication` - (Required) Specifies whether password authentication should be disabled.
-* `ssh_keys` - (Optional) Specifies a collection of `path` and `key_data` to be placed on the virtual machine. 
+* `ssh_keys` - (Optional) Specifies a collection of `path` and `key_data` to be placed on the virtual machine.
 
 ~> **Note:** Please note that the only allowed `path` is `/home/<username>/.ssh/authorized_keys` due to a limitation of Azure_
 
@@ -188,11 +189,12 @@ The following arguments are supported:
 `storage_profile_os_disk` supports the following:
 
 * `name` - (Required) Specifies the disk name.
-* `vhd_containers` - (Required) Specifies the vhd uri.
+* `vhd_containers` - (Optional) Specifies the vhd uri. This property is ignored if using a custom image.
 * `create_option` - (Required) Specifies how the virtual machine should be created. The only possible option is `FromImage`.
 * `caching` - (Required) Specifies the caching requirements.
 * `image` - (Optional) Specifies the blob uri for user image. A virtual machine scale set creates an os disk in the same container as the user image.
                        Updating the osDisk image causes the existing disk to be deleted and a new one created with the new image. If the VM scale set is in Manual upgrade mode then the virtual machines are not updated until they have manualUpgrade applied to them.
+                       If this property is set then vhd_containers is ignored.
 * `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
 
 `storage_profile_image_reference` supports the following:
