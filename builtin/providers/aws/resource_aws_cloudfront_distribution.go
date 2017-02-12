@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -550,7 +551,16 @@ func resourceAwsCloudFrontDistributionCreate(d *schema.ResourceData, meta interf
 
 	resp, err := conn.CreateDistributionWithTags(params)
 	if err != nil {
-		return err
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "CNAMEAlreadyExists" {
+			var aliases []string
+			list := d.Get("aliases").(*schema.Set).List()
+			for _, v := range list {
+				aliases = append(aliases, v.(string))
+			}
+			return fmt.Errorf("Creating CloudFront Distribution failed: %s '%s'", err, strings.Join(aliases, ","))
+		} else {
+			return err
+		}
 	}
 	d.SetId(*resp.Distribution.Id)
 	return resourceAwsCloudFrontDistributionRead(d, meta)
