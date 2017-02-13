@@ -8,12 +8,12 @@ body.page-home {
 	}
 
 	h2{
-		margin-bottom: 40px;
+		margin-bottom: 15px;
 		font-size: 42px;
 		line-height: 42px;
 		letter-spacing: 2px;
 		text-transform: uppercase;
-		font-weight: regular;
+		font-weight: 600;
 	}
 
 	h3{
@@ -22,23 +22,20 @@ body.page-home {
 		line-height: 1.2;
 		letter-spacing: 1px;
 		text-transform: uppercase;
-		font-weight: bold;
+		font-weight: 600;
 	}
 
 	p{
 		font-size: 15px;
 		line-height: 1.5;
 		font-weight: regular;
-		letter-spacing: .2px;
 		margin-bottom: 2.2em;
 		font-family: $font-family-open-sans;
-		font-weight: $font-weight-open;
 	}
 
 	p.lead{
 		font-size: 21px;
-		font-family: $font-family-open-sans;
-		font-weight: $font-weight-open;
+		font-weight: 400 !important;
 	}
 
 	#primary-cta{
@@ -378,8 +375,6 @@ body.page-home {
 							font-size: 14px;
 							letter-spacing: 1px;
 							color: white;
-							font-family: $font-family-lato;
-							font-weight: $font-weight-lato-xb;
 						}
 
 						ul.shell-dots{
