@@ -35,6 +35,7 @@ Bug FIXES:
  * core: Fix crash if count interpolates into a non-int [GH-11864]
  * state/remote/s3: Fix Bug with Assume Role for Federated IAM Account [GH-10067]
  * provider/aws: Fix security_group_rule resource timeout errors [GH-11809]
+ * provider/aws: Fix diff suppress function for aws_db_instance [GH-11909]
  * provider/aws: Fix default values for AMI volume size [GH-11842]
  * provider/aws: Fix aws_db_event_subscription import [GH-11744]
  * provider/aws: Respect 400 returned from AWS API on RDS Cluster termination [GH-11795]
