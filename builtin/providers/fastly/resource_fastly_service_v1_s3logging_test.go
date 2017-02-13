@@ -224,7 +224,7 @@ resource "fastly_service_v1" "foo" {
     name      = "response_condition_test"
     type      = "RESPONSE"
     priority  = 8
-    statement = "resp.status = 418"
+    statement = "resp.status == 418"
   }
 
   s3logging {

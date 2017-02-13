@@ -196,7 +196,7 @@ resource "fastly_service_v1" "foo" {
     name      = "testing_condition"
     type      = "CACHE"
     priority  = 10
-    statement = "!beresp.cachable"
+    statement = "req.url ~ "^/articles/""
   }
 
   gzip {
