@@ -7,6 +7,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
 
  * **New Data Source:**  `aws_db_instance` [GH-11717]
+ * **New Data Source:**  `aws_vpn_gateway` [GH-11886]
  * **New Resource:**  `aws_elasticsearch_domain_policy` [GH-8648]
  * **New Resource:**  `aws_vpc_peering_connection_accepter` [GH-11505]
  * **New Resource:** `aws_config_config_rule` [GH-5850]
