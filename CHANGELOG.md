@@ -6,6 +6,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
+ * **New Provider:**  `arukas` [GH-11171]
  * **New Data Source:**  `aws_db_instance` [GH-11717]
  * **New Data Source:**  `aws_vpn_gateway` [GH-11886]
  * **New Resource:**  `aws_elasticsearch_domain_policy` [GH-8648]
