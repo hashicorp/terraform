@@ -13,9 +13,15 @@ import (
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mattn/go-colorable"
+	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/panicwrap"
 	"github.com/mitchellh/prefixedio"
+)
+
+const (
+	// EnvCLI is the environment variable name to set additional CLI args.
+	EnvCLI = "TF_CLI_ARGS"
 )
 
 func main() {
@@ -129,9 +135,45 @@ func wrappedMain() int {
 	// Make sure we clean up any managed plugins at the end of this
 	defer plugin.CleanupClients()
 
-	// Get the command line args. We shortcut "--version" and "-v" to
-	// just show the version.
+	// Get the command line args.
 	args := os.Args[1:]
+
+	// Prefix the args with any args from the EnvCLI
+	if v := os.Getenv(EnvCLI); v != "" {
+		log.Printf("[INFO] %s value: %q", EnvCLI, v)
+		extra, err := shellwords.Parse(v)
+		if err != nil {
+			Ui.Error(fmt.Sprintf(
+				"Error parsing extra CLI args from %s: %s",
+				EnvCLI, err))
+			return 1
+		}
+
+		// Find the index to place the flags. We put them exactly
+		// after the first non-flag arg.
+		idx := -1
+		for i, v := range args {
+			if v[0] != '-' {
+				idx = i
+				break
+			}
+		}
+
+		// idx points to the exact arg that isn't a flag. We increment
+		// by one so that all the copying below expects idx to be the
+		// insertion point.
+		idx++
+
+		// Copy the args
+		newArgs := make([]string, len(args)+len(extra))
+		copy(newArgs, args[:idx])
+		copy(newArgs[idx:], extra)
+		copy(newArgs[len(extra)+idx:], args[idx:])
+		args = newArgs
+
+	}
+
+	// We shortcut "--version" and "-v" to just show the version
 	for _, arg := range args {
 		if arg == "-v" || arg == "-version" || arg == "--version" {
 			newArgs := make([]string, len(args)+1)
@@ -142,6 +184,7 @@ func wrappedMain() int {
 		}
 	}
 
+	log.Printf("[INFO] CLI command args: %#v", args)
 	cli := &cli.CLI{
 		Args:       args,
 		Commands:   Commands,
