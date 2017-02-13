@@ -99,6 +99,8 @@ func dataSourceAwsS3BucketObject() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"tags": tagsSchemaComputed(),
 		},
 	}
 }
@@ -200,6 +202,16 @@ func dataSourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) e
 		log.Printf("[INFO] Ignoring body of S3 object %s with Content-Type %q",
 			uniqueId, contentType)
 	}
+
+	tagResp, err := conn.GetObjectTagging(
+		&s3.GetObjectTaggingInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		})
+	if err != nil {
+		return err
+	}
+	d.Set("tags", tagsToMapS3(tagResp.TagSet))
 
 	return nil
 }
