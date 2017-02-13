@@ -235,7 +235,7 @@ for more information
   Valid values: `viewer-request`, `origin-request`, `viewer-response`,
   `origin-response`
 
-  * `lambda_function_arn` (Required) - ARN of the Lambda function.
+  * `lambda_arn` (Required) - ARN of the Lambda function.
 
 ##### Cookies Arguments
 
