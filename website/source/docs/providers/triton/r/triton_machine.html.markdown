@@ -44,8 +44,8 @@ The following arguments are supported:
 * `image` - (string, Required)
     The UUID of the image to provision.
 
-* `nic` - (list of maps, Optional)
-    A list of maps with details for each nic. `nic` block described below.
+* `nic` - (list of NIC blocks, Optional)
+    NICs associated with the machine. The fields allowed in a `NIC` block are defined below.
 
 * `firewall_enabled` - (boolean)  Default: `false`
     Whether the cloud firewall should be enabled for this machine.
