@@ -179,6 +179,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_iam_server_certificate":   dataSourceAwsIAMServerCertificate(),
 			"aws_instance":                 dataSourceAwsInstance(),
 			"aws_ip_ranges":                dataSourceAwsIPRanges(),
+			"aws_kms_secret":               dataSourceAwsKmsSecret(),
 			"aws_partition":                dataSourceAwsPartition(),
 			"aws_prefix_list":              dataSourceAwsPrefixList(),
 			"aws_redshift_service_account": dataSourceAwsRedshiftServiceAccount(),
@@ -192,7 +193,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_vpc_endpoint":             dataSourceAwsVpcEndpoint(),
 			"aws_vpc_endpoint_service":     dataSourceAwsVpcEndpointService(),
 			"aws_vpc_peering_connection":   dataSourceAwsVpcPeeringConnection(),
-			"aws_kms_secret":               dataSourceAwsKmsSecret(),
+			"aws_vpn_gateway":              dataSourceAwsVpnGateway(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
