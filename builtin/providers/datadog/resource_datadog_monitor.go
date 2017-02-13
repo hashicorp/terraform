@@ -23,51 +23,51 @@ func resourceDatadogMonitor() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"message": &schema.Schema{
+			"message": {
 				Type:     schema.TypeString,
 				Required: true,
 				StateFunc: func(val interface{}) string {
 					return strings.TrimSpace(val.(string))
 				},
 			},
-			"escalation_message": &schema.Schema{
+			"escalation_message": {
 				Type:     schema.TypeString,
 				Optional: true,
 				StateFunc: func(val interface{}) string {
 					return strings.TrimSpace(val.(string))
 				},
 			},
-			"query": &schema.Schema{
+			"query": {
 				Type:     schema.TypeString,
 				Required: true,
 				StateFunc: func(val interface{}) string {
 					return strings.TrimSpace(val.(string))
 				},
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
 			// Options
-			"thresholds": &schema.Schema{
+			"thresholds": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"ok": &schema.Schema{
+						"ok": {
 							Type:     schema.TypeFloat,
 							Optional: true,
 						},
-						"warning": &schema.Schema{
+						"warning": {
 							Type:     schema.TypeFloat,
 							Optional: true,
 						},
-						"critical": &schema.Schema{
+						"critical": {
 							Type:     schema.TypeFloat,
 							Optional: true,
 						},
@@ -75,37 +75,37 @@ func resourceDatadogMonitor() *schema.Resource {
 				},
 				DiffSuppressFunc: suppressDataDogFloatIntDiff,
 			},
-			"notify_no_data": &schema.Schema{
+			"notify_no_data": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  true,
+				Default:  false,
 			},
-			"no_data_timeframe": &schema.Schema{
+			"no_data_timeframe": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"renotify_interval": &schema.Schema{
+			"renotify_interval": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"notify_audit": &schema.Schema{
+			"notify_audit": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"timeout_h": &schema.Schema{
+			"timeout_h": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"require_full_window": &schema.Schema{
+			"require_full_window": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"locked": &schema.Schema{
+			"locked": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 			// TODO should actually be map[string]int
-			"silenced": &schema.Schema{
+			"silenced": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
@@ -114,11 +114,11 @@ func resourceDatadogMonitor() *schema.Resource {
 						Type: schema.TypeInt},
 				},
 			},
-			"include_tags": &schema.Schema{
+			"include_tags": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"tags": &schema.Schema{
+			"tags": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -142,7 +142,8 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 	}
 
 	o := datadog.Options{
-		Thresholds: thresholds,
+		Thresholds:   thresholds,
+		NotifyNoData: d.Get("notify_no_data").(bool),
 	}
 	if attr, ok := d.GetOk("silenced"); ok {
 		s := make(map[string]int)
@@ -151,9 +152,6 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 			s[k], _ = strconv.Atoi(v.(string))
 		}
 		o.Silenced = s
-	}
-	if attr, ok := d.GetOk("notify_no_data"); ok {
-		o.NotifyNoData = attr.(bool)
 	}
 	if attr, ok := d.GetOk("no_data_timeframe"); ok {
 		o.NoDataTimeframe = datadog.NoDataTimeframe(attr.(int))
@@ -314,7 +312,9 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 		m.Tags = s
 	}
 
-	o := datadog.Options{}
+	o := datadog.Options{
+		NotifyNoData: d.Get("notify_no_data").(bool),
+	}
 	if attr, ok := d.GetOk("thresholds"); ok {
 		thresholds := attr.(map[string]interface{})
 		if thresholds["ok"] != nil {
@@ -328,9 +328,6 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
-	if attr, ok := d.GetOk("notify_no_data"); ok {
-		o.NotifyNoData = attr.(bool)
-	}
 	if attr, ok := d.GetOk("no_data_timeframe"); ok {
 		o.NoDataTimeframe = datadog.NoDataTimeframe(attr.(int))
 	}

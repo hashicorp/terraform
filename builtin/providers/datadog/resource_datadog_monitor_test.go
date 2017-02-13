@@ -17,7 +17,7 @@ func TestAccDatadogMonitor_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDatadogMonitorDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDatadogMonitorConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDatadogMonitorExists("datadog_monitor.foo"),
@@ -57,7 +57,7 @@ func TestAccDatadogMonitor_BasicNoTreshold(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDatadogMonitorDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDatadogMonitorConfigNoThresholds,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDatadogMonitorExists("datadog_monitor.foo"),
@@ -93,7 +93,7 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDatadogMonitorDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDatadogMonitorConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDatadogMonitorExists("datadog_monitor.foo"),
@@ -131,7 +131,7 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 						"datadog_monitor.foo", "tags.1", "baz"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckDatadogMonitorConfigUpdated,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDatadogMonitorExists("datadog_monitor.foo"),
@@ -185,7 +185,7 @@ func TestAccDatadogMonitor_TrimWhitespace(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDatadogMonitorDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDatadogMonitorConfigWhitespace,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDatadogMonitorExists("datadog_monitor.foo"),
@@ -219,7 +219,7 @@ func TestAccDatadogMonitor_Basic_float_int(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDatadogMonitorDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckDatadogMonitorConfig_ints,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDatadogMonitorExists("datadog_monitor.foo"),
@@ -230,7 +230,7 @@ func TestAccDatadogMonitor_Basic_float_int(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCheckDatadogMonitorConfig_ints_mixed,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDatadogMonitorExists("datadog_monitor.foo"),
@@ -277,7 +277,6 @@ resource "datadog_monitor" "foo" {
 	critical = "2.0"
   }
 
-  notify_no_data = false
   renotify_interval = 60
 
   notify_audit = false
