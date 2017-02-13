@@ -215,6 +215,29 @@ func TestAccAWSCloudFrontDistribution_noCustomErrorResponseConfig(t *testing.T) 
 	})
 }
 
+func TestAccAWSCloudFrontDistribution_LambdaFunctionAssociation(t *testing.T) {
+	rSt := acctest.RandString(5)
+	rName := fmt.Sprintf("tf_test_%s", rSt)
+	ri := acctest.RandInt()
+	testConfig2 := testAccAWSLambdaConfigS3Edge(rName, rSt) + fmt.Sprintf(testAccAWSCloudFrontDistributionS3ConfigWithLambdaFunctionAssociation, ri, originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
+	t.Log(testConfig2)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testConfig2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFrontDistributionLambdaExists(
+						"aws_cloudfront_distribution.s3_distribution",
+					),
+				),
+			},
+		},
+	})
+}
+
 func TestResourceAWSCloudFrontDistribution_validateHTTP(t *testing.T) {
 	var value string
 	var errors []error
@@ -256,6 +279,19 @@ func testAccCheckCloudFrontDistributionExistence(cloudFrontResource string) reso
 		_, err := testAccAuxCloudFrontGetDistributionConfig(s, cloudFrontResource)
 
 		return err
+	}
+}
+
+func testAccCheckCloudFrontDistributionLambdaExists(cloudFrontResource string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		cloudDist, err := testAccAuxCloudFrontGetDistributionConfig(s, cloudFrontResource)
+		if err != nil {
+			return err
+		}
+		if len(cloudDist.DistributionConfig.DefaultCacheBehavior.LambdaFunctionAssociations.Items) < 1 {
+			return fmt.Errorf("Lambda Function not associated with Cloud Front Distribution")
+		}
+		return nil
 	}
 }
 
@@ -815,3 +851,73 @@ resource "aws_cloudfront_distribution" "is_ipv6_enabled" {
 	%s
 }
 `, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), testAccAWSCloudFrontDistributionRetainConfig())
+
+var testAccAWSCloudFrontDistributionS3ConfigWithLambdaFunctionAssociation = `
+variable rand_id {
+	default = %d
+}
+
+# origin bucket
+%s
+
+# log bucket
+%s
+
+resource "aws_lambda_permission" "allow_cloudfront" {
+    statement_id = "AllowExecutionFromCloudFront"
+    action = "lambda:GetFunction"
+    function_name = "${aws_lambda_function.lambda_function_s3test.arn}"
+    principal = "edgelambda.amazonaws.com"
+}
+
+
+resource "aws_cloudfront_distribution" "s3_distribution" {
+	origin {
+		domain_name = "${aws_s3_bucket.s3_bucket_origin.id}.s3.amazonaws.com"
+		origin_id = "myS3Origin"
+	}
+	enabled = true
+	default_root_object = "index.html"
+	logging_config {
+		include_cookies = false
+		bucket = "${aws_s3_bucket.s3_bucket_logs.id}.s3.amazonaws.com"
+		prefix = "myprefix"
+	}
+	aliases = [ "mysite.${var.rand_id}.example.com", "yoursite.${var.rand_id}.example.com" ]
+
+	default_cache_behavior {
+
+		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
+		cached_methods = [ "GET", "HEAD" ]
+		target_origin_id = "myS3Origin"
+		forwarded_values {
+			query_string = false
+			cookies {
+				forward = "none"
+			}
+
+		}
+
+		lambda_function_association {
+			event_type = "origin-response"
+	   	lambda_arn = "${aws_lambda_function.lambda_function_s3test.arn}"
+		}
+
+		viewer_protocol_policy = "allow-all"
+		min_ttl = 0
+		default_ttl = 3600
+		max_ttl = 86400
+	}
+	price_class = "PriceClass_200"
+	restrictions {
+		geo_restriction {
+			restriction_type = "whitelist"
+			locations = [ "US", "CA", "GB", "DE" ]
+		}
+	}
+	viewer_certificate {
+		cloudfront_default_certificate = true
+	}
+	%s
+}
+`

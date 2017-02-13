@@ -937,6 +937,48 @@ resource "aws_lambda_function" "lambda_function_s3test" {
 `, acctest.RandInt(), rSt, rName)
 }
 
+func testAccAWSLambdaConfigS3Edge(rName, rSt string) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "lambda_bucket" {
+  bucket = "tf-test-bucket-%d"
+}
+
+resource "aws_s3_bucket_object" "lambda_code" {
+  bucket = "${aws_s3_bucket.lambda_bucket.id}"
+  key = "lambdatest.zip"
+  source = "test-fixtures/lambdatest.zip"
+}
+
+resource "aws_iam_role" "iam_for_lambda" {
+    name = "iam_for_lambda_%s"
+    assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_lambda_function" "lambda_function_s3test" {
+    s3_bucket = "${aws_s3_bucket.lambda_bucket.id}"
+    s3_key = "${aws_s3_bucket_object.lambda_code.id}"
+    function_name = "%s"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+    runtime = "nodejs4.3-edge"
+}
+`, acctest.RandInt(), rSt, rName)
+}
+
 func testAccAWSLambdaConfigNoRuntime(rName, rSt string) string {
 	return fmt.Sprintf(baseAccAWSLambdaConfig(rSt)+`
 resource "aws_lambda_function" "lambda_function_test" {
