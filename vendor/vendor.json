@@ -2108,6 +2108,12 @@
 			"revisionTime": "2016-11-23T14:36:37Z"
 		},
 		{
+			"checksumSHA1": "7OHq2KeND82oDITMEa+Mx4RmOaU=",
+			"path": "github.com/mattn/go-shellwords",
+			"revision": "753a2322a99f87c0eff284980e77f53041555bc6",
+			"revisionTime": "2017-01-23T01:43:24Z"
+		},
+		{
 			"checksumSHA1": "A0PtnlAbuZA6kKfuVkM8GSx2SSI=",
 			"comment": "v0.6.0",
 			"path": "github.com/maximilien/softlayer-go/client",
