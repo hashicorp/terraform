@@ -9,19 +9,15 @@ import (
 )
 
 const (
-	allowStale        = "allow_stale"
-	nodeMeta          = "node_meta"
-	nodesAttr         = "nodes"
-	requireConsistent = "require_consistent"
-	token             = "token"
-	waitIndex         = "wait_index"
-	waitTime          = "wait_time"
+	queryOptNodesAttr = "nodes"
 
 	nodeID              = "id"
 	nodeAddress         = "address"
 	nodeMetaAttr        = "meta"
 	nodeName            = "name"
 	nodeTaggedAddresses = "tagged_addresses"
+
+	queryOpts = "query_opts"
 
 	apiTaggedLAN    = "lan"
 	apiTaggedWAN    = "wan"
@@ -33,12 +29,8 @@ func dataSourceConsulCatalogNodes() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceConsulCatalogNodesRead,
 		Schema: map[string]*schema.Schema{
-			allowStale: &schema.Schema{
-				Optional: true,
-				Default:  true,
-				Type:     schema.TypeBool,
-			},
-			nodesAttr: &schema.Schema{
+			queryOpts: schemaQueryOpts,
+			queryOptNodesAttr: &schema.Schema{
 				Computed: true,
 				Type:     schema.TypeList,
 				Elem: &schema.Resource{
@@ -79,32 +71,6 @@ func dataSourceConsulCatalogNodes() *schema.Resource {
 						},
 					},
 				},
-			},
-			requireConsistent: &schema.Schema{
-				Optional: true,
-				Default:  false,
-				Type:     schema.TypeBool,
-			},
-			token: &schema.Schema{
-				Optional: true,
-				Default:  true,
-				Type:     schema.TypeString,
-			},
-			waitIndex: &schema.Schema{
-				Optional: true,
-				Default:  true,
-				Type:     schema.TypeInt,
-				ValidateFunc: makeValidationFunc(waitIndex, []interface{}{
-					validateIntMin(0),
-				}),
-			},
-			waitTime: &schema.Schema{
-				Optional: true,
-				Default:  true,
-				Type:     schema.TypeString,
-				ValidateFunc: makeValidationFunc(waitTime, []interface{}{
-					validateDurationMin("0ns"),
-				}),
 			},
 		},
 	}
@@ -166,7 +132,7 @@ func dataSourceConsulCatalogNodesRead(d *schema.ResourceData, meta interface{}) 
 	d.SetId(fmt.Sprintf(idKeyFmt, queryOpts.Datacenter))
 
 	d.Set("datacenter", queryOpts.Datacenter)
-	if err := d.Set(nodesAttr, l); err != nil {
+	if err := d.Set(queryOptNodesAttr, l); err != nil {
 		return errwrap.Wrapf("Unable to store nodes: {{err}}", err)
 	}
 
