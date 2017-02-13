@@ -17,7 +17,7 @@ Creates a Lambda permission to allow external sources invoking the Lambda functi
 resource "aws_lambda_permission" "allow_cloudwatch" {
     statement_id = "AllowExecutionFromCloudWatch"
     action = "lambda:InvokeFunction"
-    function_name = "${aws_lambda_function.test_lambda.arn}"
+    function_name = "${aws_lambda_function.test_lambda.name}"
     principal = "events.amazonaws.com"
     source_account = "111122223333"
     source_arn = "arn:aws:events:eu-west-1:111122223333:rule/RunDaily"
