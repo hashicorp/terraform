@@ -121,6 +121,17 @@ func resourceAwsIamInstanceProfileCreate(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error creating IAM instance profile %s: %s", name, err)
 	}
 
+	waiterRequest := &iam.GetInstanceProfileInput{
+		InstanceProfileName: aws.String(name),
+	}
+	// don't return until the IAM service reports that the instance profile is ready.
+	// this ensures that terraform resources which rely on the instance profile will 'see'
+	// that the instance profile exists.
+	err = iamconn.WaitUntilInstanceProfileExists(waiterRequest)
+	if err != nil {
+		return fmt.Errorf("Timed out while waiting for instance profile %s: %s", name, err)
+	}
+
 	return instanceProfileSetRoles(d, iamconn)
 }
 

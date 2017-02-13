@@ -136,7 +136,10 @@ func testAccCheckRancherRegistrationTokenExists(n string, regT *rancherClient.Re
 			return fmt.Errorf("No App Name is set")
 		}
 
-		client, _ := testAccProvider.Meta().(*Config).EnvironmentClient(rs.Primary.Attributes["environment_id"])
+		client, err := testAccProvider.Meta().(*Config).EnvironmentClient(rs.Primary.Attributes["environment_id"])
+		if err != nil {
+			return err
+		}
 
 		foundRegT, err := client.RegistrationToken.ById(rs.Primary.ID)
 		if err != nil {
@@ -154,12 +157,16 @@ func testAccCheckRancherRegistrationTokenExists(n string, regT *rancherClient.Re
 }
 
 func testAccCheckRancherRegistrationTokenDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "rancher_registration_token" {
 			continue
 		}
+		client, err := testAccProvider.Meta().(*Config).GlobalClient()
+		if err != nil {
+			return err
+		}
+
 		regT, err := client.RegistrationToken.ById(rs.Primary.ID)
 
 		if err == nil {

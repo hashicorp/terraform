@@ -62,7 +62,10 @@ func TestAccRancherEnvironment_disappears(t *testing.T) {
 
 func testAccRancherEnvironmentDisappears(env *rancherClient.Project) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*Config)
+		client, err := testAccProvider.Meta().(*Config).GlobalClient()
+		if err != nil {
+			return err
+		}
 		if err := client.Project.Delete(env); err != nil {
 			return fmt.Errorf("Error deleting Environment: %s", err)
 		}
@@ -96,7 +99,10 @@ func testAccCheckRancherEnvironmentExists(n string, env *rancherClient.Project) 
 			return fmt.Errorf("No App Name is set")
 		}
 
-		client := testAccProvider.Meta().(*Config)
+		client, err := testAccProvider.Meta().(*Config).GlobalClient()
+		if err != nil {
+			return err
+		}
 
 		foundEnv, err := client.Project.ById(rs.Primary.ID)
 		if err != nil {
@@ -114,7 +120,10 @@ func testAccCheckRancherEnvironmentExists(n string, env *rancherClient.Project) 
 }
 
 func testAccCheckRancherEnvironmentDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config)
+	client, err := testAccProvider.Meta().(*Config).GlobalClient()
+	if err != nil {
+		return err
+	}
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "rancher_environment" {

@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -51,11 +52,21 @@ func (b *Local) opPlan(
 	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook)
 
 	// Get our context
-	tfCtx, _, err := b.context(op)
+	tfCtx, opState, err := b.context(op)
 	if err != nil {
 		runningOp.Err = err
 		return
 	}
+
+	// context acquired the state, and therefor the lock.
+	// Unlock it when the operation is complete
+	defer func() {
+		if s, ok := opState.(state.Locker); op.LockState && ok {
+			if err := s.Unlock(); err != nil {
+				log.Printf("[ERROR]: %s", err)
+			}
+		}
+	}()
 
 	// Setup the state
 	runningOp.State = tfCtx.State()

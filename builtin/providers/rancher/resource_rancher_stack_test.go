@@ -177,7 +177,10 @@ func testAccCheckRancherStackExists(n string, stack *rancherClient.Environment) 
 			return fmt.Errorf("No App Name is set")
 		}
 
-		client, _ := testAccProvider.Meta().(*Config).EnvironmentClient(rs.Primary.Attributes["environment_id"])
+		client, err := testAccProvider.Meta().(*Config).EnvironmentClient(rs.Primary.Attributes["environment_id"])
+		if err != nil {
+			return err
+		}
 
 		foundStack, err := client.Environment.ById(rs.Primary.ID)
 		if err != nil {
@@ -216,12 +219,15 @@ func testAccCheckRancherStackAttributes(stack *rancherClient.Environment, enviro
 }
 
 func testAccCheckRancherStackDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config)
-
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "rancher_stack" {
 			continue
 		}
+		client, err := testAccProvider.Meta().(*Config).GlobalClient()
+		if err != nil {
+			return err
+		}
+
 		stack, err := client.Environment.ById(rs.Primary.ID)
 
 		if err == nil {

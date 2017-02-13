@@ -3,12 +3,16 @@ layout: "aws"
 page_title: "AWS: aws_vpc_peering_connection"
 sidebar_current: "docs-aws-resource-vpc-peering"
 description: |-
-  Provides an VPC Peering Connection resource.
+  Manage a VPC Peering Connection resource.
 ---
 
 # aws\_vpc\_peering\_connection
 
-Provides an VPC Peering Connection resource.
+Provides a resource to manage a VPC Peering Connection resource.
+
+-> **Note:** For cross-account (requester's AWS account differs from the accepter's AWS account) VPC Peering Connections
+use the `aws_vpc_peering_connection` resource to manage the requester's side of the connection and
+use the `aws_vpc_peering_connection_accepter` resource to manage the accepter's side of the connection.
 
 ## Example Usage
 
@@ -112,9 +116,9 @@ The following attributes are exported:
 
 AWS only supports VPC peering within the same AWS region.
 
-If both VPCs are not in the same AWS account do not enable the `auto_accept` attribute. You will still
-have to accept the VPC Peering Connection request manually using the AWS Management Console, AWS CLI,
-through SDKs, etc.
+If both VPCs are not in the same AWS account do not enable the `auto_accept` attribute.
+The accepter can manage its side of the connection using the `aws_vpc_peering_connection_accepter` resource
+or accept the connection manually using the AWS Management Console, AWS CLI, through SDKs, etc.
 
 ## Import
 

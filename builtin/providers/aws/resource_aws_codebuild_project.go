@@ -201,7 +201,7 @@ func resourceAwsCodeBuildProjectCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	var resp *codebuild.CreateProjectOutput
-	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 		var err error
 
 		resp, err = conn.CreateProject(params)
@@ -588,7 +588,7 @@ func sourceAuthToMap(sourceAuth *codebuild.SourceAuth) map[string]interface{} {
 	auth := map[string]interface{}{}
 	auth["type"] = *sourceAuth.Type
 
-	if sourceAuth.Type != nil {
+	if sourceAuth.Resource != nil {
 		auth["resource"] = *sourceAuth.Resource
 	}
 

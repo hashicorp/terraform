@@ -42,7 +42,9 @@ type StatePersister interface {
 }
 
 // Locker is implemented to lock state during command execution.
+// The optional info parameter can be recorded with the lock, but the
+// implementation should not depend in its value.
 type Locker interface {
-	Lock(reason string) error
+	Lock(info string) error
 	Unlock() error
 }

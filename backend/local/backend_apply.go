@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -28,11 +29,28 @@ func (b *Local) opApply(
 	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook, stateHook)
 
 	// Get our context
-	tfCtx, state, err := b.context(op)
+	tfCtx, opState, err := b.context(op)
 	if err != nil {
 		runningOp.Err = err
 		return
 	}
+
+	// context acquired the state, and therefor the lock.
+	// Unlock it when the operation is complete
+	defer func() {
+		if s, ok := opState.(state.Locker); op.LockState && ok {
+			if err := s.Unlock(); err != nil {
+				runningOp.Err = multierror.Append(runningOp.Err,
+					errwrap.Wrapf("Error unlocking state:\n\n"+
+						"{{err}}\n\n"+
+						"The Terraform operation completed but there was an error unlocking the state.\n"+
+						"This may require unlocking the state manually with the `terraform unlock` command\n",
+						err,
+					),
+				)
+			}
+		}
+	}()
 
 	// Setup the state
 	runningOp.State = tfCtx.State()
@@ -58,7 +76,7 @@ func (b *Local) opApply(
 	}
 
 	// Setup our hook for continuous state updates
-	stateHook.State = state
+	stateHook.State = opState
 
 	// Start the apply in a goroutine so that we can be interrupted.
 	var applyState *terraform.State
@@ -98,11 +116,11 @@ func (b *Local) opApply(
 	runningOp.State = applyState
 
 	// Persist the state
-	if err := state.WriteState(applyState); err != nil {
+	if err := opState.WriteState(applyState); err != nil {
 		runningOp.Err = fmt.Errorf("Failed to save state: %s", err)
 		return
 	}
-	if err := state.PersistState(); err != nil {
+	if err := opState.PersistState(); err != nil {
 		runningOp.Err = fmt.Errorf("Failed to save state: %s", err)
 		return
 	}

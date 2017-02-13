@@ -40,7 +40,7 @@ func TestLocalStateLocks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if lockInfo.Reason != "test" {
+	if lockInfo.Info != "test" {
 		t.Fatalf("invalid lock info %#v\n", lockInfo)
 	}
 

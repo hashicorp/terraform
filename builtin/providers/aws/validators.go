@@ -893,3 +893,40 @@ func validateAppautoscalingServiceNamespace(v interface{}, k string) (ws []strin
 	}
 	return
 }
+
+func validateConfigRuleSourceOwner(v interface{}, k string) (ws []string, errors []error) {
+	validOwners := []string{
+		"CUSTOM_LAMBDA",
+		"AWS",
+	}
+	owner := v.(string)
+	for _, o := range validOwners {
+		if owner == o {
+			return
+		}
+	}
+	errors = append(errors, fmt.Errorf(
+		"%q contains an invalid owner %q. Valid owners are %q.",
+		k, owner, validOwners))
+	return
+}
+
+func validateConfigExecutionFrequency(v interface{}, k string) (ws []string, errors []error) {
+	validFrequencies := []string{
+		"One_Hour",
+		"Three_Hours",
+		"Six_Hours",
+		"Twelve_Hours",
+		"TwentyFour_Hours",
+	}
+	frequency := v.(string)
+	for _, f := range validFrequencies {
+		if frequency == f {
+			return
+		}
+	}
+	errors = append(errors, fmt.Errorf(
+		"%q contains an invalid freqency %q. Valid frequencies are %q.",
+		k, frequency, validFrequencies))
+	return
+}

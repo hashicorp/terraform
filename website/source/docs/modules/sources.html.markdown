@@ -57,6 +57,14 @@ module "consul" {
 }
 ```
 
+These will fetch the modules using HTTPS.  If you want to use SSH instead:
+
+```
+module "consul" {
+	source = "git@github.com:hashicorp/example.git//subdir"
+}
+```
+
 **Note:** The double-slash, `//`, is important. It is what tells Terraform that that is the separator for a subdirectory, and not part of the repository itself.
 
 GitHub source URLs require that Git is installed on your system and that you have access to the repository.

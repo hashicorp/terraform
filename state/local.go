@@ -14,21 +14,27 @@ import (
 )
 
 // lock metadata structure for local locks
-type lockInfo struct {
+type LockInfo struct {
 	// Path to the state file
 	Path string
 	// The time the lock was taken
 	Created time.Time
-	// The time this lock expires
-	Expires time.Time
-	// The lock reason passed to State.Lock
-	Reason string
+	// Extra info passed to State.Lock
+	Info string
 }
 
 // return the lock info formatted in an error
-func (l *lockInfo) Err() error {
-	return fmt.Errorf("state file %q locked. created:%s, expires:%s, reason:%s",
-		l.Path, l.Created, l.Expires, l.Reason)
+func (l *LockInfo) Err() error {
+	return fmt.Errorf("state locked. path:%q, created:%s, info:%q",
+		l.Path, l.Created, l.Info)
+}
+
+func (l *LockInfo) String() string {
+	js, err := json.Marshal(l)
+	if err != nil {
+		panic(err)
+	}
+	return string(js)
 }
 
 // LocalState manages a state storage that is local to the filesystem.
@@ -41,6 +47,10 @@ type LocalState struct {
 
 	// the file handle corresponding to PathOut
 	stateFileOut *os.File
+	// created is set to tru if stateFileOut didn't exist before we created it.
+	// This is mostly so we can clean up emtpy files during tests, but doesn't
+	// hurt to remove file we never wrote to.
+	created bool
 
 	state     *terraform.State
 	readState *terraform.State
@@ -77,8 +87,27 @@ func (s *LocalState) Lock(reason string) error {
 }
 
 func (s *LocalState) Unlock() error {
+	// we can't be locked if we don't have a file
+	if s.stateFileOut == nil {
+		return nil
+	}
+
 	os.Remove(s.lockInfoPath())
-	return s.unlock()
+
+	fileName := s.stateFileOut.Name()
+
+	unlockErr := s.unlock()
+
+	s.stateFileOut.Close()
+	s.stateFileOut = nil
+
+	// clean up the state file if we created it an never wrote to it
+	stat, err := os.Stat(fileName)
+	if err == nil && stat.Size() == 0 && s.created {
+		os.Remove(fileName)
+	}
+
+	return unlockErr
 }
 
 // Open the state file, creating the directories and file as needed.
@@ -87,26 +116,23 @@ func (s *LocalState) createStateFiles() error {
 		s.PathOut = s.Path
 	}
 
-	f, err := createFileAndDirs(s.PathOut)
+	// yes this could race, but we only use it to clean up empty files
+	if _, err := os.Stat(s.PathOut); os.IsNotExist(err) {
+		s.created = true
+	}
+
+	// Create all the directories
+	if err := os.MkdirAll(filepath.Dir(s.PathOut), 0755); err != nil {
+		return err
+	}
+
+	f, err := os.OpenFile(s.PathOut, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
+
 	s.stateFileOut = f
 	return nil
-}
-
-func createFileAndDirs(path string) (*os.File, error) {
-	// Create all the directories
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return nil, err
-	}
-
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)
-	if err != nil {
-		return nil, err
-	}
-
-	return f, nil
 }
 
 // WriteState for LocalState always persists the state as well.
@@ -176,6 +202,11 @@ func (s *LocalState) RefreshState() error {
 			reader = f
 		}
 	} else {
+		// no state to refresh
+		if s.stateFileOut == nil {
+			return nil
+		}
+
 		// we have a state file, make sure we're at the start
 		s.stateFileOut.Seek(0, os.SEEK_SET)
 		reader = s.stateFileOut
@@ -207,14 +238,14 @@ func (s *LocalState) lockInfoPath() string {
 }
 
 // lockInfo returns the data in a lock info file
-func (s *LocalState) lockInfo() (*lockInfo, error) {
+func (s *LocalState) lockInfo() (*LockInfo, error) {
 	path := s.lockInfoPath()
 	infoData, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	info := lockInfo{}
+	info := LockInfo{}
 	err = json.Unmarshal(infoData, &info)
 	if err != nil {
 		return nil, fmt.Errorf("state file %q locked, but could not unmarshal lock info: %s", s.Path, err)
@@ -223,14 +254,13 @@ func (s *LocalState) lockInfo() (*lockInfo, error) {
 }
 
 // write a new lock info file
-func (s *LocalState) writeLockInfo(reason string) error {
+func (s *LocalState) writeLockInfo(info string) error {
 	path := s.lockInfoPath()
 
-	lockInfo := &lockInfo{
+	lockInfo := &LockInfo{
 		Path:    s.Path,
 		Created: time.Now().UTC(),
-		Expires: time.Now().Add(time.Hour).UTC(),
-		Reason:  reason,
+		Info:    info,
 	}
 
 	infoData, err := json.Marshal(lockInfo)

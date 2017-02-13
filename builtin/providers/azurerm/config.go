@@ -10,6 +10,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/containerregistry"
+	"github.com/Azure/azure-sdk-for-go/arm/containerservice"
 	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
 	"github.com/Azure/azure-sdk-for-go/arm/keyvault"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
@@ -66,6 +67,7 @@ type ArmClient struct {
 	cdnEndpointsClient cdn.EndpointsClient
 
 	containerRegistryClient containerregistry.RegistriesClient
+	containerServicesClient containerservice.ContainerServicesClient
 
 	eventHubClient              eventhub.EventHubsClient
 	eventHubConsumerGroupClient eventhub.ConsumerGroupsClient
@@ -236,6 +238,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	crc.Authorizer = spt
 	crc.Sender = autorest.CreateSender(withRequestLogging())
 	client.containerRegistryClient = crc
+
+	csc := containerservice.NewContainerServicesClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&csc.Client)
+	csc.Authorizer = spt
+	csc.Sender = autorest.CreateSender(withRequestLogging())
+	client.containerServicesClient = csc
 
 	ehc := eventhub.NewEventHubsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&ehc.Client)

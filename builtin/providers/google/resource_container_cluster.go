@@ -95,6 +95,7 @@ func resourceContainerCluster() *schema.Resource {
 			"additional_zones": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
@@ -292,18 +293,14 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 	if v, ok := d.GetOk("additional_zones"); ok {
 		locationsList := v.([]interface{})
 		locations := []string{}
-		zoneInLocations := false
 		for _, v := range locationsList {
 			location := v.(string)
 			locations = append(locations, location)
 			if location == zoneName {
-				zoneInLocations = true
+				return fmt.Errorf("additional_zones should not contain the original 'zone'.")
 			}
 		}
-		if !zoneInLocations {
-			// zone must be in locations if specified separately
-			locations = append(locations, zoneName)
-		}
+		locations = append(locations, zoneName)
 		cluster.Locations = locations
 	}
 
@@ -444,7 +441,17 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("name", cluster.Name)
 	d.Set("zone", cluster.Zone)
-	d.Set("additional_zones", cluster.Locations)
+
+	locations := []string{}
+	if len(cluster.Locations) > 1 {
+		for _, location := range cluster.Locations {
+			if location != cluster.Zone {
+				locations = append(locations, location)
+			}
+		}
+	}
+	d.Set("additional_zones", locations)
+
 	d.Set("endpoint", cluster.Endpoint)
 
 	masterAuth := []map[string]interface{}{

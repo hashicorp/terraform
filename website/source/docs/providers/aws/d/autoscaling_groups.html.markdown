@@ -3,18 +3,17 @@ layout: "aws"
 page_title: "AWS: aws_autoscaling_groups"
 sidebar_current: "docs-aws-datasource-autoscaling-groups"
 description: |-
-    Provides a list of Autoscaling Groups within the specific availablity zone.
+    Provides a list of Autoscaling Groups within a specific region.
 ---
 
 # aws\_autoscaling\_groups
 
 The Autoscaling Groups data source allows access to the list of AWS
-ASGs within the specific region. This will allow you to pass a list of AutoScaling groups to other resources.
+ASGs within a specific region. This will allow you to pass a list of AutoScaling Groups to other resources.
 
 ## Example Usage
 
 ```
-# Declare the data source
 data "aws_autoscaling_groups" "groups" {}
 
 resource "aws_autoscaling_notification" "slack_notifications" {
@@ -31,10 +30,10 @@ resource "aws_autoscaling_notification" "slack_notifications" {
 
 ## Argument Reference
 
-The data source currently takes no arguments as it uses the current region that the provider works in.
+The data source currently takes no arguments as it uses the current region in which the provider is currently operating.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `names` - A list of the Autoscaling Groups in the region.
+* `names` - A list of the Autoscaling Groups in the current region.
