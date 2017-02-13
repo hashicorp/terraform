@@ -26,10 +26,12 @@ func TestAccDataConsulCatalogNodes_basic(t *testing.T) {
 
 const testAccDataConsulCatalogNodesConfig = `
 data "consul_catalog_nodes" "read" {
-  allow_stale = true
-  require_consistent = false
-  token = ""
-  wait_index = 0
-  wait_time = "1m"
+  query_options {
+    allow_stale = true
+    require_consistent = false
+    token = ""
+    wait_index = 0
+    wait_time = "1m"
+  }
 }
 `
