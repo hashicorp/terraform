@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-plugin"
@@ -138,39 +139,27 @@ func wrappedMain() int {
 	// Get the command line args.
 	args := os.Args[1:]
 
+	// Build the CLI so far, we do this so we can query the subcommand.
+	cliRunner := &cli.CLI{
+		Args:       args,
+		Commands:   Commands,
+		HelpFunc:   helpFunc,
+		HelpWriter: os.Stdout,
+	}
+
 	// Prefix the args with any args from the EnvCLI
-	if v := os.Getenv(EnvCLI); v != "" {
-		log.Printf("[INFO] %s value: %q", EnvCLI, v)
-		extra, err := shellwords.Parse(v)
-		if err != nil {
-			Ui.Error(fmt.Sprintf(
-				"Error parsing extra CLI args from %s: %s",
-				EnvCLI, err))
-			return 1
-		}
+	args, err = mergeEnvArgs(EnvCLI, args)
+	if err != nil {
+		Ui.Error(err.Error())
+		return 1
+	}
 
-		// Find the index to place the flags. We put them exactly
-		// after the first non-flag arg.
-		idx := -1
-		for i, v := range args {
-			if len(v) > 0 && v[0] != '-' {
-				idx = i
-				break
-			}
-		}
-
-		// idx points to the exact arg that isn't a flag. We increment
-		// by one so that all the copying below expects idx to be the
-		// insertion point.
-		idx++
-
-		// Copy the args
-		newArgs := make([]string, len(args)+len(extra))
-		copy(newArgs, args[:idx])
-		copy(newArgs[idx:], extra)
-		copy(newArgs[len(extra)+idx:], args[idx:])
-		args = newArgs
-
+	// Prefix the args with any args from the EnvCLI targeting this command
+	suffix := strings.Replace(cliRunner.Subcommand(), "-", "_", -1)
+	args, err = mergeEnvArgs(fmt.Sprintf("%s_%s", EnvCLI, suffix), args)
+	if err != nil {
+		Ui.Error(err.Error())
+		return 1
 	}
 
 	// We shortcut "--version" and "-v" to just show the version
@@ -184,8 +173,9 @@ func wrappedMain() int {
 		}
 	}
 
+	// Rebuild the CLI with any modified args.
 	log.Printf("[INFO] CLI command args: %#v", args)
-	cli := &cli.CLI{
+	cliRunner = &cli.CLI{
 		Args:       args,
 		Commands:   Commands,
 		HelpFunc:   helpFunc,
@@ -196,7 +186,7 @@ func wrappedMain() int {
 	ContextOpts.Providers = config.ProviderFactories()
 	ContextOpts.Provisioners = config.ProvisionerFactories()
 
-	exitCode, err := cli.Run()
+	exitCode, err := cliRunner.Run()
 	if err != nil {
 		Ui.Error(fmt.Sprintf("Error executing CLI: %s", err.Error()))
 		return 1
@@ -283,4 +273,41 @@ func copyOutput(r io.Reader, doneCh chan<- struct{}) {
 	}()
 
 	wg.Wait()
+}
+
+func mergeEnvArgs(envName string, args []string) ([]string, error) {
+	v := os.Getenv(envName)
+	if v == "" {
+		return args, nil
+	}
+
+	log.Printf("[INFO] %s value: %q", envName, v)
+	extra, err := shellwords.Parse(v)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Error parsing extra CLI args from %s: %s",
+			envName, err)
+	}
+
+	// Find the index to place the flags. We put them exactly
+	// after the first non-flag arg.
+	idx := -1
+	for i, v := range args {
+		if len(v) > 0 && v[0] != '-' {
+			idx = i
+			break
+		}
+	}
+
+	// idx points to the exact arg that isn't a flag. We increment
+	// by one so that all the copying below expects idx to be the
+	// insertion point.
+	idx++
+
+	// Copy the args
+	newArgs := make([]string, len(args)+len(extra))
+	copy(newArgs, args[:idx])
+	copy(newArgs[idx:], extra)
+	copy(newArgs[len(extra)+idx:], args[idx:])
+	return newArgs, nil
 }
