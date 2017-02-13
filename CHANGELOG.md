@@ -11,6 +11,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
    Remote backends themselves are fully backwards compatible with prior
    Terraform versions.
  * provider/aws: `aws_db_instance` now defaults to making a final snapshot on delete
+ * provider/aws: `aws_rds_cluster` now defaults to making a final snapshot on delete
  * provider/aws: Deprecated fields `kinesis_endpoint` & `dynamodb_endpoint` were removed. Use `kinesis` & `dynamodb` inside the `endpoints` block instead. [GH-11778]
  * provider/datadog: `datadog_monitor` now defaults `notify_no_data` to `false` as per the datadog API
 
@@ -31,6 +32,7 @@ IMPROVEMENTS:
  * provisioners: All provisioners now respond very quickly to interrupts for
    fast cancellation. [GH-10934]
  * provider/aws: Set aws_db_cluster to snapshot by default [GH-11668]
+ * provider/aws: Enable final snapshots for aws_rds_cluster by default [GH-11694]
  * provider/vault: read vault token from `~/.vault-token` as a fallback for the
    `VAULT_TOKEN` environment variable. [GH-11529]
 
