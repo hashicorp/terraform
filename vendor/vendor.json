@@ -462,6 +462,12 @@
 			"revisionTime": "2016-01-15T23:47:25Z"
 		},
 		{
+			"checksumSHA1": "p9hyEP07p5jnjgUKHjKftWaKgs8=",
+			"path": "github.com/arukasio/cli",
+			"revision": "4f0dee167044ef44260d985a4d325f35a06e3149",
+			"revisionTime": "2017-01-23T00:46:44Z"
+		},
+		{
 			"checksumSHA1": "FWMPfJtpwiMBj9Ni0eMCVQYPV+M=",
 			"path": "github.com/aws/aws-sdk-go",
 			"revision": "d0fbf73eb83b04efb11da581c46316ad853eaa15",
@@ -1266,6 +1272,12 @@
 			"tree": true
 		},
 		{
+			"checksumSHA1": "SYxDN6l6j6OJ9f9BQDzneaJBd0k=",
+			"path": "github.com/gedex/inflector",
+			"revision": "046f2c31204676e3623730ee70fd0964e05822e7",
+			"revisionTime": "2016-11-03T04:27:56Z"
+		},
+		{
 			"checksumSHA1": "JKjnR1ApU6NcC79xcGaT7QRMx3A=",
 			"comment": "0.0.1-42-gea19666",
 			"path": "github.com/go-chef/chef",
@@ -2056,6 +2068,12 @@
 			"path": "github.com/macaron-contrib/session",
 			"revision": "d392059301313eee8059c85a4e698f22c664ef78",
 			"revisionTime": "2015-10-10T02:14:09Z"
+		},
+		{
+			"checksumSHA1": "BMxNUz0/EaTvexw9Vxm5jPG3w60=",
+			"path": "github.com/manyminds/api2go/jsonapi",
+			"revision": "dc368bb579c1a582faed50768e7fbcc463954c89",
+			"revisionTime": "2016-12-29T20:22:12Z"
 		},
 		{
 			"checksumSHA1": "yg57Q4J8Ob0LoYvqDxsWZ6AHffE=",
