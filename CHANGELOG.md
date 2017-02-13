@@ -28,6 +28,7 @@ FEATURES:
 IMPROVEMENTS:
 
  * core: Data source values can now be used as part of a `count` calculation. [GH-11482]
+ * command: CLI args can be specified via env vars. Specify `TF_CLI_ARGS` or `TF_CLI_ARGS_name` (where name is the name of a command) to specify additional CLI args [GH-11922]
  * command/init: previous behavior is retained, but init now also configures
    the new remote backends as well as downloads modules. It is the single
    command to initialize a new or existing Terraform configuration.
