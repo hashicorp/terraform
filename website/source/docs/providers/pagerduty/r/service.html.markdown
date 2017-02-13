@@ -53,6 +53,72 @@ The following arguments are supported:
   * `acknowledgement_timeout` - (Optional) Time in seconds that an incident changes to the Triggered State after being Acknowledged. Disabled if not set.
   * `escalation_policy` - (Required) The escalation policy used by this service.
 
+You may specify one optional `incident_urgency_rule` block configuring what urgencies to use.
+Your PagerDuty account must have the `urgencies` ability to assign an incident urgency rule.
+The block contains the following arguments.
+
+  * `type` - The type of incident urgency: `constant` or `use_support_hours` (when depending on specific suppor hours; see `support_hours`).
+  * `during_support_hours` - (Optional) Incidents' urgency during support hours.
+  * `outside_support_hours` - (Optional) Incidents' urgency outside of support hours.
+
+When using `type = "use_support_hours"` in `incident_urgency_rule` you have to specify exactly one otherwise optional `support_hours` block.
+Changes to `support_hours` necessitate re-creating the service resource. Account must have the `service_support_hours` ability to assign support hours.
+The block contains the following arguments.
+
+  * `type` - The type of support hours. Can be `fixed_time_per_day`.
+  * `time_zone` - The time zone for the support hours.
+  * `days_of_week` - Array of days of week as integers.
+  * `start_time` - The support hours' starting time of day.
+  * `end_time` - The support hours' ending time of day.
+
+When using `type = "use_support_hours"` in the `incident_urgency_rule` block you have to also specify `scheduled_actions` for the service. Otherwise `scheduled_actions` is optional. Changes necessitate re-createing the service resource.
+
+  * `type` - The type of scheduled action. Currently, this must be set to `urgency_change`.
+  * `at` - Represents when scheduled action will occur.
+  * `name` - Designates either the start or the end of the scheduled action. Can be `support_hours_start` or `support_hours_end`.
+
+Below is an example for a `pagerduty_service` resource with `incident_urgency_rules` with `type = "use_support_hours"`, `support_hours` and a default `scheduled_action` as well.
+
+```
+resource "pagerduty_service" "foo" {
+  name                    = "bar"
+  description             = "bar bar bar"
+  auto_resolve_timeout    = 3600
+  acknowledgement_timeout = 3600
+  escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
+
+  incident_urgency_rule {
+    type = "use_support_hours"
+
+    during_support_hours {
+      type    = "constant"
+      urgency = "high"
+    }
+    outside_support_hours {
+      type    = "constant"
+      urgency = "low"
+    }
+  }
+
+  support_hours {
+    type         = "fixed_time_per_day"
+    time_zone    = "America/Lima"
+    start_time   = "09:00:00"
+    end_time     = "17:00:00"
+    days_of_week = [ 1, 2, 3, 4, 5 ]
+  }
+
+  scheduled_actions {
+    type = "urgency_change"
+    to_urgency = "high"
+    at {
+      type = "named_time",
+      name = "support_hours_start"
+    }
+  }
+}
+```
+
 ## Attributes Reference
 
 The following attributes are exported:
