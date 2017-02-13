@@ -39,7 +39,7 @@ type ArmClient struct {
 	rivieraClient *riviera.Client
 
 	availSetClient         compute.AvailabilitySetsClient
-	usageOpsClient         compute.UsageOperationsClient
+	usageOpsClient         compute.UsageClient
 	vmExtensionImageClient compute.VirtualMachineExtensionImagesClient
 	vmExtensionClient      compute.VirtualMachineExtensionsClient
 	vmScaleSetClient       compute.VirtualMachineScaleSetsClient
@@ -74,7 +74,7 @@ type ArmClient struct {
 	providers           resources.ProvidersClient
 	resourceGroupClient resources.GroupsClient
 	tagsClient          resources.TagsClient
-	resourceFindClient  resources.Client
+	resourceFindClient  resources.GroupClient
 
 	jobsClient            scheduler.JobsClient
 	jobsCollectionsClient scheduler.JobCollectionsClient
@@ -84,7 +84,7 @@ type ArmClient struct {
 
 	deploymentsClient resources.DeploymentsClient
 
-	redisClient redis.Client
+	redisClient redis.GroupClient
 
 	trafficManagerProfilesClient  trafficmanager.ProfilesClient
 	trafficManagerEndpointsClient trafficmanager.EndpointsClient
