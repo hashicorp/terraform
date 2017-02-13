@@ -148,15 +148,17 @@ func wrappedMain() int {
 	}
 
 	// Prefix the args with any args from the EnvCLI
-	args, err = mergeEnvArgs(EnvCLI, args)
+	args, err = mergeEnvArgs(EnvCLI, cliRunner.Subcommand(), args)
 	if err != nil {
 		Ui.Error(err.Error())
 		return 1
 	}
 
 	// Prefix the args with any args from the EnvCLI targeting this command
-	suffix := strings.Replace(cliRunner.Subcommand(), "-", "_", -1)
-	args, err = mergeEnvArgs(fmt.Sprintf("%s_%s", EnvCLI, suffix), args)
+	suffix := strings.Replace(strings.Replace(
+		cliRunner.Subcommand(), "-", "_", -1), " ", "_", -1)
+	args, err = mergeEnvArgs(
+		fmt.Sprintf("%s_%s", EnvCLI, suffix), cliRunner.Subcommand(), args)
 	if err != nil {
 		Ui.Error(err.Error())
 		return 1
@@ -275,7 +277,7 @@ func copyOutput(r io.Reader, doneCh chan<- struct{}) {
 	wg.Wait()
 }
 
-func mergeEnvArgs(envName string, args []string) ([]string, error) {
+func mergeEnvArgs(envName string, cmd string, args []string) ([]string, error) {
 	v := os.Getenv(envName)
 	if v == "" {
 		return args, nil
@@ -289,11 +291,18 @@ func mergeEnvArgs(envName string, args []string) ([]string, error) {
 			envName, err)
 	}
 
+	// Find the command to look for in the args. If there is a space,
+	// we need to find the last part.
+	search := cmd
+	if idx := strings.LastIndex(search, " "); idx >= 0 {
+		search = cmd[idx+1:]
+	}
+
 	// Find the index to place the flags. We put them exactly
 	// after the first non-flag arg.
 	idx := -1
 	for i, v := range args {
-		if len(v) > 0 && v[0] != '-' {
+		if v == search {
 			idx = i
 			break
 		}

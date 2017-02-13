@@ -178,6 +178,26 @@ func TestMain_cliArgsFromEnvAdvanced(t *testing.T) {
 			[]string{"-flag", "foo", "bar"},
 			false,
 		},
+
+		{
+			"targeted to a command with a hyphen",
+			"command-name",
+			EnvCLI + "_command_name",
+			[]string{"command-name", "foo", "bar"},
+			"-flag",
+			[]string{"-flag", "foo", "bar"},
+			false,
+		},
+
+		{
+			"targeted to a command with a space",
+			"command name",
+			EnvCLI + "_command_name",
+			[]string{"command", "name", "foo", "bar"},
+			"-flag",
+			[]string{"-flag", "foo", "bar"},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
