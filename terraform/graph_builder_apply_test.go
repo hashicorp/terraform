@@ -95,17 +95,15 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 		Modules: []*ModuleDiff{
 			&ModuleDiff{
 				Path: []string{"root"},
-				Resources: map[string]*InstanceDiff{
-					"aws_instance.A": &InstanceDiff{
-						Destroy: true,
-						Attributes: map[string]*ResourceAttrDiff{
-							"name": &ResourceAttrDiff{
-								Old:         "",
-								New:         "foo",
-								RequiresNew: true,
-							},
+				Resources: map[string]*InstanceDiff{"aws_instance.A": &InstanceDiff{Destroy: true,
+					Attributes: map[string]*ResourceAttrDiff{
+						"name": &ResourceAttrDiff{
+							Old:         "",
+							New:         "foo",
+							RequiresNew: true,
 						},
 					},
+				},
 
 					"aws_instance.B": &InstanceDiff{
 						Attributes: map[string]*ResourceAttrDiff{
@@ -438,6 +436,54 @@ func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
 		t, g,
 		"provisioner.local",
 		"null_resource.foo (destroy)")
+}
+
+func TestApplyGraphBuilder_targetModule(t *testing.T) {
+	diff := &Diff{
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: []string{"root"},
+				Resources: map[string]*InstanceDiff{
+					"null_resource.foo": &InstanceDiff{
+						Attributes: map[string]*ResourceAttrDiff{
+							"name": &ResourceAttrDiff{
+								Old: "",
+								New: "foo",
+							},
+						},
+					},
+				},
+			},
+
+			&ModuleDiff{
+				Path: []string{"root", "child2"},
+				Resources: map[string]*InstanceDiff{
+					"null_resource.foo": &InstanceDiff{
+						Attributes: map[string]*ResourceAttrDiff{
+							"name": &ResourceAttrDiff{
+								Old: "",
+								New: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	b := &ApplyGraphBuilder{
+		Module:    testModule(t, "graph-builder-apply-target-module"),
+		Diff:      diff,
+		Providers: []string{"null"},
+		Targets:   []string{"module.child2"},
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	testGraphNotContains(t, g, "module.child1.output.instance_id")
 }
 
 const testApplyGraphBuilderStr = `
