@@ -6,6 +6,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
+ * **New Interpolation:**  `slice` [GH-9729]
  * **New Provider:**  `arukas` [GH-11171]
  * **New Data Source:**  `aws_db_instance` [GH-11717]
  * **New Data Source:**  `aws_vpn_gateway` [GH-11886]
