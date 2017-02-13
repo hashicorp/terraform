@@ -17,7 +17,7 @@ const (
 	nodeName            = "name"
 	nodeTaggedAddresses = "tagged_addresses"
 
-	queryOpts = "query_opts"
+	queryOpts = "query_options"
 
 	apiTaggedLAN    = "lan"
 	apiTaggedWAN    = "wan"
