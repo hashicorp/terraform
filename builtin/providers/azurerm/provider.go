@@ -68,6 +68,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_cdn_endpoint":       resourceArmCdnEndpoint(),
 			"azurerm_cdn_profile":        resourceArmCdnProfile(),
 			"azurerm_container_registry": resourceArmContainerRegistry(),
+			"azurerm_container_service":  resourceArmContainerService(),
 
 			"azurerm_eventhub":                    resourceArmEventHub(),
 			"azurerm_eventhub_authorization_rule": resourceArmEventHubAuthorizationRule(),
@@ -232,6 +233,7 @@ func registerAzureResourceProvidersWithSubscription(providerList []resources.Pro
 			"Microsoft.Compute":           struct{}{},
 			"Microsoft.Cache":             struct{}{},
 			"Microsoft.ContainerRegistry": struct{}{},
+			"Microsoft.ContainerService":  struct{}{},
 			"Microsoft.Network":           struct{}{},
 			"Microsoft.Cdn":               struct{}{},
 			"Microsoft.Storage":           struct{}{},
