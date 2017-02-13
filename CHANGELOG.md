@@ -15,6 +15,7 @@ FEATURES:
  * **New Resource:**  `aws_config_configuration_recorder_status` [GH-5850]
  * **New Resource:**  `aws_config_delivery_channel` [GH-5850]
  * **New Resource:**  `azurerm_container_service` [GH-10820]
+ * **New Resource:**  `vault_policy` [GH-10980]
 
 IMPROVEMENTS:
 
