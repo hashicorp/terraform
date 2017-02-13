@@ -364,6 +364,10 @@ func resourceAwsCodeDeployDeploymentGroupCreate(d *schema.ResourceData, meta int
 		input.LoadBalancerInfo = buildLoadBalancerInfo(attr.([]interface{}))
 	}
 
+	if attr, ok := d.GetOk("blue_green_deployment_config"); ok {
+		input.BlueGreenDeploymentConfiguration = buildBlueGreenDeploymentConfig(attr.([]interface{}))
+	}
+
 	// Retry to handle IAM role eventual consistency.
 	var resp *codedeploy.CreateDeploymentGroupOutput
 	var err error
@@ -455,6 +459,10 @@ func resourceAwsCodeDeployDeploymentGroupRead(d *schema.ResourceData, meta inter
 		return err
 	}
 
+	if err := d.Set("blue_green_deployment_config", blueGreenDeploymentConfigToMap(resp.DeploymentGroupInfo.BlueGreenDeploymentConfiguration)); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -519,6 +527,11 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 	if d.HasChange("load_balancer_info") {
 		_, n := d.GetChange("load_balancer_info")
 		input.LoadBalancerInfo = buildLoadBalancerInfo(n.([]interface{}))
+	}
+
+	if d.HasChange("blue_green_deployment_config") {
+		_, n := d.GetChange("blue_green_deployment_config")
+		input.BlueGreenDeploymentConfiguration = buildBlueGreenDeploymentConfig(n.([]interface{}))
 	}
 
 	log.Printf("[DEBUG] Updating CodeDeploy DeploymentGroup %s", d.Id())
@@ -721,13 +734,16 @@ func buildLoadBalancerInfo(list []interface{}) *codedeploy.LoadBalancerInfo {
 // buildBlueGreenDeploymentConfig converts a raw schema list containing a map[string]interface{}
 // into a single codedeploy.BlueGreenDeploymentConfiguration object
 func buildBlueGreenDeploymentConfig(list []interface{}) *codedeploy.BlueGreenDeploymentConfiguration {
+	if len(list) == 0 || list[0] == nil {
+		return nil
+	}
 
 	blueGreenDeploymentConfig := &codedeploy.BlueGreenDeploymentConfiguration{}
 
 	config := list[0].(map[string]interface{})
 
 	if attr, ok := config["deployment_ready_option"]; ok {
-		m := attr.([]map[string]interface{})[0]
+		m := attr.([]interface{})[0].(map[string]interface{})
 		deploymentReadyOption := &codedeploy.DeploymentReadyOption{
 			ActionOnTimeout:   aws.String(m["action_on_timeout"].(string)),
 			WaitTimeInMinutes: aws.Int64(int64(m["wait_time_in_minutes"].(int))),
@@ -736,7 +752,7 @@ func buildBlueGreenDeploymentConfig(list []interface{}) *codedeploy.BlueGreenDep
 	}
 
 	if attr, ok := config["green_fleet_provisioning_option"]; ok {
-		m := attr.([]map[string]interface{})[0]
+		m := attr.([]interface{})[0].(map[string]interface{})
 		greenFleetProvisioningOption := &codedeploy.GreenFleetProvisioningOption{
 			Action: aws.String(m["action"].(string)),
 		}
@@ -744,7 +760,7 @@ func buildBlueGreenDeploymentConfig(list []interface{}) *codedeploy.BlueGreenDep
 	}
 
 	if attr, ok := config["terminate_blue_instances_on_deployment_success"]; ok {
-		m := attr.([]map[string]interface{})[0]
+		m := attr.([]interface{})[0].(map[string]interface{})
 		blueInstanceTerminationOption := &codedeploy.BlueInstanceTerminationOption{
 			Action: aws.String(m["action"].(string)),
 			TerminationWaitTimeInMinutes: aws.Int64(int64(m["termination_wait_time_in_minutes"].(int))),
@@ -890,6 +906,11 @@ func loadBalancerInfoToMap(loadBalancerInfo *codedeploy.LoadBalancerInfo) []map[
 // into a []map[string]interface{} list containing a single item
 func blueGreenDeploymentConfigToMap(config *codedeploy.BlueGreenDeploymentConfiguration) []map[string]interface{} {
 	list := make([]map[string]interface{}, 0)
+
+	if config == nil {
+		return list
+	}
+
 	m := make(map[string]interface{})
 
 	a := make([]map[string]interface{}, 0)
