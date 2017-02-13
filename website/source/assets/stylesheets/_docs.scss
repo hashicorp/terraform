@@ -155,11 +155,6 @@ body.layout-intro{
           -webkit-font-smoothing: antialiased;
 				}
 
-				/*> a:hover,
-				> a:focus {
-					font-weight: $font-weight-lato-xb;
-				}*/
-
 				.nav {
 					display: block;
 
@@ -212,8 +207,6 @@ body.layout-intro{
 
 	p, li, .alert {
 		font-size: 20px;
-		font-family: $font-family-open-sans;
-		font-weight: $font-weight-open;
     line-height: 1.5em;
 		margin: 0 0 18px;
     -webkit-font-smoothing: antialiased;
@@ -245,7 +238,6 @@ body.layout-intro{
     margin-top: 40px;
 		margin-bottom: 24px;
     border-bottom: 1px solid #eeeeee;
-    @include lato-light();
 	}
 
 	h2, h3, h4{
