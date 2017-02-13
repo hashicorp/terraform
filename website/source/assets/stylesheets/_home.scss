@@ -4,38 +4,7 @@
 
 body.page-home {
 	h2.tag-line {
-		font-size: 40px;
-	}
-
-	h2{
-		margin-bottom: 15px;
-		font-size: 42px;
-		line-height: 42px;
-		letter-spacing: 2px;
-		text-transform: uppercase;
-		font-weight: 600;
-	}
-
-	h3{
-		margin-bottom: 10px;
-		font-size: 20px;
-		line-height: 1.2;
-		letter-spacing: 1px;
-		text-transform: uppercase;
-		font-weight: 600;
-	}
-
-	p{
-		font-size: 16px;
-		line-height: 1.5;
-		font-weight: regular;
-		margin-bottom: 2.2em;
-		font-family: $font-family-open-sans;
-	}
-
-	p.lead{
-		font-size: 21px;
-		font-weight: 400 !important;
+	  font-size: 40px;
 	}
 
 	#primary-cta{
