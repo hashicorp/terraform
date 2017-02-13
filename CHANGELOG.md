@@ -20,6 +20,7 @@ IMPROVEMENTS:
 
  * provider/aws: Update aws_ssm_document to include `document_type`, `latest_version` and `default_version` [GH-11671]
  * provider/aws: Support import of aws_opsworks_instance [GH-11783]
+ * provider/aws Add S3 bucket object tag support [GH-11344]
  * provider/openstack: Allow OpenStack SSL certs + keys to take path or content [GH-10271]
  * provider/pagerduty: Add support for `incident_urgency_rule`, `support_hours` and `scheduled_actions` to `pagerduty_service` [GH-11856]
  * provider/vault: Use Vault api.DefaultConfig() [GH-11523]
