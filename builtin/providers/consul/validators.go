@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/errwrap"
@@ -14,6 +15,9 @@ type validatorInputs []interface{}
 
 // validateDurationMin is the minimum duration to accept as input
 type validateDurationMin string
+
+// validateIntMax is the maximum integer value to accept as input
+type validateIntMax int
 
 // validateIntMin is the minimum integer value to accept as input
 type validateIntMin int
@@ -35,6 +39,8 @@ func makeValidationFunc(name string, validators []interface{}) func(v interface{
 		switch u := v.(type) {
 		case validateDurationMin:
 			fns = append(fns, validateDurationMinFactory(name, string(u)))
+		case validateIntMax:
+			fns = append(fns, validateIntMaxFactory(name, int(u)))
 		case validateIntMin:
 			fns = append(fns, validateIntMinFactory(name, int(u)))
 		case validateRegexp:
@@ -77,10 +83,50 @@ func validateDurationMinFactory(name, minDuration string) func(v interface{}, ke
 	}
 }
 
+func validateIntMaxFactory(name string, max int) func(v interface{}, key string) (warnings []string, errors []error) {
+	return func(v interface{}, key string) (warnings []string, errors []error) {
+		switch u := v.(type) {
+		case string:
+			i, err := strconv.ParseInt(u, 10, 64)
+			if err != nil {
+				errors = append(errors, errwrap.Wrapf(fmt.Sprintf("unable to convert %q to an integer: {{err}}", u), err))
+				break
+			}
+
+			if i > int64(max) {
+				errors = append(errors, fmt.Errorf("Invalid %s specified: %d more than the required maximum %d", name, v.(int), max))
+			}
+		case int:
+			if u > max {
+				errors = append(errors, fmt.Errorf("Invalid %s specified: %d more than the required maximum %d", name, v.(int), max))
+			}
+		default:
+			errors = append(errors, fmt.Errorf("Unsupported type in int max validation: %T", v))
+		}
+
+		return warnings, errors
+	}
+}
+
 func validateIntMinFactory(name string, min int) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
-		if v.(int) < min {
-			errors = append(errors, fmt.Errorf("Invalid %s specified: %d less than the required minimum %d", name, v.(int), min))
+		switch u := v.(type) {
+		case string:
+			i, err := strconv.ParseInt(u, 10, 64)
+			if err != nil {
+				errors = append(errors, errwrap.Wrapf(fmt.Sprintf("unable to convert %q to an integer: {{err}}", u), err))
+				break
+			}
+
+			if i < int64(min) {
+				errors = append(errors, fmt.Errorf("Invalid %s specified: %d less than the required minimum %d", name, v.(int), min))
+			}
+		case int:
+			if u < min {
+				errors = append(errors, fmt.Errorf("Invalid %s specified: %d less than the required minimum %d", name, v.(int), min))
+			}
+		default:
+			errors = append(errors, fmt.Errorf("Unsupported type in int min validation: %T", v))
 		}
 
 		return warnings, errors
