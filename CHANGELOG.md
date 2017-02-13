@@ -12,6 +12,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
    Terraform versions.
  * provider/aws: `aws_db_instance` now defaults to making a final snapshot on delete
  * provider/aws: Deprecated fields `kinesis_endpoint` & `dynamodb_endpoint` were removed. Use `kinesis` & `dynamodb` inside the `endpoints` block instead. [GH-11778]
+ * provider/datadog: `datadog_monitor` now defaults `notify_no_data` to `false` as per the datadog API
 
 FEATURES:
 
@@ -36,6 +37,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * provider/cloudstack: Ensure consistent hashes of `cloudstack_port_forward` forward items. [GH-11546]
+ * provider/datadog: Default notify_no_data on datadog_monitor to false [GH-11903]
 
 ## 0.8.6 (07 February 2017)
 
