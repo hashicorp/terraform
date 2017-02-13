@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/errwrap"
@@ -115,44 +114,9 @@ func dataSourceConsulCatalogNodesRead(d *schema.ResourceData, meta interface{}) 
 	client := meta.(*consulapi.Client)
 
 	// Parse out data source filters to populate Consul's query options
-
-	dc, err := getDC(d, client)
+	queryOpts, err := getQueryOpts(d, client)
 	if err != nil {
-		return err
-	}
-
-	queryOpts := &consulapi.QueryOptions{
-		Datacenter: dc,
-	}
-
-	if v, ok := d.GetOk(allowStale); ok {
-		queryOpts.AllowStale = v.(bool)
-	}
-
-	if v, ok := d.GetOk(requireConsistent); ok {
-		queryOpts.RequireConsistent = v.(bool)
-	}
-
-	if v, ok := d.GetOk(nodeMeta); ok {
-		m := v.(map[string]interface{})
-		nodeMetaMap := make(map[string]string, len(nodeMeta))
-		for s, t := range m {
-			nodeMetaMap[s] = t.(string)
-		}
-		queryOpts.NodeMeta = nodeMetaMap
-	}
-
-	if v, ok := d.GetOk(token); ok {
-		queryOpts.Token = v.(string)
-	}
-
-	if v, ok := d.GetOk(waitIndex); ok {
-		queryOpts.WaitIndex = uint64(v.(int))
-	}
-
-	if v, ok := d.GetOk(waitTime); ok {
-		d, _ := time.ParseDuration(v.(string))
-		queryOpts.WaitTime = d
+		return errwrap.Wrapf("unable to get query options for fetching catalog nodes: {{err}}", err)
 	}
 
 	nodes, meta, err := client.Catalog().Nodes(queryOpts)
@@ -199,9 +163,9 @@ func dataSourceConsulCatalogNodesRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	const idKeyFmt = "catalog-nodes-%s"
-	d.SetId(fmt.Sprintf(idKeyFmt, dc))
+	d.SetId(fmt.Sprintf(idKeyFmt, queryOpts.Datacenter))
 
-	d.Set("datacenter", dc)
+	d.Set("datacenter", queryOpts.Datacenter)
 	if err := d.Set(nodesAttr, l); err != nil {
 		return errwrap.Wrapf("Unable to store nodes: {{err}}", err)
 	}
