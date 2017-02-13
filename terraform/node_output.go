@@ -28,6 +28,13 @@ func (n *NodeApplyableOutput) Path() []string {
 	return n.PathValue
 }
 
+// RemovableIfNotTargeted
+func (n *NodeApplyableOutput) RemoveIfNotTargeted() bool {
+	// We need to add this so that this node will be removed if
+	// it isn't targeted or a dependency of a target.
+	return true
+}
+
 // GraphNodeReferenceable
 func (n *NodeApplyableOutput) ReferenceableName() []string {
 	name := fmt.Sprintf("output.%s", n.Config.Name)

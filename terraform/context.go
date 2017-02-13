@@ -215,6 +215,7 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 			State:        c.state,
 			Providers:    c.components.ResourceProviders(),
 			Provisioners: c.components.ResourceProvisioners(),
+			Targets:      c.targets,
 			Destroy:      c.destroy,
 			Validate:     opts.Validate,
 		}).Build(RootModulePath)
