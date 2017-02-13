@@ -31,6 +31,7 @@ Bug FIXES:
  * core: fix "diffs didn't match issue" for removing or empty collections that force new [GH-11732]
  * core: module sources ended in archive extensions without a "." won't be treated as archives [GH-11438]
  * core: destroy ordering of resources within modules is correct [GH-11765]
+ * core: Fix crash if count interpolates into a non-int [GH-11864]
  * state/remote/s3: Fix Bug with Assume Role for Federated IAM Account [GH-10067]
  * provider/aws: Fix security_group_rule resource timeout errors [GH-11809]
  * provider/aws: Fix default values for AMI volume size [GH-11842]
