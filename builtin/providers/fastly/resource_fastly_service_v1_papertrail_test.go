@@ -26,11 +26,11 @@ func TestAccFastlyServiceV1_papertrail_basic(t *testing.T) {
 	}
 
 	log2 := gofastly.Papertrail{
-		Version:           "1",
-		Name:              "papertrailtesting2",
-		Address:           "test2.papertrailapp.com",
-		Port:              uint(8080),
-		Format:            "%h %l %u %t %r %>s",
+		Version: "1",
+		Name:    "papertrailtesting2",
+		Address: "test2.papertrailapp.com",
+		Port:    uint(8080),
+		Format:  "%h %l %u %t %r %>s",
 	}
 
 	resource.Test(t, resource.TestCase{
