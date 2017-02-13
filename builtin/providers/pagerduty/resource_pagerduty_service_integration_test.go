@@ -117,6 +117,11 @@ resource "pagerduty_service" "foo" {
   auto_resolve_timeout    = 1800
   acknowledgement_timeout = 1800
   escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
+
+  incident_urgency_rule {
+    type = "constant"
+    urgency = "high"
+  }
 }
 
 data "pagerduty_vendor" "datadog" {
@@ -162,6 +167,11 @@ resource "pagerduty_service" "foo" {
   auto_resolve_timeout    = 3600
   acknowledgement_timeout = 3600
   escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
+
+  incident_urgency_rule {
+    type    = "constant"
+    urgency = "high"
+  }
 }
 
 data "pagerduty_vendor" "datadog" {
