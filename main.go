@@ -153,7 +153,7 @@ func wrappedMain() int {
 		// after the first non-flag arg.
 		idx := -1
 		for i, v := range args {
-			if v[0] != '-' {
+			if len(v) > 0 && v[0] != '-' {
 				idx = i
 				break
 			}

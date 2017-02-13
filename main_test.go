@@ -57,6 +57,22 @@ func TestMain_cliArgsFromEnv(t *testing.T) {
 		},
 
 		{
+			"cli string has blank values",
+			[]string{testCommandName, "bar", "", "baz"},
+			"-foo bar",
+			[]string{"-foo", "bar", "bar", "", "baz"},
+			false,
+		},
+
+		{
+			"cli string has blank values before the command",
+			[]string{"", testCommandName, "bar"},
+			"-foo bar",
+			[]string{"-foo", "bar", "bar"},
+			false,
+		},
+
+		{
 			// this should fail gracefully, this is just testing
 			// that we don't panic with our slice arithmetic
 			"no command",
