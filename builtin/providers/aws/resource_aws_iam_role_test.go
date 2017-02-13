@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"regexp"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -76,6 +78,20 @@ func TestAccAWSRole_testNameChange(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role_update_test", &conf),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRole_badJSON(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRoleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAWSRoleConfig_badJson,
+				ExpectError: regexp.MustCompile(`"assume_role_policy" contains an invalid JSON:.*`),
 			},
 		},
 	})
@@ -279,3 +295,24 @@ resource "aws_iam_instance_profile" "role_update_test" {
 }
 
 `
+
+const testAccAWSRoleConfig_badJson = `
+	resource "aws_iam_role" "my_instance_role" {
+  name = "test-role"
+
+  assume_role_policy = <<POLICY
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": "sts:AssumeRole",
+            "Principal": {
+                "Service": "ec2.amazonaws.com",
+            },
+            "Effect": "Allow",
+            "Sid": ""
+        }
+    ]
+}
+POLICY
+}`
