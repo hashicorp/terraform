@@ -325,6 +325,26 @@ func TestAccAWSDBInstance_MinorVersion(t *testing.T) {
 	})
 }
 
+// See https://github.com/hashicorp/terraform/issues/11881
+func TestAccAWSDBInstance_diffSuppressInitialState(t *testing.T) {
+	var v rds.DBInstance
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBInstanceConfigSuppressInitialState(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
@@ -1147,3 +1167,25 @@ resource "aws_db_instance" "bar" {
 	username = "foo"
 }
 `, acctest.RandInt())
+
+func testAccAWSDBInstanceConfigSuppressInitialState(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+  identifier = "foobarbaz-test-terraform-%d"
+	allocated_storage = 10
+	engine = "MySQL"
+	instance_class = "db.t1.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+	skip_final_snapshot = true
+}
+
+data "template_file" "test" {
+  template = ""
+  vars = {
+    test_var = "${aws_db_instance.bar.engine_version}"
+  }
+}
+`, rInt)
+}
