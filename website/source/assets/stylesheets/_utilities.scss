@@ -7,11 +7,6 @@
  	 -webkit-font-smoothing: antialiased;
 }
 
-@mixin lato-light() {
-  font-family: $font-family-lato;
-  font-weight: 300;
-}
-
 @mixin skewY($skew) {
 	-webkit-transform: skewY($skew);
   -moz-transform: skewY($skew);
