@@ -44,8 +44,8 @@ The following arguments are supported:
 * `image` - (string, Required)
     The UUID of the image to provision.
 
-* `networks` - (list of string)
-    A list of the IDs of the desired networks for the machine.
+* `nic` - (list of NIC blocks, Optional)
+    NICs associated with the machine. The fields allowed in a `NIC` block are defined below.
 
 * `firewall_enabled` - (boolean)  Default: `false`
     Whether the cloud firewall should be enabled for this machine.
@@ -61,6 +61,10 @@ The following arguments are supported:
 
 * `administrator_pw` - (string)
     The initial password for the Administrator user. Only used for Windows virtual machines.
+
+The nested `nic` block supports the following:
+* `network` - (string, Optional)
+    The network id to attach to the network interface. It will be hex, in the format: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.
 
 ## Attribute Reference
 
