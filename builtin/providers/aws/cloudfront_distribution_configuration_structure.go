@@ -311,8 +311,9 @@ func flattenCacheBehavior(cb *cloudfront.CacheBehavior) map[string]interface{} {
 	if len(cb.TrustedSigners.Items) > 0 {
 		m["trusted_signers"] = flattenTrustedSigners(cb.TrustedSigners)
 	}
+
 	if len(cb.LambdaFunctionAssociations.Items) > 0 {
-		m["lambda_function_association"] = flattenLambdaFunctionAssociations(cb.LambdaFunctionAssociations)
+				m["lambda_function_association"] = schema.NewSet(lambdaFunctionAssociationHash, flattenLambdaFunctionAssociations(cb.LambdaFunctionAssociations))
 	}
 	if cb.MaxTTL != nil {
 		m["max_ttl"] = int(*cb.MaxTTL)
@@ -412,6 +413,7 @@ func lambdaFunctionAssociationHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["event_type"].(string)))
 	buf.WriteString(fmt.Sprintf("%s", m["lambda_arn"].(string)))
+
 	return hashcode.String(buf.String())
 }
 
@@ -448,6 +450,7 @@ func flattenLambdaFunctionAssociations(lfa *cloudfront.LambdaFunctionAssociation
 	for i, v := range lfa.Items {
 		s[i] = flattenLambdaFunctionAssociation(v)
 	}
+
 	return s
 }
 
