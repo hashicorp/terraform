@@ -83,6 +83,7 @@ This attribute is not compatible with `kms_key_id`.
 This value is a fully qualified **ARN** of the KMS Key. If using `aws_kms_key`,
 use the exported `arn` attribute:  
       `kms_key_id = "${aws_kms_key.foo.arn}"`
+* `tags` - (Optional) A mapping of tags to assign to the object.
 
 Either `source` or `content` must be provided to specify the bucket content.
 These two arguments are mutually-exclusive.
