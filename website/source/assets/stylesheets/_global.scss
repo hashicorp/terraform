@@ -74,6 +74,14 @@ pre {
 	margin-bottom: 0;
 }
 
+// Typekit utilites to hide FOUC
+.wf-loading {
+  visibility: hidden;
+}
+.wf-active, .wf-inactive {
+  visibility: visible;
+}
+
 
 //fixed grid below 992 to prevent smaller responsive sizes
 @media (max-width: 992px) {
