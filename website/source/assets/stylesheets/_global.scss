@@ -11,26 +11,44 @@ body {
     // -webkit-font-smoothing: subpixel-antialiased;
     color: $black;
     font-size: 15px;
-    font-family: $font-family-lato;
+    font-family: $font-family-open-sans;
     font-weight: 500;
 }
 
 h1, h2, h3, h4, h5 {
     -webkit-font-smoothing: antialiased;
+    font-family: "klavika-web";
+    font-weight: 600;
 }
 h1{
 	font-size: 42px;
-	line-height: 42px;
-	font-family: $font-family-lato;
-	font-weight: $font-weight-lato-sb;
+	line-height: 40px;
 	margin-bottom: 24px;
+  text-transform: uppercase;
+}
+
+h2{
+  font-size: 34px;
+  text-transform: uppercase;
 }
 
 h3{
-	font-size: 28px;
-	line-height: 28px;
-	font-family: $font-family-lato;
-	font-weight: $font-weight-lato-sb;
+	font-size: 20px;
+	line-height: 20px;
+  text-transform: uppercase;
+}
+
+p {
+  margin-bottom: 30px;
+  font-size: 16px;
+  font-family: $font-family-open-sans;
+  font-weight: regular;
+  line-height: 1.5;
+}
+
+p.lead{
+  font-size: 21px;
+  font-weight: 400 !important;
 }
 
 //an alternative color for buttons in the doc body

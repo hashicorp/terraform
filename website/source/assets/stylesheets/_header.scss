@@ -13,12 +13,12 @@ body.page-sub{
 #header {
   .navbar-brand {
     .logo{
-      font-size: 20px;
-      text-transform: uppercase;
-      @include lato-light();
+      font-size: 32px;
+      font-family: "Klavika-web";
+      font-weight: 500;
       background: image-url('logo-header.png') 0 0 no-repeat;
       @include img-retina("../images/logo-header.png", "../images/logo-header@2x.png", $project-logo-width, $project-logo-height);
-      background-position: 0 45%;
+      background-position: 0 40%;
 
       &:hover{
         opacity: .6;
@@ -26,6 +26,7 @@ body.page-sub{
     }
 
     .by-hashicorp{
+      margin-top: 2px;
       &:hover{
         svg{
           .svg-bg-line{
