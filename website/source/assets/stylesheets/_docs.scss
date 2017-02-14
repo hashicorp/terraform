@@ -101,7 +101,6 @@ body.layout-intro{
 		padding-bottom: 15px;
 		font-family: "Klavika-web";
 		font-size: 16px;
-		font-weight: 500;
 
 		:last-child{
 			border-bottom: none;
@@ -141,7 +140,7 @@ body.layout-intro{
 			&.active {
 				>a{
           color: lighten($purple, 4%);
-					font-weight: 500;
+					font-weight: 600;
 				}
 
 				&:before{
