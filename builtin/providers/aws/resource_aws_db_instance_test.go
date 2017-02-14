@@ -788,7 +788,7 @@ POLICY
 		enable_dns_hostnames = "true"
 
 		tags {
-			Name = "bar-test-vpc"
+			Name = "bar-test-vpc-%d"
 		}
 	}
 
@@ -805,7 +805,7 @@ POLICY
           	availability_zone = "eu-central-1a"
 
           	tags {
-            		Name      = "subnet-private-1a"
+            		Name      = "subnet-private-1a-%d"
           	}
         }
 
@@ -816,7 +816,7 @@ POLICY
           	availability_zone = "eu-central-1b"
 
           	tags {
-            		Name      = "subnet-private-1b"
+            		Name      = "subnet-private-1b-%d"
           	}
         }
 
@@ -829,7 +829,7 @@ POLICY
   			"${aws_subnet.subnet_private_1b.id}",
   		]
   		tags {
-    			Name = "foobarbaz-test"
+    			Name = "foobarbaz-test-%d"
   		}
 	}
 
@@ -872,7 +872,7 @@ POLICY
 		kms_key_id = "${aws_kms_key.foo.arn}"
 
 	}
-	`, val, val, val)
+	`, val, val, val, val, val, val, val)
 }
 
 func testAccReplicaInstanceCrossRegionUnEncryptedConfig(val int) string {
