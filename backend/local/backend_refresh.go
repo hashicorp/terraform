@@ -51,7 +51,7 @@ func (b *Local) opRefresh(
 	// If we're locking state, unlock when we're done
 	if op.LockState {
 		defer func() {
-			if err := clistate.Unlock(opState, b.CLI, b.Colorize()); err != nil {
+			if err := clistate.Unlock(opState, "", b.CLI, b.Colorize()); err != nil {
 				runningOp.Err = multierror.Append(runningOp.Err, err)
 			}
 		}()
