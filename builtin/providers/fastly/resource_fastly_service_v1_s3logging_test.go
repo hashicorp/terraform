@@ -255,12 +255,20 @@ resource "fastly_service_v1" "foo" {
     name    = "amazon docs"
   }
 
+	condition {
+    name      = "response_condition_test"
+    type      = "RESPONSE"
+    priority  = 8
+    statement = "resp.status == 418"
+  }
+
   s3logging {
-    name          = "somebucketlog"
-    bucket_name   = "fastlytestlogging"
-    domain        = "s3-us-west-2.amazonaws.com"
-    s3_access_key = "somekey"
-    s3_secret_key = "somesecret"
+    name               = "somebucketlog"
+    bucket_name        = "fastlytestlogging"
+    domain             = "s3-us-west-2.amazonaws.com"
+    s3_access_key      = "somekey"
+    s3_secret_key      = "somesecret"
+		response_condition = "response_condition_test"
   }
 
   s3logging {
