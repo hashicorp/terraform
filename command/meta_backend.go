@@ -533,11 +533,16 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 	}
 
 	// Lock the state if we can
-	err = clistate.Lock(realMgr, "backend from plan", m.Ui, m.Colorize())
+	lockInfo := &state.LockInfo{
+		Operation: "plan",
+		Info:      "backend from plan",
+	}
+
+	lockID, err := clistate.Lock(realMgr, lockInfo, m.Ui, m.Colorize())
 	if err != nil {
 		return nil, fmt.Errorf("Error locking state: %s", err)
 	}
-	defer clistate.Unlock(realMgr, m.Ui, m.Colorize())
+	defer clistate.Unlock(realMgr, lockID, m.Ui, m.Colorize())
 
 	if err := realMgr.RefreshState(); err != nil {
 		return nil, fmt.Errorf("Error reading state: %s", err)
@@ -986,11 +991,15 @@ func (m *Meta) backend_C_r_s(
 	}
 
 	// Lock the state if we can
-	err = clistate.Lock(sMgr, "backend from config", m.Ui, m.Colorize())
+	lockInfo := &state.LockInfo{
+		Info: "backend from config",
+	}
+
+	lockID, err := clistate.Lock(sMgr, lockInfo, m.Ui, m.Colorize())
 	if err != nil {
 		return nil, fmt.Errorf("Error locking state: %s", err)
 	}
-	defer clistate.Unlock(sMgr, m.Ui, m.Colorize())
+	defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
 
 	// Store the metadata in our saved state location
 	s := sMgr.State()
@@ -1091,11 +1100,14 @@ func (m *Meta) backend_C_r_S_changed(
 	}
 
 	// Lock the state if we can
-	err = clistate.Lock(sMgr, "backend from config", m.Ui, m.Colorize())
+	lockInfo := &state.LockInfo{
+		Info: "backend from config",
+	}
+	lockID, err := clistate.Lock(sMgr, lockInfo, m.Ui, m.Colorize())
 	if err != nil {
 		return nil, fmt.Errorf("Error locking state: %s", err)
 	}
-	defer clistate.Unlock(sMgr, m.Ui, m.Colorize())
+	defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
 
 	// Update the backend state
 	s = sMgr.State()
@@ -1249,11 +1261,15 @@ func (m *Meta) backend_C_R_S_unchanged(
 	}
 
 	// Lock the state if we can
-	err = clistate.Lock(sMgr, "backend from config", m.Ui, m.Colorize())
+	lockInfo := &state.LockInfo{
+		Info: "backend from config",
+	}
+
+	lockID, err := clistate.Lock(sMgr, lockInfo, m.Ui, m.Colorize())
 	if err != nil {
 		return nil, fmt.Errorf("Error locking state: %s", err)
 	}
-	defer clistate.Unlock(sMgr, m.Ui, m.Colorize())
+	defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
 
 	// Unset the remote state
 	s = sMgr.State()
