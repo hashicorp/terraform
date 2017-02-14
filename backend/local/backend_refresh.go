@@ -3,12 +3,12 @@ package local
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
+	clistate "github.com/hashicorp/terraform/command/state"
 )
 
 func (b *Local) opRefresh(
@@ -48,15 +48,14 @@ func (b *Local) opRefresh(
 		return
 	}
 
-	// context acquired the state, and therefor the lock.
-	// Unlock it when the operation is complete
-	defer func() {
-		if s, ok := opState.(state.Locker); op.LockState && ok {
-			if err := s.Unlock(); err != nil {
-				log.Printf("[ERROR]: %s", err)
+	// If we're locking state, unlock when we're done
+	if op.LockState {
+		defer func() {
+			if err := clistate.Unlock(opState, b.CLI, b.Colorize()); err != nil {
+				runningOp.Err = multierror.Append(runningOp.Err, err)
 			}
-		}
-	}()
+		}()
+	}
 
 	// Set our state
 	runningOp.State = opState.State()

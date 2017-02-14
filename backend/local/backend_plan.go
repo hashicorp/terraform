@@ -8,10 +8,11 @@ import (
 	"strings"
 
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
+	clistate "github.com/hashicorp/terraform/command/state"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -58,15 +59,14 @@ func (b *Local) opPlan(
 		return
 	}
 
-	// context acquired the state, and therefor the lock.
-	// Unlock it when the operation is complete
-	defer func() {
-		if s, ok := opState.(state.Locker); op.LockState && ok {
-			if err := s.Unlock(); err != nil {
-				log.Printf("[ERROR]: %s", err)
+	// If we're locking state, unlock when we're done
+	if op.LockState {
+		defer func() {
+			if err := clistate.Unlock(opState, b.CLI, b.Colorize()); err != nil {
+				runningOp.Err = multierror.Append(runningOp.Err, err)
 			}
-		}
-	}()
+		}()
+	}
 
 	// Setup the state
 	runningOp.State = tfCtx.State()
