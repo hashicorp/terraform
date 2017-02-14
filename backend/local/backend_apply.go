@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/state"
+	clistate "github.com/hashicorp/terraform/command/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -35,22 +35,14 @@ func (b *Local) opApply(
 		return
 	}
 
-	// context acquired the state, and therefor the lock.
-	// Unlock it when the operation is complete
-	defer func() {
-		if s, ok := opState.(state.Locker); op.LockState && ok {
-			if err := s.Unlock(); err != nil {
-				runningOp.Err = multierror.Append(runningOp.Err,
-					errwrap.Wrapf("Error unlocking state:\n\n"+
-						"{{err}}\n\n"+
-						"The Terraform operation completed but there was an error unlocking the state.\n"+
-						"This may require unlocking the state manually with the `terraform unlock` command\n",
-						err,
-					),
-				)
+	// If we're locking state, unlock when we're done
+	if op.LockState {
+		defer func() {
+			if err := clistate.Unlock(opState, b.CLI, b.Colorize()); err != nil {
+				runningOp.Err = multierror.Append(runningOp.Err, err)
 			}
-		}
-	}()
+		}()
+	}
 
 	// Setup the state
 	runningOp.State = tfCtx.State()
