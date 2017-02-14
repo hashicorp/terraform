@@ -99,6 +99,9 @@ body.layout-intro{
 	.docs-sidenav{
 		padding-top: 15px;
 		padding-bottom: 15px;
+		font-family: "Klavika-web";
+		font-size: 16px;
+		font-weight: 500;
 
 		:last-child{
 			border-bottom: none;
@@ -129,6 +132,7 @@ body.layout-intro{
 			>.nav{
 				li{
 					a{
+						font-family: $font-family-open-sans;
 						color: white;
 					}
 				}
@@ -194,7 +198,7 @@ body.layout-intro{
 
 .bs-docs-section{
 	padding: 10px 10px 80px 10px;
-	
+
 	.lead{
 		margin-bottom: 48px
 	}
