@@ -4,41 +4,7 @@
 
 body.page-home {
 	h2.tag-line {
-		font-size: 40px;
-	}
-
-	h2{
-		margin-bottom: 40px;
-		font-size: 42px;
-		line-height: 42px;
-		letter-spacing: 2px;
-		text-transform: uppercase;
-		font-weight: regular;
-	}
-
-	h3{
-		margin-bottom: 10px;
-		font-size: 18px;
-		line-height: 1.2;
-		letter-spacing: 1px;
-		text-transform: uppercase;
-		font-weight: bold;
-	}
-
-	p{
-		font-size: 15px;
-		line-height: 1.5;
-		font-weight: regular;
-		letter-spacing: .2px;
-		margin-bottom: 2.2em;
-		font-family: $font-family-open-sans;
-		font-weight: $font-weight-open;
-	}
-
-	p.lead{
-		font-size: 21px;
-		font-family: $font-family-open-sans;
-		font-weight: $font-weight-open;
+	  font-size: 40px;
 	}
 
 	#primary-cta{
@@ -378,8 +344,6 @@ body.page-home {
 							font-size: 14px;
 							letter-spacing: 1px;
 							color: white;
-							font-family: $font-family-lato;
-							font-weight: $font-weight-lato-xb;
 						}
 
 						ul.shell-dots{
