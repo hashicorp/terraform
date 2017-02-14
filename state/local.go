@@ -13,17 +13,35 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// lock metadata structure for local locks
-type LockInfo struct {
-	// Path to the state file
-	Path string
-	// The time the lock was taken
-	Created time.Time
-	// Extra info passed to State.Lock
-	Info string
+// LocalState manages a state storage that is local to the filesystem.
+type LocalState struct {
+	// Path is the path to read the state from. PathOut is the path to
+	// write the state to. If PathOut is not specified, Path will be used.
+	// If PathOut already exists, it will be overwritten.
+	Path    string
+	PathOut string
+
+	// the file handle corresponding to PathOut
+	stateFileOut *os.File
+
+	// created is set to true if stateFileOut didn't exist before we created it.
+	// This is mostly so we can clean up emtpy files during tests, but doesn't
+	// hurt to remove file we never wrote to.
+	created bool
+
+	state     *terraform.State
+	readState *terraform.State
+	written   bool
 }
 
-// return the lock info formatted in an error
+// LockInfo stores metadata for locks taken.
+type LockInfo struct {
+	Path    string    // Path to the state file
+	Created time.Time // The time the lock was taken
+	Info    string    // Extra info passed to State.Lock
+}
+
+// Err returns the lock info formatted in an error
 func (l *LockInfo) Err() error {
 	return fmt.Errorf("state locked. path:%q, created:%s, info:%q",
 		l.Path, l.Created, l.Info)
@@ -37,26 +55,6 @@ func (l *LockInfo) String() string {
 	return string(js)
 }
 
-// LocalState manages a state storage that is local to the filesystem.
-type LocalState struct {
-	// Path is the path to read the state from. PathOut is the path to
-	// write the state to. If PathOut is not specified, Path will be used.
-	// If PathOut already exists, it will be overwritten.
-	Path    string
-	PathOut string
-
-	// the file handle corresponding to PathOut
-	stateFileOut *os.File
-	// created is set to tru if stateFileOut didn't exist before we created it.
-	// This is mostly so we can clean up emtpy files during tests, but doesn't
-	// hurt to remove file we never wrote to.
-	created bool
-
-	state     *terraform.State
-	readState *terraform.State
-	written   bool
-}
-
 // SetState will force a specific state in-memory for this local state.
 func (s *LocalState) SetState(state *terraform.State) {
 	s.state = state
@@ -66,73 +64,6 @@ func (s *LocalState) SetState(state *terraform.State) {
 // StateReader impl.
 func (s *LocalState) State() *terraform.State {
 	return s.state.DeepCopy()
-}
-
-// Lock implements a local filesystem state.Locker.
-func (s *LocalState) Lock(reason string) error {
-	if s.stateFileOut == nil {
-		if err := s.createStateFiles(); err != nil {
-			return err
-		}
-	}
-
-	if err := s.lock(); err != nil {
-		if info, err := s.lockInfo(); err == nil {
-			return info.Err()
-		}
-		return fmt.Errorf("state file %q locked: %s", s.Path, err)
-	}
-
-	return s.writeLockInfo(reason)
-}
-
-func (s *LocalState) Unlock() error {
-	// we can't be locked if we don't have a file
-	if s.stateFileOut == nil {
-		return nil
-	}
-
-	os.Remove(s.lockInfoPath())
-
-	fileName := s.stateFileOut.Name()
-
-	unlockErr := s.unlock()
-
-	s.stateFileOut.Close()
-	s.stateFileOut = nil
-
-	// clean up the state file if we created it an never wrote to it
-	stat, err := os.Stat(fileName)
-	if err == nil && stat.Size() == 0 && s.created {
-		os.Remove(fileName)
-	}
-
-	return unlockErr
-}
-
-// Open the state file, creating the directories and file as needed.
-func (s *LocalState) createStateFiles() error {
-	if s.PathOut == "" {
-		s.PathOut = s.Path
-	}
-
-	// yes this could race, but we only use it to clean up empty files
-	if _, err := os.Stat(s.PathOut); os.IsNotExist(err) {
-		s.created = true
-	}
-
-	// Create all the directories
-	if err := os.MkdirAll(filepath.Dir(s.PathOut), 0755); err != nil {
-		return err
-	}
-
-	f, err := os.OpenFile(s.PathOut, os.O_RDWR|os.O_CREATE, 0666)
-	if err != nil {
-		return err
-	}
-
-	s.stateFileOut = f
-	return nil
 }
 
 // WriteState for LocalState always persists the state as well.
@@ -220,6 +151,74 @@ func (s *LocalState) RefreshState() error {
 
 	s.state = state
 	s.readState = state
+	return nil
+}
+
+// Lock implements a local filesystem state.Locker.
+func (s *LocalState) Lock(reason string) error {
+	if s.stateFileOut == nil {
+		if err := s.createStateFiles(); err != nil {
+			return err
+		}
+	}
+
+	if err := s.lock(); err != nil {
+		if info, err := s.lockInfo(); err == nil {
+			return info.Err()
+		}
+
+		return fmt.Errorf("state file %q locked: %s", s.Path, err)
+	}
+
+	return s.writeLockInfo(reason)
+}
+
+func (s *LocalState) Unlock() error {
+	// we can't be locked if we don't have a file
+	if s.stateFileOut == nil {
+		return nil
+	}
+
+	os.Remove(s.lockInfoPath())
+
+	fileName := s.stateFileOut.Name()
+
+	unlockErr := s.unlock()
+
+	s.stateFileOut.Close()
+	s.stateFileOut = nil
+
+	// clean up the state file if we created it an never wrote to it
+	stat, err := os.Stat(fileName)
+	if err == nil && stat.Size() == 0 && s.created {
+		os.Remove(fileName)
+	}
+
+	return unlockErr
+}
+
+// Open the state file, creating the directories and file as needed.
+func (s *LocalState) createStateFiles() error {
+	if s.PathOut == "" {
+		s.PathOut = s.Path
+	}
+
+	// yes this could race, but we only use it to clean up empty files
+	if _, err := os.Stat(s.PathOut); os.IsNotExist(err) {
+		s.created = true
+	}
+
+	// Create all the directories
+	if err := os.MkdirAll(filepath.Dir(s.PathOut), 0755); err != nil {
+		return err
+	}
+
+	f, err := os.OpenFile(s.PathOut, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+
+	s.stateFileOut = f
 	return nil
 }
 
