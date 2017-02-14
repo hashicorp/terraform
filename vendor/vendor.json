@@ -2495,10 +2495,10 @@
 			"revisionTime": "2015-01-08T08:49:52Z"
 		},
 		{
-			"checksumSHA1": "RjOIrQcXuDq1n0OzoPlE4fweOZ0=",
+			"checksumSHA1": "bxWb+Qr/L8+ju1G0KvPAjYHy8cM=",
 			"path": "github.com/spotinst/spotinst-sdk-go/spotinst",
-			"revision": "16e2840b013b6b365431813bcccd9800de350d79",
-			"revisionTime": "2017-01-31T14:42:13Z"
+			"revision": "e9a0995904e38e1ed662fbd559760e11db8c2a0b",
+			"revisionTime": "2017-02-13T08:20:48Z"
 		},
 		{
 			"checksumSHA1": "/oApHzKZwKYrVFEosDhHV4y3sbQ=",
@@ -2509,8 +2509,8 @@
 		{
 			"checksumSHA1": "F8PDlBY72o5HHNLXpB4X1itP70w=",
 			"path": "github.com/spotinst/spotinst-sdk-go/spotinst/util/uritemplates",
-			"revision": "16e2840b013b6b365431813bcccd9800de350d79",
-			"revisionTime": "2017-01-31T14:42:13Z"
+			"revision": "e9a0995904e38e1ed662fbd559760e11db8c2a0b",
+			"revisionTime": "2017-02-13T08:20:48Z"
 		},
 		{
 			"path": "github.com/tent/http-link-go",

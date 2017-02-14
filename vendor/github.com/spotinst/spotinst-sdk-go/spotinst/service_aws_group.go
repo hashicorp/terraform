@@ -171,6 +171,7 @@ type AwsGroupComputeLaunchSpecification struct {
 	ImageID                *string                             `json:"imageId,omitempty"`
 	KeyPair                *string                             `json:"keyPair,omitempty"`
 	UserData               *string                             `json:"userData,omitempty"`
+	Tenancy                *string                             `json:"tenancy,omitempty"`
 	Monitoring             *bool                               `json:"monitoring,omitempty"`
 	EBSOptimized           *bool                               `json:"ebsOptimized,omitempty"`
 	IamInstanceProfile     *AwsGroupComputeIamInstanceProfile  `json:"iamRole,omitempty"`
