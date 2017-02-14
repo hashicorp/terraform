@@ -53,3 +53,11 @@ The following arguments are supported:
 
 * `destination_name` - (Required) A name for the subscription filter
 * `access_policy` - (Required) The policy document. This is a JSON formatted string.
+
+## Import
+
+CloudWatch Logs destination policies can be imported using the `destination_name`, e.g.
+
+```
+$ terraform import aws_cloudwatch_log_destination_policy.test_destination_policy test_destination
+```
