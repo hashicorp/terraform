@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	LockThreshold = 250 * time.Millisecond
+	LockThreshold = 400 * time.Millisecond
 	LockMessage   = "Acquiring state lock. This may take a few moments..."
 	UnlockMessage = "Releasing state lock. This may take a few moments..."
 
