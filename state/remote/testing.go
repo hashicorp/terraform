@@ -57,31 +57,40 @@ func TestRemoteLocks(t *testing.T, a, b Client) {
 		t.Fatal("client B not a state.Locker")
 	}
 
-	if err := lockerA.Lock("test client A"); err != nil {
+	infoA := &state.LockInfo{
+		Operation: "test",
+		Who:       "client A",
+	}
+	infoB := &state.LockInfo{
+		Operation: "test",
+		Who:       "client B",
+	}
+
+	if _, err := lockerA.Lock(infoA); err != nil {
 		t.Fatal("unable to get initial lock:", err)
 	}
 
-	if err := lockerB.Lock("test client B"); err == nil {
-		lockerA.Unlock()
+	if _, err := lockerB.Lock(infoB); err == nil {
+		lockerA.Unlock("")
 		t.Fatal("client B obtained lock while held by client A")
 	} else {
 		t.Log("lock info error:", err)
 	}
 
-	if err := lockerA.Unlock(); err != nil {
+	if err := lockerA.Unlock(""); err != nil {
 		t.Fatal("error unlocking client A", err)
 	}
 
-	if err := lockerB.Lock("test client B"); err != nil {
+	if _, err := lockerB.Lock(infoB); err != nil {
 		t.Fatal("unable to obtain lock from client B")
 	}
 
-	if err := lockerB.Unlock(); err != nil {
+	if err := lockerB.Unlock(""); err != nil {
 		t.Fatal("error unlocking client B:", err)
 	}
 
 	// unlock should be repeatable
-	if err := lockerA.Unlock(); err != nil {
+	if err := lockerA.Unlock(""); err != nil {
 		t.Fatal("Unlock error from client A when state was not locked:", err)
 	}
 }
