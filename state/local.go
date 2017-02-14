@@ -134,25 +134,25 @@ func (s *LocalState) RefreshState() error {
 }
 
 // Lock implements a local filesystem state.Locker.
-func (s *LocalState) Lock(reason string) error {
+func (s *LocalState) Lock(info *LockInfo) (string, error) {
 	if s.stateFileOut == nil {
 		if err := s.createStateFiles(); err != nil {
-			return err
+			return "", err
 		}
 	}
 
 	if err := s.lock(); err != nil {
 		if info, err := s.lockInfo(); err == nil {
-			return info.Err()
+			return "", info.Err()
 		}
 
-		return fmt.Errorf("state file %q locked: %s", s.Path, err)
+		return "", fmt.Errorf("state file %q locked: %s", s.Path, err)
 	}
 
-	return s.writeLockInfo(reason)
+	return "", s.writeLockInfo(info)
 }
 
-func (s *LocalState) Unlock() error {
+func (s *LocalState) Unlock(id string) error {
 	// we can't be locked if we don't have a file
 	if s.stateFileOut == nil {
 		return nil
@@ -232,18 +232,14 @@ func (s *LocalState) lockInfo() (*LockInfo, error) {
 }
 
 // write a new lock info file
-func (s *LocalState) writeLockInfo(info string) error {
+func (s *LocalState) writeLockInfo(info *LockInfo) error {
 	path := s.lockInfoPath()
+	info.Path = s.Path
+	info.Created = time.Now().UTC()
 
-	lockInfo := &LockInfo{
-		Path:    s.Path,
-		Created: time.Now().UTC(),
-		Info:    info,
-	}
-
-	infoData, err := json.Marshal(lockInfo)
+	infoData, err := json.Marshal(info)
 	if err != nil {
-		panic(fmt.Sprintf("could not marshal lock info: %#v", lockInfo))
+		panic(fmt.Sprintf("could not marshal lock info: %#v", info))
 	}
 
 	err = ioutil.WriteFile(path, infoData, 0600)

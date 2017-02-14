@@ -23,7 +23,7 @@ func main() {
 		Path: os.Args[1],
 	}
 
-	err := s.Lock("command test")
+	lockID, err := s.Lock(&state.LockInfo{Operation: "test", Info: "state locker"})
 	if err != nil {
 		io.WriteString(os.Stderr, err.Error())
 		return
@@ -33,7 +33,7 @@ func main() {
 	io.WriteString(os.Stdout, "LOCKED")
 
 	defer func() {
-		if err := s.Unlock(); err != nil {
+		if err := s.Unlock(lockID); err != nil {
 			io.WriteString(os.Stderr, err.Error())
 		}
 	}()

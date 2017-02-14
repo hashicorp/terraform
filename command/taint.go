@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	clistate "github.com/hashicorp/terraform/command/state"
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -73,13 +74,16 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	if c.Meta.stateLock {
-		err := clistate.Lock(st, "taint", c.Ui, c.Colorize())
+		lockInfo := &state.LockInfo{
+			Operation: "taint",
+		}
+		lockID, err := clistate.Lock(st, lockInfo, c.Ui, c.Colorize())
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
 		}
 
-		defer clistate.Unlock(st, c.Ui, c.Colorize())
+		defer clistate.Unlock(st, lockID, c.Ui, c.Colorize())
 	}
 
 	// Get the actual state structure
