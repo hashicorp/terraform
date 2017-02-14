@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
+	uuid "github.com/hashicorp/go-uuid"
 	terraformAws "github.com/hashicorp/terraform/builtin/providers/aws"
 	"github.com/hashicorp/terraform/state"
 )
@@ -203,27 +204,31 @@ func (c *S3Client) Delete() error {
 	return err
 }
 
-func (c *S3Client) Lock(info string) error {
+func (c *S3Client) Lock(info *state.LockInfo) (string, error) {
 	if c.lockTable == "" {
-		return nil
+		return "", nil
 	}
 
 	stateName := fmt.Sprintf("%s/%s", c.bucketName, c.keyName)
-	lockInfo := &state.LockInfo{
-		Path:    stateName,
-		Created: time.Now().UTC(),
-		Info:    info,
+
+	lockID, err := uuid.GenerateUUID()
+	if err != nil {
+		return "", err
 	}
+
+	info.ID = lockID
+	info.Path = stateName
+	info.Created = time.Now().UTC()
 
 	putParams := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
 			"LockID": {S: aws.String(stateName)},
-			"Info":   {S: aws.String(lockInfo.String())},
+			"Info":   {S: aws.String(info.String())},
 		},
 		TableName:           aws.String(c.lockTable),
 		ConditionExpression: aws.String("attribute_not_exists(LockID)"),
 	}
-	_, err := c.dynClient.PutItem(putParams)
+	_, err = c.dynClient.PutItem(putParams)
 
 	if err != nil {
 		getParams := &dynamodb.GetItemInput{
@@ -236,7 +241,7 @@ func (c *S3Client) Lock(info string) error {
 
 		resp, err := c.dynClient.GetItem(getParams)
 		if err != nil {
-			return fmt.Errorf("s3 state file %q locked, failed to retrieve info: %s", stateName, err)
+			return "", fmt.Errorf("s3 state file %q locked, failed to retrieve info: %s", stateName, err)
 		}
 
 		var infoData string
@@ -244,18 +249,18 @@ func (c *S3Client) Lock(info string) error {
 			infoData = *v.S
 		}
 
-		lockInfo = &state.LockInfo{}
+		lockInfo := &state.LockInfo{}
 		err = json.Unmarshal([]byte(infoData), lockInfo)
 		if err != nil {
-			return fmt.Errorf("s3 state file %q locked, failed get lock info: %s", stateName, err)
+			return "", fmt.Errorf("s3 state file %q locked, failed get lock info: %s", stateName, err)
 		}
 
-		return lockInfo.Err()
+		return "", lockInfo.Err()
 	}
-	return nil
+	return "", nil
 }
 
-func (c *S3Client) Unlock() error {
+func (c *S3Client) Unlock(string) error {
 	if c.lockTable == "" {
 		return nil
 	}
