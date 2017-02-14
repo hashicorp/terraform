@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	clistate "github.com/hashicorp/terraform/command/state"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -23,17 +24,17 @@ import (
 //
 // This will attempt to lock both states for the migration.
 func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
-	unlockOne, err := lockState(opts.One, "migrate from")
+	err := clistate.Lock(opts.One, "migration source state", m.Ui, m.Colorize())
 	if err != nil {
-		return err
+		return fmt.Errorf("Error locking source state: %s", err)
 	}
-	defer unlockOne()
+	defer clistate.Unlock(opts.One, m.Ui, m.Colorize())
 
-	unlockTwo, err := lockState(opts.Two, "migrate to")
+	err = clistate.Lock(opts.Two, "migration destination state", m.Ui, m.Colorize())
 	if err != nil {
-		return err
+		return fmt.Errorf("Error locking destination state: %s", err)
 	}
-	defer unlockTwo()
+	defer clistate.Unlock(opts.Two, m.Ui, m.Colorize())
 
 	one := opts.One.State()
 	two := opts.Two.State()
