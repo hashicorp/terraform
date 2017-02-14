@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/slowmessage"
 	"github.com/hashicorp/terraform/state"
 	"github.com/mitchellh/cli"
@@ -16,10 +17,16 @@ import (
 )
 
 const (
-	LockThreshold = 400 * time.Millisecond
-	LockMessage   = "Acquiring state lock. This may take a few moments..."
-	UnlockMessage = "Releasing state lock. This may take a few moments..."
+	LockThreshold    = 400 * time.Millisecond
+	LockMessage      = "Acquiring state lock. This may take a few moments..."
+	LockErrorMessage = `Error acquiring the state lock: {{err}}
 
+Terraform acquires a state lock to protect the state from being written
+by multiple users at the same time. Please resolve the issue above and try
+again. For most commands, you can disable locking with the "-lock=false"
+flag, but this is not recommended.`
+
+	UnlockMessage      = "Releasing state lock. This may take a few moments..."
 	UnlockErrorMessage = `
 [reset][bold][red]Error releasing the state lock![reset][red]
 
@@ -48,13 +55,19 @@ func Lock(s state.State, info string, ui cli.Ui, color *colorstring.Colorize) er
 		return nil
 	}
 
-	return slowmessage.Do(LockThreshold, func() error {
+	err := slowmessage.Do(LockThreshold, func() error {
 		return sl.Lock(info)
 	}, func() {
 		if ui != nil {
 			ui.Output(color.Color(LockMessage))
 		}
 	})
+
+	if err != nil {
+		err = errwrap.Wrapf(strings.TrimSpace(LockErrorMessage), err)
+	}
+
+	return err
 }
 
 // Unlock unlocks the given state and outputs to the user if the
