@@ -313,7 +313,7 @@ func flattenCacheBehavior(cb *cloudfront.CacheBehavior) map[string]interface{} {
 	}
 
 	if len(cb.LambdaFunctionAssociations.Items) > 0 {
-				m["lambda_function_association"] = schema.NewSet(lambdaFunctionAssociationHash, flattenLambdaFunctionAssociations(cb.LambdaFunctionAssociations))
+		m["lambda_function_association"] = schema.NewSet(lambdaFunctionAssociationHash, flattenLambdaFunctionAssociations(cb.LambdaFunctionAssociations))
 	}
 	if cb.MaxTTL != nil {
 		m["max_ttl"] = int(*cb.MaxTTL)
