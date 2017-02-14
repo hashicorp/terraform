@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
+	clistate "github.com/hashicorp/terraform/command/state"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -28,8 +29,9 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 		return nil, nil, errwrap.Wrapf("Error loading state: {{err}}", err)
 	}
 
-	if s, ok := s.(state.Locker); op.LockState && ok {
-		if err := s.Lock(op.Type.String()); err != nil {
+	if op.LockState {
+		err := clistate.Lock(s, op.Type.String(), b.CLI, b.Colorize())
+		if err != nil {
 			return nil, nil, errwrap.Wrapf("Error locking state: {{err}}", err)
 		}
 	}

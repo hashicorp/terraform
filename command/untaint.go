@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/state"
+	clistate "github.com/hashicorp/terraform/command/state"
 )
 
 // UntaintCommand is a cli.Command implementation that manually untaints
@@ -60,13 +60,14 @@ func (c *UntaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	if s, ok := st.(state.Locker); c.Meta.stateLock && ok {
-		if err := s.Lock("untaint"); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to lock state: %s", err))
+	if c.Meta.stateLock {
+		err := clistate.Lock(st, "untaint", c.Ui, c.Colorize())
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
 		}
 
-		defer s.Unlock()
+		defer clistate.Unlock(st, c.Ui, c.Colorize())
 	}
 
 	// Get the actual state structure

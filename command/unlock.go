@@ -124,7 +124,7 @@ func (c *UnlockCommand) Synopsis() string {
 }
 
 const outputUnlockSuccess = `
-[reset][bold][red]Terraform state has been successfully unlocked![reset][red]
+[reset][bold][green]Terraform state has been successfully unlocked![reset][green]
 
 The state has been unlocked, and Terraform commands should now be able to
 obtain a new lock on the remote state.
