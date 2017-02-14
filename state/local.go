@@ -34,27 +34,6 @@ type LocalState struct {
 	written   bool
 }
 
-// LockInfo stores metadata for locks taken.
-type LockInfo struct {
-	Path    string    // Path to the state file
-	Created time.Time // The time the lock was taken
-	Info    string    // Extra info passed to State.Lock
-}
-
-// Err returns the lock info formatted in an error
-func (l *LockInfo) Err() error {
-	return fmt.Errorf("state locked. path:%q, created:%s, info:%q",
-		l.Path, l.Created, l.Info)
-}
-
-func (l *LockInfo) String() string {
-	js, err := json.Marshal(l)
-	if err != nil {
-		panic(err)
-	}
-	return string(js)
-}
-
 // SetState will force a specific state in-memory for this local state.
 func (s *LocalState) SetState(state *terraform.State) {
 	s.state = state

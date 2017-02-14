@@ -1,6 +1,11 @@
 package state
 
 import (
+	"encoding/json"
+	"fmt"
+	"strings"
+	"time"
+
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -42,9 +47,56 @@ type StatePersister interface {
 }
 
 // Locker is implemented to lock state during command execution.
-// The optional info parameter can be recorded with the lock, but the
-// implementation should not depend in its value.
+// The info parameter can be recorded with the lock, but the
+// implementation should not depend in its value. The string returned by Lock
+// is an ID corresponding to the lock acquired, and must be passed to Unlock to
+// ensure that the correct lock is being released.
+//
+// Lock and Unlock may return an error value of type LockError which in turn
+// can contain the LockInfo of a conflicting lock.
 type Locker interface {
-	Lock(info string) error
-	Unlock() error
+	Lock(info *LockInfo) (string, error)
+	Unlock(id string) error
+}
+
+// LockInfo stores metadata for locks taken.
+type LockInfo struct {
+	ID        string    // unique ID
+	Path      string    // Path to the state file
+	Created   time.Time // The time the lock was taken
+	Version   string    // Terraform version
+	Operation string    // Terraform operation
+	Who       string    // user@hostname when available
+	Info      string    // Extra info field
+}
+
+// Err returns the lock info formatted in an error
+func (l *LockInfo) Err() error {
+	return fmt.Errorf("state locked. path:%q, created:%s, info:%q",
+		l.Path, l.Created, l.Info)
+}
+
+func (l *LockInfo) String() string {
+	js, err := json.Marshal(l)
+	if err != nil {
+		panic(err)
+	}
+	return string(js)
+}
+
+type LockError struct {
+	Info *LockInfo
+	Err  error
+}
+
+func (e *LockError) Error() string {
+	var out []string
+	if e.Err != nil {
+		out = append(out, e.Err.Error())
+	}
+
+	if e.Info != nil {
+		out = append(out, e.Info.Err().Error())
+	}
+	return strings.Join(out, "\n")
 }
