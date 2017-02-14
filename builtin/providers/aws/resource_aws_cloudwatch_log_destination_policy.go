@@ -17,6 +17,13 @@ func resourceAwsCloudWatchLogDestinationPolicy() *schema.Resource {
 		Read:   resourceAwsCloudWatchLogDestinationPolicyRead,
 		Delete: resourceAwsCloudWatchLogDestinationPolicyDelete,
 
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				d.Set("destination_name", d.Id())
+				return []*schema.ResourceData{d}, nil
+			},
+		},
+
 		Schema: map[string]*schema.Schema{
 			"destination_name": &schema.Schema{
 				Type:     schema.TypeString,
