@@ -58,14 +58,11 @@ func (c *RemoteClient) Delete() error {
 	return err
 }
 
-func (c *RemoteClient) putLockInfo(info string) error {
-	li := &state.LockInfo{
-		Path:    c.Path,
-		Created: time.Now().UTC(),
-		Info:    info,
-	}
+func (c *RemoteClient) putLockInfo(info *state.LockInfo) error {
+	info.Path = c.Path
+	info.Created = time.Now().UTC()
 
-	js, err := json.Marshal(li)
+	js, err := json.Marshal(info)
 	if err != nil {
 		return err
 	}
@@ -98,16 +95,16 @@ func (c *RemoteClient) getLockInfo() (*state.LockInfo, error) {
 	return li, nil
 }
 
-func (c *RemoteClient) Lock(info string) error {
+func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 	select {
 	case <-c.lockCh:
 		// We had a lock, but lost it.
 		// Since we typically only call lock once, we shouldn't ever see this.
-		return errors.New("lost consul lock")
+		return "", errors.New("lost consul lock")
 	default:
 		if c.lockCh != nil {
 			// we have an active lock already
-			return nil
+			return "", nil
 		}
 	}
 
@@ -123,7 +120,7 @@ func (c *RemoteClient) Lock(info string) error {
 
 		lock, err := c.Client.LockOpts(opts)
 		if err != nil {
-			return nil
+			return "", nil
 		}
 
 		c.consulLock = lock
@@ -131,29 +128,29 @@ func (c *RemoteClient) Lock(info string) error {
 
 	lockCh, err := c.consulLock.Lock(make(chan struct{}))
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if lockCh == nil {
 		lockInfo, e := c.getLockInfo()
 		if e != nil {
-			return e
+			return "", e
 		}
-		return lockInfo.Err()
+		return "", lockInfo.Err()
 	}
 
 	c.lockCh = lockCh
 
 	err = c.putLockInfo(info)
 	if err != nil {
-		err = multierror.Append(err, c.Unlock())
-		return err
+		err = multierror.Append(err, c.Unlock(""))
+		return "", err
 	}
 
-	return nil
+	return "", nil
 }
 
-func (c *RemoteClient) Unlock() error {
+func (c *RemoteClient) Unlock(id string) error {
 	if c.consulLock == nil || c.lockCh == nil {
 		return nil
 	}
