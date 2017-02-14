@@ -182,7 +182,7 @@ Path: %s
 const planNoChanges = `
 [reset][bold][green]No changes. Infrastructure is up-to-date.[reset][green]
 
-This means that Terraform could not detect any differences between your
+This means that Terraform did not detect any differences between your
 configuration and real physical resources that exist. As a result, Terraform
 doesn't need to do anything.
 `
