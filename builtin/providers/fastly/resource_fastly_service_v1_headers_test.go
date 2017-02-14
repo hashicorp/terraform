@@ -86,6 +86,7 @@ func TestAccFastlyServiceV1_headers_basic(t *testing.T) {
 		Destination: "http.x-amz-request-id",
 		Type:        "cache",
 		Action:      "delete",
+		Priority:    uint(100),
 	}
 
 	log2 := gofastly.Header{
@@ -95,6 +96,7 @@ func TestAccFastlyServiceV1_headers_basic(t *testing.T) {
 		Type:        "cache",
 		Action:      "delete",
 		IgnoreIfSet: true,
+		Priority:    uint(100),
 	}
 
 	log3 := gofastly.Header{
@@ -103,6 +105,7 @@ func TestAccFastlyServiceV1_headers_basic(t *testing.T) {
 		Destination: "http.Server",
 		Type:        "cache",
 		Action:      "delete",
+		Priority:    uint(100),
 	}
 
 	log4 := gofastly.Header{
@@ -111,6 +114,8 @@ func TestAccFastlyServiceV1_headers_basic(t *testing.T) {
 		Destination:       "http.server-name",
 		Type:              "request",
 		Action:            "set",
+		Source:            "server.identity",
+		Priority:          uint(100),
 		RequestCondition:  "test_req_condition",
 		CacheCondition:    "test_cache_condition",
 		ResponseCondition: "test_res_condition",
@@ -262,7 +267,7 @@ resource "fastly_service_v1" "foo" {
     name      = "test_cache_condition"
     type      = "CACHE"
     priority  = 9
-    statement = "req.url ~ "^/articles/""
+    statement = "req.url ~ \"^/articles/\""
   }
 
 	condition {

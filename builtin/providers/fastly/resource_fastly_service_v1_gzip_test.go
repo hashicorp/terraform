@@ -110,21 +110,21 @@ func TestAccFastlyServiceV1_gzips_basic(t *testing.T) {
 	log1 := gofastly.Gzip{
 		Version:        "1",
 		Name:           "gzip file types",
-		Extensions:     "css js",
+		Extensions:     "js css",
 		CacheCondition: "testing_condition",
 	}
 
 	log2 := gofastly.Gzip{
-		Version:    "1",
-		Name:       "gzip extensions",
-		Extensions: "text/html text/css",
+		Version:      "1",
+		Name:         "gzip extensions",
+		ContentTypes: "text/css text/html",
 	}
 
 	log3 := gofastly.Gzip{
 		Version:      "1",
 		Name:         "all",
-		Extensions:   "css js html",
-		ContentTypes: "text/html text/css application/x-javascript text/css application/javascript text/javascript",
+		Extensions:   "js html css",
+		ContentTypes: "text/javascript application/x-javascript application/javascript text/css text/html",
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -218,7 +218,7 @@ resource "fastly_service_v1" "foo" {
     name      = "testing_condition"
     type      = "CACHE"
     priority  = 10
-    statement = "req.url ~ "^/articles/""
+    statement = "req.url ~ \"^/articles/\""
   }
 
   gzip {
