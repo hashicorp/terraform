@@ -322,11 +322,7 @@ func appendRequests(datadogGraph *datadog.Graph, terraformRequests *[]interface{
 		if style, ok := t["style"]; ok {
 			s, _ := style.(map[string]interface{})
 
-			style := struct {
-				Palette *string `json:"palette,omitempty"`
-				Width   *string `json:"width,omitempty"`
-				Type    *string `json:"type,omitempty"`
-			}{}
+			style := &datadog.GraphDefinitionRequestStyle{}
 
 			if palette_, ok := s["palette"]; ok {
 				palette := palette_.(string)
@@ -343,7 +339,7 @@ func appendRequests(datadogGraph *datadog.Graph, terraformRequests *[]interface{
 				style.Type = &style_type
 			}
 
-			d.Style = &style
+			d.Style = style
 		}
 
 		if changeType, ok := t["change_type"]; ok {

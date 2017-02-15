@@ -17,10 +17,18 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cenkalti/backoff"
+)
+
+const (
+	RateLimitHeader     = "X-RateLimit-Limit"
+	RatePeriodHeader    = "X-RateLimit-Period"
+	RateRemainingHeader = "X-RateLimit-Remaining"
+	RateResetHeader     = "X-RateLimit-Reset"
 )
 
 // uriForAPI is to be called with something like "/v1/events" and it will give
@@ -66,12 +74,18 @@ func (client *Client) doJsonRequest(method, api string,
 	if method == "POST" {
 		resp, err = client.HttpClient.Do(req)
 	} else {
-		resp, err = client.doRequestWithRetries(req, 60*time.Second)
+		resp, err = client.doRequestWithRetries(req, client.RetryTimeout)
 	}
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if err := client.getRateLimit(resp); err != nil {
+		if err.(*RateLimit).Remaining == 0 {
+			return err
+		}
+	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		body, err := ioutil.ReadAll(resp.Body)
@@ -104,6 +118,27 @@ func (client *Client) doJsonRequest(method, api string,
 	return nil
 }
 
+func (client *Client) getRateLimit(response *http.Response) error {
+
+	ratelimit := response.Header.Get(RateLimitHeader)
+	if ratelimit == "" {
+		return nil
+	}
+
+	rateperiod := response.Header.Get(RatePeriodHeader)
+	rateremaining := response.Header.Get(RateRemainingHeader)
+	ratereset := response.Header.Get(RateResetHeader)
+
+	limit, _ := strconv.Atoi(ratelimit)
+	period, _ := strconv.Atoi(rateperiod)
+	remaining, _ := strconv.Atoi(rateremaining)
+	reset, _ := strconv.Atoi(ratereset)
+
+	ratelimiterror := NewRateLimit(limit, period, remaining, reset)
+
+	return error(ratelimiterror)
+}
+
 // doRequestWithRetries performs an HTTP request repeatedly for maxTime or until
 // no error and no HTTP response code higher than 299 is returned.
 func (client *Client) doRequestWithRetries(req *http.Request, maxTime time.Duration) (*http.Response, error) {
@@ -118,6 +153,12 @@ func (client *Client) doRequestWithRetries(req *http.Request, maxTime time.Durat
 		resp, err = client.HttpClient.Do(req)
 		if err != nil {
 			return err
+		}
+
+		if err := client.getRateLimit(resp); err != nil {
+			if err.(*RateLimit).Remaining == 0 {
+				return err
+			}
 		}
 
 		if resp.StatusCode < 200 || resp.StatusCode > 299 {
