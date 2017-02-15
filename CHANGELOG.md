@@ -4,7 +4,13 @@ branch for the next major version of Terraform.
 
 ## 0.9.0-beta2 (unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
 
+ * provider/azurerm: scale_sets `os_profile_master_password` now marked as sensitive
+
+IMPROVEMENTS:
+
+ * provider/azurerm: Mark the azurerm_scale_set machine password as sensitive #11982
 
 ## 0.9.0-beta1 (February 15, 2017)
 
@@ -16,7 +22,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
    Terraform versions.
  * provider/aws: `aws_db_instance` now defaults to making a final snapshot on delete
  * provider/aws: `aws_rds_cluster` now defaults to making a final snapshot on delete
-  * provider/aws: `aws_redshift_cluster` now defaults to making a final snapshot on delete
+ * provider/aws: `aws_redshift_cluster` now defaults to making a final snapshot on delete
  * provider/aws: Deprecated fields `kinesis_endpoint` & `dynamodb_endpoint` were removed. Use `kinesis` & `dynamodb` inside the `endpoints` block instead. ([#11778](https://github.com/hashicorp/terraform/issues/11778))
  * provider/datadog: `datadog_monitor` now defaults `notify_no_data` to `false` as per the datadog API
 
