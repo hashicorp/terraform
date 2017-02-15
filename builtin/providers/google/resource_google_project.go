@@ -183,13 +183,13 @@ func resourceGoogleProjectCreate(d *schema.ResourceData, meta interface{}) error
 		ba := cloudbilling.ProjectBillingInfo{
 			BillingAccountName: "billingAccounts/" + v.(string),
 		}
-		_, err = config.clientBilling.Projects.UpdateBillingInfo("projects/"+pid, &ba).Do()
+		_, err = config.clientBilling.Projects.UpdateBillingInfo(prefixedProject(pid), &ba).Do()
 		if err != nil {
 			d.Set("billing_account", "")
 			if _err, ok := err.(*googleapi.Error); ok {
-				return fmt.Errorf("Error setting billing account %q for project %q: %v", ba.Name, "projects/"+pid, _err)
+				return fmt.Errorf("Error setting billing account %q for project %q: %v", ba.BillingAccountName, prefixedProject(pid), _err)
 			}
-			return fmt.Errorf("Error setting billing account %q for project %q: %v", ba.Name, "projects/"+pid, err)
+			return fmt.Errorf("Error setting billing account %q for project %q: %v", ba.BillingAccountName, prefixedProject(pid), err)
 		}
 	}
 
@@ -218,20 +218,29 @@ func resourceGoogleProjectRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Read the billing account
-	ba, err := config.clientBilling.Projects.GetBillingInfo("projects/" + pid).Do()
+	ba, err := config.clientBilling.Projects.GetBillingInfo(prefixedProject(pid)).Do()
 	if err != nil {
-		return fmt.Errorf("Error reading billing account for project %q: %v", "projects/"+pid, err)
+		return fmt.Errorf("Error reading billing account for project %q: %v", prefixedProject(pid), err)
 	}
 	if ba.BillingAccountName != "" {
-		_ba := strings.Split(ba.BillingAccountName, "billingAccounts/")
-		if len(_ba) != 2 {
-			return fmt.Errorf("Error parsing billing account for project %q. Expected value to begin with 'billingAccounts/' but got %s", "projects/"+pid, ba.BillingAccountName)
+		// BillingAccountName is contains the resource name of the billing account
+		// associated with the project, if any. For example,
+		// `billingAccounts/012345-567890-ABCDEF`. We care about the ID and not
+		// the `billingAccounts/` prefix, so we need to remove that. If the
+		// prefix ever changes, we'll validate to make sure it's something we
+		// recognize.
+		_ba := strings.TrimPrefix(ba.BillingAccountName, "billingAccounts/")
+		if ba.BillingAccountName == _ba {
+			return fmt.Errorf("Error parsing billing account for project %q. Expected value to begin with 'billingAccounts/' but got %s", prefixedProject(pid), ba.BillingAccountName)
 		}
-		d.Set("billing_account", _ba[1])
+		d.Set("billing_account", _ba)
 	}
 	return nil
 }
 
+func prefixedProject(pid string) string {
+	return "projects/" + pid
+}
 func resourceGoogleProjectUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	pid := d.Id()
@@ -263,13 +272,13 @@ func resourceGoogleProjectUpdate(d *schema.ResourceData, meta interface{}) error
 		ba := cloudbilling.ProjectBillingInfo{
 			BillingAccountName: "billingAccounts/" + v.(string),
 		}
-		_, err = config.clientBilling.Projects.UpdateBillingInfo("projects/"+pid, &ba).Do()
+		_, err = config.clientBilling.Projects.UpdateBillingInfo(prefixedProject(pid), &ba).Do()
 		if err != nil {
 			d.Set("billing_account", "")
 			if _err, ok := err.(*googleapi.Error); ok {
-				return fmt.Errorf("Error updating billing account %q for project %q: %v", ba.Name, "projects/"+pid, _err)
+				return fmt.Errorf("Error updating billing account %q for project %q: %v", ba.Name, prefixedProject(pid), _err)
 			}
-			return fmt.Errorf("Error updating billing account %q for project %q: %v", ba.Name, "projects/"+pid, err)
+			return fmt.Errorf("Error updating billing account %q for project %q: %v", ba.Name, prefixedProject(pid), err)
 		}
 	}
 	return updateProjectIamPolicy(d, config, pid)
