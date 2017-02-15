@@ -19,9 +19,7 @@ type Client interface {
 // backend to enable state lock/unlock.
 type ClientLocker interface {
 	Client
-
-	Lock(*state.LockInfo) (string, error)
-	Unlock(string) error
+	state.Locker
 }
 
 // Payload is the return value from the remote state storage.
