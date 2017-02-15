@@ -13,6 +13,7 @@ import (
 
 func TestS3Client_impl(t *testing.T) {
 	var _ Client = new(S3Client)
+	var _ ClientLocker = new(S3Client)
 }
 
 func TestS3Factory(t *testing.T) {
