@@ -25,6 +25,7 @@ IMPROVEMENTS:
  * provider/aws: Support import of aws_opsworks_instance [GH-11783]
  * provider/aws Add S3 bucket object tag support [GH-11344]
  * provider/aws: Add validation for aws_iam_role [GH-11915]
+ * provider/fastly Allows for conditional settings across fastly [GH-11843]
  * provider/openstack: Allow OpenStack SSL certs + keys to take path or content [GH-10271]
  * provider/pagerduty: Add support for `incident_urgency_rule`, `support_hours` and `scheduled_actions` to `pagerduty_service` [GH-11856]
  * provider/rancher: parse Rancher client cli.json config file [GH-11658]
