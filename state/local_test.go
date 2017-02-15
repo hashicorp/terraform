@@ -57,12 +57,13 @@ func TestLocalStateLocks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Unlock should be repeatable
 	if err := s.Unlock(lockID); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.Unlock(lockID); err != nil {
-		t.Fatal(err)
+
+	// we should not be able to unlock the same lock twice
+	if err := s.Unlock(lockID); err == nil {
+		t.Fatal("unlocking an unlocked state should fail")
 	}
 
 	// make sure lock info is gone
