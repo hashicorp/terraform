@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"sort"
 
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/errwrap"
@@ -9,7 +10,7 @@ import (
 )
 
 const (
-	catalogServiceElem = "services"
+	catalogServiceElem = "service"
 
 	catalogServiceCreateIndex              = "create_index"
 	catalogServiceDatacenter               = "datacenter"
@@ -170,25 +171,19 @@ func dataSourceConsulCatalogServiceRead(d *schema.ResourceData, meta interface{}
 		m[catalogServiceNodeID] = service.ID
 		m[catalogServiceNodeMeta] = service.NodeMeta
 		m[catalogServiceNodeName] = service.Node
-		m[catalogServiceServiceAddress] = service.ServiceAddress
+		switch service.ServiceAddress {
+		case "":
+			m[catalogServiceServiceAddress] = service.Address
+		default:
+			m[catalogServiceServiceAddress] = service.ServiceAddress
+		}
 		m[catalogServiceServiceEnableTagOverride] = fmt.Sprintf("%t", service.ServiceEnableTagOverride)
 		m[catalogServiceServiceID] = service.ServiceID
 		m[catalogServiceServiceName] = service.ServiceName
 		m[catalogServiceServicePort] = fmt.Sprintf("%d", service.ServicePort)
+		sort.Strings(service.ServiceTags)
 		m[catalogServiceServiceTags] = service.ServiceTags
 		m[catalogServiceTaggedAddresses] = service.TaggedAddresses
-
-		{
-			const initNumTaggedAddrs = 2
-			taggedAddrs := make(map[string]interface{}, initNumTaggedAddrs)
-			if addr, found := service.TaggedAddresses[apiTaggedLAN]; found {
-				taggedAddrs[schemaTaggedLAN] = addr
-			}
-			if addr, found := service.TaggedAddresses[apiTaggedWAN]; found {
-				taggedAddrs[schemaTaggedWAN] = addr
-			}
-			m[catalogServiceTaggedAddresses] = taggedAddrs
-		}
 
 		l = append(l, m)
 	}
@@ -197,9 +192,10 @@ func dataSourceConsulCatalogServiceRead(d *schema.ResourceData, meta interface{}
 	d.SetId(fmt.Sprintf(idKeyFmt, queryOpts.Datacenter, serviceName, serviceTag))
 
 	d.Set(catalogServiceDatacenter, queryOpts.Datacenter)
+	d.Set(catalogServiceName, serviceName)
 	d.Set(catalogServiceTag, serviceTag)
 	if err := d.Set(catalogServiceElem, l); err != nil {
-		return errwrap.Wrapf("Unable to store services: {{err}}", err)
+		return errwrap.Wrapf("Unable to store service: {{err}}", err)
 	}
 
 	return nil
