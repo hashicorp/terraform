@@ -9,6 +9,8 @@ import (
 
 const (
 	queryOptAllowStale        = "allow_stale"
+	queryOptDatacenter        = "datacenter"
+	queryOptNear              = "near"
 	queryOptNodeMeta          = "node_meta"
 	queryOptRequireConsistent = "require_consistent"
 	queryOptToken             = "token"
@@ -25,6 +27,20 @@ var schemaQueryOpts = &schema.Schema{
 				Optional: true,
 				Default:  true,
 				Type:     schema.TypeBool,
+			},
+			queryOptDatacenter: &schema.Schema{
+				// Optional because we'll pull the default from the local agent if it's
+				// not specified, but we can query remote data centers as a result.
+				Optional: true,
+				Type:     schema.TypeString,
+			},
+			queryOptNear: &schema.Schema{
+				Optional: true,
+				Type:     schema.TypeString,
+			},
+			queryOptNodeMeta: &schema.Schema{
+				Optional: true,
+				Type:     schema.TypeMap,
 			},
 			queryOptRequireConsistent: &schema.Schema{
 				Optional: true,
@@ -57,17 +73,26 @@ var schemaQueryOpts = &schema.Schema{
 }
 
 func getQueryOpts(d *schema.ResourceData, client *consulapi.Client) (*consulapi.QueryOptions, error) {
-	dc, err := getDC(d, client)
-	if err != nil {
-		return nil, err
-	}
-
-	queryOpts := &consulapi.QueryOptions{
-		Datacenter: dc,
-	}
+	queryOpts := &consulapi.QueryOptions{}
 
 	if v, ok := d.GetOk(queryOptAllowStale); ok {
 		queryOpts.AllowStale = v.(bool)
+	}
+
+	if v, ok := d.GetOk(queryOptDatacenter); ok {
+		queryOpts.Datacenter = v.(string)
+	}
+
+	if queryOpts.Datacenter == "" {
+		dc, err := getDC(d, client)
+		if err != nil {
+			return nil, err
+		}
+		queryOpts.Datacenter = dc
+	}
+
+	if v, ok := d.GetOk(queryOptNear); ok {
+		queryOpts.Near = v.(string)
 	}
 
 	if v, ok := d.GetOk(queryOptRequireConsistent); ok {
