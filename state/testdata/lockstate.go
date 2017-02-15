@@ -19,10 +19,11 @@ func main() {
 		Path: os.Args[1],
 	}
 
-	err := s.Lock("test")
+	_, err := s.Lock(&state.LockInfo{Operation: "test", Info: "state locker"})
 	if err != nil {
 		io.WriteString(os.Stderr, "lock failed")
 
 	}
+
 	return
 }

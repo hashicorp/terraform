@@ -20,14 +20,17 @@ func TestLocalStateLocks(t *testing.T) {
 	defer os.Remove(s.Path)
 
 	// lock first
-	if err := s.Lock("test"); err != nil {
+	info := &LockInfo{
+		Operation: "test",
+	}
+	lockID, err := s.Lock(info)
+	if err != nil {
 		t.Fatal(err)
 	}
 
 	out, err := exec.Command("go", "run", "testdata/lockstate.go", s.Path).CombinedOutput()
-
 	if err != nil {
-		t.Fatal("unexpected lock failure", err)
+		t.Fatal("unexpected lock failure", err, string(out))
 	}
 
 	if string(out) != "lock failed" {
@@ -40,25 +43,26 @@ func TestLocalStateLocks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if lockInfo.Info != "test" {
+	if lockInfo.Operation != "test" {
 		t.Fatalf("invalid lock info %#v\n", lockInfo)
 	}
 
 	// a noop, since we unlock on exit
-	if err := s.Unlock(); err != nil {
+	if err := s.Unlock(lockID); err != nil {
 		t.Fatal(err)
 	}
 
 	// local locks can re-lock
-	if err := s.Lock("test"); err != nil {
+	lockID, err = s.Lock(info)
+	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Unlock should be repeatable
-	if err := s.Unlock(); err != nil {
+	if err := s.Unlock(lockID); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.Unlock(); err != nil {
+	if err := s.Unlock(lockID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -67,7 +71,6 @@ func TestLocalStateLocks(t *testing.T) {
 	if _, err := os.Stat(lockInfoPath); !os.IsNotExist(err) {
 		t.Fatal("lock info not removed")
 	}
-
 }
 
 func TestLocalState_pathOut(t *testing.T) {
