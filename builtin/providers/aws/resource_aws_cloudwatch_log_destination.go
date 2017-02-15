@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -64,7 +65,7 @@ func resourceAwsCloudWatchLogDestinationPut(d *schema.ResourceData, meta interfa
 		TargetArn:       aws.String(target_arn),
 	}
 
-	return resource.Retry(30*time.Second, func() *resource.RetryError {
+	return resource.Retry(3*time.Minute, func() *resource.RetryError {
 		resp, err := conn.PutDestination(params)
 
 		if err == nil {
@@ -78,6 +79,9 @@ func resourceAwsCloudWatchLogDestinationPut(d *schema.ResourceData, meta interfa
 		}
 
 		if awsErr.Code() == "InvalidParameterException" {
+			if strings.Contains(awsErr.Message(), "Could not deliver test message to specified") {
+				return resource.RetryableError(err)
+			}
 			return resource.NonRetryableError(err)
 		}
 
