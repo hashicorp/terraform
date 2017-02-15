@@ -61,3 +61,13 @@ Both of these protections can be bypassed with the `-force` flag if you're
 confident you're making the right decision. Even if using the `-force` flag,
 we recommend making a backup of the state with `terraform state pull`
 prior to forcing the overwrite.
+
+## State Locking
+
+Backends are responsible for supporting [state locking](/docs/state/locking.html)
+if possible. Not all backend types support state locking. In the
+[list of supported backend types](/docs/backends/types) we explicitly note
+whether locking is supported.
+
+For more information on state locking, view the
+[page dedicated to state locking](/docs/state/locking.html).
