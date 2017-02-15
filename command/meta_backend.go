@@ -533,10 +533,8 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 	}
 
 	// Lock the state if we can
-	lockInfo := &state.LockInfo{
-		Operation: "plan",
-		Info:      "backend from plan",
-	}
+	lockInfo := state.NewLockInfo()
+	lockInfo.Operation = "backend from plan"
 
 	lockID, err := clistate.Lock(realMgr, lockInfo, m.Ui, m.Colorize())
 	if err != nil {
@@ -991,9 +989,8 @@ func (m *Meta) backend_C_r_s(
 	}
 
 	// Lock the state if we can
-	lockInfo := &state.LockInfo{
-		Info: "backend from config",
-	}
+	lockInfo := state.NewLockInfo()
+	lockInfo.Operation = "backend from config"
 
 	lockID, err := clistate.Lock(sMgr, lockInfo, m.Ui, m.Colorize())
 	if err != nil {
@@ -1100,9 +1097,9 @@ func (m *Meta) backend_C_r_S_changed(
 	}
 
 	// Lock the state if we can
-	lockInfo := &state.LockInfo{
-		Info: "backend from config",
-	}
+	lockInfo := state.NewLockInfo()
+	lockInfo.Operation = "backend from config"
+
 	lockID, err := clistate.Lock(sMgr, lockInfo, m.Ui, m.Colorize())
 	if err != nil {
 		return nil, fmt.Errorf("Error locking state: %s", err)
@@ -1261,9 +1258,8 @@ func (m *Meta) backend_C_R_S_unchanged(
 	}
 
 	// Lock the state if we can
-	lockInfo := &state.LockInfo{
-		Info: "backend from config",
-	}
+	lockInfo := state.NewLockInfo()
+	lockInfo.Operation = "backend from config"
 
 	lockID, err := clistate.Lock(sMgr, lockInfo, m.Ui, m.Colorize())
 	if err != nil {

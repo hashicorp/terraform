@@ -74,9 +74,8 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	if c.Meta.stateLock {
-		lockInfo := &state.LockInfo{
-			Operation: "taint",
-		}
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = "taint"
 		lockID, err := clistate.Lock(st, lockInfo, c.Ui, c.Colorize())
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))

@@ -30,10 +30,8 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 	}
 
 	if op.LockState {
-		lockInfo := &state.LockInfo{
-			Info: op.Type.String(),
-		}
-
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = op.Type.String()
 		_, err := clistate.Lock(s, lockInfo, b.CLI, b.Colorize())
 		if err != nil {
 			return nil, nil, errwrap.Wrapf("Error locking state: {{err}}", err)
