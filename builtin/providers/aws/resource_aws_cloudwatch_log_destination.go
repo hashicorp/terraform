@@ -2,11 +2,13 @@ package aws
 
 import (
 	"fmt"
-
-	"github.com/hashicorp/terraform/helper/schema"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceAwsCloudWatchLogDestination() *schema.Resource {
@@ -62,15 +64,25 @@ func resourceAwsCloudWatchLogDestinationPut(d *schema.ResourceData, meta interfa
 		TargetArn:       aws.String(target_arn),
 	}
 
-	resp, err := conn.PutDestination(params)
+	return resource.Retry(30*time.Second, func() *resource.RetryError {
+		resp, err := conn.PutDestination(params)
 
-	if err != nil {
-		return fmt.Errorf("Error creating Destination with name %s: %#v", name, err)
-	}
+		if err == nil {
+			d.SetId(*resp.Destination.Arn)
+			d.Set("arn", *resp.Destination.Arn)
+		}
 
-	d.SetId(*resp.Destination.Arn)
-	d.Set("arn", *resp.Destination.Arn)
-	return resourceAwsCloudWatchLogDestinationRead(d, meta)
+		awsErr, ok := err.(awserr.Error)
+		if !ok {
+			return resource.RetryableError(err)
+		}
+
+		if awsErr.Code() == "InvalidParameterException" {
+			return resource.NonRetryableError(err)
+		}
+
+		return resource.NonRetryableError(err)
+	})
 }
 
 func resourceAwsCloudWatchLogDestinationRead(d *schema.ResourceData, meta interface{}) error {
