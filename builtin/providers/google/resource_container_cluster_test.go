@@ -192,6 +192,9 @@ func testAccCheckContainerCluster(n string) resource.TestCheckFunc {
 			{"node_config.0.machine_type", cluster.NodeConfig.MachineType},
 			{"node_config.0.disk_size_gb", strconv.FormatInt(cluster.NodeConfig.DiskSizeGb, 10)},
 			{"node_config.0.oauth_scopes", cluster.NodeConfig.OauthScopes},
+			{"node_config.0.service_account", cluster.NodeConfig.ServiceAccount},
+			{"node_config.0.metadata", cluster.NodeConfig.Metadata},
+			{"node_config.0.image_type", cluster.NodeConfig.ImageType},
 			{"node_version", cluster.CurrentNodeVersion},
 		}
 
@@ -254,6 +257,9 @@ func checkMatch(attributes map[string]string, attr string, gcp interface{}) stri
 	if gcpList, ok := gcp.([]string); ok {
 		return checkListMatch(attributes, attr, gcpList)
 	}
+	if gcpMap, ok := gcp.(map[string]string); ok {
+		return checkMapMatch(attributes, attr, gcpMap)
+	}
 	tf := attributes[attr]
 	if tf != gcp {
 		return matchError(attr, tf, gcp)
@@ -273,6 +279,24 @@ func checkListMatch(attributes map[string]string, attr string, gcpList []string)
 	for i, gcp := range gcpList {
 		if tf := attributes[fmt.Sprintf("%s.%d", attr, i)]; tf != gcp {
 			return matchError(fmt.Sprintf("%s[%d]", attr, i), tf, gcp)
+		}
+	}
+
+	return ""
+}
+
+func checkMapMatch(attributes map[string]string, attr string, gcpMap map[string]string) string {
+	num, err := strconv.Atoi(attributes[attr+".%"])
+	if err != nil {
+		return fmt.Sprintf("Error in number conversion for attribute %s: %s", attr, err)
+	}
+	if num != len(gcpMap) {
+		return fmt.Sprintf("Cluster has mismatched %s size.\nTF Size: %d\nGCP Size: %d", attr, num, len(gcpMap))
+	}
+
+	for k, gcp := range gcpMap {
+		if tf := attributes[fmt.Sprintf("%s.%s", attr, k)]; tf != gcp {
+			return matchError(fmt.Sprintf("%s[%s]", attr, k), tf, gcp)
 		}
 	}
 
@@ -345,6 +369,11 @@ resource "google_container_cluster" "with_node_config" {
 			"https://www.googleapis.com/auth/logging.write",
 			"https://www.googleapis.com/auth/monitoring"
 		]
+		service_account = "default"
+		metadata {
+			foo = "bar"
+		}
+		image_type = "CONTAINER_VM"
 	}
 }`, acctest.RandString(10))
 
