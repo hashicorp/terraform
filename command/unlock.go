@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/cli"
 )
 
 // UnlockCommand is a cli.Command implementation that manually unlocks
@@ -25,9 +26,21 @@ func (c *UnlockCommand) Run(args []string) int {
 		return 1
 	}
 
+	args = cmdFlags.Args()
+	if len(args) == 0 {
+		c.Ui.Error("unlock requires a lock id argument")
+		return cli.RunResultHelp
+	}
+
+	lockID := args[0]
+
+	if len(args) > 1 {
+		args = args[1:]
+	}
+
 	// assume everything is initialized. The user can manually init if this is
 	// required.
-	configPath, err := ModulePath(cmdFlags.Args())
+	configPath, err := ModulePath(args)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -93,7 +106,7 @@ func (c *UnlockCommand) Run(args []string) int {
 	}
 
 	// FIXME: unlock should require the lock ID
-	if err := s.Unlock(""); err != nil {
+	if err := s.Unlock(lockID); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to unlock state: %s", err))
 		return 1
 	}
@@ -104,7 +117,7 @@ func (c *UnlockCommand) Run(args []string) int {
 
 func (c *UnlockCommand) Help() string {
 	helpText := `
-Usage: terraform force-unlock [DIR]
+Usage: terraform force-unlock LOCK_ID [DIR]
 
   Manually unlock the state for the defined configuration.
 
