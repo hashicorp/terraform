@@ -1,5 +1,9 @@
 ## 0.8.8 (unreleased)
 
+IMPROVEMENTS:
+
+ * provider/aws: Add support for AWS EBS Elastic Volumes [GH-11981]
+
 Bug FIXES:
 
  * provider/google: make local_traffic_selector computed [GH-11631]
