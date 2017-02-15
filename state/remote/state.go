@@ -3,6 +3,7 @@ package remote
 import (
 	"bytes"
 
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -62,24 +63,17 @@ func (s *State) PersistState() error {
 }
 
 // Lock calls the Client's Lock method if it's implemented.
-func (s *State) Lock(reason string) error {
-	if c, ok := s.Client.(stateLocker); ok {
-		return c.Lock(reason)
+func (s *State) Lock(info *state.LockInfo) (string, error) {
+	if c, ok := s.Client.(ClientLocker); ok {
+		return c.Lock(info)
 	}
-	return nil
+	return "", nil
 }
 
 // Unlock calls the Client's Unlock method if it's implemented.
-func (s *State) Unlock() error {
-	if c, ok := s.Client.(stateLocker); ok {
-		return c.Unlock()
+func (s *State) Unlock(id string) error {
+	if c, ok := s.Client.(ClientLocker); ok {
+		return c.Unlock(id)
 	}
 	return nil
-}
-
-// stateLocker mirrors the state.Locker interface.  This can be implemented by
-// Clients to provide methods for locking and unlocking remote state.
-type stateLocker interface {
-	Lock(reason string) error
-	Unlock() error
 }
