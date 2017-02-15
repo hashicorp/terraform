@@ -45,7 +45,7 @@ type ImageUpdateRequest struct {
 }
 
 type imageRoot struct {
-	Image Image
+	Image *Image
 }
 
 type imagesRoot struct {
@@ -125,7 +125,7 @@ func (s *ImagesServiceOp) Update(imageID int, updateRequest *ImageUpdateRequest)
 		return nil, resp, err
 	}
 
-	return &root.Image, resp, err
+	return root.Image, resp, err
 }
 
 // Delete an image.
@@ -161,7 +161,7 @@ func (s *ImagesServiceOp) get(ID interface{}) (*Image, *Response, error) {
 		return nil, resp, err
 	}
 
-	return &root.Image, resp, err
+	return root.Image, resp, err
 }
 
 // Helper method for listing images
