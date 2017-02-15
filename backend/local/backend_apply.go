@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	clistate "github.com/hashicorp/terraform/command/state"
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -35,10 +36,17 @@ func (b *Local) opApply(
 		return
 	}
 
-	// If we're locking state, unlock when we're done
 	if op.LockState {
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = op.Type.String()
+		lockID, err := clistate.Lock(opState, lockInfo, b.CLI, b.Colorize())
+		if err != nil {
+			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
+			return
+		}
+
 		defer func() {
-			if err := clistate.Unlock(opState, b.CLI, b.Colorize()); err != nil {
+			if err := clistate.Unlock(opState, lockID, b.CLI, b.Colorize()); err != nil {
 				runningOp.Err = multierror.Append(runningOp.Err, err)
 			}
 		}()

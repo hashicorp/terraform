@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -24,6 +25,11 @@ type LocalState struct {
 	// the file handle corresponding to PathOut
 	stateFileOut *os.File
 
+	// While the stateFileOut will correspond to the lock directly,
+	// store and check the lock ID to maintain a strict state.Locker
+	// implementation.
+	lockID string
+
 	// created is set to true if stateFileOut didn't exist before we created it.
 	// This is mostly so we can clean up emtpy files during tests, but doesn't
 	// hurt to remove file we never wrote to.
@@ -32,27 +38,6 @@ type LocalState struct {
 	state     *terraform.State
 	readState *terraform.State
 	written   bool
-}
-
-// LockInfo stores metadata for locks taken.
-type LockInfo struct {
-	Path    string    // Path to the state file
-	Created time.Time // The time the lock was taken
-	Info    string    // Extra info passed to State.Lock
-}
-
-// Err returns the lock info formatted in an error
-func (l *LockInfo) Err() error {
-	return fmt.Errorf("state locked. path:%q, created:%s, info:%q",
-		l.Path, l.Created, l.Info)
-}
-
-func (l *LockInfo) String() string {
-	js, err := json.Marshal(l)
-	if err != nil {
-		panic(err)
-	}
-	return string(js)
 }
 
 // SetState will force a specific state in-memory for this local state.
@@ -155,28 +140,47 @@ func (s *LocalState) RefreshState() error {
 }
 
 // Lock implements a local filesystem state.Locker.
-func (s *LocalState) Lock(reason string) error {
+func (s *LocalState) Lock(info *LockInfo) (string, error) {
 	if s.stateFileOut == nil {
 		if err := s.createStateFiles(); err != nil {
-			return err
+			return "", err
 		}
 	}
 
 	if err := s.lock(); err != nil {
-		if info, err := s.lockInfo(); err == nil {
-			return info.Err()
+		info, infoErr := s.lockInfo()
+		if infoErr != nil {
+			err = multierror.Append(err, infoErr)
 		}
 
-		return fmt.Errorf("state file %q locked: %s", s.Path, err)
+		lockErr := &LockError{
+			Info: info,
+			Err:  err,
+		}
+
+		return "", lockErr
 	}
 
-	return s.writeLockInfo(reason)
+	s.lockID = info.ID
+	return s.lockID, s.writeLockInfo(info)
 }
 
-func (s *LocalState) Unlock() error {
-	// we can't be locked if we don't have a file
-	if s.stateFileOut == nil {
-		return nil
+func (s *LocalState) Unlock(id string) error {
+	if s.lockID == "" {
+		return fmt.Errorf("LocalState not locked")
+	}
+
+	if id != s.lockID {
+		idErr := fmt.Errorf("invalid lock id: %q. current id: %q", id, s.lockID)
+		info, err := s.lockInfo()
+		if err != nil {
+			err = multierror.Append(idErr, err)
+		}
+
+		return &LockError{
+			Err:  idErr,
+			Info: info,
+		}
 	}
 
 	os.Remove(s.lockInfoPath())
@@ -187,6 +191,7 @@ func (s *LocalState) Unlock() error {
 
 	s.stateFileOut.Close()
 	s.stateFileOut = nil
+	s.lockID = ""
 
 	// clean up the state file if we created it an never wrote to it
 	stat, err := os.Stat(fileName)
@@ -253,21 +258,12 @@ func (s *LocalState) lockInfo() (*LockInfo, error) {
 }
 
 // write a new lock info file
-func (s *LocalState) writeLockInfo(info string) error {
+func (s *LocalState) writeLockInfo(info *LockInfo) error {
 	path := s.lockInfoPath()
+	info.Path = s.Path
+	info.Created = time.Now().UTC()
 
-	lockInfo := &LockInfo{
-		Path:    s.Path,
-		Created: time.Now().UTC(),
-		Info:    info,
-	}
-
-	infoData, err := json.Marshal(lockInfo)
-	if err != nil {
-		panic(fmt.Sprintf("could not marshal lock info: %#v", lockInfo))
-	}
-
-	err = ioutil.WriteFile(path, infoData, 0600)
+	err := ioutil.WriteFile(path, info.Marshal(), 0600)
 	if err != nil {
 		return fmt.Errorf("could not write lock info for %q: %s", s.Path, err)
 	}
