@@ -41,7 +41,6 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
- * provider/cloudstack: Ensure consistent hashes of `cloudstack_port_forward` forward items. [GH-11546]
  * provider/datadog: Default notify_no_data on datadog_monitor to false [GH-11903]
 
 ## 0.8.6 (07 February 2017)
