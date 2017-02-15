@@ -39,7 +39,6 @@ resource "azurerm_lb" "test" {
 }
 
 resource "azurerm_lb_rule" "test" {
-  location = "West US"
   resource_group_name = "${azurerm_resource_group.test.name}"
   loadbalancer_id = "${azurerm_lb.test.id}"
   name = "LBRule"
@@ -56,10 +55,9 @@ The following arguments are supported:
 
 * `name` - (Required) Specifies the name of the LB Rule.
 * `resource_group_name` - (Required) The name of the resource group in which to create the resource.
-* `location` - (Required) Specifies the supported Azure location where the resource exists.
 * `loadbalancer_id` - (Required) The ID of the LoadBalancer in which to create the Rule.
 * `frontend_ip_configuration_name` - (Required) The name of the frontend IP configuration to which the rule is associated.
-* `protocol` - (Required) The transport protocol for the external endpoint. Possible values are `Udp` or `Tcp`. 
+* `protocol` - (Required) The transport protocol for the external endpoint. Possible values are `Udp` or `Tcp`.
 * `frontend_port` - (Required) The port for the external endpoint. Port numbers for each Rule must be unique within the Load Balancer. Possible values range between 1 and 65534, inclusive.
 * `backend_port` - (Required) The port used for internal connections on the endpoint. Possible values range between 1 and 65535, inclusive.
 * `backend_address_pool_id` - (Optional) A reference to a Backend Address Pool over which this Load Balancing Rule operates.
