@@ -1,14 +1,17 @@
 ---
-layout: "remotestate"
-page_title: "Remote State Backend: artifactory"
-sidebar_current: "docs-state-remote-artifactory"
+layout: "backend-types"
+page_title: "Backend Type: artifactory"
+sidebar_current: "docs-backends-types-standard-artifactory"
 description: |-
-  Terraform can store the state remotely, making it easier to version and work with in a team.
+  Terraform can store state in artifactory.
 ---
 
 # artifactory
 
-Stores the state as an artifact in a given repository in [Artifactory](https://www.jfrog.com/artifactory/).
+**Kind: Standard (with no locking)**
+
+Stores the state as an artifact in a given repository in
+[Artifactory](https://www.jfrog.com/artifactory/).
 
 Generic HTTP repositories are supported, and state from different
 configurations may be kept at different subpaths within the repository.
@@ -16,16 +19,18 @@ configurations may be kept at different subpaths within the repository.
 -> **Note:** The URL must include the path to the Artifactory installation.
 It will likely end in `/artifactory`.
 
-## Example Usage
+## Example Configuration
 
 ```
-terraform remote config \
-	-backend=artifactory \
-	-backend-config="username=SheldonCooper" \
-	-backend-config="password=AmyFarrahFowler" \
-	-backend-config="url=https://custom.artifactoryonline.com/artifactory" \
-	-backend-config="repo=foo" \
-	-backend-config="subpath=terraform-bar"
+terraform {
+  backend "artifactory" {
+    username = "SheldonCooper"
+    password = "AmyFarrahFowler"
+    url      = "https://custom.artifactoryonline.com/artifactory"
+    repo     = "foo"
+    subpath  = "teraraform-bar"
+  }
+}
 ```
 
 ## Example Referencing

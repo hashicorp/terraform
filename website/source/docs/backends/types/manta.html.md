@@ -1,23 +1,30 @@
 ---
-layout: "remotestate"
-page_title: "Remote State Backend: manta"
-sidebar_current: "docs-state-remote-manta"
+layout: "backend-types"
+page_title: "Backend Type: manta"
+sidebar_current: "docs-backends-types-standard-manta"
 description: |-
-  Terraform can store the state remotely, making it easier to version and work with in a team.
+  Terraform can store state in manta.
 ---
 
 # manta
 
+**Kind: Standard (with no locking)**
+
 Stores the state as an artifact in [Manta](https://www.joyent.com/manta).
 
-## Example Usage
+## Example Configuration
 
 ```
-terraform remote config \
-	-backend=manta \
-	-backend-config="path=random/path" \
-	-backend-config="objecName=terraform.tfstate"
+terraform {
+  backend "manta" {
+    path = "random/path"
+    objectName = "terraform.tfstate"
+  }
+}
 ```
+
+Note that for the access credentials we recommend using a
+[partial configuration](/docs/backends/config.html).
 
 ## Example Referencing
 
