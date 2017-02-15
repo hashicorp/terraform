@@ -1,26 +1,32 @@
 ---
-layout: "remotestate"
-page_title: "Remote State Backend: consul"
-sidebar_current: "docs-state-remote-consul"
+layout: "backend-types"
+page_title: "Backend Type: consul"
+sidebar_current: "docs-backends-types-standard-consul"
 description: |-
-  Terraform can store the state remotely, making it easier to version and work with in a team.
+  Terraform can store state in Consul.
 ---
 
 # consul
 
+**Kind: Standard (with locking)**
+
 Stores the state in the [Consul](https://www.consul.io/) KV store at a given path.
 
--> **Note:** Specifying `access_token` directly makes it included in
-cleartext inside the persisted, shard state.
-Use of the environment variable `CONSUL_HTTP_TOKEN` is recommended.
+This backend supports [state locking](/docs/state/locking.html).
 
-## Example Usage
+## Example Configuration
 
 ```
-terraform remote config \
-	-backend=consul \
-	-backend-config="path=full/path"
+terraform {
+  backend "consul" {
+    address = "demo.consul.io"
+    path    = "full/path"
+  }
+}
 ```
+
+Note that for the access credentials we recommend using a
+[partial configuration](/docs/backends/config.html).
 
 ## Example Referencing
 

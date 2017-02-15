@@ -1,12 +1,14 @@
 ---
-layout: "remotestate"
-page_title: "Remote State Backend: http"
-sidebar_current: "docs-state-remote-http"
+layout: "backend-types"
+page_title: "Backend Type: http"
+sidebar_current: "docs-backends-types-standard-http"
 description: |-
-  Terraform can store the state remotely, making it easier to version and work with in a team.
+  Terraform can store state remotely at any valid HTTP endpoint.
 ---
 
 # http
+
+**Kind: Standard (with no locking)**
 
 Stores the state using a simple [REST](https://en.wikipedia.org/wiki/Representational_state_transfer) client.
 
@@ -15,9 +17,11 @@ State will be fetched via GET, updated via POST, and purged with DELETE.
 ## Example Usage
 
 ```
-terraform remote config \
-	-backend=http \
-	-backend-config="address=http://my.rest.api.com"
+terraform {
+  backend "http" {
+    address = "http://myrest.api.com"
+  }
+}
 ```
 
 ## Example Referencing
