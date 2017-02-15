@@ -13,6 +13,7 @@ import (
 
 func TestRemoteClient_impl(t *testing.T) {
 	var _ remote.Client = new(RemoteClient)
+	var _ remote.ClientLocker = new(RemoteClient)
 }
 
 func TestRemoteClient(t *testing.T) {
