@@ -49,12 +49,10 @@ var schemaQueryOpts = &schema.Schema{
 			},
 			queryOptToken: &schema.Schema{
 				Optional: true,
-				Default:  true,
 				Type:     schema.TypeString,
 			},
 			queryOptWaitIndex: &schema.Schema{
 				Optional: true,
-				Default:  true,
 				Type:     schema.TypeInt,
 				ValidateFunc: makeValidationFunc(queryOptWaitIndex, []interface{}{
 					validateIntMin(0),
@@ -62,7 +60,6 @@ var schemaQueryOpts = &schema.Schema{
 			},
 			queryOptWaitTime: &schema.Schema{
 				Optional: true,
-				Default:  true,
 				Type:     schema.TypeString,
 				ValidateFunc: makeValidationFunc(queryOptWaitTime, []interface{}{
 					validateDurationMin("0ns"),
