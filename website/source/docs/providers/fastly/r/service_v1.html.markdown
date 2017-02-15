@@ -176,7 +176,7 @@ Default `1000`
 * `max_conn` - (Optional) Maximum number of connections for this Backend.
 Default `200`.
 * `port` - (Optional) The port number on which the Backend responds. Default `80`.
-* `request_condition` - (Optional, string) Condition, which if met, will select this backend during a request.
+* `request_condition` - (Optional, string) Name of already defined `condition`, which if met, will select this backend during a request.
 * `ssl_check_cert` - (Optional) Be strict about checking SSL certs. Default `true`.
 * `ssl_hostname` - (Optional) Used for both SNI during the TLS handshake and to validate the cert.
 * `shield` - (Optional) The POP of the shield designated to reduce inbound load.
@@ -201,7 +201,7 @@ The `cache_setting` block supports:
 * `name` - (Required) Unique name for this Cache Setting.
 * `action` - (Required) One of `cache`, `pass`, or `restart`, as defined
 on Fastly's documentation under ["Caching action descriptions"](https://docs.fastly.com/guides/performance-tuning/controlling-caching#caching-action-descriptions).
-* `cache_condition` - (Required) Name of the condition used to test whether this settings object should be used. This Condition must be of type `CACHE`.
+* `cache_condition` - (Required) Name of already defined `condition` used to test whether this settings object should be used. This `condition` must be of type `CACHE`.
 * `stale_ttl` - (Optional) Max "Time To Live" for stale (unreachable) objects.
 Default `300`.
 * `ttl` - (Optional) The Time-To-Live (TTL) for the object.
@@ -213,6 +213,8 @@ The `gzip` block supports:
 have dynamically gzip'ed. Example: `["text/html", "text/css"]`.
 * `extensions` - (Optional) File extensions for each file type to dynamically
 gzip. Example: `["css", "js"]`.
+* `cache_condition` - (Optional) Name of already defined `condition` controlling when this gzip configuration applies. This `condition` must be of type `CACHE`. For detailed information about Conditionals,
+see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
 
 The `Header` block supports adding, removing, or modifying Request and Response
@@ -230,6 +232,10 @@ content. (Does not apply to the `delete` action.)
 * `regex` - (Optional) Regular expression to use (Only applies to the `regex` and `regex_repeat` actions.)
 * `substitution` - (Optional) Value to substitute in place of regular expression. (Only applies to the `regex` and `regex_repeat` actions.)
 * `priority` - (Optional) Lower priorities execute first. Default: `100`.
+* `request_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `REQUEST`.
+* `cache_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `CACHE`.
+* `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals,
+see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
 The `healthcheck` block supports:
 
@@ -249,9 +255,8 @@ The `request_setting` block allow you to customize Fastly's request handling, by
 defining behavior that should change based on a predefined `condition`:
 
 * `name` - (Required) The domain for this request setting.
-* `request_condition` - (Required) The name of the corresponding `condition` to
-determine if this request setting should be applied. The `request_condition` must
-match the name of a defined `condition`.
+* `request_condition` - (Required) Name of already defined `condition` to
+determine if this request setting should be applied.
 * `max_stale_age` - (Optional) How old an object is allowed to be to serve
 `stale-if-error` or `stale-while-revalidate`, in seconds. Default `60`.
 * `force_miss` - (Optional) Force a cache miss for the request. If specified,
@@ -294,8 +299,7 @@ compression. `1` is fastest and least compressed, `9` is slowest and most
 compressed. Default `0`.
 * `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Defaults to Apache Common Log format (`%h %l %u %t %r %>s`)
 * `timestamp_format` - (Optional) `strftime` specified timestamp formatting (default `%Y-%m-%dT%H:%M:%S.000`).
-* `request_condition` - (Optional) The VCL request condition to check if this
-Request Setting should be applied. For detailed information about Conditionals,
+* `request_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `REQUEST`. For detailed information about Conditionals,
 see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
 The `papertrail` block supports:
@@ -304,8 +308,7 @@ The `papertrail` block supports:
 * `address` - (Required) The address of the Papertrail endpoint.
 * `port` - (Required) The port associated with the address where the Papertrail endpoint can be accessed.
 * `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Defaults to Apache Common Log format (`%h %l %u %t %r %>s`)
-* `request_condition` - (Optional) The VCL request condition to check if this
-Request Setting should be applied. For detailed information about Conditionals,
+* `request_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `REQUEST`. For detailed information about Conditionals,
 see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
 The `vcl` block supports:
