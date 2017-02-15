@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -17,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
+	uuid "github.com/hashicorp/go-uuid"
 	terraformAws "github.com/hashicorp/terraform/builtin/providers/aws"
 	"github.com/hashicorp/terraform/state"
 )
@@ -203,22 +203,27 @@ func (c *S3Client) Delete() error {
 	return err
 }
 
-func (c *S3Client) Lock(info string) error {
+func (c *S3Client) Lock(info *state.LockInfo) (string, error) {
 	if c.lockTable == "" {
-		return nil
+		return "", nil
 	}
 
 	stateName := fmt.Sprintf("%s/%s", c.bucketName, c.keyName)
-	lockInfo := &state.LockInfo{
-		Path:    stateName,
-		Created: time.Now().UTC(),
-		Info:    info,
+	info.Path = stateName
+
+	if info.ID == "" {
+		lockID, err := uuid.GenerateUUID()
+		if err != nil {
+			return "", err
+		}
+
+		info.ID = lockID
 	}
 
 	putParams := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
 			"LockID": {S: aws.String(stateName)},
-			"Info":   {S: aws.String(lockInfo.String())},
+			"Info":   {S: aws.String(string(info.Marshal()))},
 		},
 		TableName:           aws.String(c.lockTable),
 		ConditionExpression: aws.String("attribute_not_exists(LockID)"),
@@ -226,38 +231,68 @@ func (c *S3Client) Lock(info string) error {
 	_, err := c.dynClient.PutItem(putParams)
 
 	if err != nil {
-		getParams := &dynamodb.GetItemInput{
-			Key: map[string]*dynamodb.AttributeValue{
-				"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.keyName))},
-			},
-			ProjectionExpression: aws.String("LockID, Created, Info"),
-			TableName:            aws.String(c.lockTable),
+		lockInfo, infoErr := c.getLockInfo()
+		if infoErr != nil {
+			err = multierror.Append(err, infoErr)
 		}
 
-		resp, err := c.dynClient.GetItem(getParams)
-		if err != nil {
-			return fmt.Errorf("s3 state file %q locked, failed to retrieve info: %s", stateName, err)
+		lockErr := &state.LockError{
+			Err:  err,
+			Info: lockInfo,
 		}
-
-		var infoData string
-		if v, ok := resp.Item["Info"]; ok && v.S != nil {
-			infoData = *v.S
-		}
-
-		lockInfo = &state.LockInfo{}
-		err = json.Unmarshal([]byte(infoData), lockInfo)
-		if err != nil {
-			return fmt.Errorf("s3 state file %q locked, failed get lock info: %s", stateName, err)
-		}
-
-		return lockInfo.Err()
+		return "", lockErr
 	}
-	return nil
+	return info.ID, nil
 }
 
-func (c *S3Client) Unlock() error {
+func (c *S3Client) getLockInfo() (*state.LockInfo, error) {
+	getParams := &dynamodb.GetItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.keyName))},
+		},
+		ProjectionExpression: aws.String("LockID, Info"),
+		TableName:            aws.String(c.lockTable),
+	}
+
+	resp, err := c.dynClient.GetItem(getParams)
+	if err != nil {
+		return nil, err
+	}
+
+	var infoData string
+	if v, ok := resp.Item["Info"]; ok && v.S != nil {
+		infoData = *v.S
+	}
+
+	lockInfo := &state.LockInfo{}
+	err = json.Unmarshal([]byte(infoData), lockInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return lockInfo, nil
+}
+
+func (c *S3Client) Unlock(id string) error {
 	if c.lockTable == "" {
 		return nil
+	}
+
+	lockErr := &state.LockError{}
+
+	// TODO: store the path and lock ID in separate fields, and have proper
+	// projection expression only delete the lock if both match, rather than
+	// checking the ID from the info field first.
+	lockInfo, err := c.getLockInfo()
+	if err != nil {
+		lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
+		return lockErr
+	}
+	lockErr.Info = lockInfo
+
+	if lockInfo.ID != id {
+		lockErr.Err = fmt.Errorf("lock id %q does not match existing lock", id)
+		return lockErr
 	}
 
 	params := &dynamodb.DeleteItemInput{
@@ -266,10 +301,11 @@ func (c *S3Client) Unlock() error {
 		},
 		TableName: aws.String(c.lockTable),
 	}
-	_, err := c.dynClient.DeleteItem(params)
+	_, err = c.dynClient.DeleteItem(params)
 
 	if err != nil {
-		return err
+		lockErr.Err = err
+		return lockErr
 	}
 	return nil
 }

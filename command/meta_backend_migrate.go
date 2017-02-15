@@ -24,17 +24,25 @@ import (
 //
 // This will attempt to lock both states for the migration.
 func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
-	err := clistate.Lock(opts.One, "migration source state", m.Ui, m.Colorize())
+	lockInfoOne := state.NewLockInfo()
+	lockInfoOne.Operation = "migration"
+	lockInfoOne.Info = "source state"
+
+	lockIDOne, err := clistate.Lock(opts.One, lockInfoOne, m.Ui, m.Colorize())
 	if err != nil {
 		return fmt.Errorf("Error locking source state: %s", err)
 	}
-	defer clistate.Unlock(opts.One, m.Ui, m.Colorize())
+	defer clistate.Unlock(opts.One, lockIDOne, m.Ui, m.Colorize())
 
-	err = clistate.Lock(opts.Two, "migration destination state", m.Ui, m.Colorize())
+	lockInfoTwo := state.NewLockInfo()
+	lockInfoTwo.Operation = "migration"
+	lockInfoTwo.Info = "destination state"
+
+	lockIDTwo, err := clistate.Lock(opts.Two, lockInfoTwo, m.Ui, m.Colorize())
 	if err != nil {
 		return fmt.Errorf("Error locking destination state: %s", err)
 	}
-	defer clistate.Unlock(opts.Two, m.Ui, m.Colorize())
+	defer clistate.Unlock(opts.Two, lockIDTwo, m.Ui, m.Colorize())
 
 	one := opts.One.State()
 	two := opts.Two.State()
