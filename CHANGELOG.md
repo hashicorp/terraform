@@ -2,6 +2,10 @@
 in the branch "0-8-stable". The "master" branch is currently a development
 branch for the next major version of Terraform.
 
+## 0.9.0-beta2 (unreleased)
+
+
+
 ## 0.9.0-beta1 (February 15, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
