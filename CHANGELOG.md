@@ -1,6 +1,8 @@
 ## 0.8.8 (unreleased)
 
+Bug FIXES:
 
+ * provider/google: make local_traffic_selector computed [GH-11631]
 
 ## 0.8.7 (February 15, 2017)
 
