@@ -2,7 +2,7 @@
 in the branch "0-8-stable". The "master" branch is currently a development
 branch for the next major version of Terraform.
 
-## 0.9.0 (unreleased)
+## 0.9.0-beta1 (February 15, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
@@ -13,37 +13,37 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * provider/aws: `aws_db_instance` now defaults to making a final snapshot on delete
  * provider/aws: `aws_rds_cluster` now defaults to making a final snapshot on delete
   * provider/aws: `aws_redshift_cluster` now defaults to making a final snapshot on delete
- * provider/aws: Deprecated fields `kinesis_endpoint` & `dynamodb_endpoint` were removed. Use `kinesis` & `dynamodb` inside the `endpoints` block instead. [GH-11778]
+ * provider/aws: Deprecated fields `kinesis_endpoint` & `dynamodb_endpoint` were removed. Use `kinesis` & `dynamodb` inside the `endpoints` block instead. ([#11778](https://github.com/hashicorp/terraform/issues/11778))
  * provider/datadog: `datadog_monitor` now defaults `notify_no_data` to `false` as per the datadog API
 
 FEATURES:
 
  * **Remote Backends:** This is a successor to "remote state" and includes
    file-based configuration, an improved setup process (just run `terraform init`),
-   no more local caching of remote state, and more. [GH-11286]
+   no more local caching of remote state, and more. ([#11286](https://github.com/hashicorp/terraform/issues/11286))
  * **Destroy Provisioners:** Provisioners can now be configured to run
-   on resource destruction. [GH-11329]
+   on resource destruction. ([#11329](https://github.com/hashicorp/terraform/issues/11329))
  * **State Locking:** State will be autuomatically locked when supported by the backend.
-   Backends supporting locking in this releae are; Local, S3 (via DynamoDB), Consul. [GH-11187]
+   Backends supporting locking in this releae are; Local, S3 (via DynamoDB), Consul. ([#11187](https://github.com/hashicorp/terraform/issues/11187))
 
 IMPROVEMENTS:
 
- * core: Data source values can now be used as part of a `count` calculation. [GH-11482]
- * command: CLI args can be specified via env vars. Specify `TF_CLI_ARGS` or `TF_CLI_ARGS_name` (where name is the name of a command) to specify additional CLI args [GH-11922]
+ * core: Data source values can now be used as part of a `count` calculation. ([#11482](https://github.com/hashicorp/terraform/issues/11482))
+ * command: CLI args can be specified via env vars. Specify `TF_CLI_ARGS` or `TF_CLI_ARGS_name` (where name is the name of a command) to specify additional CLI args ([#11922](https://github.com/hashicorp/terraform/issues/11922))
  * command/init: previous behavior is retained, but init now also configures
    the new remote backends as well as downloads modules. It is the single
    command to initialize a new or existing Terraform configuration.
  * provisioners: All provisioners now respond very quickly to interrupts for
-   fast cancellation. [GH-10934]
- * provider/aws: Set aws_db_cluster to snapshot by default [GH-11668]
- * provider/aws: Enable final snapshots for aws_rds_cluster by default [GH-11694]
- * provider/aws: Enable snapshotting by default on aws_redshift_cluster [GH-11695]
+   fast cancellation. ([#10934](https://github.com/hashicorp/terraform/issues/10934))
+ * provider/aws: Set aws_db_cluster to snapshot by default ([#11668](https://github.com/hashicorp/terraform/issues/11668))
+ * provider/aws: Enable final snapshots for aws_rds_cluster by default ([#11694](https://github.com/hashicorp/terraform/issues/11694))
+ * provider/aws: Enable snapshotting by default on aws_redshift_cluster ([#11695](https://github.com/hashicorp/terraform/issues/11695))
  * provider/vault: read vault token from `~/.vault-token` as a fallback for the
-   `VAULT_TOKEN` environment variable. [GH-11529]
+   `VAULT_TOKEN` environment variable. ([#11529](https://github.com/hashicorp/terraform/issues/11529))
 
 BUG FIXES:
 
- * provider/datadog: Default notify_no_data on datadog_monitor to false [GH-11903]
+ * provider/datadog: Default notify_no_data on datadog_monitor to false ([#11903](https://github.com/hashicorp/terraform/issues/11903))
  
 ## 0.8.7 (February 15, 2017)
 
@@ -330,7 +330,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
- * core: Properly expand sets as lists from a flatmap [[#11042](https://github.com/hashicorp/terraform/issues/11042)]
+ * core: Properly expand sets as lists from a flatmap ([#11042](https://github.com/hashicorp/terraform/issues/11042))
  * core: Disallow root modules named "root" as a temporary workaround ([#11099](https://github.com/hashicorp/terraform/issues/11099))
  * command/fmt: Lists of heredocs format properly ([#10947](https://github.com/hashicorp/terraform/issues/10947))
  * command/graph: Fix crash when `-type=legacy` ([#11095](https://github.com/hashicorp/terraform/issues/11095))
