@@ -6,6 +6,7 @@ IMPROVEMENTS:
 
 Bug FIXES:
 
+ * provider/aws: add bucket name to delete error notification [GH-11952]
  * provider/google: make local_traffic_selector computed [GH-11631]
 
 ## 0.8.7 (February 15, 2017)
