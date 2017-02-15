@@ -1,12 +1,15 @@
 package state
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
 	"os/user"
 	"strings"
+	"text/template"
 	"time"
 
 	uuid "github.com/hashicorp/go-uuid"
@@ -84,12 +87,15 @@ func NewLockInfo() *LockInfo {
 	}
 
 	// don't error out on user and hostname, as we don't require them
-	username, _ := user.Current()
+	userName := ""
+	if userInfo, err := user.Current(); err == nil {
+		userName = userInfo.Username
+	}
 	host, _ := os.Hostname()
 
 	info := &LockInfo{
 		ID:      id,
-		Who:     fmt.Sprintf("%s@%s", username, host),
+		Who:     fmt.Sprintf("%s@%s", userName, host),
 		Version: terraform.Version,
 		Created: time.Now().UTC(),
 	}
@@ -123,16 +129,36 @@ type LockInfo struct {
 
 // Err returns the lock info formatted in an error
 func (l *LockInfo) Err() error {
-	return fmt.Errorf("state locked. path:%q, created:%s, info:%q",
-		l.Path, l.Created, l.Info)
+	return errors.New(l.String())
 }
 
-func (l *LockInfo) String() string {
+// Marshal returns a string json representation of the LockInfo
+func (l *LockInfo) Marshal() []byte {
 	js, err := json.Marshal(l)
 	if err != nil {
 		panic(err)
 	}
-	return string(js)
+	return js
+}
+
+// String return a multi-line string representation of LockInfo
+func (l *LockInfo) String() string {
+	tmpl := `Lock Info:
+  ID:        {{.ID}}
+  Path:      {{.Path}}
+  Operation: {{.Operation}}
+  Who:       {{.Who}}
+  Version:   {{.Version}}
+  Created:   {{.Created}}
+  Info:      {{.Info}}
+`
+
+	t := template.Must(template.New("LockInfo").Parse(tmpl))
+	var out bytes.Buffer
+	if err := t.Execute(&out, l); err != nil {
+		panic(err)
+	}
+	return out.String()
 }
 
 type LockError struct {
@@ -147,7 +173,7 @@ func (e *LockError) Error() string {
 	}
 
 	if e.Info != nil {
-		out = append(out, e.Info.Err().Error())
+		out = append(out, e.Info.String())
 	}
 	return strings.Join(out, "\n")
 }

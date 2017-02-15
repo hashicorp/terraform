@@ -140,7 +140,7 @@ func TestApply_destroyLockedState(t *testing.T) {
 	}
 
 	output := ui.ErrorWriter.String()
-	if !strings.Contains(output, "locked") {
+	if !strings.Contains(output, "lock") {
 		t.Fatal("command output does not look like a lock error:", output)
 	}
 }
