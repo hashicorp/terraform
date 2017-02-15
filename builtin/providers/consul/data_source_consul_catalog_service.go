@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	queryOptServicesAttr = "services"
+	catalogServiceElem = "services"
 
 	catalogServiceCreateIndex              = "create_index"
 	catalogServiceDatacenter               = "datacenter"
@@ -37,13 +37,15 @@ func dataSourceConsulCatalogService() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			// Data Source Predicate(s)
 			catalogServiceDatacenter: &schema.Schema{
-				// Used in the query, must be stored and force a refresh if the value changes.
+				// Used in the query, must be stored and force a refresh if the value
+				// changes.
 				Computed: true,
 				Type:     schema.TypeString,
 				ForceNew: true,
 			},
 			catalogServiceTag: &schema.Schema{
-				// Used in the query, must be stored and force a refresh if the value changes.
+				// Used in the query, must be stored and force a refresh if the value
+				// changes.
 				Computed: true,
 				Type:     schema.TypeString,
 				ForceNew: true,
@@ -55,7 +57,7 @@ func dataSourceConsulCatalogService() *schema.Resource {
 			queryOpts: schemaQueryOpts,
 
 			// Out parameters
-			queryOptServicesAttr: &schema.Schema{
+			catalogServiceElem: &schema.Schema{
 				Computed: true,
 				Type:     schema.TypeList,
 				Elem: &schema.Resource{
@@ -158,7 +160,6 @@ func dataSourceConsulCatalogServiceRead(d *schema.ResourceData, meta interface{}
 	}
 
 	l := make([]interface{}, 0, len(services))
-
 	for _, service := range services {
 		const defaultServiceAttrs = 13
 		m := make(map[string]interface{}, defaultServiceAttrs)
@@ -197,7 +198,7 @@ func dataSourceConsulCatalogServiceRead(d *schema.ResourceData, meta interface{}
 
 	d.Set(catalogServiceDatacenter, queryOpts.Datacenter)
 	d.Set(catalogServiceTag, serviceTag)
-	if err := d.Set(queryOptServicesAttr, l); err != nil {
+	if err := d.Set(catalogServiceElem, l); err != nil {
 		return errwrap.Wrapf("Unable to store services: {{err}}", err)
 	}
 
