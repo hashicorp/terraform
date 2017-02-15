@@ -85,6 +85,10 @@ func TestRemoteLocks(t *testing.T, a, b Client) {
 		t.Fatal("unable to obtain lock from client B")
 	}
 
+	if lockIDB == lockIDA {
+		t.Fatalf("duplicate lock IDs: %q", lockIDB)
+	}
+
 	if err = lockerB.Unlock(lockIDB); err != nil {
 		t.Fatal("error unlocking client B:", err)
 	}

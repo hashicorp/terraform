@@ -120,7 +120,7 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 
 		lock, err := c.Client.LockOpts(opts)
 		if err != nil {
-			return "", nil
+			return "", err
 		}
 
 		c.consulLock = lock
@@ -143,14 +143,15 @@ func (c *RemoteClient) Lock(info *state.LockInfo) (string, error) {
 
 	err = c.putLockInfo(info)
 	if err != nil {
-		err = multierror.Append(err, c.Unlock(""))
+		err = multierror.Append(err, c.Unlock(info.ID))
 		return "", err
 	}
 
-	return "", nil
+	return info.ID, nil
 }
 
 func (c *RemoteClient) Unlock(id string) error {
+	// this doesn't use the lock id, because the lock is tied to the consul client.
 	if c.consulLock == nil || c.lockCh == nil {
 		return nil
 	}
