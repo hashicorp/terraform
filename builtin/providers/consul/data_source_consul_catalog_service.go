@@ -6,7 +6,6 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/y0ssar1an/q"
 )
 
 const (
@@ -160,10 +159,7 @@ func dataSourceConsulCatalogServiceRead(d *schema.ResourceData, meta interface{}
 
 	l := make([]interface{}, 0, len(services))
 
-	q.Q(services)
 	for _, service := range services {
-		q.Q(service)
-
 		const defaultServiceAttrs = 13
 		m := make(map[string]interface{}, defaultServiceAttrs)
 
