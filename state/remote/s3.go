@@ -223,7 +223,7 @@ func (c *S3Client) Lock(info *state.LockInfo) (string, error) {
 	putParams := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
 			"LockID": {S: aws.String(stateName)},
-			"Info":   {S: aws.String(info.String())},
+			"Info":   {S: aws.String(string(info.Marshal()))},
 		},
 		TableName:           aws.String(c.lockTable),
 		ConditionExpression: aws.String("attribute_not_exists(LockID)"),
@@ -231,12 +231,16 @@ func (c *S3Client) Lock(info *state.LockInfo) (string, error) {
 	_, err := c.dynClient.PutItem(putParams)
 
 	if err != nil {
-		lockInfo, err := c.getLockInfo()
-		if err != nil {
-			return "", fmt.Errorf("s3 state file %q locked, failed to retrieve info: %s", stateName, err)
+		lockInfo, infoErr := c.getLockInfo()
+		if infoErr != nil {
+			err = multierror.Append(err, infoErr)
 		}
 
-		return info.ID, lockInfo.Err()
+		lockErr := &state.LockError{
+			Err:  err,
+			Info: lockInfo,
+		}
+		return "", lockErr
 	}
 	return info.ID, nil
 }
@@ -274,16 +278,21 @@ func (c *S3Client) Unlock(id string) error {
 		return nil
 	}
 
+	lockErr := &state.LockError{}
+
 	// TODO: store the path and lock ID in separate fields, and have proper
 	// projection expression only delete the lock if both match, rather than
 	// checking the ID from the info field first.
 	lockInfo, err := c.getLockInfo()
 	if err != nil {
-		return fmt.Errorf("failed to retrieve lock info: %s", err)
+		lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
+		return lockErr
 	}
+	lockErr.Info = lockInfo
 
 	if lockInfo.ID != id {
-		return fmt.Errorf("lock id %q does not match existing lock", id)
+		lockErr.Err = fmt.Errorf("lock id %q does not match existing lock", id)
+		return lockErr
 	}
 
 	params := &dynamodb.DeleteItemInput{
@@ -295,7 +304,8 @@ func (c *S3Client) Unlock(id string) error {
 	_, err = c.dynClient.DeleteItem(params)
 
 	if err != nil {
-		return err
+		lockErr.Err = err
+		return lockErr
 	}
 	return nil
 }

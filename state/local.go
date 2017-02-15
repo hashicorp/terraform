@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/hashicorp/errwrap"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -148,11 +148,17 @@ func (s *LocalState) Lock(info *LockInfo) (string, error) {
 	}
 
 	if err := s.lock(); err != nil {
-		if info, err := s.lockInfo(); err == nil {
-			return "", info.Err()
+		info, infoErr := s.lockInfo()
+		if infoErr != nil {
+			err = multierror.Append(err, infoErr)
 		}
 
-		return "", fmt.Errorf("state file %q locked: %s", s.Path, err)
+		lockErr := &LockError{
+			Info: info,
+			Err:  err,
+		}
+
+		return "", lockErr
 	}
 
 	s.lockID = info.ID
@@ -167,8 +173,8 @@ func (s *LocalState) Unlock(id string) error {
 	if id != s.lockID {
 		idErr := fmt.Errorf("invalid lock id: %q. current id: %q", id, s.lockID)
 		info, err := s.lockInfo()
-		if err == nil {
-			return errwrap.Wrap(idErr, err)
+		if err != nil {
+			err = multierror.Append(idErr, err)
 		}
 
 		return &LockError{
@@ -257,12 +263,7 @@ func (s *LocalState) writeLockInfo(info *LockInfo) error {
 	info.Path = s.Path
 	info.Created = time.Now().UTC()
 
-	infoData, err := json.Marshal(info)
-	if err != nil {
-		panic(fmt.Sprintf("could not marshal lock info: %#v", info))
-	}
-
-	err = ioutil.WriteFile(path, infoData, 0600)
+	err := ioutil.WriteFile(path, info.Marshal(), 0600)
 	if err != nil {
 		return fmt.Errorf("could not write lock info for %q: %s", s.Path, err)
 	}

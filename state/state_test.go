@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/json"
 	"flag"
 	"io/ioutil"
 	"log"
@@ -40,5 +41,12 @@ func TestNewLockInfo(t *testing.T) {
 
 	if info1.ID == info2.ID {
 		t.Fatal("multiple LockInfo with identical IDs")
+	}
+
+	// test the JSON output is valid
+	newInfo := &LockInfo{}
+	err := json.Unmarshal(info1.Marshal(), newInfo)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
