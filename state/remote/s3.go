@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -210,15 +209,16 @@ func (c *S3Client) Lock(info *state.LockInfo) (string, error) {
 	}
 
 	stateName := fmt.Sprintf("%s/%s", c.bucketName, c.keyName)
-
-	lockID, err := uuid.GenerateUUID()
-	if err != nil {
-		return "", err
-	}
-
-	info.ID = lockID
 	info.Path = stateName
-	info.Created = time.Now().UTC()
+
+	if info.ID == "" {
+		lockID, err := uuid.GenerateUUID()
+		if err != nil {
+			return "", err
+		}
+
+		info.ID = lockID
+	}
 
 	putParams := &dynamodb.PutItemInput{
 		Item: map[string]*dynamodb.AttributeValue{
@@ -228,7 +228,7 @@ func (c *S3Client) Lock(info *state.LockInfo) (string, error) {
 		TableName:           aws.String(c.lockTable),
 		ConditionExpression: aws.String("attribute_not_exists(LockID)"),
 	}
-	_, err = c.dynClient.PutItem(putParams)
+	_, err := c.dynClient.PutItem(putParams)
 
 	if err != nil {
 		getParams := &dynamodb.GetItemInput{
@@ -241,7 +241,7 @@ func (c *S3Client) Lock(info *state.LockInfo) (string, error) {
 
 		resp, err := c.dynClient.GetItem(getParams)
 		if err != nil {
-			return "", fmt.Errorf("s3 state file %q locked, failed to retrieve info: %s", stateName, err)
+			return info.ID, fmt.Errorf("s3 state file %q locked, failed to retrieve info: %s", stateName, err)
 		}
 
 		var infoData string
@@ -252,12 +252,12 @@ func (c *S3Client) Lock(info *state.LockInfo) (string, error) {
 		lockInfo := &state.LockInfo{}
 		err = json.Unmarshal([]byte(infoData), lockInfo)
 		if err != nil {
-			return "", fmt.Errorf("s3 state file %q locked, failed get lock info: %s", stateName, err)
+			return info.ID, fmt.Errorf("s3 state file %q locked, failed get lock info: %s", stateName, err)
 		}
 
-		return "", lockInfo.Err()
+		return info.ID, lockInfo.Err()
 	}
-	return "", nil
+	return info.ID, nil
 }
 
 func (c *S3Client) Unlock(string) error {

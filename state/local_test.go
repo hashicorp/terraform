@@ -20,9 +20,8 @@ func TestLocalStateLocks(t *testing.T) {
 	defer os.Remove(s.Path)
 
 	// lock first
-	info := &LockInfo{
-		Operation: "test",
-	}
+	info := NewLockInfo()
+	info.Operation = "test"
 	lockID, err := s.Lock(info)
 	if err != nil {
 		t.Fatal(err)

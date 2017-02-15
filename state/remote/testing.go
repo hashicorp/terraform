@@ -57,14 +57,13 @@ func TestRemoteLocks(t *testing.T, a, b Client) {
 		t.Fatal("client B not a state.Locker")
 	}
 
-	infoA := &state.LockInfo{
-		Operation: "test",
-		Who:       "client A",
-	}
-	infoB := &state.LockInfo{
-		Operation: "test",
-		Who:       "client B",
-	}
+	infoA := state.NewLockInfo()
+	infoA.Operation = "test"
+	infoA.Who = "clientA"
+
+	infoB := state.NewLockInfo()
+	infoB.Operation = "test"
+	infoB.Who = "clientB"
 
 	if _, err := lockerA.Lock(infoA); err != nil {
 		t.Fatal("unable to get initial lock:", err)

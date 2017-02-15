@@ -3,11 +3,21 @@ package state
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"os"
+	"os/user"
 	"strings"
 	"time"
 
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+var rngSource *rand.Rand
+
+func init() {
+	rngSource = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
 
 // State is the collection of all state interfaces.
 type State interface {
@@ -59,15 +69,56 @@ type Locker interface {
 	Unlock(id string) error
 }
 
-// LockInfo stores metadata for locks taken.
+// Generate a LockInfo structure, populating the required fields.
+func NewLockInfo() *LockInfo {
+	// this doesn't need to be cryptographically secure, just unique.
+	// Using math/rand alleviates the need to check handle the read error.
+	// Use a uuid format to match other IDs used throughout Terraform.
+	buf := make([]byte, 16)
+	rngSource.Read(buf)
+
+	id, err := uuid.FormatUUID(buf)
+	if err != nil {
+		// this of course shouldn't happen
+		panic(err)
+	}
+
+	// don't error out on user and hostname, as we don't require them
+	username, _ := user.Current()
+	host, _ := os.Hostname()
+
+	info := &LockInfo{
+		ID:      id,
+		Who:     fmt.Sprintf("%s@%s", username, host),
+		Version: terraform.Version,
+		Created: time.Now().UTC(),
+	}
+	return info
+}
+
+// LockInfo stores lock metadata.
+//
+// Only Operation and Info are required to be set by the caller of Lock.
 type LockInfo struct {
-	ID        string    // unique ID
-	Path      string    // Path to the state file
-	Created   time.Time // The time the lock was taken
-	Version   string    // Terraform version
-	Operation string    // Terraform operation
-	Who       string    // user@hostname when available
-	Info      string    // Extra info field
+	// Unique ID for the lock. NewLockInfo provides a random ID, but this may
+	// be overridden by the lock implementation. The final value if ID will be
+	// returned by the call to Lock.
+	ID string
+
+	// Terraform operation, provided by the caller.
+	Operation string
+	// Extra information to store with the lock, provided by the caller.
+	Info string
+
+	// user@hostname when available
+	Who string
+	// Terraform version
+	Version string
+	// Time that the lock was taken.
+	Created time.Time
+
+	// Path to the state file when applicable. Set by the Lock implementation.
+	Path string
 }
 
 // Err returns the lock info formatted in an error
