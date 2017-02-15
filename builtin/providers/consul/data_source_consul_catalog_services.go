@@ -11,10 +11,13 @@ import (
 )
 
 const (
-	catalogServicesDatacenter = "datacenter"
-	catalogServicesNames      = "names"
-
+	// Datasource predicates
 	catalogServicesServiceName = "name"
+
+	// Out parameters
+	catalogServicesDatacenter  = "datacenter"
+	catalogServicesNames       = "names"
+	catalogServicesServices    = "services"
 	catalogServicesServiceTags = "tags"
 )
 
@@ -34,17 +37,19 @@ func dataSourceConsulCatalogServices() *schema.Resource {
 
 			// Out parameters
 			catalogServicesNames: &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+			catalogServicesServices: &schema.Schema{
 				Computed: true,
 				Type:     schema.TypeMap,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						catalogServiceServiceTags: &schema.Schema{
-							// FIXME(sean@): Tags is currently a space separated list of tags.
-							// The ideal structure should be map[string][]string instead.
-							// When this is supported in the future this should be changed to
-							// be a TypeList instead.
-							Type:     schema.TypeString,
+							Type:     schema.TypeList,
 							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 					},
 				},
@@ -67,7 +72,7 @@ func dataSourceConsulCatalogServicesRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	m := make(map[string]interface{}, len(services))
+	catalogServices := make(map[string]interface{}, len(services))
 	for name, tags := range services {
 		tagList := make([]string, 0, len(tags))
 		for _, tag := range tags {
@@ -75,15 +80,24 @@ func dataSourceConsulCatalogServicesRead(d *schema.ResourceData, meta interface{
 		}
 
 		sort.Strings(tagList)
-		m[name] = strings.Join(tagList, " ")
+		catalogServices[name] = strings.Join(tagList, " ")
+	}
+
+	serviceNames := make([]interface{}, 0, len(services))
+	for k := range catalogServices {
+		serviceNames = append(serviceNames, k)
 	}
 
 	const idKeyFmt = "catalog-services-%s"
 	d.SetId(fmt.Sprintf(idKeyFmt, queryOpts.Datacenter))
 
 	d.Set(catalogServicesDatacenter, queryOpts.Datacenter)
-	if err := d.Set(catalogServicesNames, m); err != nil {
+	if err := d.Set(catalogServicesServices, catalogServices); err != nil {
 		return errwrap.Wrapf("Unable to store services: {{err}}", err)
+	}
+
+	if err := d.Set(catalogServicesNames, serviceNames); err != nil {
+		return errwrap.Wrapf("Unable to store service names: {{err}}", err)
 	}
 
 	return nil

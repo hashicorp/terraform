@@ -15,8 +15,8 @@ func TestAccDataConsulCatalogServices_basic(t *testing.T) {
 				Config: testAccDataConsulCatalogServicesConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDataSourceValue("data.consul_catalog_services.read", "datacenter", "dc1"),
-					testAccCheckDataSourceValue("data.consul_catalog_services.read", "names.%", "1"),
-					testAccCheckDataSourceValue("data.consul_catalog_services.read", "names.consul", ""),
+					testAccCheckDataSourceValue("data.consul_catalog_services.read", "services.%", "1"),
+					testAccCheckDataSourceValue("data.consul_catalog_services.read", "services.consul", ""),
 				),
 			},
 		},
