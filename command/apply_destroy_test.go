@@ -45,6 +45,7 @@ func TestApply_destroy(t *testing.T) {
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
+		t.Log(ui.OutputWriter.String())
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 

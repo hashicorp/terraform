@@ -34,7 +34,7 @@ func main() {
 	}
 
 	// signal to the caller that we're locked
-	io.WriteString(os.Stdout, "LOCKED")
+	io.WriteString(os.Stdout, "LOCKID "+lockID)
 
 	defer func() {
 		if err := s.Unlock(lockID); err != nil {

@@ -583,7 +583,8 @@ func testLockState(sourceDir, path string) (func(), error) {
 		return deferFunc, fmt.Errorf("read from statelocker returned: %s", err)
 	}
 
-	if string(buf[:n]) != "LOCKED" {
+	output := string(buf[:n])
+	if !strings.HasPrefix(output, "LOCKID") {
 		return deferFunc, fmt.Errorf("statelocker wrote: %s", string(buf[:n]))
 	}
 	return deferFunc, nil
