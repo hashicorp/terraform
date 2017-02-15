@@ -64,9 +64,10 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"consul_agent_self":    dataSourceConsulAgentSelf(),
-			"consul_catalog_nodes": dataSourceConsulCatalogNodes(),
-			"consul_keys":          dataSourceConsulKeys(),
+			"consul_agent_self":      dataSourceConsulAgentSelf(),
+			"consul_catalog_nodes":   dataSourceConsulCatalogNodes(),
+			"consul_catalog_service": dataSourceConsulCatalogService(),
+			"consul_keys":            dataSourceConsulKeys(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
