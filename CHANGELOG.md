@@ -28,7 +28,7 @@ FEATURES:
  * **Destroy Provisioners:** Provisioners can now be configured to run
    on resource destruction. ([#11329](https://github.com/hashicorp/terraform/issues/11329))
  * **State Locking:** State will be autuomatically locked when supported by the backend.
-   Backends supporting locking in this releae are; Local, S3 (via DynamoDB), Consul. ([#11187](https://github.com/hashicorp/terraform/issues/11187))
+   Backends supporting locking in this release are Local, S3 (via DynamoDB), and Consul. ([#11187](https://github.com/hashicorp/terraform/issues/11187))
 
 IMPROVEMENTS:
 
