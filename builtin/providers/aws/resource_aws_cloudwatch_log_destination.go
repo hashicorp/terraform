@@ -69,7 +69,7 @@ func resourceAwsCloudWatchLogDestinationPut(d *schema.ResourceData, meta interfa
 		resp, err := conn.PutDestination(params)
 
 		if err == nil {
-			d.SetId(*resp.Destination.Arn)
+			d.SetId(name)
 			d.Set("arn", *resp.Destination.Arn)
 		}
 
@@ -91,29 +91,22 @@ func resourceAwsCloudWatchLogDestinationPut(d *schema.ResourceData, meta interfa
 
 func resourceAwsCloudWatchLogDestinationRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudwatchlogsconn
-
 	name := d.Get("name").(string)
-
-	params := &cloudwatchlogs.DescribeDestinationsInput{
-		DestinationNamePrefix: aws.String(name),
-	}
-
-	resp, err := conn.DescribeDestinations(params)
+	destination, exists, err := lookupCloudWatchLogDestination(conn, name, nil)
 	if err != nil {
-		return fmt.Errorf("Error reading Destinations with name prefix %s: %#v", name, err)
+		return err
 	}
 
-	for _, destination := range resp.Destinations {
-		if *destination.DestinationName == name {
-			d.SetId(*destination.Arn)
-			d.Set("arn", *destination.Arn)
-			d.Set("role_arn", *destination.RoleArn)
-			d.Set("target_arn", *destination.TargetArn)
-			return nil
-		}
+	if !exists {
+		d.SetId("")
+		return nil
 	}
 
-	d.SetId("")
+	d.SetId(name)
+	d.Set("arn", destination.Arn)
+	d.Set("role_arn", destination.RoleArn)
+	d.Set("target_arn", destination.TargetArn)
+
 	return nil
 }
 
@@ -131,4 +124,28 @@ func resourceAwsCloudWatchLogDestinationDelete(d *schema.ResourceData, meta inte
 	}
 	d.SetId("")
 	return nil
+}
+
+func lookupCloudWatchLogDestination(conn *cloudwatchlogs.CloudWatchLogs,
+	name string, nextToken *string) (*cloudwatchlogs.Destination, bool, error) {
+	input := &cloudwatchlogs.DescribeDestinationsInput{
+		DestinationNamePrefix: aws.String(name),
+		NextToken:             nextToken,
+	}
+	resp, err := conn.DescribeDestinations(input)
+	if err != nil {
+		return nil, true, err
+	}
+
+	for _, destination := range resp.Destinations {
+		if *destination.DestinationName == name {
+			return destination, true, nil
+		}
+	}
+
+	if resp.NextToken != nil {
+		return lookupCloudWatchLogDestination(conn, name, resp.NextToken)
+	}
+
+	return nil, false, nil
 }

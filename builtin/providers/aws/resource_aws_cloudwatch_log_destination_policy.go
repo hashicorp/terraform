@@ -62,29 +62,24 @@ func resourceAwsCloudWatchLogDestinationPolicyPut(d *schema.ResourceData, meta i
 
 func resourceAwsCloudWatchLogDestinationPolicyRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudwatchlogsconn
-
 	destination_name := d.Get("destination_name").(string)
-
-	params := &cloudwatchlogs.DescribeDestinationsInput{
-		DestinationNamePrefix: aws.String(destination_name),
-	}
-
-	resp, err := conn.DescribeDestinations(params)
+	destination, exists, err := lookupCloudWatchLogDestination(conn, destination_name, nil)
 	if err != nil {
-		return fmt.Errorf("Error reading Destinations with name prefix %s: %#v", destination_name, err)
+		return err
 	}
 
-	for _, destination := range resp.Destinations {
-		if *destination.DestinationName == destination_name {
-			if destination.AccessPolicy != nil {
-				d.Set("access_policy", *destination.AccessPolicy)
-			}
-			d.SetId(destination_name)
-			return nil
-		}
+	if !exists {
+		d.SetId("")
+		return nil
 	}
 
-	d.SetId("")
+	if destination.AccessPolicy != nil {
+		d.SetId(destination_name)
+		d.Set("access_policy", *destination.AccessPolicy)
+	} else {
+		d.SetId("")
+	}
+
 	return nil
 }
 
