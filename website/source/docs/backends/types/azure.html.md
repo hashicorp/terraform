@@ -1,30 +1,31 @@
 ---
-layout: "remotestate"
-page_title: "Remote State Backend: azure"
-sidebar_current: "docs-state-remote-azure"
+layout: "backend-types"
+page_title: "Backend Type: azure"
+sidebar_current: "docs-backends-types-standard-azure"
 description: |-
-  Terraform can store the state remotely, making it easier to version and work with in a team.
+  Terraform can store state remotely in Azure Storage.
 ---
 
 # azure
 
+**Kind: Standard (with no locking)**
+
 Stores the state as a given key in a given bucket on [Microsoft Azure Storage](https://azure.microsoft.com/en-us/documentation/articles/storage-introduction/).
 
--> **Note:** Passing credentials directly via config options will
-make them included in cleartext inside the persisted state.
-Access key should, ideally, be passed using the environment variable
-`ARM_ACCESS_KEY` to follow this convention.
+## Example Configuration
 
-## Example Usage
-
-
+```hcl
+terraform {
+  backend "azure" {
+    storage_account_name = "abcd1234"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+  }
+}
 ```
-terraform remote config \
-  -backend=azure \
-  -backend-config="storage_account_name=terraform123abc" \
-  -backend-config="container_name=terraform-state" \
-  -backend-config="key=prod.terraform.tfstate"
-```
+
+Note that for the access credentials we recommend using a
+[partial configuration](/docs/backends/config.html).
 
 ## Example Referencing
 

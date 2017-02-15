@@ -1,22 +1,26 @@
 ---
-layout: "remotestate"
-page_title: "Remote State Backend: etcd"
-sidebar_current: "docs-state-remote-etcd"
+layout: "backend-types"
+page_title: "Backend Type: etcd"
+sidebar_current: "docs-backends-types-standard-etcd"
 description: |-
-  Terraform can store the state remotely, making it easier to version and work with in a team.
+  Terraform can store state remotely in etcd.
 ---
 
 # etcd
 
+**Kind: Standard (with no locking)**
+
 Stores the state in [etcd](https://coreos.com/etcd/) at a given path.
 
-## Example Usage
+## Example Configuration
 
 ```
-terraform remote config \
-	-backend=etcd \
-	-backend-config="path=path/to/terraform.tfstate" \
-	-backend-config="endpoints=http://one:4001 http://two:4001"
+terraform {
+  backend "etcd" {
+    path = "path/to/terraform.tfstate"
+    endpoints = "http://one:4001 http://two:4001"
+  }
+}
 ```
 
 ## Example Referencing

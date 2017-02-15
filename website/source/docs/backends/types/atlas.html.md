@@ -1,26 +1,35 @@
 ---
-layout: "remotestate"
-page_title: "Remote State Backend: atlas"
-sidebar_current: "docs-state-remote-atlas"
+layout: "backend-types"
+page_title: "Backend Type: atlas"
+sidebar_current: "docs-backends-types-standard-atlas"
 description: |-
-  Terraform can store the state remotely, making it easier to version and work with in a team.
+  Terraform can store the state in Atlas.
 ---
 
 # atlas
 
+**Kind: Standard (with no locking)**
+
 Stores the state in [Atlas](https://atlas.hashicorp.com/).
 
-You can create a new environment in the [Environments section](https://atlas.hashicorp.com/environments)
-and generate new token in the [Tokens page](https://atlas.hashicorp.com/settings/tokens) under Settings.
+You can create a new environment in the
+[Environments section](https://atlas.hashicorp.com/environments)
+and generate new token in the
+[Tokens page](https://atlas.hashicorp.com/settings/tokens) under Settings.
 
-## Example Usage
+## Example Configuration
 
 ```
-terraform remote config \
-	-backend=atlas \
-	-backend-config="name=bigbang/example" \
-	-backend-config="access_token=X2iTFefU5aWOjg.atlasv1.YaDa" \
+terraform {
+  backend "atlas" {
+    name         = "bigbang/example"
+    access_token = "foo"
+  }
+}
 ```
+
+Note that for the access token we recommend using a
+[partial configuration](/docs/backends/config.html).
 
 ## Example Referencing
 

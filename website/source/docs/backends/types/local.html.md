@@ -1,21 +1,26 @@
 ---
-layout: "remotestate"
-page_title: "Remote State Backend: local"
-sidebar_current: "docs-state-remote-local"
+layout: "backend-types"
+page_title: "Backend Type: local"
+sidebar_current: "docs-backends-types-enhanced-local"
 description: |-
-  Remote state stored using the local file system.
+  Terraform can store the state remotely, making it easier to version and work with in a team.
 ---
 
 # local
 
-Remote state backend that uses the local file system.
+**Kind: Enhanced**
 
-## Example Usage
+The local backend stores state on the local filesystem, locks that
+state using system APIs, and performs operations locally.
+
+## Example Configuration
 
 ```
-terraform remote config \
-    -backend=local \
-    -backend-config="path=/path/to/terraform.tfstate"
+terraform {
+  backend "local" {
+    path = "relative/path/to/terraform.tfstate"
+  }
+}
 ```
 
 ## Example Reference
@@ -23,6 +28,7 @@ terraform remote config \
 ```
 data "terraform_remote_state" "foo" {
     backend = "local"
+
     config {
         path = "${path.module}/../../terraform.tfstate"
     }
@@ -33,4 +39,5 @@ data "terraform_remote_state" "foo" {
 
 The following configuration options are supported:
 
- * `path` - (Required) The path to the `tfstate` file.
+ * `path` - (Optional) The path to the `tfstate` file. This defaults to
+   "terraform.tfstate" relative to the root module by default.

@@ -1,26 +1,29 @@
 ---
-layout: "remotestate"
-page_title: "Remote State Backend: swift"
-sidebar_current: "docs-state-remote-swift"
+layout: "backend-types"
+page_title: "Backend Type: swift"
+sidebar_current: "docs-backends-types-standard-swift"
 description: |-
-  Terraform can store the state remotely, making it easier to version and work with in a team.
+  Terraform can store state remotely in Swift.
 ---
 
 # swift
 
+**Kind: Standard (with no locking)**
+
 Stores the state as an artifact in [Swift](http://docs.openstack.org/developer/swift/).
 
--> **Note:** Passing credentials directly via configuration options will
-make them included in cleartext inside the persisted state. Use of
-environment variables is recommended.
-
-## Example Usage
+## Example Configuration
 
 ```
-terraform remote config \
-  -backend=swift \
-  -backend-config="path=terraform_state"
+terraform {
+  backend "swift" {
+    path = "terraform-state"
+  }
+}
 ```
+
+Note that for the access credentials we recommend using a
+[partial configuration](/docs/backends/config.html).
 
 ## Example Referencing
 
