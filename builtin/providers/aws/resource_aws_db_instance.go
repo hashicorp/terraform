@@ -372,10 +372,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		if encrypted, ok := d.GetOk("storage_encrypted"); ok {
-			//log.Print("[DEBUG] in storage_encrypted")
-			//log.Printf("[DEBUG] before needToPreSign=%t", storageEncrypted)
 			storageEncrypted = encrypted.(bool)
-			//log.Printf("[DEBUG] after needToPreSign=%t", storageEncrypted)
 		}
 
 		// Firstly check whether setting destination_region. If set assume cross-region replication.
@@ -386,7 +383,6 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			// Can we detect between encrypted & non-encrypted without also requiring
 			// storageEncrypted to be set?
 			if storageEncrypted {
-				//log.Print("[DEBUG] in storage_encrypted")
 				// If true validate kms_key_id is set.
 				if !kms_ok {
 					return fmt.Errorf(`provider.aws: aws_db_instance: %s: "kms_key_id" is
@@ -440,7 +436,6 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		req, out := conn.CreateDBInstanceReadReplicaRequest(&opts)
 
 		if needToPreSign {
-			log.Print("[DEBUG] Presigning URL")
 			preSignedUrl, presign_err := req.Presign(5 * time.Minute)
 
 			if presign_err != nil {
