@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Backends: Configuration"
 sidebar_current: "docs-backends-config"
 description: |-
-  Terraform must initialize any configured backend before use. This can be done by simply running `terraform init`.
+  Backends are configured directly in Terraform files in the `terraform` section.
 ---
 
 # Backend Configuration
