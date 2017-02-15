@@ -226,7 +226,7 @@ func resourceDatadogMonitorCreate(d *schema.ResourceData, meta interface{}) erro
 	m := buildMonitorStruct(d)
 	m, err := client.CreateMonitor(m)
 	if err != nil {
-		return fmt.Errorf("error updating montor: %s", err.Error())
+		return fmt.Errorf("error updating monitor: %s", err.Error())
 	}
 
 	d.SetId(strconv.Itoa(m.Id))
