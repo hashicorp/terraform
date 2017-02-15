@@ -170,7 +170,7 @@ func resourceServiceV1() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "Condition, which if met, will select this backend during a request.",
+							Description: "Name of a condition, which if met, will select this backend during a request.",
 						},
 						"shield": {
 							Type:        schema.TypeString,
@@ -228,7 +228,7 @@ func resourceServiceV1() *schema.Resource {
 						"cache_condition": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "Condition to check if this Cache Setting applies",
+							Description: "Name of a condition to check if this Cache Setting applies",
 						},
 						"action": {
 							Type:        schema.TypeString,
@@ -275,12 +275,11 @@ func resourceServiceV1() *schema.Resource {
 							Description: "File extensions to apply automatic gzip to. Do not include '.'",
 							Elem:        &schema.Schema{Type: schema.TypeString},
 						},
-						// These fields represent Fastly options that Terraform does not
-						// currently support
 						"cache_condition": {
 							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Optional name of a CacheCondition to apply.",
+							Optional:    true,
+							Default:     "",
+							Description: "Name of a condition controlling when this gzip configuration applies.",
 						},
 					},
 				},
@@ -369,22 +368,23 @@ func resourceServiceV1() *schema.Resource {
 							Default:     100,
 							Description: "Lower priorities execute first. (Default: 100.)",
 						},
-						// These fields represent Fastly options that Terraform does not
-						// currently support
 						"request_condition": {
 							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Optional name of a RequestCondition to apply.",
+							Optional:    true,
+							Default:     "",
+							Description: "Optional name of a request condition to apply.",
 						},
 						"cache_condition": {
 							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Optional name of a CacheCondition to apply.",
+							Optional:    true,
+							Default:     "",
+							Description: "Optional name of a cache condition to apply.",
 						},
 						"response_condition": {
 							Type:        schema.TypeString,
-							Computed:    true,
-							Description: "Optional name of a ResponseCondition to apply.",
+							Optional:    true,
+							Default:     "",
+							Description: "Optional name of a response condition to apply.",
 						},
 					},
 				},
@@ -534,6 +534,12 @@ func resourceServiceV1() *schema.Resource {
 							Default:     "%Y-%m-%dT%H:%M:%S.000",
 							Description: "specified timestamp formatting (default `%Y-%m-%dT%H:%M:%S.000`)",
 						},
+						"response_condition": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Name of a condition to apply this logging.",
+						},
 					},
 				},
 			},
@@ -559,12 +565,18 @@ func resourceServiceV1() *schema.Resource {
 							Required:    true,
 							Description: "The port of the papertrail service",
 						},
-						// Optional
+						// Optional fields
 						"format": {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "%h %l %u %t %r %>s",
 							Description: "Apache-style string or VCL variables to use for log formatting",
+						},
+						"response_condition": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "Name of a condition to apply this logging",
 						},
 					},
 				},
@@ -584,7 +596,7 @@ func resourceServiceV1() *schema.Resource {
 						"request_condition": {
 							Type:        schema.TypeString,
 							Required:    true,
-							Description: "Name of a RequestCondition to apply.",
+							Description: "Name of a request condition to apply.",
 						},
 						// Optional fields
 						"max_stale_age": {
@@ -1050,9 +1062,10 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 			for _, dRaw := range add {
 				df := dRaw.(map[string]interface{})
 				opts := gofastly.CreateGzipInput{
-					Service: d.Id(),
-					Version: latestVersion,
-					Name:    df["name"].(string),
+					Service:        d.Id(),
+					Version:        latestVersion,
+					Name:           df["name"].(string),
+					CacheCondition: df["cache_condition"].(string),
 				}
 
 				if v, ok := df["content_types"]; ok {
@@ -1186,19 +1199,20 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 				}
 
 				opts := gofastly.CreateS3Input{
-					Service:         d.Id(),
-					Version:         latestVersion,
-					Name:            sf["name"].(string),
-					BucketName:      sf["bucket_name"].(string),
-					AccessKey:       sf["s3_access_key"].(string),
-					SecretKey:       sf["s3_secret_key"].(string),
-					Period:          uint(sf["period"].(int)),
-					GzipLevel:       uint(sf["gzip_level"].(int)),
-					Domain:          sf["domain"].(string),
-					Path:            sf["path"].(string),
-					Format:          sf["format"].(string),
-					FormatVersion:   uint(sf["format_version"].(int)),
-					TimestampFormat: sf["timestamp_format"].(string),
+					Service:           d.Id(),
+					Version:           latestVersion,
+					Name:              sf["name"].(string),
+					BucketName:        sf["bucket_name"].(string),
+					AccessKey:         sf["s3_access_key"].(string),
+					SecretKey:         sf["s3_secret_key"].(string),
+					Period:            uint(sf["period"].(int)),
+					GzipLevel:         uint(sf["gzip_level"].(int)),
+					Domain:            sf["domain"].(string),
+					Path:              sf["path"].(string),
+					Format:            sf["format"].(string),
+					FormatVersion:     uint(sf["format_version"].(int)),
+					TimestampFormat:   sf["timestamp_format"].(string),
+					ResponseCondition: sf["response_condition"].(string),
 				}
 
 				log.Printf("[DEBUG] Create S3 Logging Opts: %#v", opts)
@@ -1245,12 +1259,13 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 				pf := pRaw.(map[string]interface{})
 
 				opts := gofastly.CreatePapertrailInput{
-					Service: d.Id(),
-					Version: latestVersion,
-					Name:    pf["name"].(string),
-					Address: pf["address"].(string),
-					Port:    uint(pf["port"].(int)),
-					Format:  pf["format"].(string),
+					Service:           d.Id(),
+					Version:           latestVersion,
+					Name:              pf["name"].(string),
+					Address:           pf["address"].(string),
+					Port:              uint(pf["port"].(int)),
+					Format:            pf["format"].(string),
+					ResponseCondition: pf["response_condition"].(string),
 				}
 
 				log.Printf("[DEBUG] Create Papertrail Opts: %#v", opts)
@@ -1992,17 +2007,18 @@ func flattenS3s(s3List []*gofastly.S3) []map[string]interface{} {
 	for _, s := range s3List {
 		// Convert S3s to a map for saving to state.
 		ns := map[string]interface{}{
-			"name":             s.Name,
-			"bucket_name":      s.BucketName,
-			"s3_access_key":    s.AccessKey,
-			"s3_secret_key":    s.SecretKey,
-			"path":             s.Path,
-			"period":           s.Period,
-			"domain":           s.Domain,
-			"gzip_level":       s.GzipLevel,
-			"format":           s.Format,
-			"format_version":   s.FormatVersion,
-			"timestamp_format": s.TimestampFormat,
+			"name":               s.Name,
+			"bucket_name":        s.BucketName,
+			"s3_access_key":      s.AccessKey,
+			"s3_secret_key":      s.SecretKey,
+			"path":               s.Path,
+			"period":             s.Period,
+			"domain":             s.Domain,
+			"gzip_level":         s.GzipLevel,
+			"format":             s.Format,
+			"format_version":     s.FormatVersion,
+			"timestamp_format":   s.TimestampFormat,
+			"response_condition": s.ResponseCondition,
 		}
 
 		// prune any empty values that come from the default string value in structs
@@ -2023,10 +2039,11 @@ func flattenPapertrails(papertrailList []*gofastly.Papertrail) []map[string]inte
 	for _, p := range papertrailList {
 		// Convert S3s to a map for saving to state.
 		ns := map[string]interface{}{
-			"name":    p.Name,
-			"address": p.Address,
-			"port":    p.Port,
-			"format":  p.Format,
+			"name":               p.Name,
+			"address":            p.Address,
+			"port":               p.Port,
+			"format":             p.Format,
+			"response_condition": p.ResponseCondition,
 		}
 
 		// prune any empty values that come from the default string value in structs
