@@ -1,27 +1,27 @@
 ---
-layout: "remotestate"
-page_title: "Remote State Backend: gcs"
-sidebar_current: "docs-state-remote-gcs"
+layout: "backend-types"
+page_title: "Backend Type: gcs"
+sidebar_current: "docs-backends-types-standard-gcs"
 description: |-
   Terraform can store the state remotely, making it easier to version and work with in a team.
 ---
 
 # gcs
 
+**Kind: Standard (with no locking)**
+
 Stores the state as a given key in a given bucket on [Google Cloud Storage](https://cloud.google.com/storage/).
 
--> **Note:** Passing credentials directly via config options will
-make them included in cleartext inside the persisted state.
-Use of environment variables or config file is recommended.
-
-## Example Usage
+## Example Configuration
 
 ```
-terraform remote config \
-	-backend=gcs \
-	-backend-config="bucket=terraform-state-prod" \
-	-backend-config="path=network/terraform.tfstate" \
-	-backend-config="project=goopro"
+terraform {
+  backend "gcs" {
+    bucket = "tf-state-prod"
+    path   = "path/terraform.tfstate"
+    project = "myproject"
+  }
+}
 ```
 
 ## Example Referencing
