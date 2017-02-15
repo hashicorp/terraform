@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -23,6 +24,11 @@ type LocalState struct {
 
 	// the file handle corresponding to PathOut
 	stateFileOut *os.File
+
+	// While the stateFileOut will correspond to the lock directly,
+	// store and check the lock ID to maintain a strict state.Locker
+	// implementation.
+	lockID string
 
 	// created is set to true if stateFileOut didn't exist before we created it.
 	// This is mostly so we can clean up emtpy files during tests, but doesn't
@@ -149,13 +155,26 @@ func (s *LocalState) Lock(info *LockInfo) (string, error) {
 		return "", fmt.Errorf("state file %q locked: %s", s.Path, err)
 	}
 
-	return "", s.writeLockInfo(info)
+	s.lockID = info.ID
+	return s.lockID, s.writeLockInfo(info)
 }
 
 func (s *LocalState) Unlock(id string) error {
-	// we can't be locked if we don't have a file
-	if s.stateFileOut == nil {
-		return nil
+	if s.lockID == "" {
+		return fmt.Errorf("LocalState not locked")
+	}
+
+	if id != s.lockID {
+		idErr := fmt.Errorf("invalid lock id: %q. current id: %q", id, s.lockID)
+		info, err := s.lockInfo()
+		if err == nil {
+			return errwrap.Wrap(idErr, err)
+		}
+
+		return &LockError{
+			Err:  idErr,
+			Info: info,
+		}
 	}
 
 	os.Remove(s.lockInfoPath())
@@ -166,6 +185,7 @@ func (s *LocalState) Unlock(id string) error {
 
 	s.stateFileOut.Close()
 	s.stateFileOut = nil
+	s.lockID = ""
 
 	// clean up the state file if we created it an never wrote to it
 	stat, err := os.Stat(fileName)
