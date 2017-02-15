@@ -20,10 +20,10 @@ source, which provides a detailed response about a specific Consul service.
 
 ```
 data "consul_catalog_services" "read-dc1" {
-    query_options {
-        # Optional parameter
-        datacenter = "dc1"
-    }
+    # query_options {
+    #    # Optional parameter: implicitly uses the current datacenter of the agent
+    #    datacenter = "dc1"
+    # }
 }
 
 # Set the description to a whitespace delimited list of the services
@@ -71,9 +71,7 @@ The following attributes are exported:
   list of services found.
 * `services.<service>` - For each name given, the corresponding attribute is a
   Terraform map of services and their tags.  The value is an alphanumerically
-  sorted, whitespace delimited set of tags associated with the service.  As
-  shown in the example above, to create a list of the available servies, wrap
-  the `names` attribute in a call to `keys()`.
+  sorted, whitespace delimited set of tags associated with the service.
 * `tags` - A map of the tags found for each service.  If more than one service
   shares the same tag, unique service names will be joined by whitespace (this
   is the inverse of `services` and can be used to lookup the services that match

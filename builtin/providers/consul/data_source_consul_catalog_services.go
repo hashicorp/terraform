@@ -33,7 +33,7 @@ func dataSourceConsulCatalogServices() *schema.Resource {
 				Type:     schema.TypeString,
 				ForceNew: true,
 			},
-			queryOpts: schemaQueryOpts,
+			catalogNodesQueryOpts: schemaQueryOpts,
 
 			// Out parameters
 			catalogServicesNames: &schema.Schema{
