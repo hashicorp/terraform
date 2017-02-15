@@ -3,7 +3,6 @@ package fastly
 import (
 	"fmt"
 	"reflect"
-	"sort"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -81,6 +80,47 @@ func TestAccFastlyServiceV1_headers_basic(t *testing.T) {
 	name := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 	domainName1 := fmt.Sprintf("%s.notadomain.com", acctest.RandString(10))
 
+	log1 := gofastly.Header{
+		Version:     "1",
+		Name:        "remove x-amz-request-id",
+		Destination: "http.x-amz-request-id",
+		Type:        "cache",
+		Action:      "delete",
+		Priority:    uint(100),
+	}
+
+	log2 := gofastly.Header{
+		Version:     "1",
+		Name:        "remove s3 server",
+		Destination: "http.Server",
+		Type:        "cache",
+		Action:      "delete",
+		IgnoreIfSet: true,
+		Priority:    uint(100),
+	}
+
+	log3 := gofastly.Header{
+		Version:     "1",
+		Name:        "DESTROY S3",
+		Destination: "http.Server",
+		Type:        "cache",
+		Action:      "delete",
+		Priority:    uint(100),
+	}
+
+	log4 := gofastly.Header{
+		Version:           "1",
+		Name:              "Add server name",
+		Destination:       "http.server-name",
+		Type:              "request",
+		Action:            "set",
+		Source:            "server.identity",
+		Priority:          uint(100),
+		RequestCondition:  "test_req_condition",
+		CacheCondition:    "test_cache_condition",
+		ResponseCondition: "test_res_condition",
+	}
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -90,7 +130,7 @@ func TestAccFastlyServiceV1_headers_basic(t *testing.T) {
 				Config: testAccServiceV1HeadersConfig(name, domainName1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
-					testAccCheckFastlyServiceV1HeaderAttributes(&service, name, []string{"http.x-amz-request-id", "http.Server"}, nil),
+					testAccCheckFastlyServiceV1HeaderAttributes(&service, []*gofastly.Header{&log1, &log2}),
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "name", name),
 					resource.TestCheckResourceAttr(
@@ -102,25 +142,19 @@ func TestAccFastlyServiceV1_headers_basic(t *testing.T) {
 				Config: testAccServiceV1HeadersConfig_update(name, domainName1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
-					testAccCheckFastlyServiceV1HeaderAttributes(&service, name, []string{"http.x-amz-request-id", "http.Server"}, []string{"http.server-name"}),
+					testAccCheckFastlyServiceV1HeaderAttributes(&service, []*gofastly.Header{&log1, &log3, &log4}),
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "name", name),
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "header.#", "3"),
-					resource.TestCheckResourceAttr(
-						"fastly_service_v1.foo", "header.1147514417.source", "server.identity"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckFastlyServiceV1HeaderAttributes(service *gofastly.ServiceDetail, name string, headersDeleted, headersAdded []string) resource.TestCheckFunc {
+func testAccCheckFastlyServiceV1HeaderAttributes(service *gofastly.ServiceDetail, headers []*gofastly.Header) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-
-		if service.Name != name {
-			return fmt.Errorf("Bad name, expected (%s), got (%s)", name, service.Name)
-		}
 
 		conn := testAccProvider.Meta().(*FastlyClient).conn
 		headersList, err := conn.ListHeaders(&gofastly.ListHeadersInput{
@@ -132,27 +166,27 @@ func testAccCheckFastlyServiceV1HeaderAttributes(service *gofastly.ServiceDetail
 			return fmt.Errorf("[ERR] Error looking up Headers for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
-		var deleted []string
-		var added []string
-		for _, h := range headersList {
-			if h.Action == gofastly.HeaderActionDelete {
-				deleted = append(deleted, h.Destination)
-			}
-			if h.Action == gofastly.HeaderActionSet {
-				added = append(added, h.Destination)
+		if len(headersList) != len(headers) {
+			return fmt.Errorf("Healthcheck List count mismatch, expected (%d), got (%d)", len(headers), len(headersList))
+		}
+
+		var found int
+		for _, h := range headers {
+			for _, lh := range headersList {
+				if h.Name == lh.Name {
+					// we don't know these things ahead of time, so populate them now
+					h.ServiceID = service.ID
+					h.Version = service.ActiveVersion.Number
+					if !reflect.DeepEqual(h, lh) {
+						return fmt.Errorf("Bad match Header match, expected (%#v), got (%#v)", h, lh)
+					}
+					found++
+				}
 			}
 		}
 
-		sort.Strings(headersAdded)
-		sort.Strings(headersDeleted)
-		sort.Strings(deleted)
-		sort.Strings(added)
-
-		if !reflect.DeepEqual(headersDeleted, deleted) {
-			return fmt.Errorf("Deleted Headers did not match.\n\tExpected: (%#v)\n\tGot: (%#v)", headersDeleted, deleted)
-		}
-		if !reflect.DeepEqual(headersAdded, added) {
-			return fmt.Errorf("Added Headers did not match.\n\tExpected: (%#v)\n\tGot: (%#v)", headersAdded, added)
+		if found != len(headers) {
+			return fmt.Errorf("Error matching Header rules")
 		}
 
 		return nil
@@ -222,12 +256,36 @@ resource "fastly_service_v1" "foo" {
     name        = "DESTROY S3"
   }
 
+	condition {
+    name      = "test_req_condition"
+    type      = "REQUEST"
+    priority  = 5
+    statement = "req.url ~ \"^/foo/bar$\""
+  }
+
+	condition {
+    name      = "test_cache_condition"
+    type      = "CACHE"
+    priority  = 9
+    statement = "req.url ~ \"^/articles/\""
+  }
+
+	condition {
+    name      = "test_res_condition"
+    type      = "RESPONSE"
+    priority  = 10
+    statement = "resp.status == 404"
+  }
+
   header {
-    destination = "http.server-name"
-    type        = "request"
-    action      = "set"
-    source      = "server.identity"
-    name        = "Add server name"
+    destination 			 = "http.server-name"
+    type        			 = "request"
+    action      			 = "set"
+    source      			 = "server.identity"
+    name        			 = "Add server name"
+		request_condition  = "test_req_condition"
+		cache_condition    = "test_cache_condition"
+		response_condition = "test_res_condition"
   }
 
   force_destroy = true
