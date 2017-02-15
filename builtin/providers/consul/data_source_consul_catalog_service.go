@@ -55,7 +55,7 @@ func dataSourceConsulCatalogService() *schema.Resource {
 				Required: true,
 				Type:     schema.TypeString,
 			},
-			queryOpts: schemaQueryOpts,
+			catalogNodesQueryOpts: schemaQueryOpts,
 
 			// Out parameters
 			catalogServiceElem: &schema.Schema{
@@ -117,11 +117,11 @@ func dataSourceConsulCatalogService() *schema.Resource {
 							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									schemaTaggedLAN: &schema.Schema{
+									catalogNodesSchemaTaggedLAN: &schema.Schema{
 										Type:     schema.TypeString,
 										Computed: true,
 									},
-									schemaTaggedWAN: &schema.Schema{
+									catalogNodesSchemaTaggedWAN: &schema.Schema{
 										Type:     schema.TypeString,
 										Computed: true,
 									},
