@@ -822,7 +822,7 @@ POLICY
 
         resource "aws_db_subnet_group" "foo_test" {
 		provider = "aws.eu"
-		name = "foobarbaz-test"
+		name = "foobarbaz-test-%d"
   		description = "$baz-test"
   		subnet_ids = [
   			"${aws_subnet.subnet_private_1a.id}",
@@ -865,14 +865,16 @@ POLICY
 		db_subnet_group_name = "${aws_db_subnet_group.foo_test.id}"
 		skip_final_snapshot = true
 		tags {
-			Name = "tf-replica-db"
+			Name = "tf-replica-db-%d"
 		}
 		destination_region = "eu-central-1"
+		source_region = "us-west-2"
+
 		storage_encrypted = "true"
 		kms_key_id = "${aws_kms_key.foo.arn}"
 
 	}
-	`, val, val, val, val, val, val, val)
+	`, val, val, val, val, val, val, val, val, val)
 }
 
 func testAccReplicaInstanceCrossRegionUnEncryptedConfig(val int) string {
@@ -889,7 +891,7 @@ func testAccReplicaInstanceCrossRegionUnEncryptedConfig(val int) string {
 		enable_dns_hostnames = "true"
 
 		tags {
-			Name = "baz-test-vpc"
+			Name = "baz-test-vpc-%d"
 		}
 	}
 
@@ -906,7 +908,7 @@ func testAccReplicaInstanceCrossRegionUnEncryptedConfig(val int) string {
           	availability_zone = "eu-central-1a"
 
           	tags {
-            		Name      = "subnet-private-1a"
+            		Name      = "subnet-private-1a-%d"
           	}
         }
 
@@ -917,20 +919,20 @@ func testAccReplicaInstanceCrossRegionUnEncryptedConfig(val int) string {
           	availability_zone = "eu-central-1b"
 
           	tags {
-            		Name      = "subnet-private-1b"
+            		Name      = "subnet-private-1b-%d"
           	}
         }
 
         resource "aws_db_subnet_group" "foo_test" {
 		provider = "aws.eu"
-		name = "foobaz-test"
+		name = "foobaz-test-%d"
   		description = "$baz-test"
   		subnet_ids = [
   			"${aws_subnet.subnet_private_1a.id}",
   			"${aws_subnet.subnet_private_1b.id}",
   		]
   		tags {
-    			Name = "foobaz-test"
+    			Name = "foobaz-test-%d"
   		}
 	}
 
@@ -967,13 +969,14 @@ func testAccReplicaInstanceCrossRegionUnEncryptedConfig(val int) string {
 		db_subnet_group_name    = "${aws_db_subnet_group.foo_test.id}"
 		skip_final_snapshot     = true
 		tags {
-			Name = "tf-replica-db"
+			Name = "tf-replica-db-%d"
 		}
 		destination_region      = "eu-central-1"
+		source_region      = "us-west-2"
 		storage_encrypted       = "false"
 
 	}
-	`, val, val)
+	`, val, val, val, val, val, val, val, val)
 }
 
 func testAccSnapshotInstanceConfig() string {

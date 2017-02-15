@@ -3,15 +3,12 @@ package aws
 import (
 	"fmt"
 	"log"
-	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/service/rds"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -366,62 +363,63 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			PubliclyAccessible:         aws.Bool(d.Get("publicly_accessible").(bool)),
 			Tags:                       tags,
 		}
+
+		var needToPreSign = false
+		var storageEncrypted = false
+
 		kms_attr, kms_ok := d.GetOk("kms_key_id")
 		if kms_ok {
 			opts.KmsKeyId = aws.String(kms_attr.(string))
 		}
 
-		storage_encrypted := d.Get("storage_encrypted").(bool)
+		if encrypted, ok := d.GetOk("storageEncrypted"); ok {
+			storageEncrypted = encrypted.(bool)
+		}
 
 		// Firstly check whether setting destination_region. If set assume cross-region replication.
 		if attr, ok := d.GetOk("destination_region"); ok {
 			opts.DestinationRegion = aws.String(attr.(string))
 
-			// Secondly ascertain whether encrypted (currently by requiring storage_encrypted).
+			// Secondly ascertain whether encrypted (currently by requiring storageEncrypted).
 			// Can we detect between encrypted & non-encrypted without also requiring
-			// storage_encrypted to be set?
-			if storage_encrypted {
+			// storageEncrypted to be set?
+			if storageEncrypted {
 				// If true validate kms_key_id is set.
 				if !kms_ok {
 					return fmt.Errorf(`provider.aws: aws_db_instance: %s: "kms_key_id" is
 					 required when creating an encrypted cross-region read replica`, identifier)
 				}
+				needToPreSign = true
 			}
 
-			creds, cred_err := GetCredentials(meta.(*Config))
-			if cred_err != nil {
-				return fmt.Errorf(`provider.aws: aws_db_instance: error encountered retrieving credentials: %s`, cred_err)
-			}
-
-			signer := v4.Signer{
-				Credentials: creds,
-			}
-
+			// Because destination_region set we need source_region set, specifically for encrypted... do we need to discriminate?
 			sourceRegion, s_r_ok := d.GetOk("source_region")
 			if !s_r_ok {
 				return fmt.Errorf(`provider.aws: aws_db_instance: %s: "source_region" is
 					 required when creating an encrypted cross-region read replica `, identifier)
 			}
+			opts.SourceRegion = aws.String(sourceRegion.(string))
 
 			// build Request
-			endpoint := "https://rds." + sourceRegion.(string) + ".amazonaws.com"
-			data := url.Values{}
-			data.Set("Action", "CreateDBInstanceReadReplica")
-			data.Add("DestinationRegion", attr.(string))
-			data.Add("SourceDBInstanceIdentifier", v.(string))
-			data.Add("KmsKeyId", kms_attr.(string))
+			//endpoint := "https://rds." + sourceRegion.(string) + ".amazonaws.com"
+			//data := url.Values{}
+			//data.Set("Action", "CreateDBInstanceReadReplica")
+			//data.Add("DestinationRegion", attr.(string))
+			//data.Add("SourceDBInstanceIdentifier", v.(string))
+			//data.Add("KmsKeyId", kms_attr.(string))
+			//
+			//reader := strings.NewReader(data.Encode())
+			//req, _ := http.NewRequest("POST", endpoint, reader)
+			//
+			////signRequest
+			//_, presign_err := signer.Presign(req, reader, "rds", sourceRegion.(string), 5*time.Minute, time.Now())
+			//
+			//if presign_err != nil {
+			//	return fmt.Errorf(`provider.aws: aws_db_instance: error encountered presigning URL: %s`, presign_err)
+			//}
+			//
+			//opts.PreSignedUrl = aws.String(req.URL.String())
 
-			reader := strings.NewReader(data.Encode())
-			req, _ := http.NewRequest("POST", endpoint, reader)
-
-			//signRequest
-			_, presign_err := signer.Presign(req, reader, "rds", sourceRegion.(string), 5*time.Minute, time.Now())
-
-			if presign_err != nil {
-				return fmt.Errorf(`provider.aws: aws_db_instance: error encountered presigning URL: %s`, presign_err)
-			}
-
-			opts.PreSignedUrl = aws.String(req.URL.String())
 		}
 
 		if attr, ok := d.GetOk("iops"); ok {
@@ -457,9 +455,25 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		log.Printf("[DEBUG] DB Instance Replica create configuration: %#v", opts)
-		_, err := conn.CreateDBInstanceReadReplica(&opts)
+		//_, err := conn.CreateDBInstanceReadReplica(&opts)
+
+		req, out := conn.CreateDBInstanceReadReplicaRequest(&opts)
+
+		if needToPreSign {
+			preSignedUrl, presign_err := req.Presign(5 * time.Minute)
+
+			if presign_err == nil {
+				return fmt.Errorf(`provider.aws: aws_db_instance: %s: error encountered
+				calling Presign on request `, identifier)
+			}
+			opts.PreSignedUrl = aws.String(preSignedUrl)
+
+		}
+
+		err := req.Send()
 		if err != nil {
 			return fmt.Errorf("Error creating DB Instance: %s", err)
+			log.Printf("[DEBUG] DB Instance Replica response output: %#v", out)
 		}
 	} else if _, ok := d.GetOk("snapshot_identifier"); ok {
 		opts := rds.RestoreDBInstanceFromDBSnapshotInput{
