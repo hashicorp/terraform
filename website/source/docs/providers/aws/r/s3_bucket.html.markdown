@@ -137,7 +137,7 @@ resource "aws_s3_bucket" "versioning_bucket" {
 	bucket = "my-versioning-bucket"
 	acl = "private"
 	versioning {
-	  enabled = false
+	  enabled = true
 	}
 	lifecycle_rule {
 		prefix = "config/"
