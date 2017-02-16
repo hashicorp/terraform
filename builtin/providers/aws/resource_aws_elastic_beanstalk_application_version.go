@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
+	"time"
 )
 
 func resourceAwsElasticBeanstalkApplicationVersion() *schema.Resource {
@@ -42,6 +43,11 @@ func resourceAwsElasticBeanstalkApplicationVersion() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+			"force_delete": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 		},
 	}
@@ -127,16 +133,17 @@ func resourceAwsElasticBeanstalkApplicationVersionDelete(d *schema.ResourceData,
 	application := d.Get("application").(string)
 	name := d.Id()
 
-	environments, err := versionUsedBy(application, name, conn)
-	if err != nil {
-		return err
-	}
+	if d.Get("force_delete").(bool) == false {
+		environments, err := versionUsedBy(application, name, conn)
+		if err != nil {
+			return err
+		}
 
-	if len(environments) > 1 {
-		return fmt.Errorf("Unable to delete Application Version, it is currently in use by the following environments: %s.", environments)
+		if len(environments) > 1 {
+			return fmt.Errorf("Unable to delete Application Version, it is currently in use by the following environments: %s.", environments)
+		}
 	}
-
-	_, err = conn.DeleteApplicationVersion(&elasticbeanstalk.DeleteApplicationVersionInput{
+	_, err := conn.DeleteApplicationVersion(&elasticbeanstalk.DeleteApplicationVersionInput{
 		ApplicationName:    aws.String(application),
 		VersionLabel:       aws.String(name),
 		DeleteSourceBundle: aws.Bool(false),
@@ -174,9 +181,12 @@ func resourceAwsElasticBeanstalkApplicationVersionDescriptionUpdate(conn *elasti
 }
 
 func versionUsedBy(applicationName, versionLabel string, conn *elasticbeanstalk.ElasticBeanstalk) ([]string, error) {
+	now := time.Now()
 	resp, err := conn.DescribeEnvironments(&elasticbeanstalk.DescribeEnvironmentsInput{
-		ApplicationName: aws.String(applicationName),
-		VersionLabel:    aws.String(versionLabel),
+		ApplicationName:       aws.String(applicationName),
+		VersionLabel:          aws.String(versionLabel),
+		IncludeDeleted:        aws.Bool(true),
+		IncludedDeletedBackTo: aws.Time(now.Add(-1 * time.Minute)),
 	})
 
 	if err != nil {
