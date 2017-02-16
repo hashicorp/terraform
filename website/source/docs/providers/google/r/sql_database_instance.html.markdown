@@ -85,7 +85,7 @@ The required `settings` block supports:
 
 * `disk_type` - (Optional, Second Generation, Default: `PD_SSD`) The type of data disk: PD_SSD or PD_HDD.
 
-* `pricing_plan` - (Optional) Pricing plan for this instance, can be one of
+* `pricing_plan` - (Optional, First Generation) Pricing plan for this instance, can be one of
     `PER_USE` or `PACKAGE`.
 
 * `replication_type` - (Optional) Replication type for this instance, can be one
