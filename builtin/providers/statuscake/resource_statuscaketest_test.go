@@ -168,7 +168,7 @@ resource "statuscake_test" "google" {
 	test_type = "HTTP"
 	check_rate = 300
 	timeout = 10
-	contact_id = 12345
+	contact_id = 43402
 	confirmations = 1
 }
 `
@@ -190,7 +190,7 @@ resource "statuscake_test" "google" {
 	test_type = "TCP"
 	check_rate = 300
 	timeout = 10
-	contact_id = 12345
+	contact_id = 43402
 	confirmations = 1
 	port = 80
 }
