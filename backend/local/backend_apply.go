@@ -23,7 +23,7 @@ func (b *Local) opApply(
 
 	// If we have a nil module at this point, then set it to an empty tree
 	// to avoid any potential crashes.
-	if op.Module == nil && !op.Destroy {
+	if op.Plan == nil && op.Module == nil && !op.Destroy {
 		runningOp.Err = fmt.Errorf(strings.TrimSpace(applyErrNoConfig))
 		return
 	}
