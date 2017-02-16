@@ -92,11 +92,13 @@ body.layout-intro{
 }
 
 .docs-sidebar{
-  position: relative;
-  z-index: 20;
-  margin-bottom: 30px;
-	margin-top: 50px;
 	margin-right: 4%;
+	max-height: 100vh;
+	overflow: scroll;
+	padding: 50px 0 30px;
+	position: relative;
+	width: 350px;
+	z-index: 20;
 
 	a{
 			color: $purple;
