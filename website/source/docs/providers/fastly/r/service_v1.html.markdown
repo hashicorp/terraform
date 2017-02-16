@@ -132,8 +132,9 @@ The following arguments are supported:
 * `name` - (Required) The unique name for the Service to create.
 * `domain` - (Required) A set of Domain names to serve as entry points for your
 Service. Defined below.
-* `backend` - (Required) A set of Backends to service requests from your Domains.
-Defined below.
+* `backend` - (Optional) A set of Backends to service requests from your Domains.
+Defined below. Backends must be defined in this argument, or defined in the
+`vcl` argument below
 * `condition` - (Optional) A set of conditions to add logic to any basic
 configuration object in this service. Defined below.
 * `cache_setting` - (Optional) A set of Cache Settings, allowing you to override
