@@ -109,7 +109,7 @@ func resourceServiceV1() *schema.Resource {
 
 			"backend": {
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						// required fields
