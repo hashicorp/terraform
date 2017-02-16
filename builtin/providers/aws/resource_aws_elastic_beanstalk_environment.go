@@ -398,6 +398,7 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 	}
 
 	if d.HasChange("version_label") {
+		hasChange = true
 		updateOpts.VersionLabel = aws.String(d.Get("version_label").(string))
 	}
 
