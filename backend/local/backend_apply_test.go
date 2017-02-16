@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"testing"
 
@@ -48,6 +49,59 @@ func TestLocal_applyBasic(t *testing.T) {
 test_instance.foo:
   ID = yes
 	`)
+}
+
+func TestLocal_applyEmptyDir(t *testing.T) {
+	b := TestLocal(t)
+	p := TestLocalProvider(t, b, "test")
+
+	p.ApplyReturn = &terraform.InstanceState{ID: "yes"}
+
+	op := testOperationApply()
+	op.Module = nil
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Err == nil {
+		t.Fatal("should error")
+	}
+
+	if p.ApplyCalled {
+		t.Fatal("apply should not be called")
+	}
+
+	if _, err := os.Stat(b.StateOutPath); err == nil {
+		t.Fatal("should not exist")
+	}
+}
+
+func TestLocal_applyEmptyDirDestroy(t *testing.T) {
+	b := TestLocal(t)
+	p := TestLocalProvider(t, b, "test")
+
+	p.ApplyReturn = nil
+
+	op := testOperationApply()
+	op.Module = nil
+	op.Destroy = true
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if p.ApplyCalled {
+		t.Fatal("apply should not be called")
+	}
+
+	checkState(t, b.StateOutPath, `<no state>`)
 }
 
 func TestLocal_applyError(t *testing.T) {

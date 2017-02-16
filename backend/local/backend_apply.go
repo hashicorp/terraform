@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	clistate "github.com/hashicorp/terraform/command/state"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -18,6 +20,19 @@ func (b *Local) opApply(
 	op *backend.Operation,
 	runningOp *backend.RunningOperation) {
 	log.Printf("[INFO] backend/local: starting Apply operation")
+
+	// If we have a nil module at this point, then set it to an empty tree
+	// to avoid any potential crashes.
+	if op.Plan == nil && op.Module == nil && !op.Destroy {
+		runningOp.Err = fmt.Errorf(strings.TrimSpace(applyErrNoConfig))
+		return
+	}
+
+	// If we have a nil module at this point, then set it to an empty tree
+	// to avoid any potential crashes.
+	if op.Module == nil {
+		op.Module = module.NewEmptyTree()
+	}
 
 	// Setup our count hook that keeps track of resource changes
 	countHook := new(CountHook)
@@ -165,3 +180,12 @@ func (b *Local) opApply(
 		}
 	}
 }
+
+const applyErrNoConfig = `
+No configuration files found!
+
+Apply requires configuration to be present. Applying without a configuration
+would mark everything for destruction, which is normally not what is desired.
+If you would like to destroy everything, please run 'terraform destroy' instead
+which does not require any configuration files.
+`
