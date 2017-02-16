@@ -7,10 +7,12 @@ branch for the next major version of Terraform.
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/azurerm: scale_sets `os_profile_master_password` now marked as sensitive
+ * provider/azurerm: sql_server `administrator_login_password` now marked as sensitive
 
 IMPROVEMENTS:
 
- * provider/azurerm: Mark the azurerm_scale_set machine password as sensitive #11982
+ * provider/azurerm: Mark the azurerm_scale_set machine password as sensitive [GH-11982]
+ * provider/azurerm: Mark the azurerm_sql_server admin password as sensitive [GH-12004]
 
 ## 0.9.0-beta1 (February 15, 2017)
 
