@@ -4,6 +4,7 @@ IMPROVEMENTS:
 
  * provider/aws: Add support for AWS EBS Elastic Volumes [GH-11981]
  * provider/aws: Allow aws_instances to be resized rather than forcing a new instance [GH-11998]
+ * provider/random_id: Add prefix attribute [GH-12016]
  * provider/statuscake: Add support for Port in statuscake_test [GH-11966]
 
 Bug FIXES:
