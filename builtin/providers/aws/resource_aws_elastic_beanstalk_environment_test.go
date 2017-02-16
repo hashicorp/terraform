@@ -277,6 +277,12 @@ func TestAccAWSBeanstalkEnv_version_label(t *testing.T) {
 					testAccCheckBeanstalkApplicationVersionDeployed("aws_elastic_beanstalk_environment.default", &app),
 				),
 			},
+			resource.TestStep{
+				Config: testAccBeanstalkEnvApplicationVersionConfigUpdate(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkApplicationVersionDeployed("aws_elastic_beanstalk_environment.default", &app),
+				),
+			},
 		},
 	})
 }
@@ -938,6 +944,39 @@ resource "aws_elastic_beanstalk_application" "default" {
 resource "aws_elastic_beanstalk_application_version" "default" {
   application = "tf-test-name"
   name = "tf-test-version-label"
+  bucket = "${aws_s3_bucket.default.id}"
+  key = "${aws_s3_bucket_object.default.id}"
+}
+
+resource "aws_elastic_beanstalk_environment" "default" {
+  name = "tf-test-name"
+  application = "${aws_elastic_beanstalk_application.default.name}"
+  version_label = "${aws_elastic_beanstalk_application_version.default.name}"
+  solution_stack_name = "64bit Amazon Linux running Python"
+}
+`, randInt)
+}
+
+func testAccBeanstalkEnvApplicationVersionConfigUpdate(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "default" {
+  bucket = "tftest.applicationversion.buckets-%d"
+}
+
+resource "aws_s3_bucket_object" "default" {
+  bucket = "${aws_s3_bucket.default.id}"
+  key = "python-v2.zip"
+  source = "test-fixtures/python-v1.zip"
+}
+
+resource "aws_elastic_beanstalk_application" "default" {
+  name = "tf-test-name"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_application_version" "default" {
+  application = "tf-test-name"
+  name = "tf-test-version-label-v2"
   bucket = "${aws_s3_bucket.default.id}"
   key = "${aws_s3_bucket_object.default.id}"
 }
