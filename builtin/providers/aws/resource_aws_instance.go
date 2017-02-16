@@ -63,7 +63,6 @@ func resourceAwsInstance() *schema.Resource {
 			"instance_type": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"key_name": {
@@ -603,6 +602,60 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		})
 		if err != nil {
 			return err
+		}
+	}
+
+	if d.HasChange("instance_type") && !d.IsNewResource() {
+		log.Printf("[INFO] Stopping Instance %q for instance_type change", d.Id())
+		_, err := conn.StopInstances(&ec2.StopInstancesInput{
+			InstanceIds: []*string{aws.String(d.Id())},
+		})
+
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
+			Target:     []string{"stopped"},
+			Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
+			Timeout:    10 * time.Minute,
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf(
+				"Error waiting for instance (%s) to stop: %s", d.Id(), err)
+		}
+
+		log.Printf("[INFO] Modifying instance type %s", d.Id())
+		_, err = conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
+			InstanceId: aws.String(d.Id()),
+			InstanceType: &ec2.AttributeValue{
+				Value: aws.String(d.Get("instance_type").(string)),
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		log.Printf("[INFO] Starting Instance %q after instance_type change", d.Id())
+		_, err = conn.StartInstances(&ec2.StartInstancesInput{
+			InstanceIds: []*string{aws.String(d.Id())},
+		})
+
+		stateConf = &resource.StateChangeConf{
+			Pending:    []string{"pending", "stopped"},
+			Target:     []string{"running"},
+			Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
+			Timeout:    10 * time.Minute,
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf(
+				"Error waiting for instance (%s) to become ready: %s",
+				d.Id(), err)
 		}
 	}
 
