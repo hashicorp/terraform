@@ -39,6 +39,7 @@ func Provider() terraform.ResourceProvider {
 			"ns1_datasource":    dataSourceResource(),
 			"ns1_datafeed":      dataFeedResource(),
 			"ns1_monitoringjob": monitoringJobResource(),
+			"ns1_notifylist":    notifyListResource(),
 			"ns1_user":          userResource(),
 			"ns1_apikey":        apikeyResource(),
 			"ns1_team":          teamResource(),
