@@ -95,7 +95,7 @@ func resourceCloudFlareRecordCreate(d *schema.ResourceData, meta interface{}) er
 
 	// Validate type
 	if err := validateRecordType(newRecord.Type, newRecord.Proxied); err != nil {
-		fmt.Errorf("Error validating record type %q: %s", newRecord.Type, err)
+		return fmt.Errorf("Error validating record type %q: %s", newRecord.Type, err)
 	}
 
 	zoneId, err := client.ZoneIDByName(newRecord.ZoneName)
