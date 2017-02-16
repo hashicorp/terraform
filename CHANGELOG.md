@@ -18,6 +18,7 @@ IMPROVEMENTS:
 0.9.0-beta1 FIXES:
 
  * command/init: allow unsetting a backend properly [GH-11988]
+ * command/apply: fix crash that could happen with an empty directory [GH-11989]
 
 ## 0.9.0-beta1 (February 15, 2017)
 
