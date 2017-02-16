@@ -60,6 +60,10 @@ The following arguments are supported:
   trigger a new id to be generated. See
   [the main provider documentation](../index.html) for more information.
 
+* `prefix` - (Optional) Arbitrary string to prefix the output value with. This
+  string is supplied as-is, meaning it is not guaranteed to be URL-safe or
+  base64 encoded.
+
 ## Attributes Reference
 
 The following attributes are exported:
