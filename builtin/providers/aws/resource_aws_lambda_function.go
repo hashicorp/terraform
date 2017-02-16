@@ -248,16 +248,13 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 
 	if v, ok := d.GetOk("environment"); ok {
 		environments := v.([]interface{})
-		environment, ok := environments[0].(map[string]interface{})
-		if !ok {
-			return errors.New("At least one field is expected inside environment")
-		}
+		if environment, ok := environments[0].(map[string]interface{}); ok {
+			if environmentVariables, ok := environment["variables"]; ok {
+				variables := readEnvironmentVariables(environmentVariables.(map[string]interface{}))
 
-		if environmentVariables, ok := environment["variables"]; ok {
-			variables := readEnvironmentVariables(environmentVariables.(map[string]interface{}))
-
-			params.Environment = &lambda.Environment{
-				Variables: aws.StringMap(variables),
+				params.Environment = &lambda.Environment{
+					Variables: aws.StringMap(variables),
+				}
 			}
 		}
 	}
