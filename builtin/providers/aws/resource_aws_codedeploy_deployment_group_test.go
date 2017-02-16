@@ -1260,20 +1260,20 @@ func TestLoadBalancerInfoToMap(t *testing.T) {
 func TestBuildBlueGreenDeploymentConfig(t *testing.T) {
 	input := []interface{}{
 		map[string]interface{}{
-			"deployment_ready_option": []map[string]interface{}{
+			"deployment_ready_option": []interface{}{
 				map[string]interface{}{
 					"action_on_timeout":    "CONTINUE_DEPLOYMENT",
 					"wait_time_in_minutes": 60,
 				},
 			},
 
-			"green_fleet_provisioning_option": []map[string]interface{}{
+			"green_fleet_provisioning_option": []interface{}{
 				map[string]interface{}{
 					"action": "COPY_AUTO_SCALING_GROUP",
 				},
 			},
 
-			"terminate_blue_instances_on_deployment_success": []map[string]interface{}{
+			"terminate_blue_instances_on_deployment_success": []interface{}{
 				map[string]interface{}{
 					"action": "TERMINATE",
 					"termination_wait_time_in_minutes": 90,
