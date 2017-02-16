@@ -125,13 +125,17 @@ func (c *InitCommand) Run(args []string) int {
 		}
 
 		// If we're requesting backend configuration and configure it
-		hasBackend := conf.Terraform != nil && conf.Terraform.Backend != nil
-		if flagBackend && hasBackend {
+		if flagBackend {
 			header = true
 
-			c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-				"[reset][bold]" +
-					"Initializing the backend...")))
+			// Only output that we're initializing a backend if we have
+			// something in the config. We can be UNSETTING a backend as well
+			// in which case we choose not to show this.
+			if conf.Terraform != nil && conf.Terraform.Backend != nil {
+				c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+					"[reset][bold]" +
+						"Initializing the backend...")))
+			}
 
 			opts := &BackendOpts{
 				ConfigPath: path,
