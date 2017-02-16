@@ -19,7 +19,7 @@ const (
 	agentSelfACLTTL                     = "acl_ttl"
 	agentSelfAddresses                  = "addresses"
 	agentSelfAdvertiseAddr              = "advertise_addr"
-	agentSelfAdvertiseAddrWAN           = "wan"
+	agentSelfAdvertiseAddrWAN           = "advertise_addr_wan"
 	agentSelfAdvertiseAddrs             = "advertise_addrs"
 	agentSelfAtlasJoin                  = "atlas_join"
 	agentSelfBindAddr                   = "bind_addr"
@@ -56,6 +56,7 @@ const (
 	agentSelfRejoinAfterLeave           = "rejoin_after_leave"
 	agentSelfRetryJoin                  = "retry_join"
 	agentSelfRetryJoinEC2               = "retry_join_ec2"
+	agentSelfRetryJoinGCE               = "retry_join_gce"
 	agentSelfRetryJoinWAN               = "retry_join_wan"
 	agentSelfRetryMaxAttempts           = "retry_max_attempts"
 	agentSelfRetryMaxAttemptsWAN        = "retry_max_attempts_wan"
@@ -93,7 +94,6 @@ const (
 )
 
 const (
-	agentSelfRetryJoinGCE                = "retry_join_gce"
 	agentSelfRetryJoinGCECredentialsFile = "credentials_file"
 	agentSelfRetryJoinGCEProjectName     = "project_name"
 	agentSelfRetryJoinGCETagValue        = "tag_value"
@@ -151,7 +151,7 @@ const (
 	agentSelfTelemetryCirconusCheckInstanceID           = "circonus_instance_id"
 	agentSelfTelemetryCirconusCheckSearchTag            = "circonus_search_tag"
 	agentSelfTelemetryCirconusCheckSubmissionURL        = "circonus_submission_url"
-	agentSelfTelemetryCirconusCheckTags                 = "circonus_tags"
+	agentSelfTelemetryCirconusCheckTags                 = "circonus_check_tags"
 	agentSelfTelemetryCirconusSubmissionInterval        = "circonus_submission_interval"
 
 	agentSelfTelemetryDogStatsdAddr  = "dogstatsd_addr"
