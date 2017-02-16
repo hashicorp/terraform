@@ -16,13 +16,13 @@ This resource creates a Beanstalk Application Version that can be deployed to a 
 Environment.
 
 ~> **NOTE on Application Version Resource:**  When using the Application Version resource with multiple 
-[Elastic Beanstalk Environments](elastic_beanstalk_environment.html) it is possible that an 
-Elastic Beanstalk Environment may delete an Application Version while it is still in use by a different environment. 
-This may cause unpredictable behavior in some Elastic Beanstalk Environments. To work around this you can:
+[Elastic Beanstalk Environments](elastic_beanstalk_environment.html) it is possible that an error may be returned
+when attempting to delete an Application Version while it is still in use by a different environment.
+To work around this you can:
 <ol>
 <li>Create each environment in a separate AWS account</li>
 <li>Create your `aws_elastic_beanstalk_application_version` resources with a unique names in your 
-Elastic Beanstalk Application</li>
+Elastic Beanstalk Application. For example &lt;revision&gt;-&lt;environment&gt;.</li>
 </ol>
 
 ## Example Usage
@@ -61,6 +61,8 @@ The following arguments are supported:
 * `description` - (Optional) Short description of the Application Version.
 * `bucket` - (Required) S3 bucket that contains the Application Version source bundle.
 * `key` - (Required) S3 object that is the Application Version source bundle.
+* `force_delete` - (Optional) On delete, force an Application Version to be deleted when it may be in use
+  by multiple Elastic Beanstalk Environments.
 
 ## Attributes Reference
 
