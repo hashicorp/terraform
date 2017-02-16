@@ -72,7 +72,7 @@ func validateDurationMinFactory(name, minDuration string) func(v interface{}, ke
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		d, err := time.ParseDuration(v.(string))
 		if err != nil {
-			errors = append(errors, errwrap.Wrapf(fmt.Sprintf("Invalid %s specified (%q): {{err}}", name), err))
+			errors = append(errors, errwrap.Wrapf(fmt.Sprintf("Invalid %s specified (%q): {{err}}", name, v.(string)), err))
 		}
 
 		if d < dMin {
