@@ -571,7 +571,7 @@ func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_disable(t *testing.T
 	})
 }
 
-// by default, when no configuration is provided, a deploymentStyle object with default values is computed
+// When no configuration is provided, a deploymentStyle object with default values is computed
 func TestAccAWSCodeDeployDeploymentGroup_deploymentStyle_default(t *testing.T) {
 	var group codedeploy.DeploymentGroupInfo
 
@@ -588,10 +588,10 @@ func TestAccAWSCodeDeployDeploymentGroup_deploymentStyle_default(t *testing.T) {
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo_group", "deployment_style.#", "1"),
-					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_option", "WITHOUT_TRAFFIC_CONTROL"),
-					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_type", "IN_PLACE"),
+					resource.TestCheckResourceAttrSet(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_option"),
+					resource.TestCheckResourceAttrSet(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_type"),
 				),
 			},
 		},
@@ -614,10 +614,10 @@ func TestAccAWSCodeDeployDeploymentGroup_deploymentStyle_create(t *testing.T) {
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo_group", "deployment_style.#", "1"),
-					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_option", "WITHOUT_TRAFFIC_CONTROL"),
-					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_type", "IN_PLACE"),
+					resource.TestCheckResourceAttrSet(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_option"),
+					resource.TestCheckResourceAttrSet(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_type"),
 				),
 			},
 			resource.TestStep{
@@ -674,7 +674,8 @@ func TestAccAWSCodeDeployDeploymentGroup_deploymentStyle_update(t *testing.T) {
 	})
 }
 
-// removing deployment_style from configuration does not trigger an update to the default state, but the previous state is retained...
+// Removing deployment_style from configuration does not trigger an update
+// to the default state, but the previous state is instead retained...
 func TestAccAWSCodeDeployDeploymentGroup_deploymentStyle_delete(t *testing.T) {
 	var group codedeploy.DeploymentGroupInfo
 
@@ -703,10 +704,10 @@ func TestAccAWSCodeDeployDeploymentGroup_deploymentStyle_delete(t *testing.T) {
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo_group", "deployment_style.#", "1"),
-					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_option", "WITH_TRAFFIC_CONTROL"),
-					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_type", "BLUE_GREEN"),
+					resource.TestCheckResourceAttrSet(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_option"),
+					resource.TestCheckResourceAttrSet(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_type"),
 				),
 			},
 		},
