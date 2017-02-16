@@ -18,51 +18,50 @@ func resourceCloudFlareRecord() *schema.Resource {
 		SchemaVersion: 1,
 		MigrateState:  resourceCloudFlareRecordMigrateState,
 		Schema: map[string]*schema.Schema{
-			"domain": &schema.Schema{
+			"domain": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"hostname": &schema.Schema{
+			"hostname": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"type": &schema.Schema{
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateRecordType,
+			"type": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
-			"value": &schema.Schema{
+			"value": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"ttl": &schema.Schema{
+			"ttl": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
 
-			"priority": &schema.Schema{
+			"priority": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
 
-			"proxied": &schema.Schema{
+			"proxied": {
 				Default:  false,
 				Optional: true,
 				Type:     schema.TypeBool,
 			},
 
-			"zone_id": &schema.Schema{
+			"zone_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -92,6 +91,11 @@ func resourceCloudFlareRecordCreate(d *schema.ResourceData, meta interface{}) er
 	// Validate value based on type
 	if err := validateRecordName(newRecord.Type, newRecord.Content); err != nil {
 		return fmt.Errorf("Error validating record name %q: %s", newRecord.Name, err)
+	}
+
+	// Validate type
+	if err := validateRecordType(newRecord.Type, newRecord.Proxied); err != nil {
+		fmt.Errorf("Error validating record type %q: %s", newRecord.Type, err)
 	}
 
 	zoneId, err := client.ZoneIDByName(newRecord.ZoneName)
