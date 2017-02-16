@@ -935,9 +935,9 @@ func TestAccAWSCodeDeployDeploymentGroup_blueGreenDeploymentConfiguration_update
 	})
 }
 
-// TODO: Figure out why this test does not pass...
-// With no configuration, I would expect the remote resource to be deleted, except the previous state is returned
-func skipTestAccAWSCodeDeployDeploymentGroup_blueGreenDeploymentConfiguration_delete(t *testing.T) {
+// Without "Computed: true" on blue_green_deployment_config, removing the resource
+// from configuration causes an error, becuase the remote resource still exists.
+func TestAccAWSCodeDeployDeploymentGroup_blueGreenDeploymentConfiguration_delete(t *testing.T) {
 	var group codedeploy.DeploymentGroupInfo
 
 	rName := acctest.RandString(5)
@@ -979,7 +979,7 @@ func skipTestAccAWSCodeDeployDeploymentGroup_blueGreenDeploymentConfiguration_de
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo_group", "blue_green_deployment_config.#", "0"),
+						"aws_codedeploy_deployment_group.foo_group", "blue_green_deployment_config.#", "1"),
 				),
 			},
 		},

@@ -77,6 +77,7 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 			"blue_green_deployment_config": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
