@@ -11,8 +11,13 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 IMPROVEMENTS:
 
+ * core: "terraformrc" can contain env var references with $FOO [GH-11929]
  * provider/azurerm: Mark the azurerm_scale_set machine password as sensitive [GH-11982]
  * provider/azurerm: Mark the azurerm_sql_server admin password as sensitive [GH-12004]
+ 
+0.9.0-beta1 FIXES:
+
+ * command/init: allow unsetting a backend properly [GH-11988]
 
 ## 0.9.0-beta1 (February 15, 2017)
 
