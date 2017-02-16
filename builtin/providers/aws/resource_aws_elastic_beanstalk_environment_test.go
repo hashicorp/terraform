@@ -35,6 +35,25 @@ func TestAccAWSBeanstalkEnv_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSBeanstalkEnv_withVersionLabel(t *testing.T) {
+	var app elasticbeanstalk.EnvironmentDescription
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBeanstalkEnvDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccBeanstalkEnvConfigWithVersionLabel(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.tfenvtest", &app),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSBeanstalkEnv_tier(t *testing.T) {
 	var app elasticbeanstalk.EnvironmentDescription
 	beanstalkQueuesNameRegexp := regexp.MustCompile("https://sqs.+?awseb[^,]+")
@@ -477,6 +496,23 @@ func testAccBeanstalkEnvConfig(rInt int) string {
 	 name = "tf-test-name-%d"
 	 application = "${aws_elastic_beanstalk_application.tftest.name}"
 	 solution_stack_name = "64bit Amazon Linux running Python"
+	 depends_on = ["aws_elastic_beanstalk_application.tftest"]
+ }
+ `, rInt, rInt)
+}
+
+func testAccBeanstalkEnvConfigWithVersionLabel(rInt int) string {
+	return fmt.Sprintf(`
+ resource "aws_elastic_beanstalk_application" "tftest" {
+	 name = "tf-test-name-%d"
+	 description = "tf-test-desc"
+ }
+
+ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
+	 name = "tf-test-name-%d"
+	 application = "${aws_elastic_beanstalk_application.tftest.name}"
+	 solution_stack_name = "64bit Amazon Linux running Python"
+         version_label = "v1"
 	 depends_on = ["aws_elastic_beanstalk_application.tftest"]
  }
  `, rInt, rInt)
