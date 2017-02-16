@@ -169,6 +169,7 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 			"load_balancer_info": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{

@@ -786,8 +786,9 @@ func TestAccAWSCodeDeployDeploymentGroup_loadBalancerInfo_update(t *testing.T) {
 	})
 }
 
-// TODO: Figure out why this test does not pass...
-func skipTestAccAWSCodeDeployDeploymentGroup_loadBalancerInfo_delete(t *testing.T) {
+// Without "Computed: true" on load_balancer_info, removing the resource
+// from configuration causes an error, becuase the remote resource still exists.
+func TestAccAWSCodeDeployDeploymentGroup_loadBalancerInfo_delete(t *testing.T) {
 	var group codedeploy.DeploymentGroupInfo
 
 	rName := acctest.RandString(5)
@@ -814,7 +815,7 @@ func skipTestAccAWSCodeDeployDeploymentGroup_loadBalancerInfo_delete(t *testing.
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
 					resource.TestCheckResourceAttr(
-						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.#", "0"),
+						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.#", "1"),
 				),
 			},
 		},
