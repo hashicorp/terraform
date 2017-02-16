@@ -162,7 +162,7 @@ func resourceAwsNetworkAclRuleRead(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 	if resp == nil {
-		log.Printf("[DEBUG] Unable to find matching network acl %s")
+		log.Printf("[DEBUG] Unable to find matching network acl %s", d)
 		d.SetId("")
 		return nil
 	}
