@@ -127,7 +127,6 @@ body.layout-intro{
 
 		> li {
 			padding: 10px 0;
-			margin: 0 30px;
 
 			>.nav{
 				li{
@@ -171,6 +170,7 @@ body.layout-intro{
 
 			> a {
 				text-transform: uppercase;
+				letter-spacing: 1px;
         -webkit-font-smoothing: antialiased;
 			}
 		}
@@ -195,9 +195,13 @@ body.layout-intro{
 	}
 }
 
-
 .bs-docs-section{
-	padding: 10px 10px 80px 10px;
+	@media(max-width: 767px){
+		padding: 10px 5px 80px 5px;
+	}
+	@media(min-width: 768px){
+		padding: 10px 20px 80px 20px;
+	}
 
 	.lead{
 		margin-bottom: 48px
@@ -209,14 +213,14 @@ body.layout-intro{
 
 	p, li, .alert {
 		font-size: 18px;
-    line-height: 1.5em;
+    line-height: 1.5;
 		margin: 0 0 18px;
     -webkit-font-smoothing: antialiased;
 	}
 
-    pre{
-        margin: 0 0 18px;
-    }
+  pre{
+    margin: 0 0 18px;
+  }
 
 	a{
 		color: $purple;
@@ -225,30 +229,40 @@ body.layout-intro{
 		}
 	}
 
-    img{
-        max-width: 650px;
-        margin-top: 25px;
-        margin-bottom: 25px;
-    }
+  img{
+    max-width: 650px;
+    margin-top: 25px;
+    margin-bottom: 25px;
+  }
 
 	h1{
+		margin-top: 72px;
 		color: $purple;
-    font-size: 36px;
+		font-weight: 400;
 		text-transform: uppercase;
+		letter-spacing: -1px;
     word-wrap: break-word;
-		padding-bottom: 24px;
-    margin-top: 24px;
-		margin-bottom: 30px;
-    border-bottom: 1px solid #eeeeee;
 	}
 
 	h2, h3, h4{
-		margin-bottom: 16px;
+		margin-top: 48px;
+		font-family: $font-family-open-sans;
+		text-transform: none;
 	}
 
-    #graph {
-        margin-top: 30px;
-    }
+	h2 {
+		margin-bottom: 16px;
+		padding-bottom: 10px;
+		border-bottom: 1px solid #eeeeee;
+	}
+
+	p {
+		color: $light-black;
+	}
+
+  #graph {
+    margin-top: 30px;
+  }
 }
 
 @media (max-width: 992px) {
@@ -315,6 +329,18 @@ body.layout-intro{
       padding-top: 24px;
       border-top: 1px solid #eeeeee;
     }
+
+		h2 {
+			font-size: 24px;
+		}
+
+		h2, h3, h4{
+			margin-top: 32px;
+		}
+
+		p, li, .alert {
+			font-size: 16px;
+		}
   }
 }
 
