@@ -1629,3 +1629,106 @@ func TestValidateIamRoleProfileNamePrefix(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateApiGatewayUsagePlanQuotaSettingsPeriod(t *testing.T) {
+	validEntries := []string{
+		"DAY",
+		"WEEK",
+		"MONTH",
+	}
+
+	invalidEntries := []string{
+		"fooBAR",
+		"foobar45Baz",
+		"foobar45Baz@!",
+	}
+
+	for _, v := range validEntries {
+		_, errors := validateApiGatewayUsagePlanQuotaSettingsPeriod(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid API Gateway Quota Settings Period: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidEntries {
+		_, errors := validateApiGatewayUsagePlanQuotaSettingsPeriod(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a API Gateway Quota Settings Period", v)
+		}
+	}
+}
+
+func TestValidateApiGatewayUsagePlanQuotaSettings(t *testing.T) {
+	cases := []struct {
+		Offset   int
+		Period   string
+		ErrCount int
+	}{
+		{
+			Offset:   0,
+			Period:   "DAY",
+			ErrCount: 0,
+		},
+		{
+			Offset:   -1,
+			Period:   "DAY",
+			ErrCount: 1,
+		},
+		{
+			Offset:   1,
+			Period:   "DAY",
+			ErrCount: 1,
+		},
+		{
+			Offset:   0,
+			Period:   "WEEK",
+			ErrCount: 0,
+		},
+		{
+			Offset:   6,
+			Period:   "WEEK",
+			ErrCount: 0,
+		},
+		{
+			Offset:   -1,
+			Period:   "WEEK",
+			ErrCount: 1,
+		},
+		{
+			Offset:   7,
+			Period:   "WEEK",
+			ErrCount: 1,
+		},
+		{
+			Offset:   0,
+			Period:   "MONTH",
+			ErrCount: 0,
+		},
+		{
+			Offset:   27,
+			Period:   "MONTH",
+			ErrCount: 0,
+		},
+		{
+			Offset:   -1,
+			Period:   "MONTH",
+			ErrCount: 1,
+		},
+		{
+			Offset:   28,
+			Period:   "MONTH",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		m := make(map[string]interface{})
+		m["offset"] = tc.Offset
+		m["period"] = tc.Period
+
+		errors := validateApiGatewayUsagePlanQuotaSettings(m)
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("API Gateway Usage Plan Quota Settings validation failed: %v", errors)
+		}
+	}
+}
