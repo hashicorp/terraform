@@ -8,6 +8,7 @@
 //= require lib/_Base
 //= require lib/_Chainable
 //= require lib/_dbg
+//= require lib/_Sticky
 
 //= require app/_Docs
 //= require app/_Logo
