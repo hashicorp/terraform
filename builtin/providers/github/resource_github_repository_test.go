@@ -79,9 +79,9 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 			return fmt.Errorf("No repository name is set")
 		}
 
-		org := testAccProvider.Meta().(*Organization)
-		conn := org.client
-		gotRepo, _, err := conn.Repositories.Get(org.name, repoName)
+		org := testAccProvider.Meta().(*Clients)
+		conn := org.OrgClient
+		gotRepo, _, err := conn.Repositories.Get(org.OrgName, repoName)
 		if err != nil {
 			return err
 		}
@@ -166,8 +166,8 @@ func testAccCheckGithubRepositoryAttributes(repo *github.Repository, want *testA
 }
 
 func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
-	orgName := testAccProvider.Meta().(*Organization).name
+	conn := testAccProvider.Meta().(*Clients).OrgClient
+	orgName := testAccProvider.Meta().(*Clients).OrgName
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository" {

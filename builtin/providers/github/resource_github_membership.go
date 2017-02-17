@@ -33,11 +33,11 @@ func resourceGithubMembership() *schema.Resource {
 }
 
 func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	n := d.Get("username").(string)
 	r := d.Get("role").(string)
 
-	membership, _, err := client.Organizations.EditOrgMembership(n, meta.(*Organization).name,
+	membership, _, err := client.Organizations.EditOrgMembership(n, meta.(*Clients).OrgName,
 		&github.Membership{Role: &r})
 	if err != nil {
 		return err
@@ -49,10 +49,10 @@ func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	_, n := parseTwoPartID(d.Id())
 
-	membership, _, err := client.Organizations.GetOrgMembership(n, meta.(*Organization).name)
+	membership, _, err := client.Organizations.GetOrgMembership(n, meta.(*Clients).OrgName)
 	if err != nil {
 		d.SetId("")
 		return nil
@@ -64,11 +64,11 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubMembershipUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	n := d.Get("username").(string)
 	r := d.Get("role").(string)
 
-	membership, _, err := client.Organizations.EditOrgMembership(n, meta.(*Organization).name, &github.Membership{
+	membership, _, err := client.Organizations.EditOrgMembership(n, meta.(*Clients).OrgName, &github.Membership{
 		Role: &r,
 	})
 	if err != nil {
@@ -80,10 +80,10 @@ func resourceGithubMembershipUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	n := d.Get("username").(string)
 
-	_, err := client.Organizations.RemoveOrgMembership(n, meta.(*Organization).name)
+	_, err := client.Organizations.RemoveOrgMembership(n, meta.(*Clients).OrgName)
 
 	return err
 }

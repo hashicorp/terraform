@@ -38,12 +38,12 @@ func resourceGithubIssueLabel() *schema.Resource {
 }
 
 func resourceGithubIssueLabelCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	r := d.Get("repository").(string)
 	n := d.Get("name").(string)
 	c := d.Get("color").(string)
 
-	_, _, err := client.Issues.CreateLabel(meta.(*Organization).name, r, &github.Label{
+	_, _, err := client.Issues.CreateLabel(meta.(*Clients).OrgName, r, &github.Label{
 		Name:  &n,
 		Color: &c,
 	})
@@ -57,10 +57,10 @@ func resourceGithubIssueLabelCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	r, n := parseTwoPartID(d.Id())
 
-	githubLabel, _, err := client.Issues.GetLabel(meta.(*Organization).name, r, n)
+	githubLabel, _, err := client.Issues.GetLabel(meta.(*Clients).OrgName, r, n)
 	if err != nil {
 		d.SetId("")
 		return nil
@@ -75,13 +75,13 @@ func resourceGithubIssueLabelRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubIssueLabelUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	r := d.Get("repository").(string)
 	n := d.Get("name").(string)
 	c := d.Get("color").(string)
 
 	_, originalName := parseTwoPartID(d.Id())
-	_, _, err := client.Issues.EditLabel(meta.(*Organization).name, r, originalName, &github.Label{
+	_, _, err := client.Issues.EditLabel(meta.(*Clients).OrgName, r, originalName, &github.Label{
 		Name:  &n,
 		Color: &c,
 	})
@@ -95,10 +95,10 @@ func resourceGithubIssueLabelUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubIssueLabelDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	r := d.Get("repository").(string)
 	n := d.Get("name").(string)
 
-	_, err := client.Issues.DeleteLabel(meta.(*Organization).name, r, n)
+	_, err := client.Issues.DeleteLabel(meta.(*Clients).OrgName, r, n)
 	return err
 }

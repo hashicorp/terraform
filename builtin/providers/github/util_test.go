@@ -1,8 +1,6 @@
 package github
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestAccGithubUtilRole_validation(t *testing.T) {
 	cases := []struct {
