@@ -25,8 +25,12 @@ func TestAccConsulKeyPrefix_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulKeyPrefixKeyValue("cheese", "chevre"),
 					testAccCheckConsulKeyPrefixKeyValue("bread", "baguette"),
+					testAccCheckConsulKeyPrefixKeyValue("poney", "pink"),
+					testAccCheckConsulKeyPrefixKeyValue("answer", "42"),
 					testAccCheckConsulKeyPrefixKeyAbsent("species"),
 					testAccCheckConsulKeyPrefixKeyAbsent("meat"),
+					testAccCheckConsulKeyPrefixKeyAbsent("zidane"),
+					testAccCheckConsulKeyPrefixKeyAbsent("#comment"),
 				),
 			},
 			resource.TestStep{
@@ -44,8 +48,12 @@ func TestAccConsulKeyPrefix_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulKeyPrefixKeyValue("meat", "ham"),
 					testAccCheckConsulKeyPrefixKeyValue("bread", "batard"),
+					testAccCheckConsulKeyPrefixKeyValue("poney", "pink"),
+					testAccCheckConsulKeyPrefixKeyValue("zidane", "zinedine"),
 					testAccCheckConsulKeyPrefixKeyAbsent("cheese"),
 					testAccCheckConsulKeyPrefixKeyAbsent("species"),
+					testAccCheckConsulKeyPrefixKeyAbsent("answer"),
+					testAccCheckConsulKeyPrefixKeyAbsent("#comment"),
 				),
 			},
 			resource.TestStep{
@@ -133,6 +141,7 @@ resource "consul_key_prefix" "app" {
         cheese = "chevre"
         bread = "baguette"
     }
+	file = "poney=pink\n#comment\nanswer=42"
 }
 `
 
@@ -146,5 +155,6 @@ resource "consul_key_prefix" "app" {
         bread = "batard"
         meat = "ham"
     }
+	file = "poney=pink\nzidane=zinedine"
 }
 `
