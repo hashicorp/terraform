@@ -57,6 +57,11 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
+	if err := stateStore.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		return 1
+	}
+
 	if module == "" {
 		module = "root"
 	} else {
