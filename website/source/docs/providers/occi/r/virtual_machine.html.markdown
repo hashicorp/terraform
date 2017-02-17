@@ -15,10 +15,10 @@ Provides a OCCI Virtual Machine resource. This can be used to create and delete 
 ```
 # Create a new virtual machine
 resource "occi_virtual_machine" "vm" {
-  image_template = "http://occi.awsocci.cesnet.cz/occi/infrastructure/os_tpl#ami-f95ef58a"
-  resource_template = "http://schemas.ec2.aws.amazon.com/occi/infrastructure/resource_tpl#t2_micro"
-  endpoint = "https://awsocci.cesnet.cz:11443/"
-  name = "test_vm_micro"
+  image_template = ".../os_tpl#uuid_egi_centos_7_fedcloud_warg_149"
+  resource_template = ".../flavour/1.0#large"
+  endpoint = "..."
+  name = "test_vm_large"
   x509 = "/tmp/x509up_u1000"
   init_file = "/home/cloud-user/context"
 }
