@@ -9,6 +9,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for AWS EBS Elastic Volumes [GH-11981]
  * provider/aws: Allow aws_instances to be resized rather than forcing a new instance [GH-11998]
  * provider/datadog: add support for new host delay to the datadog_monitor resource [GH-11975]
+ * provider/fastly: Make Backends optional if used in VCL [GH-12025]
  * provider/random_id: Add prefix attribute [GH-12016]
  * provider/statuscake: Add support for Port in statuscake_test [GH-11966]
 
