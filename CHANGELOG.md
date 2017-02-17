@@ -26,6 +26,7 @@ FEATURES:
  * **New Provider:**  `arukas` ([#11171](https://github.com/hashicorp/terraform/issues/11171))
  * **New Data Source:**  `aws_db_instance` ([#11717](https://github.com/hashicorp/terraform/issues/11717))
  * **New Data Source:**  `aws_vpn_gateway` ([#11886](https://github.com/hashicorp/terraform/issues/11886))
+ * **New Data Source:**  `consul_agent_self`, `consul_catalog_service`, `consul_catalog_services`, `consul_catalog_nodes` ([#11729](https://github.com/hashicorp/terraform/pull/11729))
  * **New Data Source:**  `google_compute_zones` ([#11954](https://github.com/hashicorp/terraform/issues/11954))
  * **New Resource:**  `aws_elasticsearch_domain_policy` ([#8648](https://github.com/hashicorp/terraform/issues/8648))
  * **New Resource:**  `aws_vpc_peering_connection_accepter` ([#11505](https://github.com/hashicorp/terraform/issues/11505))
