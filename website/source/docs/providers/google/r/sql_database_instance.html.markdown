@@ -52,7 +52,7 @@ The following arguments are supported:
 * `name` - (Optional, Computed) The name of the instance. If the name is left
     blank, Terraform will randomly generate one when the instance is first
     created. This is done because after a name is used, it cannot be reused for
-    up to [two months](https://cloud.google.com/sql/docs/delete-instance).
+    up to [one week](https://cloud.google.com/sql/docs/delete-instance).
 
 * `master_instance_name` - (Optional) The name of the instance that will act as
     the master in the replication setup. Note, this requires the master to have
