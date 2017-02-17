@@ -795,6 +795,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 		"healthcheck",
 		"s3logging",
 		"papertrail",
+		"response_object",
 		"condition",
 		"request_setting",
 		"cache_setting",
@@ -1322,6 +1323,61 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 
 				log.Printf("[DEBUG] Create Papertrail Opts: %#v", opts)
 				_, err := conn.CreatePapertrail(&opts)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		// find difference in Response Object
+		if d.HasChange("response_object") {
+			or, nr := d.GetChange("response_object")
+			if or == nil {
+				or = new(schema.Set)
+			}
+			if nr == nil {
+				nr = new(schema.Set)
+			}
+
+			ors := or.(*schema.Set)
+			nrs := nr.(*schema.Set)
+			removeResponseObject := ors.Difference(nrs).List()
+			addResponseObject := nrs.Difference(ors).List()
+
+			// DELETE old response object configurations
+			for _, rRaw := range removeResponseObject {
+				rf := rRaw.(map[string]interface{})
+				opts := gofastly.DeleteResponseObjectInput{
+					Service: d.Id(),
+					Version: latestVersion,
+					Name:    rf["name"].(string),
+				}
+
+				log.Printf("[DEBUG] Fastly Response Object removal opts: %#v", opts)
+				err := conn.DeleteResponseObject(&opts)
+				if err != nil {
+					return err
+				}
+			}
+
+			// POST new/updated Response Object
+			for _, rRaw := range addResponseObject {
+				rf := rRaw.(map[string]interface{})
+
+				opts := gofastly.CreateResponseObjectInput{
+					Service:          d.Id(),
+					Version:          latestVersion,
+					Name:             rf["name"].(string),
+					Status:           uint(rf["status"].(int)),
+					Response:         rf["response"].(string),
+					Content:          rf["content"].(string),
+					ContentType:      rf["content_type"].(string),
+					RequestCondition: rf["request_condition"].(string),
+					CacheCondition:   rf["cache_condition"].(string),
+				}
+
+				log.Printf("[DEBUG] Create Response Object Opts: %#v", opts)
+				_, err := conn.CreateResponseObject(&opts)
 				if err != nil {
 					return err
 				}
