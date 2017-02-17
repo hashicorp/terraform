@@ -281,6 +281,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_elasticache_security_group":               resourceAwsElasticacheSecurityGroup(),
 			"aws_elasticache_subnet_group":                 resourceAwsElasticacheSubnetGroup(),
 			"aws_elastic_beanstalk_application":            resourceAwsElasticBeanstalkApplication(),
+			"aws_elastic_beanstalk_application_version":    resourceAwsElasticBeanstalkApplicationVersion(),
 			"aws_elastic_beanstalk_configuration_template": resourceAwsElasticBeanstalkConfigurationTemplate(),
 			"aws_elastic_beanstalk_environment":            resourceAwsElasticBeanstalkEnvironment(),
 			"aws_elasticsearch_domain":                     resourceAwsElasticSearchDomain(),
