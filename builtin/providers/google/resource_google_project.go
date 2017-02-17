@@ -180,16 +180,17 @@ func resourceGoogleProjectCreate(d *schema.ResourceData, meta interface{}) error
 
 	// Set the billing account
 	if v, ok := d.GetOk("billing_account"); ok {
+		name := v.(string)
 		ba := cloudbilling.ProjectBillingInfo{
-			BillingAccountName: "billingAccounts/" + v.(string),
+			BillingAccountName: "billingAccounts/" + name,
 		}
 		_, err = config.clientBilling.Projects.UpdateBillingInfo(prefixedProject(pid), &ba).Do()
 		if err != nil {
 			d.Set("billing_account", "")
 			if _err, ok := err.(*googleapi.Error); ok {
-				return fmt.Errorf("Error setting billing account %q for project %q: %v", ba.BillingAccountName, prefixedProject(pid), _err)
+				return fmt.Errorf("Error setting billing account %q for project %q: %v", name, prefixedProject(pid), _err)
 			}
-			return fmt.Errorf("Error setting billing account %q for project %q: %v", ba.BillingAccountName, prefixedProject(pid), err)
+			return fmt.Errorf("Error setting billing account %q for project %q: %v", name, prefixedProject(pid), err)
 		}
 	}
 
@@ -268,17 +269,17 @@ func resourceGoogleProjectUpdate(d *schema.ResourceData, meta interface{}) error
 
 	// Billing account has changed
 	if ok := d.HasChange("billing_account"); ok {
-		v := d.Get("billing_account")
+		name := d.Get("billing_account").(string)
 		ba := cloudbilling.ProjectBillingInfo{
-			BillingAccountName: "billingAccounts/" + v.(string),
+			BillingAccountName: "billingAccounts/" + name,
 		}
 		_, err = config.clientBilling.Projects.UpdateBillingInfo(prefixedProject(pid), &ba).Do()
 		if err != nil {
 			d.Set("billing_account", "")
 			if _err, ok := err.(*googleapi.Error); ok {
-				return fmt.Errorf("Error updating billing account %q for project %q: %v", ba.Name, prefixedProject(pid), _err)
+				return fmt.Errorf("Error updating billing account %q for project %q: %v", name, prefixedProject(pid), _err)
 			}
-			return fmt.Errorf("Error updating billing account %q for project %q: %v", ba.Name, prefixedProject(pid), err)
+			return fmt.Errorf("Error updating billing account %q for project %q: %v", name, prefixedProject(pid), err)
 		}
 	}
 	return updateProjectIamPolicy(d, config, pid)
