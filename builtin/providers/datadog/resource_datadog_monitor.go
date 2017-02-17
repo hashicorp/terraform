@@ -163,7 +163,7 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 	if attr, ok := d.GetOk("new_host_delay"); ok {
 		o.NewHostDelay = datadog.Int(attr.(int))
 	}
-  if attr, ok := d.GetOk("no_data_timeframe"); ok {
+	if attr, ok := d.GetOk("no_data_timeframe"); ok {
 		o.NoDataTimeframe = datadog.NoDataTimeframe(attr.(int))
 	}
 	if attr, ok := d.GetOk("renotify_interval"); ok {
