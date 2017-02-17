@@ -986,7 +986,7 @@ func TestAccAWSCodeDeployDeploymentGroup_blueGreenDeploymentConfiguration_delete
 	})
 }
 
-func TestValidateAWSCodeDeployTriggerEvent(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_validateAWSCodeDeployTriggerEvent(t *testing.T) {
 	cases := []struct {
 		Value    string
 		ErrCount int
@@ -1049,7 +1049,7 @@ func TestValidateAWSCodeDeployTriggerEvent(t *testing.T) {
 	}
 }
 
-func TestBuildTriggerConfigs(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_buildTriggerConfigs(t *testing.T) {
 	input := []interface{}{
 		map[string]interface{}{
 			"trigger_events": schema.NewSet(schema.HashString, []interface{}{
@@ -1078,7 +1078,7 @@ func TestBuildTriggerConfigs(t *testing.T) {
 	}
 }
 
-func TestTriggerConfigsToMap(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_triggerConfigsToMap(t *testing.T) {
 	input := []*codedeploy.TriggerConfig{
 		&codedeploy.TriggerConfig{
 			TriggerEvents: []*string{
@@ -1123,7 +1123,7 @@ func TestTriggerConfigsToMap(t *testing.T) {
 	}
 }
 
-func TestBuildAutoRollbackConfig(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_buildAutoRollbackConfig(t *testing.T) {
 	input := []interface{}{
 		map[string]interface{}{
 			"events": schema.NewSet(schema.HashString, []interface{}{
@@ -1148,7 +1148,7 @@ func TestBuildAutoRollbackConfig(t *testing.T) {
 	}
 }
 
-func TestAutoRollbackConfigToMap(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_autoRollbackConfigToMap(t *testing.T) {
 	input := &codedeploy.AutoRollbackConfiguration{
 		Events: []*string{
 			aws.String("DEPLOYMENT_FAILURE"),
@@ -1185,7 +1185,7 @@ func TestAutoRollbackConfigToMap(t *testing.T) {
 	}
 }
 
-func TestBuildDeploymentStyle(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_buildDeploymentStyle(t *testing.T) {
 	input := []interface{}{
 		map[string]interface{}{
 			"deployment_option": "WITH_TRAFFIC_CONTROL",
@@ -1206,7 +1206,7 @@ func TestBuildDeploymentStyle(t *testing.T) {
 	}
 }
 
-func TestDeploymentStyleToMap(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_deploymentStyleToMap(t *testing.T) {
 	expected := map[string]interface{}{
 		"deployment_option": "WITHOUT_TRAFFIC_CONTROL",
 		"deployment_type":   "IN_PLACE",
@@ -1235,7 +1235,7 @@ func TestDeploymentStyleToMap(t *testing.T) {
 	}
 }
 
-func TestBuildLoadBalancerInfo(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_buildLoadBalancerInfo(t *testing.T) {
 	input := []interface{}{
 		map[string]interface{}{
 			"elb_info": schema.NewSet(elbInfoHash, []interface{}{
@@ -1268,7 +1268,7 @@ func TestBuildLoadBalancerInfo(t *testing.T) {
 	}
 }
 
-func TestLoadBalancerInfoToMap(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_loadBalancerInfoToMap(t *testing.T) {
 	input := &codedeploy.LoadBalancerInfo{
 		ElbInfoList: []*codedeploy.ELBInfo{
 			{
@@ -1307,7 +1307,7 @@ func TestLoadBalancerInfoToMap(t *testing.T) {
 	}
 }
 
-func TestBuildBlueGreenDeploymentConfig(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_buildBlueGreenDeploymentConfig(t *testing.T) {
 	input := []interface{}{
 		map[string]interface{}{
 			"deployment_ready_option": []interface{}{
@@ -1356,7 +1356,7 @@ func TestBuildBlueGreenDeploymentConfig(t *testing.T) {
 	}
 }
 
-func TestBlueGreenDeploymentConfigToMap(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_blueGreenDeploymentConfigToMap(t *testing.T) {
 	input := &codedeploy.BlueGreenDeploymentConfiguration{
 		DeploymentReadyOption: &codedeploy.DeploymentReadyOption{
 			ActionOnTimeout:   aws.String("STOP_DEPLOYMENT"),
@@ -1428,7 +1428,7 @@ func TestBlueGreenDeploymentConfigToMap(t *testing.T) {
 	}
 }
 
-func TestBuildAlarmConfig(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_buildAlarmConfig(t *testing.T) {
 	input := []interface{}{
 		map[string]interface{}{
 			"alarms": schema.NewSet(schema.HashString, []interface{}{
@@ -1457,7 +1457,7 @@ func TestBuildAlarmConfig(t *testing.T) {
 	}
 }
 
-func TestAlarmConfigToMap(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_alarmConfigToMap(t *testing.T) {
 	input := &codedeploy.AlarmConfiguration{
 		Alarms: []*codedeploy.Alarm{
 			{
@@ -1504,7 +1504,7 @@ func TestAlarmConfigToMap(t *testing.T) {
 	}
 }
 
-func TestValidateDeploymentOption(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_validateDeploymentOption(t *testing.T) {
 	cases := []struct {
 		Value    string
 		ErrCount int
@@ -1535,7 +1535,7 @@ func TestValidateDeploymentOption(t *testing.T) {
 	}
 }
 
-func TestValidateDeploymentType(t *testing.T) {
+func TestAWSCodeDeployDeploymentGroup_validateDeploymentType(t *testing.T) {
 	cases := []struct {
 		Value    string
 		ErrCount int
