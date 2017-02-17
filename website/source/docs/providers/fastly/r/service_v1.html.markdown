@@ -300,7 +300,7 @@ compression. `1` is fastest and least compressed, `9` is slowest and most
 compressed. Default `0`.
 * `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Defaults to Apache Common Log format (`%h %l %u %t %r %>s`)
 * `timestamp_format` - (Optional) `strftime` specified timestamp formatting (default `%Y-%m-%dT%H:%M:%S.000`).
-* `request_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `REQUEST`. For detailed information about Conditionals,
+* `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals,
 see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
 The `papertrail` block supports:
@@ -309,7 +309,7 @@ The `papertrail` block supports:
 * `address` - (Required) The address of the Papertrail endpoint.
 * `port` - (Required) The port associated with the address where the Papertrail endpoint can be accessed.
 * `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Defaults to Apache Common Log format (`%h %l %u %t %r %>s`)
-* `request_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `REQUEST`. For detailed information about Conditionals,
+* `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals,
 see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
 The `vcl` block supports:
