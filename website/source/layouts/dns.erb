@@ -1,0 +1,30 @@
+<% wrap_layout :inner do %>
+    <% content_for :sidebar do %>
+        <div class="docs-sidebar hidden-print affix-top" role="complementary">
+            <ul class="nav docs-sidenav">
+                <li<%= sidebar_current("docs-home") %>>
+                    <a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+                </li>
+
+                <li<%= sidebar_current("docs-dns-index") %>>
+                    <a href="/docs/providers/dns/index.html">DNS Provider</a>
+                </li>
+
+                <li<%= sidebar_current(/^docs-dns-datasource/) %>>
+                <a href="#">Data Sources</a>
+                    <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-dns-datasource-a-record") %>>
+                            <a href="/docs/providers/dns/d/a-record.html">dns_a_record</a>
+                        </li>
+                        <li<%= sidebar_current("docs-dns-datasource-cname-record") %>>
+                            <a href="/docs/providers/dns/d/cname-record.html">dns_cname_record</a>
+                        </li>
+                    </ul>
+                </li>
+
+            </ul>
+        </div>
+    <% end %>
+
+    <%= yield %>
+<% end %>
