@@ -62,6 +62,7 @@ string.
 * `final_snapshot_identifier` - (Optional) The identifier of the final snapshot that is to be created immediately before deleting the cluster. If this parameter is provided, `skip_final_snapshot` must be false.
 * `snapshot_identifier` - (Optional) The name of the snapshot from which to create the new cluster.
 * `snapshot_cluster_identifier` - (Optional) The name of the cluster the source snapshot was created from.
+* `owner_account` - (Optional) The AWS customer account used to create or copy the snapshot. Required if you are restoring a snapshot you do not own, optional if you own the snapshot.
 * `iam_roles` - (Optional) A list of IAM Role ARNs to associate with the cluster. A Maximum of 10 can be associated to the cluster at any time.
 * `enable_logging` - (Optional) Enables logging information such as queries and connection attempts, for the specified Amazon Redshift cluster. Defaults to `false`.
 * `bucket_name` - (Optional, required when `enable_logging` is `true`) The name of an existing S3 bucket where the log files are to be stored. Must be in the same region as the cluster and the cluster must have read bucket and put object permissions.
