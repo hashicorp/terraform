@@ -21,6 +21,7 @@ BUG FIXES:
 
 0.9.0-beta1 FIXES:
 
+ * core: fix local state locking on Windows [GH-12059]
  * command/init: allow unsetting a backend properly [GH-11988]
  * command/apply: fix crash that could happen with an empty directory [GH-11989]
 
