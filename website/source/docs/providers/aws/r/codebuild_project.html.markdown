@@ -76,10 +76,15 @@ resource "aws_codebuild_project" "foo" {
     image        = "2"
     type         = "LINUX_CONTAINER"
 
-	environment_variable {
-	  "name"  = "SOME_KEY"
-	  "value" = "SOME_VALUE"
-	}
+    environment_variable {
+      "name"  = "SOME_KEY1"
+      "value" = "SOME_VALUE1"
+    }
+
+    environment_variable {
+      "name"  = "SOME_KEY2"
+      "value" = "SOME_VALUE2"
+    }
   }
 
   source {
@@ -103,9 +108,9 @@ The following arguments are supported:
 * `service_role` - (Optional) The Amazon Resource Name (ARN) of the AWS Identity and Access Management (IAM) role that enables AWS CodeBuild to interact with dependent AWS services on behalf of the AWS account.
 * `timeout` - (Optional) How long in minutes, from 5 to 480 (8 hours), for AWS CodeBuild to wait until timing out any related build that does not get marked as completed. The default is 60 minutes.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
-* `artifacts` - (Optional) Information about the project's build output artifacts. Artifact blocks are documented below.
-* `environment` - (Optional) Information about the project's build environment. Environment blocks are documented below.
-* `source` - (Optional) Information about the project's input source code. Source blocks are documented below.
+* `artifacts` - (Required) Information about the project's build output artifacts. Artifact blocks are documented below.
+* `environment` - (Required) Information about the project's build environment. Environment blocks are documented below.
+* `source` - (Required) Information about the project's input source code. Source blocks are documented below.
 
 `artifacts` supports the following:
 
@@ -137,7 +142,7 @@ The following arguments are supported:
 `auth` supports the following:
 
 * `type` - (Required) The authorization type to use. The only valid value is `OAUTH`
-* `resource` - (Required) The resource value that applies to the specified authorization type.
+* `resource` - (Optional) The resource value that applies to the specified authorization type.
 
 ## Attributes Reference
 
