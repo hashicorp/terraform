@@ -498,7 +498,7 @@ MISSING:
 	//
 	// For an input walk, computed values are okay to return because we're only
 	// looking for missing variables to prompt the user for.
-	if i.Operation == walkRefresh || i.Operation == walkPlanDestroy || i.Operation == walkDestroy || i.Operation == walkInput {
+	if i.Operation == walkRefresh || i.Operation == walkPlanDestroy || i.Operation == walkInput {
 		return &unknownVariable, nil
 	}
 
