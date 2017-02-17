@@ -214,22 +214,22 @@
 							<div class="">
 								<div class="display">
 								<p>resource <span class="txt-spe">"aws_elb"</span> <span class="txt-str">"frontend"</span> {</p>
-								<p>    name = <span class="txt-str">"frontend-load-balancer"</span></p>
-								<p>    listener {</p>
-								<p>        instance_port = <span class="txt-int">8000</span></p>
-								<p>        instance_protocol = <span class="txt-str">"http"</span></p>
-								<p>        lb_port = <span class="txt-int">80</span></p>
-								<p>        lb_protocol = <span class="txt-str">"http"</span></p>
-								<p>    }</p>
+								<p>  name = <span class="txt-str">"frontend-load-balancer"</span></p>
+								<p>  listener {</p>
+								<p>    instance_port     = <span class="txt-int">8000</span></p>
+								<p>    instance_protocol = <span class="txt-str">"http"</span></p>
+								<p>    lb_port           = <span class="txt-int">80</span></p>
+								<p>    lb_protocol       = <span class="txt-str">"http"</span></p>
+								<p>  }</p>
 								<p> </p>
-								<p>    instances = [<span class="txt-str">"<span class="txt-var">${aws_instance.app.*.id}</span>"</span>]</p>
+								<p>  instances = [<span class="txt-str">"<span class="txt-var">${aws_instance.app.*.id}</span>"</span>]</p>
 								<p>}</p>
 								<p> </p>
 								<p>resource <span class="txt-spe">"aws_instance"</span> <span class="txt-str">"app"</span> {</p>
-								<p>    count = <span class="txt-int">5</span></p>
+								<p>  count = <span class="txt-int">5</span></p>
 								<p> </p>
-								<p>    ami = <span class="txt-str">"ami-408c7f28"</span></p>
-								<p>    instance_type = <span class="txt-str">"t1.micro"</span></p>
+								<p>  ami           = <span class="txt-str">"ami-408c7f28"</span></p>
+								<p>  instance_type = <span class="txt-str">"t1.micro"</span></p>
 								<p>}</p>
 								</div>
 							</div>
