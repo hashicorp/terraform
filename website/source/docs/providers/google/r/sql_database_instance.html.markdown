@@ -134,6 +134,17 @@ The optional `settings.location_preference` subblock supports:
 * `zone` - (Optional) The preferred compute engine
     [zone](https://cloud.google.com/compute/docs/zones?hl=en).
 
+The optional `settings.maintenance_window` subblock for Second Generation
+instances declares a one-hour [maintenance window](https://cloud.google.com/sql/docs/instance-settings?hl=en#maintenance-window-2ndgen)
+when an Instance can automatically restart to apply updates. It supports:
+
+* `day` - (Optional) Day of week (`1-7`), starting on Monday
+
+* `hour` - (Optional) Hour of day (`0-23`), ignored if `day` not set
+
+* `update_track` - (Optional) Receive updates earlier (`canary`) or later 
+(`stable`)
+
 The optional `replica_configuration` block must have `master_instance_name` set
 to work, cannot be updated, and supports:
 
