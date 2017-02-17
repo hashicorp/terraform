@@ -86,7 +86,7 @@ The following arguments are supported:
 <a id="capabilities"></a>
 ### Capabilities
 
-`capabilities` is a block within the configuration that can allow you to add or drop linux capabilities. For more information about what capabilities you can add and drop please visit the docker run documentation.
+`capabilities` is a block within the configuration that allows you to add or drop linux capabilities. For more information about what capabilities you can add and drop please visit the docker run documentation.
 
 * `add` - (Optional, set of strings) list of linux capabilities to add.
 * `drop` - (Optional, set of strings) list of linux capabilities to drop.
