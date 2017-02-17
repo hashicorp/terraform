@@ -4701,6 +4701,76 @@ module.child:
 	}
 }
 
+func TestContext2Apply_provisionerDestroyRef(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy-ref")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		val, ok := c.Config["foo"]
+		if !ok || val != "hello" {
+			return fmt.Errorf("bad value for foo: %v %#v", val, c)
+		}
+
+		return nil
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"key": "hello",
+							},
+						},
+					},
+
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module:  m,
+		State:   state,
+		Destroy: true,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `<no state>`)
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+}
+
 func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 	m := testModule(t, "apply-provisioner-resource-ref")
 	p := testProvider("aws")
