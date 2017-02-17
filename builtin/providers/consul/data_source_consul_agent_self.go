@@ -86,11 +86,9 @@ const (
 )
 
 const (
-	agentSelfRetryJoinAWSAccessKeyID     = "access_key_id"
-	agentSelfRetryJoinAWSRegion          = "region"
-	agentSelfRetryJoinAWSSecretAccessKey = "secret_access_key"
-	agentSelfRetryJoinAWSTagKey          = "tag_key"
-	agentSelfRetryJoinAWSTagValue        = "tag_value"
+	agentSelfRetryJoinAWSRegion   = "region"
+	agentSelfRetryJoinAWSTagKey   = "tag_key"
+	agentSelfRetryJoinAWSTagValue = "tag_value"
 )
 
 const (
@@ -567,16 +565,6 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 						agentSelfRetryJoinAWSTagValue: &schema.Schema{
 							Type:     schema.TypeString,
 							Computed: true,
-						},
-						agentSelfRetryJoinAWSAccessKeyID: &schema.Schema{
-							Type:      schema.TypeString,
-							Computed:  true,
-							Sensitive: true,
-						},
-						agentSelfRetryJoinAWSSecretAccessKey: &schema.Schema{
-							Type:      schema.TypeString,
-							Computed:  true,
-							Sensitive: true,
 						},
 					},
 				},
@@ -1187,14 +1175,6 @@ func dataSourceConsulAgentSelfRead(d *schema.ResourceData, meta interface{}) err
 
 		if v, found := ec2Config["TagValue"]; found {
 			m[agentSelfRetryJoinAWSTagValue] = v.(string)
-		}
-
-		if v, found := ec2Config["AccessKeyID"]; found {
-			m[agentSelfRetryJoinAWSAccessKeyID] = v.(string)
-		}
-
-		if v, found := ec2Config["SecretAccessKey"]; found {
-			m[agentSelfRetryJoinAWSSecretAccessKey] = v.(string)
 		}
 
 		if err := d.Set(agentSelfRetryJoinEC2, m); err != nil {

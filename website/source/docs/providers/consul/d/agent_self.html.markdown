@@ -127,9 +127,7 @@ The following attributes are exported:
 
 ### Retry Join EC2 Attributes
 
-* [`access_key_id`](https://www.consul.io/docs/agent/options.html#access_key_id)
 * [`region`](https://www.consul.io/docs/agent/options.html#region)
-* [`secret_access_key`](https://www.consul.io/docs/agent/options.html#secret_access_key)
 * [`tag_key`](https://www.consul.io/docs/agent/options.html#tag_key)
 * [`tag_value`](https://www.consul.io/docs/agent/options.html#tag_value)
 
