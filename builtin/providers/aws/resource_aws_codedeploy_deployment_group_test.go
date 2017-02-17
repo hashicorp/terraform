@@ -1185,6 +1185,56 @@ func TestAutoRollbackConfigToMap(t *testing.T) {
 	}
 }
 
+func TestBuildDeploymentStyle(t *testing.T) {
+	input := []interface{}{
+		map[string]interface{}{
+			"deployment_option": "WITH_TRAFFIC_CONTROL",
+			"deployment_type":   "BLUE_GREEN",
+		},
+	}
+
+	expected := &codedeploy.DeploymentStyle{
+		DeploymentOption: aws.String("WITH_TRAFFIC_CONTROL"),
+		DeploymentType:   aws.String("BLUE_GREEN"),
+	}
+
+	actual := buildDeploymentStyle(input)
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("buildDeploymentStyle output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+			actual, expected)
+	}
+}
+
+func TestDeploymentStyleToMap(t *testing.T) {
+	expected := map[string]interface{}{
+		"deployment_option": "WITHOUT_TRAFFIC_CONTROL",
+		"deployment_type":   "IN_PLACE",
+	}
+
+	input := &codedeploy.DeploymentStyle{
+		DeploymentOption: aws.String("WITHOUT_TRAFFIC_CONTROL"),
+		DeploymentType:   aws.String("IN_PLACE"),
+	}
+
+	actual := deploymentStyleToMap(input)[0]
+
+	fatal := false
+
+	if actual["deployment_option"] != expected["deployment_option"] {
+		fatal = true
+	}
+
+	if actual["deployment_type"] != expected["deployment_type"] {
+		fatal = true
+	}
+
+	if fatal {
+		t.Fatalf("deploymentStyleToMap output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+			actual, expected)
+	}
+}
+
 func TestBuildLoadBalancerInfo(t *testing.T) {
 	input := []interface{}{
 		map[string]interface{}{
@@ -1252,7 +1302,7 @@ func TestLoadBalancerInfoToMap(t *testing.T) {
 	}
 
 	if fatal {
-		t.Fatalf("alarmConfigToMap output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+		t.Fatalf("loadBalancerInfoToMap output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
 			actual, expected)
 	}
 }
