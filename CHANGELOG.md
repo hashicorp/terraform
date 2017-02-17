@@ -1,5 +1,9 @@
 ## 0.8.8 (unreleased)
 
+FEATURES:
+
+ * **New Resource:**  `aws_elastic_beanstalk_application_version` [GH-5770]
+
 IMPROVEMENTS:
 
  * provider/aws: Add support for AWS EBS Elastic Volumes [GH-11981]
