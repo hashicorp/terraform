@@ -1,12 +1,12 @@
 ---
 layout: "dns"
 page_title: "DNS: dns_aaaa_record_set"
-sidebar_current: "docs-dns-record"
+sidebar_current: "docs-dns-aaaa-record-set"
 description: |-
   Creates a AAAA type DNS record set.
 ---
 
-# dns\_a\_record\_set
+# dns\_aaaa\_record\_set
 
 Creates a AAAA type DNS record set.
 

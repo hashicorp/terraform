@@ -1,7 +1,7 @@
 ---
 layout: "dns"
 page_title: "DNS: dns_ptr_record"
-sidebar_current: "docs-dns-record"
+sidebar_current: "docs-dns-ptr-record"
 description: |-
   Creates a PTR type DNS record.
 ---
