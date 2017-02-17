@@ -355,6 +355,13 @@ func (n *graphNodeCloseProvider) DotNode(name string, opts *dag.DotOpts) *dag.Do
 	}
 }
 
+// RemovableIfNotTargeted
+func (n *graphNodeCloseProvider) RemoveIfNotTargeted() bool {
+	// We need to add this so that this node will be removed if
+	// it isn't targeted or a dependency of a target.
+	return true
+}
+
 // graphNodeProviderConsumerDummy is a struct that never enters the real
 // graph (though it could to no ill effect). It implements
 // GraphNodeProviderConsumer and GraphNodeSubpath as a way to force
