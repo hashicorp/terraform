@@ -986,6 +986,62 @@ func TestAccAWSCodeDeployDeploymentGroup_blueGreenDeploymentConfiguration_delete
 	})
 }
 
+func TestAccAWSCodeDeployDeploymentGroup_blueGreenDeployment_complete(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: test_config_blue_green_deployment_complete(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_option", "WITH_TRAFFIC_CONTROL"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "deployment_style.0.deployment_type", "BLUE_GREEN"),
+
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.0.elb_info.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "load_balancer_info.0.elb_info.2441772102.name", "foo-elb"),
+
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "blue_green_deployment_config.#", "1"),
+
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "blue_green_deployment_config.0.deployment_ready_option.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "blue_green_deployment_config.0.deployment_ready_option.0.action_on_timeout", "STOP_DEPLOYMENT"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "blue_green_deployment_config.0.deployment_ready_option.0.wait_time_in_minutes", "60"),
+
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "blue_green_deployment_config.0.green_fleet_provisioning_option.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "blue_green_deployment_config.0.green_fleet_provisioning_option.0.action", "DISCOVER_EXISTING"),
+
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "blue_green_deployment_config.0.terminate_blue_instances_on_deployment_success.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "blue_green_deployment_config.0.terminate_blue_instances_on_deployment_success.0.action", "KEEP_ALIVE"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "blue_green_deployment_config.0.terminate_blue_instances_on_deployment_success.0.termination_wait_time_in_minutes", "0"),
+				),
+			},
+		},
+	})
+}
+
 func TestAWSCodeDeployDeploymentGroup_validateAWSCodeDeployTriggerEvent(t *testing.T) {
 	cases := []struct {
 		Value    string
@@ -2395,6 +2451,44 @@ resource "aws_codedeploy_deployment_group" "foo_group" {
   blue_green_deployment_config {
     deployment_ready_option {
       action_on_timeout = "CONTINUE_DEPLOYMENT"
+    }
+
+    green_fleet_provisioning_option {
+      action = "DISCOVER_EXISTING"
+    }
+
+    terminate_blue_instances_on_deployment_success {
+      action = "KEEP_ALIVE"
+    }
+  }
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func test_config_blue_green_deployment_complete(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+
+  deployment_style {
+    deployment_option = "WITH_TRAFFIC_CONTROL"
+    deployment_type = "BLUE_GREEN"
+  }
+
+  load_balancer_info {
+    elb_info {
+      name = "foo-elb"
+    }
+  }
+
+  blue_green_deployment_config {
+    deployment_ready_option {
+      action_on_timeout = "STOP_DEPLOYMENT"
+      wait_time_in_minutes = 60
     }
 
     green_fleet_provisioning_option {
