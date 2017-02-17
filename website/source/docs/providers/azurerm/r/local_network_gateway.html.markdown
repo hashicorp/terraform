@@ -35,11 +35,11 @@ The following arguments are supported:
 * `location` - (Required) The location/region where the local network gatway is
     created. Changing this forces a new resource to be created.
 
-* `gateway_address` - (Required) The IP address of the gatway to which to
+* `gateway_address` - (Required) The IP address of the gateway to which to
     connect.
 
 * `address_space` - (Required) The list of string CIDRs representing the
-    addredss spaces the gateway exposes.
+    address spaces the gateway exposes.
 
 ## Attributes Reference
 
