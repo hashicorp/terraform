@@ -147,6 +147,10 @@ func (s *LocalState) Lock(info *LockInfo) (string, error) {
 		}
 	}
 
+	if s.lockID != "" {
+		return "", fmt.Errorf("state %q already locked", s.stateFileOut.Name())
+	}
+
 	if err := s.lock(); err != nil {
 		info, infoErr := s.lockInfo()
 		if infoErr != nil {
