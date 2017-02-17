@@ -67,6 +67,11 @@ func resourceAwsElasticBeanstalkEnvironment() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"version_label": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 			"cname": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -196,6 +201,7 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 	tier := d.Get("tier").(string)
 	app := d.Get("application").(string)
 	desc := d.Get("description").(string)
+	version := d.Get("version_label").(string)
 	settings := d.Get("setting").(*schema.Set)
 	solutionStack := d.Get("solution_stack_name").(string)
 	templateName := d.Get("template_name").(string)
@@ -243,6 +249,10 @@ func resourceAwsElasticBeanstalkEnvironmentCreate(d *schema.ResourceData, meta i
 
 	if templateName != "" {
 		createOpts.TemplateName = aws.String(templateName)
+	}
+
+	if version != "" {
+		createOpts.VersionLabel = aws.String(version)
 	}
 
 	// Get the current time to filter describeBeanstalkEvents messages
@@ -387,6 +397,11 @@ func resourceAwsElasticBeanstalkEnvironmentUpdate(d *schema.ResourceData, meta i
 		}
 	}
 
+	if d.HasChange("version_label") {
+		hasChange = true
+		updateOpts.VersionLabel = aws.String(d.Get("version_label").(string))
+	}
+
 	if hasChange {
 		// Get the current time to filter describeBeanstalkEvents messages
 		t := time.Now()
@@ -486,6 +501,10 @@ func resourceAwsElasticBeanstalkEnvironmentRead(d *schema.ResourceData, meta int
 	}
 
 	if err := d.Set("cname", env.CNAME); err != nil {
+		return err
+	}
+
+	if err := d.Set("version_label", env.VersionLabel); err != nil {
 		return err
 	}
 
