@@ -18,7 +18,7 @@ resource "occi_virtual_machine" "vm" {
   image_template = ".../os_tpl#uuid_egi_centos_7_fedcloud_warg_149"
   resource_template = ".../flavour/1.0#large"
   endpoint = "..."
-  name = "test_vm_micro"
+  name = "test_vm_large"
   x509 = "/tmp/x509up_u1000"
   init_file = "/home/cloud-user/context"
 }
