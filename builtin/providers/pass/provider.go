@@ -23,6 +23,10 @@ func Provider() terraform.ResourceProvider {
 		DataSourcesMap: map[string]*schema.Resource{
 			"pass_password": passwordDataSource(),
 		},
+
+		ResourcesMap: map[string]*schema.Resource{
+			"pass_password": passPasswordResource(),
+		},
 	}
 }
 
