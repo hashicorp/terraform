@@ -80,6 +80,11 @@ func resourceDatadogMonitor() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"new_host_delay": {
+				Type:     schema.TypeInt,
+				Computed: true,
+				Optional: true,
+			},
 			"no_data_timeframe": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -152,6 +157,12 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 			s[k], _ = strconv.Atoi(v.(string))
 		}
 		o.Silenced = s
+	}
+	if attr, ok := d.GetOk("notify_no_data"); ok {
+		o.NotifyNoData = attr.(bool)
+	}
+	if attr, ok := d.GetOk("new_host_delay"); ok {
+		o.NewHostDelay = datadog.Int(attr.(int))
 	}
 	if attr, ok := d.GetOk("no_data_timeframe"); ok {
 		o.NoDataTimeframe = datadog.NoDataTimeframe(attr.(int))
@@ -268,6 +279,8 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("query", m.Query)
 	d.Set("type", m.Type)
 	d.Set("thresholds", thresholds)
+
+	d.Set("new_host_delay", m.Options.NewHostDelay)
 	d.Set("notify_no_data", m.Options.NotifyNoData)
 	d.Set("no_data_timeframe", m.Options.NoDataTimeframe)
 	d.Set("renotify_interval", m.Options.RenotifyInterval)
@@ -328,6 +341,12 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
+	if attr, ok := d.GetOk("notify_no_data"); ok {
+		o.NotifyNoData = attr.(bool)
+	}
+	if attr, ok := d.GetOk("new_host_delay"); ok {
+		o.NewHostDelay = datadog.Int(attr.(int))
+	}
 	if attr, ok := d.GetOk("no_data_timeframe"); ok {
 		o.NoDataTimeframe = datadog.NoDataTimeframe(attr.(int))
 	}

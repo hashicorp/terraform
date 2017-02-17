@@ -14,6 +14,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 // Client is the object that handles talking to the Datadog API. This maintains
@@ -22,7 +23,8 @@ type Client struct {
 	apiKey, appKey string
 
 	//The Http Client that is used to make requests
-	HttpClient *http.Client
+	HttpClient   *http.Client
+	RetryTimeout time.Duration
 }
 
 // valid is the struct to unmarshal validation endpoint responses into.
@@ -35,9 +37,10 @@ type valid struct {
 // methods. The expected argument is the API key.
 func NewClient(apiKey, appKey string) *Client {
 	return &Client{
-		apiKey:     apiKey,
-		appKey:     appKey,
-		HttpClient: http.DefaultClient,
+		apiKey:       apiKey,
+		appKey:       appKey,
+		HttpClient:   http.DefaultClient,
+		RetryTimeout: time.Duration(60 * time.Second),
 	}
 }
 
