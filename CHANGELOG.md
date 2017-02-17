@@ -14,7 +14,11 @@ IMPROVEMENTS:
  * core: "terraformrc" can contain env var references with $FOO [GH-11929]
  * provider/azurerm: Mark the azurerm_scale_set machine password as sensitive [GH-11982]
  * provider/azurerm: Mark the azurerm_sql_server admin password as sensitive [GH-12004]
- 
+
+BUG FIXES:
+
+ * core: targeting will remove untargeted providers [GH-12050]
+
 0.9.0-beta1 FIXES:
 
  * command/init: allow unsetting a backend properly [GH-11988]
@@ -62,7 +66,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * provider/datadog: Default notify_no_data on datadog_monitor to false ([#11903](https://github.com/hashicorp/terraform/issues/11903))
- 
+
 ## 0.8.7 (February 15, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
