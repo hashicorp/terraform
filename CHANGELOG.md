@@ -17,6 +17,7 @@ IMPROVEMENTS:
 Bug FIXES:
 
  * core: Fix a hang that could occur at the end of a Terraform command with custom plugins used [GH-12048]
+ * command/fmt: Fix incorrect formatting with single line object following complex object [GH-12049]
  * provider/aws: add bucket name to delete error notification [GH-11952]
  * provider/aws: Use proper Set for source.Auth in resource_aws_codebuild_project [GH-11741]
  * provider/cloudflare: add validation for proxied record types [GH-11993]
