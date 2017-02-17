@@ -153,6 +153,28 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 								},
 							},
 						},
+						"maintenance_window": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"day": &schema.Schema{
+										Type:         schema.TypeInt,
+										Optional:     true,
+										ValidateFunc: validateDay,
+									},
+									"hour": &schema.Schema{
+										Type:         schema.TypeInt,
+										Optional:     true,
+										ValidateFunc: validateHour,
+									},
+									"update_track": &schema.Schema{
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+								},
+							},
+						},
 						"pricing_plan": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -427,6 +449,32 @@ func resourceSqlDatabaseInstanceCreate(d *schema.ResourceData, meta interface{})
 
 			if vp, okp := _locationPreference["zone"]; okp {
 				settings.LocationPreference.Zone = vp.(string)
+			}
+		}
+	}
+
+	if v, ok := _settings["maintenance_window"]; ok {
+		_maintenanceWindowList := v.([]interface{})
+		if len(_maintenanceWindowList) > 1 {
+			return fmt.Errorf("At most one maintenance_window block is allowed")
+		}
+
+		if len(_maintenanceWindowList) == 1 && _maintenanceWindowList[0] != nil {
+			settings.MaintenanceWindow = &sqladmin.MaintenanceWindow{}
+			_maintenanceWindow := _maintenanceWindowList[0].(map[string]interface{})
+
+			if vp, okp := _maintenanceWindow["day"]; okp {
+				settings.MaintenanceWindow.Day = int64(vp.(int))
+			}
+
+			if vp, okp := _maintenanceWindow["hour"]; okp {
+				settings.MaintenanceWindow.Hour = int64(vp.(int))
+			}
+
+			if vp, ok := _maintenanceWindow["update_track"]; ok {
+				if len(vp.(string)) > 0 {
+					settings.MaintenanceWindow.UpdateTrack = vp.(string)
+				}
 			}
 		}
 	}
@@ -742,6 +790,34 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 
 			_locationPreferenceList[0] = _locationPreference
 			_settings["location_preference"] = _locationPreferenceList[0]
+		}
+	}
+
+	if v, ok := _settings["maintenance_window"]; ok {
+		_maintenanceWindowList := v.([]interface{})
+		if len(_maintenanceWindowList) > 1 {
+			return fmt.Errorf("At most one maintenance_window block is allowed")
+		}
+
+		if len(_maintenanceWindowList) == 1 && _maintenanceWindowList[0] != nil {
+			_maintenanceWindow := _maintenanceWindowList[0].(map[string]interface{})
+
+			if vp, okp := _maintenanceWindow["day"]; okp && vp != nil {
+				_maintenanceWindow["day"] = settings.MaintenanceWindow.Day
+			}
+
+			if vp, okp := _maintenanceWindow["hour"]; okp && vp != nil {
+				_maintenanceWindow["hour"] = settings.MaintenanceWindow.Hour
+			}
+
+			if vp, ok := _maintenanceWindow["update_track"]; ok && vp != nil {
+				if len(vp.(string)) > 0 {
+					_maintenanceWindow["update_track"] = settings.MaintenanceWindow.UpdateTrack
+				}
+			}
+
+			_maintenanceWindowList[0] = _maintenanceWindow
+			_settings["maintenance_window"] = _maintenanceWindowList
 		}
 	}
 
@@ -1062,6 +1138,32 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 			}
 		}
 
+		if v, ok := _settings["maintenance_window"]; ok {
+			_maintenanceWindowList := v.([]interface{})
+			if len(_maintenanceWindowList) > 1 {
+				return fmt.Errorf("At most one maintenance_window block is allowed")
+			}
+
+			if len(_maintenanceWindowList) == 1 && _maintenanceWindowList[0] != nil {
+				settings.MaintenanceWindow = &sqladmin.MaintenanceWindow{}
+				_maintenanceWindow := _maintenanceWindowList[0].(map[string]interface{})
+
+				if vp, okp := _maintenanceWindow["day"]; okp {
+					settings.MaintenanceWindow.Day = int64(vp.(int))
+				}
+
+				if vp, okp := _maintenanceWindow["hour"]; okp {
+					settings.MaintenanceWindow.Hour = int64(vp.(int))
+				}
+
+				if vp, ok := _maintenanceWindow["update_track"]; ok {
+					if len(vp.(string)) > 0 {
+						settings.MaintenanceWindow.UpdateTrack = vp.(string)
+					}
+				}
+			}
+		}
+
 		if v, ok := _settings["pricing_plan"]; ok {
 			settings.PricingPlan = v.(string)
 		}
@@ -1108,4 +1210,21 @@ func resourceSqlDatabaseInstanceDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	return nil
+}
+
+func validateDay(v interface{}, k string) (ws []string, errors []error) {
+	return validateNumericRange(v, k, 1, 7)
+}
+
+func validateHour(v interface{}, k string) (ws []string, errors []error) {
+	return validateNumericRange(v, k, 0, 23)
+}
+
+func validateNumericRange(v interface{}, k string, min int, max int) (ws []string, errors []error) {
+	value := v.(int)
+	if min > value || value > max {
+		errors = append(errors, fmt.Errorf(
+			"%q outside range %d-%d.", k, min, max))
+	}
+	return
 }
