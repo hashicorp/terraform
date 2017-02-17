@@ -154,6 +154,7 @@ order to destroy the Service, set `force_destroy` to `true`. Default `false`.
 Defined below.
 * `papertrail` - (Optional) A Papertrail endpoint to send streaming logs too.
 Defined below.
+* `response_object` - (Optional) Allows you to create synthetic responses that exist entirely on the varnish machine. Useful for creating error or maintenance pages that exists outside the scope of your datacenter. Best when used with Condition objects.
 * `vcl` - (Optional) A set of custom VCL configuration blocks. The
 ability to upload custom VCL code is not enabled by default for new Fastly
 accounts (see the [Fastly documentation](https://docs.fastly.com/guides/vcl/uploading-custom-vcl) for details).
@@ -313,6 +314,18 @@ The `papertrail` block supports:
 * `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals,
 see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
+The `response_object` block supports:
+
+* `name` - (Required) A unique name to identify this Response Object.
+* `status` - (Optional) The HTTP Status Code. Default `200`.
+* `response` - (Optional) The HTTP Response. Default `Ok`.
+* `content` - (Optional) The content to deliver for the response object.
+* `content_type` - (Optional) The MIME type of the content.
+* `request_condition` - (Optional) Name of already defined `condition` to be checked during the request phase. If the condition passes then this object will be delivered. This `condition` must be of type `REQUEST`.
+* `cache_condition` - (Optional) Name of already defined `condition` to check after we have retrieved an object. If the condition passes then deliver this Request Object instead. This `condition` must be of type `CACHE`. For detailed information about Conditionals,
+see [Fastly's Documentation on Conditionals][fastly-conditionals].
+
+
 The `vcl` block supports:
 
 * `name` - (Required) A unique name for this configuration block.
@@ -334,6 +347,7 @@ Service.
 * `header` – Set of Headers. See above for details.
 * `s3logging` – Set of S3 Logging configurations. See above for details.
 * `papertrail` – Set of Papertrail configurations. See above for details.
+* `response_object` - Set of Response Object configurations. See above for details.
 * `vcl` – Set of custom VCL configurations. See above for details.
 * `default_host` – Default host specified.
 * `default_ttl` - Default TTL.
