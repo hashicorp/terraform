@@ -1746,6 +1746,23 @@ func resourceServiceV1Read(d *schema.ResourceData, meta interface{}) error {
 			log.Printf("[WARN] Error setting Papertrail for (%s): %s", d.Id(), err)
 		}
 
+		// refresh Response Objects
+		log.Printf("[DEBUG] Refreshing Response Object for (%s)", d.Id())
+		responseObjectList, err := conn.ListResponseObjects(&gofastly.ListResponseObjectsInput{
+			Service: d.Id(),
+			Version: s.ActiveVersion.Number,
+		})
+
+		if err != nil {
+			return fmt.Errorf("[ERR] Error looking up Response Object for (%s), version (%s): %s", d.Id(), s.ActiveVersion.Number, err)
+		}
+
+		rol := flattenResponseObjects(responseObjectList)
+
+		if err := d.Set("response_object", rol); err != nil {
+			log.Printf("[WARN] Error setting Response Object for (%s): %s", d.Id(), err)
+		}
+
 		// refresh Conditions
 		log.Printf("[DEBUG] Refreshing Conditions for (%s)", d.Id())
 		conditionList, err := conn.ListConditions(&gofastly.ListConditionsInput{
@@ -2165,6 +2182,33 @@ func flattenPapertrails(papertrailList []*gofastly.Papertrail) []map[string]inte
 	}
 
 	return pl
+}
+
+func flattenResponseObjects(responseObjectList []*gofastly.ResponseObject) []map[string]interface{} {
+	var rol []map[string]interface{}
+	for _, ro := range responseObjectList {
+		// Convert ResponseObjects to a map for saving to state.
+		nro := map[string]interface{}{
+			"name":              ro.Name,
+			"status":            ro.Status,
+			"response":          ro.Response,
+			"content":           ro.Content,
+			"content_type":      ro.ContentType,
+			"request_condition": ro.RequestCondition,
+			"cache_condition":   ro.CacheCondition,
+		}
+
+		// prune any empty values that come from the default string value in structs
+		for k, v := range nro {
+			if v == "" {
+				delete(nro, k)
+			}
+		}
+
+		rol = append(rol, nro)
+	}
+
+	return rol
 }
 
 func flattenConditions(conditionList []*gofastly.Condition) []map[string]interface{} {
