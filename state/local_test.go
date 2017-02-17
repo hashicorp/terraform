@@ -73,6 +73,30 @@ func TestLocalStateLocks(t *testing.T) {
 	}
 }
 
+// Verify that we can write to the state file, as Windows' mandatory locking
+// will prevent writing to a handle different than the one that hold the lock.
+func TestLocalState_writeWhileLocked(t *testing.T) {
+	s := testLocalState(t)
+	defer os.Remove(s.Path)
+
+	// lock first
+	info := NewLockInfo()
+	info.Operation = "test"
+	lockID, err := s.Lock(info)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := s.Unlock(lockID); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	if err := s.WriteState(TestStateInitial()); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestLocalState_pathOut(t *testing.T) {
 	f, err := ioutil.TempFile("", "tf")
 	if err != nil {
