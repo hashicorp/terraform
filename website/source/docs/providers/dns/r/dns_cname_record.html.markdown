@@ -1,12 +1,12 @@
 ---
 layout: "dns"
 page_title: "DNS: dns_cname_record"
-sidebar_current: "docs-dns-record"
+sidebar_current: "docs-dns-cname-record"
 description: |-
   Creates a CNAME type DNS record.
 ---
 
-# dns\_ptr\_record
+# dns\_cname\_record
 
 Creates a CNAME type DNS record.
 
