@@ -240,7 +240,7 @@ func resourceAwsEcsServiceCreate(d *schema.ResourceData, meta interface{}) error
 		return nil
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("%s %q", err, d.Get("name").(string))
 	}
 
 	service := *out.Service
