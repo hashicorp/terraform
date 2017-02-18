@@ -25,6 +25,7 @@ import (
 	backendlegacy "github.com/hashicorp/terraform/backend/legacy"
 	backendlocal "github.com/hashicorp/terraform/backend/local"
 	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
+	backendinmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
 )
 
 // BackendOpts are the options used to initialize a backend.Backend.
@@ -1409,6 +1410,7 @@ func init() {
 	Backends = map[string]func() backend.Backend{
 		"local":  func() backend.Backend { return &backendlocal.Local{} },
 		"consul": func() backend.Backend { return backendconsul.New() },
+		"inmem":  func() backend.Backend { return backendinmem.New() },
 	}
 
 	// Add the legacy remote backends that haven't yet been convertd to
