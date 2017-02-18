@@ -150,7 +150,7 @@ create the virtual machine, but fail with the following error message:
 Customization of the guest operating system 'debian6_64Guest' is not
 supported in this configuration. Microsoft Vista (TM) and Linux guests with
 Logical Volume Manager are supported only for recent ESX host and VMware Tools
-versions. Refer to vCenter documentation for supported configurations.  ```
+versions. Refer to vCenter documentation for supported configurations.
 ```
 
 In order to skip the customization step for unsupported operating systems, use
