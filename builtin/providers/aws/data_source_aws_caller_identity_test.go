@@ -39,6 +39,14 @@ func testAccCheckAwsCallerIdentityAccountId(n string) resource.TestCheckFunc {
 			return fmt.Errorf("Incorrect Account ID: expected %q, got %q", expected, rs.Primary.Attributes["account_id"])
 		}
 
+		if rs.Primary.Attributes["user_id"] == "" {
+			return fmt.Errorf("Missing user_id")
+		}
+
+		if rs.Primary.Attributes["user_id"] == "" {
+			return fmt.Errorf("Missing user_name")
+		}
+
 		return nil
 	}
 }
