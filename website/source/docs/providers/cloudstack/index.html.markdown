@@ -27,7 +27,7 @@ provider "cloudstack" {
 
 # Create a web server
 resource "cloudstack_instance" "web" {
-    ...
+    # ...
 }
 ```
 

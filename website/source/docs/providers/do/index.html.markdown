@@ -28,7 +28,7 @@ provider "digitalocean" {
 
 # Create a web server
 resource "digitalocean_droplet" "web" {
-    ...
+    # ...
 }
 ```
 

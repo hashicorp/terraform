@@ -51,7 +51,7 @@ data "aws_kms_secret" "db" {
 resource "aws_rds_cluster" "rds" {
     master_username = "root"
     master_password = "${data.aws_kms_secret.db.master_password}"
-    ...
+    # ...
 }
 ```
 

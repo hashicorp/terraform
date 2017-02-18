@@ -41,7 +41,7 @@ resource "vcd_firewall_rules" "fw" {
 }
 
 resource "vcd_vapp" "web" {
-    ...
+    # ...
 }
 
 resource "vcd_firewall_rules" "fw-web" {

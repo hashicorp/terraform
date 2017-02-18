@@ -27,7 +27,7 @@ provider "cobbler" {
 
 # Create a Cobbler Distro
 resource "cobbler_distro" "ubuntu-1404-x86_64" {
-    ...
+    # ...
 }
 ```
 

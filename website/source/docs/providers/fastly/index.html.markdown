@@ -27,7 +27,7 @@ provider "fastly" {
 # Create a Service  
 resource "fastly_service_v1" "myservice" {
   name = "myawesometestservice"
-  ...
+  # ...
 }
 ```
 
@@ -54,7 +54,7 @@ provider "fastly" {
 }
 
 resource "fastly_service_v1" "myservice" {
-  ...
+  # ...
 }
 ```
 
@@ -68,7 +68,7 @@ Fastly `provider` block entirely:
 
 ```
 resource "fastly_service_v1" "myservice" {
-  ...
+  # ...
 }
 ```
 

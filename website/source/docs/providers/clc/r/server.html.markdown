@@ -167,7 +167,7 @@ Example:
 ```
 # Configure the CLC Provider
 provider "clc_server" "ubuntu" {
-  ...
+  # ...
   packages
     {
       id = "77abb844-579d-478d-3955-c69ab4a7ba1a"

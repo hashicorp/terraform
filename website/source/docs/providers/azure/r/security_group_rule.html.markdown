@@ -26,11 +26,11 @@ updating the state with regards to them.
 
 ```
 resource "azure_security_group" "web" {
-    ...
+    # ...
 }
 
 resource "azure_security_group" "apps" {
-    ...
+    # ...
 }
 
 resource "azure_security_group_rule" "ssh_access" {

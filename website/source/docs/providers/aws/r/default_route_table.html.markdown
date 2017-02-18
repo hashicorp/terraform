@@ -46,7 +46,7 @@ a conflict of rule settings and will overwrite routes.
 resource "aws_default_route_table" "r" {
     default_route_table_id = "${aws_vpc.foo.default_route_table_id}"
     route {
-        ...
+        # ...
     }
 
 	tags {

@@ -25,7 +25,7 @@ provider "heroku" {
 
 # Create a new application
 resource "heroku_app" "default" {
-    ...
+    # ...
 }
 ```
 

@@ -42,7 +42,7 @@ provider "profitbricks" {
 
 
 resource "profitbricks_datacenter" "main" {
-  ...
+  # ...
 }   
 ```
 

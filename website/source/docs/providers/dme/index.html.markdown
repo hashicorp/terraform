@@ -27,7 +27,7 @@ provider "dme" {
 # Create an A record
 resource "dme_record" "www" {
     domainid = "123456"
-    ...
+    # ...
 }
 ```
 

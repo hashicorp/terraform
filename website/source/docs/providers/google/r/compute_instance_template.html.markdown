@@ -79,12 +79,12 @@ resource "google_compute_instance_template" "instance_template" {
 
     // boot disk
     disk {
-      ...
+      # ...
     }
 
     // networking
     network_interface {
-      ...
+      # ...
     }
 
     lifecycle {

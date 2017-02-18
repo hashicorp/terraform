@@ -20,7 +20,7 @@ provisioner supports both `ssh` and `winrm` type [connections](/docs/provisioner
 ```
 # Run puppet and join our Consul cluster
 resource "aws_instance" "web" {
-    ...
+    # ...
     provisioner "remote-exec" {
         inline = [
         "puppet apply",
@@ -55,7 +55,7 @@ and then use `inline` to call it. Example:
 
 ```
 resource "aws_instance" "web" {
-    ...
+    # ...
 
     provisioner "file" {
         source = "script.sh"

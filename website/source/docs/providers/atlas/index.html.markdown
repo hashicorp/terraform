@@ -26,7 +26,7 @@ provider "atlas" {
 
 # Fetch an artifact configuration
 data "atlas_artifact" "web" {
-    ...
+    # ...
 }
 ```
 

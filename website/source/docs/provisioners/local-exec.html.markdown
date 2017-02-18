@@ -22,7 +22,7 @@ such as `sshd` may not be started yet on compute resources.
 ```
 # Join the newly created machine to our Consul cluster
 resource "aws_instance" "web" {
-    ...
+    # ...
     provisioner "local-exec" {
         command = "echo ${aws_instance.web.private_ip} >> private_ips.txt"
     }

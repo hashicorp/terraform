@@ -26,7 +26,7 @@ provider "dyn" {
 
 # Create a record
 resource "dyn_record" "www" {
-    ...
+    # ...
 }
 ```
 

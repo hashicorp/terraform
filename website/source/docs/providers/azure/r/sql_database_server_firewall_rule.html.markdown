@@ -14,11 +14,11 @@ Defines a new Firewall Rule to be applied across the given Database Servers.
 
 ```
 resource "azure_sql_database_server" "sql-serv1" {
-    ...
+    # ...
 }
 
 resource "azure_sql_database_server" "sql-serv2" {
-    ...
+    # ...
 }
 
 resource "azure_sql_database_server_firewall_rule" "constraint" {

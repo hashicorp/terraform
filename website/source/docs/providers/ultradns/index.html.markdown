@@ -26,7 +26,7 @@ provider "ultradns" {
 
 # Create a record
 resource "ultradns_record" "www" {
-    ...
+    # ...
 }
 ```
 

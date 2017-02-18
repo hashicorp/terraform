@@ -30,7 +30,7 @@ provider "vcd" {
 
 # Create a new network
 resource "vcd_network" "net" {
-    ...
+    # ...
 }
 ```
 

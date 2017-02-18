@@ -24,7 +24,7 @@ provider "opsgenie" {
 
 # Create a user
 resource "opsgenie_user" "test" {
-    ...
+    # ...
 }
 ```
 

@@ -26,7 +26,7 @@ provider "aws" {
 
 # Create a web server
 resource "aws_instance" "web" {
-    ...
+    # ...
 }
 ```
 

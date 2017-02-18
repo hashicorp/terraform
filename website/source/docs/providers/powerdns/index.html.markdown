@@ -24,7 +24,7 @@ provider "powerdns" {
 
 # Create a record
 resource "powerdns_record" "www" {
-    ...
+    # ...
 }
 ```
 

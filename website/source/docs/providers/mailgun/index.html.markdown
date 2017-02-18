@@ -24,7 +24,7 @@ provider "mailgun" {
 
 # Create a new domain
 resource "mailgun_domain" "default" {
-    ...
+    # ...
 }
 ```
 

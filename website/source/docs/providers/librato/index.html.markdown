@@ -25,7 +25,7 @@ provider "librato" {
 
 # Create a new space
 resource "librato_space" "default" {
-    ...
+    # ...
 }
 ```
 

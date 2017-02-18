@@ -30,7 +30,7 @@ provider "clc" {
 
 # Create a server
 resource "clc_server" "node" {
-    ...
+    # ...
 }
 ```
 

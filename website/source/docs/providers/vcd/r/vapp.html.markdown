@@ -15,7 +15,7 @@ modify, and delete vApps.
 
 ```
 resource "vcd_network" "net" {
-    ...
+    # ...
 }
 
 resource "vcd_vapp" "web" {

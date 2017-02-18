@@ -25,7 +25,7 @@ Without these prerequisites, your provisioning execution will fail.
 ```
 # Start a initial chef run on a resource
 resource "aws_instance" "web" {
-    ...
+    # ...
     provisioner "chef"  {
         attributes_json = <<-EOF
         {

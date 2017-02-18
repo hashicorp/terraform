@@ -16,7 +16,7 @@ supports both `ssh` and `winrm` type [connections](/docs/provisioners/connection
 
 ```
 resource "aws_instance" "web" {
-    ...
+    # ...
 
     # Copies the myapp.conf file to /etc/myapp.conf
     provisioner "file" {

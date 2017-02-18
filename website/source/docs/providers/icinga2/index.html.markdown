@@ -27,7 +27,7 @@ provider "icinga2" {
 
 # Configure a host
 resouce "icinga2_host" "web-server"{
-  ...
+  # ...
 }
 ```
 

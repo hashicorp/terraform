@@ -25,7 +25,7 @@ provider "cloudflare" {
 
 # Create a record
 resource "cloudflare_record" "www" {
-    ...
+    # ...
 }
 ```
 

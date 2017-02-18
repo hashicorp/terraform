@@ -71,7 +71,7 @@ In these cases, you can't use a relative path, since paths in Terraform are gene
 
 ```
 resource "aws_instance" "server" {
-	...
+	# ...
 
 	provisioner "remote-exec" {
 		script = "${path.module}/script.sh"

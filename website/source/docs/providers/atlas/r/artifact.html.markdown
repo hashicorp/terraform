@@ -38,7 +38,7 @@ resource "atlas_artifact" "web" {
 # Remember to include the AWS region as it is part of the full ID
 resource "aws_instance" "app" {
     ami = "${atlas_artifact.web.metadata_full.region-us-east-1}"
-    ...
+    # ...
 }
 ```
 

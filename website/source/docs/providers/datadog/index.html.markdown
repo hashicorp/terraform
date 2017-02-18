@@ -25,12 +25,12 @@ provider "datadog" {
 
 # Create a new monitor 
 resource "datadog_monitor" "default" {
-    ...
+    # ...
 }
 
 # Create a new timeboard
 resource "datadog_timeboard" "default" {
-    ...
+    # ...
 }
 ```
 
