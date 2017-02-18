@@ -189,7 +189,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	asc.Sender = autorest.CreateSender(withRequestLogging())
 	client.availSetClient = asc
 
-	uoc := compute.NewUsageOperationsClientWithBaseURI(endpoint, c.SubscriptionID)
+	uoc := compute.NewUsageClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&uoc.Client)
 	uoc.Authorizer = spt
 	uoc.Sender = autorest.CreateSender(withRequestLogging())
@@ -351,7 +351,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	tc.Sender = autorest.CreateSender(withRequestLogging())
 	client.tagsClient = tc
 
-	rf := resources.NewClientWithBaseURI(endpoint, c.SubscriptionID)
+	rf := resources.NewGroupClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&rf.Client)
 	rf.Authorizer = spt
 	rf.Sender = autorest.CreateSender(withRequestLogging())
@@ -411,7 +411,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	tmec.Sender = autorest.CreateSender(withRequestLogging())
 	client.trafficManagerEndpointsClient = tmec
 
-	rdc := redis.NewClientWithBaseURI(endpoint, c.SubscriptionID)
+	rdc := redis.NewGroupClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&rdc.Client)
 	rdc.Authorizer = spt
 	rdc.Sender = autorest.CreateSender(withRequestLogging())
