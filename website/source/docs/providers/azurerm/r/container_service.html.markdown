@@ -213,4 +213,4 @@ The following attributes are exported:
 
 * `agent_pool_profile.fqdn` - FDQN for the agent pool.
 
-* `diagnostics_profile.storage_uri` - The FQDN associated with the Master Profile.
+* `diagnostics_profile.storage_uri` - The URI of the storage account where diagnostics are stored.
