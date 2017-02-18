@@ -88,8 +88,9 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"action_on_timeout": &schema.Schema{
-										Type:     schema.TypeString,
-										Optional: true,
+										Type:         schema.TypeString,
+										Optional:     true,
+										ValidateFunc: validateDeploymentReadyOption,
 									},
 									"wait_time_in_minutes": &schema.Schema{
 										Type:     schema.TypeInt,
@@ -106,8 +107,9 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"action": &schema.Schema{
-										Type:     schema.TypeString,
-										Optional: true,
+										Type:         schema.TypeString,
+										Optional:     true,
+										ValidateFunc: validateGreenFleetProvisioningOption,
 									},
 								},
 							},
@@ -120,8 +122,9 @@ func resourceAwsCodeDeployDeploymentGroup() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"action": &schema.Schema{
-										Type:     schema.TypeString,
-										Optional: true,
+										Type:         schema.TypeString,
+										Optional:     true,
+										ValidateFunc: validateBlueInstanceTerminationOption,
 									},
 									"termination_wait_time_in_minutes": &schema.Schema{
 										Type:     schema.TypeInt,
@@ -1032,6 +1035,45 @@ func validateDeploymentType(v interface{}, k string) (ws []string, errors []erro
 
 	if !validTypes[value] {
 		errors = append(errors, fmt.Errorf("%q must be a valid deployment type: %q", k, value))
+	}
+	return
+}
+
+func validateDeploymentReadyOption(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	validOptions := map[string]bool{
+		"CONTINUE_DEPLOYMENT": true,
+		"STOP_DEPLOYMENT":     true,
+	}
+
+	if !validOptions[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid deployment_ready_option:action_on_timeout value: %q", k, value))
+	}
+	return
+}
+
+func validateGreenFleetProvisioningOption(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	validOptions := map[string]bool{
+		"DISCOVER_EXISTING":       true,
+		"COPY_AUTO_SCALING_GROUP": true,
+	}
+
+	if !validOptions[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid green_fleet_provisioning_option:action value: %q", k, value))
+	}
+	return
+}
+
+func validateBlueInstanceTerminationOption(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	validOptions := map[string]bool{
+		"TERMINATE":  true,
+		"KEEP_ALIVE": true,
+	}
+
+	if !validOptions[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid terminate_blue_instances_on_deployment_success:action value: %q", k, value))
 	}
 	return
 }

@@ -1586,7 +1586,7 @@ func TestAWSCodeDeployDeploymentGroup_validateDeploymentOption(t *testing.T) {
 	for _, tc := range cases {
 		_, errors := validateDeploymentOption(tc.Value, "deployment_option")
 		if len(errors) != tc.ErrCount {
-			t.Fatalf("DeploymentOption validation failed for value %q: %q", tc.Value, errors)
+			t.Fatalf("deployment_option validation failed for value %q: %q", tc.Value, errors)
 		}
 	}
 }
@@ -1621,7 +1621,108 @@ func TestAWSCodeDeployDeploymentGroup_validateDeploymentType(t *testing.T) {
 	for _, tc := range cases {
 		_, errors := validateDeploymentType(tc.Value, "deployment_type")
 		if len(errors) != tc.ErrCount {
-			t.Fatalf("DeploymentType validation failed for value %q: %q", tc.Value, errors)
+			t.Fatalf("deployment_type validation failed for value %q: %q", tc.Value, errors)
+		}
+	}
+}
+
+func TestAWSCodeDeployDeploymentGroup_validateDeploymentReadyOption(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "CONTINUE_DEPLOYMENT",
+			ErrCount: 0,
+		},
+		{
+			Value:    "STOP_DEPLOYMENT",
+			ErrCount: 0,
+		},
+		{
+			Value:    "NOT_A_VALID_OPTION",
+			ErrCount: 1,
+		},
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateDeploymentReadyOption(tc.Value, "action_on_timeout")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("action_on_timeout validation failed for value %q: %q", tc.Value, errors)
+		}
+	}
+}
+
+func TestAWSCodeDeployDeploymentGroup_validateGreenFleetProvisioningOption(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "DISCOVER_EXISTING",
+			ErrCount: 0,
+		},
+		{
+			Value:    "COPY_AUTO_SCALING_GROUP",
+			ErrCount: 0,
+		},
+		{
+			Value:    "DISCOVER_AUTO_SCALING_GROUP",
+			ErrCount: 1,
+		},
+		{
+			Value:    "COPY_EXISTING_INSTANCES",
+			ErrCount: 1,
+		},
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateGreenFleetProvisioningOption(tc.Value, "action")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("action validation failed for value %q: %q", tc.Value, errors)
+		}
+	}
+}
+
+func TestAWSCodeDeployDeploymentGroup_validateBlueInstanceTerminationOption(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "KEEP_ALIVE",
+			ErrCount: 0,
+		},
+		{
+			Value:    "TERMINATE",
+			ErrCount: 0,
+		},
+		{
+			Value:    "KEEP",
+			ErrCount: 1,
+		},
+		{
+			Value:    "STOP",
+			ErrCount: 1,
+		},
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateBlueInstanceTerminationOption(tc.Value, "action")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("action validation failed for value %q: %q", tc.Value, errors)
 		}
 	}
 }
