@@ -14,7 +14,7 @@ Assigns a secondary IP to a NIC.
 
 ```
 resource "cloudstack_secondary_ipaddress" "default" {
-	virtual_machine_id = "server-1"
+  virtual_machine_id = "server-1"
 }
 ```
 

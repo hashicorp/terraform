@@ -18,14 +18,15 @@ in all regions - available regions are listed
 
 ```
 resource "aws_codecommit_trigger" "test" {
-   depends_on = ["aws_codecommit_repository.test"]
-   repository_name = "my_test_repository"
-    trigger {
-      name = "noname"
-      events = ["all"]
-      destination_arn = "${aws_sns_topic.test.arn}"
+  depends_on      = ["aws_codecommit_repository.test"]
+  repository_name = "my_test_repository"
+
+  trigger {
+    name            = "noname"
+    events          = ["all"]
+    destination_arn = "${aws_sns_topic.test.arn}"
   }
- }
+}
 ```
 
 ## Argument Reference

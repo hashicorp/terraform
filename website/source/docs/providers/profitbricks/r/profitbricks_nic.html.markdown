@@ -15,10 +15,10 @@ Manages a NICs on ProfitBricks
 ```
 resource "profitbricks_nic" "example" {
   datacenter_id = "${profitbricks_datacenter.example.id}"
-  server_id = "${profitbricks_server.example.id}"
-  lan = 2
-  dhcp = true
-  ip = "${profitbricks_ipblock.example.ip}"
+  server_id     = "${profitbricks_server.example.id}"
+  lan           = 2
+  dhcp          = true
+  ip            = "${profitbricks_ipblock.example.ip}"
 }
 ```
 

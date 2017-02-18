@@ -14,10 +14,9 @@ The Images data source list image resource list contains private images of the u
 
 ```
 data "alicloud_images" "multi_image" {
-	owners = "system"
-	name_regex = "^centos_6"
+  owners     = "system"
+  name_regex = "^centos_6"
 }
-
 ```
 
 ## Argument Reference

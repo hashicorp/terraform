@@ -31,8 +31,8 @@ provider "azurerm" {
 
 # Create a resource group
 resource "azurerm_resource_group" "production" {
-    name     = "production"
-    location = "West US"
+  name     = "production"
+  location = "West US"
 }
 
 # Create a virtual network in the web_servers resource group
@@ -57,7 +57,6 @@ resource "azurerm_virtual_network" "network" {
     address_prefix = "10.0.3.0/24"
   }
 }
-
 ```
 
 ## Argument Reference

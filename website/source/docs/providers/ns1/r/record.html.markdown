@@ -18,21 +18,25 @@ resource "ns1_zone" "tld" {
 }
 
 resource "ns1_record" "www" {
-  zone = "${ns1_zone.tld.id}"
+  zone   = "${ns1_zone.tld.id}"
   domain = "www.${ns1_zone.tld.zone}"
-  type = "CNAME"
-  ttl = 60
+  type   = "CNAME"
+  ttl    = 60
 
   answers = {
     answer = ["sub1.${ns1_zone.tld.zone}"]
   }
+
   answer = {
     answer = ["sub2.${ns1_zone.tld.zone}"]
   }
 
   filters = {
     filter = "select_first_n"
-    config = {N=1}
+
+    config = {
+      N = 1
+    }
   }
 }
 ```

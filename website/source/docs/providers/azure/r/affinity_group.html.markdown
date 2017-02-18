@@ -14,10 +14,10 @@ Creates a new affinity group on Azure.
 
 ```
 resource "azure_affinity_group" "terraform-main-group" {
-    name = "terraform-group"
-    location = "North Europe"
-    label = "tf-group-01"
-    description = "Affinity group created by Terraform."
+  name        = "terraform-group"
+  location    = "North Europe"
+  label       = "tf-group-01"
+  description = "Affinity group created by Terraform."
 }
 ```
 

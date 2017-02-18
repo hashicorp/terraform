@@ -24,8 +24,8 @@ Here is an example that will setup the following:
 ```hcl
 provider "scaleway" {
   organization = ""
-  access_key = ""
-  region = "par1"
+  access_key   = ""
+  region       = "par1"
 }
 
 resource "scaleway_ip" "ip" {
@@ -33,15 +33,15 @@ resource "scaleway_ip" "ip" {
 }
 
 resource "scaleway_server" "test" {
-  name = "test"
+  name  = "test"
   image = "aecaed73-51a5-4439-a127-6d8229847145"
-  type = "C2S"
+  type  = "C2S"
 }
 
 resource "scaleway_volume" "test" {
-  name = "test"
+  name       = "test"
   size_in_gb = 20
-  type = "l_ssd"
+  type       = "l_ssd"
 }
 
 resource "scaleway_volume_attachment" "test" {
@@ -50,30 +50,29 @@ resource "scaleway_volume_attachment" "test" {
 }
 
 resource "scaleway_security_group" "http" {
-  name = "http"
+  name        = "http"
   description = "allow HTTP and HTTPS traffic"
 }
 
 resource "scaleway_security_group_rule" "http_accept" {
   security_group = "${scaleway_security_group.http.id}"
 
-  action = "accept"
+  action    = "accept"
   direction = "inbound"
-  ip_range = "0.0.0.0/0"
-  protocol = "TCP"
-  port = 80
+  ip_range  = "0.0.0.0/0"
+  protocol  = "TCP"
+  port      = 80
 }
 
 resource "scaleway_security_group_rule" "https_accept" {
   security_group = "${scaleway_security_group.http.id}"
 
-  action = "accept"
+  action    = "accept"
   direction = "inbound"
-  ip_range = "0.0.0.0/0"
-  protocol = "TCP"
-  port = 443
+  ip_range  = "0.0.0.0/0"
+  protocol  = "TCP"
+  port      = 443
 }
-
 ```
 
 You'll need to provide your Scaleway organization access key
@@ -85,8 +84,8 @@ you can leave them out:
 ```
 provider "scaleway" {
   organization = ""
-  token = ""
-  region = "par1"
+  token        = ""
+  region       = "par1"
 }
 ```
 

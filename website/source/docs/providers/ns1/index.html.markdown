@@ -23,7 +23,7 @@ provider "ns1" {
 
 # Create a new zone
 resource "ns1_zone" "foobar" {
-    # ...
+  # ...
 }
 ```
 

@@ -14,21 +14,21 @@ Create an Azure Storage Table.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
-    location = "westus"
+  name     = "acctestrg-%d"
+  location = "westus"
 }
 
 resource "azurerm_storage_account" "test" {
-    name = "acctestacc%s"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
-    account_type = "Standard_LRS"
+  name                = "acctestacc%s"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "westus"
+  account_type        = "Standard_LRS"
 }
 
 resource "azurerm_storage_table" "test" {
-    name = "mysampletable"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    storage_account_name = "${azurerm_storage_account.test.name}"
+  name                 = "mysampletable"
+  resource_group_name  = "${azurerm_resource_group.test.name}"
+  storage_account_name = "${azurerm_storage_account.test.name}"
 }
 ```
 

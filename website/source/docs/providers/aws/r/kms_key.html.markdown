@@ -14,8 +14,8 @@ Provides a KMS customer master key.
 
 ```
 resource "aws_kms_key" "a" {
-    description = "KMS key 1"
-    deletion_window_in_days = 10
+  description             = "KMS key 1"
+  deletion_window_in_days = 10
 }
 ```
 

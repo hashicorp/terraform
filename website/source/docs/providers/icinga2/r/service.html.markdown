@@ -16,12 +16,12 @@ and deleted.
 ```
 # Configure a new service to be monitored by an Icinga2 Server
 provider "icinga2" {
-  api_url=https://192.168.33.5:5665/v1
+  api_url = "https://192.168.33.5:5665/v1"
 }
 
 resource "icinga2_service" "my-service" {
-  hostname     = "c1-mysql-1"
-  servicename  = "ssh"
+  hostname      = "c1-mysql-1"
+  servicename   = "ssh"
   check_command = "ssh"
 }
 ```

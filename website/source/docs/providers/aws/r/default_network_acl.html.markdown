@@ -88,7 +88,6 @@ resource "aws_default_network_acl" "default" {
     from_port  = 0
     to_port    = 0
   }
-
 }
 ```
 
@@ -105,6 +104,7 @@ resource "aws_vpc" "mainvpc" {
 
 resource "aws_default_network_acl" "default" {
   default_network_acl_id = "${aws_vpc.mainvpc.default_network_acl_id}"
+
   # no rules defined, deny all traffic in this ACL
 }
 ```

@@ -14,7 +14,7 @@ provider.
 ## Example Usage
 
 ```
-data "azurerm_client_config" "current" { }
+data "azurerm_client_config" "current" {}
 
 output "account_id" {
   value = "${data.azurerm_client_config.current.account_id}"

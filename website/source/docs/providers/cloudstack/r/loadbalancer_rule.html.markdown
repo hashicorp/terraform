@@ -14,13 +14,13 @@ Creates a loadbalancer rule.
 
 ```
 resource "cloudstack_loadbalancer_rule" "default" {
-  name = "loadbalancer-rule-1"
-  description = "Loadbalancer rule 1"
+  name          = "loadbalancer-rule-1"
+  description   = "Loadbalancer rule 1"
   ip_address_id = "30b21801-d4b3-4174-852b-0c0f30bdbbfb"
-  algorithm = "roundrobin"
-  private_port = 80
-  public_port = 80
-  member_ids = ["f8141e2f-4e7e-4c63-9362-986c908b7ea7"]
+  algorithm     = "roundrobin"
+  private_port  = 80
+  public_port   = 80
+  member_ids    = ["f8141e2f-4e7e-4c63-9362-986c908b7ea7"]
 }
 ```
 

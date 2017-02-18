@@ -14,22 +14,24 @@ Provides a NS1 Monitoring Job resource. This can be used to create, modify, and 
 
 ```
 resource "ns1_monitoringjob" "uswest_monitor" {
-  name = "uswest"
-  active = true
-  regions = ["sjc", "sin", "lga"]
-  job_type = "tcp"
-  frequency = 60
+  name          = "uswest"
+  active        = true
+  regions       = ["sjc", "sin", "lga"]
+  job_type      = "tcp"
+  frequency     = 60
   rapid_recheck = true
-  policy = "quorum"
+  policy        = "quorum"
+
   config = {
     send = "HEAD / HTTP/1.0\r\n\r\n"
     port = 80
     host = "example-elb-uswest.aws.amazon.com"
   }
+
   rules = {
-    value = "200 OK"
+    value      = "200 OK"
     comparison = "contains"
-    key = "output"
+    key        = "output"
   }
 }
 ```

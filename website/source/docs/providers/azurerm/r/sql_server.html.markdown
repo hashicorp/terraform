@@ -14,20 +14,21 @@ Allows you to manage an Azure SQL Database Server
 
 ```
 resource "azurerm_resource_group" "test" {
-   name = "acceptanceTestResourceGroup1"
-   location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
-resource "azurerm_sql_server" "test" {
-    name = "mysqlserver"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "West US"
-    version = "12.0"
-    administrator_login = "mradministrator"
-    administrator_login_password = "thisIsDog11"
 
-    tags {
-    	environment = "production"
-    }
+resource "azurerm_sql_server" "test" {
+  name                         = "mysqlserver"
+  resource_group_name          = "${azurerm_resource_group.test.name}"
+  location                     = "West US"
+  version                      = "12.0"
+  administrator_login          = "mradministrator"
+  administrator_login_password = "thisIsDog11"
+
+  tags {
+    environment = "production"
+  }
 }
 ```
 ## Argument Reference

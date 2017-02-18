@@ -15,6 +15,7 @@ Provides a CodeBuild Project resource.
 ```
 resource "aws_iam_role" "codebuild_role" {
   name = "codebuild-role-"
+
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -32,10 +33,11 @@ EOF
 }
 
 resource "aws_iam_policy" "codebuild_policy" {
-    name        = "codebuild-policy"
-    path        = "/service-role/"
-    description = "Policy used in trust relationship with CodeBuild"
-    policy      = <<POLICY
+  name        = "codebuild-policy"
+  path        = "/service-role/"
+  description = "Policy used in trust relationship with CodeBuild"
+
+  policy = <<POLICY
 {
   "Version": "2012-10-17",
   "Statement": [

@@ -25,6 +25,7 @@ resource "aws_ecr_repository" "foo" {
 
 resource "aws_ecr_repository_policy" "foopolicy" {
   repository = "${aws_ecr_repository.foo.name}"
+
   policy = <<EOF
 {
     "Version": "2008-10-17",

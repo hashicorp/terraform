@@ -17,7 +17,7 @@ in the config will be removed.
 ```js
 resource "google_project_services" "project" {
   project_id = "your-project-id"
-  services = ["iam.googleapis.com", "cloudresourcemanager.googleapis.com"]
+  services   = ["iam.googleapis.com", "cloudresourcemanager.googleapis.com"]
 }
 ```
 

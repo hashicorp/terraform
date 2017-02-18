@@ -14,38 +14,38 @@ Network interface cards are virtual network cards that form the link between vir
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
-    location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_virtual_network" "test" {
-    name = "acceptanceTestVirtualNetwork1"
-    address_space = ["10.0.0.0/16"]
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "acceptanceTestVirtualNetwork1"
+  address_space       = ["10.0.0.0/16"]
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
 resource "azurerm_subnet" "test" {
-    name = "testsubnet"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    virtual_network_name = "${azurerm_virtual_network.test.name}"
-    address_prefix = "10.0.2.0/24"
+  name                 = "testsubnet"
+  resource_group_name  = "${azurerm_resource_group.test.name}"
+  virtual_network_name = "${azurerm_virtual_network.test.name}"
+  address_prefix       = "10.0.2.0/24"
 }
 
 resource "azurerm_network_interface" "test" {
-    name = "acceptanceTestNetworkInterface1"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "acceptanceTestNetworkInterface1"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 
-    ip_configuration {
-    	name = "testconfiguration1"
-    	subnet_id = "${azurerm_subnet.test.id}"
-    	private_ip_address_allocation = "dynamic"
-    }
+  ip_configuration {
+    name                          = "testconfiguration1"
+    subnet_id                     = "${azurerm_subnet.test.id}"
+    private_ip_address_allocation = "dynamic"
+  }
 
-    tags {
-	    environment = "staging"
-    }
+  tags {
+    environment = "staging"
+  }
 }
 ```
 

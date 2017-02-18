@@ -16,14 +16,15 @@ create and manage alerts on Librato.
 ```
 # Create a new Librato alert
 resource "librato_alert" "myalert" {
-    name = "MyAlert"
-    description = "A Test Alert"
-    services = [ "${librato_service.myservice.id}" ]
-    condition {
-      type = "above"
-      threshold = 10
-      metric_name = "librato.cpu.percent.idle"
-    }
+  name        = "MyAlert"
+  description = "A Test Alert"
+  services    = ["${librato_service.myservice.id}"]
+
+  condition {
+    type        = "above"
+    threshold   = 10
+    metric_name = "librato.cpu.percent.idle"
+  }
 }
 ```
 

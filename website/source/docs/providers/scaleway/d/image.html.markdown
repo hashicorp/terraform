@@ -16,13 +16,13 @@ Use this data source to get the ID of a registered Image for use with the
 ```
 data "scaleway_image" "ubuntu" {
   architecture = "arm"
-  name = "Ubuntu Precise"
+  name         = "Ubuntu Precise"
 }
 
 resource "scaleway_server" "base" {
-  name = "test"
+  name  = "test"
   image = "${data.scaleway_image.ubuntu.id}"
-  type = "C1"
+  type  = "C1"
 }
 ```
 

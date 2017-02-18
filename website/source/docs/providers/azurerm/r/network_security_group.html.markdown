@@ -14,32 +14,31 @@ Create a network security group that contains a list of network security rules.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
-    location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_network_security_group" "test" {
-    name = "acceptanceTestSecurityGroup1"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "acceptanceTestSecurityGroup1"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 
-    security_rule {
-    	name = "test123"
-    	priority = 100
-    	direction = "Inbound"
-    	access = "Allow"
-    	protocol = "Tcp"
-    	source_port_range = "*"
-    	destination_port_range = "*"
-    	source_address_prefix = "*"
-    	destination_address_prefix = "*"
-    }
+  security_rule {
+    name                       = "test123"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
 
-    tags {
-        environment = "Production"
-    }
+  tags {
+    environment = "Production"
+  }
 }
-
 ```
 
 ## Argument Reference

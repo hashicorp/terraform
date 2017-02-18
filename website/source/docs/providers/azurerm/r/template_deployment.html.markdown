@@ -14,14 +14,15 @@ Create a template deployment of resources
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-01"
-    location = "West US"
-  }
+  name     = "acctestrg-01"
+  location = "West US"
+}
 
-  resource "azurerm_template_deployment" "test" {
-    name = "acctesttemplate-01"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    template_body = <<DEPLOY
+resource "azurerm_template_deployment" "test" {
+  name                = "acctesttemplate-01"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+
+  template_body = <<DEPLOY
 {
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
@@ -72,8 +73,9 @@ resource "azurerm_resource_group" "test" {
   ]
 }
 DEPLOY
-    deployment_mode = "Complete"
-  }
+
+  deployment_mode = "Complete"
+}
 ```
 
 ## Argument Reference

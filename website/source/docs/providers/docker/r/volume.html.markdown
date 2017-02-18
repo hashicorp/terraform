@@ -17,10 +17,11 @@ to prepare volumes that can be shared across containers.
 ```
 # Creates a docker volume "shared_volume".
 resource "docker_volume" "shared_volume" {
-    name = "shared_volume"
+  name = "shared_volume"
 }
 
 # Reference the volume with ${docker_volume.shared_volume.name}
+
 ```
 
 ## Argument Reference

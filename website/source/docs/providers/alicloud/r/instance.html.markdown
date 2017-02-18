@@ -15,38 +15,38 @@ Provides a ECS instance resource.
 ```
 # Create a new ECS instance for classic
 resource "alicloud_security_group" "classic" {
-	name = "tf_test_foo"
-	description = "foo"
+  name        = "tf_test_foo"
+  description = "foo"
 }
 
 resource "alicloud_instance" "classic" {
-	# cn-beijing
-	availability_zone = "cn-beijing-b"
-	security_group_id = "${alicloud_security_group.classic.id}"
+  # cn-beijing
+  availability_zone = "cn-beijing-b"
+  security_group_id = "${alicloud_security_group.classic.id}"
 
-	allocate_public_ip = "true"
+  allocate_public_ip = "true"
 
-	# series II
-	instance_type = "ecs.n1.medium"
-	io_optimized = "optimized"
-	system_disk_category = "cloud_efficiency"
-	image_id = "ubuntu_140405_64_40G_cloudinit_20161115.vhd"
-	instance_name = "test_foo"
+  # series II
+  instance_type        = "ecs.n1.medium"
+  io_optimized         = "optimized"
+  system_disk_category = "cloud_efficiency"
+  image_id             = "ubuntu_140405_64_40G_cloudinit_20161115.vhd"
+  instance_name        = "test_foo"
 }
 
 # Create a new ECS instance for VPC
 resource "alicloud_vpc" "default" {
-	# Other parameters...
+  # Other parameters...
 }
 
 resource "alicloud_vswitch" "default" {
-	# Other parameters...
+  # Other parameters...
 }
 
 resource "alicloud_slb" "vpc" {
-	name = "test-slb-tf"
-	vpc_id =  "${alicloud_vpc.default.id}"
-	vswitch_id = "${alicloud_vswitch.default.id}"
+  name       = "test-slb-tf"
+  vpc_id     = "${alicloud_vpc.default.id}"
+  vswitch_id = "${alicloud_vswitch.default.id}"
 }
 ```
 

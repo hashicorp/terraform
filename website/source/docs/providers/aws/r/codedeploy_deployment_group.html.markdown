@@ -14,13 +14,14 @@ Provides a CodeDeploy deployment group for an application
 
 ```
 resource "aws_codedeploy_app" "foo_app" {
-    name = "foo_app"
+  name = "foo_app"
 }
 
 resource "aws_iam_role_policy" "foo_policy" {
-    name = "foo_policy"
-    role = "${aws_iam_role.foo_role.id}"
-    policy = <<EOF
+  name = "foo_policy"
+  role = "${aws_iam_role.foo_role.id}"
+
+  policy = <<EOF
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -46,8 +47,9 @@ EOF
 }
 
 resource "aws_iam_role" "foo_role" {
-    name = "foo_role"
-    assume_role_policy = <<EOF
+  name = "foo_role"
+
+  assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -67,31 +69,31 @@ EOF
 }
 
 resource "aws_codedeploy_deployment_group" "foo" {
-    app_name = "${aws_codedeploy_app.foo_app.name}"
-    deployment_group_name = "bar"
-    service_role_arn = "${aws_iam_role.foo_role.arn}"
+  app_name              = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "bar"
+  service_role_arn      = "${aws_iam_role.foo_role.arn}"
 
-    ec2_tag_filter {
-        key = "filterkey"
-        type = "KEY_AND_VALUE"
-        value = "filtervalue"
-    }
+  ec2_tag_filter {
+    key   = "filterkey"
+    type  = "KEY_AND_VALUE"
+    value = "filtervalue"
+  }
 
-    trigger_configuration {
-        trigger_events = ["DeploymentFailure"]
-        trigger_name = "foo-trigger"
-        trigger_target_arn = "foo-topic-arn"
-    }
+  trigger_configuration {
+    trigger_events     = ["DeploymentFailure"]
+    trigger_name       = "foo-trigger"
+    trigger_target_arn = "foo-topic-arn"
+  }
 
-    auto_rollback_configuration {
-      enabled = true
-      events = ["DEPLOYMENT_FAILURE"]
-    }
+  auto_rollback_configuration {
+    enabled = true
+    events  = ["DEPLOYMENT_FAILURE"]
+  }
 
-    alarm_configuration {
-      alarms = ["my-alarm-name"]
-      enabled = true
-    }
+  alarm_configuration {
+    alarms  = ["my-alarm-name"]
+    enabled = true
+  }
 }
 ```
 

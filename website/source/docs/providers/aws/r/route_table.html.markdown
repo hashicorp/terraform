@@ -20,15 +20,16 @@ a conflict of rule settings and will overwrite rules.
 
 ```
 resource "aws_route_table" "r" {
-    vpc_id = "${aws_vpc.default.id}"
-    route {
-        cidr_block = "10.0.1.0/24"
-        gateway_id = "${aws_internet_gateway.main.id}"
-    }
+  vpc_id = "${aws_vpc.default.id}"
 
-	tags {
-		Name = "main"
-	}
+  route {
+    cidr_block = "10.0.1.0/24"
+    gateway_id = "${aws_internet_gateway.main.id}"
+  }
+
+  tags {
+    Name = "main"
+  }
 }
 ```
 

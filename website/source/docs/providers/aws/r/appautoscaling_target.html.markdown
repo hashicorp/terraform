@@ -13,12 +13,12 @@ Provides an Application AutoScaling ScalableTarget resource.
 ## Example Usage
 ```
 resource "aws_appautoscaling_target" "ecs_target" {
-  max_capacity = 4
-  min_capacity = 1
-  resource_id = "service/clusterName/serviceName"
-  role_arn = "${var.ecs_iam_role}"
+  max_capacity       = 4
+  min_capacity       = 1
+  resource_id        = "service/clusterName/serviceName"
+  role_arn           = "${var.ecs_iam_role}"
   scalable_dimension = "ecs:service:DesiredCount"
-  service_namespace = "ecs"
+  service_namespace  = "ecs"
 }
 ```
 

@@ -14,18 +14,18 @@ Create an availability set for virtual machines.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "resourceGroup1"
-    location = "West US"
+  name     = "resourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_availability_set" "test" {
-    name = "acceptanceTestAvailabilitySet1"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "acceptanceTestAvailabilitySet1"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 
-    tags {
-        environment = "Production"
-    }
+  tags {
+    environment = "Production"
+  }
 }
 ```
 

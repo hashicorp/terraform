@@ -22,30 +22,28 @@ Resources and Documentation:
 ```
 # Provision a server
 resource "clc_server" "node" {
-  name_template = "trusty"
+  name_template    = "trusty"
   source_server_id = "UBUNTU-14-64-TEMPLATE"
-  group_id = "${clc_group.frontends.id}"
-  cpu = 2
-  memory_mb = 2048
-  password = "Green123$"
-  additional_disks
-    {
-        path = "/var"
-        size_gb = 100
-        type = "partitioned"
-    }
-  additional_disks
-    {
-        size_gb = 10
-        type = "raw"
-    }
+  group_id         = "${clc_group.frontends.id}"
+  cpu              = 2
+  memory_mb        = 2048
+  password         = "Green123$"
+
+  additional_disks {
+    path    = "/var"
+    size_gb = 100
+    type    = "partitioned"
+  }
+
+  additional_disks {
+    size_gb = 10
+    type    = "raw"
+  }
 }
 
 output "server_id" {
   value = "clc_server.node.id"
 }
-
-
 ```
 
 ## Argument Reference
@@ -168,11 +166,10 @@ Example:
 # Configure the CLC Provider
 provider "clc_server" "ubuntu" {
   # ...
-  packages
-    {
-      id = "77abb844-579d-478d-3955-c69ab4a7ba1a"
-      SshKey = "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAA..."
-    }
+  packages {
+    id     = "77abb844-579d-478d-3955-c69ab4a7ba1a"
+    SshKey = "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAA..."
+  }
 }
 ```
 

@@ -13,12 +13,12 @@ description: |-
 ```
 resource "newrelic_alert_channel" "foo" {
   name = "foo"
-	type = "email"
+  type = "email"
 
-	configuration = {
-		recipients = "foo@example.com"
-		include_json_attachment = "1"
-	}
+  configuration = {
+    recipients              = "foo@example.com"
+    include_json_attachment = "1"
+  }
 }
 ```
 

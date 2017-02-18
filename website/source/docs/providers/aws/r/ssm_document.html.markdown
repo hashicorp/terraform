@@ -14,8 +14,9 @@ Provides an SSM Document resource
 
 ```
 resource "aws_ssm_document" "foo" {
-  name    = "test_document"
+  name          = "test_document"
   document_type = "Command"
+
   content = <<DOC
   {
     "schemaVersion": "1.2",

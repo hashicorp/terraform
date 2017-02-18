@@ -25,12 +25,12 @@ For additional documentation, see the [CLC Developer Center](https://www.ctl.io/
 provider "clc" {
   username = "${var.clc_username}"
   password = "${var.clc_password}"
-  account  = "${var.clc_account}" # optional
+  account  = "${var.clc_account}"  # optional
 }
 
 # Create a server
 resource "clc_server" "node" {
-    # ...
+  # ...
 }
 ```
 

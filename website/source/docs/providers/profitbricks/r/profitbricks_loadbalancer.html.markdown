@@ -15,9 +15,9 @@ Manages a Load Balancers on ProfitBricks
 ```
 resource "profitbricks_loadbalancer" "example" {
   datacenter_id = "${profitbricks_datacenter.example.id}"
-  nic_id = "${profitbricks_nic.example.id}"
-  name = "load balancer name"
-  dhcp = true
+  nic_id        = "${profitbricks_nic.example.id}"
+  name          = "load balancer name"
+  dhcp          = true
 }
 ```
 

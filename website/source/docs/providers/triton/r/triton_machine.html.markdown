@@ -17,15 +17,14 @@ Run a SmartOS base-64 machine.
 
 ```
 resource "triton_machine" "test" {
-    name = "example-machine"
-    package = "g3-standard-0.25-smartos"
-    image = "842e6fa6-6e9b-11e5-8402-1b490459e334"
+  name    = "example-machine"
+  package = "g3-standard-0.25-smartos"
+  image   = "842e6fa6-6e9b-11e5-8402-1b490459e334"
 
-    tags = {
-        hello = "world"
-    }
+  tags = {
+    hello = "world"
+  }
 }
-
 ```
 
 ## Argument Reference

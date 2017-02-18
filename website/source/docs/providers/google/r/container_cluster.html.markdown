@@ -16,13 +16,13 @@ whole cluster!
 
 ```js
 resource "google_container_cluster" "primary" {
-  name = "marcellus-wallace"
-  zone = "us-central1-a"
+  name               = "marcellus-wallace"
+  zone               = "us-central1-a"
   initial_node_count = 3
 
   additional_zones = [
     "us-central1-b",
-    "us-central1-c"
+    "us-central1-c",
   ]
 
   master_auth {
@@ -35,7 +35,7 @@ resource "google_container_cluster" "primary" {
       "https://www.googleapis.com/auth/compute",
       "https://www.googleapis.com/auth/devstorage.read_only",
       "https://www.googleapis.com/auth/logging.write",
-      "https://www.googleapis.com/auth/monitoring"
+      "https://www.googleapis.com/auth/monitoring",
     ]
   }
 }

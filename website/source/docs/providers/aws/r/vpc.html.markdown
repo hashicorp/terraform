@@ -16,7 +16,7 @@ Basic usage:
 
 ```
 resource "aws_vpc" "main" {
-    cidr_block = "10.0.0.0/16"
+  cidr_block = "10.0.0.0/16"
 }
 ```
 
@@ -24,12 +24,12 @@ Basic usage with tags:
 
 ```
 resource "aws_vpc" "main" {
-	cidr_block = "10.0.0.0/16"
-	instance_tenancy = "dedicated"
+  cidr_block       = "10.0.0.0/16"
+  instance_tenancy = "dedicated"
 
-	tags {
-		Name = "main"
-	}
+  tags {
+    Name = "main"
+  }
 }
 ```
 

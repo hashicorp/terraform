@@ -14,28 +14,28 @@ Create a Network Security Rule.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
-    location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_network_security_group" "test" {
-    name = "acceptanceTestSecurityGroup1"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "acceptanceTestSecurityGroup1"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
 resource "azurerm_network_security_rule" "test" {
-	name = "test123"
-    priority = 100
-    direction = "Outbound"
-    access = "Allow"
-    protocol = "Tcp"
-    source_port_range = "*"
-    destination_port_range = "*"
-    source_address_prefix = "*"
-    destination_address_prefix = "*"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    network_security_group_name = "${azurerm_network_security_group.test.name}"
+  name                        = "test123"
+  priority                    = 100
+  direction                   = "Outbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "*"
+  source_address_prefix       = "*"
+  destination_address_prefix  = "*"
+  resource_group_name         = "${azurerm_resource_group.test.name}"
+  network_security_group_name = "${azurerm_network_security_group.test.name}"
 }
 ```
 

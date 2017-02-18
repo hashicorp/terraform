@@ -31,10 +31,10 @@ resource "aws_autoscaling_group" "bar" {
   launch_configuration      = "${aws_launch_configuration.foobar.name}"
 
   initial_lifecycle_hook {
-    name                   = "foobar"
-    default_result         = "CONTINUE"
-    heartbeat_timeout      = 2000
-    lifecycle_transition   = "autoscaling:EC2_INSTANCE_LAUNCHING"
+    name                 = "foobar"
+    default_result       = "CONTINUE"
+    heartbeat_timeout    = 2000
+    lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"
 
     notification_metadata = <<EOF
 {

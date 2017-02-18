@@ -18,8 +18,8 @@ resource "cloudstack_egress_firewall" "default" {
 
   rule {
     cidr_list = ["10.0.0.0/8"]
-    protocol = "tcp"
-    ports = ["80", "1000-2000"]
+    protocol  = "tcp"
+    ports     = ["80", "1000-2000"]
   }
 }
 ```

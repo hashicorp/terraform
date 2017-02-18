@@ -14,19 +14,19 @@ Create a ServiceBus Namespace.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "resourceGroup1"
-    location = "West US"
+  name     = "resourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_servicebus_namespace" "test" {
-    name = "acceptanceTestServiceBusNamespace"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "basic"
+  name                = "acceptanceTestServiceBusNamespace"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  sku                 = "basic"
 
-    tags {
-        environment = "Production"
-    }
+  tags {
+    environment = "Production"
+  }
 }
 ```
 

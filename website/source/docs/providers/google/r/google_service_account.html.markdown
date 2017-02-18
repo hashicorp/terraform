@@ -17,18 +17,19 @@ permission in a project.
 
 ```js
 resource "google_service_account" "object_viewer" {
-    account_id = "object-viewer"
-    display_name = "Object viewer"
+  account_id   = "object-viewer"
+  display_name = "Object viewer"
 }
 
 resource "google_project" "my_project" {
-    id = "your-project-id"
-    policy_data = "${data.google_iam_policy.admin.policy_data}"
+  id          = "your-project-id"
+  policy_data = "${data.google_iam_policy.admin.policy_data}"
 }
 
 data "google_iam_policy" "admin" {
   binding {
     role = "roles/storage.objectViewer"
+
     members = [
       "serviceAccount:${google_service_account.object_viewer.email}",
     ]

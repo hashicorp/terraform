@@ -14,19 +14,20 @@ Allows you to manage an Azure Search Service
 
 ```
 resource "azurerm_resource_group" "test" {
-   name = "acceptanceTestResourceGroup1"
-   location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
-resource "azurerm_search_service" "test" {
-    name = "acceptanceTestSearchService1"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "West US"
-    sku = "standard"
 
-    tags {
-    	environment = "staging"
-    	database = "test"
-    }
+resource "azurerm_search_service" "test" {
+  name                = "acceptanceTestSearchService1"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "West US"
+  sku                 = "standard"
+
+  tags {
+    environment = "staging"
+    database    = "test"
+  }
 }
 ```
 ## Argument Reference

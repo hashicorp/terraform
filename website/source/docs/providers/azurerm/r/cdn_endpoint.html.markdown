@@ -14,26 +14,27 @@ A CDN Endpoint is the entity within a CDN Profile containing configuration infor
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
-    location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
+
 resource "azurerm_cdn_profile" "test" {
-    name = "acceptanceTestCdnProfile1"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard"
+  name                = "acceptanceTestCdnProfile1"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  sku                 = "Standard"
 }
 
 resource "azurerm_cdn_endpoint" "test" {
-    name = "acceptanceTestCdnEndpoint1"
-    profile_name = "${azurerm_cdn_profile.test.name}"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "acceptanceTestCdnEndpoint1"
+  profile_name        = "${azurerm_cdn_profile.test.name}"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 
-    origin {
-	    name = "acceptanceTestCdnOrigin1"
-	    host_name = "www.example.com"
-    }
+  origin {
+    name      = "acceptanceTestCdnOrigin1"
+    host_name = "www.example.com"
+  }
 }
 ```
 

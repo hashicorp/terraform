@@ -15,15 +15,16 @@ node or a service. Currently, defining health checks is not supported.
 
 ```
 resource "consul_catalog_entry" "app" {
-    address = "192.168.10.10"
-    node = "foobar"
-    service = {
-        address = "127.0.0.1"
-        id = "redis1"
-        name = "redis"
-        port = 8000
-        tags = ["master", "v1"]
-    }
+  address = "192.168.10.10"
+  node    = "foobar"
+
+  service = {
+    address = "127.0.0.1"
+    id      = "redis1"
+    name    = "redis"
+    port    = 8000
+    tags    = ["master", "v1"]
+  }
 }
 ```
 

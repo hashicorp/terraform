@@ -34,12 +34,11 @@ The credentials provided in `.tf` file will override credentials in the environm
 
 ```
 provider "profitbricks" {
-    username = "profitbricks_username"
-    password = "profitbricks_password"
-    endpoint = "profitbricks_rest_url"
-    retries = 100
+  username = "profitbricks_username"
+  password = "profitbricks_password"
+  endpoint = "profitbricks_rest_url"
+  retries  = 100
 }
-
 
 resource "profitbricks_datacenter" "main" {
   # ...

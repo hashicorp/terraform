@@ -14,20 +14,21 @@ Enables you to manage DNS CNAME Records within Azure DNS.
 
 ```
 resource "azurerm_resource_group" "test" {
-   name = "acceptanceTestResourceGroup1"
-   location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
+
 resource "azurerm_dns_zone" "test" {
-   name = "mydomain.com"
-   resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "mydomain.com"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
 resource "azurerm_dns_cname_record" "test" {
-   name = "test"
-   zone_name = "${azurerm_dns_zone.test.name}"
-   resource_group_name = "${azurerm_resource_group.test.name}"
-   ttl = "300"
-   records = ["contoso.com"]
+  name                = "test"
+  zone_name           = "${azurerm_dns_zone.test.name}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  ttl                 = "300"
+  records             = ["contoso.com"]
 }
 ```
 ## Argument Reference

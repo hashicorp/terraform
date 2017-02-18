@@ -26,19 +26,21 @@ to this artifact will trigger a change to that instance.
 ```
 # Read the AMI
 resource "atlas_artifact" "web" {
-    name = "hashicorp/web"
-    type = "amazon.image"
-    build = "latest"
-    metadata {
-        arch = "386"
-    }
+  name  = "hashicorp/web"
+  type  = "amazon.image"
+  build = "latest"
+
+  metadata {
+    arch = "386"
+  }
 }
 
 # Start our instance with the dynamic ami value
 # Remember to include the AWS region as it is part of the full ID
 resource "aws_instance" "app" {
-    ami = "${atlas_artifact.web.metadata_full.region-us-east-1}"
-    # ...
+  ami = "${atlas_artifact.web.metadata_full.region-us-east-1}"
+
+  # ...
 }
 ```
 

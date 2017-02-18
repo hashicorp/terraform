@@ -20,16 +20,14 @@ source, which provides a detailed response about a specific Consul service.
 
 ```
 data "consul_catalog_services" "read-dc1" {
-    # query_options {
-    #    # Optional parameter: implicitly uses the current datacenter of the agent
-    #    datacenter = "dc1"
-    # }
+  # query_options {  #    # Optional parameter: implicitly uses the current datacenter of the agent  #    datacenter = "dc1"  # }
 }
 
 # Set the description to a whitespace delimited list of the services
 resource "example_resource" "app" {
-    description = "${join(" ", data.consul_catalog_services.names)}"
-    ...
+  description = "${join(" ", data.consul_catalog_services.names)}"
+
+  # ...
 }
 ```
 

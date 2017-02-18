@@ -14,29 +14,32 @@ Enables you to manage DNS TXT Records within Azure DNS.
 
 ```
 resource "azurerm_resource_group" "test" {
-   name = "acceptanceTestResourceGroup1"
-   location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
+
 resource "azurerm_dns_zone" "test" {
-   name = "mydomain.com"
-   resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "mydomain.com"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
 resource "azurerm_dns_txt_record" "test" {
-   name = "test"
-   zone_name = "${azurerm_dns_zone.test.name}"
-   resource_group_name = "${azurerm_resource_group.test.name}"
-   ttl = "300"
-   record {
-    value = "google-site-authenticator"
-   }
-   record {
-    value = "more site information here"
-   }
+  name                = "test"
+  zone_name           = "${azurerm_dns_zone.test.name}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  ttl                 = "300"
 
-   tags {
+  record {
+    value = "google-site-authenticator"
+  }
+
+  record {
+    value = "more site information here"
+  }
+
+  tags {
     Environment = "Production"
-   }
+  }
 }
 ```
 ## Argument Reference

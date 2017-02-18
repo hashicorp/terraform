@@ -14,8 +14,8 @@ Manages a Virtual Data Center on ProfitBricks
 
 ```
 resource "profitbricks_datacenter" "example" {
-  name = "datacenter name"
-  location = "us/las"
+  name        = "datacenter name"
+  location    = "us/las"
   description = "datacenter description"
 }
 ```

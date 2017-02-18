@@ -15,41 +15,45 @@ Provides an Application Load Balancer resource.
 ```
 # Create a new load balancer for classic
 resource "alicloud_slb" "classic" {
-	name = "test-slb-tf"
-	internet = true
-	internet_charge_type = "paybybandwidth"
-	bandwidth = 5
-	listener = [
-	{
-		"instance_port" = "2111"
-		"lb_port" = "21"
-		"lb_protocol" = "tcp"
-		"bandwidth" = "5"
-	},{
-		"instance_port" = "8000"
-		"lb_port" = "80"
-		"lb_protocol" = "http"
-		"bandwidth" = "5"
-	},{
-		"instance_port" = "1611"
-		"lb_port" = "161"
-		"lb_protocol" = "udp"
-		"bandwidth" = "5"
-	}]
+  name                 = "test-slb-tf"
+  internet             = true
+  internet_charge_type = "paybybandwidth"
+  bandwidth            = 5
+
+  listener = [
+    {
+      "instance_port" = "2111"
+      "lb_port"       = "21"
+      "lb_protocol"   = "tcp"
+      "bandwidth"     = "5"
+    },
+    {
+      "instance_port" = "8000"
+      "lb_port"       = "80"
+      "lb_protocol"   = "http"
+      "bandwidth"     = "5"
+    },
+    {
+      "instance_port" = "1611"
+      "lb_port"       = "161"
+      "lb_protocol"   = "udp"
+      "bandwidth"     = "5"
+    },
+  ]
 }
 
 # Create a new load balancer for VPC
 resource "alicloud_vpc" "default" {
-	# Other parameters...
+  # Other parameters...
 }
 
 resource "alicloud_vswitch" "default" {
-	# Other parameters...
+  # Other parameters...
 }
 
 resource "alicloud_slb" "vpc" {
-	name = "test-slb-tf"
-	vswitch_id = "${alicloud_vswitch.default.id}"
+  name       = "test-slb-tf"
+  vswitch_id = "${alicloud_vswitch.default.id}"
 }
 ```
 

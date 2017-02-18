@@ -15,28 +15,28 @@ Provides an SES event destination
 ```
 # Add a firehose event destination to a configuration set
 resource "aws_ses_event_destination" "kinesis" {
-  name = "event-destination-kinesis",
-  configuration_set_name = "${aws_ses_configuration_set.test.name}",
-  enabled = true,
-  matching_types = ["bounce", "send"],
+  name                   = "event-destination-kinesis"
+  configuration_set_name = "${aws_ses_configuration_set.test.name}"
+  enabled                = true
+  matching_types         = ["bounce", "send"]
 
   kinesis_destination = {
-    stream_arn = "${aws_kinesis_firehose_delivery_stream.test_stream.arn}",
-    role_arn = "${aws_iam_role.firehose_role.arn}"
+    stream_arn = "${aws_kinesis_firehose_delivery_stream.test_stream.arn}"
+    role_arn   = "${aws_iam_role.firehose_role.arn}"
   }
 }
 
 # CloudWatch event destination
 resource "aws_ses_event_destination" "cloudwatch" {
-  name = "event-destination-cloudwatch",
-  configuration_set_name = "${aws_ses_configuration_set.test.name}",
-  enabled = true,
-  matching_types = ["bounce", "send"],
+  name                   = "event-destination-cloudwatch"
+  configuration_set_name = "${aws_ses_configuration_set.test.name}"
+  enabled                = true
+  matching_types         = ["bounce", "send"]
 
   cloudwatch_destination = {
-    default_value = "default"
-	  dimension_name = "dimension"
-	  value_source = "emailHeader"
+    default_value  = "default"
+    dimension_name = "dimension"
+    value_source   = "emailHeader"
   }
 }
 ```

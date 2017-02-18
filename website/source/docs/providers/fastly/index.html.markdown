@@ -27,6 +27,7 @@ provider "fastly" {
 # Create a Service
 resource "fastly_service_v1" "myservice" {
   name = "myawesometestservice"
+
   # ...
 }
 ```

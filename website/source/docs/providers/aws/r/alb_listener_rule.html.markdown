@@ -24,15 +24,15 @@ resource "aws_alb_listener" "front_end" {
 
 resource "aws_alb_listener_rule" "static" {
   listener_arn = "${aws_alb_listener.front_end.arn}"
-  priority = 100
+  priority     = 100
 
   action {
-    type = "forward"
+    type             = "forward"
     target_group_arn = "${aws_alb_target_group.static.arn}"
   }
 
   condition {
-    field = "path-pattern"
+    field  = "path-pattern"
     values = ["/static/*"]
   }
 }

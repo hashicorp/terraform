@@ -19,7 +19,7 @@ This resource creates an application that has one configuration template named
 
 ```
 resource "aws_elastic_beanstalk_application" "tftest" {
-  name = "tf-test-name"
+  name        = "tf-test-name"
   description = "tf-test-desc"
 }
 ```

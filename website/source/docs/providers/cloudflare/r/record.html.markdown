@@ -15,11 +15,11 @@ Provides a Cloudflare record resource.
 ```
 # Add a record to the domain
 resource "cloudflare_record" "foobar" {
-	domain = "${var.cloudflare_domain}"
-	name = "terraform"
-	value = "192.168.0.11"
-	type = "A"
-	ttl = 3600
+  domain = "${var.cloudflare_domain}"
+  name   = "terraform"
+  value  = "192.168.0.11"
+  type   = "A"
+  ttl    = 3600
 }
 ```
 

@@ -27,9 +27,9 @@ You can directly supply a topic and ARN by hand in the `topic_arn` property alon
 
 ```
 resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
-    topic_arn = "arn:aws:sns:us-west-2:432981146916:user-updates-topic"
-    protocol = "sqs"
-    endpoint = "arn:aws:sqs:us-west-2:432981146916:terraform-queue-too"
+  topic_arn = "arn:aws:sns:us-west-2:432981146916:user-updates-topic"
+  protocol  = "sqs"
+  endpoint  = "arn:aws:sqs:us-west-2:432981146916:terraform-queue-too"
 }
 ```
 
@@ -41,13 +41,13 @@ resource "aws_sns_topic" "user_updates" {
 }
 
 resource "aws_sqs_queue" "user_updates_queue" {
-	name = "user-updates-queue"
+  name = "user-updates-queue"
 }
 
 resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
-    topic_arn = "${aws_sns_topic.user_updates.arn}"
-    protocol  = "sqs"
-    endpoint  = "${aws_sqs_queue.user_updates_queue.arn}"
+  topic_arn = "${aws_sns_topic.user_updates.arn}"
+  protocol  = "sqs"
+  endpoint  = "${aws_sqs_queue.user_updates_queue.arn}"
 }
 ```
 You can subscribe SNS topics to SQS queues in different Amazon accounts and regions:

@@ -14,20 +14,20 @@ Create an Azure Storage Account.
 
 ```
 resource "azurerm_resource_group" "testrg" {
-    name = "resourceGroupName"
-    location = "westus"
+  name     = "resourceGroupName"
+  location = "westus"
 }
 
 resource "azurerm_storage_account" "testsa" {
-    name = "storageaccountname"
-    resource_group_name = "${azurerm_resource_group.testrg.name}"
+  name                = "storageaccountname"
+  resource_group_name = "${azurerm_resource_group.testrg.name}"
 
-    location = "westus"
-    account_type = "Standard_GRS"
+  location     = "westus"
+  account_type = "Standard_GRS"
 
-    tags {
-        environment = "staging"
-    }
+  tags {
+    environment = "staging"
+  }
 }
 ```
 

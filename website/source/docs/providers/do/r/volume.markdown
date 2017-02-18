@@ -14,18 +14,18 @@ Provides a DigitalOcean Block Storage volume which can be attached to a Droplet 
 
 ```
 resource "digitalocean_volume" "foobar" {
-    region      = "nyc1"
-    name        = "baz"
-    size        = 100
-    description = "an example volume"
+  region      = "nyc1"
+  name        = "baz"
+  size        = 100
+  description = "an example volume"
 }
 
 resource "digitalocean_droplet" "foobar" {
-    name       = "baz"
-    size       = "1gb"
-    image      = "coreos-stable"
-    region     = "nyc1"
-    volume_ids = ["${digitalocean_volume.foobar.id}"]
+  name       = "baz"
+  size       = "1gb"
+  image      = "coreos-stable"
+  region     = "nyc1"
+  volume_ids = ["${digitalocean_volume.foobar.id}"]
 }
 ```
 

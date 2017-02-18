@@ -14,19 +14,19 @@ Create a Public IP Address.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "resourceGroup1"
-    location = "West US"
+  name     = "resourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_public_ip" "test" {
-    name = "acceptanceTestPublicIp1"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    public_ip_address_allocation = "static"
+  name                         = "acceptanceTestPublicIp1"
+  location                     = "West US"
+  resource_group_name          = "${azurerm_resource_group.test.name}"
+  public_ip_address_allocation = "static"
 
-    tags {
-        environment = "Production"
-    }
+  tags {
+    environment = "Production"
+  }
 }
 ```
 

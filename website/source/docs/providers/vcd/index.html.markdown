@@ -19,18 +19,18 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the VMware vCloud Director Provider
 provider "vcd" {
-	user                 = "${var.vcd_user}"
-	password             = "${var.vcd_pass}"
-	org                  = "${var.vcd_org}"
-	url                  = "${var.vcd_url}"
-	vdc                  = "${var.vcd_vdc}"
-	maxRetryTimeout      = "${var.vcd_maxRetryTimeout}"
-       allow_unverified_ssl = "${var.vcd_allow_unverified_ssl}"
+  user                 = "${var.vcd_user}"
+  password             = "${var.vcd_pass}"
+  org                  = "${var.vcd_org}"
+  url                  = "${var.vcd_url}"
+  vdc                  = "${var.vcd_vdc}"
+  maxRetryTimeout      = "${var.vcd_maxRetryTimeout}"
+  allow_unverified_ssl = "${var.vcd_allow_unverified_ssl}"
 }
 
 # Create a new network
 resource "vcd_network" "net" {
-    # ...
+  # ...
 }
 ```
 

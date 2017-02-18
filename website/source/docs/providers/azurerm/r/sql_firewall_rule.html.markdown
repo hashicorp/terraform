@@ -14,26 +14,26 @@ Allows you to manage an Azure SQL Firewall Rule
 
 ```
 resource "azurerm_resource_group" "test" {
-   name = "acceptanceTestResourceGroup1"
-   location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
+
 resource "azurerm_sql_database" "test" {
-    name = "MySQLDatabase"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "West US"
+  name                = "MySQLDatabase"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "West US"
 
-
-    tags {
-    	environment = "production"
-    }
+  tags {
+    environment = "production"
+  }
 }
 
 resource "azurerm_sql_firewall_rule" "test" {
-    name = "FirewallRule1"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    server_name = "${azurerm_sql_server.test.name}"
-    start_ip_address = "10.0.17.62"
-    end_ip_address = "10.0.17.62"
+  name                = "FirewallRule1"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  server_name         = "${azurerm_sql_server.test.name}"
+  start_ip_address    = "10.0.17.62"
+  end_ip_address      = "10.0.17.62"
 }
 ```
 ## Argument Reference

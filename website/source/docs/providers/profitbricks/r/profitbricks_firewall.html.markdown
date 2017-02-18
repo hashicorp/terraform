@@ -14,13 +14,13 @@ Manages a Firewall Rules on ProfitBricks
 
 ```
 resource "profitbricks_firewall" "example" {
-  datacenter_id = "${profitbricks_datacenter.example.id}"
-  server_id = "${profitbricks_server.example.id}"
-  nic_id = "${profitbricks_server.example.primary_nic}"
-  protocol = "TCP"
-  name = "test"
+  datacenter_id    = "${profitbricks_datacenter.example.id}"
+  server_id        = "${profitbricks_server.example.id}"
+  nic_id           = "${profitbricks_server.example.primary_nic}"
+  protocol         = "TCP"
+  name             = "test"
   port_range_start = 1
-  port_range_end = 2
+  port_range_end   = 2
 }
 ```
 

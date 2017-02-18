@@ -20,7 +20,7 @@ Within a folder containing Terraform configurations, create a subfolder called `
 
 ```
 module "child" {
-	source = "./child"
+  source = "./child"
 }
 ```
 
@@ -41,7 +41,7 @@ Let's add a variable and an output to our `child` module.
 variable "memory" {}
 
 output "received" {
-	value = "${var.memory}"
+  value = "${var.memory}"
 }
 ```
 
@@ -51,13 +51,13 @@ You can then configure the module and use the output like so:
 
 ```
 module "child" {
-	source = "./child"
+  source = "./child"
 
-	memory = "1G"
+  memory = "1G"
 }
 
 output "child_memory" {
-	value = "${module.child.received}"
+  value = "${module.child.received}"
 }
 ```
 
@@ -71,11 +71,11 @@ In these cases, you can't use a relative path, since paths in Terraform are gene
 
 ```
 resource "aws_instance" "server" {
-	# ...
+  # ...
 
-	provisioner "remote-exec" {
-		script = "${path.module}/script.sh"
-	}
+  provisioner "remote-exec" {
+    script = "${path.module}/script.sh"
+  }
 }
 ```
 

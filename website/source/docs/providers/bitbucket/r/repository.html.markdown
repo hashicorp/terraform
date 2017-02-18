@@ -18,8 +18,8 @@ private, how to fork the repository and other options.
 ```
 # Manage your respository
 resource "bitbucket_repository" "infrastructure" {
-    owner = "myteam"
-    name = "terraform-code"
+  owner = "myteam"
+  name  = "terraform-code"
 }
 ```
 

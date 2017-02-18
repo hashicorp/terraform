@@ -14,23 +14,23 @@ Creates a new Route Resource
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
-    location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_route_table" "test" {
-    name = "acceptanceTestRouteTable1"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "acceptanceTestRouteTable1"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
 resource "azurerm_route" "test" {
-    name = "acceptanceTestRoute1"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    route_table_name = "${azurerm_route_table.test.name}"
+  name                = "acceptanceTestRoute1"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  route_table_name    = "${azurerm_route_table.test.name}"
 
-    address_prefix = "10.1.0.0/16"
-    next_hop_type = "vnetlocal"
+  address_prefix = "10.1.0.0/16"
+  next_hop_type  = "vnetlocal"
 }
 ```
 
