@@ -8,6 +8,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/azurerm: scale_sets `os_profile_master_password` now marked as sensitive
  * provider/azurerm: sql_server `administrator_login_password` now marked as sensitive
+ * provider/google: storage buckets have been updated with the new storage classes. The old classes will continue working as before, but should be migrated as soon as possible, as there's no guarantee they'll continue working forever. [GH-12044]
 
 IMPROVEMENTS:
 
