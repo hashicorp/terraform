@@ -3,7 +3,7 @@ layout: "google"
 page_title: "Google: google_service_account"
 sidebar_current: "docs-google-service-account"
 description: |-
- Allows management of a Google Cloud Platform service account. 
+ Allows management of a Google Cloud Platform service account.
 ---
 
 # google\_service\_account

@@ -36,7 +36,7 @@ The following arguments are supported:
 * `ttl` - (Integer, Optional) The TTL of the record `gtdLocation` - (String,
   Optional) The GTD Location of the record on Global Traffic Director enabled
   domains; Unless GTD is enabled this should either be omitted or set to
-  "DEFAULT" 
+  "DEFAULT"
 
 Additional arguments are listed below under DNS Record Types.
 

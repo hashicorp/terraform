@@ -3,7 +3,7 @@ layout: "google"
 page_title: "Google: google_project_iam_policy"
 sidebar_current: "docs-google-project-iam-policy"
 description: |-
- Allows management of an IAM policy for a Google Cloud Platform project. 
+ Allows management of an IAM policy for a Google Cloud Platform project.
 ---
 
 # google\_project\_iam\_policy

@@ -185,7 +185,7 @@ available via shared credentials or environment variables.
 There are a variety of S3 bucket addressing schemes, most are
 [documented in the S3
 configuration](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#access-bucket-intro).
-Here are a couple of examples. 
+Here are a couple of examples.
 
 Using the `s3` protocol.
 

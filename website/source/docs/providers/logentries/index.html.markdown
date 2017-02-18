@@ -32,7 +32,7 @@ resource "logentries_log" "app_log" {
    source = "token"
 }
 
-# Add the log token to a cloud-config that can be used by an 
+# Add the log token to a cloud-config that can be used by an
 # application to send logs to Logentries
 resource "aws_launch_configuration" "app_launch_config" {
   name_prefix = "myapp-"

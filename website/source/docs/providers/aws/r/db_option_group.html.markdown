@@ -65,7 +65,7 @@ The following attributes are exported:
 
 ## Import
 
-DB Option groups can be imported using the `name`, e.g. 
+DB Option groups can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_db_option_group.bar mysql-option-group

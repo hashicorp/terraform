@@ -28,7 +28,7 @@ resource "azurerm_route_table" "test" {
         address_prefix = "10.1.0.0/16"
         next_hop_type = "vnetlocal"
     }
-    
+
     tags {
         environment = "Production"
     }
@@ -44,17 +44,17 @@ The following arguments are supported:
 
 * `resource_group_name` - (Required) The name of the resource group in which to
     create the route table.
-    
+
 * `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
 
 * `route` - (Optional) Can be specified multiple times to define multiple
                                    routes. Each `route` block supports fields documented below.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 The `route` block supports:
 
-* `name` - (Required) The name of the route. 
+* `name` - (Required) The name of the route.
 
 * `address_prefix` - (Required) The destination CIDR to which the route applies, such as 10.1.0.0/16
 
@@ -73,7 +73,7 @@ The following attributes are exported:
 ## Import
 
 
-Route Tables can be imported using the `resource id`, e.g. 
+Route Tables can be imported using the `resource id`, e.g.
 ```
 terraform import azurerm_route_table.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/routeTables/mytable1
 ```

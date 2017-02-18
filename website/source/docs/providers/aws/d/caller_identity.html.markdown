@@ -32,4 +32,4 @@ There are no arguments available for this data source.
 
 ## Attributes Reference
 
-`account_id` is set to the ID of the AWS account. 
+`account_id` is set to the ID of the AWS account.

@@ -3,13 +3,13 @@ layout: "newrelic"
 page_title: "Provider: New Relic"
 sidebar_current: "docs-newrelic-index"
 description: |-
-  New Relic offers a performance management solution enabling developers to 
+  New Relic offers a performance management solution enabling developers to
   diagnose and fix application performance problems in real time.
 ---
 
 # New Relic Provider
 
-[New Relic](https://newrelic.com/) offers a performance management solution 
+[New Relic](https://newrelic.com/) offers a performance management solution
 enabling developers to diagnose and fix application performance problems in real time.
 
 Use the navigation to the left to read about the available resources.

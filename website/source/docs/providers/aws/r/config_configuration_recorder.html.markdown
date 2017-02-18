@@ -69,7 +69,7 @@ The following attributes are exported:
 
 ## Import
 
-Configuration Recorder can be imported using the name, e.g. 
+Configuration Recorder can be imported using the name, e.g.
 
 ```
 $ terraform import aws_config_configuration_recorder.foo example

@@ -65,7 +65,7 @@ official [AWS User Guide](https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide
 
 ## Import
 
-VPC DHCP Options can be imported using the `dhcp options id`, e.g. 
+VPC DHCP Options can be imported using the `dhcp options id`, e.g.
 
 ```
 $ terraform import aws_vpc_dhcp_options.my_options dopt-d9070ebb

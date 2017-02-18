@@ -23,7 +23,7 @@ resource "aws_autoscaling_notification" "example_notifications" {
     "${aws_autoscaling_group.foo.name}",
   ]
   notifications  = [
-    "autoscaling:EC2_INSTANCE_LAUNCH", 
+    "autoscaling:EC2_INSTANCE_LAUNCH",
     "autoscaling:EC2_INSTANCE_TERMINATE",
     "autoscaling:EC2_INSTANCE_LAUNCH_ERROR"
   ]
@@ -59,10 +59,10 @@ notifications. Acceptable values are documented [in the AWS documentation here][
 
 The following attributes are exported:
 
-* `group_names` 
+* `group_names`
 * `notifications`
-* `topic_arn` 
+* `topic_arn`
 
 
 [1]: https://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_NotificationConfiguration.html
-[2]: https://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_DescribeNotificationConfigurations.html 
+[2]: https://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_DescribeNotificationConfigurations.html

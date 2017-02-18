@@ -3,7 +3,7 @@ layout: "ignition"
 page_title: "Provider: Ignition"
 sidebar_current: "docs-ignition-index"
 description: |-
-  The Ignition provider is used to generate Ignition configuration files used by CoreOS Linux. 
+  The Ignition provider is used to generate Ignition configuration files used by CoreOS Linux.
 ---
 
 # Ignition Provider

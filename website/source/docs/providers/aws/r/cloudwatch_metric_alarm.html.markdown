@@ -92,7 +92,7 @@ The following attributes are exported:
 
 ## Import
 
-Cloud Metric Alarms can be imported using the `alarm_name`, e.g. 
+Cloud Metric Alarms can be imported using the `alarm_name`, e.g.
 
 ```
 $ terraform import aws_cloudwatch_metric_alarm.test alarm-12345

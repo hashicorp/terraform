@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** There is only a single subscription allowed per account.
 
-To help you understand the charges for your Spot instances, Amazon EC2 provides a data feed that describes your Spot instance usage and pricing. 
+To help you understand the charges for your Spot instances, Amazon EC2 provides a data feed that describes your Spot instance usage and pricing.
 This data feed is sent to an Amazon S3 bucket that you specify when you subscribe to the data feed.
 
 ## Example Usage
@@ -33,7 +33,7 @@ resource "aws_spot_datafeed_subscription" "default" {
 
 ## Import
 
-A Spot Datafeed Subscription can be imported using the word `spot-datafeed-subscription`, e.g.  
+A Spot Datafeed Subscription can be imported using the word `spot-datafeed-subscription`, e.g.
 
 ```
 $ terraform import aws_spot_datafeed_subscription.mysubscription spot-datafeed-subscription

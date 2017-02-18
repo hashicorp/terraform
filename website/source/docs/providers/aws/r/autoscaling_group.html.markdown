@@ -225,7 +225,7 @@ for more information.
 
 ## Import
 
-AutoScaling Groups can be imported using the `name`, e.g. 
+AutoScaling Groups can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_autoscaling_group.web web-asg

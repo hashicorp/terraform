@@ -69,7 +69,7 @@ The following arguments are supported:
 
 ## Import
 
-Configuration Recorder Status can be imported using the name of the Configuration Recorder, e.g. 
+Configuration Recorder Status can be imported using the name of the Configuration Recorder, e.g.
 
 ```
 $ terraform import aws_config_configuration_recorder_status.foo example

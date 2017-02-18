@@ -30,7 +30,7 @@ The following arguments are supported:
 
 * `resource_group_name` - (Required) Specifies the resource group where the resource exists. Changing this forces a new resource to be created.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 
@@ -44,7 +44,7 @@ The following attributes are exported:
 
 ## Import
 
-DNS Zones can be imported using the `resource id`, e.g. 
+DNS Zones can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_dns_zone.zone1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/dnsZones/zone1

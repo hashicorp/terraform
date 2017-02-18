@@ -34,7 +34,7 @@ The following arguments are supported:
 * `ip_address` - (Required) the IP address of the Private gateway. Changing this forces
     a new resource to be created.
 
-* `netmask` - (Required) The netmask of the Private gateway. Changing 
+* `netmask` - (Required) The netmask of the Private gateway. Changing
     this forces a new resource to be created.
 
 * `vlan` - (Required) The VLAN number (1-4095) the network will use.
@@ -42,7 +42,7 @@ The following arguments are supported:
 * `physical_network_id` - (Optional) The ID of the physical network this private
     gateway belongs to.
 
-* `network_offering` - (Optional) The name or ID of the network offering to use for 
+* `network_offering` - (Optional) The name or ID of the network offering to use for
     the private gateways network connection.
 
 * `acl_id` - (Required) The ACL ID that should be attached to the network.

@@ -62,6 +62,6 @@ CloudWatch Destination requires the following:
 
 Kinesis Destination requires the following:
 
-* `stream_arn` - (Required) The ARN of the Kinesis Stream 
+* `stream_arn` - (Required) The ARN of the Kinesis Stream
 * `role_arn` - (Required) The ARN of the role that has permissions to access the Kinesis Stream
 

@@ -142,7 +142,7 @@ The following arguments are supported:
     can be found by using the Azure CLI.
 
 * `type` - (Required) The type of extension, available types for a publisher can
-    be found using the Azure CLI. 
+    be found using the Azure CLI.
 
 * `type_handler_version` - (Required) Specifies the version of the extension to
     use, available versions can be found using the Azure CLI.
@@ -150,7 +150,7 @@ The following arguments are supported:
 * `settings` - (Required) The settings passed to the extension, these are
     specified as a JSON object in a string.
 
-* `protected_settings` - (Optional) The protected_settings passed to the 
+* `protected_settings` - (Optional) The protected_settings passed to the
     extension, like settings, these are specified as a JSON object in a string.
 
 ## Attributes Reference
@@ -161,7 +161,7 @@ The following attributes are exported:
 
 ## Import
 
-Virtual Machine Extensions can be imported using the `resource id`, e.g. 
+Virtual Machine Extensions can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_virtual_machine_extension.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Compute/virtualMachines/myVM/extensions/hostname

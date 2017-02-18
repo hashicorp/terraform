@@ -26,7 +26,7 @@ The following arguments are supported:
 * `user_arn` - (Required) The user's IAM ARN
 * `allow_self_management` - (Optional) Whether users can specify their own SSH public key through the My Settings page
 * `ssh_username` - (Required) The ssh username, with witch this user wants to log in
-* `ssh_public_key` - (Optional) The users public key  
+* `ssh_public_key` - (Optional) The users public key
 
 ## Attributes Reference
 

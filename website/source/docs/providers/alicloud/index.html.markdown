@@ -49,9 +49,9 @@ resource "alicloud_security_group" "default" {
 }
 ```
 
-## Authentication 
+## Authentication
 
-The Alicloud provider offers a flexible means of providing credentials for authentication. 
+The Alicloud provider offers a flexible means of providing credentials for authentication.
 The following methods are supported, in this order, and explained below:
 
 - Static credentials
@@ -62,7 +62,7 @@ The following methods are supported, in this order, and explained below:
 Static credentials can be provided by adding an `access_key` `secret_key` and `region` in-line in the
 alicloud provider block:
 
-Usage: 
+Usage:
 
 ```
 provider "alicloud" {
@@ -75,7 +75,7 @@ provider "alicloud" {
 
 ###Environment variables
 
-You can provide your credentials via `ALICLOUD_ACCESS_KEY` and `ALICLOUD_SECRET_KEY`, 
+You can provide your credentials via `ALICLOUD_ACCESS_KEY` and `ALICLOUD_SECRET_KEY`,
 environment variables, representing your Alicloud Access Key and Secret Key, respectively.
 `ALICLOUD_REGION` is also used, if applicable:
 
@@ -86,7 +86,7 @@ provider "alicloud" {}
 Usage:
 
 ```
-$ export ALICLOUD_ACCESS_KEY="anaccesskey" 
+$ export ALICLOUD_ACCESS_KEY="anaccesskey"
 $ export ALICLOUD_SECRET_KEY="asecretkey"
 $ export ALICLOUD_REGION="cn-beijing"
 $ terraform plan

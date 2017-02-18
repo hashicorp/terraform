@@ -41,24 +41,24 @@ resource "aws_ebs_volume" "example" {
 
 The following arguments are supported:
 
-* `device_name` - (Required) The device name to expose to the instance (for 
+* `device_name` - (Required) The device name to expose to the instance (for
 example, `/dev/sdh` or `xvdh`)
 * `instance_id` - (Required) ID of the Instance to attach to
 * `volume_id` - (Required) ID of the Volume to be attached
 * `force_detach` - (Optional, Boolean) Set to `true` if you want to force the
-volume to detach. Useful if previous attempts failed, but use this option only 
-as a last resort, as this can result in **data loss**. See 
+volume to detach. Useful if previous attempts failed, but use this option only
+as a last resort, as this can result in **data loss**. See
 [Detaching an Amazon EBS Volume from an Instance][1] for more information.
-* `skip_destroy` - (Optional, Boolean) Set this to true if you do not wish 
-to detach the volume from the instance to which it is attached at destroy 
-time, and instead just remove the attachment from Terraform state. This is 
-useful when destroying an instance which has volumes created by some other 
+* `skip_destroy` - (Optional, Boolean) Set this to true if you do not wish
+to detach the volume from the instance to which it is attached at destroy
+time, and instead just remove the attachment from Terraform state. This is
+useful when destroying an instance which has volumes created by some other
 means attached.
 
 ## Attributes Reference
 
 * `device_name` - The device name exposed to the instance
 * `instance_id` - ID of the Instance
-* `volume_id` - ID of the Volume 
+* `volume_id` - ID of the Volume
 
 [1]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-detaching-volume.html

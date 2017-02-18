@@ -8,7 +8,7 @@ description: |-
 
 # alicloud\_security\_group\_rule
 
-Provides a security group rule resource. 
+Provides a security group rule resource.
 Represents a single `ingress` or `egress` group rule, which can be added to external Security Groups.
 
 ~> **NOTE:**  `nic_type` should set to `intranet` when security group type is `vpc`. In this situation it does not distinguish between intranet and internet, the rule is effective on them both.

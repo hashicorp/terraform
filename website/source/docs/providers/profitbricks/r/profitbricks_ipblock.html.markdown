@@ -24,4 +24,3 @@ resource "profitbricks_ipblock" "example" {
 * `location` - (Required)
 * `size` - (Required)
 
-	

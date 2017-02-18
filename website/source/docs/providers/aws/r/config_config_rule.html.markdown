@@ -97,7 +97,7 @@ If you do not specify a scope, evaluations are triggered when any resource in th
 
 Provides the rule owner (AWS or customer), the rule identifier, and the notifications that cause the function to evaluate your AWS resources.
 
-* `owner` - (Required) Indicates whether AWS or the customer owns and manages the AWS Config rule. 
+* `owner` - (Required) Indicates whether AWS or the customer owns and manages the AWS Config rule.
 	The only valid value is `AWS` or `CUSTOM_LAMBDA`. Keep in mind that Lambda function will require `aws_lambda_permission` to allow AWSConfig to execute the function.
 * `source_identifier` - (Required) For AWS Config managed rules, a predefined identifier from a list. For example,
 	`IAM_PASSWORD_POLICY` is a managed rule. To reference a managed rule, see [Using AWS Managed Config Rules](http://docs.aws.amazon.com/config/latest/developerguide/evaluate-config_use-managed-rules.html).
@@ -128,7 +128,7 @@ The following attributes are exported:
 
 ## Import
 
-Config Rule can be imported using the name, e.g. 
+Config Rule can be imported using the name, e.g.
 
 ```
 $ terraform import aws_config_config_rule.foo example

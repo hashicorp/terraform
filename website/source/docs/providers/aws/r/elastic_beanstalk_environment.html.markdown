@@ -100,7 +100,7 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
     namespace = "aws:ec2:vpc"
     name      = "Subnets"
     value     = "subnet-xxxxxxxx"
-  }  
+  }
 }
 ```
 
@@ -131,7 +131,7 @@ The following attributes are exported:
 
 ## Import
 
-Elastic Beanstalk Environments can be imported using the `id`, e.g. 
+Elastic Beanstalk Environments can be imported using the `id`, e.g.
 
 ```
 $ terraform import aws_elastic_beanstalk_environment.prodenv e-rpqsewtp2j

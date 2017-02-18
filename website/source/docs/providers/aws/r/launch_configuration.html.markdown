@@ -218,7 +218,7 @@ The following attributes are exported:
 
 ## Import
 
-Launch configurations can be imported using the `name`, e.g. 
+Launch configurations can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_launch_configuration.as_conf terraform-lg-123456

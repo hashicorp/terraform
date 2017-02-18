@@ -44,7 +44,7 @@ The following arguments are supported:
 
 * `records` - (Required) The target of the CNAME. Must be a single value.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 
@@ -54,7 +54,7 @@ The following attributes are exported:
 
 ## Import
 
-CNAME records can be imported using the `resource id`, e.g. 
+CNAME records can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_dns_cname_record.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/dnsZones/zone1/CNAME/myrecord1

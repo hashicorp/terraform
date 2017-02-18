@@ -41,7 +41,7 @@ The following arguments are supported:
 
 * `description` - (Optional) Human-readable description for the pool.
 
-* `protocol` = (Required) The protocol - can either be TCP, HTTP or HTTPS. 
+* `protocol` = (Required) The protocol - can either be TCP, HTTP or HTTPS.
     Changing this creates a new pool.
 
 * `loadbalancer_id` - (Optional) The load balancer on which to provision this
@@ -62,7 +62,7 @@ The following arguments are supported:
 
 * `admin_state_up` - (Optional) The administrative state of the pool.
     A valid value is true (UP) or false (DOWN).
-    
+
 The `persistence` argument supports:
 
 * `type` - (Required) The type of persistence mode. The current specification

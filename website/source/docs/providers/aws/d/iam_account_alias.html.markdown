@@ -30,4 +30,4 @@ There are no arguments available for this data source.
 
 The following attributes are exported:
 
-* `account_alias` - The alias associated with the AWS account. 
+* `account_alias` - The alias associated with the AWS account.

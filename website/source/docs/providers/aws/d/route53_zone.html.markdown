@@ -10,7 +10,7 @@ description: |-
 
 `aws_route53_zone` provides details about a specific Route 53 Hosted Zone.
 
-This data source allows to find a Hosted Zone ID given Hosted Zone name and certain search criteria. 
+This data source allows to find a Hosted Zone ID given Hosted Zone name and certain search criteria.
 
 ## Example Usage
 

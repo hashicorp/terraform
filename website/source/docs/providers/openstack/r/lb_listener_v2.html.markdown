@@ -29,19 +29,19 @@ The following arguments are supported:
     `OS_REGION_NAME` environment variable is used. Changing this creates a new
     Listener.
 
-* `protocol` = (Required) The protocol - can either be TCP, HTTP or HTTPS. 
+* `protocol` = (Required) The protocol - can either be TCP, HTTP or HTTPS.
     Changing this creates a new Listener.
-    
+
 * `protocol_port` = (Required) The port on which to listen for client traffic.
     Changing this creates a new Listener.
 
 * `tenant_id` - (Optional) Required for admins. The UUID of the tenant who owns
     the Listener.  Only administrative users can specify a tenant UUID
     other than their own. Changing this creates a new Listener.
-    
+
 * `loadbalancer_id` - (Required) The load balancer on which to provision this
     Listener. Changing this creates a new Listener.
-    
+
 * `name` - (Optional) Human-readable name for the Listener. Does not have
     to be unique.
 

@@ -59,7 +59,7 @@ The following arguments are supported:
 * `location` - (Required) Specifies the supported Azure location where the resource exists.
 * `loadbalancer_id` - (Required) The ID of the LoadBalancer in which to create the NAT Rule.
 * `frontend_ip_configuration_name` - (Required) The name of the frontend IP configuration exposing this rule.
-* `protocol` - (Required) The transport protocol for the external endpoint. Possible values are `Udp` or `Tcp`. 
+* `protocol` - (Required) The transport protocol for the external endpoint. Possible values are `Udp` or `Tcp`.
 * `frontend_port` - (Required) The port for the external endpoint. Port numbers for each Rule must be unique within the Load Balancer. Possible values range between 1 and 65534, inclusive.
 * `backend_port` - (Required) The port used for internal connections on the endpoint. Possible values range between 1 and 65535, inclusive.
 

@@ -23,7 +23,7 @@ provider "datadog" {
 	app_key = "${var.datadog_app_key}"
 }
 
-# Create a new monitor 
+# Create a new monitor
 resource "datadog_monitor" "default" {
     # ...
 }

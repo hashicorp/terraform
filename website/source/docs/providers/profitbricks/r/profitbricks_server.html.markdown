@@ -48,7 +48,7 @@ resource "profitbricks_server" "example" {
 ##Argument reference
 
 * `name` - (Required) [string] The name of the server.
-* `datacenter_id` - (Required)[string] 
+* `datacenter_id` - (Required)[string]
 * `cores` - (Required)[integer] Number of server cores.
 * `ram` - (Required)[integer] The amount of memory for the server in MB.
 * `availability_zone` - (Optional)[string] The availability zone in which the server should exist.

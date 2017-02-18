@@ -75,7 +75,7 @@ The following attributes are exported:
 
 ## Import
 
-Glacier Vaults can be imported using the `name`, e.g. 
+Glacier Vaults can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_glacier_vault.archive my_archive

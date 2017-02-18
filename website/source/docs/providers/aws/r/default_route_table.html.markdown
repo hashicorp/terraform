@@ -23,11 +23,11 @@ into management. We can do this because each VPC created has a Default Route
 Table that cannot be destroyed, and is created with a single route.
 
 When Terraform first adopts the Default Route Table, it **immediately removes all
-defined routes**. It then proceeds to create any routes specified in the 
-configuration. This step is required so that only the routes specified in the 
+defined routes**. It then proceeds to create any routes specified in the
+configuration. This step is required so that only the routes specified in the
 configuration present in the Default Route Table.
 
-For more information about Route Tables, see the AWS Documentation on 
+For more information about Route Tables, see the AWS Documentation on
 [Route Tables][aws-route-tables].
 
 For more information about managing normal Route Tables in Terraform, see our

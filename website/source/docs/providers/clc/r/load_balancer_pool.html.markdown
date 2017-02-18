@@ -54,7 +54,7 @@ The following arguments are supported:
   "roundRobin" (default) or "leastConnection".
 * `persistence` - (Optional, string) The configured persistence
   method. Either "standard" (default) or "sticky".
-* nodes - (Optional) See [Nodes](#nodes) below for details. 
+* nodes - (Optional) See [Nodes](#nodes) below for details.
 
 
 <a id="nodes"></a>
@@ -65,8 +65,8 @@ The following arguments are supported:
 specify connected nodes on this pool. Each `nodes` block supports the
 following:
 
-* `ipAddress` (Required, string) The destination internal ip of pool node. 
-* `privatePort` (Required, int) The destination port on the pool node. 
+* `ipAddress` (Required, string) The destination internal ip of pool node.
+* `privatePort` (Required, int) The destination port on the pool node.
 * `status` (Optional, string) Either "enabled" or "disabled".
 
 

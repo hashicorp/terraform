@@ -96,7 +96,7 @@ The following attributes are exported:
 
 ## Import
 
-Delivery Channel can be imported using the name, e.g. 
+Delivery Channel can be imported using the name, e.g.
 
 ```
 $ terraform import aws_config_delivery_channel.foo example

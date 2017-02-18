@@ -59,7 +59,7 @@ The following attributes are exported:
 
 ## Import
 
-Cloudwatch Event Rules can be imported using the `name`, e.g. 
+Cloudwatch Event Rules can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_cloudwatch_event_rule.console capture-console-sign-in

@@ -38,7 +38,7 @@ CONFIG
 	snapshot_options {
 		automated_snapshot_start_hour = 23
 	}
-	
+
 	tags {
       Domain = "TestDomain"
     }

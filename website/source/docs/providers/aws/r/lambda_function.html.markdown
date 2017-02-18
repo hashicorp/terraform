@@ -100,7 +100,7 @@ For **environment** the following attributes are supported:
 
 ## Import
 
-Lambda Functions can be imported using the `function_name`, e.g. 
+Lambda Functions can be imported using the `function_name`, e.g.
 
 ```
 $ terraform import aws_lambda_function.tesr_lambda my_test_lambda_function

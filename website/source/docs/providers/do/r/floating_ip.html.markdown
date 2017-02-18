@@ -45,7 +45,7 @@ The following attributes are exported:
 
 ## Import
 
-Floating IPs can be imported using the `ip`, e.g. 
+Floating IPs can be imported using the `ip`, e.g.
 
 ```
 terraform import digitalocean_floating_ip.myip 192.168.0.1

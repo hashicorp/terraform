@@ -50,7 +50,7 @@ The following attributes are exported:
 
 ## Import
 
-ElastiCache Parameter Groups can be imported using the `name`, e.g. 
+ElastiCache Parameter Groups can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_elasticache_parameter_group.default redis-params

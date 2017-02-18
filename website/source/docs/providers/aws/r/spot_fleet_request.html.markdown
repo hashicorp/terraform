@@ -42,7 +42,7 @@ resource "aws_spot_fleet_request" "cheap_compute" {
 }
 ```
 
-~> **NOTE:** Terraform does not support the functionality where multiple `subnet_id` or `availability_zone` parameters can be specified in the same 
+~> **NOTE:** Terraform does not support the functionality where multiple `subnet_id` or `availability_zone` parameters can be specified in the same
 launch configuration block. If you want to specify multiple values, then separate launch configuration blocks should be used:
 
 ```

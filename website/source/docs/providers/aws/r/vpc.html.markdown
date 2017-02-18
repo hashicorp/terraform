@@ -41,7 +41,7 @@ The following arguments are supported:
 * `instance_tenancy` - (Optional) A tenancy option for instances launched into the VPC
 * `enable_dns_support` - (Optional) A boolean flag to enable/disable DNS support in the VPC. Defaults true.
 * `enable_dns_hostnames` - (Optional) A boolean flag to enable/disable DNS hostnames in the VPC. Defaults false.
-* `enable_classiclink` - (Optional) A boolean flag to enable/disable ClassicLink 
+* `enable_classiclink` - (Optional) A boolean flag to enable/disable ClassicLink
   for the VPC. Only valid in regions and accounts that support EC2 Classic.
   See the [ClassicLink documentation][1] for more information. Defaults false.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
@@ -68,7 +68,7 @@ The following attributes are exported:
 
 ## Import
 
-VPCs can be imported using the `vpc id`, e.g. 
+VPCs can be imported using the `vpc id`, e.g.
 
 ```
 $ terraform import aws_vpc.test_vpc vpc-a01106c2

@@ -42,7 +42,7 @@ The following attributes are exported:
 
 ## Import
 
-SSH Keys can be imported using the `ssh key id`, e.g. 
+SSH Keys can be imported using the `ssh key id`, e.g.
 
 ```
 terraform import digitalocean_ssh_key.mykey 263654

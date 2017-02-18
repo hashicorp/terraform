@@ -231,7 +231,7 @@ The nested `assume_role` block supports the following:
 * `external_id` - (Optional) The external ID to use when making the
   AssumeRole call.
 
-* `policy` - (Optional) A more restrictive policy to apply to the temporary credentials. 
+* `policy` - (Optional) A more restrictive policy to apply to the temporary credentials.
 This gives you a way to further restrict the permissions for the resulting temporary
 security credentials. You cannot use the passed policy to grant permissions that are
 in excess of those allowed by the access policy of the role that is being assumed.

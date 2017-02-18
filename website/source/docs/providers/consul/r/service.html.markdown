@@ -38,7 +38,7 @@ The following arguments are supported:
 
 * `tags` - (Optional, set of strings) A list of values that are opaque to Consul,
   but can be used to distinguish between services or nodes.
-  
+
 
 ## Attributes Reference
 

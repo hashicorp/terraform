@@ -88,7 +88,7 @@ The following arguments are supported:
     metric alerts, 2 minutes for service checks.
 * `renotify_interval` (Optional) The number of minutes after the last notification before a monitor will re-notify
     on the current status. It will only re-notify if it's not resolved.
-* `notify_audit` (Optional) A boolean indicating whether tagged users will be notified on changes to this monitor. 
+* `notify_audit` (Optional) A boolean indicating whether tagged users will be notified on changes to this monitor.
     Defaults to false.
 * `timeout_h` (Optional) The number of hours of the monitor not reporting data before it will automatically resolve
     from a triggered state. Defaults to false.
@@ -101,13 +101,13 @@ The following arguments are supported:
 * `tags` (Optional) A list of tags to associate with your monitor. This can help you categorize and filter monitors in the manage monitors page of the UI. Note: it's not currently possible to filter by these tags when querying via the API
 * `silenced` (Optional) Each scope will be muted until the given POSIX timestamp or forever if the value is 0.
     To mute the alert completely:
-    
+
         silenced {
           '*' =  0
         }
-          
+
     To mute role:db for a short time:
-    
+
         silenced {
           'role:db' = 1412798116
         }

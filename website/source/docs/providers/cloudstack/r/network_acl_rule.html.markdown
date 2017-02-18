@@ -45,7 +45,7 @@ The following arguments are supported:
 
 * `parallelism` (Optional) Specifies how much rules will be created or deleted
     concurrently. (defaults 2)
-    
+
 The `rule` block supports:
 
 * `action` - (Optional) The action for the rule. Valid options are: `allow` and

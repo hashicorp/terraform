@@ -83,8 +83,8 @@ resource "google_container_cluster" "primary" {
     this cluster
 
 * `node_version` - (Optional) The Kubernetes version on the nodes. Also affects
-    the initial master version on cluster creation. Updates affect nodes only. 
-    Defaults to the default version set by GKE which is not necessarily the latest 
+    the initial master version on cluster creation. Updates affect nodes only.
+    Defaults to the default version set by GKE which is not necessarily the latest
     version.
 
 * `project` - (Optional) The project in which the resource belongs. If it

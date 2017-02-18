@@ -10,8 +10,8 @@ description: |-
 
 # atlas\_artifact
 
-Provides a [Data Source](/docs/configuration/data-sources.html) to access to deployment 
-artifacts managed by Atlas. This can be used to dynamically configure instantiation 
+Provides a [Data Source](/docs/configuration/data-sources.html) to access to deployment
+artifacts managed by Atlas. This can be used to dynamically configure instantiation
 and provisioning of resources.
 
 ## Example Usage
@@ -53,7 +53,7 @@ The following arguments are supported:
   to find a matching artifact in the latest build, "any" to find a
   matching artifact in any build, or a specific number to pin to that
   build. If `build` and `version` are unspecified, `version` will default
-  to "latest". Cannot be specified with `version`. Note: `build` is only 
+  to "latest". Cannot be specified with `version`. Note: `build` is only
   present if Atlas builds the image.
 
 * `version` - (Optional)  The version of the artifact to filter on. This can

@@ -47,7 +47,7 @@ The following arguments are supported:
 
 * `administrator_login_password` - (Required) The password for the new AdministratorLogin. Please following Azures [Password Policy](https://msdn.microsoft.com/library/ms161959.aspx)
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 
@@ -58,7 +58,7 @@ The following attributes are exported:
 
 ## Import
 
-SQL Servers can be imported using the `resource id`, e.g. 
+SQL Servers can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_sql_server.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myresourcegroup/providers/Microsoft.Sql/servers/myserver

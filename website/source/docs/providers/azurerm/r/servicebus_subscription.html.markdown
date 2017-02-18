@@ -73,7 +73,7 @@ The following arguments are supported:
     Subscription is automatically deleted, minimum of 5 minutes. Provided in the
     [TimeSpan](#timespan-format) format.
 
-* `default_message_ttl` - (Optional) The TTL of messages sent to this Subscription 
+* `default_message_ttl` - (Optional) The TTL of messages sent to this Subscription
     if no TTL value is set on the message itself. Provided in the [TimeSpan](#timespan-format)
     format.
 
@@ -108,7 +108,7 @@ The following attributes are exported:
 
 ## Import
 
-Service Bus Subscriptions can be imported using the `resource id`, e.g. 
+Service Bus Subscriptions can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_servicebus_subscription.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.servicebus/namespaces/sbns1/topics/sntopic1/subscriptions/sbsub1

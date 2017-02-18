@@ -52,7 +52,7 @@ The following attributes are exported:
 * `encrypted_password` - The encrypted password, base64 encoded.
 
 ~> **NOTE:** The encrypted password may be decrypted using the command line,
-   for example: `terraform output password | base64 --decode | keybase pgp decrypt`. 
+   for example: `terraform output password | base64 --decode | keybase pgp decrypt`.
 
 ## Import
 

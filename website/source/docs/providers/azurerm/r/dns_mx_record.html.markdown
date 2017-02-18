@@ -27,17 +27,17 @@ resource "azurerm_dns_mx_record" "test" {
    zone_name = "${azurerm_dns_zone.test.name}"
    resource_group_name = "${azurerm_resource_group.test.name}"
    ttl = "300"
-   
+
    record {
    	preference = 10
    	exchange = "mail1.contoso.com"
        }
-   
+
        record {
    	preference = 20
    	exchange = "mail2.contoso.com"
        }
-   
+
    tags {
     Environment = "Production"
    }
@@ -57,7 +57,7 @@ The following arguments are supported:
 
 * `record` - (Required) A list of values that make up the SRV record. Each `record` block supports fields documented below.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 The `record` block supports:
 
@@ -73,7 +73,7 @@ The following attributes are exported:
 
 ## Import
 
-MX records can be imported using the `resource id`, e.g. 
+MX records can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_dns_mx_record.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/dnsZones/zone1/MX/myrecord1

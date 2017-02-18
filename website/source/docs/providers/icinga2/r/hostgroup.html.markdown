@@ -9,7 +9,7 @@ description: |-
 # icinga2\_hostgroup
 
 Configures an Icinga2 hostgroup resource. This allows hostgroup to be configured, updated,
-and deleted. 
+and deleted.
 
 ## Example Usage
 

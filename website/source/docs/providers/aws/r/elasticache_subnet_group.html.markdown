@@ -58,7 +58,7 @@ The following attributes are exported:
 
 ## Import
 
-ElastiCache Subnet Groups can be imported using the `name`, e.g. 
+ElastiCache Subnet Groups can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_elasticache_subnet_group.bar tf-test-cache-subnet

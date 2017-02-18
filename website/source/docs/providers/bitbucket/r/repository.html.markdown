@@ -50,7 +50,7 @@ The following arguments are computed. You can access both `clone_ssh` and
 
 ## Import
 
-Repositories can be imported using the `name`, e.g. 
+Repositories can be imported using the `name`, e.g.
 
 ```
 $ terraform import bitbucket_repository.my-repo my-repo

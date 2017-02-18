@@ -48,8 +48,8 @@ The following arguments are supported:
 ## Attributes Reference
 
 * `name` - The name to identifing the Group Membership
-* `users` - list of IAM User names 
-* `group` – IAM Group name 
+* `users` - list of IAM User names
+* `group` – IAM Group name
 
 
 [1]: /docs/providers/aws/r/iam_group.html

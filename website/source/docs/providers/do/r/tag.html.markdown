@@ -47,7 +47,7 @@ The following attributes are exported:
 
 ## Import
 
-Tags can be imported using the `name`, e.g. 
+Tags can be imported using the `name`, e.g.
 
 ```
 terraform import digitalocean_tag.mytag tagname

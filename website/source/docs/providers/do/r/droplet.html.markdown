@@ -74,7 +74,7 @@ The following attributes are exported:
 
 ## Import
 
-Droplets can be imported using the droplet `id`, e.g. 
+Droplets can be imported using the droplet `id`, e.g.
 
 ```
 terraform import digitalocean_droplet.mydroplet 100823

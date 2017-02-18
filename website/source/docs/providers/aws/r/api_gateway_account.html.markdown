@@ -86,7 +86,7 @@ The following attribute is exported:
 
 ## Import
 
-API Gateway Accounts can be imported using the word `api-gateway-account`, e.g. 
+API Gateway Accounts can be imported using the word `api-gateway-account`, e.g.
 
 ```
 $ terraform import aws_api_gateway_account.demo api-gateway-account

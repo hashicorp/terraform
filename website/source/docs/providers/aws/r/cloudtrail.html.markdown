@@ -91,7 +91,7 @@ The following attributes are exported:
 
 ## Import
 
-Cloudtrails can be imported using the `name`, e.g. 
+Cloudtrails can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_cloudtrail.sample my-sample-trail

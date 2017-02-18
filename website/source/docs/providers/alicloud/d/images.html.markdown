@@ -8,7 +8,7 @@ description: |-
 
 # alicloud\_images
 
-The Images data source list image resource list contains private images of the user and images of system resources provided by Alicloud, as well as other public images and those available on the image market. 
+The Images data source list image resource list contains private images of the user and images of system resources provided by Alicloud, as well as other public images and those available on the image market.
 
 ## Example Usage
 
@@ -24,7 +24,7 @@ data "alicloud_images" "multi_image" {
 
 The following arguments are supported:
 
-* `name_regex` - (Optional) A regex string to apply to the image list returned by Alicloud. 
+* `name_regex` - (Optional) A regex string to apply to the image list returned by Alicloud.
 * `most_recent` - (Optional) If more than one result is returned, use the most recent image.
 * `owners` - (Optional) Limit search to specific image owners. Valid items are `system`, `self`, `others`, `marketplace`.
 

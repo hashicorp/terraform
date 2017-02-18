@@ -3,7 +3,7 @@ layout: "google"
 page_title: "Google: google_project_services"
 sidebar_current: "docs-google-project-services"
 description: |-
- Allows management of API services for a Google Cloud Platform project. 
+ Allows management of API services for a Google Cloud Platform project.
 ---
 
 # google\_project\_services

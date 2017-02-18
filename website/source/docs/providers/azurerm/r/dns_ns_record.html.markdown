@@ -30,11 +30,11 @@ resource "azurerm_dns_ns_record" "test" {
    record {
      nsdname = "ns1.contoso.com"
    }
-   
+
    record {
      nsdname = "ns2.contoso.com"
    }
-   
+
    tags {
      Environment = "Production"
    }
@@ -54,7 +54,7 @@ The following arguments are supported:
 
 * `record` - (Required) A list of values that make up the NS record. Each `record` block supports fields documented below.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 The `record` block supports:
 
@@ -68,7 +68,7 @@ The following attributes are exported:
 
 ## Import
 
-NS records can be imported using the `resource id`, e.g. 
+NS records can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_dns_ns_record.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/dnsZones/zone1/NS/myrecord1

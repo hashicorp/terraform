@@ -75,7 +75,7 @@ The following attributes are exported:
 
 ## Import
 
-Route53 Zones can be imported using the `zone id`, e.g. 
+Route53 Zones can be imported using the `zone id`, e.g.
 
 ```
 $ terraform import aws_route53_zone.myzone Z1D633PJN98FT9

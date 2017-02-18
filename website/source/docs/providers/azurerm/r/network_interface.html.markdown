@@ -63,7 +63,7 @@ The following arguments are supported:
     created. Changing this forces a new resource to be created.
 
 * `network_security_group_id` - (Optional) The ID of the Network Security Group to associate with
-                                               the network interface. 
+                                               the network interface.
 
 * `internal_dns_name_label` - (Optional) Relative DNS name for this NIC used for internal communications between VMs in the same VNet
 
@@ -73,7 +73,7 @@ The following arguments are supported:
 
 * `ip_configuration` - (Optional) Collection of ipConfigurations associated with this NIC. Each `ip_configuration` block supports fields documented below.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 The `ip_configuration` block supports:
 
@@ -104,7 +104,7 @@ The following attributes are exported:
 
 ## Import
 
-Network Interfaces can be imported using the `resource id`, e.g. 
+Network Interfaces can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_network_interface.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.network/networkInterfaces/nic1

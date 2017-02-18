@@ -28,7 +28,7 @@ resource "aws_alb_listener" "front_end" {
    protocol = "HTTPS"
    ssl_policy = "ELBSecurityPolicy-2015-05"
    certificate_arn = "arn:aws:iam::187416307283:server-certificate/test_cert_rab3wuqwgja25ct3n4jdj2tzu4"
-   
+
    default_action {
      target_group_arn = "${aws_alb_target_group.front_end.arn}"
      type = "forward"

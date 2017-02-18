@@ -57,8 +57,8 @@ resource "alicloud_slb" "vpc" {
 
 The following arguments are supported:
 
-* `name` - (Optional) The name of the SLB. This name must be unique within your AliCloud account, can have a maximum of 80 characters, 
-must contain only alphanumeric characters or hyphens, such as "-","/",".","_", and must not begin or end with a hyphen. If not specified, 
+* `name` - (Optional) The name of the SLB. This name must be unique within your AliCloud account, can have a maximum of 80 characters,
+must contain only alphanumeric characters or hyphens, such as "-","/",".","_", and must not begin or end with a hyphen. If not specified,
 Terraform will autogenerate a name beginning with `tf-lb`.
 * `internet` - (Optional, Forces New Resource) If true, the SLB addressType will be internet, false will be intranet, Default is false. If load balancer launched in VPC, this value must be "false".
 * `internet_charge_type` - (Optional, Forces New Resource) Valid
@@ -74,7 +74,7 @@ The listener mapping supports the following:
 
 * `instance_port` - (Required) The port on which the backend servers are listening. Valid value is between 1 to 65535.
 * `lb_port` - (Required) The port on which the load balancer is listening. Valid value is between 1 to 65535.
-* `lb_protocol` - (Required) The protocol to listen on. Valid values are `http` and and `tcp` and `udp`. 
+* `lb_protocol` - (Required) The protocol to listen on. Valid values are `http` and and `tcp` and `udp`.
 * `bandwidth` - (Required) The bandwidth on which the load balancer is  listening. Valid values is -1 or between 1 and 1000. If -1, the bindwidth will haven’t upper limit.
 
 ## Attributes Reference

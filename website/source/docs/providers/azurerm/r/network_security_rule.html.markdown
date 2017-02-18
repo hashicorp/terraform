@@ -47,7 +47,7 @@ The following arguments are supported:
 
 * `resource_group_name` - (Required) The name of the resource group in which to
     create the Network Security Rule.
- 
+
 * `network_security_group_name` - (Required) The name of the Network Security Group that we want to attach the rule to.
 
 * `description` - (Optional) A description for this rule. Restricted to 140 characters.
@@ -77,7 +77,7 @@ The following attributes are exported:
 
 ## Import
 
-Network Security Rules can be imported using the `resource id`, e.g. 
+Network Security Rules can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_network_security_rule.rule1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/networkSecurityGroups/mySecurityGroup/securityRules/rule1

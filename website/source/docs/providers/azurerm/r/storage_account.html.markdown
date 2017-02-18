@@ -47,7 +47,7 @@ The following arguments are supported:
 
 * `account_kind` - (Optional) Defines the Kind of account. Valid options are `Storage`
     and `BlobStorage`. Changing this forces a new resource to be created. Defaults
-    to `Storage`. 
+    to `Storage`.
 
 * `account_type` - (Required) Defines the type of storage account to be
     created. Valid options are `Standard_LRS`, `Standard_ZRS`, `Standard_GRS`,
@@ -61,7 +61,7 @@ The following arguments are supported:
 
 * `enable_blob_encryption` - (Optional) Boolean flag which controls if Encryption
     Services are enabled for Blob storage, see [here](https://azure.microsoft.com/en-us/documentation/articles/storage-service-encryption/)
-    for more information. 
+    for more information.
 
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
@@ -87,7 +87,7 @@ The following attributes are exported in addition to the arguments listed above:
 
 ## Import
 
-Storage Accounts can be imported using the `resource id`, e.g. 
+Storage Accounts can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_storage_account.storageAcc1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myresourcegroup/providers/Microsoft.Storage/storageAccounts/myaccount

@@ -68,7 +68,7 @@ repeated to specify open ports on the target IP. Each
 
 * `protocol` (Required, string) One of "tcp", "udp", "icmp".
 * `port` (Required, int) The port to open. If defining a range, demarks starting port
-* `portTo` (Optional, int) Given a port range, demarks the ending port. 
+* `portTo` (Optional, int) Given a port range, demarks the ending port.
 
 
 <a id="source_restrictions"></a>

@@ -26,7 +26,7 @@ resource "profitbricks_nic" "example" {
 
 * `datacenter_id` - (Required)[string]<sup>[1](#myfootnote1)</sup>
 * `server_id` - (Required)[string]<sup>[1](#myfootnote1)</sup>
-* `lan` - (Required) [integer] The LAN ID the NIC will sit on. 
+* `lan` - (Required) [integer] The LAN ID the NIC will sit on.
 * `name` - (Optional) [string] The name of the LAN.
 * `dhcp` - (Optional) [boolean]
 * `ip` - (Optional) [string] IP assigned to the NIC.

@@ -27,6 +27,6 @@ There are no arguments available for this data source.
 
 ## Attributes Reference
 
-* `client_id` is set to the Azure Client ID. 
+* `client_id` is set to the Azure Client ID.
 * `tenant_id` is set to the Azure Tenant ID.
-* `subscription_id` is set to the Azure Subscription ID. 
+* `subscription_id` is set to the Azure Subscription ID.

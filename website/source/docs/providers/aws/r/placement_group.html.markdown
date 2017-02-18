@@ -35,7 +35,7 @@ The following attributes are exported:
 
 ## Import
 
-Placement groups can be imported using the `name`, e.g. 
+Placement groups can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_placement_group.prod_pg production-placement-group

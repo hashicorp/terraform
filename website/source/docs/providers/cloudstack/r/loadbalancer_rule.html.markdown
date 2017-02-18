@@ -44,7 +44,7 @@ The following arguments are supported:
 * `algorithm` - (Required) Load balancer rule algorithm (source, roundrobin,
     leastconn). Changing this forces a new resource to be created.
 
-* `private_port` - (Required) The private port of the private IP address 
+* `private_port` - (Required) The private port of the private IP address
     (virtual machine) where the network traffic will be load balanced to.
     Changing this forces a new resource to be created.
 

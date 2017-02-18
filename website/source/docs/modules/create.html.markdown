@@ -31,7 +31,7 @@ your modules. This should be instant since the module is a local path.
 
 ## Inputs/Outputs
 
-To make modules more useful than simple isolated containers of Terraform configurations, modules can be configured and also have outputs that can be consumed by your Terraform configuration. 
+To make modules more useful than simple isolated containers of Terraform configurations, modules can be configured and also have outputs that can be consumed by your Terraform configuration.
 
 Inputs of a module are [variables](/docs/configuration/variables.html) and outputs are [outputs](/docs/configuration/outputs.html). There is no special syntax to define these, they're defined just like any other variables or outputs. You can think about these variables and outputs as the API interface to your module.
 

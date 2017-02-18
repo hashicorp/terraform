@@ -46,7 +46,7 @@ be re-associated. Defaults to `true` in VPC.
 * `instance_id` - (Optional) The ID of the instance. This is required for
 EC2-Classic. For EC2-VPC, you can specify either the instance ID or the
 network interface ID, but not both. The operation fails if you specify an
-instance ID unless exactly one network interface is attached. 
+instance ID unless exactly one network interface is attached.
 * `network_interface_id` - (Optional) The ID of the network interface. If the
 instance has more than one network interface, you must specify a network
 interface ID.

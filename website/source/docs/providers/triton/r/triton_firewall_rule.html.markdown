@@ -3,7 +3,7 @@ layout: "triton"
 page_title: "Triton: triton_firewall_rule"
 sidebar_current: "docs-triton-firewall"
 description: |-
-    The `triton_firewall_rule` resource represents a rule for the Triton cloud firewall. 
+    The `triton_firewall_rule` resource represents a rule for the Triton cloud firewall.
 ---
 
 # triton\_firewall\_rule
@@ -20,7 +20,7 @@ resource "triton_firewall_rule" "www" {
     rule = "FROM any TO tag www ALLOW tcp (PORT 80 AND PORT 443)"
     enabled = true
 }
-                
+
 ```
 Block traffic on port tcp/143 to all machines
 
@@ -30,7 +30,7 @@ resource "triton_firewall_rule" "imap" {
     rule = "FROM any TO all vms BLOCK tcp port 143"
     enabled = true
 }
-                
+
 ```
 
 ## Argument Reference
@@ -47,4 +47,4 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `id` - (string) - The identifier representing the firewall rule in Triton. 
+* `id` - (string) - The identifier representing the firewall rule in Triton.

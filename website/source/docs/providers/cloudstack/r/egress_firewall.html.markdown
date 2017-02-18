@@ -40,7 +40,7 @@ The following arguments are supported:
 
 * `parallelism` (Optional) Specifies how much rules will be created or deleted
     concurrently. (defaults 2)
-    
+
 The `rule` block supports:
 
 * `cidr_list` - (Required) A CIDR list to allow access to the given ports.
