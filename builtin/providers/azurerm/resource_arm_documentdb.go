@@ -12,6 +12,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/documentdb"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceArmDocumentDb() *schema.Resource {
@@ -57,9 +58,14 @@ func resourceArmDocumentDb() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"consistency_level": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateAzureRmDocumentDbConsistencyLevel,
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								string(documentdb.BoundedStaleness),
+								string(documentdb.Eventual),
+								string(documentdb.Session),
+								string(documentdb.Strong),
+							}, true),
 						},
 
 						"max_interval_in_seconds": {
@@ -139,7 +145,7 @@ func resourceArmDocumentDBCreateUpdate(d *schema.ResourceData, meta interface{})
 	offerType := d.Get("offer_type").(string)
 
 	consistencyPolicy := expandAzureRmDocumentDbConsistencyPolicy(d)
-	failoverPolicies, err := expandAzureRmDocumentDbFailoverPolicies(&name, d)
+	failoverPolicies, err := expandAzureRmDocumentDbFailoverPolicies(name, d)
 	if err != nil {
 		return err
 	}
@@ -258,20 +264,20 @@ func expandAzureRmDocumentDbConsistencyPolicy(d *schema.ResourceData) documentdb
 	return policy
 }
 
-func expandAzureRmDocumentDbFailoverPolicies(databaseName *string, d *schema.ResourceData) ([]documentdb.Location, error) {
+func expandAzureRmDocumentDbFailoverPolicies(databaseName string, d *schema.ResourceData) ([]documentdb.Location, error) {
 	input := d.Get("failover_policy").(*schema.Set).List()
 	locations := make([]documentdb.Location, 0, len(input))
 
 	for _, configRaw := range input {
 		data := configRaw.(map[string]interface{})
 
-		location := azureRMNormalizeLocation(data["location"].(string))
-		id := fmt.Sprintf("%s-%s", databaseName, name)
+		locationName := azureRMNormalizeLocation(data["location"].(string))
+		id := fmt.Sprintf("%s-%s", databaseName, locationName)
 		failoverPriority := int32(data["priority"].(int))
 
 		location := documentdb.Location{
 			ID:               &id,
-			LocationName:     &location,
+			LocationName:     &locationName,
 			FailoverPriority: &failoverPriority,
 		}
 
@@ -312,7 +318,7 @@ func flattenAzureRmDocumentDbFailoverPolicy(list *[]documentdb.FailoverPolicy) [
 	result := make([]map[string]interface{}, 0, len(*list))
 	for _, i := range *list {
 		l := map[string]interface{}{
-			"id":       *i.Id,
+			"id":       *i.ID,
 			"location": azureRMNormalizeLocation(*i.LocationName),
 			"priority": *i.FailoverPriority, // TODO: check we're parsing this out correctly
 		}
@@ -320,21 +326,6 @@ func flattenAzureRmDocumentDbFailoverPolicy(list *[]documentdb.FailoverPolicy) [
 		result = append(result, l)
 	}
 	return result
-}
-
-func validateAzureRmDocumentDbConsistencyLevel(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-	allowedValues := map[string]bool{
-		"eventual":         true,
-		"session":          true,
-		"boundedstaleness": true,
-		"strong":           true,
-	}
-
-	if !allowedValues[value] {
-		errors = append(errors, fmt.Errorf("DocumentDB Consistency Level can only be 'Eventual', 'Session', 'BoundedStaleness' or 'Strong'"))
-	}
-	return
 }
 
 func validateAzureRmDocumentDbMaxIntervalInSeconds(v interface{}, k string) (ws []string, errors []error) {

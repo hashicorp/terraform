@@ -124,7 +124,7 @@ resource "azurerm_documentdb" "test" {
   }
 
   failover_policy {
-    name     = "${azurerm_resource_group.test.location}"
+    location = "${azurerm_resource_group.test.location}"
     priority = 0
   }
 }
@@ -148,12 +148,12 @@ resource "azurerm_documentdb" "test" {
   }
 
   failover_policy {
-    name     = "${azurerm_resource_group.test.location}"
+    location = "${azurerm_resource_group.test.location}"
     priority = 0
   }
 
   failover_policy {
-    name     = "West Europe"
+    location = "West Europe"
     priority = 1
   }
 }
