@@ -4,338 +4,180 @@
 // - Edits should not be made here
 // --------------------------------------------------
 
-#header{
+$hashicorp-header-height:               100px;
+$hashicorp-header-z-index:              1000;
+
+$hashicorp-header-breakpoint-xs:        570px;
+$hashicorp-header-breakpoint-sm:        768px;
+$hashicorp-header-breakpoint-md:        992px;
+
+$hashicorp-header-color-black:          black;
+$hashicorp-header-color-white:          white;
+
+$hashicorp-header-font-family:          'klavika-web', 'Lato', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+$hashicorp-header-font-size-base:       14px;
+$hashicorp-header-line-height-base:     20px;
+
+
+@function hashicorp-header-em($size, $base: $hashicorp-header-font-size-base) {
+  @return $size / $base * 1em;
+}
+
+
+.header {
+  background: red;
+  font-family: $hashicorp-header-font-family;
+  font-size: $hashicorp-header-font-size-base;
+  min-height: hashicorp-header-em($hashicorp-header-height);
   position: relative;
-  margin-bottom: 0;
+  z-index: $hashicorp-header-z-index;
+
+  &,
+  > .container {
+    align-items: center;
+    display: flex;
+  }
+  
+  > .container {
+    @media (max-width: $hashicorp-header-breakpoint-sm - 1px) {
+      flex-grow: 1;
+    }
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+    transition: opacity 0.25s ease;
+    will-change: opacity;
+  }
+
 }
 
-.navigation {
-  color: black;
-  text-rendering: optimizeLegibility;
-  transition: all 1s ease;
+.header-dark {
+  background-color: $hashicorp-header-color-black;
+  color: $hashicorp-header-color-white;
 
-  &.white{
-    .navbar-brand {
-      .logo {
-        color: white;
-      }
-    }
-
-    .main-links,
-    .external-links {
-      li > a {
-        &:hover{
-          opacity: 1;
-        }
-      }
+  a {
+    &:hover,
+    &:focus {
+      opacity: 0.75;
     }
   }
 
-  &.black{
-    .navbar-brand {
-      .logo {
-        color: black;
-      }
-    }
+  svg * { 
+    fill: $hashicorp-header-color-white;
+  }
+}
 
-    .main-links,
-    .external-links {
-      li > a {
-        color: black;
-      }
+.header-light {
+  background-color: $hashicorp-header-color-white;
+  color: $hashicorp-header-color-black;
+
+  a {
+    &:hover,
+    &:focus {
+      opacity: 0.65;
     }
   }
 
-  .navbar-toggle{
-    height: $header-height;
-    margin: 0;
+  svg * { 
+    fill: $hashicorp-header-color-black;
+  }
+}
+
+.header-brand {
+  align-items: center;
+  display: inline-flex;
+}
+
+.header-brand-logo {
+  align-items: center;
+  display: inline-flex;
+
+  svg {
+    height: hashicorp-header-em(30px);
+    width: auto;
+  }
+
+  @media (min-width: $hashicorp-header-breakpoint-xs) {
+    height: hashicorp-header-em(40px);
+  }
+}
+
+.header-brand-logo-wordmark {
+  display: none;
+  font-size: hashicorp-header-em($hashicorp-header-font-size-base * 2);
+  margin-left: hashicorp-header-em($hashicorp-header-line-height-base / 2, $hashicorp-header-font-size-base * 2);
+
+  @media (min-width: $hashicorp-header-breakpoint-xs) {
+    display: inline-block;
+  }
+}
+
+.header-brand-tag {
+  align-items: center;
+  display: inline-flex;
+}
+
+.header-brand-tag-divider {
+  margin-left: hashicorp-header-em($hashicorp-header-line-height-base / 2);
+  margin-right: hashicorp-header-em($hashicorp-header-line-height-base / 2);
+}
+
+.header-brand-tag-logo {
+  align-items: center;
+  display: inline-flex;
+
+  svg {
+    height: hashicorp-header-em(18px);
+    width: auto;
+
+    + svg {
+      margin-left: hashicorp-header-em($hashicorp-header-line-height-base / 4);
+    }
+  }
+}
+
+.header-toggle {
+  margin-left: auto;
+
+  .navbar-toggle {
+    //overwrite bootstrap styles
     border-radius: 0;
-    .icon-bar{
-      border: 1px solid $black;
-      border-radius: 0;
-    }
-  }
-
-  .external-links {
-    &.white{
-      svg path{
-        fill: $white;
-      }
-    }
-
-    li {
-      position: relative;
-
-      svg path{
-        @include transition( all 300ms ease-in );
-      }
-
-      &:hover{
-        svg path{
-          @include transition( all 300ms ease-in );
-        }
-      }
-
-      @include project-svg-external-links-style();
-
-      &.download{
-        margin-right: 10px;
-      }
-
-      > a {
-        padding-left: 12px !important;
-        svg{
-          position: absolute;
-          left: -12px;
-          top: 50%;
-          margin-top: -7px;
-          width: 14px;
-          height: 14px;
-        }
-      }
-    }
-  }
-
-  .main-links{
-    margin-right: $nav-margin-right * 2;
-  }
-
-  .main-links,
-  .external-links {
-    &.white{
-      li > a {
-        color: white;
-      }
-    }
-    li > a {
-      @include hashi-a-style();
-      margin: 0 10px;
-      padding-top: 1px;
-      line-height: $header-height;
-      @include project-a-style();
-    }
-  }
-
-  .nav > li > a:hover, .nav > li > a:focus {
-    background-color: transparent;
-    @include transition( all 300ms ease-in );
-  }
-}
-
-.navbar-brand {
-  display: block;
-  height: $header-height;
-  padding: 0;
-  margin: 0 10px 0 0;
-
-  .logo{
-    display: inline-block;
-    height: $header-height;
-    vertical-align:top;
+    border: 0;
+    float: none;
+    margin-bottom: 0;
+    margin-right: 0;
+    margin-top: 0;
     padding: 0;
-    line-height: $header-height;
-    padding-left: $project-logo-width + $project-logo-pad-left;
-    background-position: 0 center;
-    @include transition(all 300ms ease-in);
+    position: static;
+  }
 
-    &:hover{
-      @include transition(all 300ms ease-in);
-      text-decoration: none;
-    }
+  .icon-bar {
+    background-color: $hashicorp-header-color-white;
   }
 }
 
-.navbar-toggle{
-  &.white{
-    .icon-bar{
-      border: 1px solid white;
-    }
-  }
-}
+.header-nav {
+  margin-left: auto;
 
-.by-hashicorp{
-  display: inline-block;
-  vertical-align:top;
-  height: $header-height;
-  margin-left: 3px;
-  padding-top: 2px;
-  color: black;
-  line-height: $header-height;
-  font-family: $header-font-family;
-  font-weight: 600;
-  font-size: 0;
-  text-decoration: none;
+  > ul {
+    align-items: center;
+    display: flex;
+    list-style: none;
+    margin-bottom: 0;
+    margin-left: hashicorp-header-em(-$hashicorp-header-line-height-base);
+    padding-left: 0;
 
-  &.white{
-    color: white;
-    font-weight: 300;
-    svg{
-      path,
-      polygon,
-      rect{
-        fill: white;
-      }
-    }
-
-    &:focus,
-    &:hover{
-      text-decoration: none;
-      color: white;
+    > li {
+      padding-left: hashicorp-header-em($hashicorp-header-line-height-base);
     }
   }
 
-  &:focus,
-  &:hover{
-    text-decoration: none;
-  }
-
-  .svg-wrap{
-    font-size: 13px;
-  }
-
-  svg{
-    &.svg-by{
-      width: $by-hashicorp-width;
-      height: $by-hashicorp-height;
-      margin-bottom: -4px;
-      margin-left: 4px;
-    }
-
-    &.svg-logo{
-      width: 16px;
-      height: 16px;
-      margin-bottom: -3px;
-      margin-left: 4px;
-    }
-
-    path,
-    polygon{
-      @include transition(all 300ms ease-in);
-
-      &:hover{
-        @include transition(all 300ms ease-in);
-      }
-    }
-    .svg-bg-line{
-      @include transition(all 300ms ease-in);
-
-      &:hover{
-        @include transition(all 300ms ease-in);
-      }
-    }
-  }
-}
-
-.hashicorp-project{
-  display: inline-block;
-  height: 30px;
-  line-height: 30px;
-  text-decoration: none;
-  font-size: 14px;
-  color: $black;
-  font-weight: 600;
-
-  &.white{
-    color: white;
-    svg{
-      path,
-      rect,
-      polygon{
-        fill: white;
-      }
-    }
-  }
-
-  &:focus,
-  &:hover{
-    text-decoration: none;
-  }
-
-  &:hover{
-    svg{
-      .svg-bg-line{
-        fill: $purple;
-      }
-    }
-  }
-
-  span{
-    margin-right: 4px;
-    font-family: $header-font-family;
-    font-weight: 500;
-  }
-
-  span,
-  svg{
-    display: inline-block;
-  }
-
-  svg{
-    &.svg-by{
-      width: $by-hashicorp-width;
-      height: $by-hashicorp-height;
-      margin-bottom: -4px;
-      margin-left: -3px;
-    }
-
-    &.svg-logo{
-      width: 30px;
-      height: 30px;
-      margin-bottom: -10px;
-      margin-left: -1px;
-    }
-
-    path,
-    line{
-      @include transition(all 300ms ease-in);
-
-      &:hover{
-        @include transition(all 300ms ease-in);
-      }
-    }
-    .svg-bg-line{
-      @include transition(all 300ms ease-in);
-
-      &:hover{
-        @include transition(all 300ms ease-in);
-      }
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .navigation {
-    .main-links{
-      margin-right: 0;
-    }
-  }
-}
-
-@media (max-width: 414px) {
-  #header {
-    .navbar-toggle{
-      padding-top: 10px;
-      height: $header-mobile-height;
-    }
-
-    .navbar-brand {
-      height: $header-mobile-height;
-
-      .logo{
-        height: $header-mobile-height;
-        line-height: $header-mobile-height;
-      }
-      .by-hashicorp{
-        height: $header-mobile-height;
-        line-height: $header-mobile-height;
-        padding-top: 0;
-      }
-    }
-    .main-links,
-    .external-links {
-      li > a {
-        line-height: $header-mobile-height;
-      }
-    }
+  svg {
+    height: 1em;
+    margin-right: hashicorp-header-em($hashicorp-header-line-height-base / 4);
+    vertical-align: hashicorp-header-em(-2px);
   }
 }
