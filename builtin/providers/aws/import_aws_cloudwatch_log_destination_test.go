@@ -3,11 +3,14 @@ package aws
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccAWSCloudwatchLogDestination_importBasic(t *testing.T) {
 	resourceName := "aws_cloudwatch_log_destination.test"
+
+	rstring := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -15,7 +18,7 @@ func TestAccAWSCloudwatchLogDestination_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSCloudwatchLogDestinationDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCloudwatchLogDestinationConfig(),
+				Config: testAccAWSCloudwatchLogDestinationConfig(rstring),
 			},
 
 			resource.TestStep{
