@@ -16,7 +16,6 @@ func resourceAwsCloudWatchLogDestination() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsCloudWatchLogDestinationPut,
 		Update: resourceAwsCloudWatchLogDestinationPut,
-
 		Read:   resourceAwsCloudWatchLogDestinationRead,
 		Delete: resourceAwsCloudWatchLogDestinationDelete,
 

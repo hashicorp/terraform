@@ -13,7 +13,6 @@ func resourceAwsCloudWatchLogDestinationPolicy() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsCloudWatchLogDestinationPolicyPut,
 		Update: resourceAwsCloudWatchLogDestinationPolicyPut,
-
 		Read:   resourceAwsCloudWatchLogDestinationPolicyRead,
 		Delete: resourceAwsCloudWatchLogDestinationPolicyDelete,
 
