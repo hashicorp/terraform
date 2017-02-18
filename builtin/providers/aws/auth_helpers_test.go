@@ -32,7 +32,7 @@ func TestAWSGetAccountInfo_shouldBeValid_fromEC2Role(t *testing.T) {
 	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	part, id, err := GetAccountInfo(iamConn, stsConn, ec2rolecreds.ProviderName)
+	part, id, resource, err := GetAccountInfo(iamConn, stsConn, ec2rolecreds.ProviderName)
 	if err != nil {
 		t.Fatalf("Getting account ID from EC2 metadata API failed: %s", err)
 	}
@@ -45,6 +45,11 @@ func TestAWSGetAccountInfo_shouldBeValid_fromEC2Role(t *testing.T) {
 	expectedAccountId := "123456789013"
 	if id != expectedAccountId {
 		t.Fatalf("Expected account ID: %s, given: %s", expectedAccountId, id)
+	}
+
+	expectedResource := "instance-profile/my-instance-profile"
+	if resource != expectedResource {
+		t.Fatalf("Expected resource: %s, given: %s", expectedResource, resource)
 	}
 }
 
@@ -64,7 +69,7 @@ func TestAWSGetAccountInfo_shouldBeValid_EC2RoleHasPriority(t *testing.T) {
 	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	part, id, err := GetAccountInfo(iamConn, stsConn, ec2rolecreds.ProviderName)
+	part, id, resource, err := GetAccountInfo(iamConn, stsConn, ec2rolecreds.ProviderName)
 	if err != nil {
 		t.Fatalf("Getting account ID from EC2 metadata API failed: %s", err)
 	}
@@ -77,6 +82,11 @@ func TestAWSGetAccountInfo_shouldBeValid_EC2RoleHasPriority(t *testing.T) {
 	expectedAccountId := "123456789013"
 	if id != expectedAccountId {
 		t.Fatalf("Expected account ID: %s, given: %s", expectedAccountId, id)
+	}
+
+	expectedResource := "instance-profile/my-instance-profile"
+	if resource != expectedResource {
+		t.Fatalf("Expected resource: %s, given: %s", expectedResource, resource)
 	}
 }
 
@@ -91,7 +101,7 @@ func TestAWSGetAccountInfo_shouldBeValid_fromIamUser(t *testing.T) {
 	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	part, id, err := GetAccountInfo(iamConn, stsConn, "")
+	part, id, resource, err := GetAccountInfo(iamConn, stsConn, "")
 	if err != nil {
 		t.Fatalf("Getting account ID via GetUser failed: %s", err)
 	}
@@ -104,6 +114,11 @@ func TestAWSGetAccountInfo_shouldBeValid_fromIamUser(t *testing.T) {
 	expectedAccountId := "123456789012"
 	if id != expectedAccountId {
 		t.Fatalf("Expected account ID: %s, given: %s", expectedAccountId, id)
+	}
+
+	expectedResource := "user/division_abc/subdivision_xyz/Bob"
+	if resource != expectedResource {
+		t.Fatalf("Expected resource: %s, given: %s", expectedResource, resource)
 	}
 }
 
@@ -121,7 +136,7 @@ func TestAWSGetAccountInfo_shouldBeValid_fromGetCallerIdentity(t *testing.T) {
 	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	part, id, err := GetAccountInfo(iamConn, stsConn, "")
+	part, id, resource, err := GetAccountInfo(iamConn, stsConn, "")
 	if err != nil {
 		t.Fatalf("Getting account ID via GetUser failed: %s", err)
 	}
@@ -134,6 +149,11 @@ func TestAWSGetAccountInfo_shouldBeValid_fromGetCallerIdentity(t *testing.T) {
 	expectedAccountId := "123456789012"
 	if id != expectedAccountId {
 		t.Fatalf("Expected account ID: %s, given: %s", expectedAccountId, id)
+	}
+
+	expectedResource := "user/Alice"
+	if resource != expectedResource {
+		t.Fatalf("Expected resource: %s, given: %s", expectedResource, resource)
 	}
 }
 
@@ -155,7 +175,7 @@ func TestAWSGetAccountInfo_shouldBeValid_fromIamListRoles(t *testing.T) {
 	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	part, id, err := GetAccountInfo(iamConn, stsConn, "")
+	part, id, resource, err := GetAccountInfo(iamConn, stsConn, "")
 	if err != nil {
 		t.Fatalf("Getting account ID via ListRoles failed: %s", err)
 	}
@@ -168,6 +188,11 @@ func TestAWSGetAccountInfo_shouldBeValid_fromIamListRoles(t *testing.T) {
 	expectedAccountId := "123456789012"
 	if id != expectedAccountId {
 		t.Fatalf("Expected account ID: %s, given: %s", expectedAccountId, id)
+	}
+
+	expectedResource := "role/elasticbeanstalk-role"
+	if resource != expectedResource {
+		t.Fatalf("Expected resource: %s, given: %s", expectedResource, resource)
 	}
 }
 
@@ -185,7 +210,7 @@ func TestAWSGetAccountInfo_shouldBeValid_federatedRole(t *testing.T) {
 	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	part, id, err := GetAccountInfo(iamConn, stsConn, "")
+	part, id, resource, err := GetAccountInfo(iamConn, stsConn, "")
 	if err != nil {
 		t.Fatalf("Getting account ID via ListRoles failed: %s", err)
 	}
@@ -198,6 +223,11 @@ func TestAWSGetAccountInfo_shouldBeValid_federatedRole(t *testing.T) {
 	expectedAccountId := "123456789012"
 	if id != expectedAccountId {
 		t.Fatalf("Expected account ID: %s, given: %s", expectedAccountId, id)
+	}
+
+	expectedResource := "role/elasticbeanstalk-role"
+	if resource != expectedResource {
+		t.Fatalf("Expected resource: %s, given: %s", expectedResource, resource)
 	}
 }
 
@@ -215,7 +245,7 @@ func TestAWSGetAccountInfo_shouldError_unauthorizedFromIam(t *testing.T) {
 	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	part, id, err := GetAccountInfo(iamConn, stsConn, "")
+	part, id, resource, err := GetAccountInfo(iamConn, stsConn, "")
 	if err == nil {
 		t.Fatal("Expected error when getting account ID")
 	}
@@ -227,13 +257,18 @@ func TestAWSGetAccountInfo_shouldError_unauthorizedFromIam(t *testing.T) {
 	if id != "" {
 		t.Fatalf("Expected no account ID, given: %s", id)
 	}
+
+	if resource != "" {
+		t.Fatalf("Expected no resource, given: %s", id)
+	}
 }
 
 func TestAWSParseAccountInfoFromArn(t *testing.T) {
 	validArn := "arn:aws:iam::101636750127:instance-profile/aws-elasticbeanstalk-ec2-role"
 	expectedPart := "aws"
 	expectedId := "101636750127"
-	part, id, err := parseAccountInfoFromArn(validArn)
+	expectedResource := "instance-profile/aws-elasticbeanstalk-ec2-role"
+	part, id, resource, err := parseAccountInfoFromArn(validArn)
 	if err != nil {
 		t.Fatalf("Expected no error when parsing valid ARN: %s", err)
 	}
@@ -243,9 +278,12 @@ func TestAWSParseAccountInfoFromArn(t *testing.T) {
 	if id != expectedId {
 		t.Fatalf("Parsed id doesn't match with expected (%q != %q)", id, expectedId)
 	}
+	if resource != expectedResource {
+		t.Fatalf("Parsed resource doesn't match with expected (%q != %q)", resource, expectedResource)
+	}
 
 	invalidArn := "blablah"
-	part, id, err = parseAccountInfoFromArn(invalidArn)
+	part, id, resource, err = parseAccountInfoFromArn(invalidArn)
 	if err == nil {
 		t.Fatalf("Expected error when parsing invalid ARN (%q)", invalidArn)
 	}
