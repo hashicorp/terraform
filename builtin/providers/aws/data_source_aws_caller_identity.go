@@ -5,8 +5,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -19,11 +17,7 @@ func dataSourceAwsCallerIdentity() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"user_id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"user_name": {
+			"resource": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -43,14 +37,8 @@ func dataSourceAwsCallerIdentityRead(d *schema.ResourceData, meta interface{}) e
 			"skip_requesting_account_id is not set on the AWS provider.")
 	}
 
-	user, err := client.iamconn.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		return errwrap.Wrapf("Error retrieving current IAM user: {{err}}", err)
-	}
-
-	log.Printf("[DEBUG] Setting AWS Account ID to %s, user_id %s, user_name %s", client.accountid, *user.User.UserId, *user.User.UserName)
+	log.Printf("[DEBUG] Setting AWS Account ID to %s, resource to %s", client.accountid, client.resource)
 	d.Set("account_id", meta.(*AWSClient).accountid)
-	d.Set("user_id", *user.User.UserId)
-	d.Set("user_name", *user.User.UserName)
+	d.Set("resource", meta.(*AWSClient).resource)
 	return nil
 }
