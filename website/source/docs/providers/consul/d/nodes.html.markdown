@@ -17,16 +17,14 @@ nodes from a different WAN-attached Consul datacenter.
 
 ```
 data "consul_catalog_nodes" "read-dc1-nodes" {
-    # query_options {
-    #    # Optional parameter: implicitly uses the current datacenter of the agent
-    #    datacenter = "dc1"
-    # }
+  # query_options {  #    # Optional parameter: implicitly uses the current datacenter of the agent  #    datacenter = "dc1"  # }
 }
 
 # Set the description to a whitespace delimited list of the node names
 resource "example_resource" "app" {
-    description = "${join(" ", formatlist("%s", data.consul_catalog_nodes.node_names))}"
-    ...
+  description = "${join(" ", formatlist("%s", data.consul_catalog_nodes.node_names))}"
+
+  # ...
 }
 ```
 

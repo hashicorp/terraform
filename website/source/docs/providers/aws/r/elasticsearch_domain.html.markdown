@@ -13,13 +13,14 @@ description: |-
 
 ```
 resource "aws_elasticsearch_domain" "es" {
-	domain_name = "tf-test"
-	elasticsearch_version = "1.5"
-	advanced_options {
-		"rest.action.multi.allow_explicit_index" = true
-	}
+  domain_name           = "tf-test"
+  elasticsearch_version = "1.5"
 
-	access_policies = <<CONFIG
+  advanced_options {
+    "rest.action.multi.allow_explicit_index" = true
+  }
+
+  access_policies = <<CONFIG
 {
 	"Version": "2012-10-17",
 	"Statement": [
@@ -35,13 +36,13 @@ resource "aws_elasticsearch_domain" "es" {
 }
 CONFIG
 
-	snapshot_options {
-		automated_snapshot_start_hour = 23
-	}
-	
-	tags {
-      Domain = "TestDomain"
-    }
+  snapshot_options {
+    automated_snapshot_start_hour = 23
+  }
+
+  tags {
+    Domain = "TestDomain"
+  }
 }
 ```
 

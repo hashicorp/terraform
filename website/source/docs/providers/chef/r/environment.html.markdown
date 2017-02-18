@@ -16,7 +16,7 @@ constraints for which cookbook versions may be used on its nodes.
 
 ```
 resource "chef_environment" "example" {
-    name = "example-environment"
+  name = "example-environment"
 }
 ```
 

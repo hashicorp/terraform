@@ -14,7 +14,7 @@ The ``rabbitmq_vhost`` resource creates and manages a vhost.
 
 ```
 resource "rabbitmq_vhost" "my_vhost" {
-    name = "my_vhost"
+  name = "my_vhost"
 }
 ```
 

@@ -15,13 +15,14 @@ Provides a CloudWatch Event Target resource.
 ```
 resource "aws_cloudwatch_event_target" "yada" {
   target_id = "Yada"
-  rule = "${aws_cloudwatch_event_rule.console.name}"
-  arn = "${aws_kinesis_stream.test_stream.arn}"
+  rule      = "${aws_cloudwatch_event_rule.console.name}"
+  arn       = "${aws_kinesis_stream.test_stream.arn}"
 }
 
 resource "aws_cloudwatch_event_rule" "console" {
-  name = "capture-ec2-scaling-events"
+  name        = "capture-ec2-scaling-events"
   description = "Capture all EC2 scaling events"
+
   event_pattern = <<PATTERN
 {
   "source": [
@@ -38,8 +39,8 @@ PATTERN
 }
 
 resource "aws_kinesis_stream" "test_stream" {
-    name = "terraform-kinesis-test"
-    shard_count = 1
+  name        = "terraform-kinesis-test"
+  shard_count = 1
 }
 ```
 

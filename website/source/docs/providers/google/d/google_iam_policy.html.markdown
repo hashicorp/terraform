@@ -16,12 +16,15 @@ other Google Cloud Platform resources, such as the `google_project` resource.
 data "google_iam_policy" "admin" {
   binding {
     role = "roles/compute.instanceAdmin"
+
     members = [
       "serviceAccount:your-custom-sa@your-project.iam.gserviceaccount.com",
     ]
   }
+
   binding {
     role = "roles/storage.objectViewer"
+
     members = [
       "user:evanbrown@google.com",
     ]

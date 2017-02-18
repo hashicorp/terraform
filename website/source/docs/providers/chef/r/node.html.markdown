@@ -21,9 +21,9 @@ Chef server.
 
 ```
 resource "chef_node" "example" {
-    name = "example-environment"
-    environment_name = "${chef_environment.example.name}"
-    run_list = ["recipe[example]", "role[app_server]"]
+  name             = "example-environment"
+  environment_name = "${chef_environment.example.name}"
+  run_list         = ["recipe[example]", "role[app_server]"]
 }
 ```
 

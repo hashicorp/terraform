@@ -3,7 +3,7 @@ layout: "triton"
 page_title: "Triton: triton_machine"
 sidebar_current: "docs-triton-firewall"
 description: |-
-    The `triton_machine` resource represents a virtual machine or infrastructure container running in Triton. 
+    The `triton_machine` resource represents a virtual machine or infrastructure container running in Triton.
 ---
 
 # triton\_machine
@@ -17,15 +17,14 @@ Run a SmartOS base-64 machine.
 
 ```
 resource "triton_machine" "test" {
-    name = "example-machine"
-    package = "g3-standard-0.25-smartos"
-    image = "842e6fa6-6e9b-11e5-8402-1b490459e334"
+  name    = "example-machine"
+  package = "g3-standard-0.25-smartos"
+  image   = "842e6fa6-6e9b-11e5-8402-1b490459e334"
 
-    tags = {
-        hello = "world"
-    }
+  tags = {
+    hello = "world"
+  }
 }
-                
 ```
 
 ## Argument Reference
@@ -70,13 +69,13 @@ The nested `nic` block supports the following:
 
 The following attributes are exported:
 
-* `id` - (string) - The identifier representing the firewall rule in Triton. 
-* `type` - (string) - The type of the machine (`smartmachine` or `virtualmachine`). 
-* `state` - (string) - The current state of the machine. 
-* `dataset` - (string) - The dataset URN with which the machine was provisioned. 
-* `memory` - (int) - The amount of memory the machine has (in Mb). 
-* `disk` - (int) - The amount of disk the machine has (in Gb). 
-* `ips` - (list of strings) - IP addresses of the machine. 
-* `primaryip` - (string) - The primary (public) IP address for the machine. 
-* `created` - (string) - The time at which the machine was created. 
-* `updated` - (string) - The time at which the machine was last updated. 
+* `id` - (string) - The identifier representing the firewall rule in Triton.
+* `type` - (string) - The type of the machine (`smartmachine` or `virtualmachine`).
+* `state` - (string) - The current state of the machine.
+* `dataset` - (string) - The dataset URN with which the machine was provisioned.
+* `memory` - (int) - The amount of memory the machine has (in Mb).
+* `disk` - (int) - The amount of disk the machine has (in Gb).
+* `ips` - (list of strings) - IP addresses of the machine.
+* `primaryip` - (string) - The primary (public) IP address for the machine.
+* `created` - (string) - The time at which the machine was created.
+* `updated` - (string) - The time at which the machine was last updated.

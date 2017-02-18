@@ -36,7 +36,7 @@ The following attributes are exported:
 
 ## Import
 
-SNS Topics can be imported using the `topic arn`, e.g. 
+SNS Topics can be imported using the `topic arn`, e.g.
 
 ```
 $ terraform import aws_sns_topic.user_updates arn:aws:sns:us-west-2:0123456789012:my-topic

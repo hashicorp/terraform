@@ -15,10 +15,10 @@ Provides a Rancher Registy Credential resource. This can be used to create regis
 ```hcl
 # Create a new Rancher registry
 resource "rancher_registry_credential" "dockerhub" {
-  name = "dockerhub"
-  description = "DockerHub Registry Credential"
-  registry_id = "${rancher_registry.dockerhub.id}"
-  email = "myself@company.com"
+  name         = "dockerhub"
+  description  = "DockerHub Registry Credential"
+  registry_id  = "${rancher_registry.dockerhub.id}"
+  email        = "myself@company.com"
   public_value = "myself"
   secret_value = "mypass"
 }

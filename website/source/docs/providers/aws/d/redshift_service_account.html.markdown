@@ -14,12 +14,13 @@ in a given region for the purpose of allowing Redshift to store audit data in S3
 ## Example Usage
 
 ```
-data "aws_redshift_service_account" "main" { }
+data "aws_redshift_service_account" "main" {}
 
 resource "aws_s3_bucket" "bucket" {
-	bucket = "tf-redshift-logging-test-bucket"
-	force_destroy = true
-	policy = <<EOF
+  bucket        = "tf-redshift-logging-test-bucket"
+  force_destroy = true
+
+  policy = <<EOF
 {
 	"Version": "2008-10-17",
 	"Statement": [

@@ -3,7 +3,7 @@ layout: "google"
 page_title: "Google: google_project_iam_policy"
 sidebar_current: "docs-google-project-iam-policy"
 description: |-
- Allows management of an IAM policy for a Google Cloud Platform project. 
+ Allows management of an IAM policy for a Google Cloud Platform project.
 ---
 
 # google\_project\_iam\_policy
@@ -15,13 +15,14 @@ Platform project.
 
 ```js
 resource "google_project_iam_policy" "project" {
-    project = "your-project-id"
-    policy_data = "${data.google_iam_policy.admin.policy_data}"
+  project     = "your-project-id"
+  policy_data = "${data.google_iam_policy.admin.policy_data}"
 }
 
 data "google_iam_policy" "admin" {
   binding {
     role = "roles/editor"
+
     members = [
       "user:jane@example.com",
     ]

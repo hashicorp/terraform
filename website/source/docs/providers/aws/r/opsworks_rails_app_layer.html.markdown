@@ -14,7 +14,7 @@ Provides an OpsWorks Ruby on Rails application layer resource.
 
 ```
 resource "aws_opsworks_rails_app_layer" "app" {
-    stack_id = "${aws_opsworks_stack.main.id}"
+  stack_id = "${aws_opsworks_stack.main.id}"
 }
 ```
 

@@ -14,26 +14,28 @@ The ``rabbitmq_queue`` resource creates and manages a queue.
 
 ```
 resource "rabbitmq_vhost" "test" {
-    name = "test"
+  name = "test"
 }
 
 resource "rabbitmq_permissions" "guest" {
-    user = "guest"
-    vhost = "${rabbitmq_vhost.test.name}"
-    permissions {
-        configure = ".*"
-        write = ".*"
-        read = ".*"
-    }
+  user  = "guest"
+  vhost = "${rabbitmq_vhost.test.name}"
+
+  permissions {
+    configure = ".*"
+    write     = ".*"
+    read      = ".*"
+  }
 }
 
 resource "rabbitmq_queue" "test" {
-    name = "test"
-    vhost = "${rabbitmq_permissions.guest.vhost}"
-    settings {
-        durable = false
-        auto_delete = true
-    }
+  name  = "test"
+  vhost = "${rabbitmq_permissions.guest.vhost}"
+
+  settings {
+    durable     = false
+    auto_delete = true
+  }
 }
 ```
 

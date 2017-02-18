@@ -14,7 +14,7 @@ Manages a V2 member resource within OpenStack.
 
 ```
 resource "openstack_lb_member_v2" "member_1" {
-  address = "192.168.199.23"
+  address       = "192.168.199.23"
   protocol_port = 8080
 }
 ```

@@ -109,7 +109,7 @@ what IAM permissions are needed to allow Enhanced Monitoring for RDS Instances.
 * `character_set_name` - (Optional) The character set name to use for DB encoding in Oracle instances. This can't be changed.
 [Oracle Character Sets Supported in Amazon RDS](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.OracleCharacterSets.html)
 * `tags` - (Optional) A mapping of tags to assign to the resource.
-* `timezone` - (Optional) Time zone of the DB instance. `timezone` is currently only supported by Microsoft SQL Server. 
+* `timezone` - (Optional) Time zone of the DB instance. `timezone` is currently only supported by Microsoft SQL Server.
 The `timezone` can only be set on creation. See [MSSQL User Guide](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_SQLServer.html#SQLServer.Concepts.General.TimeZone) for more information
 
 ~> **NOTE:** Removing the `replicate_source_db` attribute from an existing RDS
@@ -149,7 +149,7 @@ On Oracle instances the following is exported additionally:
 
 ## Import
 
-DB Instances can be imported using the `identifier`, e.g. 
+DB Instances can be imported using the `identifier`, e.g.
 
 ```
 $ terraform import aws_db_instance.default mydb-rds-instance

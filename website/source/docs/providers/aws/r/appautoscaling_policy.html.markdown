@@ -13,26 +13,26 @@ Provides an Application AutoScaling Policy resource.
 ## Example Usage
 ```
 resource "aws_appautoscaling_target" "ecs_target" {
-  max_capacity = 4
-  min_capacity = 1
-  resource_id = "service/clusterName/serviceName"
-  role_arn = "${var.ecs_iam_role}"
+  max_capacity       = 4
+  min_capacity       = 1
+  resource_id        = "service/clusterName/serviceName"
+  role_arn           = "${var.ecs_iam_role}"
   scalable_dimension = "ecs:service:DesiredCount"
-  service_namespace = "ecs"
+  service_namespace  = "ecs"
 }
 
 resource "aws_appautoscaling_policy" "ecs_policy" {
-  adjustment_type = "ChangeInCapacity"
-  cooldown = 60
+  adjustment_type         = "ChangeInCapacity"
+  cooldown                = 60
   metric_aggregation_type = "Maximum"
-  name = "scale-down"
-  resource_id = "service/clusterName/serviceName"
-  scalable_dimension = "ecs:service:DesiredCount"
-  service_namespace = "ecs"
+  name                    = "scale-down"
+  resource_id             = "service/clusterName/serviceName"
+  scalable_dimension      = "ecs:service:DesiredCount"
+  service_namespace       = "ecs"
 
   step_adjustment {
     metric_interval_lower_bound = 0
-    scaling_adjustment = -1
+    scaling_adjustment          = -1
   }
 
   depends_on = ["aws_appautoscaling_target.ecs_target"]

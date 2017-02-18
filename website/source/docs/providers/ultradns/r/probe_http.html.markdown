@@ -13,8 +13,8 @@ Provides an UltraDNS HTTP probe
 ## Example Usage
 ```
 resource "ultradns_probe_http" "probe" {
-  zone  = "${ultradns_tcpool.pool.zone}"
-  name  = "${ultradns_tcpool.pool.name}"
+  zone        = "${ultradns_tcpool.pool.zone}"
+  name        = "${ultradns_tcpool.pool.name}"
   pool_record = "10.2.1.1"
 
   agents = ["DALLAS", "AMSTERDAM"]
@@ -36,6 +36,7 @@ resource "ultradns_probe_http" "probe" {
         critical = 2
         fail     = 3
       }
+
       limit {
         name = "avgConnect"
 
@@ -43,6 +44,7 @@ resource "ultradns_probe_http" "probe" {
         critical = 5
         fail     = 6
       }
+
       limit {
         name = "avgRun"
 
@@ -50,6 +52,7 @@ resource "ultradns_probe_http" "probe" {
         critical = 8
         fail     = 9
       }
+
       limit {
         name = "connect"
 

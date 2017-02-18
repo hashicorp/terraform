@@ -3,7 +3,7 @@ layout: "google"
 page_title: "Google: google_project"
 sidebar_current: "docs-google-project"
 description: |-
- Allows management of a Google Cloud Platform project. 
+ Allows management of a Google Cloud Platform project.
 ---
 
 # google\_project
@@ -23,9 +23,9 @@ doc for more information.
 
 ```js
 resource "google_project" "my_project" {
-    project_id = "your-project-id"
-    org_id = "1234567"
-    services = ["compute_component", "storage-component-json.googleapis.com", "iam.googleapis.com"]
+  project_id = "your-project-id"
+  org_id     = "1234567"
+  services   = ["compute_component", "storage-component-json.googleapis.com", "iam.googleapis.com"]
 }
 ```
 

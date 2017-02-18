@@ -14,7 +14,7 @@ The locations data source can be used to search for and return an existing locat
 
 ```
 data "profitbricks_location" "loc1" {
-  name = "karlsruhe"
+  name    = "karlsruhe"
   feature = "SSD"
 }
 ```

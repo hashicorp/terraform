@@ -15,45 +15,48 @@ between a queue an exchange.
 
 ```
 resource "rabbitmq_vhost" "test" {
-    name = "test"
+  name = "test"
 }
 
 resource "rabbitmq_permissions" "guest" {
-    user = "guest"
-    vhost = "${rabbitmq_vhost.test.name}"
-    permissions {
-        configure = ".*"
-        write = ".*"
-        read = ".*"
-    }
+  user  = "guest"
+  vhost = "${rabbitmq_vhost.test.name}"
+
+  permissions {
+    configure = ".*"
+    write     = ".*"
+    read      = ".*"
+  }
 }
 
 resource "rabbitmq_exchange" "test" {
-    name = "test"
-    vhost = "${rabbitmq_permissions.guest.vhost}"
-    settings {
-        type = "fanout"
-        durable = false
-        auto_delete = true
-    }
+  name  = "test"
+  vhost = "${rabbitmq_permissions.guest.vhost}"
+
+  settings {
+    type        = "fanout"
+    durable     = false
+    auto_delete = true
+  }
 }
 
 resource "rabbitmq_queue" "test" {
-    name = "test"
-    vhost = "${rabbitmq_permissions.guest.vhost}"
-    settings {
-        durable = true
-        auto_delete = false
-    }
+  name  = "test"
+  vhost = "${rabbitmq_permissions.guest.vhost}"
+
+  settings {
+    durable     = true
+    auto_delete = false
+  }
 }
 
 resource "rabbitmq_binding" "test" {
-    source = "${rabbitmq_exchange.test.name}"
-    vhost = "${rabbitmq_vhost.test.name}"
-    destination = "${rabbitmq_queue.test.name}"
-    destination_type = "queue"
-    routing_key = "#"
-    properties_key = "%23"
+  source           = "${rabbitmq_exchange.test.name}"
+  vhost            = "${rabbitmq_vhost.test.name}"
+  destination      = "${rabbitmq_queue.test.name}"
+  destination_type = "queue"
+  routing_key      = "#"
+  properties_key   = "%23"
 }
 ```
 

@@ -37,7 +37,6 @@ resource "fastly_service_v1" "demo" {
 
   force_destroy = true
 }
-
 ```
 
 Basic usage with an Amazon S3 Website and that removes the `x-amz-request-id` header:
@@ -108,13 +107,13 @@ resource "fastly_service_v1" "demo" {
   force_destroy = true
 
   vcl {
-    name = "my_custom_main_vcl"
+    name    = "my_custom_main_vcl"
     content = "${file("${path.module}/my_custom_main.vcl")}"
-    main = true
+    main    = true
   }
 
   vcl {
-    name = "my_custom_library_vcl"
+    name    = "my_custom_library_vcl"
     content = "${file("${path.module}/my_custom_library.vcl")}"
   }
 }

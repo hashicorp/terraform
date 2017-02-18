@@ -19,18 +19,18 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Datadog provider
 provider "datadog" {
-	api_key = "${var.datadog_api_key}"
-	app_key = "${var.datadog_app_key}"
+  api_key = "${var.datadog_api_key}"
+  app_key = "${var.datadog_app_key}"
 }
 
-# Create a new monitor 
+# Create a new monitor
 resource "datadog_monitor" "default" {
-    ...
+  # ...
 }
 
 # Create a new timeboard
 resource "datadog_timeboard" "default" {
-    ...
+  # ...
 }
 ```
 

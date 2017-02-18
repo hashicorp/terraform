@@ -31,7 +31,7 @@ The following arguments are supported:
 * `name` - (Required) A unique name for the resource, required by GCE.
     Changing this forces a new resource to be created.
 
-* `network` - (Required) The network name or resource link to the parent 
+* `network` - (Required) The network name or resource link to the parent
     network of this subnetwork. The parent network must have been created
     in custom subnet mode.
 

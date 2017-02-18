@@ -31,8 +31,8 @@ provider "azurerm" {
 
 # Create a resource group
 resource "azurerm_resource_group" "production" {
-    name     = "production"
-    location = "West US"
+  name     = "production"
+  location = "West US"
 }
 
 # Create a virtual network in the web_servers resource group
@@ -57,7 +57,6 @@ resource "azurerm_virtual_network" "network" {
     address_prefix = "10.0.3.0/24"
   }
 }
-
 ```
 
 ## Argument Reference
@@ -82,7 +81,7 @@ The following arguments are supported:
   * `usgovernment`
   * `german`
   * `china`
-  
+
 * `skip_provider_registration` - (Optional) Prevents the provider from registering
   the ARM provider namespaces, this can be used if you don't wish to give the Active
   Directory Application permission to register resource providers. It can also be
