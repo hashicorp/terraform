@@ -24,6 +24,7 @@ resource "mysql_grant" "jdoe" {
     user = "${mysql_user.jdoe.user}"
     host = "${mysql_user.jdoe.host}"
     database = "app"
+    table = "users"
     privileges = ["SELECT", "UPDATE"]
 }
 ```
@@ -36,8 +37,9 @@ The following arguments are supported:
 
 * `host` - (Optional) The source host of the user. Defaults to "localhost".
 
-* `database` - (Required) The database to grant privileges on. At this time,
-  privileges are given to all tables on the database (`mydb.*`).
+* `database` - (Required) The database to grant privileges on.
+
+* `table` - (Optional) The table to grant privileges on. Defaults to "*"(grant to all tables).
 
 * `privileges` - (Required) A list of privileges to grant to the user. Refer
   to a list of privileges (such as

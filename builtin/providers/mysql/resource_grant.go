@@ -35,6 +35,13 @@ func resourceGrant() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"table": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "*",
+			},
+
 			"privileges": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
@@ -55,19 +62,12 @@ func resourceGrant() *schema.Resource {
 
 func CreateGrant(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*providerConfiguration).Conn
+	privileges := getPrivilegesString(d)
 
-	// create a comma-delimited string of privileges
-	var privileges string
-	var privilegesList []string
-	vL := d.Get("privileges").(*schema.Set).List()
-	for _, v := range vL {
-		privilegesList = append(privilegesList, v.(string))
-	}
-	privileges = strings.Join(privilegesList, ",")
-
-	stmtSQL := fmt.Sprintf("GRANT %s on %s.* TO '%s'@'%s'",
+	stmtSQL := fmt.Sprintf("GRANT %s on %s.%s TO '%s'@'%s'",
 		privileges,
 		d.Get("database").(string),
+		d.Get("table").(string),
 		d.Get("user").(string),
 		d.Get("host").(string))
 
@@ -81,8 +81,8 @@ func CreateGrant(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	user := fmt.Sprintf("%s@%s:%s", d.Get("user").(string), d.Get("host").(string), d.Get("database"))
-	d.SetId(user)
+	identifier := fmt.Sprintf("%s@%s:%s.%s", d.Get("user").(string), d.Get("host").(string), d.Get("database"), d.Get("table"))
+	d.SetId(identifier)
 
 	return ReadGrant(d, meta)
 }
@@ -95,8 +95,26 @@ func ReadGrant(d *schema.ResourceData, meta interface{}) error {
 func DeleteGrant(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*providerConfiguration).Conn
 
-	stmtSQL := fmt.Sprintf("REVOKE GRANT OPTION ON %s.* FROM '%s'@'%s'",
+	// remove GRANT OPTION only if granted by this resource
+	if d.Get("grant").(bool) {
+		stmtSQL := fmt.Sprintf("REVOKE GRANT OPTION ON %s.%s FROM '%s'@'%s'",
+			d.Get("database").(string),
+			d.Get("table").(string),
+			d.Get("user").(string),
+			d.Get("host").(string))
+		log.Println("Executing statement:", stmtSQL)
+		_, _, err := conn.Query(stmtSQL)
+		if err != nil {
+			return err
+		}
+	}
+
+	// remove privileges only if granted by this resource
+	privileges := getPrivilegesString(d)
+	stmtSQL := fmt.Sprintf("REVOKE %s ON %s.%s FROM '%s'@'%s'",
+		privileges,
 		d.Get("database").(string),
+		d.Get("table").(string),
 		d.Get("user").(string),
 		d.Get("host").(string))
 
@@ -106,16 +124,15 @@ func DeleteGrant(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	stmtSQL = fmt.Sprintf("REVOKE ALL ON %s.* FROM '%s'@'%s'",
-		d.Get("database").(string),
-		d.Get("user").(string),
-		d.Get("host").(string))
-
-	log.Println("Executing statement:", stmtSQL)
-	_, _, err = conn.Query(stmtSQL)
-	if err != nil {
-		return err
-	}
-
 	return nil
+}
+
+func getPrivilegesString(d *schema.ResourceData) string {
+	// create a comma-delimited string of privileges
+	var privilegesList []string
+	vL := d.Get("privileges").(*schema.Set).List()
+	for _, v := range vL {
+		privilegesList = append(privilegesList, v.(string))
+	}
+	return strings.Join(privilegesList, ",")
 }
