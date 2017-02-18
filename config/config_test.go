@@ -194,6 +194,13 @@ func TestConfigValidate_table(t *testing.T) {
 			false,
 			"",
 		},
+
+		{
+			"backend config with interpolations",
+			"validate-backend-interpolate",
+			true,
+			"cannot contain interp",
+		},
 	}
 
 	for i, tc := range cases {
