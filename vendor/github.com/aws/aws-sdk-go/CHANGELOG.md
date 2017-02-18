@@ -1,3 +1,29 @@
+Release v1.6.25 (2017-02-17)
+===
+
+Service Client Updates
+---
+* `service/directconnect`: Updates service API, documentation, and paginators
+  * This update will introduce the ability for Direct Connect customers to take advantage of Link Aggregation (LAG).     This allows you to bundle many individual physical interfaces into a single logical interface, referred to as a LAG.     This makes administration much simpler as the majority of configuration is done on the LAG while you are free     to add or remove physical interfaces from the bundle as bandwidth demand increases or decreases. A concrete example     of the simplification added by LAG is that customers need only a single BGP session as opposed to one session per     physical connection.
+
+Release v1.6.24 (2017-02-16)
+===
+
+Service Client Updates
+---
+* `service/cognitoidentity`: Updates service API, documentation, and paginators
+  * Allow createIdentityPool and updateIdentityPool API to set server side token check value on identity pool
+* `service/configservice`: Updates service API and documentation
+  * AWS Config now supports a new test mode for the PutEvaluations API. Set the TestMode parameter to true in your custom rule to verify whether your AWS Lambda function will deliver evaluation results to AWS Config. No updates occur to your existing evaluations, and evaluation results are not sent to AWS Config.
+
+Release v1.6.23 (2017-02-15)
+===
+
+Service Client Updates
+---
+* `service/kms`: Updates service API, documentation, paginators, and examples
+  * his release of AWS Key Management Service introduces the ability to tag keys. Tagging keys can help you organize your keys and track your KMS costs in the cost allocation report. This release also increases the maximum length of a key ID to accommodate ARNs that include a long key alias.
+
 Release v1.6.22 (2017-02-14)
 ===
 
