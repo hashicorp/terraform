@@ -5,9 +5,11 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/prometheus/common/log"
 )
 
 type CLIConfig struct {
@@ -46,6 +48,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("RANCHER_CLIENT_CONFIG", ""),
 				Description: descriptions["config"],
 			},
+			"timeout": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("RANCHER_CLIENT_TIMEOUT", "10s"),
+				Description: descriptions["timeout"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -71,6 +79,8 @@ func init() {
 		"api_url": "The URL to the rancher API",
 
 		"config": "Path to the Rancher client cli.json config file",
+
+		"timeout": "Maximum time of Rancher API calls before a timeout",
 	}
 }
 
@@ -78,6 +88,13 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	apiURL := d.Get("api_url").(string)
 	accessKey := d.Get("access_key").(string)
 	secretKey := d.Get("secret_key").(string)
+	timeoutS := d.Get("timeout").(string)
+
+	timeout, err := time.ParseDuration(timeoutS)
+	if err != nil {
+		log.Warnf("[INFO] Cannot parse %s into time", timeoutS)
+		timeout, _ = time.ParseDuration("10s")
+	}
 
 	if configFile := d.Get("config").(string); configFile != "" {
 		config, err := loadConfig(configFile)
@@ -100,15 +117,17 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		if secretKey == "" {
 			secretKey = config.SecretKey
 		}
+
 	}
 
 	config := &Config{
 		APIURL:    apiURL + "/v1",
 		AccessKey: accessKey,
 		SecretKey: secretKey,
+		Timeout:   timeout,
 	}
 
-	_, err := config.GlobalClient()
+	_, err = config.GlobalClient()
 
 	return config, err
 }
