@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -12,13 +13,15 @@ import (
 func TestAccAWSCloudwatchLogDestinationPolicy_basic(t *testing.T) {
 	var destination cloudwatchlogs.Destination
 
+	rstring := acctest.RandString(5)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudwatchLogDestinationPolicyDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSCloudwatchLogDestinationPolicyConfig(),
+				Config: testAccAWSCloudwatchLogDestinationPolicyConfig(rstring),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCloudwatchLogDestinationPolicyExists("aws_cloudwatch_log_destination_policy.test", &destination),
 				),
@@ -70,10 +73,10 @@ func testAccCheckAWSCloudwatchLogDestinationPolicyExists(n string, d *cloudwatch
 	}
 }
 
-func testAccAWSCloudwatchLogDestinationPolicyConfig() string {
+func testAccAWSCloudwatchLogDestinationPolicyConfig(rstring string) string {
 	return fmt.Sprintf(`
 resource "aws_kinesis_stream" "test" {
-  name = "RootAccess"
+  name = "RootAccess_%s"
   shard_count = 1
 }
 
@@ -97,7 +100,7 @@ data "aws_iam_policy_document" "role" {
 }
 
 resource "aws_iam_role" "test" {
-  name = "CWLtoKinesisRole"
+  name = "CWLtoKinesisRole_%s"
   assume_role_policy = "${data.aws_iam_policy_document.role.json}"
 }
 
@@ -123,13 +126,13 @@ data "aws_iam_policy_document" "policy" {
 }
 
 resource "aws_iam_role_policy" "test" {
-  name = "Permissions-Policy-For-CWL"
+  name = "Permissions-Policy-For-CWL_%s"
   role = "${aws_iam_role.test.id}"
   policy = "${data.aws_iam_policy_document.policy.json}"
 }
 
 resource "aws_cloudwatch_log_destination" "test" {
-  name = "testDestination"
+  name = "testDestination_%s"
   target_arn = "${aws_kinesis_stream.test.arn}"
   role_arn = "${aws_iam_role.test.arn}"
   depends_on = ["aws_iam_role_policy.test"]
@@ -157,5 +160,5 @@ resource "aws_cloudwatch_log_destination_policy" "test" {
   destination_name = "${aws_cloudwatch_log_destination.test.name}"
   access_policy = "${data.aws_iam_policy_document.access.json}"
 }
-`)
+`, rstring, rstring, rstring, rstring)
 }
