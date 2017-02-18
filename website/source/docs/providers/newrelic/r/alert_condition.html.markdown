@@ -12,7 +12,7 @@ description: |-
 
 ```
 data "newrelic_application" "app" {
-	name = "my-app"
+  name = "my-app"
 }
 
 resource "newrelic_alert_policy" "foo" {

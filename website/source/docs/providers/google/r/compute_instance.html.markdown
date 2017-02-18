@@ -36,6 +36,7 @@ resource "google_compute_instance" "default" {
 
   network_interface {
     network = "default"
+
     access_config {
       // Ephemeral IP
     }
@@ -72,7 +73,7 @@ The following arguments are supported:
 * `network_interface` - (Required) Networks to attach to the instance. This can
     be specified multiple times for multiple networks, but GCE is currently
     limited to just 1. Structure is documented below.
-    
+
 - - -
 
 * `can_ip_forward` - (Optional) Whether to allow sending and receiving of
@@ -103,7 +104,7 @@ The following arguments are supported:
 
 * `create_timeout` - (Optional) Configurable timeout in minutes for creating instances. Default is 4 minutes.
     Changing this forces a new resource to be created.
-    
+
 ---
 
 * `network` - (DEPRECATED, Required) Networks to attach to the instance. This

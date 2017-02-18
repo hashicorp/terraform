@@ -24,6 +24,7 @@ resource "google_pubsub_subscription" "default" {
 
   push_config {
     endpoint = "https://example.com/push"
+
     attributes {
       x-goog-version = "v1"
     }

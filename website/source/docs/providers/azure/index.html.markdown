@@ -27,7 +27,7 @@ provider "azure" {
 
 # Create a web server
 resource "azure_instance" "web" {
-    ...
+  # ...
 }
 ```
 

@@ -14,7 +14,7 @@ Use this data source to get information about an RDS instance
 
 ```
 data "aws_db_instance" "database" {
-    db_instance_identifier = "my-test-database"
+  db_instance_identifier = "my-test-database"
 }
 ```
 

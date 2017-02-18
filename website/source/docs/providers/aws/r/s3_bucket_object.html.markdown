@@ -16,10 +16,10 @@ Provides a S3 bucket object resource.
 
 ```
 resource "aws_s3_bucket_object" "object" {
-	bucket = "your_bucket_name"
-	key = "new_object_key"
-	source = "path/to/file"
-	etag = "${md5(file("path/to/file"))}"
+  bucket = "your_bucket_name"
+  key    = "new_object_key"
+  source = "path/to/file"
+  etag   = "${md5(file("path/to/file"))}"
 }
 ```
 
@@ -81,7 +81,7 @@ This attribute is not compatible with `kms_key_id`.
 * `server_side_encryption` - (Optional) Specifies server-side encryption of the object in S3. Valid values are "`AES256`" and "`aws:kms`".
 * `kms_key_id` - (Optional) Specifies the AWS KMS Key ARN to use for object encryption.
 This value is a fully qualified **ARN** of the KMS Key. If using `aws_kms_key`,
-use the exported `arn` attribute:  
+use the exported `arn` attribute:
       `kms_key_id = "${aws_kms_key.foo.arn}"`
 * `tags` - (Optional) A mapping of tags to assign to the object.
 

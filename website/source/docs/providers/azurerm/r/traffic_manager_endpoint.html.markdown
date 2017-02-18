@@ -30,7 +30,7 @@ resource "azurerm_traffic_manager_profile" "test" {
     port     = 80
     path     = "/"
   }
-  
+
   tags {
     environment = "Production"
   }
@@ -59,7 +59,7 @@ The following arguments are supported:
 * `profile_name` - (Required) The name of the Traffic Manager Profile to attach
     create the virtual network.
 
-* `endpoint_status` - (Optional) The status of the Endpoint, can be set to 
+* `endpoint_status` - (Optional) The status of the Endpoint, can be set to
     either `Enabled` or `Disabled`. Defaults to `Enabled`.
 
 * `type` - (Required) The Endpoint type, must be one of:
@@ -92,7 +92,7 @@ The following arguments are supported:
 
 * `min_child_endpoints` - (Optional) This argument specifies the minimum number
     of endpoints that must be ‘online’ in the child profile in order for the
-    parent profile to direct traffic to any of the endpoints in that child 
+    parent profile to direct traffic to any of the endpoints in that child
     profile. This argument only applies to Endpoints of type `nestedEndpoints`
     and defaults to `1`.
 
@@ -104,7 +104,7 @@ The following attributes are exported:
 
 ## Import
 
-Traffic Manager Endpoints can be imported using the `resource id`, e.g. 
+Traffic Manager Endpoints can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_traffic_manager_endpoint.testEndpoints /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/trafficManagerProfiles/mytrafficmanagerprofile1/azureEndpoints/mytrafficmanagerendpoint

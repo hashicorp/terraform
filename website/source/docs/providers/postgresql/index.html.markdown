@@ -16,44 +16,42 @@ Use the navigation to the left to read about the available resources.
 
 ```
 provider "postgresql" {
-  host = "postgres_server_ip"
-  port = 5432
-  database = "postgres"
-  username = "postgres_user"
-  password = "postgres_password"
-  sslmode = "require"
+  host            = "postgres_server_ip"
+  port            = 5432
+  database        = "postgres"
+  username        = "postgres_user"
+  password        = "postgres_password"
+  sslmode         = "require"
   connect_timeout = 15
 }
-
 ```
 
 Configuring multiple servers can be done by specifying the alias option.
 
 ```
 provider "postgresql" {
-  alias = "pg1"
-  host = "postgres_server_ip1"
+  alias    = "pg1"
+  host     = "postgres_server_ip1"
   username = "postgres_user1"
   password = "postgres_password1"
 }
 
 provider "postgresql" {
-  alias = "pg2"
-  host = "postgres_server_ip2"
+  alias    = "pg2"
+  host     = "postgres_server_ip2"
   username = "postgres_user2"
   password = "postgres_password2"
 }
 
 resource "postgresql_database" "my_db1" {
   provider = "postgresql.pg1"
-  name = "my_db1"
+  name     = "my_db1"
 }
+
 resource "postgresql_database" "my_db2" {
   provider = "postgresql.pg2"
-  name = "my_db2"
+  name     = "my_db2"
 }
-
-
 ```
 
 ## Argument Reference

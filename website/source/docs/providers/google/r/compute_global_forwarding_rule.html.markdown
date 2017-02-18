@@ -41,6 +41,7 @@ resource "google_compute_url_map" "default" {
   path_matcher {
     name            = "allpaths"
     default_service = "${google_compute_backend_service.default.self_link}"
+
     path_rule {
       paths   = ["/*"]
       service = "${google_compute_backend_service.default.self_link}"

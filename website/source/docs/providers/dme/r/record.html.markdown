@@ -15,11 +15,11 @@ Provides a DNSMadeEasy record resource.
 ```
 # Add an A record to the domain
 resource "dme_record" "www" {
-  domainid = "123456"
-  name = "www"
-  type = "A"
-  value = "192.168.1.1"
-  ttl = 3600
+  domainid    = "123456"
+  name        = "www"
+  type        = "A"
+  value       = "192.168.1.1"
+  ttl         = 3600
   gtdLocation = "DEFAULT"
 }
 ```
@@ -36,7 +36,7 @@ The following arguments are supported:
 * `ttl` - (Integer, Optional) The TTL of the record `gtdLocation` - (String,
   Optional) The GTD Location of the record on Global Traffic Director enabled
   domains; Unless GTD is enabled this should either be omitted or set to
-  "DEFAULT" 
+  "DEFAULT"
 
 Additional arguments are listed below under DNS Record Types.
 
@@ -133,117 +133,117 @@ Following are examples of using each of the record types.
 # Provide your API and Secret Keys, and whether the sandbox
 # is being used (defaults to false)
 provider "dme" {
-  akey = "aaaaaa1a-11a1-1aa1-a101-11a1a11aa1aa"
-  skey = "11a0a11a-a1a1-111a-a11a-a11110a11111"
+  akey       = "aaaaaa1a-11a1-1aa1-a101-11a1a11aa1aa"
+  skey       = "11a0a11a-a1a1-111a-a11a-a11110a11111"
   usesandbox = true
 }
 
 # A Record
 resource "dme_record" "testa" {
-  domainid = "123456"
-  name = "testa"
-  type = "A"
-  value = "1.1.1.1"
-  ttl = 1000
+  domainid    = "123456"
+  name        = "testa"
+  type        = "A"
+  value       = "1.1.1.1"
+  ttl         = 1000
   gtdLocation = "DEFAULT"
 }
 
 # CNAME record
 resource "dme_record" "testcname" {
   domainid = "123456"
-  name = "testcname"
-  type = "CNAME"
-  value = "foo"
-  ttl = 1000
+  name     = "testcname"
+  type     = "CNAME"
+  value    = "foo"
+  ttl      = 1000
 }
 
 # ANAME record
 resource "dme_record" "testaname" {
   domainid = "123456"
-  name = "testaname"
-  type = "ANAME"
-  value = "foo"
-  ttl = 1000
+  name     = "testaname"
+  type     = "ANAME"
+  value    = "foo"
+  ttl      = 1000
 }
 
 # MX record
 resource "dme_record" "testmx" {
   domainid = "123456"
-  name = "testmx"
-  type = "MX"
-  value = "foo"
-  mxLevel = 10
-  ttl = 1000
+  name     = "testmx"
+  type     = "MX"
+  value    = "foo"
+  mxLevel  = 10
+  ttl      = 1000
 }
 
 # HTTPRED
 resource "dme_record" "testhttpred" {
-  domainid = "123456"
-  name = "testhttpred"
-  type = "HTTPRED"
-  value = "https://github.com/soniah/terraform-provider-dme"
-  hardLink = true
+  domainid     = "123456"
+  name         = "testhttpred"
+  type         = "HTTPRED"
+  value        = "https://github.com/soniah/terraform-provider-dme"
+  hardLink     = true
   redirectType = "Hidden Frame Masked"
-  title = "An Example"
-  keywords = "terraform example"
-  description = "This is a description"
-  ttl = 2000
+  title        = "An Example"
+  keywords     = "terraform example"
+  description  = "This is a description"
+  ttl          = 2000
 }
 
 # TXT record
 resource "dme_record" "testtxt" {
   domainid = "123456"
-  name = "testtxt"
-  type = "TXT"
-  value = "foo"
-  ttl = 1000
+  name     = "testtxt"
+  type     = "TXT"
+  value    = "foo"
+  ttl      = 1000
 }
 
 # SPF record
 resource "dme_record" "testspf" {
   domainid = "123456"
-  name = "testspf"
-  type = "SPF"
-  value = "foo"
-  ttl = 1000
+  name     = "testspf"
+  type     = "SPF"
+  value    = "foo"
+  ttl      = 1000
 }
 
 # PTR record
 resource "dme_record" "testptr" {
   domainid = "123456"
-  name = "testptr"
-  type = "PTR"
-  value = "foo"
-  ttl = 1000
+  name     = "testptr"
+  type     = "PTR"
+  value    = "foo"
+  ttl      = 1000
 }
 
 # NS record
 resource "dme_record" "testns" {
   domainid = "123456"
-  name = "testns"
-  type = "NS"
-  value = "foo"
-  ttl = 1000
+  name     = "testns"
+  type     = "NS"
+  value    = "foo"
+  ttl      = 1000
 }
 
 # AAAA record
 resource "dme_record" "testaaaa" {
   domainid = "123456"
-  name = "testaaaa"
-  type = "AAAA"
-  value = "FE80::0202:B3FF:FE1E:8329"
-  ttl = 1000
+  name     = "testaaaa"
+  type     = "AAAA"
+  value    = "FE80::0202:B3FF:FE1E:8329"
+  ttl      = 1000
 }
 
 # SRV record
 resource "dme_record" "testsrv" {
   domainid = "123456"
-  name = "testsrv"
-  type = "SRV"
-  value = "foo"
+  name     = "testsrv"
+  type     = "SRV"
+  value    = "foo"
   priority = 10
-  weight = 20
-  port = 30
-  ttl = 1000
+  weight   = 20
+  port     = 30
+  ttl      = 1000
 }
 ```

@@ -27,9 +27,9 @@ resource "aws_elasticache_replication_group" "bar" {
 
 ~> **Note:** We currently do not support passing a `primary_cluster_id` in order to create the Replication Group.
 
-~> **Note:** Automatic Failover is unavailable for Redis versions earlier than 2.8.6, 
+~> **Note:** Automatic Failover is unavailable for Redis versions earlier than 2.8.6,
 and unavailable on T1 and T2 node types. See the [Amazon Replication with
-Redis](http://docs.aws.amazon.com/en_en/AmazonElastiCache/latest/UserGuide/Replication.html) guide 
+Redis](http://docs.aws.amazon.com/en_en/AmazonElastiCache/latest/UserGuide/Replication.html) guide
 for full details on using Replication Groups.
 
 
@@ -50,11 +50,11 @@ The following arguments are supported:
 * `port` – (Required) The port number on which each of the cache nodes will accept connections. For Memcache the default is 11211, and for Redis the default port is 6379.
 * `subnet_group_name` - (Optional) The name of the cache subnet group to be used for the replication group.
 * `security_group_names` - (Optional) A list of cache security group names to associate with this replication group.
-* `security_group_ids` - (Optional) One or more Amazon VPC security groups associated with this replication group. Use this parameter only when you are creating a replication group in an Amazon Virtual Private Cloud 
+* `security_group_ids` - (Optional) One or more Amazon VPC security groups associated with this replication group. Use this parameter only when you are creating a replication group in an Amazon Virtual Private Cloud
 * `snapshot_arns` – (Optional) A single-element string list containing an
 Amazon Resource Name (ARN) of a Redis RDB snapshot file stored in Amazon S3.
 Example: `arn:aws:s3:::my_bucket/snapshot1.rdb`
-* `snapshot_name` - (Optional) The name of a snapshot from which to restore data into the new node group. Changing the `snapshot_name` forces a new resource. 
+* `snapshot_name` - (Optional) The name of a snapshot from which to restore data into the new node group. Changing the `snapshot_name` forces a new resource.
 * `maintenance_window` – (Optional) Specifies the weekly time range for when maintenance
 on the cache cluster is performed. The format is `ddd:hh24:mi-ddd:hh24:mi` (24H Clock UTC).
 The minimum maintenance window is a 60 minute period. Example: `sun:05:00-sun:09:00`
@@ -68,7 +68,7 @@ retain automatic cache cluster snapshots before deleting them. For example, if y
 SnapshotRetentionLimit to 5, then a snapshot that was taken today will be retained for 5 days
 before being deleted. If the value of SnapshotRetentionLimit is set to zero (0), backups are turned off.
 Please note that setting a `snapshot_retention_limit` is not supported on cache.t1.micro or cache.t2.* cache nodes
-* `apply_immediately` - (Optional) Specifies whether any modifications are applied immediately, or during the next maintenance window. Default is `false`. 
+* `apply_immediately` - (Optional) Specifies whether any modifications are applied immediately, or during the next maintenance window. Default is `false`.
 * `tags` - (Optional) A mapping of tags to assign to the resource
 
 ## Attributes Reference

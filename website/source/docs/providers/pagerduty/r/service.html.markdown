@@ -15,9 +15,9 @@ A [service](https://v2.developer.pagerduty.com/v2/page/api-reference#!/Services/
 
 ```
 resource "pagerduty_user" "example" {
-    name  = "Earline Greenholt"
-    email = "125.greenholt.earline@graham.name"
-    teams = ["${pagerduty_team.example.id}"]
+  name  = "Earline Greenholt"
+  email = "125.greenholt.earline@graham.name"
+  teams = ["${pagerduty_team.example.id}"]
 }
 
 resource "pagerduty_escalation_policy" "foo" {
@@ -94,6 +94,7 @@ resource "pagerduty_service" "foo" {
       type    = "constant"
       urgency = "high"
     }
+
     outside_support_hours {
       type    = "constant"
       urgency = "low"
@@ -105,14 +106,15 @@ resource "pagerduty_service" "foo" {
     time_zone    = "America/Lima"
     start_time   = "09:00:00"
     end_time     = "17:00:00"
-    days_of_week = [ 1, 2, 3, 4, 5 ]
+    days_of_week = [1, 2, 3, 4, 5]
   }
 
   scheduled_actions {
-    type = "urgency_change"
+    type       = "urgency_change"
     to_urgency = "high"
+
     at {
-      type = "named_time",
+      type = "named_time"
       name = "support_hours_start"
     }
   }

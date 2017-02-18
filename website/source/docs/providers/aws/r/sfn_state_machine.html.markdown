@@ -13,7 +13,7 @@ Provides a Step Function State Machine resource
 ## Example Usage
 
 ```
-...
+# ...
 
 resource "aws_sfn_state_machine" "sfn_state_machine" {
   name     = "my-state-machine"

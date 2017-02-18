@@ -14,12 +14,12 @@ Creates a new SQL database service on an Azure database server.
 
 ```
 resource "azure_sql_database_service" "sql-server" {
-    name = "terraform-testing-db-renamed"
-    database_server_name = "flibberflabber"
-    edition = "Standard"
-    collation = "SQL_Latin1_General_CP1_CI_AS"
-    max_size_bytes = "5368709120"
-    service_level_id = "f1173c43-91bd-4aaa-973c-54e79e15235b"
+  name                 = "terraform-testing-db-renamed"
+  database_server_name = "flibberflabber"
+  edition              = "Standard"
+  collation            = "SQL_Latin1_General_CP1_CI_AS"
+  max_size_bytes       = "5368709120"
+  service_level_id     = "f1173c43-91bd-4aaa-973c-54e79e15235b"
 }
 ```
 

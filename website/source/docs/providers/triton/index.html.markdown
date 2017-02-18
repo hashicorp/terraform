@@ -16,12 +16,12 @@ Use the navigation to the left to read about the available resources.
 
 ```
 provider "triton" {
-    account      = "AccountName"
-    key_material = "${file("~/.ssh/id_rsa")}"
-    key_id       = "25:d4:a9:fe:ef:e6:c0:bf:b4:4b:4b:d4:a8:8f:01:0f"
+  account      = "AccountName"
+  key_material = "${file("~/.ssh/id_rsa")}"
+  key_id       = "25:d4:a9:fe:ef:e6:c0:bf:b4:4b:4b:d4:a8:8f:01:0f"
 
-    # If using a private installation of Triton, specify the URL
-    url = "https://us-west-1.api.joyentcloud.com"
+  # If using a private installation of Triton, specify the URL
+  url = "https://us-west-1.api.joyentcloud.com"
 }
 ```
 

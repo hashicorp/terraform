@@ -15,17 +15,18 @@ Provides a NS1 User resource. Creating a user sends an invitation email to the u
 ```
 resource "ns1_team" "example" {
   name = "Example team"
+
   permissions = {
-    dns_view_zones = false
+    dns_view_zones       = false
     account_manage_users = false
   }
 }
 
 resource "ns1_user" "example" {
-  name = "Example User"
+  name     = "Example User"
   username = "example_user"
-  email = "user@example.com"
-  teams = ["${ns1_team.example.id}"]
+  email    = "user@example.com"
+  teams    = ["${ns1_team.example.id}"]
 }
 ```
 

@@ -31,10 +31,10 @@ resource "aws_autoscaling_group" "bar" {
   launch_configuration      = "${aws_launch_configuration.foobar.name}"
 
   initial_lifecycle_hook {
-    name                   = "foobar"
-    default_result         = "CONTINUE"
-    heartbeat_timeout      = 2000
-    lifecycle_transition   = "autoscaling:EC2_INSTANCE_LAUNCHING"
+    name                 = "foobar"
+    default_result       = "CONTINUE"
+    heartbeat_timeout    = 2000
+    lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"
 
     notification_metadata = <<EOF
 {
@@ -225,7 +225,7 @@ for more information.
 
 ## Import
 
-AutoScaling Groups can be imported using the `name`, e.g. 
+AutoScaling Groups can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_autoscaling_group.web web-asg

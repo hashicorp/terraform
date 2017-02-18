@@ -30,7 +30,7 @@ resource "azurerm_traffic_manager_profile" "test" {
     port     = 80
     path     = "/"
   }
-  
+
   tags {
     environment = "Production"
   }
@@ -47,14 +47,14 @@ The following arguments are supported:
 * `resource_group_name` - (Required) The name of the resource group in which to
     create the virtual network.
 
-* `profile_status` - (Optional) The status of the profile, can be set to either 
+* `profile_status` - (Optional) The status of the profile, can be set to either
     `Enabled` or `Disabled`. Defaults to `Enabled`.
 
 * `traffic_routing_method` - (Required) Specifies the algorithm used to route
     traffic, possible values are:
     - `Performance`- Traffic is routed via the User's closest Endpoint
     - `Weighted` - Traffic is spread across Endpoints proportional to their
-        `weight` value. 
+        `weight` value.
     - `Priority` - Traffic is routed to the Endpoint with the lowest
         `priority` value.
 
@@ -64,13 +64,13 @@ The following arguments are supported:
 * `monitor_config` - (Required) This block specifies the Endpoint monitoring
     configuration for the Profile, it supports the fields documented below.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 The `dns_config` block supports:
 
 * `relative_name` - (Required) The relative domain name, this is combined with
     the domain name used by Traffic Manager to form the FQDN which is exported
-    as documented below. Changing this forces a new resource to be created. 
+    as documented below. Changing this forces a new resource to be created.
 
 * `ttl` - (Required) The TTL value of the Profile used by Local DNS resolvers
     and clients.
@@ -97,7 +97,7 @@ The Traffic Manager is created with the location `global`.
 
 ## Import
 
-Traffic Manager Profiles can be imported using the `resource id`, e.g. 
+Traffic Manager Profiles can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_traffic_manager_profile.testProfile /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/trafficManagerProfiles/mytrafficmanagerprofile1

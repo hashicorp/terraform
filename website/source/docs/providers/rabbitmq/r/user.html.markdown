@@ -14,9 +14,9 @@ The ``rabbitmq_user`` resource creates and manages a user.
 
 ```
 resource "rabbitmq_user" "test" {
-    name = "mctest"
-    password = "foobar"
-    tags = ["administrator", "management"]
+  name     = "mctest"
+  password = "foobar"
+  tags     = ["administrator", "management"]
 }
 ```
 

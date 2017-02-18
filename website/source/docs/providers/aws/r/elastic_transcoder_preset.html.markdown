@@ -78,7 +78,7 @@ resource "aws_elastictranscoder_preset" "bar" {
 
 ## Argument Reference
 
-See ["Create Preset"](http://docs.aws.amazon.com/elastictranscoder/latest/developerguide/create-preset.html) in the AWS docs for reference. 
+See ["Create Preset"](http://docs.aws.amazon.com/elastictranscoder/latest/developerguide/create-preset.html) in the AWS docs for reference.
 
 The following arguments are supported:
 
@@ -104,7 +104,7 @@ The `audio_codec_options` object supports the following:
 
 * `bit_depth` - The bit depth of a sample is how many bits of information are included in the audio samples. Valid values are `16` and `24`. (FLAC/PCM Only)
 * `bit_order` - The order the bits of a PCM sample are stored in. The supported value is LittleEndian. (PCM Only)
-* `profile` - If you specified AAC for Audio:Codec, choose the AAC profile for the output file. 
+* `profile` - If you specified AAC for Audio:Codec, choose the AAC profile for the output file.
 * `signed` - Whether audio samples are represented with negative and positive numbers (signed) or only positive numbers (unsigned). The supported value is Signed. (PCM Only)
 
 The `thumbnails` object supports the following:

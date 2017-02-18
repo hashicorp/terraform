@@ -19,12 +19,12 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Mailgun provider
 provider "mailgun" {
-	api_key = "${var.mailgun_api_key}"
+  api_key = "${var.mailgun_api_key}"
 }
 
 # Create a new domain
 resource "mailgun_domain" "default" {
-    ...
+  # ...
 }
 ```
 
