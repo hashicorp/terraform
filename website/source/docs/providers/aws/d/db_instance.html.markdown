@@ -6,9 +6,9 @@ description: |-
   Get information on an RDS Database Instance.
 ---
 
-# aws\_ebs\_snapshot
+# aws\_db\_instance
 
-Use this data source to get information about an EBS Snapshot for use when provisioning EBS Volumes
+Use this data source to get information about an RDS instance
 
 ## Example Usage
 
