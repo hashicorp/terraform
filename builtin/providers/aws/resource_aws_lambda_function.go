@@ -141,9 +141,10 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				Computed: true,
 			},
 			"environment": {
-				Type:     schema.TypeList,
-				Optional: true,
-				MaxItems: 1,
+				Type:             schema.TypeList,
+				Optional:         true,
+				MaxItems:         1,
+				DiffSuppressFunc: suppressDiffEnvironment,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"variables": {
@@ -248,13 +249,16 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 
 	if v, ok := d.GetOk("environment"); ok {
 		environments := v.([]interface{})
-		if environment, ok := environments[0].(map[string]interface{}); ok {
-			if environmentVariables, ok := environment["variables"]; ok {
-				variables := readEnvironmentVariables(environmentVariables.(map[string]interface{}))
+		environment, ok := environments[0].(map[string]interface{})
+		if !ok {
+			return errors.New("At least one field is expected inside environment")
+		}
 
-				params.Environment = &lambda.Environment{
-					Variables: aws.StringMap(variables),
-				}
+		if environmentVariables, ok := environment["variables"]; ok {
+			variables := readEnvironmentVariables(environmentVariables.(map[string]interface{}))
+
+			params.Environment = &lambda.Environment{
+				Variables: aws.StringMap(variables),
 			}
 		}
 	}
@@ -582,4 +586,23 @@ func validateRuntime(v interface{}, k string) (ws []string, errors []error) {
 			runtime, lambda.RuntimeNodejs43))
 	}
 	return
+}
+
+func suppressDiffEnvironment(k, old, new string, d *schema.ResourceData) bool {
+	if k == "environment.#" && old == "0" {
+		if v, ok := d.GetOk("environment"); ok {
+			environments := v.([]interface{})
+			environment, ok := environments[0].(map[string]interface{})
+			if ok {
+				if environmentVariables, ok := environment["variables"]; ok {
+					if len(readEnvironmentVariables(environmentVariables.(map[string]interface{}))) == 0 {
+						return true // if an empty variables map is present
+					}
+				}
+			} else {
+				return true // if environment is present with no maps
+			}
+		}
+	}
+	return false
 }
