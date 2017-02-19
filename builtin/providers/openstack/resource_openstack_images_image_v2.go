@@ -141,9 +141,10 @@ func resourceImagesImageV2() *schema.Resource {
 			},
 
 			"tags": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 			},
 
 			"update_at": &schema.Schema{
@@ -156,7 +157,7 @@ func resourceImagesImageV2() *schema.Resource {
 				Optional:     true,
 				ForceNew:     false,
 				ValidateFunc: resourceImagesImageV2ValidateVisibility,
-				Default:      images.ImageVisibilityPrivate,
+				Default:      "private",
 			},
 		},
 	}
@@ -182,11 +183,8 @@ func resourceImagesImageV2Create(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if v, ok := d.GetOk("tags"); ok {
-		var tags []string
-		for _, tag := range v.([]interface{}) {
-			tags = append(tags, tag.(string))
-		}
-		createOpts.Tags = tags
+		tags := v.(*schema.Set).List()
+		createOpts.Tags = resourceImagesImageV2BuildTags(tags)
 	}
 
 	d.Partial(true)
@@ -273,9 +271,8 @@ func resourceImagesImageV2Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", img.Name)
 	d.Set("protected", img.Protected)
 	d.Set("size_bytes", img.SizeBytes)
-	d.Set("tags", resourceImagesImageV2RemoveEmptyTags(img.Tags))
+	d.Set("tags", img.Tags)
 	d.Set("visibility", img.Visibility)
-
 	return nil
 }
 
@@ -289,7 +286,8 @@ func resourceImagesImageV2Update(d *schema.ResourceData, meta interface{}) error
 	updateOpts := make(images.UpdateOpts, 0)
 
 	if d.HasChange("visibility") {
-		v := images.UpdateVisibility{Visibility: d.Get("visibility").(images.ImageVisibility)}
+		visibility := resourceImagesImageV2VisibilityFromString(d.Get("visibility").(string))
+		v := images.UpdateVisibility{Visibility: visibility}
 		updateOpts = append(updateOpts, v)
 	}
 
@@ -299,7 +297,10 @@ func resourceImagesImageV2Update(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if d.HasChange("tags") {
-		v := images.ReplaceImageTags{NewTags: d.Get("tags").([]string)}
+		tags := d.Get("tags").(*schema.Set).List()
+		v := images.ReplaceImageTags{
+			NewTags: resourceImagesImageV2BuildTags(tags),
+		}
 		updateOpts = append(updateOpts, v)
 	}
 
@@ -330,12 +331,22 @@ func resourceImagesImageV2Delete(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceImagesImageV2ValidateVisibility(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(images.ImageVisibility)
-	if value == images.ImageVisibilityPublic || value == images.ImageVisibilityPrivate || value == images.ImageVisibilityShared || value == images.ImageVisibilityCommunity {
-		return
+	value := v.(string)
+	validVisibilities := []string{
+		"public",
+		"private",
+		"shared",
+		"community",
 	}
 
-	errors = append(errors, fmt.Errorf("%q must be one of %q, %q, %q, %q", k, images.ImageVisibilityPublic, images.ImageVisibilityPrivate, images.ImageVisibilityCommunity, images.ImageVisibilityShared))
+	for _, v := range validVisibilities {
+		if value == v {
+			return
+		}
+	}
+
+	err := fmt.Errorf("%s must be one of %s", k, validVisibilities)
+	errors = append(errors, err)
 	return
 }
 
@@ -476,12 +487,11 @@ func resourceImagesImageV2RefreshFunc(client *gophercloud.ServiceClient, id stri
 	}
 }
 
-func resourceImagesImageV2RemoveEmptyTags(s []string) []string {
-	var r []string
-	for _, str := range s {
-		if str != "" {
-			r = append(r, str)
-		}
+func resourceImagesImageV2BuildTags(v []interface{}) []string {
+	var tags []string
+	for _, tag := range v {
+		tags = append(tags, tag.(string))
 	}
-	return r
+
+	return tags
 }
