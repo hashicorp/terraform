@@ -1434,6 +1434,18 @@
 			"revisionTime": "2017-02-14T04:36:15Z"
 		},
 		{
+			"checksumSHA1": "ApyhoqnMmvOyj4SVmCAMEPRt0CY=",
+			"path": "github.com/gophercloud/gophercloud/openstack/imageservice/v2/imagedata",
+			"revision": "b06120d13e262ceaf890ef38ee30898813696af0",
+			"revisionTime": "2017-02-14T04:36:15Z"
+		},
+		{
+			"checksumSHA1": "suBNiSHEsfnRAY+kGSGg0P2TaUQ=",
+			"path": "github.com/gophercloud/gophercloud/openstack/imageservice/v2/images",
+			"revision": "b06120d13e262ceaf890ef38ee30898813696af0",
+			"revisionTime": "2017-02-14T04:36:15Z"
+		},
+		{
 			"checksumSHA1": "aTHxjMlfNXFJ3l2TZyvIwqt/3kM=",
 			"path": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls",
 			"revision": "b06120d13e262ceaf890ef38ee30898813696af0",
