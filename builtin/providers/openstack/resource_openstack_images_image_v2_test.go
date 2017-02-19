@@ -36,7 +36,7 @@ func TestAccImagesImageV2_basic(t *testing.T) {
 	})
 }
 
-func TestAccImagesImageV2_with_tags(t *testing.T) {
+func TestAccImagesImageV2_name(t *testing.T) {
 	var image images.Image
 
 	resource.Test(t, resource.TestCase{
@@ -45,12 +45,90 @@ func TestAccImagesImageV2_with_tags(t *testing.T) {
 		CheckDestroy: testAccCheckImagesImageV2Destroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccImagesImageV2_with_tags,
+				Config: testAccImagesImageV2_name_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckImagesImageV2Exists("openstack_images_image_v2.image_1", &image),
+					resource.TestCheckResourceAttr(
+						"openstack_images_image_v2.image_1", "name", "Rancher TerraformAccTest"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccImagesImageV2_name_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckImagesImageV2Exists("openstack_images_image_v2.image_1", &image),
+					resource.TestCheckResourceAttr(
+						"openstack_images_image_v2.image_1", "name", "TerraformAccTest Rancher"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccImagesImageV2_tags(t *testing.T) {
+	var image images.Image
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckImagesImageV2Destroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccImagesImageV2_tags_1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckImagesImageV2Exists("openstack_images_image_v2.image_1", &image),
 					testAccCheckImagesImageV2HasTag("openstack_images_image_v2.image_1", "foo"),
 					testAccCheckImagesImageV2HasTag("openstack_images_image_v2.image_1", "bar"),
 					testAccCheckImagesImageV2TagCount("openstack_images_image_v2.image_1", 2),
+				),
+			},
+			resource.TestStep{
+				Config: testAccImagesImageV2_tags_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckImagesImageV2Exists("openstack_images_image_v2.image_1", &image),
+					testAccCheckImagesImageV2HasTag("openstack_images_image_v2.image_1", "foo"),
+					testAccCheckImagesImageV2HasTag("openstack_images_image_v2.image_1", "bar"),
+					testAccCheckImagesImageV2HasTag("openstack_images_image_v2.image_1", "baz"),
+					testAccCheckImagesImageV2TagCount("openstack_images_image_v2.image_1", 3),
+				),
+			},
+			resource.TestStep{
+				Config: testAccImagesImageV2_tags_3,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckImagesImageV2Exists("openstack_images_image_v2.image_1", &image),
+					testAccCheckImagesImageV2HasTag("openstack_images_image_v2.image_1", "foo"),
+					testAccCheckImagesImageV2HasTag("openstack_images_image_v2.image_1", "baz"),
+					testAccCheckImagesImageV2TagCount("openstack_images_image_v2.image_1", 2),
+				),
+			},
+		},
+	})
+}
+
+func TestAccImagesImageV2_visibility(t *testing.T) {
+	var image images.Image
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccPreCheckAdminOnly(t)
+		},
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckImagesImageV2Destroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccImagesImageV2_visibility_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckImagesImageV2Exists("openstack_images_image_v2.image_1", &image),
+					resource.TestCheckResourceAttr(
+						"openstack_images_image_v2.image_1", "visibility", "private"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccImagesImageV2_visibility_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckImagesImageV2Exists("openstack_images_image_v2.image_1", &image),
+					resource.TestCheckResourceAttr(
+						"openstack_images_image_v2.image_1", "visibility", "public"),
 				),
 			},
 		},
@@ -188,11 +266,63 @@ var testAccImagesImageV2_basic = `
       disk_format = "qcow2"
   }`
 
-var testAccImagesImageV2_with_tags = `
+var testAccImagesImageV2_name_1 = `
+  resource "openstack_images_image_v2" "image_1" {
+      name   = "Rancher TerraformAccTest"
+      image_source_url = "https://releases.rancher.com/os/latest/rancheros-openstack.img"
+      container_format = "bare"
+      disk_format = "qcow2"
+  }`
+
+var testAccImagesImageV2_name_2 = `
+  resource "openstack_images_image_v2" "image_1" {
+      name   = "TerraformAccTest Rancher"
+      image_source_url = "https://releases.rancher.com/os/latest/rancheros-openstack.img"
+      container_format = "bare"
+      disk_format = "qcow2"
+  }`
+
+var testAccImagesImageV2_tags_1 = `
   resource "openstack_images_image_v2" "image_1" {
       name   = "Rancher TerraformAccTest"
       image_source_url = "https://releases.rancher.com/os/latest/rancheros-openstack.img"
       container_format = "bare"
       disk_format = "qcow2"
       tags = ["foo","bar"]
+  }`
+
+var testAccImagesImageV2_tags_2 = `
+  resource "openstack_images_image_v2" "image_1" {
+      name   = "Rancher TerraformAccTest"
+      image_source_url = "https://releases.rancher.com/os/latest/rancheros-openstack.img"
+      container_format = "bare"
+      disk_format = "qcow2"
+      tags = ["foo","bar","baz"]
+  }`
+
+var testAccImagesImageV2_tags_3 = `
+  resource "openstack_images_image_v2" "image_1" {
+      name   = "Rancher TerraformAccTest"
+      image_source_url = "https://releases.rancher.com/os/latest/rancheros-openstack.img"
+      container_format = "bare"
+      disk_format = "qcow2"
+      tags = ["foo","baz"]
+  }`
+
+var testAccImagesImageV2_visibility_1 = `
+  resource "openstack_images_image_v2" "image_1" {
+      name   = "Rancher TerraformAccTest"
+      image_source_url = "https://releases.rancher.com/os/latest/rancheros-openstack.img"
+      container_format = "bare"
+      disk_format = "qcow2"
+      visibility = "private"
+  }`
+
+var testAccImagesImageV2_visibility_2 = `
+  resource "openstack_images_image_v2" "image_1" {
+      name   = "Rancher TerraformAccTest"
+      image_source_url = "https://releases.rancher.com/os/latest/rancheros-openstack.img"
+      container_format = "bare"
+      disk_format = "qcow2"
+      visibility = "public"
   }`
