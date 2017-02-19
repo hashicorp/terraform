@@ -181,12 +181,12 @@ func resourceImagesImageV2Create(d *schema.ResourceData, meta interface{}) error
 		Visibility:      &visibility,
 	}
 
-	if tags := d.Get("tags"); tags != nil {
-		ts := tags.([]interface{})
-		createOpts.Tags = make([]string, len(ts))
-		for _, v := range ts {
-			createOpts.Tags = append(createOpts.Tags, v.(string))
+	if v, ok := d.GetOk("tags"); ok {
+		var tags []string
+		for _, tag := range v.([]interface{}) {
+			tags = append(tags, tag.(string))
 		}
+		createOpts.Tags = tags
 	}
 
 	d.Partial(true)
@@ -273,7 +273,7 @@ func resourceImagesImageV2Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", img.Name)
 	d.Set("protected", img.Protected)
 	d.Set("size_bytes", img.SizeBytes)
-	d.Set("tags", remove_empty(img.Tags))
+	d.Set("tags", resourceImagesImageV2RemoveEmptyTags(img.Tags))
 	d.Set("visibility", img.Visibility)
 
 	return nil
@@ -476,7 +476,7 @@ func resourceImagesImageV2RefreshFunc(client *gophercloud.ServiceClient, id stri
 	}
 }
 
-func remove_empty(s []string) []string {
+func resourceImagesImageV2RemoveEmptyTags(s []string) []string {
 	var r []string
 	for _, str := range s {
 		if str != "" {
