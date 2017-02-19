@@ -35,11 +35,11 @@ The following arguments are supported:
    that will be uploaded to Glance. Conflicts with `image_source_url`.
 
 * `image_cache_path` - (Optional) This is the directory where the images will
-   be downloaded. Images will be stored with a filename corresponding to 
+   be downloaded. Images will be stored with a filename corresponding to
    the url's md5 hash. Defaults to "$HOME/.terraform/image_cache"
 
 * `image_source_url` - (Optional) This is the url of the raw image that will
-   be downloaded in the `image_cache_path` before being uploaded to Glance. 
+   be downloaded in the `image_cache_path` before being uploaded to Glance.
    Glance is able to download image from internet but the `gophercloud` library
    does not yet provide a way to do so.
    Conflicts with `local_file_path`.
@@ -49,9 +49,9 @@ The following arguments are supported:
 
 * `min_ram_mb` - (Optional) Amount of ram (in MB) required to boot image.
    Defauts to 0.
-   
+
 * `name` - (Required) The name of the image.
-   
+
 * `protected` - (Optional) If true, image will not be deletable.
    Defaults to false.
 
@@ -61,9 +61,11 @@ The following arguments are supported:
     is used. Changing this creates a new Image.
 
 * `tags` - (Optional) The tags of the image. It must be a list of strings.
-   
-* `visibility` - (Optional) The visibility of the image. Must be one of 
-   "public", "private", "community", or "shared". 
+    At this time, it is not possible to delete all tags of an image.
+
+* `visibility` - (Optional) The visibility of the image. Must be one of
+   "public", "private", "community", or "shared". The ability to set the
+   visibility depends upon the configuration of the OpenStack cloud.
 
 Note: The `properties` attribute handling in the gophercloud library is currently buggy
 and needs to be fixed before being implemented in this resource.
@@ -76,8 +78,8 @@ The following attributes are exported:
 * `container_format` - See Argument Reference above.
 * `created_at` - The date the image was created.
 * `disk_format` - See Argument Reference above.
-* `file` - the trailing path after the glance 
-   endpoint that represent the location of the image 
+* `file` - the trailing path after the glance
+   endpoint that represent the location of the image
    or the path to retrieve it.
 * `id` - A unique ID assigned by Glance.
 * `metadata` - The metadata associated with the image.
@@ -89,8 +91,8 @@ The following attributes are exported:
 * `owner` - The id of the openstack user who owns the image.
 * `protected` - See Argument Reference above.
 * `region` - See Argument Reference above.
-* `schema` - The path to the JSON-schema that represent 
-   the image or image 
+* `schema` - The path to the JSON-schema that represent
+   the image or image
 * `size_bytes` - The size in bytes of the data associated with the image.
 * `status` - The status of the image. It can be "queued", "active"
    or "saving".

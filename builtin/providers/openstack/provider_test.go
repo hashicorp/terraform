@@ -60,6 +60,13 @@ func testAccPreCheck(t *testing.T) {
 	}
 }
 
+func testAccPreCheckAdminOnly(t *testing.T) {
+	v := os.Getenv("OS_USERNAME")
+	if v != "admin" {
+		t.Skip("Skipping test because it requires the admin user")
+	}
+}
+
 func TestProvider(t *testing.T) {
 	if err := Provider().(*schema.Provider).InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
