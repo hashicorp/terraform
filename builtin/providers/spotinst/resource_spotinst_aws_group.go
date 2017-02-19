@@ -1698,8 +1698,10 @@ func expandAwsGroupScalingPolicies(data interface{}) ([]*spotinst.AwsGroupScalin
 			policy.Dimensions = dimensions
 		}
 
-		log.Printf("[DEBUG] AwsGroup scaling policy configuration: %s\n", stringutil.Stringify(policy))
-		policies = append(policies, policy)
+		if v, ok := m["namespace"].(string); ok && v != "" {
+			log.Printf("[DEBUG] AwsGroup scaling policy configuration: %s\n", stringutil.Stringify(policy))
+			policies = append(policies, policy)
+		}
 	}
 
 	return policies, nil
