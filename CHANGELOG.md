@@ -3,6 +3,7 @@
 FEATURES:
 
  * **New Resource:**  `aws_elastic_beanstalk_application_version` [GH-5770]
+ * **New Resource:**  `openstack_images_image_v2` [GH-11942]
 
 IMPROVEMENTS:
 
