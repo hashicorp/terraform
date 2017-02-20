@@ -92,38 +92,51 @@ func TestWalker_error(t *testing.T) {
 }
 
 func TestWalker_newVertex(t *testing.T) {
-	// Run it a bunch of times since it is timing dependent
-	for i := 0; i < 50; i++ {
-		var g AcyclicGraph
-		g.Add(1)
-		g.Add(2)
-		g.Connect(BasicEdge(1, 2))
+	var g AcyclicGraph
+	g.Add(1)
+	g.Add(2)
+	g.Connect(BasicEdge(1, 2))
 
-		var order []interface{}
-		w := &Walker{Callback: walkCbRecord(&order)}
-		w.Update(&g)
+	// Record function
+	var order []interface{}
+	recordF := walkCbRecord(&order)
+	done2 := make(chan int)
 
-		// Wait a bit
-		time.Sleep(10 * time.Millisecond)
-
-		// Update the graph
-		g.Add(3)
-		w.Update(&g)
-
-		// Update the graph again but with the same vertex
-		g.Add(3)
-		w.Update(&g)
-
-		// Wait
-		if err := w.Wait(); err != nil {
-			t.Fatalf("err: %s", err)
+	// Build a callback that notifies us when 2 has been walked
+	var w *Walker
+	cb := func(v Vertex) error {
+		if v == 2 {
+			defer func() {
+				close(done2)
+			}()
 		}
+		return recordF(v)
+	}
 
-		// Check
-		expected := []interface{}{1, 2, 3}
-		if !reflect.DeepEqual(order, expected) {
-			t.Fatalf("bad: %#v", order)
-		}
+	// Add the initial vertices
+	w = &Walker{Callback: cb}
+	w.Update(&g)
+
+	// if 2 has been visited, the walk is complete so far
+	<-done2
+
+	// Update the graph
+	g.Add(3)
+	w.Update(&g)
+
+	// Update the graph again but with the same vertex
+	g.Add(3)
+	w.Update(&g)
+
+	// Wait
+	if err := w.Wait(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check
+	expected := []interface{}{1, 2, 3}
+	if !reflect.DeepEqual(order, expected) {
+		t.Fatalf("bad: %#v", order)
 	}
 }
 
