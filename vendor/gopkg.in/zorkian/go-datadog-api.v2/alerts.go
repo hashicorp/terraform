@@ -15,14 +15,14 @@ import (
 // Alert represents the data of an alert: a query that can fire and send a
 // message to the users.
 type Alert struct {
-	Id           int    `json:"id,omitempty"`
-	Creator      int    `json:"creator,omitempty"`
-	Query        string `json:"query,omitempty"`
-	Name         string `json:"name,omitempty"`
-	Message      string `json:"message,omitempty"`
-	Silenced     bool   `json:"silenced,omitempty"`
-	NotifyNoData bool   `json:"notify_no_data,omitempty"`
-	State        string `json:"state,omitempty"`
+	Id           *int    `json:"id,omitempty"`
+	Creator      *int    `json:"creator,omitempty"`
+	Query        *string `json:"query,omitempty"`
+	Name         *string `json:"name,omitempty"`
+	Message      *string `json:"message,omitempty"`
+	Silenced     *bool   `json:"silenced,omitempty"`
+	NotifyNoData *bool   `json:"notify_no_data,omitempty"`
+	State        *string `json:"state,omitempty"`
 }
 
 // reqAlerts receives a slice of all alerts.

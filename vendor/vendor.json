@@ -2150,16 +2150,16 @@
 			"revision": "85659debe44fab5792fc92cf755c04b115b9dc19"
 		},
 		{
-			"checksumSHA1": "OUZ1FFXyKs+Cfg9M9rmXqqweQck=",
-			"path": "github.com/miekg/dns",
-			"revision": "db96a2b759cdef4f11a34506a42eb8d1290c598e",
-			"revisionTime": "2016-07-26T03:20:27Z"
-		},
-		{
 			"checksumSHA1": "GSum+utW01N3KeMdvAPnsW0TemM=",
 			"path": "github.com/michaelklishin/rabbit-hole",
 			"revision": "88550829bcdcf614361c73459c903578eb44074e",
 			"revisionTime": "2016-07-06T11:10:56Z"
+		},
+		{
+			"checksumSHA1": "OUZ1FFXyKs+Cfg9M9rmXqqweQck=",
+			"path": "github.com/miekg/dns",
+			"revision": "db96a2b759cdef4f11a34506a42eb8d1290c598e",
+			"revisionTime": "2016-07-26T03:20:27Z"
 		},
 		{
 			"checksumSHA1": "7niW29CvYceZ6zbia6b/LT+yD/M=",
@@ -2659,12 +2659,6 @@
 			"revision": "75ce5fbba34b1912a3641adbd58cf317d7315821"
 		},
 		{
-			"checksumSHA1": "uynUzdKeOsfi7flpYWFx835Nafo=",
-			"path": "github.com/zorkian/go-datadog-api",
-			"revision": "6308094e4aca46eb16a227b50be29772242bf3aa",
-			"revisionTime": "2017-02-02T00:47:50Z"
-		},
-		{
 			"checksumSHA1": "9x64JhJGo6z8TS0Q33cGcR64kjA=",
 			"path": "golang.org/x/crypto/curve25519",
 			"revision": "b8a2a83acfe6e6770b75de42d5ff4c67596675c0",
@@ -2997,6 +2991,12 @@
 			"path": "gopkg.in/yaml.v2",
 			"revision": "a5b47d31c556af34a302ce5d659e6fea44d90de0",
 			"revisionTime": "2016-09-28T15:37:09Z"
+		},
+		{
+			"checksumSHA1": "OcJdNALtPXoFOieAZjznhm7ufuU=",
+			"path": "gopkg.in/zorkian/go-datadog-api.v2",
+			"revision": "f005bb24262365e93726b94d89e6cd8a26a7455e",
+			"revisionTime": "2017-02-20T05:26:33Z"
 		}
 	],
 	"rootPath": "github.com/hashicorp/terraform"

@@ -4,6 +4,9 @@ GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
 default: test fmt
 
+generate:
+	go generate
+
 # test runs the unit tests and vets the code
 test:
 	go test . $(TESTARGS) -v -timeout=30s -parallel=4
