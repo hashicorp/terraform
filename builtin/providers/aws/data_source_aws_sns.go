@@ -3,8 +3,8 @@ package aws
 import (
 	"fmt"
 	"regexp"
+	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -17,6 +17,16 @@ func dataSourceAwsSnsTopic() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					validNamePattern := "^[A-Za-z0-9_-]+$"
+					validName, nameMatchErr := regexp.MatchString(validNamePattern, value)
+					if !validName || nameMatchErr != nil {
+						errors = append(errors, fmt.Errorf(
+							"%q must match regex '%v'", k, validNamePattern))
+					}
+					return
+				},
 			},
 			"arn": {
 				Type:     schema.TypeString,
@@ -28,18 +38,9 @@ func dataSourceAwsSnsTopic() *schema.Resource {
 
 func dataSourceAwsSnsTopicsRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).snsconn
-	params := &sns.ListTopicsInput{
-		NextToken: aws.String("nextToken"),
-	}
+	params := &sns.ListTopicsInput{}
 
 	target := d.Get("name")
-
-	validNamePattern := "^[A-Za-z0-9_-]+$"
-	validName, nameMatchErr := regexp.MatchString(validNamePattern, target.(string))
-	if !validName || nameMatchErr != nil {
-		return fmt.Errorf("Supplied topic name %v is invalid, should match regex '%v'.", target, validNamePattern)
-	}
-
 	var arns []string
 	err := conn.ListTopicsPages(params, func(page *sns.ListTopicsOutput, lastPage bool) bool {
 		for _, topic := range page.Topics {
@@ -63,6 +64,7 @@ func dataSourceAwsSnsTopicsRead(d *schema.ResourceData, meta interface{}) error 
 		return fmt.Errorf("Multiple topics with name %q found in this region.", target)
 	}
 
+	d.SetId(time.Now().UTC().String())
 	d.Set("arn", arns[0])
 
 	return nil
