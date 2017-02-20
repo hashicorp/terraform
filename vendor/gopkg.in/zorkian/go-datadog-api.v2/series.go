@@ -17,25 +17,26 @@ type DataPoint [2]float64
 // Metric represents a collection of data points that we might send or receive
 // on one single metric line.
 type Metric struct {
-	Metric string      `json:"metric,omitempty"`
+	Metric *string     `json:"metric,omitempty"`
 	Points []DataPoint `json:"points,omitempty"`
-	Type   string      `json:"type,omitempty"`
-	Host   string      `json:"host,omitempty"`
+	Type   *string     `json:"type,omitempty"`
+	Host   *string     `json:"host,omitempty"`
 	Tags   []string    `json:"tags,omitempty"`
+	Unit   *string     `json:"unit,omitempty"`
 }
 
 // Series represents a collection of data points we get when we query for timeseries data
 type Series struct {
-	Metric      string      `json:"metric,omitempty"`
-	DisplayName string      `json:"display_name,omitempty"`
+	Metric      *string     `json:"metric,omitempty"`
+	DisplayName *string     `json:"display_name,omitempty"`
 	Points      []DataPoint `json:"pointlist,omitempty"`
-	Start       float64     `json:"start,omitempty"`
-	End         float64     `json:"end,omitempty"`
-	Interval    int         `json:"interval,omitempty"`
-	Aggr        string      `json:"aggr,omitempty"`
-	Length      int         `json:"length,omitempty"`
-	Scope       string      `json:"scope,omitempty"`
-	Expression  string      `json:"expression,omitempty"`
+	Start       *float64    `json:"start,omitempty"`
+	End         *float64    `json:"end,omitempty"`
+	Interval    *int        `json:"interval,omitempty"`
+	Aggr        *string     `json:"aggr,omitempty"`
+	Length      *int        `json:"length,omitempty"`
+	Scope       *string     `json:"scope,omitempty"`
+	Expression  *string     `json:"expression,omitempty"`
 }
 
 // reqPostSeries from /api/v1/series
