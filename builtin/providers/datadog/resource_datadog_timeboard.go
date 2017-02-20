@@ -370,12 +370,9 @@ func appendRequests(datadogGraph *datadog.Graph, terraformRequests *[]interface{
 
 func appendEvents(datadogGraph *datadog.Graph, terraformEvents *[]interface{}) {
 	for _, t_ := range *terraformEvents {
-		d := struct {
-			Query *string `json:"q,omitempty"`
-		}{
-			datadog.String(t_.(string)),
-		}
-		datadogGraph.Definition.Events = append(datadogGraph.Definition.Events, d)
+		datadogGraph.Definition.Events = append(datadogGraph.Definition.Events, datadog.GraphEvent{
+			Query: datadog.String(t_.(string)),
+		})
 	}
 }
 
@@ -397,60 +394,60 @@ func buildGraphs(terraformGraphs *[]interface{}) *[]datadog.Graph {
 	datadogGraphs := make([]datadog.Graph, len(*terraformGraphs))
 	for i, t_ := range *terraformGraphs {
 		t := t_.(map[string]interface{})
-		datadogGraphs[i] = datadog.Graph{Title: datadog.String(t["title"].(string))}
-		d := &datadogGraphs[i]
-		d.Definition.Viz = datadog.String(t["viz"].(string))
 
-		if yaxis_, ok := t["yaxis"]; ok {
-			yaxis := yaxis_.(map[string]interface{})
+		datadogGraphs[i] = datadog.Graph{
+			Title: datadog.String(t["title"].(string)),
+		}
+
+		d := &datadogGraphs[i]
+		d.Definition = &datadog.GraphDefinition{}
+		d.Definition.SetViz(t["viz"].(string))
+
+		if v, ok := t["yaxis"]; ok {
+			yaxis := v.(map[string]interface{})
 			if v, ok := yaxis["min"]; ok {
 				min, _ := strconv.ParseFloat(v.(string), 64)
-				d.Definition.Yaxis.Min = &min
+				d.Definition.Yaxis.SetMin(min)
 			}
 			if v, ok := yaxis["max"]; ok {
 				max, _ := strconv.ParseFloat(v.(string), 64)
-				d.Definition.Yaxis.Max = &max
+				d.Definition.Yaxis.SetMax(max)
 			}
 			if v, ok := yaxis["scale"]; ok {
-				scale := v.(string)
-				d.Definition.Yaxis.Scale = &scale
+				d.Definition.Yaxis.SetScale(v.(string))
 			}
 		}
 
 		if v, ok := t["autoscale"]; ok {
-			d.Definition.Autoscale = datadog.Bool(v.(bool))
+			d.Definition.SetAutoscale(v.(bool))
 		}
 
 		if v, ok := t["text_align"]; ok {
-			d.Definition.TextAlign = datadog.String(v.(string))
+			d.Definition.SetTextAlign(v.(string))
 		}
 
 		if precision, ok := t["precision"]; ok {
-			d.Definition.Precision = datadog.String(precision.(string))
+			d.Definition.SetPrecision(precision.(string))
 		}
 
 		if v, ok := t["custom_unit"]; ok {
-			d.Definition.CustomUnit = datadog.String(v.(string))
+			d.Definition.SetCustomUnit(v.(string))
 		}
 
 		if style, ok := t["style"]; ok {
 			s := style.(map[string]interface{})
 
-			style := struct {
-				Palette     *string `json:"palette,omitempty"`
-				PaletteFlip *bool   `json:"paletteFlip,omitempty"`
-			}{}
+			gs := datadog.Style{}
 
 			if v, ok := s["palette"]; ok {
-				palette := v.(string)
-				style.Palette = &palette
+				gs.SetPalette(v.(string))
 			}
 
 			if v, ok := s["palette_flip"]; ok {
-				paletteFlip, _ := strconv.ParseBool(v.(string))
-				style.PaletteFlip = &paletteFlip
+				pf, _ := strconv.ParseBool(v.(string))
+				gs.SetPaletteFlip(pf)
 			}
-			d.Definition.Style = &style
+			d.Definition.SetStyle(gs)
 
 		}
 
@@ -461,7 +458,7 @@ func buildGraphs(terraformGraphs *[]interface{}) *[]datadog.Graph {
 		}
 
 		if includeNoMetricHosts, ok := t["include_no_metric_hosts"]; ok {
-			d.Definition.IncludeNoMetricHosts = datadog.Bool(includeNoMetricHosts.(bool))
+			d.Definition.SetIncludeNoMetricHosts(includeNoMetricHosts.(bool))
 		}
 
 		if v, ok := t["scope"]; ok {
@@ -471,7 +468,7 @@ func buildGraphs(terraformGraphs *[]interface{}) *[]datadog.Graph {
 		}
 
 		if v, ok := t["include_ungrouped_hosts"]; ok {
-			d.Definition.IncludeUngroupedHosts = datadog.Bool(v.(bool))
+			d.Definition.SetIncludeUngroupedHosts(v.(bool))
 		}
 		v := t["marker"].([]interface{})
 		appendMarkers(d, &v)
@@ -536,15 +533,15 @@ func appendTerraformGraphRequests(datadogRequests []datadog.GraphDefinitionReque
 		request["q"] = datadogRequest.GetQuery()
 		request["stacked"] = datadogRequest.GetStacked()
 		request["type"] = datadogRequest.GetType()
-		if datadogRequest.Style != nil {
+		if v, ok := datadogRequest.GetStyleOk(); ok {
 			style := map[string]string{}
-			if v, ok := datadogRequest.Style.GetPaletteOk(); ok {
+			if v, ok := v.GetPaletteOk(); ok {
 				style["palette"] = v
 			}
-			if v, ok := datadogRequest.Style.GetTypeOk(); ok {
+			if v, ok := v.GetTypeOk(); ok {
 				style["type"] = v
 			}
-			if v, ok := datadogRequest.Style.GetWidthOk(); ok {
+			if v, ok := v.GetWidthOk(); ok {
 				style["width"] = v
 			}
 			request["style"] = style
@@ -577,7 +574,7 @@ func buildTerraformGraph(datadog_graph datadog.Graph) map[string]interface{} {
 	graph["title"] = datadog_graph.GetTitle()
 
 	definition := datadog_graph.Definition
-	graph["viz"] = definition.Viz
+	graph["viz"] = definition.GetViz()
 
 	events := []*string{}
 	for _, datadog_event := range definition.Events {
@@ -598,16 +595,16 @@ func buildTerraformGraph(datadog_graph datadog.Graph) map[string]interface{} {
 
 	yaxis := map[string]string{}
 
-	if definition.Yaxis.Min != nil {
-		yaxis["min"] = strconv.FormatFloat(*definition.Yaxis.Min, 'f', -1, 64)
+	if v, ok := definition.Yaxis.GetMinOk(); ok {
+		yaxis["min"] = strconv.FormatFloat(v, 'f', -1, 64)
 	}
 
-	if definition.Yaxis.Max != nil {
-		yaxis["max"] = strconv.FormatFloat(*definition.Yaxis.Max, 'f', -1, 64)
+	if v, ok := definition.Yaxis.GetMaxOk(); ok {
+		yaxis["max"] = strconv.FormatFloat(v, 'f', -1, 64)
 	}
 
-	if definition.Yaxis.Scale != nil {
-		yaxis["scale"] = *definition.Yaxis.Scale
+	if v, ok := definition.Yaxis.GetScaleOk(); ok {
+		yaxis["scale"] = v
 	}
 
 	graph["yaxis"] = yaxis
@@ -617,13 +614,13 @@ func buildTerraformGraph(datadog_graph datadog.Graph) map[string]interface{} {
 	graph["precision"] = definition.Precision
 	graph["custom_unit"] = definition.CustomUnit
 
-	if definition.Style != nil {
+	if v, ok := definition.GetStyleOk(); ok {
 		style := map[string]string{}
-		if definition.Style.Palette != nil {
-			style["palette"] = *definition.Style.Palette
+		if v, ok := v.GetPaletteOk(); ok {
+			style["palette"] = v
 		}
-		if definition.Style.PaletteFlip != nil {
-			style["palette_flip"] = strconv.FormatBool(*definition.Style.PaletteFlip)
+		if v, ok := v.GetPaletteFlipOk(); ok {
+			style["palette_flip"] = strconv.FormatBool(v)
 		}
 		graph["style"] = style
 	}
