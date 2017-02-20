@@ -31,6 +31,7 @@ Bug FIXES:
  * provider/aws: Add owner_account option to aws_redshift_cluster [GH-12062]
  * provider/cloudflare: add validation for proxied record types [GH-11993]
  * provider/google: make local_traffic_selector computed [GH-11631]
+ * provider/google: Write the raw disk encryption key in the state file to avoid diffs on plan [GH-12068]
 
 ## 0.8.7 (February 15, 2017)
 
