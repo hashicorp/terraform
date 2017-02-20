@@ -33,3 +33,11 @@ The following arguments are supported:
 
 * `role`		(Required) - The role the policy should be applied to
 * `policy_arn`	(Required) - The ARN of the policy you want to apply
+
+## Import
+
+IAM role policy attachments can be imported using the `name` of the role. This will import all role policy attachments associated with the role.
+
+```
+$ terraform import aws_iam_role_policy_attachment.test-attach test-role
+```
