@@ -10,6 +10,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for AWS EBS Elastic Volumes [GH-11981]
  * provider/aws: Allow aws_instances to be resized rather than forcing a new instance [GH-11998]
  * provider/datadog: add support for new host delay to the datadog_monitor resource [GH-11975]
+ * provider/datadog: Upgrade to Datadog API v2 [GH-12098]
  * provider/google: Add support for maintenance window in `sql_database_instance` [GH-12042]
  * provider/fastly: Make Backends optional if used in VCL [GH-12025]
  * provider/fastly: Add support for custom `response_object` [GH-12032]
