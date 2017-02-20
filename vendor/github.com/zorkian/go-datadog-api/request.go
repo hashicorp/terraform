@@ -69,9 +69,9 @@ func (client *Client) doJsonRequest(method, api string,
 		req.Header.Add("Content-Type", "application/json")
 	}
 
-	// Perform the request and retry it if it's not a POST request
+	// Perform the request and retry it if it's not a POST or PUT request
 	var resp *http.Response
-	if method == "POST" {
+	if method == "POST" || method == "PUT" {
 		resp, err = client.HttpClient.Do(req)
 	} else {
 		resp, err = client.doRequestWithRetries(req, client.RetryTimeout)

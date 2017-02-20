@@ -44,6 +44,12 @@ func NewClient(apiKey, appKey string) *Client {
 	}
 }
 
+// SetKeys changes the value of apiKey and appKey.
+func (c *Client) SetKeys(apiKey, appKey string) {
+	c.apiKey = apiKey
+	c.appKey = appKey
+}
+
 // Validate checks if the API and application keys are valid.
 func (client *Client) Validate() (bool, error) {
 	var bodyreader io.Reader
