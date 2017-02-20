@@ -47,40 +47,49 @@ type GraphDefinitionMarker struct {
 	Max   *json.Number `json:"max,omitempty"`
 }
 
+type GraphEvent struct {
+	Query *string `json:"q,omitempty"`
+}
+
+type Yaxis struct {
+	Min   *float64 `json:"min,omitempty"`
+	Max   *float64 `json:"max,omitempty"`
+	Scale *string  `json:"scale,omitempty"`
+}
+
+type Style struct {
+	Palette     *string `json:"palette,omitempty"`
+	PaletteFlip *bool   `json:"paletteFlip,omitempty"`
+}
+
+type GraphDefinition struct {
+	Viz      *string                  `json:"viz,omitempty"`
+	Requests []GraphDefinitionRequest `json:"requests,omitempty"`
+	Events   []GraphEvent             `json:"events,omitempty"`
+	Markers  []GraphDefinitionMarker  `json:"markers,omitempty"`
+
+	// For timeseries type graphs
+	Yaxis Yaxis `json:"yaxis,omitempty"`
+
+	// For query value type graphs
+	Autoscale  *bool   `json:"austoscale,omitempty"`
+	TextAlign  *string `json:"text_align,omitempty"`
+	Precision  *string `json:"precision,omitempty"`
+	CustomUnit *string `json:"custom_unit,omitempty"`
+
+	// For hostname type graphs
+	Style *Style `json:"Style,omitempty"`
+
+	Groups                []string `json:"group,omitempty"`
+	IncludeNoMetricHosts  *bool    `json:"noMetricHosts,omitempty"`
+	Scopes                []string `json:"scope,omitempty"`
+	IncludeUngroupedHosts *bool    `json:"noGroupHosts,omitempty"`
+}
+
 // Graph represents a graph that might exist on a dashboard.
 type Graph struct {
-	Title      *string `json:"title,omitempty"`
-	Definition struct {
-		Viz      *string                  `json:"viz,omitempty"`
-		Requests []GraphDefinitionRequest `json:"requests,omitempty"`
-		Events   []struct {
-			Query *string `json:"q,omitempty"`
-		} `json:"events,omitempty"`
-		Markers []GraphDefinitionMarker `json:"markers,omitempty"`
-
-		// For timeseries type graphs
-		Yaxis struct {
-			Min   *float64 `json:"min,omitempty"`
-			Max   *float64 `json:"max,omitempty"`
-			Scale *string  `json:"scale,omitempty"`
-		} `json:"yaxis,omitempty"`
-
-		// For query value type graphs
-		Autoscale  *bool   `json:"austoscale,omitempty"`
-		TextAlign  *string `json:"text_align,omitempty"`
-		Precision  *string `json:"precision,omitempty"`
-		CustomUnit *string `json:"custom_unit,omitempty"`
-
-		// For hostname type graphs
-		Style *struct {
-			Palette     *string `json:"palette,omitempty"`
-			PaletteFlip *bool   `json:"paletteFlip,omitempty"`
-		}
-		Groups                []string `json:"group,omitempty"`
-		IncludeNoMetricHosts  *bool    `json:"noMetricHosts,omitempty"`
-		Scopes                []string `json:"scope,omitempty"`
-		IncludeUngroupedHosts *bool    `json:"noGroupHosts,omitempty"`
-	} `json:"definition"`
+	Title      *string          `json:"title,omitempty"`
+	Definition *GraphDefinition `json:"definition"`
 }
 
 // Template variable represents a template variable that might exist on a dashboard

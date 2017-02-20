@@ -4601,6 +4601,37 @@ func (f *FreeTextWidget) SetY(v int) {
 	f.Y = &v
 }
 
+// GetDefinition returns the Definition field if non-nil, zero value otherwise.
+func (g *Graph) GetDefinition() GraphDefinition {
+	if g == nil || g.Definition == nil {
+		return GraphDefinition{}
+	}
+	return *g.Definition
+}
+
+// GetOkDefinition returns a tuple with the Definition field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (g *Graph) GetDefinitionOk() (GraphDefinition, bool) {
+	if g == nil || g.Definition == nil {
+		return GraphDefinition{}, false
+	}
+	return *g.Definition, true
+}
+
+// HasDefinition returns a boolean if a field has been set.
+func (g *Graph) HasDefinition() bool {
+	if g != nil && g.Definition != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetDefinition allocates a new g.Definition and returns the pointer to it.
+func (g *Graph) SetDefinition(v GraphDefinition) {
+	g.Definition = &v
+}
+
 // GetTitle returns the Title field if non-nil, zero value otherwise.
 func (g *Graph) GetTitle() string {
 	if g == nil || g.Title == nil {
@@ -4630,6 +4661,254 @@ func (g *Graph) HasTitle() bool {
 // GetTitle allocates a new g.Title and returns the pointer to it.
 func (g *Graph) SetTitle(v string) {
 	g.Title = &v
+}
+
+// GetAutoscale returns the Autoscale field if non-nil, zero value otherwise.
+func (g *GraphDefinition) GetAutoscale() bool {
+	if g == nil || g.Autoscale == nil {
+		return false
+	}
+	return *g.Autoscale
+}
+
+// GetOkAutoscale returns a tuple with the Autoscale field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (g *GraphDefinition) GetAutoscaleOk() (bool, bool) {
+	if g == nil || g.Autoscale == nil {
+		return false, false
+	}
+	return *g.Autoscale, true
+}
+
+// HasAutoscale returns a boolean if a field has been set.
+func (g *GraphDefinition) HasAutoscale() bool {
+	if g != nil && g.Autoscale != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetAutoscale allocates a new g.Autoscale and returns the pointer to it.
+func (g *GraphDefinition) SetAutoscale(v bool) {
+	g.Autoscale = &v
+}
+
+// GetCustomUnit returns the CustomUnit field if non-nil, zero value otherwise.
+func (g *GraphDefinition) GetCustomUnit() string {
+	if g == nil || g.CustomUnit == nil {
+		return ""
+	}
+	return *g.CustomUnit
+}
+
+// GetOkCustomUnit returns a tuple with the CustomUnit field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (g *GraphDefinition) GetCustomUnitOk() (string, bool) {
+	if g == nil || g.CustomUnit == nil {
+		return "", false
+	}
+	return *g.CustomUnit, true
+}
+
+// HasCustomUnit returns a boolean if a field has been set.
+func (g *GraphDefinition) HasCustomUnit() bool {
+	if g != nil && g.CustomUnit != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetCustomUnit allocates a new g.CustomUnit and returns the pointer to it.
+func (g *GraphDefinition) SetCustomUnit(v string) {
+	g.CustomUnit = &v
+}
+
+// GetIncludeNoMetricHosts returns the IncludeNoMetricHosts field if non-nil, zero value otherwise.
+func (g *GraphDefinition) GetIncludeNoMetricHosts() bool {
+	if g == nil || g.IncludeNoMetricHosts == nil {
+		return false
+	}
+	return *g.IncludeNoMetricHosts
+}
+
+// GetOkIncludeNoMetricHosts returns a tuple with the IncludeNoMetricHosts field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (g *GraphDefinition) GetIncludeNoMetricHostsOk() (bool, bool) {
+	if g == nil || g.IncludeNoMetricHosts == nil {
+		return false, false
+	}
+	return *g.IncludeNoMetricHosts, true
+}
+
+// HasIncludeNoMetricHosts returns a boolean if a field has been set.
+func (g *GraphDefinition) HasIncludeNoMetricHosts() bool {
+	if g != nil && g.IncludeNoMetricHosts != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetIncludeNoMetricHosts allocates a new g.IncludeNoMetricHosts and returns the pointer to it.
+func (g *GraphDefinition) SetIncludeNoMetricHosts(v bool) {
+	g.IncludeNoMetricHosts = &v
+}
+
+// GetIncludeUngroupedHosts returns the IncludeUngroupedHosts field if non-nil, zero value otherwise.
+func (g *GraphDefinition) GetIncludeUngroupedHosts() bool {
+	if g == nil || g.IncludeUngroupedHosts == nil {
+		return false
+	}
+	return *g.IncludeUngroupedHosts
+}
+
+// GetOkIncludeUngroupedHosts returns a tuple with the IncludeUngroupedHosts field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (g *GraphDefinition) GetIncludeUngroupedHostsOk() (bool, bool) {
+	if g == nil || g.IncludeUngroupedHosts == nil {
+		return false, false
+	}
+	return *g.IncludeUngroupedHosts, true
+}
+
+// HasIncludeUngroupedHosts returns a boolean if a field has been set.
+func (g *GraphDefinition) HasIncludeUngroupedHosts() bool {
+	if g != nil && g.IncludeUngroupedHosts != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetIncludeUngroupedHosts allocates a new g.IncludeUngroupedHosts and returns the pointer to it.
+func (g *GraphDefinition) SetIncludeUngroupedHosts(v bool) {
+	g.IncludeUngroupedHosts = &v
+}
+
+// GetPrecision returns the Precision field if non-nil, zero value otherwise.
+func (g *GraphDefinition) GetPrecision() string {
+	if g == nil || g.Precision == nil {
+		return ""
+	}
+	return *g.Precision
+}
+
+// GetOkPrecision returns a tuple with the Precision field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (g *GraphDefinition) GetPrecisionOk() (string, bool) {
+	if g == nil || g.Precision == nil {
+		return "", false
+	}
+	return *g.Precision, true
+}
+
+// HasPrecision returns a boolean if a field has been set.
+func (g *GraphDefinition) HasPrecision() bool {
+	if g != nil && g.Precision != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetPrecision allocates a new g.Precision and returns the pointer to it.
+func (g *GraphDefinition) SetPrecision(v string) {
+	g.Precision = &v
+}
+
+// GetStyle returns the Style field if non-nil, zero value otherwise.
+func (g *GraphDefinition) GetStyle() Style {
+	if g == nil || g.Style == nil {
+		return Style{}
+	}
+	return *g.Style
+}
+
+// GetOkStyle returns a tuple with the Style field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (g *GraphDefinition) GetStyleOk() (Style, bool) {
+	if g == nil || g.Style == nil {
+		return Style{}, false
+	}
+	return *g.Style, true
+}
+
+// HasStyle returns a boolean if a field has been set.
+func (g *GraphDefinition) HasStyle() bool {
+	if g != nil && g.Style != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetStyle allocates a new g.Style and returns the pointer to it.
+func (g *GraphDefinition) SetStyle(v Style) {
+	g.Style = &v
+}
+
+// GetTextAlign returns the TextAlign field if non-nil, zero value otherwise.
+func (g *GraphDefinition) GetTextAlign() string {
+	if g == nil || g.TextAlign == nil {
+		return ""
+	}
+	return *g.TextAlign
+}
+
+// GetOkTextAlign returns a tuple with the TextAlign field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (g *GraphDefinition) GetTextAlignOk() (string, bool) {
+	if g == nil || g.TextAlign == nil {
+		return "", false
+	}
+	return *g.TextAlign, true
+}
+
+// HasTextAlign returns a boolean if a field has been set.
+func (g *GraphDefinition) HasTextAlign() bool {
+	if g != nil && g.TextAlign != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetTextAlign allocates a new g.TextAlign and returns the pointer to it.
+func (g *GraphDefinition) SetTextAlign(v string) {
+	g.TextAlign = &v
+}
+
+// GetViz returns the Viz field if non-nil, zero value otherwise.
+func (g *GraphDefinition) GetViz() string {
+	if g == nil || g.Viz == nil {
+		return ""
+	}
+	return *g.Viz
+}
+
+// GetOkViz returns a tuple with the Viz field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (g *GraphDefinition) GetVizOk() (string, bool) {
+	if g == nil || g.Viz == nil {
+		return "", false
+	}
+	return *g.Viz, true
+}
+
+// HasViz returns a boolean if a field has been set.
+func (g *GraphDefinition) HasViz() bool {
+	if g != nil && g.Viz != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetViz allocates a new g.Viz and returns the pointer to it.
+func (g *GraphDefinition) SetViz(v string) {
+	g.Viz = &v
 }
 
 // GetLabel returns the Label field if non-nil, zero value otherwise.
@@ -5250,6 +5529,37 @@ func (g *GraphDefinitionRequestStyle) HasWidth() bool {
 // GetWidth allocates a new g.Width and returns the pointer to it.
 func (g *GraphDefinitionRequestStyle) SetWidth(v string) {
 	g.Width = &v
+}
+
+// GetQuery returns the Query field if non-nil, zero value otherwise.
+func (g *GraphEvent) GetQuery() string {
+	if g == nil || g.Query == nil {
+		return ""
+	}
+	return *g.Query
+}
+
+// GetOkQuery returns a tuple with the Query field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (g *GraphEvent) GetQueryOk() (string, bool) {
+	if g == nil || g.Query == nil {
+		return "", false
+	}
+	return *g.Query, true
+}
+
+// HasQuery returns a boolean if a field has been set.
+func (g *GraphEvent) HasQuery() bool {
+	if g != nil && g.Query != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetQuery allocates a new g.Query and returns the pointer to it.
+func (g *GraphEvent) SetQuery(v string) {
+	g.Query = &v
 }
 
 // GetHeight returns the Height field if non-nil, zero value otherwise.
@@ -9530,6 +9840,68 @@ func (s *Series) SetStart(v float64) {
 	s.Start = &v
 }
 
+// GetPalette returns the Palette field if non-nil, zero value otherwise.
+func (s *Style) GetPalette() string {
+	if s == nil || s.Palette == nil {
+		return ""
+	}
+	return *s.Palette
+}
+
+// GetOkPalette returns a tuple with the Palette field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (s *Style) GetPaletteOk() (string, bool) {
+	if s == nil || s.Palette == nil {
+		return "", false
+	}
+	return *s.Palette, true
+}
+
+// HasPalette returns a boolean if a field has been set.
+func (s *Style) HasPalette() bool {
+	if s != nil && s.Palette != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetPalette allocates a new s.Palette and returns the pointer to it.
+func (s *Style) SetPalette(v string) {
+	s.Palette = &v
+}
+
+// GetPaletteFlip returns the PaletteFlip field if non-nil, zero value otherwise.
+func (s *Style) GetPaletteFlip() bool {
+	if s == nil || s.PaletteFlip == nil {
+		return false
+	}
+	return *s.PaletteFlip
+}
+
+// GetOkPaletteFlip returns a tuple with the PaletteFlip field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (s *Style) GetPaletteFlipOk() (bool, bool) {
+	if s == nil || s.PaletteFlip == nil {
+		return false, false
+	}
+	return *s.PaletteFlip, true
+}
+
+// HasPaletteFlip returns a boolean if a field has been set.
+func (s *Style) HasPaletteFlip() bool {
+	if s != nil && s.PaletteFlip != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetPaletteFlip allocates a new s.PaletteFlip and returns the pointer to it.
+func (s *Style) SetPaletteFlip(v bool) {
+	s.PaletteFlip = &v
+}
+
 // GetDefault returns the Default field if non-nil, zero value otherwise.
 func (t *TemplateVariable) GetDefault() string {
 	if t == nil || t.Default == nil {
@@ -11605,4 +11977,97 @@ func (w *Widget) HasToplistWidget() bool {
 // GetToplistWidget allocates a new w.ToplistWidget and returns the pointer to it.
 func (w *Widget) SetToplistWidget(v ToplistWidget) {
 	w.ToplistWidget = &v
+}
+
+// GetMax returns the Max field if non-nil, zero value otherwise.
+func (y *Yaxis) GetMax() float64 {
+	if y == nil || y.Max == nil {
+		return 0
+	}
+	return *y.Max
+}
+
+// GetOkMax returns a tuple with the Max field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (y *Yaxis) GetMaxOk() (float64, bool) {
+	if y == nil || y.Max == nil {
+		return 0, false
+	}
+	return *y.Max, true
+}
+
+// HasMax returns a boolean if a field has been set.
+func (y *Yaxis) HasMax() bool {
+	if y != nil && y.Max != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetMax allocates a new y.Max and returns the pointer to it.
+func (y *Yaxis) SetMax(v float64) {
+	y.Max = &v
+}
+
+// GetMin returns the Min field if non-nil, zero value otherwise.
+func (y *Yaxis) GetMin() float64 {
+	if y == nil || y.Min == nil {
+		return 0
+	}
+	return *y.Min
+}
+
+// GetOkMin returns a tuple with the Min field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (y *Yaxis) GetMinOk() (float64, bool) {
+	if y == nil || y.Min == nil {
+		return 0, false
+	}
+	return *y.Min, true
+}
+
+// HasMin returns a boolean if a field has been set.
+func (y *Yaxis) HasMin() bool {
+	if y != nil && y.Min != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetMin allocates a new y.Min and returns the pointer to it.
+func (y *Yaxis) SetMin(v float64) {
+	y.Min = &v
+}
+
+// GetScale returns the Scale field if non-nil, zero value otherwise.
+func (y *Yaxis) GetScale() string {
+	if y == nil || y.Scale == nil {
+		return ""
+	}
+	return *y.Scale
+}
+
+// GetOkScale returns a tuple with the Scale field if it's non-nil, zero value otherwise
+// and a boolean to check if the value has been set.
+func (y *Yaxis) GetScaleOk() (string, bool) {
+	if y == nil || y.Scale == nil {
+		return "", false
+	}
+	return *y.Scale, true
+}
+
+// HasScale returns a boolean if a field has been set.
+func (y *Yaxis) HasScale() bool {
+	if y != nil && y.Scale != nil {
+		return true
+	}
+
+	return false
+}
+
+// GetScale allocates a new y.Scale and returns the pointer to it.
+func (y *Yaxis) SetScale(v string) {
+	y.Scale = &v
 }

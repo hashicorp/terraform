@@ -2999,10 +2999,10 @@
 			"revisionTime": "2016-09-28T15:37:09Z"
 		},
 		{
-			"checksumSHA1": "K4Eu4OR7bws3tg7aKQ2qUg5Y/DA=",
+			"checksumSHA1": "OcJdNALtPXoFOieAZjznhm7ufuU=",
 			"path": "gopkg.in/zorkian/go-datadog-api.v2",
-			"revision": "349549b74faee2e8ff51563f693c22163bdcbcce",
-			"revisionTime": "2017-02-19T22:58:59Z"
+			"revision": "f005bb24262365e93726b94d89e6cd8a26a7455e",
+			"revisionTime": "2017-02-20T05:26:33Z"
 		}
 	],
 	"rootPath": "github.com/hashicorp/terraform"
