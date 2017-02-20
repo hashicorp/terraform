@@ -106,9 +106,7 @@ func TestWalker_newVertex(t *testing.T) {
 	var w *Walker
 	cb := func(v Vertex) error {
 		if v == 2 {
-			defer func() {
-				close(done2)
-			}()
+			defer close(done2)
 		}
 		return recordF(v)
 	}
@@ -141,42 +139,38 @@ func TestWalker_newVertex(t *testing.T) {
 }
 
 func TestWalker_removeVertex(t *testing.T) {
-	// Run it a bunch of times since it is timing dependent
-	for i := 0; i < 50; i++ {
-		var g AcyclicGraph
-		g.Add(1)
-		g.Add(2)
-		g.Connect(BasicEdge(1, 2))
+	var g AcyclicGraph
+	g.Add(1)
+	g.Add(2)
+	g.Connect(BasicEdge(1, 2))
 
-		// Record function
-		var order []interface{}
-		recordF := walkCbRecord(&order)
+	// Record function
+	var order []interface{}
+	recordF := walkCbRecord(&order)
 
-		// Build a callback that delays until we close a channel
-		var w *Walker
-		cb := func(v Vertex) error {
-			if v == 1 {
-				g.Remove(2)
-				w.Update(&g)
-			}
-
-			return recordF(v)
+	var w *Walker
+	cb := func(v Vertex) error {
+		if v == 1 {
+			g.Remove(2)
+			w.Update(&g)
 		}
 
-		// Add the initial vertices
-		w = &Walker{Callback: cb}
-		w.Update(&g)
+		return recordF(v)
+	}
 
-		// Wait
-		if err := w.Wait(); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+	// Add the initial vertices
+	w = &Walker{Callback: cb}
+	w.Update(&g)
 
-		// Check
-		expected := []interface{}{1}
-		if !reflect.DeepEqual(order, expected) {
-			t.Fatalf("bad: %#v", order)
-		}
+	// Wait
+	if err := w.Wait(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check
+	expected := []interface{}{1}
+	if !reflect.DeepEqual(order, expected) {
+		t.Fatalf("bad: %#v", order)
 	}
 }
 
