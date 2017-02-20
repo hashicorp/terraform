@@ -3,6 +3,7 @@ package google
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -42,6 +43,76 @@ func TestAccGoogleProject_create(t *testing.T) {
 				Config: testAccGoogleProject_create(pid, pname, org),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleProjectExists("google_project.acceptance", pid),
+				),
+			},
+		},
+	})
+}
+
+// Test that a Project resource can be created with an associated
+// billing account
+func TestAccGoogleProject_createBilling(t *testing.T) {
+	skipIfEnvNotSet(t,
+		[]string{
+			"GOOGLE_ORG",
+			"GOOGLE_BILLING_ACCOUNT",
+		}...,
+	)
+
+	billingId := os.Getenv("GOOGLE_BILLING_ACCOUNT")
+	pid := "terraform-" + acctest.RandString(10)
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			// This step creates a new project with a billing account
+			resource.TestStep{
+				Config: testAccGoogleProject_createBilling(pid, pname, org, billingId),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleProjectHasBillingAccount("google_project.acceptance", pid, billingId),
+				),
+			},
+		},
+	})
+}
+
+// Test that a Project resource can be created and updated
+// with billing account information
+func TestAccGoogleProject_updateBilling(t *testing.T) {
+	skipIfEnvNotSet(t,
+		[]string{
+			"GOOGLE_ORG",
+			"GOOGLE_BILLING_ACCOUNT",
+			"GOOGLE_BILLING_ACCOUNT_2",
+		}...,
+	)
+
+	billingId := os.Getenv("GOOGLE_BILLING_ACCOUNT")
+	billingId2 := os.Getenv("GOOGLE_BILLING_ACCOUNT_2")
+	pid := "terraform-" + acctest.RandString(10)
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			// This step creates a new project without a billing account
+			resource.TestStep{
+				Config: testAccGoogleProject_create(pid, pname, org),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleProjectExists("google_project.acceptance", pid),
+				),
+			},
+			// Update to include a billing account
+			resource.TestStep{
+				Config: testAccGoogleProject_createBilling(pid, pname, org, billingId),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleProjectHasBillingAccount("google_project.acceptance", pid, billingId),
+				),
+			},
+			// Update to a different  billing account
+			resource.TestStep{
+				Config: testAccGoogleProject_createBilling(pid, pname, org, billingId2),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleProjectHasBillingAccount("google_project.acceptance", pid, billingId2),
 				),
 			},
 		},
@@ -91,6 +162,32 @@ func testAccCheckGoogleProjectExists(r, pid string) resource.TestCheckFunc {
 			return fmt.Errorf("Expected project %q to match ID %q in state", pid, rs.Primary.ID)
 		}
 
+		return nil
+	}
+}
+
+func testAccCheckGoogleProjectHasBillingAccount(r, pid, billingId string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[r]
+		if !ok {
+			return fmt.Errorf("Not found: %s", r)
+		}
+
+		// State should match expected
+		if rs.Primary.Attributes["billing_account"] != billingId {
+			return fmt.Errorf("Billing ID in state (%s) does not match expected value (%s)", rs.Primary.Attributes["billing_account"], billingId)
+		}
+
+		// Actual value in API should match state and expected
+		// Read the billing account
+		config := testAccProvider.Meta().(*Config)
+		ba, err := config.clientBilling.Projects.GetBillingInfo(prefixedProject(pid)).Do()
+		if err != nil {
+			return fmt.Errorf("Error reading billing account for project %q: %v", prefixedProject(pid), err)
+		}
+		if billingId != strings.TrimPrefix(ba.BillingAccountName, "billingAccounts/") {
+			return fmt.Errorf("Billing ID returned by API (%s) did not match expected value (%s)", ba.BillingAccountName, billingId)
+		}
 		return nil
 	}
 }
@@ -166,4 +263,12 @@ resource "google_project" "acceptance" {
     name = "%s"
     org_id = "%s"
 }`, pid, name, org)
+}
+
+func skipIfEnvNotSet(t *testing.T, envs ...string) {
+	for _, k := range envs {
+		if os.Getenv(k) == "" {
+			t.Skipf("Environment variable %s is not set", k)
+		}
+	}
 }

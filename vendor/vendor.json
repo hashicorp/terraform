@@ -2790,6 +2790,12 @@
 			"revisionTime": "2016-11-10T11:58:56Z"
 		},
 		{
+			"checksumSHA1": "I9nlJJGeNBvWlH7FLtRscT6NJhw=",
+			"path": "google.golang.org/api/cloudbilling/v1",
+			"revision": "c8d75a8ec737f9b8b1ed2676c28feedbe21f543f",
+			"revisionTime": "2016-11-21T18:05:46Z"
+		},
+		{
 			"checksumSHA1": "SIsWfZXQERRErpy9TD1ETop72uU=",
 			"path": "google.golang.org/api/cloudresourcemanager/v1",
 			"revision": "3cc2e591b550923a2c5f0ab5a803feda924d5823",
