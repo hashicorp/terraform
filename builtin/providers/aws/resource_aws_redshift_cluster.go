@@ -245,6 +245,11 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Optional: true,
 			},
 
+			"owner_account": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -272,6 +277,10 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 			NodeType:                         aws.String(d.Get("node_type").(string)),
 			PubliclyAccessible:               aws.Bool(d.Get("publicly_accessible").(bool)),
 			AutomatedSnapshotRetentionPeriod: aws.Int64(int64(d.Get("automated_snapshot_retention_period").(int))),
+		}
+
+		if v, ok := d.GetOk("owner_account"); ok {
+			restoreOpts.OwnerAccount = aws.String(v.(string))
 		}
 
 		if v, ok := d.GetOk("snapshot_cluster_identifier"); ok {
