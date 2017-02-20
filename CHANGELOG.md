@@ -13,6 +13,7 @@ IMPROVEMENTS:
  * provider/datadog: add support for new host delay to the datadog_monitor resource [GH-11975]
  * provider/datadog: Upgrade to Datadog API v2 [GH-12098]
  * provider/google: Add support for maintenance window in `sql_database_instance` [GH-12042]
+ * providers/google: google_project supports billing account [GH-11653]
  * provider/fastly: Make Backends optional if used in VCL [GH-12025]
  * provider/fastly: Add support for custom `response_object` [GH-12032]
  * provider/openstack: Don't allow floating IP and port [GH-12099]
