@@ -13,23 +13,23 @@ import (
 )
 
 type Recurrence struct {
-	Period           int      `json:"period,omitempty"`
-	Type             string   `json:"type,omitempty"`
-	UntilDate        int      `json:"until_date,omitempty"`
-	UntilOccurrences int      `json:"until_occurrences,omitempty"`
+	Period           *int     `json:"period,omitempty"`
+	Type             *string  `json:"type,omitempty"`
+	UntilDate        *int     `json:"until_date,omitempty"`
+	UntilOccurrences *int     `json:"until_occurrences,omitempty"`
 	WeekDays         []string `json:"week_days,omitempty"`
 }
 
 type Downtime struct {
-	Active     bool        `json:"active,omitempty"`
-	Canceled   int         `json:"canceled,omitempty"`
-	Disabled   bool        `json:"disabled,omitempty"`
-	End        int         `json:"end,omitempty"`
-	Id         int         `json:"id,omitempty"`
-	Message    string      `json:"message,omitempty"`
+	Active     *bool       `json:"active,omitempty"`
+	Canceled   *int        `json:"canceled,omitempty"`
+	Disabled   *bool       `json:"disabled,omitempty"`
+	End        *int        `json:"end,omitempty"`
+	Id         *int        `json:"id,omitempty"`
+	Message    *string     `json:"message,omitempty"`
 	Recurrence *Recurrence `json:"recurrence,omitempty"`
 	Scope      []string    `json:"scope,omitempty"`
-	Start      int         `json:"start,omitempty"`
+	Start      *int        `json:"start,omitempty"`
 }
 
 // reqDowntimes retrieves a slice of all Downtimes.
@@ -51,7 +51,7 @@ func (client *Client) CreateDowntime(downtime *Downtime) (*Downtime, error) {
 // UpdateDowntime takes a downtime that was previously retrieved through some method
 // and sends it back to the server.
 func (client *Client) UpdateDowntime(downtime *Downtime) error {
-	return client.doJsonRequest("PUT", fmt.Sprintf("/v1/downtime/%d", downtime.Id),
+	return client.doJsonRequest("PUT", fmt.Sprintf("/v1/downtime/%d", *downtime.Id),
 		downtime, nil)
 }
 

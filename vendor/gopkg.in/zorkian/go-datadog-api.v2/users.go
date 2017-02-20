@@ -9,13 +9,13 @@
 package datadog
 
 type User struct {
-	Handle   string `json:"handle,omitempty"`
-	Email    string `json:"email,omitempty"`
-	Name     string `json:"name,omitempty"`
-	Role     string `json:"role,omitempty"`
-	IsAdmin  bool   `json:"is_admin,omitempty"`
-	Verified bool   `json:"verified,omitempty"`
-	Disabled bool   `json:"disabled,omitempty"`
+	Handle   *string `json:"handle,omitempty"`
+	Email    *string `json:"email,omitempty"`
+	Name     *string `json:"name,omitempty"`
+	Role     *string `json:"role,omitempty"`
+	IsAdmin  *bool   `json:"is_admin,omitempty"`
+	Verified *bool   `json:"verified,omitempty"`
+	Disabled *bool   `json:"disabled,omitempty"`
 }
 
 // reqInviteUsers contains email addresses to send invitations to.
@@ -30,10 +30,10 @@ func (client *Client) InviteUsers(emails []string) error {
 }
 
 // CreateUser creates an user account for an email address
-func (self *Client) CreateUser(handle, name string) (*User, error) {
+func (self *Client) CreateUser(handle, name *string) (*User, error) {
 	in := struct {
-		Handle string `json:"handle"`
-		Name   string `json:"name"`
+		Handle *string `json:"handle"`
+		Name   *string `json:"name"`
 	}{
 		Handle: handle,
 		Name:   name,
@@ -50,7 +50,7 @@ func (self *Client) CreateUser(handle, name string) (*User, error) {
 
 // internal type to retrieve users from the api
 type usersData struct {
-	Users []User `json:"users"`
+	Users []User `json:"users,omitempty"`
 }
 
 // GetUsers returns all user, or an error if not found
@@ -79,7 +79,7 @@ func (client *Client) GetUser(handle string) (user User, err error) {
 // UpdateUser updates a user with the content of `user`,
 // and returns an error if the update failed
 func (client *Client) UpdateUser(user User) error {
-	uri := "/v1/user/" + user.Handle
+	uri := "/v1/user/" + *user.Handle
 	return client.doJsonRequest("PUT", uri, user, nil)
 }
 

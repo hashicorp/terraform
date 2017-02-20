@@ -17,9 +17,9 @@ import (
 )
 
 type ThresholdCount struct {
-	Ok       json.Number `json:"ok,omitempty"`
-	Critical json.Number `json:"critical,omitempty"`
-	Warning  json.Number `json:"warning,omitempty"`
+	Ok       *json.Number `json:"ok,omitempty"`
+	Critical *json.Number `json:"critical,omitempty"`
+	Warning  *json.Number `json:"warning,omitempty"`
 }
 
 type NoDataTimeframe int
@@ -40,38 +40,38 @@ func (tf *NoDataTimeframe) UnmarshalJSON(data []byte) error {
 
 type Options struct {
 	NoDataTimeframe   NoDataTimeframe `json:"no_data_timeframe,omitempty"`
-	NotifyAudit       bool            `json:"notify_audit,omitempty"`
-	NotifyNoData      bool            `json:"notify_no_data,omitempty"`
+	NotifyAudit       *bool           `json:"notify_audit,omitempty"`
+	NotifyNoData      *bool           `json:"notify_no_data,omitempty"`
+	RenotifyInterval  *int            `json:"renotify_interval,omitempty"`
 	NewHostDelay      *int            `json:"new_host_delay,omitempty"`
-	RenotifyInterval  int             `json:"renotify_interval,omitempty"`
 	Silenced          map[string]int  `json:"silenced,omitempty"`
-	TimeoutH          int             `json:"timeout_h,omitempty"`
-	EscalationMessage string          `json:"escalation_message,omitempty"`
-	Thresholds        ThresholdCount  `json:"thresholds,omitempty"`
-	IncludeTags       bool            `json:"include_tags,omitempty"`
-	RequireFullWindow bool            `json:"require_full_window,omitempty"`
-	Locked            bool            `json:"locked,omitempty"`
+	TimeoutH          *int            `json:"timeout_h,omitempty"`
+	EscalationMessage *string         `json:"escalation_message,omitempty"`
+	Thresholds        *ThresholdCount `json:"thresholds,omitempty"`
+	IncludeTags       *bool           `json:"include_tags,omitempty"`
+	RequireFullWindow *bool           `json:"require_full_window,omitempty"`
+	Locked            *bool           `json:"locked,omitempty"`
 }
 
 // Monitor allows watching a metric or check that you care about,
 // notifying your team when some defined threshold is exceeded
 type Monitor struct {
-	Creator Creator  `json:"creator,omitempty"`
-	Id      int      `json:"id,omitempty"`
-	Type    string   `json:"type,omitempty"`
-	Query   string   `json:"query,omitempty"`
-	Name    string   `json:"name,omitempty"`
-	Message string   `json:"message,omitempty"`
+	Creator *Creator `json:"creator,omitempty"`
+	Id      *int     `json:"id,omitempty"`
+	Type    *string  `json:"type,omitempty"`
+	Query   *string  `json:"query,omitempty"`
+	Name    *string  `json:"name,omitempty"`
+	Message *string  `json:"message,omitempty"`
 	Tags    []string `json:"tags,omitempty"`
-	Options Options  `json:"options,omitempty"`
+	Options *Options `json:"options,omitempty"`
 }
 
 // Creator contains the creator of the monitor
 type Creator struct {
-	Email  string `json:"email,omitempty"`
-	Handle string `json:"handle,omitempty"`
-	Id     int    `json:"id,omitempty"`
-	Name   string `json:"name,omitempty"`
+	Email  *string `json:"email,omitempty"`
+	Handle *string `json:"handle,omitempty"`
+	Id     *int    `json:"id,omitempty"`
+	Name   *string `json:"name,omitempty"`
 }
 
 // reqMonitors receives a slice of all monitors
@@ -93,7 +93,7 @@ func (client *Client) CreateMonitor(monitor *Monitor) (*Monitor, error) {
 // UpdateMonitor takes a monitor that was previously retrieved through some method
 // and sends it back to the server
 func (client *Client) UpdateMonitor(monitor *Monitor) error {
-	return client.doJsonRequest("PUT", fmt.Sprintf("/v1/monitor/%d", monitor.Id),
+	return client.doJsonRequest("PUT", fmt.Sprintf("/v1/monitor/%d", *monitor.Id),
 		monitor, nil)
 }
 

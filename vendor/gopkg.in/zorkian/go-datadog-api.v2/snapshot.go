@@ -23,7 +23,7 @@ func (client *Client) Snapshot(query string, start, end time.Time, eventQuery st
 	v.Add("event_query", eventQuery)
 
 	out := struct {
-		SnapshotURL string `json:"snapshot_url"`
+		SnapshotURL string `json:"snapshot_url,omitempty"`
 	}{}
 	if err := client.doJsonRequest("GET", "/v1/graph/snapshot?"+v.Encode(), nil, &out); err != nil {
 		return "", err
