@@ -282,8 +282,9 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						},
 
 						"image_id": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:          schema.TypeString,
+							Optional:      true,
+							ConflictsWith: []string{"image_id"},
 						},
 
 						"key_pair": &schema.Schema{
@@ -333,6 +334,11 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						},
 					},
 				},
+			},
+
+			"image_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 
 			"elastic_ips": &schema.Schema{
@@ -715,8 +721,19 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 		// Set launch specification.
 		if g.Compute.LaunchSpecification != nil {
-			if err := d.Set("launch_specification", flattenAwsGroupLaunchSpecification(g.Compute.LaunchSpecification)); err != nil {
+			imageIDSetInLaunchSpec := true
+			if v, ok := d.GetOk("image_id"); ok && v != "" {
+				imageIDSetInLaunchSpec = false
+			}
+			if err := d.Set("launch_specification", flattenAwsGroupLaunchSpecification(g.Compute.LaunchSpecification, imageIDSetInLaunchSpec)); err != nil {
 				return fmt.Errorf("Error setting launch specification configuration: %#v", err)
+			}
+		}
+
+		// Set image ID.
+		if g.Compute.LaunchSpecification.ImageID != nil {
+			if d.Get("image_id") != nil && d.Get("image_id") != "" {
+				d.Set("image_id", g.Compute.LaunchSpecification.ImageID)
 			}
 		}
 
@@ -845,6 +862,19 @@ func resourceSpotinstAwsGroupUpdate(d *schema.ResourceData, meta interface{}) er
 				group.Compute = &spotinst.AwsGroupCompute{}
 			}
 			group.Compute.LaunchSpecification = lc
+			update = true
+		}
+	}
+
+	if d.HasChange("image_id") {
+		if d.Get("image_id") != nil && d.Get("image_id") != "" {
+			if group.Compute == nil {
+				group.Compute = &spotinst.AwsGroupCompute{}
+			}
+			if group.Compute.LaunchSpecification == nil {
+				group.Compute.LaunchSpecification = &spotinst.AwsGroupComputeLaunchSpecification{}
+			}
+			group.Compute.LaunchSpecification.ImageID = spotinst.String(d.Get("image_id").(string))
 			update = true
 		}
 	}
@@ -1200,11 +1230,13 @@ func flattenAwsGroupStrategy(strategy *spotinst.AwsGroupStrategy) []interface{} 
 	return []interface{}{result}
 }
 
-func flattenAwsGroupLaunchSpecification(lspec *spotinst.AwsGroupComputeLaunchSpecification) []interface{} {
+func flattenAwsGroupLaunchSpecification(lspec *spotinst.AwsGroupComputeLaunchSpecification, includeImageID bool) []interface{} {
 	result := make(map[string]interface{})
 	result["health_check_grace_period"] = spotinst.IntValue(lspec.HealthCheckGracePeriod)
 	result["health_check_type"] = spotinst.StringValue(lspec.HealthCheckType)
-	result["image_id"] = spotinst.StringValue(lspec.ImageID)
+	if includeImageID {
+		result["image_id"] = spotinst.StringValue(lspec.ImageID)
+	}
 	result["key_pair"] = spotinst.StringValue(lspec.KeyPair)
 	result["user_data"] = spotinst.StringValue(lspec.UserData)
 	result["monitoring"] = spotinst.BoolValue(lspec.Monitoring)
@@ -1488,6 +1520,10 @@ func buildAwsGroupOpts(d *schema.ResourceData, meta interface{}) (*spotinst.AwsG
 		} else {
 			group.Compute.LaunchSpecification = lc
 		}
+	}
+
+	if v, ok := d.GetOk("image_id"); ok {
+		group.Compute.LaunchSpecification.ImageID = spotinst.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("load_balancer"); ok {
