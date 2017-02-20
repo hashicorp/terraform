@@ -46,9 +46,11 @@ func resourceArmDocumentDb() *schema.Resource {
 			},
 
 			"offer_type": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateAzureRmDocumentDbOfferType,
+				Type:     schema.TypeString,
+				Required: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(documentdb.Standard),
+				}, true),
 			},
 
 			"consistency_policy": {
@@ -335,19 +337,6 @@ func validateAzureRmDocumentDbMaxIntervalInSeconds(v interface{}, k string) (ws 
 		errors = append(errors, fmt.Errorf("DocumentDB Max Interval In Seconds can only be between 1 and 100 seconds"))
 	}
 
-	return
-}
-
-func validateAzureRmDocumentDbOfferType(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-	allowedValues := map[string]bool{
-		// TODO: Basic?!
-		"standard": true,
-	}
-
-	if !allowedValues[value] {
-		errors = append(errors, fmt.Errorf("DocumentDB Offer Type can only be 'Standard''"))
-	}
 	return
 }
 
