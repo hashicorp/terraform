@@ -8,7 +8,7 @@ import (
 )
 
 // Upload uploads image file
-func Upload(client *gophercloud.ServiceClient, id string, data io.ReadSeeker) (r UploadResult) {
+func Upload(client *gophercloud.ServiceClient, id string, data io.Reader) (r UploadResult) {
 	_, r.Err = client.Put(uploadURL(client, id), data, nil, &gophercloud.RequestOpts{
 		MoreHeaders: map[string]string{"Content-Type": "application/octet-stream"},
 		OkCodes:     []int{204},

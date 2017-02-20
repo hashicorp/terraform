@@ -156,6 +156,11 @@ func (r ImagePage) NextPageURL() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	if s.Next == "" {
+		return "", nil
+	}
+
 	return nextPageURL(r.URL.String(), s.Next), nil
 }
 
