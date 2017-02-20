@@ -26,6 +26,7 @@ Bug FIXES:
  * provider/aws: add bucket name to delete error notification [GH-11952]
  * provider/aws: Use proper Set for source.Auth in resource_aws_codebuild_project [GH-11741]
  * provider/aws: aws_ecs_service should output service name along with err [GH-12072]
+ * provider/aws: Add VRRP to allowed protocols in network ACL rules [GH-12107]
  * provider/cloudflare: add validation for proxied record types [GH-11993]
  * provider/google: make local_traffic_selector computed [GH-11631]
 
