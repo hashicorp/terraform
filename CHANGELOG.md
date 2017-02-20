@@ -13,6 +13,7 @@ IMPROVEMENTS:
  * provider/google: Add support for maintenance window in `sql_database_instance` [GH-12042]
  * provider/fastly: Make Backends optional if used in VCL [GH-12025]
  * provider/fastly: Add support for custom `response_object` [GH-12032]
+ * provider/openstack: Don't allow floating IP and port [GH-12099]
  * provider/random_id: Add prefix attribute [GH-12016]
  * provider/statuscake: Add support for Port in statuscake_test [GH-11966]
 
