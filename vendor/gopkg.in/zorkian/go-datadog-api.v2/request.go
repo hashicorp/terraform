@@ -11,24 +11,15 @@ package datadog
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cenkalti/backoff"
-)
-
-const (
-	RateLimitHeader     = "X-RateLimit-Limit"
-	RatePeriodHeader    = "X-RateLimit-Period"
-	RateRemainingHeader = "X-RateLimit-Remaining"
-	RateResetHeader     = "X-RateLimit-Reset"
 )
 
 // uriForAPI is to be called with something like "/v1/events" and it will give
@@ -69,9 +60,9 @@ func (client *Client) doJsonRequest(method, api string,
 		req.Header.Add("Content-Type", "application/json")
 	}
 
-	// Perform the request and retry it if it's not a POST request
+	// Perform the request and retry it if it's not a POST or PUT request
 	var resp *http.Response
-	if method == "POST" {
+	if method == "POST" || method == "PUT" {
 		resp, err = client.HttpClient.Do(req)
 	} else {
 		resp, err = client.doRequestWithRetries(req, client.RetryTimeout)
@@ -80,12 +71,6 @@ func (client *Client) doJsonRequest(method, api string,
 		return err
 	}
 	defer resp.Body.Close()
-
-	if err := client.getRateLimit(resp); err != nil {
-		if err.(*RateLimit).Remaining == 0 {
-			return err
-		}
-	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		body, err := ioutil.ReadAll(resp.Body)
@@ -118,54 +103,35 @@ func (client *Client) doJsonRequest(method, api string,
 	return nil
 }
 
-func (client *Client) getRateLimit(response *http.Response) error {
-
-	ratelimit := response.Header.Get(RateLimitHeader)
-	if ratelimit == "" {
-		return nil
-	}
-
-	rateperiod := response.Header.Get(RatePeriodHeader)
-	rateremaining := response.Header.Get(RateRemainingHeader)
-	ratereset := response.Header.Get(RateResetHeader)
-
-	limit, _ := strconv.Atoi(ratelimit)
-	period, _ := strconv.Atoi(rateperiod)
-	remaining, _ := strconv.Atoi(rateremaining)
-	reset, _ := strconv.Atoi(ratereset)
-
-	ratelimiterror := NewRateLimit(limit, period, remaining, reset)
-
-	return error(ratelimiterror)
-}
-
 // doRequestWithRetries performs an HTTP request repeatedly for maxTime or until
-// no error and no HTTP response code higher than 299 is returned.
+// no error and no acceptable HTTP response code was returned.
 func (client *Client) doRequestWithRetries(req *http.Request, maxTime time.Duration) (*http.Response, error) {
 	var (
 		err  error
 		resp *http.Response
 		bo   = backoff.NewExponentialBackOff()
 	)
+
 	bo.MaxElapsedTime = maxTime
 
-	err = backoff.Retry(func() error {
+	operation := func() error {
 		resp, err = client.HttpClient.Do(req)
 		if err != nil {
 			return err
 		}
 
-		if err := client.getRateLimit(resp); err != nil {
-			if err.(*RateLimit).Remaining == 0 {
-				return err
-			}
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			// 2xx all done
+			return nil
+		} else if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+			// 4xx are not retryable
+			return nil
 		}
 
-		if resp.StatusCode < 200 || resp.StatusCode > 299 {
-			return errors.New("API error: " + resp.Status)
-		}
-		return nil
-	}, bo)
+		return fmt.Errorf("Received HTTP status code %d", resp.StatusCode)
+	}
+
+	err = backoff.Retry(operation, bo)
 
 	return resp, err
 }

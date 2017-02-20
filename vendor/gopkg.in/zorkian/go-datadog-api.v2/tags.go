@@ -13,7 +13,7 @@ type TagMap map[string][]string
 
 // reqGetTags is the container for receiving tags.
 type reqGetTags struct {
-	Tags TagMap `json:"tags,omitempty"`
+	Tags *TagMap `json:"tags,omitempty"`
 }
 
 // regGetHostTags is for receiving a slice of tags.
@@ -31,7 +31,7 @@ func (client *Client) GetTags(source string) (TagMap, error) {
 	if err := client.doJsonRequest("GET", uri, nil, &out); err != nil {
 		return nil, err
 	}
-	return out.Tags, nil
+	return *out.Tags, nil
 }
 
 // GetHostTags returns a slice of tags for a given host and source.
@@ -58,11 +58,11 @@ func (client *Client) GetHostTagsBySource(host, source string) (TagMap, error) {
 	if err := client.doJsonRequest("GET", uri, nil, &out); err != nil {
 		return nil, err
 	}
-	return out.Tags, nil
+	return *out.Tags, nil
 }
 
 // AddTagsToHost does exactly what it says on the tin. Given a list of tags,
-// add them to the host. The source is optionally specificed, and defaults to
+// add them to the host. The source is optionally specified, and defaults to
 // "users" as per the API documentation.
 func (client *Client) AddTagsToHost(host, source string, tags []string) error {
 	uri := "/v1/tags/hosts/" + host
