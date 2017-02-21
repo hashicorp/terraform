@@ -187,6 +187,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_route_table":              dataSourceAwsRouteTable(),
 			"aws_route53_zone":             dataSourceAwsRoute53Zone(),
 			"aws_s3_bucket_object":         dataSourceAwsS3BucketObject(),
+			"aws_sns_topic":                dataSourceAwsSnsTopic(),
 			"aws_subnet":                   dataSourceAwsSubnet(),
 			"aws_security_group":           dataSourceAwsSecurityGroup(),
 			"aws_vpc":                      dataSourceAwsVpc(),
