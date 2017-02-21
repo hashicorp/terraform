@@ -137,6 +137,7 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Type:      schema.TypeString,
 				Optional:  true,
 				Sensitive: true,
+				StateFunc: hashSum,
 			},
 
 			"snapshot_identifier": {
