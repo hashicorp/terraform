@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+const DefaultStateName = "default"
+
 // Backend is the minimal interface that must be implemented to enable Terraform.
 type Backend interface {
 	// Ask for input and configure the backend. Similar to
@@ -25,6 +27,13 @@ type Backend interface {
 	// to load the state. If the state.State is a state.Locker, it's up to the
 	// caller to call Lock and Unlock as needed.
 	State() (state.State, error)
+
+	// States returns a list of configured named states and the current state.
+	States() ([]string, string, error)
+
+	// ChangeState changes to the named state. If this doesn't exist it'll be
+	// created.
+	ChangeState(name string) error
 }
 
 // Enhanced implements additional behavior on top of a normal backend.

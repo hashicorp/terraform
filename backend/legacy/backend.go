@@ -3,6 +3,7 @@ package legacy
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
@@ -59,4 +60,12 @@ func (b *Backend) State() (state.State, error) {
 	}
 
 	return &remote.State{Client: b.client}, nil
+}
+
+func (b *Backend) States() ([]string, string, error) {
+	return []string{backend.DefaultStateName}, backend.DefaultStateName, nil
+}
+
+func (b *Backend) ChangeState(name string) error {
+	return nil
 }
