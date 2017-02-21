@@ -6,6 +6,7 @@ package remotestate
 import (
 	"context"
 
+	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
@@ -44,6 +45,14 @@ func (b *Backend) Configure(rc *terraform.ResourceConfig) error {
 
 	// Run the normal configuration
 	return b.Backend.Configure(rc)
+}
+
+func (b *Backend) States() ([]string, string, error) {
+	return []string{backend.DefaultStateName}, backend.DefaultStateName, nil
+}
+
+func (b *Backend) ChangeState(name string) error {
+	return nil
 }
 
 func (b *Backend) State() (state.State, error) {

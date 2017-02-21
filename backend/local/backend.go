@@ -96,6 +96,14 @@ func (b *Local) Configure(c *terraform.ResourceConfig) error {
 	return f(c)
 }
 
+func (b *Local) States() ([]string, string, error) {
+	return []string{backend.DefaultStateName}, backend.DefaultStateName, nil
+}
+
+func (b *Local) ChangeState(name string) error {
+	return nil
+}
+
 func (b *Local) State() (state.State, error) {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
