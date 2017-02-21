@@ -24,14 +24,14 @@ Basic usage
 
 ```
 resource "aws_security_group_rule" "allow_all" {
-    type = "ingress"
-    from_port = 0
-    to_port = 65535
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    prefix_list_ids = ["pl-12c4e678"]
+  type            = "ingress"
+  from_port       = 0
+  to_port         = 65535
+  protocol        = "tcp"
+  cidr_blocks     = ["0.0.0.0/0"]
+  prefix_list_ids = ["pl-12c4e678"]
 
-    security_group_id = "sg-123456"
+  security_group_id = "sg-123456"
 }
 ```
 
@@ -45,13 +45,13 @@ or `egress` (outbound).
 * `prefix_list_ids` - (Optional) List of prefix list IDs (for allowing access to VPC endpoints).
 Only valid with `egress`.
 * `from_port` - (Required) The start port (or ICMP type number if protocol is "icmp").
-* `protocol` - (Required) The protocol.
+* `protocol` - (Required) The protocol. If not icmp, tcp, udp, or all use the [protocol number](https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml)
 * `security_group_id` - (Required) The security group to apply this rule to.
 * `source_security_group_id` - (Optional) The security group id to allow access to/from,
      depending on the `type`. Cannot be specified with `cidr_blocks`.
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this ingress rule.
-* `to_port` - (Required) The end range port (or ICMP code if protocol is "icmp").
+* `to_port` - (Required) The end port (or ICMP code if protocol is "icmp").
 
 ## Usage with prefix list IDs
 
@@ -61,16 +61,17 @@ Prefix list IDs are exported on VPC Endpoints, so you can use this format:
 
 ```
 resource "aws_security_group_rule" "allow_all" {
-    type = "egress"
-    to_port = 0
-    protocol = "-1"
-    prefix_list_ids = ["${aws_vpc_endpoint.my_endpoint.prefix_list_id}"]
-    from_port = 0
-    security_group_id = "sg-123456"
+  type              = "egress"
+  to_port           = 0
+  protocol          = "-1"
+  prefix_list_ids   = ["${aws_vpc_endpoint.my_endpoint.prefix_list_id}"]
+  from_port         = 0
+  security_group_id = "sg-123456"
 }
-...
+
+# ...
 resource "aws_vpc_endpoint" "my_endpoint" {
-  ...
+  # ...
 }
 ```
 
@@ -80,6 +81,6 @@ The following attributes are exported:
 
 * `id` - The ID of the security group rule
 * `type` - The type of rule, `ingress` or `egress`
-* `from_port` - The source port
-* `to_port` - The destination port
+* `from_port` - The start port (or ICMP type number if protocol is "icmp")
+* `to_port` - The end port (or ICMP code if protocol is "icmp")
 * `protocol` – The protocol used

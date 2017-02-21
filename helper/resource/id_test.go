@@ -6,8 +6,7 @@ import (
 	"testing"
 )
 
-var allDigits = regexp.MustCompile(`^\d+$`)
-var allBase32 = regexp.MustCompile(`^[a-z234567]+$`)
+var allHex = regexp.MustCompile(`^[a-f0-9]+$`)
 
 func TestUniqueId(t *testing.T) {
 	iterations := 10000
@@ -30,15 +29,8 @@ func TestUniqueId(t *testing.T) {
 			t.Fatalf("Post-prefix part has wrong length! %s", rest)
 		}
 
-		timestamp := rest[:23]
-		random := rest[23:]
-
-		if !allDigits.MatchString(timestamp) {
-			t.Fatalf("Timestamp not all digits! %s", timestamp)
-		}
-
-		if !allBase32.MatchString(random) {
-			t.Fatalf("Random part not all base32! %s", random)
+		if !allHex.MatchString(rest) {
+			t.Fatalf("Random part not all hex! %s", rest)
 		}
 
 		if lastId != "" && lastId >= id {

@@ -6,6 +6,10 @@ import (
 	"github.com/aws/aws-sdk-go/private/waiter"
 )
 
+// WaitUntilIdentityExists uses the Amazon SES API operation
+// GetIdentityVerificationAttributes to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *SES) WaitUntilIdentityExists(input *GetIdentityVerificationAttributesInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "GetIdentityVerificationAttributes",

@@ -6,6 +6,10 @@ import (
 	"github.com/aws/aws-sdk-go/private/waiter"
 )
 
+// WaitUntilGroupExists uses the Auto Scaling API operation
+// DescribeAutoScalingGroups to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *AutoScaling) WaitUntilGroupExists(input *DescribeAutoScalingGroupsInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeAutoScalingGroups",
@@ -35,6 +39,10 @@ func (c *AutoScaling) WaitUntilGroupExists(input *DescribeAutoScalingGroupsInput
 	return w.Wait()
 }
 
+// WaitUntilGroupInService uses the Auto Scaling API operation
+// DescribeAutoScalingGroups to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *AutoScaling) WaitUntilGroupInService(input *DescribeAutoScalingGroupsInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeAutoScalingGroups",
@@ -64,6 +72,10 @@ func (c *AutoScaling) WaitUntilGroupInService(input *DescribeAutoScalingGroupsIn
 	return w.Wait()
 }
 
+// WaitUntilGroupNotExists uses the Auto Scaling API operation
+// DescribeAutoScalingGroups to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *AutoScaling) WaitUntilGroupNotExists(input *DescribeAutoScalingGroupsInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeAutoScalingGroups",

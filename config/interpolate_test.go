@@ -240,6 +240,22 @@ func TestDetectVariables(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			`foo ${module.foo.output["key"]}`,
+			[]InterpolatedVariable{
+				&ModuleVariable{
+					Name:  "foo",
+					Field: "output",
+					key:   "module.foo.output",
+				},
+				&ModuleVariable{
+					Name:  "foo",
+					Field: "output",
+					key:   "module.foo.output",
+				},
+			},
+		},
 	}
 
 	for _, tc := range cases {

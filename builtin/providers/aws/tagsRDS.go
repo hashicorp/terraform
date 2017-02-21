@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/rds"
@@ -76,10 +77,13 @@ func diffTagsRDS(oldTags, newTags []*rds.Tag) ([]*rds.Tag, []*rds.Tag) {
 func tagsFromMapRDS(m map[string]interface{}) []*rds.Tag {
 	result := make([]*rds.Tag, 0, len(m))
 	for k, v := range m {
-		result = append(result, &rds.Tag{
+		t := &rds.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnoredRDS(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -89,7 +93,9 @@ func tagsFromMapRDS(m map[string]interface{}) []*rds.Tag {
 func tagsToMapRDS(ts []*rds.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnoredRDS(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
@@ -110,4 +116,18 @@ func saveTagsRDS(conn *rds.RDS, d *schema.ResourceData, arn string) error {
 	}
 
 	return d.Set("tags", tagsToMapRDS(dt))
+}
+
+// compare a tag against a list of strings and checks if it should
+// be ignored or not
+func tagIgnoredRDS(t *rds.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
 }

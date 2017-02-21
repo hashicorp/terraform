@@ -19,15 +19,16 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the DNSMadeEasy provider
 provider "dme" {
-    akey = "${var.dme_akey}"
-    skey = "${var.dme_skey}"
-    usesandbox = true
+  akey       = "${var.dme_akey}"
+  skey       = "${var.dme_skey}"
+  usesandbox = true
 }
 
 # Create an A record
 resource "dme_record" "www" {
-    domainid = "123456"
-    ...
+  domainid = "123456"
+
+  # ...
 }
 ```
 

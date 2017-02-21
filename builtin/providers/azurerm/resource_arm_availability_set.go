@@ -33,17 +33,13 @@ func resourceArmAvailabilitySet() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"platform_update_domain_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  5,
+				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(int)
 					if value > 20 {
@@ -58,6 +54,7 @@ func resourceArmAvailabilitySet() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  3,
+				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(int)
 					if value > 3 {
@@ -89,7 +86,7 @@ func resourceArmAvailabilitySetCreate(d *schema.ResourceData, meta interface{}) 
 	availSet := compute.AvailabilitySet{
 		Name:     &name,
 		Location: &location,
-		Properties: &compute.AvailabilitySetProperties{
+		AvailabilitySetProperties: &compute.AvailabilitySetProperties{
 			PlatformFaultDomainCount:  azure.Int32(int32(faultDomainCount)),
 			PlatformUpdateDomainCount: azure.Int32(int32(updateDomainCount)),
 		},
@@ -118,14 +115,15 @@ func resourceArmAvailabilitySetRead(d *schema.ResourceData, meta interface{}) er
 
 	resp, err := availSetClient.Get(resGroup, name)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Availability Set %s: %s", name, err)
 	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 
-	availSet := *resp.Properties
+	availSet := *resp.AvailabilitySetProperties
+	d.Set("resource_group_name", resGroup)
 	d.Set("platform_update_domain_count", availSet.PlatformUpdateDomainCount)
 	d.Set("platform_fault_domain_count", availSet.PlatformFaultDomainCount)
 	d.Set("name", resp.Name)

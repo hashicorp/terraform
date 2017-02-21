@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
+	"github.com/hashicorp/terraform/helper/encryption"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -26,16 +27,28 @@ func resourceAwsIamAccessKey() *schema.Resource {
 				ForceNew: true,
 			},
 			"status": &schema.Schema{
-				Type: schema.TypeString,
-				// this could be settable, but goamz does not support the
-				// UpdateAccessKey API yet.
-				Computed: true,
-			},
-			"secret": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"secret": &schema.Schema{
+				Type:       schema.TypeString,
+				Computed:   true,
+				Deprecated: "Please use a PGP key to encrypt",
+			},
 			"ses_smtp_password": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"pgp_key": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+			},
+			"key_fingerprint": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"encrypted_secret": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -59,8 +72,29 @@ func resourceAwsIamAccessKeyCreate(d *schema.ResourceData, meta interface{}) err
 		)
 	}
 
-	if err := d.Set("secret", createResp.AccessKey.SecretAccessKey); err != nil {
-		return err
+	d.SetId(*createResp.AccessKey.AccessKeyId)
+
+	if createResp.AccessKey == nil || createResp.AccessKey.SecretAccessKey == nil {
+		return fmt.Errorf("[ERR] CreateAccessKey response did not contain a Secret Access Key as expected")
+	}
+
+	if v, ok := d.GetOk("pgp_key"); ok {
+		pgpKey := v.(string)
+		encryptionKey, err := encryption.RetrieveGPGKey(pgpKey)
+		if err != nil {
+			return err
+		}
+		fingerprint, encrypted, err := encryption.EncryptValue(encryptionKey, *createResp.AccessKey.SecretAccessKey, "IAM Access Key Secret")
+		if err != nil {
+			return err
+		}
+
+		d.Set("key_fingerprint", fingerprint)
+		d.Set("encrypted_secret", encrypted)
+	} else {
+		if err := d.Set("secret", createResp.AccessKey.SecretAccessKey); err != nil {
+			return err
+		}
 	}
 
 	d.Set("ses_smtp_password",

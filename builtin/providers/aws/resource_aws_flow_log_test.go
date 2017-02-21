@@ -6,12 +6,15 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSFlowLog_basic(t *testing.T) {
 	var flowLog ec2.FlowLog
+
+	fln := fmt.Sprintf("tf-test-fl-%d", acctest.RandInt())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -20,7 +23,7 @@ func TestAccAWSFlowLog_basic(t *testing.T) {
 		CheckDestroy:  testAccCheckFlowLogDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccFlowLogConfig_basic,
+				Config: testAccFlowLogConfig_basic(fln),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFlowLogExists("aws_flow_log.test_flow_log", &flowLog),
 					testAccCheckAWSFlowLogAttributes(&flowLog),
@@ -33,6 +36,8 @@ func TestAccAWSFlowLog_basic(t *testing.T) {
 func TestAccAWSFlowLog_subnet(t *testing.T) {
 	var flowLog ec2.FlowLog
 
+	fln := fmt.Sprintf("tf-test-fl-%d", acctest.RandInt())
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_flow_log.test_flow_log_subnet",
@@ -40,7 +45,7 @@ func TestAccAWSFlowLog_subnet(t *testing.T) {
 		CheckDestroy:  testAccCheckFlowLogDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccFlowLogConfig_subnet,
+				Config: testAccFlowLogConfig_subnet(fln),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFlowLogExists("aws_flow_log.test_flow_log_subnet", &flowLog),
 					testAccCheckAWSFlowLogAttributes(&flowLog),
@@ -103,7 +108,8 @@ func testAccCheckFlowLogDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccFlowLogConfig_basic = `
+func testAccFlowLogConfig_basic(fln string) string {
+	return fmt.Sprintf(`
 resource "aws_vpc" "default" {
         cidr_block = "10.0.0.0/16"
         tags {
@@ -143,7 +149,7 @@ EOF
 }
 
 resource "aws_cloudwatch_log_group" "foobar" {
-    name = "foo-bar"
+    name = "%s"
 }
 resource "aws_flow_log" "test_flow_log" {
         # log_group_name needs to exist before hand
@@ -162,9 +168,11 @@ resource "aws_flow_log" "test_flow_log_subnet" {
         subnet_id = "${aws_subnet.test_subnet.id}"
         traffic_type = "ALL"
 }
-`
+`, fln)
+}
 
-var testAccFlowLogConfig_subnet = `
+func testAccFlowLogConfig_subnet(fln string) string {
+	return fmt.Sprintf(`
 resource "aws_vpc" "default" {
         cidr_block = "10.0.0.0/16"
         tags {
@@ -203,7 +211,7 @@ resource "aws_iam_role" "test_role" {
 EOF
 }
 resource "aws_cloudwatch_log_group" "foobar" {
-    name = "foo-bar"
+    name = "%s"
 }
 
 resource "aws_flow_log" "test_flow_log_subnet" {
@@ -214,4 +222,5 @@ resource "aws_flow_log" "test_flow_log_subnet" {
         subnet_id = "${aws_subnet.test_subnet.id}"
         traffic_type = "ALL"
 }
-`
+`, fln)
+}

@@ -1,6 +1,7 @@
 package azurerm
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,8 +12,14 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/signalwrapper"
+	"github.com/hashicorp/terraform/helper/validation"
 )
+
+// The KeySource of storage.Encryption appears to require this value
+// for Encryption services to work
+var storageAccountEncryptionSource = "Microsoft.Storage"
+
+const blobStorageAccountDefaultAccessTier = "Hot"
 
 func resourceArmStorageAccount() *schema.Resource {
 	return &schema.Resource{
@@ -33,22 +40,45 @@ func resourceArmStorageAccount() *schema.Resource {
 			},
 
 			"resource_group_name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: resourceAzurermResourceGroupNameDiffSuppress,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
+			"location": locationSchema(),
+
+			"account_kind": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(storage.Storage),
+					string(storage.BlobStorage),
+				}, true),
+				Default: string(storage.Storage),
 			},
 
 			"account_type": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateArmStorageAccountType,
+			},
+
+			// Only valid for BlobStorage accounts, defaults to "Hot" in create function
+			"access_tier": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(storage.Cool),
+					string(storage.Hot),
+				}, true),
+			},
+
+			"enable_blob_encryption": {
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 
 			"primary_location": {
@@ -118,9 +148,12 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 
 	resourceGroupName := d.Get("resource_group_name").(string)
 	storageAccountName := d.Get("name").(string)
+	accountKind := d.Get("account_kind").(string)
 	accountType := d.Get("account_type").(string)
+
 	location := d.Get("location").(string)
 	tags := d.Get("tags").(map[string]interface{})
+	enableBlobEncryption := d.Get("enable_blob_encryption").(bool)
 
 	sku := storage.Sku{
 		Name: storage.SkuName(accountType),
@@ -130,26 +163,35 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 		Location: &location,
 		Sku:      &sku,
 		Tags:     expandTags(tags),
+		Kind:     storage.Kind(accountKind),
+		AccountPropertiesCreateParameters: &storage.AccountPropertiesCreateParameters{
+			Encryption: &storage.Encryption{
+				Services: &storage.EncryptionServices{
+					Blob: &storage.EncryptionService{
+						Enabled: &enableBlobEncryption,
+					},
+				},
+				KeySource: &storageAccountEncryptionSource,
+			},
+		},
 	}
 
-	// Create the storage account. We wrap this so that it is cancellable
-	// with a Ctrl-C since this can take a LONG time.
-	wrap := signalwrapper.Run(func(cancelCh <-chan struct{}) error {
-		_, err := storageClient.Create(resourceGroupName, storageAccountName, opts, cancelCh)
-		return err
-	})
+	// AccessTier is only valid for BlobStorage accounts
+	if accountKind == string(storage.BlobStorage) {
+		accessTier, ok := d.GetOk("access_tier")
+		if !ok {
+			// default to "Hot"
+			accessTier = blobStorageAccountDefaultAccessTier
+		}
 
-	// Check the result of the wrapped function.
-	var createErr error
-	select {
-	case <-time.After(1 * time.Hour):
-		// An hour is way above the expected P99 for this API call so
-		// we premature cancel and error here.
-		createErr = wrap.Cancel()
-	case createErr = <-wrap.ErrCh:
-		// Successfully ran (but perhaps not successfully completed)
-		// the function.
+		opts.AccountPropertiesCreateParameters.AccessTier = storage.AccessTier(accessTier.(string))
 	}
+
+	// Create
+	cancelCtx, cancelFunc := context.WithTimeout(client.StopContext, 1*time.Hour)
+	_, createErr := storageClient.Create(
+		resourceGroupName, storageAccountName, opts, cancelCtx.Done())
+	cancelFunc()
 
 	// The only way to get the ID back apparently is to read the resource again
 	read, err := storageClient.GetProperties(resourceGroupName, storageAccountName)
@@ -226,6 +268,22 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 		d.SetPartial("account_type")
 	}
 
+	if d.HasChange("access_tier") {
+		accessTier := d.Get("access_tier").(string)
+
+		opts := storage.AccountUpdateParameters{
+			AccountPropertiesUpdateParameters: &storage.AccountPropertiesUpdateParameters{
+				AccessTier: storage.AccessTier(accessTier),
+			},
+		}
+		_, err := client.Update(resourceGroupName, storageAccountName, opts)
+		if err != nil {
+			return fmt.Errorf("Error updating Azure Storage Account access_tier %q: %s", storageAccountName, err)
+		}
+
+		d.SetPartial("access_tier")
+	}
+
 	if d.HasChange("tags") {
 		tags := d.Get("tags").(map[string]interface{})
 
@@ -238,6 +296,29 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 		}
 
 		d.SetPartial("tags")
+	}
+
+	if d.HasChange("enable_blob_encryption") {
+		enableBlobEncryption := d.Get("enable_blob_encryption").(bool)
+
+		opts := storage.AccountUpdateParameters{
+			AccountPropertiesUpdateParameters: &storage.AccountPropertiesUpdateParameters{
+				Encryption: &storage.Encryption{
+					Services: &storage.EncryptionServices{
+						Blob: &storage.EncryptionService{
+							Enabled: &enableBlobEncryption,
+						},
+					},
+					KeySource: &storageAccountEncryptionSource,
+				},
+			},
+		}
+		_, err := client.Update(resourceGroupName, storageAccountName, opts)
+		if err != nil {
+			return fmt.Errorf("Error updating Azure Storage Account enable_blob_encryption %q: %s", storageAccountName, err)
+		}
+
+		d.SetPartial("enable_blob_encryption")
 	}
 
 	d.Partial(false)
@@ -256,11 +337,11 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 
 	resp, err := client.GetProperties(resGroup, name)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error reading the state of AzureRM Storage Account %q: %s", name, err)
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
 	}
 
 	keys, err := client.ListKeys(resGroup, name)
@@ -269,35 +350,47 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	accessKeys := *keys.Keys
+	d.Set("resource_group_name", resGroup)
 	d.Set("primary_access_key", accessKeys[0].Value)
 	d.Set("secondary_access_key", accessKeys[1].Value)
 	d.Set("location", resp.Location)
+	d.Set("account_kind", resp.Kind)
 	d.Set("account_type", resp.Sku.Name)
-	d.Set("primary_location", resp.Properties.PrimaryLocation)
-	d.Set("secondary_location", resp.Properties.SecondaryLocation)
+	d.Set("primary_location", resp.AccountProperties.PrimaryLocation)
+	d.Set("secondary_location", resp.AccountProperties.SecondaryLocation)
 
-	if resp.Properties.PrimaryEndpoints != nil {
-		d.Set("primary_blob_endpoint", resp.Properties.PrimaryEndpoints.Blob)
-		d.Set("primary_queue_endpoint", resp.Properties.PrimaryEndpoints.Queue)
-		d.Set("primary_table_endpoint", resp.Properties.PrimaryEndpoints.Table)
-		d.Set("primary_file_endpoint", resp.Properties.PrimaryEndpoints.File)
+	if resp.AccountProperties.AccessTier != "" {
+		d.Set("access_tier", resp.AccountProperties.AccessTier)
 	}
 
-	if resp.Properties.SecondaryEndpoints != nil {
-		if resp.Properties.SecondaryEndpoints.Blob != nil {
-			d.Set("secondary_blob_endpoint", resp.Properties.SecondaryEndpoints.Blob)
+	if resp.AccountProperties.PrimaryEndpoints != nil {
+		d.Set("primary_blob_endpoint", resp.AccountProperties.PrimaryEndpoints.Blob)
+		d.Set("primary_queue_endpoint", resp.AccountProperties.PrimaryEndpoints.Queue)
+		d.Set("primary_table_endpoint", resp.AccountProperties.PrimaryEndpoints.Table)
+		d.Set("primary_file_endpoint", resp.AccountProperties.PrimaryEndpoints.File)
+	}
+
+	if resp.AccountProperties.SecondaryEndpoints != nil {
+		if resp.AccountProperties.SecondaryEndpoints.Blob != nil {
+			d.Set("secondary_blob_endpoint", resp.AccountProperties.SecondaryEndpoints.Blob)
 		} else {
 			d.Set("secondary_blob_endpoint", "")
 		}
-		if resp.Properties.SecondaryEndpoints.Queue != nil {
-			d.Set("secondary_queue_endpoint", resp.Properties.SecondaryEndpoints.Queue)
+		if resp.AccountProperties.SecondaryEndpoints.Queue != nil {
+			d.Set("secondary_queue_endpoint", resp.AccountProperties.SecondaryEndpoints.Queue)
 		} else {
 			d.Set("secondary_queue_endpoint", "")
 		}
-		if resp.Properties.SecondaryEndpoints.Table != nil {
-			d.Set("secondary_table_endpoint", resp.Properties.SecondaryEndpoints.Table)
+		if resp.AccountProperties.SecondaryEndpoints.Table != nil {
+			d.Set("secondary_table_endpoint", resp.AccountProperties.SecondaryEndpoints.Table)
 		} else {
 			d.Set("secondary_table_endpoint", "")
+		}
+	}
+
+	if resp.AccountProperties.Encryption != nil {
+		if resp.AccountProperties.Encryption.Services.Blob != nil {
+			d.Set("enable_blob_encryption", resp.AccountProperties.Encryption.Services.Blob.Enabled)
 		}
 	}
 
@@ -359,6 +452,6 @@ func storageAccountStateRefreshFunc(client *ArmClient, resourceGroupName string,
 			return nil, "", fmt.Errorf("Error issuing read request in storageAccountStateRefreshFunc to Azure ARM for Storage Account '%s' (RG: '%s'): %s", storageAccountName, resourceGroupName, err)
 		}
 
-		return res, string(res.Properties.ProvisioningState), nil
+		return res, string(res.AccountProperties.ProvisioningState), nil
 	}
 }

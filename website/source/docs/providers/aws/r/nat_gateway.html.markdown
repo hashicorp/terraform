@@ -14,8 +14,8 @@ Provides a resource to create a VPC NAT Gateway.
 
 ```
 resource "aws_nat_gateway" "gw" {
-    allocation_id = "${aws_eip.nat.id}"
-    subnet_id = "${aws_subnet.public.id}"
+  allocation_id = "${aws_eip.nat.id}"
+  subnet_id     = "${aws_subnet.public.id}"
 }
 ```
 
@@ -52,7 +52,7 @@ The following attributes are exported:
 
 ## Import
 
-NAT Gateways can be imported using the `id`, e.g. 
+NAT Gateways can be imported using the `id`, e.g.
 
 ```
 $ terraform import aws_nat_gateway.private_gw nat-05dba92075d71c408

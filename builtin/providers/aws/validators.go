@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -233,7 +234,7 @@ func validateLambdaFunctionName(v interface{}, k string) (ws []string, errors []
 			"%q cannot be longer than 140 characters: %q", k, value))
 	}
 	// http://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
-	pattern := `^(arn:aws:lambda:)?([a-z]{2}-[a-z]+-\d{1}:)?(\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\$LATEST|[a-zA-Z0-9-_]+))?$`
+	pattern := `^(arn:[\w-]+:lambda:)?([a-z]{2}-[a-z]+-\d{1}:)?(\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\$LATEST|[a-zA-Z0-9-_]+))?$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q doesn't comply with restrictions (%q): %q",
@@ -250,7 +251,7 @@ func validateLambdaQualifier(v interface{}, k string) (ws []string, errors []err
 			"%q cannot be longer than 128 characters: %q", k, value))
 	}
 	// http://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
-	pattern := `^[a-zA-Z0-9$_]+$`
+	pattern := `^[a-zA-Z0-9$_-]+$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q doesn't comply with restrictions (%q): %q",
@@ -291,8 +292,12 @@ func validateAwsAccountId(v interface{}, k string) (ws []string, errors []error)
 func validateArn(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 
+	if value == "" {
+		return
+	}
+
 	// http://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
-	pattern := `^arn:aws:([a-zA-Z0-9\-])+:([a-z]{2}-[a-z]+-\d{1})?:(\d{12})?:(.*)$`
+	pattern := `^arn:[\w-]+:([a-zA-Z0-9\-])+:([a-z]{2}-[a-z]+-\d{1})?:(\d{12})?:(.*)$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q doesn't look like a valid ARN (%q): %q",
@@ -343,9 +348,22 @@ func validateCIDRNetworkAddress(v interface{}, k string) (ws []string, errors []
 
 func validateHTTPMethod(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if value != "GET" && value != "HEAD" && value != "OPTIONS" && value != "PUT" && value != "POST" && value != "PATCH" && value != "DELETE" {
+
+	validMethods := map[string]bool{
+		"ANY":     true,
+		"DELETE":  true,
+		"GET":     true,
+		"HEAD":    true,
+		"OPTIONS": true,
+		"PATCH":   true,
+		"POST":    true,
+		"PUT":     true,
+	}
+
+	if _, ok := validMethods[value]; !ok {
 		errors = append(errors, fmt.Errorf(
-			"%q must be one of 'GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE'", k))
+			"%q contains an invalid method %q. Valid methods are either %q, %q, %q, %q, %q, %q, %q, or %q.",
+			k, value, "ANY", "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"))
 	}
 	return
 }
@@ -430,6 +448,46 @@ func validateS3BucketLifecycleStorageClass(v interface{}, k string) (ws []string
 	return
 }
 
+func validateS3BucketReplicationRuleId(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 255 characters: %q", k, value))
+	}
+
+	return
+}
+
+func validateS3BucketReplicationRulePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 1024 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 1024 characters: %q", k, value))
+	}
+
+	return
+}
+
+func validateS3BucketReplicationDestinationStorageClass(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != s3.StorageClassStandard && value != s3.StorageClassStandardIa && value != s3.StorageClassReducedRedundancy {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of '%q', '%q' or '%q'", k, s3.StorageClassStandard, s3.StorageClassStandardIa, s3.StorageClassReducedRedundancy))
+	}
+
+	return
+}
+
+func validateS3BucketReplicationRuleStatus(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != s3.ReplicationRuleStatusEnabled && value != s3.ReplicationRuleStatusDisabled {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of '%q' or '%q'", k, s3.ReplicationRuleStatusEnabled, s3.ReplicationRuleStatusDisabled))
+	}
+
+	return
+}
+
 func validateS3BucketLifecycleRuleId(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if len(value) > 255 {
@@ -458,5 +516,417 @@ func validateApiGatewayIntegrationPassthroughBehavior(v interface{}, k string) (
 		errors = append(errors, fmt.Errorf(
 			"%q must be one of 'WHEN_NO_MATCH', 'WHEN_NO_TEMPLATES', 'NEVER'", k))
 	}
+	return
+}
+
+func validateJsonString(v interface{}, k string) (ws []string, errors []error) {
+	if _, err := normalizeJsonString(v); err != nil {
+		errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
+	}
+	return
+}
+
+func validateCloudFormationTemplate(v interface{}, k string) (ws []string, errors []error) {
+	if looksLikeJsonString(v) {
+		if _, err := normalizeJsonString(v); err != nil {
+			errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
+		}
+	} else {
+		if _, err := checkYamlString(v); err != nil {
+			errors = append(errors, fmt.Errorf("%q contains an invalid YAML: %s", k, err))
+		}
+	}
+	return
+}
+
+func validateApiGatewayIntegrationType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	validTypes := map[string]bool{
+		"AWS":        true,
+		"AWS_PROXY":  true,
+		"HTTP":       true,
+		"HTTP_PROXY": true,
+		"MOCK":       true,
+	}
+
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid integration type %q. Valid types are either %q, %q, %q, %q, or %q.",
+			k, value, "AWS", "AWS_PROXY", "HTTP", "HTTP_PROXY", "MOCK"))
+	}
+	return
+}
+
+func validateApiGatewayIntegrationContentHandling(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	validTypes := map[string]bool{
+		"CONVERT_TO_BINARY": true,
+		"CONVERT_TO_TEXT":   true,
+	}
+
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid integration type %q. Valid types are either %q or %q.",
+			k, value, "CONVERT_TO_BINARY", "CONVERT_TO_TEXT"))
+	}
+	return
+}
+
+func validateSQSQueueName(v interface{}, k string) (errors []error) {
+	value := v.(string)
+	if len(value) > 80 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 80 characters", k))
+	}
+
+	if !regexp.MustCompile(`^[0-9A-Za-z-_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("only alphanumeric characters and hyphens allowed in %q", k))
+	}
+	return
+}
+
+func validateSQSFifoQueueName(v interface{}, k string) (errors []error) {
+	value := v.(string)
+
+	if len(value) > 80 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 80 characters", k))
+	}
+
+	if !regexp.MustCompile(`^[0-9A-Za-z-_.]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("only alphanumeric characters and hyphens allowed in %q", k))
+	}
+
+	if regexp.MustCompile(`^[^a-zA-Z0-9-_]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("FIFO queue name must start with one of these characters [a-zA-Z0-9-_]: %v", value))
+	}
+
+	if !regexp.MustCompile(`\.fifo$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("FIFO queue name should ends with \".fifo\": %v", value))
+	}
+
+	return
+}
+
+func validateSNSSubscriptionProtocol(v interface{}, k string) (ws []string, errors []error) {
+	value := strings.ToLower(v.(string))
+	forbidden := []string{"email", "sms"}
+	for _, f := range forbidden {
+		if strings.Contains(value, f) {
+			errors = append(
+				errors,
+				fmt.Errorf("Unsupported protocol (%s) for SNS Topic", value),
+			)
+		}
+	}
+	return
+}
+
+func validateSecurityRuleType(v interface{}, k string) (ws []string, errors []error) {
+	value := strings.ToLower(v.(string))
+
+	validTypes := map[string]bool{
+		"ingress": true,
+		"egress":  true,
+	}
+
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Security Group Rule type %q. Valid types are either %q or %q.",
+			k, value, "ingress", "egress"))
+	}
+	return
+}
+
+func validateOnceAWeekWindowFormat(v interface{}, k string) (ws []string, errors []error) {
+	// valid time format is "ddd:hh24:mi"
+	validTimeFormat := "(sun|mon|tue|wed|thu|fri|sat):([0-1][0-9]|2[0-3]):([0-5][0-9])"
+	validTimeFormatConsolidated := "^(" + validTimeFormat + "-" + validTimeFormat + "|)$"
+
+	value := strings.ToLower(v.(string))
+	if !regexp.MustCompile(validTimeFormatConsolidated).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must satisfy the format of \"ddd:hh24:mi-ddd:hh24:mi\".", k))
+	}
+	return
+}
+
+func validateOnceADayWindowFormat(v interface{}, k string) (ws []string, errors []error) {
+	// valid time format is "hh24:mi"
+	validTimeFormat := "([0-1][0-9]|2[0-3]):([0-5][0-9])"
+	validTimeFormatConsolidated := "^(" + validTimeFormat + "-" + validTimeFormat + "|)$"
+
+	value := v.(string)
+	if !regexp.MustCompile(validTimeFormatConsolidated).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must satisfy the format of \"hh24:mi-hh24:mi\".", k))
+	}
+	return
+}
+
+func validateRoute53RecordType(v interface{}, k string) (ws []string, errors []error) {
+	// Valid Record types
+	// SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA
+	validTypes := map[string]struct{}{
+		"SOA":   {},
+		"A":     {},
+		"TXT":   {},
+		"NS":    {},
+		"CNAME": {},
+		"MX":    {},
+		"NAPTR": {},
+		"PTR":   {},
+		"SRV":   {},
+		"SPF":   {},
+		"AAAA":  {},
+	}
+
+	value := v.(string)
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of [SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA]", k))
+	}
+	return
+}
+
+// Validates that ECS Placement Constraints are set correctly
+// Takes type, and expression as strings
+func validateAwsEcsPlacementConstraint(constType, constExpr string) error {
+	switch constType {
+	case "distinctInstance":
+		// Expression can be nil for distinctInstance
+		return nil
+	case "memberOf":
+		if constExpr == "" {
+			return fmt.Errorf("Expression cannot be nil for 'memberOf' type")
+		}
+	default:
+		return fmt.Errorf("Unknown type provided: %q", constType)
+	}
+	return nil
+}
+
+// Validates that an Ecs placement strategy is set correctly
+// Takes type, and field as strings
+func validateAwsEcsPlacementStrategy(stratType, stratField string) error {
+	switch stratType {
+	case "random":
+		// random does not need the field attribute set, could error, but it isn't read at the API level
+		return nil
+	case "spread":
+		//  For the spread placement strategy, valid values are instanceId
+		// (or host, which has the same effect), or any platform or custom attribute
+		// that is applied to a container instance
+		// stratField is already cased to a string
+		return nil
+	case "binpack":
+		if stratField != "cpu" && stratField != "memory" {
+			return fmt.Errorf("Binpack type requires the field attribute to be either 'cpu' or 'memory'. Got: %s",
+				stratField)
+		}
+	default:
+		return fmt.Errorf("Unknown type %s. Must be one of 'random', 'spread', or 'binpack'.", stratType)
+	}
+	return nil
+}
+
+func validateAwsEmrEbsVolumeType(v interface{}, k string) (ws []string, errors []error) {
+	validTypes := map[string]struct{}{
+		"gp2":      {},
+		"io1":      {},
+		"standard": {},
+	}
+
+	value := v.(string)
+
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of ['gp2', 'io1', 'standard']", k))
+	}
+	return
+}
+
+func validateSfnActivityName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 80 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 80 characters", k))
+	}
+
+	return
+}
+
+func validateSfnStateMachineDefinition(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 1048576 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 1048576 characters", k))
+	}
+	return
+}
+
+func validateSfnStateMachineName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 80 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 80 characters", k))
+	}
+
+	if !regexp.MustCompile(`^[a-zA-Z0-9-_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must be composed with only these characters [a-zA-Z0-9-_]: %v", k, value))
+	}
+	return
+}
+
+func validateDmsCertificateId(v interface{}, k string) (ws []string, es []error) {
+	val := v.(string)
+
+	if len(val) > 255 {
+		es = append(es, fmt.Errorf("%q must not be longer than 255 characters", k))
+	}
+	if !regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9-]+$").MatchString(val) {
+		es = append(es, fmt.Errorf("%q must start with a letter, only contain alphanumeric characters and hyphens", k))
+	}
+	if strings.Contains(val, "--") {
+		es = append(es, fmt.Errorf("%q must not contain consecutive hyphens", k))
+	}
+	if strings.HasSuffix(val, "-") {
+		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
+	}
+
+	return
+}
+
+func validateDmsEndpointId(v interface{}, k string) (ws []string, es []error) {
+	val := v.(string)
+
+	if len(val) > 255 {
+		es = append(es, fmt.Errorf("%q must not be longer than 255 characters", k))
+	}
+	if !regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9-]+$").MatchString(val) {
+		es = append(es, fmt.Errorf("%q must start with a letter, only contain alphanumeric characters and hyphens", k))
+	}
+	if strings.Contains(val, "--") {
+		es = append(es, fmt.Errorf("%q must not contain consecutive hyphens", k))
+	}
+	if strings.HasSuffix(val, "-") {
+		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
+	}
+
+	return
+}
+
+func validateDmsReplicationInstanceId(v interface{}, k string) (ws []string, es []error) {
+	val := v.(string)
+
+	if len(val) > 63 {
+		es = append(es, fmt.Errorf("%q must not be longer than 63 characters", k))
+	}
+	if !regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9-]+$").MatchString(val) {
+		es = append(es, fmt.Errorf("%q must start with a letter, only contain alphanumeric characters and hyphens", k))
+	}
+	if strings.Contains(val, "--") {
+		es = append(es, fmt.Errorf("%q must not contain consecutive hyphens", k))
+	}
+	if strings.HasSuffix(val, "-") {
+		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
+	}
+
+	return
+}
+
+func validateDmsReplicationSubnetGroupId(v interface{}, k string) (ws []string, es []error) {
+	val := v.(string)
+
+	if val == "default" {
+		es = append(es, fmt.Errorf("%q must not be default", k))
+	}
+	if len(val) > 255 {
+		es = append(es, fmt.Errorf("%q must not be longer than 255 characters", k))
+	}
+	if !regexp.MustCompile(`^[a-zA-Z0-9. _-]+$`).MatchString(val) {
+		es = append(es, fmt.Errorf("%q must only contain alphanumeric characters, periods, spaces, underscores and hyphens", k))
+	}
+
+	return
+}
+
+func validateDmsReplicationTaskId(v interface{}, k string) (ws []string, es []error) {
+	val := v.(string)
+
+	if len(val) > 255 {
+		es = append(es, fmt.Errorf("%q must not be longer than 255 characters", k))
+	}
+	if !regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9-]+$").MatchString(val) {
+		es = append(es, fmt.Errorf("%q must start with a letter, only contain alphanumeric characters and hyphens", k))
+	}
+	if strings.Contains(val, "--") {
+		es = append(es, fmt.Errorf("%q must not contain consecutive hyphens", k))
+	}
+	if strings.HasSuffix(val, "-") {
+		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
+	}
+
+	return
+}
+
+func validateAppautoscalingScalableDimension(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	dimensions := map[string]bool{
+		"ecs:service:DesiredCount":              true,
+		"ec2:spot-fleet-request:TargetCapacity": true,
+	}
+
+	if !dimensions[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid scalable dimension value: %q", k, value))
+	}
+	return
+}
+
+func validateAppautoscalingServiceNamespace(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	namespaces := map[string]bool{
+		"ecs": true,
+		"ec2": true,
+	}
+
+	if !namespaces[value] {
+		errors = append(errors, fmt.Errorf("%q must be a valid service namespace value: %q", k, value))
+	}
+	return
+}
+
+func validateConfigRuleSourceOwner(v interface{}, k string) (ws []string, errors []error) {
+	validOwners := []string{
+		"CUSTOM_LAMBDA",
+		"AWS",
+	}
+	owner := v.(string)
+	for _, o := range validOwners {
+		if owner == o {
+			return
+		}
+	}
+	errors = append(errors, fmt.Errorf(
+		"%q contains an invalid owner %q. Valid owners are %q.",
+		k, owner, validOwners))
+	return
+}
+
+func validateConfigExecutionFrequency(v interface{}, k string) (ws []string, errors []error) {
+	validFrequencies := []string{
+		"One_Hour",
+		"Three_Hours",
+		"Six_Hours",
+		"Twelve_Hours",
+		"TwentyFour_Hours",
+	}
+	frequency := v.(string)
+	for _, f := range validFrequencies {
+		if frequency == f {
+			return
+		}
+	}
+	errors = append(errors, fmt.Errorf(
+		"%q contains an invalid freqency %q. Valid frequencies are %q.",
+		k, frequency, validFrequencies))
 	return
 }

@@ -159,7 +159,7 @@ func testCheckAzureRMDnsCNameRecordDestroy(s *terraform.State) error {
 
 var testAccAzureRMDnsCNameRecord_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_dns_zone" "test" {
@@ -178,7 +178,7 @@ resource "azurerm_dns_cname_record" "test" {
 
 var testAccAzureRMDnsCNameRecord_subdomain = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_dns_zone" "test" {
@@ -197,7 +197,7 @@ resource "azurerm_dns_cname_record" "test" {
 
 var testAccAzureRMDnsCNameRecord_updateRecords = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_dns_zone" "test" {
@@ -216,7 +216,7 @@ resource "azurerm_dns_cname_record" "test" {
 
 var testAccAzureRMDnsCNameRecord_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_dns_zone" "test" {
@@ -240,7 +240,7 @@ resource "azurerm_dns_cname_record" "test" {
 
 var testAccAzureRMDnsCNameRecord_withTagsUpdate = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_dns_zone" "test" {

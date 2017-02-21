@@ -21,7 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
-func TestAWSGetAccountId_shouldBeValid_fromEC2Role(t *testing.T) {
+func TestAWSGetAccountInfo_shouldBeValid_fromEC2Role(t *testing.T) {
 	resetEnv := unsetEnv(t)
 	defer resetEnv()
 	// capture the test server's close method, to call after the test returns
@@ -32,9 +32,14 @@ func TestAWSGetAccountId_shouldBeValid_fromEC2Role(t *testing.T) {
 	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	id, err := GetAccountId(iamConn, stsConn, ec2rolecreds.ProviderName)
+	part, id, err := GetAccountInfo(iamConn, stsConn, ec2rolecreds.ProviderName)
 	if err != nil {
 		t.Fatalf("Getting account ID from EC2 metadata API failed: %s", err)
+	}
+
+	expectedPart := "aws"
+	if part != expectedPart {
+		t.Fatalf("Expected partition: %s, given: %s", expectedPart, part)
 	}
 
 	expectedAccountId := "123456789013"
@@ -43,7 +48,7 @@ func TestAWSGetAccountId_shouldBeValid_fromEC2Role(t *testing.T) {
 	}
 }
 
-func TestAWSGetAccountId_shouldBeValid_EC2RoleHasPriority(t *testing.T) {
+func TestAWSGetAccountInfo_shouldBeValid_EC2RoleHasPriority(t *testing.T) {
 	resetEnv := unsetEnv(t)
 	defer resetEnv()
 	// capture the test server's close method, to call after the test returns
@@ -59,9 +64,14 @@ func TestAWSGetAccountId_shouldBeValid_EC2RoleHasPriority(t *testing.T) {
 	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	id, err := GetAccountId(iamConn, stsConn, ec2rolecreds.ProviderName)
+	part, id, err := GetAccountInfo(iamConn, stsConn, ec2rolecreds.ProviderName)
 	if err != nil {
 		t.Fatalf("Getting account ID from EC2 metadata API failed: %s", err)
+	}
+
+	expectedPart := "aws"
+	if part != expectedPart {
+		t.Fatalf("Expected partition: %s, given: %s", expectedPart, part)
 	}
 
 	expectedAccountId := "123456789013"
@@ -70,7 +80,7 @@ func TestAWSGetAccountId_shouldBeValid_EC2RoleHasPriority(t *testing.T) {
 	}
 }
 
-func TestAWSGetAccountId_shouldBeValid_fromIamUser(t *testing.T) {
+func TestAWSGetAccountInfo_shouldBeValid_fromIamUser(t *testing.T) {
 	iamEndpoints := []*iamEndpoint{
 		{
 			Request:  &iamRequest{"POST", "/", "Action=GetUser&Version=2010-05-08"},
@@ -81,9 +91,14 @@ func TestAWSGetAccountId_shouldBeValid_fromIamUser(t *testing.T) {
 	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	id, err := GetAccountId(iamConn, stsConn, "")
+	part, id, err := GetAccountInfo(iamConn, stsConn, "")
 	if err != nil {
 		t.Fatalf("Getting account ID via GetUser failed: %s", err)
+	}
+
+	expectedPart := "aws"
+	if part != expectedPart {
+		t.Fatalf("Expected partition: %s, given: %s", expectedPart, part)
 	}
 
 	expectedAccountId := "123456789012"
@@ -92,7 +107,7 @@ func TestAWSGetAccountId_shouldBeValid_fromIamUser(t *testing.T) {
 	}
 }
 
-func TestAWSGetAccountId_shouldBeValid_fromGetCallerIdentity(t *testing.T) {
+func TestAWSGetAccountInfo_shouldBeValid_fromGetCallerIdentity(t *testing.T) {
 	iamEndpoints := []*iamEndpoint{
 		{
 			Request:  &iamRequest{"POST", "/", "Action=GetUser&Version=2010-05-08"},
@@ -106,9 +121,14 @@ func TestAWSGetAccountId_shouldBeValid_fromGetCallerIdentity(t *testing.T) {
 	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	id, err := GetAccountId(iamConn, stsConn, "")
+	part, id, err := GetAccountInfo(iamConn, stsConn, "")
 	if err != nil {
 		t.Fatalf("Getting account ID via GetUser failed: %s", err)
+	}
+
+	expectedPart := "aws"
+	if part != expectedPart {
+		t.Fatalf("Expected partition: %s, given: %s", expectedPart, part)
 	}
 
 	expectedAccountId := "123456789012"
@@ -117,7 +137,7 @@ func TestAWSGetAccountId_shouldBeValid_fromGetCallerIdentity(t *testing.T) {
 	}
 }
 
-func TestAWSGetAccountId_shouldBeValid_fromIamListRoles(t *testing.T) {
+func TestAWSGetAccountInfo_shouldBeValid_fromIamListRoles(t *testing.T) {
 	iamEndpoints := []*iamEndpoint{
 		{
 			Request:  &iamRequest{"POST", "/", "Action=GetUser&Version=2010-05-08"},
@@ -135,9 +155,14 @@ func TestAWSGetAccountId_shouldBeValid_fromIamListRoles(t *testing.T) {
 	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	id, err := GetAccountId(iamConn, stsConn, "")
+	part, id, err := GetAccountInfo(iamConn, stsConn, "")
 	if err != nil {
 		t.Fatalf("Getting account ID via ListRoles failed: %s", err)
+	}
+
+	expectedPart := "aws"
+	if part != expectedPart {
+		t.Fatalf("Expected partition: %s, given: %s", expectedPart, part)
 	}
 
 	expectedAccountId := "123456789012"
@@ -146,7 +171,7 @@ func TestAWSGetAccountId_shouldBeValid_fromIamListRoles(t *testing.T) {
 	}
 }
 
-func TestAWSGetAccountId_shouldBeValid_federatedRole(t *testing.T) {
+func TestAWSGetAccountInfo_shouldBeValid_federatedRole(t *testing.T) {
 	iamEndpoints := []*iamEndpoint{
 		{
 			Request:  &iamRequest{"POST", "/", "Action=GetUser&Version=2010-05-08"},
@@ -160,9 +185,14 @@ func TestAWSGetAccountId_shouldBeValid_federatedRole(t *testing.T) {
 	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	id, err := GetAccountId(iamConn, stsConn, "")
+	part, id, err := GetAccountInfo(iamConn, stsConn, "")
 	if err != nil {
 		t.Fatalf("Getting account ID via ListRoles failed: %s", err)
+	}
+
+	expectedPart := "aws"
+	if part != expectedPart {
+		t.Fatalf("Expected partition: %s, given: %s", expectedPart, part)
 	}
 
 	expectedAccountId := "123456789012"
@@ -171,7 +201,7 @@ func TestAWSGetAccountId_shouldBeValid_federatedRole(t *testing.T) {
 	}
 }
 
-func TestAWSGetAccountId_shouldError_unauthorizedFromIam(t *testing.T) {
+func TestAWSGetAccountInfo_shouldError_unauthorizedFromIam(t *testing.T) {
 	iamEndpoints := []*iamEndpoint{
 		{
 			Request:  &iamRequest{"POST", "/", "Action=GetUser&Version=2010-05-08"},
@@ -185,9 +215,13 @@ func TestAWSGetAccountId_shouldError_unauthorizedFromIam(t *testing.T) {
 	ts, iamConn, stsConn := getMockedAwsIamStsApi(iamEndpoints)
 	defer ts()
 
-	id, err := GetAccountId(iamConn, stsConn, "")
+	part, id, err := GetAccountInfo(iamConn, stsConn, "")
 	if err == nil {
 		t.Fatal("Expected error when getting account ID")
+	}
+
+	if part != "" {
+		t.Fatalf("Expected no partition, given: %s", part)
 	}
 
 	if id != "" {
@@ -195,19 +229,23 @@ func TestAWSGetAccountId_shouldError_unauthorizedFromIam(t *testing.T) {
 	}
 }
 
-func TestAWSParseAccountIdFromArn(t *testing.T) {
+func TestAWSParseAccountInfoFromArn(t *testing.T) {
 	validArn := "arn:aws:iam::101636750127:instance-profile/aws-elasticbeanstalk-ec2-role"
+	expectedPart := "aws"
 	expectedId := "101636750127"
-	id, err := parseAccountIdFromArn(validArn)
+	part, id, err := parseAccountInfoFromArn(validArn)
 	if err != nil {
 		t.Fatalf("Expected no error when parsing valid ARN: %s", err)
+	}
+	if part != expectedPart {
+		t.Fatalf("Parsed part doesn't match with expected (%q != %q)", part, expectedPart)
 	}
 	if id != expectedId {
 		t.Fatalf("Parsed id doesn't match with expected (%q != %q)", id, expectedId)
 	}
 
 	invalidArn := "blablah"
-	id, err = parseAccountIdFromArn(invalidArn)
+	part, id, err = parseAccountInfoFromArn(invalidArn)
 	if err == nil {
 		t.Fatalf("Expected error when parsing invalid ARN (%q)", invalidArn)
 	}

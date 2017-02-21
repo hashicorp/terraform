@@ -82,8 +82,10 @@ func TestAccAWSELB_fullCharacterRange(t *testing.T) {
 	})
 }
 
-func TestAccAWSELB_AccessLogs(t *testing.T) {
+func TestAccAWSELB_AccessLogs_enabled(t *testing.T) {
 	var conf elb.LoadBalancerDescription
+
+	rName := fmt.Sprintf("terraform-access-logs-bucket-%d", acctest.RandInt())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:      func() { testAccPreCheck(t) },
@@ -99,15 +101,62 @@ func TestAccAWSELB_AccessLogs(t *testing.T) {
 			},
 
 			resource.TestStep{
-				Config: testAccAWSELBAccessLogsOn,
+				Config: testAccAWSELBAccessLogsOn(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.foo", &conf),
 					resource.TestCheckResourceAttr(
 						"aws_elb.foo", "access_logs.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.foo", "access_logs.0.bucket", "terraform-access-logs-bucket"),
+						"aws_elb.foo", "access_logs.0.bucket", rName),
 					resource.TestCheckResourceAttr(
 						"aws_elb.foo", "access_logs.0.interval", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.0.enabled", "true"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSELBAccessLogs,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSELB_AccessLogs_disabled(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+
+	rName := fmt.Sprintf("terraform-access-logs-bucket-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elb.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBAccessLogs,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSELBAccessLogsDisabled(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.foo", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.0.bucket", rName),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.0.interval", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.foo", "access_logs.0.enabled", "false"),
 				),
 			},
 
@@ -242,6 +291,36 @@ func TestAccAWSELB_iam_server_cert(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testCheck,
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSELB_swap_subnets(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elb.ourapp",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfig_subnets,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.ourapp", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.ourapp", "subnets.#", "2"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSELBConfig_subnet_swap,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.ourapp", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.ourapp", "subnets.#", "2"),
 				),
 			},
 		},
@@ -965,12 +1044,14 @@ resource "aws_elb" "foo" {
   }
 }
 `
-const testAccAWSELBAccessLogsOn = `
+
+func testAccAWSELBAccessLogsOn(r string) string {
+	return fmt.Sprintf(`
 # an S3 bucket configured for Access logs
 # The 797873946194 is the AWS ID for us-west-2, so this test
 # must be ran in us-west-2
 resource "aws_s3_bucket" "acceslogs_bucket" {
-  bucket = "terraform-access-logs-bucket"
+  bucket = "%s"
   acl = "private"
   force_destroy = true
   policy = <<EOF
@@ -983,7 +1064,7 @@ resource "aws_s3_bucket" "acceslogs_bucket" {
       "Principal": {
         "AWS": "arn:aws:iam::797873946194:root"
       },
-      "Resource": "arn:aws:s3:::terraform-access-logs-bucket/*",
+      "Resource": "arn:aws:s3:::%s/*",
       "Sid": "Stmt1446575236270"
     }
   ],
@@ -1007,7 +1088,55 @@ resource "aws_elb" "foo" {
 		bucket = "${aws_s3_bucket.acceslogs_bucket.bucket}"
 	}
 }
-`
+`, r, r)
+}
+
+func testAccAWSELBAccessLogsDisabled(r string) string {
+	return fmt.Sprintf(`
+# an S3 bucket configured for Access logs
+# The 797873946194 is the AWS ID for us-west-2, so this test
+# must be ran in us-west-2
+resource "aws_s3_bucket" "acceslogs_bucket" {
+  bucket = "%s"
+  acl = "private"
+  force_destroy = true
+  policy = <<EOF
+{
+  "Id": "Policy1446577137248",
+  "Statement": [
+    {
+      "Action": "s3:PutObject",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::797873946194:root"
+      },
+      "Resource": "arn:aws:s3:::%s/*",
+      "Sid": "Stmt1446575236270"
+    }
+  ],
+  "Version": "2012-10-17"
+}
+EOF
+}
+
+resource "aws_elb" "foo" {
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+
+	access_logs {
+		interval = 5
+		bucket = "${aws_s3_bucket.acceslogs_bucket.bucket}"
+		enabled = false
+	}
+}
+`, r, r)
+}
 
 const testAccAWSELBGeneratedName = `
 resource "aws_elb" "foo" {
@@ -1329,3 +1458,127 @@ resource "aws_elb" "bar" {
 }
 `, certName)
 }
+
+const testAccAWSELBConfig_subnets = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "azelb" {
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "subnet-vpc"
+  }
+}
+
+resource "aws_subnet" "public_a_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.1.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "public_b_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.7.0/24"
+  availability_zone = "us-west-2b"
+}
+
+resource "aws_subnet" "public_a_two" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.2.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_elb" "ourapp" {
+  name = "terraform-asg-deployment-example"
+
+  subnets = [
+    "${aws_subnet.public_a_one.id}",
+    "${aws_subnet.public_b_one.id}",
+  ]
+
+  listener {
+    instance_port     = 80
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  depends_on = ["aws_internet_gateway.gw"]
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  tags {
+    Name = "main"
+  }
+}
+`
+
+const testAccAWSELBConfig_subnet_swap = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "azelb" {
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "subnet-vpc"
+  }
+}
+
+resource "aws_subnet" "public_a_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.1.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "public_b_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.7.0/24"
+  availability_zone = "us-west-2b"
+}
+
+resource "aws_subnet" "public_a_two" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.2.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_elb" "ourapp" {
+  name = "terraform-asg-deployment-example"
+
+  subnets = [
+    "${aws_subnet.public_a_two.id}",
+    "${aws_subnet.public_b_one.id}",
+  ]
+
+  listener {
+    instance_port     = 80
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  depends_on = ["aws_internet_gateway.gw"]
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  tags {
+    Name = "main"
+  }
+}
+`

@@ -87,6 +87,37 @@ func TestAppend(t *testing.T) {
 
 			false,
 		},
+
+		// Terraform block
+		{
+			&Config{
+				Terraform: &Terraform{
+					RequiredVersion: "A",
+				},
+			},
+			&Config{},
+			&Config{
+				Terraform: &Terraform{
+					RequiredVersion: "A",
+				},
+			},
+			false,
+		},
+
+		{
+			&Config{},
+			&Config{
+				Terraform: &Terraform{
+					RequiredVersion: "A",
+				},
+			},
+			&Config{
+				Terraform: &Terraform{
+					RequiredVersion: "A",
+				},
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {

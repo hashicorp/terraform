@@ -21,73 +21,79 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"alarm_name": &schema.Schema{
+			"alarm_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"comparison_operator": &schema.Schema{
+			"comparison_operator": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"evaluation_periods": &schema.Schema{
+			"evaluation_periods": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
-			"metric_name": &schema.Schema{
+			"metric_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"namespace": &schema.Schema{
+			"namespace": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"period": &schema.Schema{
+			"period": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
-			"statistic": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+			"statistic": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"extended_statistic"},
 			},
-			"threshold": &schema.Schema{
+			"threshold": {
 				Type:     schema.TypeFloat,
 				Required: true,
 			},
-			"actions_enabled": &schema.Schema{
+			"actions_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"alarm_actions": &schema.Schema{
+			"alarm_actions": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"alarm_description": &schema.Schema{
+			"alarm_description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"dimensions": &schema.Schema{
+			"dimensions": {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
-			"insufficient_data_actions": &schema.Schema{
+			"insufficient_data_actions": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"ok_actions": &schema.Schema{
+			"ok_actions": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"unit": &schema.Schema{
+			"unit": {
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"extended_statistic": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"statistic"},
 			},
 		},
 	}
@@ -95,6 +101,13 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 
 func resourceAwsCloudWatchMetricAlarmCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudwatchconn
+
+	_, statisticOk := d.GetOk("statistic")
+	_, extendedStatisticOk := d.GetOk("extended_statistic")
+
+	if !statisticOk && !extendedStatisticOk {
+		return fmt.Errorf("One of `statistic` or `extended_statistic` must be set for a cloudwatch metric alarm")
+	}
 
 	params := getAwsCloudWatchPutMetricAlarmInput(d)
 
@@ -129,7 +142,9 @@ func resourceAwsCloudWatchMetricAlarmRead(d *schema.ResourceData, meta interface
 	d.Set("alarm_description", a.AlarmDescription)
 	d.Set("alarm_name", a.AlarmName)
 	d.Set("comparison_operator", a.ComparisonOperator)
-	d.Set("dimensions", a.Dimensions)
+	if err := d.Set("dimensions", flattenDimensions(a.Dimensions)); err != nil {
+		return err
+	}
 	d.Set("evaluation_periods", a.EvaluationPeriods)
 
 	if err := d.Set("insufficient_data_actions", _strArrPtrToList(a.InsufficientDataActions)); err != nil {
@@ -145,6 +160,7 @@ func resourceAwsCloudWatchMetricAlarmRead(d *schema.ResourceData, meta interface
 	d.Set("statistic", a.Statistic)
 	d.Set("threshold", a.Threshold)
 	d.Set("unit", a.Unit)
+	d.Set("extended_statistic", a.ExtendedStatistic)
 
 	return nil
 }
@@ -197,7 +213,6 @@ func getAwsCloudWatchPutMetricAlarmInput(d *schema.ResourceData) cloudwatch.PutM
 		MetricName:         aws.String(d.Get("metric_name").(string)),
 		Namespace:          aws.String(d.Get("namespace").(string)),
 		Period:             aws.Int64(int64(d.Get("period").(int))),
-		Statistic:          aws.String(d.Get("statistic").(string)),
 		Threshold:          aws.Float64(d.Get("threshold").(float64)),
 	}
 
@@ -211,6 +226,14 @@ func getAwsCloudWatchPutMetricAlarmInput(d *schema.ResourceData) cloudwatch.PutM
 
 	if v, ok := d.GetOk("unit"); ok {
 		params.Unit = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("statistic"); ok {
+		params.Statistic = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("extended_statistic"); ok {
+		params.ExtendedStatistic = aws.String(v.(string))
 	}
 
 	var alarmActions []*string
@@ -281,4 +304,12 @@ func _strArrPtrToList(strArrPtr []*string) []string {
 		result = append(result, *elem)
 	}
 	return result
+}
+
+func flattenDimensions(dims []*cloudwatch.Dimension) map[string]interface{} {
+	flatDims := make(map[string]interface{})
+	for _, d := range dims {
+		flatDims[*d.Name] = *d.Value
+	}
+	return flatDims
 }

@@ -1,8 +1,9 @@
 package datadog
 
 import (
-	"github.com/hashicorp/terraform/helper/resource"
 	"testing"
+
+	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestDatadogMonitor_import(t *testing.T) {
@@ -41,6 +42,7 @@ resource "datadog_monitor" "foo" {
   }
 
   notify_no_data = false
+  new_host_delay = 600
   renotify_interval = 60
 
   notify_audit = false
@@ -48,9 +50,6 @@ resource "datadog_monitor" "foo" {
   include_tags = true
   require_full_window = true
   locked = false
-  tags {
-    "foo" = "bar"
-    "bar" = "baz"
-  }
+  tags = ["foo:bar", "bar:baz"]
 }
 `

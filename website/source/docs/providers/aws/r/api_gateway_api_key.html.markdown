@@ -22,13 +22,13 @@ resource "aws_api_gateway_api_key" "MyDemoApiKey" {
 
   stage_key {
     rest_api_id = "${aws_api_gateway_rest_api.MyDemoAPI.id}"
-    stage_name = "${aws_api_gateway_deployment.MyDemoDeployment.stage_name}"
+    stage_name  = "${aws_api_gateway_deployment.MyDemoDeployment.stage_name}"
   }
 }
 
 resource "aws_api_gateway_deployment" "MyDemoDeployment" {
   rest_api_id = "${aws_api_gateway_rest_api.MyDemoAPI.id}"
-  stage_name = "test"
+  stage_name  = "test"
 }
 ```
 
@@ -51,11 +51,13 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the API key
+* `created_date` - The creation date of the API key
+* `last_updated_date` - The last update date of the API key
 
 
 ## Import
 
-API Gateway Keys can be imported using the `id`, e.g. 
+API Gateway Keys can be imported using the `id`, e.g.
 
 ```
 $ terraform import aws_api_gateway_api_key.my_demo_key 8bklk8bl1k3sB38D9B3l0enyWT8c09B30lkq0blk

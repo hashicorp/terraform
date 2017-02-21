@@ -32,6 +32,12 @@ func Merge(c1, c2 *Config) (*Config, error) {
 		c.Atlas = c2.Atlas
 	}
 
+	// Merge the Terraform configuration, which is a complete overwrite.
+	c.Terraform = c1.Terraform
+	if c2.Terraform != nil {
+		c.Terraform = c2.Terraform
+	}
+
 	// NOTE: Everything below is pretty gross. Due to the lack of generics
 	// in Go, there is some hoop-jumping involved to make this merging a
 	// little more test-friendly and less repetitive. Ironically, making it

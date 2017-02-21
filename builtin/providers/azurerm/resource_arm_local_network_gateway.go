@@ -25,12 +25,7 @@ func resourceArmLocalNetworkGateway() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -71,7 +66,7 @@ func resourceArmLocalNetworkGatewayCreate(d *schema.ResourceData, meta interface
 	gateway := network.LocalNetworkGateway{
 		Name:     &name,
 		Location: &location,
-		Properties: &network.LocalNetworkGatewayPropertiesFormat{
+		LocalNetworkGatewayPropertiesFormat: &network.LocalNetworkGatewayPropertiesFormat{
 			LocalNetworkAddressSpace: &network.AddressSpace{
 				AddressPrefixes: &prefixes,
 			},
@@ -110,19 +105,20 @@ func resourceArmLocalNetworkGatewayRead(d *schema.ResourceData, meta interface{}
 
 	resp, err := lnetClient.Get(resGroup, name)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error reading the state of Azure ARM local network gateway '%s': %s", name, err)
 	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 
+	d.Set("resource_group_name", resGroup)
 	d.Set("name", resp.Name)
 	d.Set("location", resp.Location)
-	d.Set("gateway_address", resp.Properties.GatewayIPAddress)
+	d.Set("gateway_address", resp.LocalNetworkGatewayPropertiesFormat.GatewayIPAddress)
 
 	prefs := []string{}
-	if ps := *resp.Properties.LocalNetworkAddressSpace.AddressPrefixes; ps != nil {
+	if ps := *resp.LocalNetworkGatewayPropertiesFormat.LocalNetworkAddressSpace.AddressPrefixes; ps != nil {
 		prefs = ps
 	}
 	d.Set("address_space", prefs)

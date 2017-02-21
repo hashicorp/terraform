@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -18,16 +19,69 @@ func TestAccAWSCloudWatchMetricAlarm_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchMetricAlarmDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchMetricAlarmConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchMetricAlarmExists("aws_cloudwatch_metric_alarm.foobar", &alarm),
 					resource.TestCheckResourceAttr("aws_cloudwatch_metric_alarm.foobar", "metric_name", "CPUUtilization"),
 					resource.TestCheckResourceAttr("aws_cloudwatch_metric_alarm.foobar", "statistic", "Average"),
+					testAccCheckCloudWatchMetricAlarmDimension(
+						"aws_cloudwatch_metric_alarm.foobar", "InstanceId", "i-abc123"),
 				),
 			},
 		},
 	})
+}
+
+func TestAccAWSCloudWatchMetricAlarm_extendedStatistic(t *testing.T) {
+	var alarm cloudwatch.MetricAlarm
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudWatchMetricAlarmDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSCloudWatchMetricAlarmConfigExtendedStatistic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudWatchMetricAlarmExists("aws_cloudwatch_metric_alarm.foobar", &alarm),
+					resource.TestCheckResourceAttr("aws_cloudwatch_metric_alarm.foobar", "extended_statistic", "p88.0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCloudWatchMetricAlarm_missingStatistic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCloudWatchMetricAlarmDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAWSCloudWatchMetricAlarmConfigMissingStatistic,
+				ExpectError: regexp.MustCompile("One of `statistic` or `extended_statistic` must be set for a cloudwatch metric alarm"),
+			},
+		},
+	})
+}
+
+func testAccCheckCloudWatchMetricAlarmDimension(n, k, v string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+		key := fmt.Sprintf("dimensions.%s", k)
+		val, ok := rs.Primary.Attributes[key]
+		if !ok {
+			return fmt.Errorf("Could not find dimension: %s", k)
+		}
+		if val != v {
+			return fmt.Errorf("Expected dimension %s => %s; got: %s", k, v, val)
+		}
+		return nil
+	}
 }
 
 func testAccCheckCloudWatchMetricAlarmExists(n string, alarm *cloudwatch.MetricAlarm) resource.TestCheckFunc {
@@ -81,15 +135,53 @@ func testAccCheckAWSCloudWatchMetricAlarmDestroy(s *terraform.State) error {
 
 var testAccAWSCloudWatchMetricAlarmConfig = fmt.Sprintf(`
 resource "aws_cloudwatch_metric_alarm" "foobar" {
-    alarm_name = "terraform-test-foobar5"
-    comparison_operator = "GreaterThanOrEqualToThreshold"
-    evaluation_periods = "2"
-    metric_name = "CPUUtilization"
-    namespace = "AWS/EC2"
-    period = "120"
-    statistic = "Average"
-    threshold = "80"
-    alarm_description = "This metric monitor ec2 cpu utilization"
-    insufficient_data_actions = []
+  alarm_name                = "terraform-test-foobar5"
+  comparison_operator       = "GreaterThanOrEqualToThreshold"
+  evaluation_periods        = "2"
+  metric_name               = "CPUUtilization"
+  namespace                 = "AWS/EC2"
+  period                    = "120"
+  statistic                 = "Average"
+  threshold                 = "80"
+  alarm_description         = "This metric monitors ec2 cpu utilization"
+  insufficient_data_actions = []
+  dimensions {
+    InstanceId = "i-abc123"
+  }
+}
+`)
+
+var testAccAWSCloudWatchMetricAlarmConfigExtendedStatistic = fmt.Sprintf(`
+resource "aws_cloudwatch_metric_alarm" "foobar" {
+  alarm_name                = "terraform-test-foobar6"
+  comparison_operator       = "GreaterThanOrEqualToThreshold"
+  evaluation_periods        = "2"
+  metric_name               = "CPUUtilization"
+  namespace                 = "AWS/EC2"
+  period                    = "120"
+  extended_statistic	    = "p88.0"
+  threshold                 = "80"
+  alarm_description         = "This metric monitors ec2 cpu utilization"
+  insufficient_data_actions = []
+  dimensions {
+    InstanceId = "i-abc123"
+  }
+}
+`)
+
+var testAccAWSCloudWatchMetricAlarmConfigMissingStatistic = fmt.Sprintf(`
+resource "aws_cloudwatch_metric_alarm" "foobar" {
+  alarm_name                = "terraform-test-foobar6"
+  comparison_operator       = "GreaterThanOrEqualToThreshold"
+  evaluation_periods        = "2"
+  metric_name               = "CPUUtilization"
+  namespace                 = "AWS/EC2"
+  period                    = "120"
+  threshold                 = "80"
+  alarm_description         = "This metric monitors ec2 cpu utilization"
+  insufficient_data_actions = []
+  dimensions {
+    InstanceId = "i-abc123"
+  }
 }
 `)

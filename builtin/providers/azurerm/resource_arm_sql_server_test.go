@@ -111,7 +111,7 @@ func testCheckAzureRMSqlServerDestroy(s *terraform.State) error {
 
 var testAccAzureRMSqlServer_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_sql_server" "test" {
@@ -126,7 +126,7 @@ resource "azurerm_sql_server" "test" {
 
 var testAccAzureRMSqlServer_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_sql_server" "test" {
@@ -146,7 +146,7 @@ resource "azurerm_sql_server" "test" {
 
 var testAccAzureRMSqlServer_withTagsUpdated = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_sql_server" "test" {

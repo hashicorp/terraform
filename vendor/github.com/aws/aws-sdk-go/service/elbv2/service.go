@@ -22,44 +22,44 @@ import (
 // with health check settings to be used when checking the health status of
 // the targets.
 //
-// Elastic Load Balancing supports two types of load balancers: Classic load
-// balancers and Application load balancers (new). A Classic load balancer makes
-// routing and load balancing decisions either at the transport layer (TCP/SSL)
-// or the application layer (HTTP/HTTPS), and supports either EC2-Classic or
-// a VPC. An Application load balancer makes routing and load balancing decisions
-// at the application layer (HTTP/HTTPS), supports path-based routing, and can
+// Elastic Load Balancing supports two types of load balancers: Classic Load
+// Balancers and Application Load Balancers. A Classic Load Balancer makes routing
+// and load balancing decisions either at the transport layer (TCP/SSL) or the
+// application layer (HTTP/HTTPS), and supports either EC2-Classic or a VPC.
+// An Application Load Balancer makes routing and load balancing decisions at
+// the application layer (HTTP/HTTPS), supports path-based routing, and can
 // route requests to one or more ports on each EC2 instance or container instance
 // in your virtual private cloud (VPC). For more information, see the Elastic
 // Load Balancing User Guide (http://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/).
 //
-// This reference covers the 2015-12-01 API, which supports Application load
-// balancers. The 2012-06-01 API supports Classic load balancers.
+// This reference covers the 2015-12-01 API, which supports Application Load
+// Balancers. The 2012-06-01 API supports Classic Load Balancers.
 //
-// To get started with an Application load balancer, complete the following
-// tasks:
+// To get started, complete the following tasks:
 //
-//   Create a load balancer using CreateLoadBalancer.
+// Create an Application Load Balancer using CreateLoadBalancer.
 //
-//   Create a target group using CreateTargetGroup.
+// Create a target group using CreateTargetGroup.
 //
-//   Register targets for the target group using RegisterTargets.
+// Register targets for the target group using RegisterTargets.
 //
-//   Create one or more listeners for your load balancer using CreateListener.
+// Create one or more listeners for your load balancer using CreateListener.
 //
-//   (Optional) Create one or more rules for content routing based on URL using
+// (Optional) Create one or more rules for content routing based on URL using
 // CreateRule.
 //
-//   To delete an Application load balancer and its related resources, complete
+// To delete an Application Load Balancer and its related resources, complete
 // the following tasks:
 //
-//   Delete the load balancer using DeleteLoadBalancer.
+// Delete the load balancer using DeleteLoadBalancer.
 //
-//   Delete the target group using DeleteTargetGroup.
+// Delete the target group using DeleteTargetGroup.
 //
-//   All Elastic Load Balancing operations are idempotent, which means that
-// they complete at most one time. If you repeat an operation, it succeeds.
-//The service client's operations are safe to be used concurrently.
+// All Elastic Load Balancing operations are idempotent, which means that they
+// complete at most one time. If you repeat an operation, it succeeds.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01
 type ELBV2 struct {
 	*client.Client
 }
@@ -70,8 +70,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "elasticloadbalancing"
+// Service information constants
+const (
+	ServiceName = "elasticloadbalancing" // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName            // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the ELBV2 client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -84,17 +87,18 @@ const ServiceName = "elasticloadbalancing"
 //     // Create a ELBV2 client with additional configuration
 //     svc := elbv2.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *ELBV2 {
-	c := p.ClientConfig(ServiceName, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
+	c := p.ClientConfig(EndpointsID, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *ELBV2 {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *ELBV2 {
 	svc := &ELBV2{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2015-12-01",

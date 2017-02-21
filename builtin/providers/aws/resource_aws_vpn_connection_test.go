@@ -19,7 +19,7 @@ func TestAccAWSVpnConnection_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccAwsVpnConnectionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsVpnConnectionConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAwsVpnConnection(
@@ -30,7 +30,7 @@ func TestAccAWSVpnConnection_basic(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsVpnConnectionConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAwsVpnConnection(
@@ -39,6 +39,29 @@ func TestAccAWSVpnConnection_basic(t *testing.T) {
 						"aws_customer_gateway.customer_gateway",
 						"aws_vpn_connection.foo",
 					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSVpnConnection_withoutStaticRoutes(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_vpn_connection.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccAwsVpnConnectionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAwsVpnConnectionConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccAwsVpnConnection(
+						"aws_vpc.vpc",
+						"aws_vpn_gateway.vpn_gateway",
+						"aws_customer_gateway.customer_gateway",
+						"aws_vpn_connection.foo",
+					),
+					resource.TestCheckResourceAttr("aws_vpn_connection.foo", "static_routes_only", "false"),
 				),
 			},
 		},

@@ -12,15 +12,16 @@ Provides an RDS DB option group resource.
 
 ```
 resource "aws_db_option_group" "bar" {
-  name = "option-group-test-terraform"
+  name                     = "option-group-test-terraform"
   option_group_description = "Terraform Option Group"
-  engine_name = "sqlserver-ee"
-  major_engine_version = "11.00"
+  engine_name              = "sqlserver-ee"
+  major_engine_version     = "11.00"
 
   option {
     option_name = "Timezone"
+
     option_settings {
-      name = "TIME_ZONE"
+      name  = "TIME_ZONE"
       value = "UTC"
     }
   }
@@ -65,7 +66,7 @@ The following attributes are exported:
 
 ## Import
 
-DB Option groups can be imported using the `name`, e.g. 
+DB Option groups can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_db_option_group.bar mysql-option-group

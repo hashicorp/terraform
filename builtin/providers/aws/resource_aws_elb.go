@@ -115,6 +115,7 @@ func resourceAwsElb() *schema.Resource {
 			"access_logs": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"interval": &schema.Schema{
@@ -392,7 +393,26 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("connection_draining_timeout", lbAttrs.ConnectionDraining.Timeout)
 	d.Set("cross_zone_load_balancing", lbAttrs.CrossZoneLoadBalancing.Enabled)
 	if lbAttrs.AccessLog != nil {
-		if err := d.Set("access_logs", flattenAccessLog(lbAttrs.AccessLog)); err != nil {
+		// The AWS API does not allow users to remove access_logs, only disable them.
+		// During creation of the ELB, Terraform sets the access_logs to disabled,
+		// so there should not be a case where lbAttrs.AccessLog above is nil.
+
+		// Here we do not record the remove value of access_log if:
+		// - there is no access_log block in the configuration
+		// - the remote access_logs are disabled
+		//
+		// This indicates there is no access_log in the configuration.
+		// - externally added access_logs will be enabled, so we'll detect the drift
+		// - locally added access_logs will be in the config, so we'll add to the
+		// API/state
+		// See https://github.com/hashicorp/terraform/issues/10138
+		_, n := d.GetChange("access_logs")
+		elbal := lbAttrs.AccessLog
+		nl := n.([]interface{})
+		if len(nl) == 0 && !*elbal.Enabled {
+			elbal = nil
+		}
+		if err := d.Set("access_logs", flattenAccessLog(elbal)); err != nil {
 			return err
 		}
 	}
@@ -533,18 +553,16 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		logs := d.Get("access_logs").([]interface{})
-		if len(logs) > 1 {
-			return fmt.Errorf("Only one access logs config per ELB is supported")
-		} else if len(logs) == 1 {
-			log := logs[0].(map[string]interface{})
+		if len(logs) == 1 {
+			l := logs[0].(map[string]interface{})
 			accessLog := &elb.AccessLog{
-				Enabled:      aws.Bool(log["enabled"].(bool)),
-				EmitInterval: aws.Int64(int64(log["interval"].(int))),
-				S3BucketName: aws.String(log["bucket"].(string)),
+				Enabled:      aws.Bool(l["enabled"].(bool)),
+				EmitInterval: aws.Int64(int64(l["interval"].(int))),
+				S3BucketName: aws.String(l["bucket"].(string)),
 			}
 
-			if log["bucket_prefix"] != "" {
-				accessLog.S3BucketPrefix = aws.String(log["bucket_prefix"].(string))
+			if l["bucket_prefix"] != "" {
+				accessLog.S3BucketPrefix = aws.String(l["bucket_prefix"].(string))
 			}
 
 			attrs.LoadBalancerAttributes.AccessLog = accessLog
@@ -695,19 +713,6 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		removed := expandStringList(os.Difference(ns).List())
 		added := expandStringList(ns.Difference(os).List())
 
-		if len(added) > 0 {
-			attachOpts := &elb.AttachLoadBalancerToSubnetsInput{
-				LoadBalancerName: aws.String(d.Id()),
-				Subnets:          added,
-			}
-
-			log.Printf("[DEBUG] ELB attach subnets opts: %s", attachOpts)
-			_, err := elbconn.AttachLoadBalancerToSubnets(attachOpts)
-			if err != nil {
-				return fmt.Errorf("Failure adding ELB subnets: %s", err)
-			}
-		}
-
 		if len(removed) > 0 {
 			detachOpts := &elb.DetachLoadBalancerFromSubnetsInput{
 				LoadBalancerName: aws.String(d.Id()),
@@ -718,6 +723,33 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			_, err := elbconn.DetachLoadBalancerFromSubnets(detachOpts)
 			if err != nil {
 				return fmt.Errorf("Failure removing ELB subnets: %s", err)
+			}
+		}
+
+		if len(added) > 0 {
+			attachOpts := &elb.AttachLoadBalancerToSubnetsInput{
+				LoadBalancerName: aws.String(d.Id()),
+				Subnets:          added,
+			}
+
+			log.Printf("[DEBUG] ELB attach subnets opts: %s", attachOpts)
+			err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+				_, err := elbconn.AttachLoadBalancerToSubnets(attachOpts)
+				if err != nil {
+					if awsErr, ok := err.(awserr.Error); ok {
+						// eventually consistent issue with removing a subnet in AZ1 and
+						// immediately adding a new one in the same AZ
+						if awsErr.Code() == "InvalidConfigurationRequest" && strings.Contains(awsErr.Message(), "cannot be attached to multiple subnets in the same AZ") {
+							log.Printf("[DEBUG] retrying az association")
+							return resource.RetryableError(awsErr)
+						}
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
+			if err != nil {
+				return fmt.Errorf("Failure adding ELB subnets: %s", err)
 			}
 		}
 

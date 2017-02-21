@@ -19,7 +19,7 @@ func TestAccAWSAPIGatewayDeployment_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAPIGatewayDeploymentDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAPIGatewayDeploymentConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayDeploymentExists("aws_api_gateway_deployment.test", &conf),
@@ -29,6 +29,8 @@ func TestAccAWSAPIGatewayDeployment_basic(t *testing.T) {
 						"aws_api_gateway_deployment.test", "description", "This is a test"),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_deployment.test", "variables.a", "2"),
+					resource.TestCheckResourceAttrSet(
+						"aws_api_gateway_deployment.test", "created_date"),
 				),
 			},
 		},

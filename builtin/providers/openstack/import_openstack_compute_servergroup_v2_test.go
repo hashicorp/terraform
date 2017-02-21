@@ -7,7 +7,7 @@ import (
 )
 
 func TestAccComputeV2ServerGroup_importBasic(t *testing.T) {
-	resourceName := "openstack_compute_servergroup_v2.mysg"
+	resourceName := "openstack_compute_servergroup_v2.sg_1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -19,10 +19,9 @@ func TestAccComputeV2ServerGroup_importBasic(t *testing.T) {
 			},
 
 			resource.TestStep{
-				ResourceName:            resourceName,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"region"},
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

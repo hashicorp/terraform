@@ -6,6 +6,46 @@ import (
 	"github.com/pkg/errors"
 )
 
+// WAFPackage represents a WAF package configuration.
+type WAFPackage struct {
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	ZoneID        string `json:"zone_id"`
+	DetectionMode string `json:"detection_mode"`
+	Sensitivity   string `json:"sensitivity"`
+	ActionMode    string `json:"action_mode"`
+}
+
+// WAFPackagesResponse represents the response from the WAF packages endpoint.
+type WAFPackagesResponse struct {
+	Response
+	Result     []WAFPackage `json:"result"`
+	ResultInfo ResultInfo   `json:"result_info"`
+}
+
+// WAFRule represents a WAF rule.
+type WAFRule struct {
+	ID          string `json:"id"`
+	Description string `json:"description"`
+	Priority    string `json:"priority"`
+	PackageID   string `json:"package_id"`
+	Group       struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"group"`
+	Mode         string   `json:"mode"`
+	DefaultMode  string   `json:"default_mode"`
+	AllowedModes []string `json:"allowed_modes"`
+}
+
+// WAFRulesResponse represents the response from the WAF rule endpoint.
+type WAFRulesResponse struct {
+	Response
+	Result     []WAFRule  `json:"result"`
+	ResultInfo ResultInfo `json:"result_info"`
+}
+
 // ListWAFPackages returns a slice of the WAF packages for the given zone.
 func (api *API) ListWAFPackages(zoneID string) ([]WAFPackage, error) {
 	var p WAFPackagesResponse

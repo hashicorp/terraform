@@ -20,13 +20,13 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the GitHub Provider
 provider "github" {
-    token = "${var.github_token}"
-    organization = "${var.github_organization}"
+  token        = "${var.github_token}"
+  organization = "${var.github_organization}"
 }
 
 # Add a user to the organization
 resource "github_membership" "membership_for_user_x" {
-    ...
+  # ...
 }
 ```
 

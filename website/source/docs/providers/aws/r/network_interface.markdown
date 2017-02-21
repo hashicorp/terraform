@@ -14,13 +14,14 @@ Provides an Elastic network interface (ENI) resource.
 
 ```
 resource "aws_network_interface" "test" {
-    subnet_id = "${aws_subnet.public_a.id}"
-	private_ips = ["10.0.0.50"]
-	security_groups = ["${aws_security_group.web.id}"]
-	attachment {
-		instance = "${aws_instance.test.id}"
-		device_index = 1
-	}
+  subnet_id       = "${aws_subnet.public_a.id}"
+  private_ips     = ["10.0.0.50"]
+  security_groups = ["${aws_security_group.web.id}"]
+
+  attachment {
+    instance     = "${aws_instance.test.id}"
+    device_index = 1
+  }
 }
 ```
 
@@ -57,7 +58,7 @@ The following attributes are exported:
 
 ## Import
 
-Network Interfaces can be imported using the `id`, e.g. 
+Network Interfaces can be imported using the `id`, e.g.
 
 ```
 $ terraform import aws_network_interface.test eni-e5aa89a3

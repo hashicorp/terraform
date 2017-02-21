@@ -3,8 +3,6 @@ package terraform
 import (
 	"strings"
 	"testing"
-
-	"github.com/hashicorp/terraform/dag"
 )
 
 func TestProviderTransformer(t *testing.T) {
@@ -14,6 +12,20 @@ func TestProviderTransformer(t *testing.T) {
 	{
 		tf := &ConfigTransformer{Module: mod}
 		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &AttachResourceConfigTransformer{Module: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &MissingProviderTransformer{Providers: []string{"aws"}}
+		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -80,6 +92,20 @@ func TestCloseProviderTransformer(t *testing.T) {
 	}
 
 	{
+		transform := &AttachResourceConfigTransformer{Module: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &MissingProviderTransformer{Providers: []string{"aws"}}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
 		transform := &ProviderTransformer{}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -106,6 +132,7 @@ func TestCloseProviderTransformer_withTargets(t *testing.T) {
 	g := Graph{Path: RootModulePath}
 	transforms := []GraphTransformer{
 		&ConfigTransformer{Module: mod},
+		&MissingProviderTransformer{Providers: []string{"aws"}},
 		&ProviderTransformer{},
 		&CloseProviderTransformer{},
 		&TargetsTransformer{
@@ -120,11 +147,7 @@ func TestCloseProviderTransformer_withTargets(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(`
-provider.aws
-provider.aws (close)
-  provider.aws
-	`)
+	expected := strings.TrimSpace(``)
 	if actual != expected {
 		t.Fatalf("expected:%s\n\ngot:\n\n%s", expected, actual)
 	}
@@ -142,7 +165,14 @@ func TestMissingProviderTransformer(t *testing.T) {
 	}
 
 	{
-		transform := &MissingProviderTransformer{Providers: []string{"foo", "bar"}}
+		transform := &AttachResourceConfigTransformer{Module: mod}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &MissingProviderTransformer{Providers: []string{"aws", "foo", "bar"}}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -230,6 +260,89 @@ func TestMissingProviderTransformer_moduleGrandchild(t *testing.T) {
 	}
 }
 
+func TestParentProviderTransformer(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+
+	// Introduce a cihld module
+	{
+		tf := &ImportStateTransformer{
+			Targets: []*ImportTarget{
+				&ImportTarget{
+					Addr: "module.moo.foo_instance.qux",
+					ID:   "bar",
+				},
+			},
+		}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Add the missing modules
+	{
+		tf := &MissingProviderTransformer{Providers: []string{"foo", "bar"}}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Connect parents
+	{
+		tf := &ParentProviderTransformer{}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformParentProviderStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestParentProviderTransformer_moduleGrandchild(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+
+	// We use the import state transformer since at the time of writing
+	// this test it is the first and only transformer that will introduce
+	// multiple module-path nodes at a single go.
+	{
+		tf := &ImportStateTransformer{
+			Targets: []*ImportTarget{
+				&ImportTarget{
+					Addr: "module.a.module.b.foo_instance.qux",
+					ID:   "bar",
+				},
+			},
+		}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := &MissingProviderTransformer{Providers: []string{"foo", "bar"}}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Connect parents
+	{
+		tf := &ParentProviderTransformer{}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformParentProviderModuleGrandchildStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestPruneProviderTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provider-prune")
 
@@ -237,6 +350,13 @@ func TestPruneProviderTransformer(t *testing.T) {
 	{
 		tf := &ConfigTransformer{Module: mod}
 		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &AttachResourceConfigTransformer{Module: mod}
+		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -273,71 +393,6 @@ func TestPruneProviderTransformer(t *testing.T) {
 	expected := strings.TrimSpace(testTransformPruneProviderBasicStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
-func TestDisableProviderTransformer(t *testing.T) {
-	mod := testModule(t, "transform-provider-disable")
-
-	g := Graph{Path: RootModulePath}
-	transforms := []GraphTransformer{
-		&ConfigTransformer{Module: mod},
-		&MissingProviderTransformer{Providers: []string{"aws"}},
-		&ProviderTransformer{},
-		&DisableProviderTransformer{},
-		&CloseProviderTransformer{},
-		&PruneProviderTransformer{},
-	}
-
-	for _, tr := range transforms {
-		if err := tr.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformDisableProviderBasicStr)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s\n", expected, actual)
-	}
-}
-
-func TestDisableProviderTransformer_keep(t *testing.T) {
-	mod := testModule(t, "transform-provider-disable-keep")
-
-	g := Graph{Path: RootModulePath}
-	transforms := []GraphTransformer{
-		&ConfigTransformer{Module: mod},
-		&MissingProviderTransformer{Providers: []string{"aws"}},
-		&ProviderTransformer{},
-		&DisableProviderTransformer{},
-		&CloseProviderTransformer{},
-		&PruneProviderTransformer{},
-	}
-
-	for _, tr := range transforms {
-		if err := tr.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformDisableProviderKeepStr)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s\n", expected, actual)
-	}
-}
-
-func TestGraphNodeProvider_impl(t *testing.T) {
-	var _ dag.Vertex = new(graphNodeProvider)
-	var _ dag.NamedVertex = new(graphNodeProvider)
-	var _ GraphNodeProvider = new(graphNodeProvider)
-}
-
-func TestGraphNodeProvider_ProviderName(t *testing.T) {
-	n := &graphNodeProvider{ProviderNameValue: "foo"}
-	if v := n.ProviderName(); v != "foo" {
-		t.Fatalf("bad: %#v", v)
 	}
 }
 
@@ -379,6 +434,22 @@ const testTransformMissingProviderModuleGrandchildStr = `
 module.a.module.b.foo_instance.qux (import id: bar)
 module.a.module.b.provider.foo
 module.a.provider.foo
+provider.foo
+`
+
+const testTransformParentProviderStr = `
+module.moo.foo_instance.qux (import id: bar)
+module.moo.provider.foo
+  provider.foo
+provider.foo
+`
+
+const testTransformParentProviderModuleGrandchildStr = `
+module.a.module.b.foo_instance.qux (import id: bar)
+module.a.module.b.provider.foo
+  module.a.provider.foo
+module.a.provider.foo
+  provider.foo
 provider.foo
 `
 

@@ -31,6 +31,39 @@ func TestAccScalewayServer_Basic(t *testing.T) {
 	})
 }
 
+func TestAccScalewayServer_Volumes(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckScalewayServerDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckScalewayServerVolumeConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckScalewayServerExists("scaleway_server.base"),
+					testAccCheckScalewayServerAttributes("scaleway_server.base"),
+					resource.TestCheckResourceAttr(
+						"scaleway_server.base", "type", "C1"),
+					resource.TestCheckResourceAttr(
+						"scaleway_server.base", "volume.#", "2"),
+					resource.TestCheckResourceAttrSet(
+						"scaleway_server.base", "volume.0.volume_id"),
+					resource.TestCheckResourceAttr(
+						"scaleway_server.base", "volume.0.type", "l_ssd"),
+					resource.TestCheckResourceAttr(
+						"scaleway_server.base", "volume.0.size_in_gb", "20"),
+					resource.TestCheckResourceAttrSet(
+						"scaleway_server.base", "volume.1.volume_id"),
+					resource.TestCheckResourceAttr(
+						"scaleway_server.base", "volume.1.type", "l_ssd"),
+					resource.TestCheckResourceAttr(
+						"scaleway_server.base", "volume.1.size_in_gb", "30"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccScalewayServer_SecurityGroup(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -159,6 +192,25 @@ resource "scaleway_server" "base" {
   image = "%s"
   type = "C1"
   tags = [ "terraform-test" ]
+}`, armImageIdentifier)
+
+var testAccCheckScalewayServerVolumeConfig = fmt.Sprintf(`
+resource "scaleway_server" "base" {
+  name = "test"
+  # ubuntu 14.04
+  image = "%s"
+  type = "C1"
+  tags = [ "terraform-test" ]
+
+  volume {
+    size_in_gb = 20
+    type = "l_ssd"
+  }
+
+  volume {
+    size_in_gb = 30
+    type = "l_ssd"
+  }
 }`, armImageIdentifier)
 
 var testAccCheckScalewayServerConfig_SecurityGroup = fmt.Sprintf(`

@@ -21,6 +21,7 @@ package servicebus
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -39,13 +40,19 @@ func NewQueuesClientWithBaseURI(baseURI string, subscriptionID string) QueuesCli
 	return QueuesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate creates/Updates a service Queue. This operation is
+// CreateOrUpdate creates or updates a Service Bus queue. This operation is
 // idempotent.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name. queueName is the queue name. parameters is parameters
-// supplied to create a Queue Resource.
+// supplied to create or update a queue resource.
 func (client QueuesClient) CreateOrUpdate(resourceGroupName string, namespaceName string, queueName string, parameters QueueCreateOrUpdateParameters) (result QueueResource, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Location", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "servicebus.QueuesClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, namespaceName, queueName, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -107,13 +114,20 @@ func (client QueuesClient) CreateOrUpdateResponder(resp *http.Response) (result 
 	return
 }
 
-// CreateOrUpdateAuthorizationRule creates an authorization rule for a queue
+// CreateOrUpdateAuthorizationRule creates an authorization rule for a queue.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name. queueName is the queue name. authorizationRuleName is
-// aauthorization Rule Name. parameters is the shared access authorization
+// authorization rule name. parameters is the shared access authorization
 // rule.
 func (client QueuesClient) CreateOrUpdateAuthorizationRule(resourceGroupName string, namespaceName string, queueName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (result SharedAccessAuthorizationRuleResource, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.SharedAccessAuthorizationRuleProperties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.SharedAccessAuthorizationRuleProperties.Rights", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "servicebus.QueuesClient", "CreateOrUpdateAuthorizationRule")
+	}
+
 	req, err := client.CreateOrUpdateAuthorizationRulePreparer(resourceGroupName, namespaceName, queueName, authorizationRuleName, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "CreateOrUpdateAuthorizationRule", nil, "Failure preparing request")
@@ -176,10 +190,10 @@ func (client QueuesClient) CreateOrUpdateAuthorizationRuleResponder(resp *http.R
 	return
 }
 
-// Delete deletes a queue from the specified namespace in resource group.
+// Delete deletes a queue from the specified namespace in a resource group.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. queueName is the queue name.
+// namespace name. queueName is the name of the queue to be deleted.
 func (client QueuesClient) Delete(resourceGroupName string, namespaceName string, queueName string) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(resourceGroupName, namespaceName, queueName)
 	if err != nil {
@@ -233,17 +247,17 @@ func (client QueuesClient) DeleteResponder(resp *http.Response) (result autorest
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		azure.WithErrorUnlessStatusCode(http.StatusNoContent, http.StatusOK),
 		autorest.ByClosing())
 	result.Response = resp
 	return
 }
 
-// DeleteAuthorizationRule deletes a queue authorization rule
+// DeleteAuthorizationRule deletes a queue authorization rule.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name. queueName is the queue name. authorizationRuleName is
-// authorization Rule Name.
+// authorization rule name.
 func (client QueuesClient) DeleteAuthorizationRule(resourceGroupName string, namespaceName string, queueName string, authorizationRuleName string) (result autorest.Response, err error) {
 	req, err := client.DeleteAuthorizationRulePreparer(resourceGroupName, namespaceName, queueName, authorizationRuleName)
 	if err != nil {
@@ -298,13 +312,13 @@ func (client QueuesClient) DeleteAuthorizationRuleResponder(resp *http.Response)
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		azure.WithErrorUnlessStatusCode(http.StatusNoContent, http.StatusOK),
 		autorest.ByClosing())
 	result.Response = resp
 	return
 }
 
-// Get returns the description for the specified queue.
+// Get returns a description for the specified queue.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name. queueName is the queue name.
@@ -368,10 +382,10 @@ func (client QueuesClient) GetResponder(resp *http.Response) (result QueueResour
 	return
 }
 
-// GetAuthorizationRule queue authorizationRule for a queue by name.
+// GetAuthorizationRule gets an authorization rule for a queue by rule name.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name queueName is the queue name. authorizationRuleName is
+// namespace name. queueName is the queue name. authorizationRuleName is
 // authorization rule name.
 func (client QueuesClient) GetAuthorizationRule(resourceGroupName string, namespaceName string, queueName string, authorizationRuleName string) (result SharedAccessAuthorizationRuleResource, err error) {
 	req, err := client.GetAuthorizationRulePreparer(resourceGroupName, namespaceName, queueName, authorizationRuleName)
@@ -434,7 +448,7 @@ func (client QueuesClient) GetAuthorizationRuleResponder(resp *http.Response) (r
 	return
 }
 
-// ListAll lists the queues within the namespace.
+// ListAll gets the queues within a namespace.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name.
@@ -501,7 +515,7 @@ func (client QueuesClient) ListAllResponder(resp *http.Response) (result QueueLi
 func (client QueuesClient) ListAllNextResults(lastResults QueueListResult) (result QueueListResult, err error) {
 	req, err := lastResults.QueueListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAll", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAll", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -510,18 +524,18 @@ func (client QueuesClient) ListAllNextResults(lastResults QueueListResult) (resu
 	resp, err := client.ListAllSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAll", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAll", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAllResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAll", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAll", resp, "Failure responding to next results request")
 	}
 
 	return
 }
 
-// ListAuthorizationRules returns all Queue authorizationRules.
+// ListAuthorizationRules gets all authorization rules for a queue.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name queueName is the queue name.
@@ -589,7 +603,7 @@ func (client QueuesClient) ListAuthorizationRulesResponder(resp *http.Response) 
 func (client QueuesClient) ListAuthorizationRulesNextResults(lastResults SharedAccessAuthorizationRuleListResult) (result SharedAccessAuthorizationRuleListResult, err error) {
 	req, err := lastResults.SharedAccessAuthorizationRuleListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAuthorizationRules", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAuthorizationRules", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -598,22 +612,22 @@ func (client QueuesClient) ListAuthorizationRulesNextResults(lastResults SharedA
 	resp, err := client.ListAuthorizationRulesSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAuthorizationRules", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAuthorizationRules", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAuthorizationRulesResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAuthorizationRules", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAuthorizationRules", resp, "Failure responding to next results request")
 	}
 
 	return
 }
 
-// ListKeys primary and Secondary ConnectionStrings to the queue.
+// ListKeys primary and secondary connection strings to the queue.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name. queueName is the queue name. authorizationRuleName is the
-// authorizationRule name.
+// authorization rule name.
 func (client QueuesClient) ListKeys(resourceGroupName string, namespaceName string, queueName string, authorizationRuleName string) (result ResourceListKeys, err error) {
 	req, err := client.ListKeysPreparer(resourceGroupName, namespaceName, queueName, authorizationRuleName)
 	if err != nil {
@@ -675,13 +689,13 @@ func (client QueuesClient) ListKeysResponder(resp *http.Response) (result Resour
 	return
 }
 
-// RegenerateKeys regenerates the Primary or Secondary ConnectionStrings to
-// the Queue
+// RegenerateKeys regenerates the primary or secondary connection strings to
+// the queue.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name. queueName is the queue name. authorizationRuleName is the
-// authorizationRule name parameters is parameters supplied to regenerate
-// Auth Rule.
+// authorization rule name. parameters is parameters supplied to regenerate
+// the authorization rule.
 func (client QueuesClient) RegenerateKeys(resourceGroupName string, namespaceName string, queueName string, authorizationRuleName string, parameters RegenerateKeysParameters) (result ResourceListKeys, err error) {
 	req, err := client.RegenerateKeysPreparer(resourceGroupName, namespaceName, queueName, authorizationRuleName, parameters)
 	if err != nil {

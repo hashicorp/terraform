@@ -7,6 +7,10 @@ type EvalSequence struct {
 
 func (n *EvalSequence) Eval(ctx EvalContext) (interface{}, error) {
 	for _, n := range n.Nodes {
+		if n == nil {
+			continue
+		}
+
 		if _, err := EvalRaw(n, ctx); err != nil {
 			return nil, err
 		}

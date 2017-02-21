@@ -1,10 +1,13 @@
 package udnssdk
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
+
+	"github.com/fatih/structs"
+	"github.com/mitchellh/mapstructure"
 )
 
 // RRSetsService provides access to RRSet resources
@@ -13,16 +16,6 @@ type RRSetsService struct {
 }
 
 // Here is the big 'Profile' mess that should get refactored to a more managable place
-
-// StringProfile wraps a Profile string
-type StringProfile struct {
-	Profile string `json:"profile,omitempty"`
-}
-
-// Metaprofile is a helper struct for extracting a Context from a StringProfile
-type Metaprofile struct {
-	Context ProfileSchema `json:"@context"`
-}
 
 // ProfileSchema are the schema URIs for RRSet Profiles
 type ProfileSchema string
@@ -38,34 +31,150 @@ const (
 	TCPoolSchema = "http://schemas.ultradns.com/TCPool.jsonschema"
 )
 
+// RawProfile represents the naive interface to an RRSet Profile
+type RawProfile map[string]interface{}
+
+// Context extracts the schema context from a RawProfile
+func (rp RawProfile) Context() ProfileSchema {
+	return ProfileSchema(rp["@context"].(string))
+}
+
+// GetProfileObject extracts the full Profile by its schema type
+func (rp RawProfile) GetProfileObject() (interface{}, error) {
+	c := rp.Context()
+	switch c {
+	case DirPoolSchema:
+		return rp.DirPoolProfile()
+	case RDPoolSchema:
+		return rp.RDPoolProfile()
+	case SBPoolSchema:
+		return rp.SBPoolProfile()
+	case TCPoolSchema:
+		return rp.TCPoolProfile()
+	default:
+		return nil, fmt.Errorf("Fallthrough on GetProfileObject type %s\n", c)
+	}
+}
+
+// decode takes a RawProfile and uses reflection to convert it into the
+// given Go native structure. val must be a pointer to a struct.
+// This is identical to mapstructure.Decode, but uses the `json:` tag instead of `mapstructure:`
+func decodeProfile(m interface{}, rawVal interface{}) error {
+	config := &mapstructure.DecoderConfig{
+		Metadata:         nil,
+		TagName:          "json",
+		Result:           rawVal,
+		ErrorUnused:      true,
+		WeaklyTypedInput: true,
+	}
+
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return err
+	}
+
+	return decoder.Decode(m)
+}
+
+// DirPoolProfile extracts the full Profile as a DirPoolProfile or returns an error
+func (rp RawProfile) DirPoolProfile() (DirPoolProfile, error) {
+	var result DirPoolProfile
+	c := rp.Context()
+	if c != DirPoolSchema {
+		return result, fmt.Errorf("RDPoolProfile has incorrect JSON-LD @context %s\n", c)
+	}
+	err := decodeProfile(rp, &result)
+	return result, err
+}
+
+// RDPoolProfile extracts the full Profile as a RDPoolProfile or returns an error
+func (rp RawProfile) RDPoolProfile() (RDPoolProfile, error) {
+	var result RDPoolProfile
+	c := rp.Context()
+	if c != RDPoolSchema {
+		return result, fmt.Errorf("RDPoolProfile has incorrect JSON-LD @context %s\n", c)
+	}
+	err := decodeProfile(rp, &result)
+	return result, err
+}
+
+// SBPoolProfile extracts the full Profile as a SBPoolProfile or returns an error
+func (rp RawProfile) SBPoolProfile() (SBPoolProfile, error) {
+	var result SBPoolProfile
+	c := rp.Context()
+	if c != SBPoolSchema {
+		return result, fmt.Errorf("SBPoolProfile has incorrect JSON-LD @context %s\n", c)
+	}
+	err := decodeProfile(rp, &result)
+	return result, err
+}
+
+// TCPoolProfile extracts the full Profile as a TCPoolProfile or returns an error
+func (rp RawProfile) TCPoolProfile() (TCPoolProfile, error) {
+	var result TCPoolProfile
+	c := rp.Context()
+	if c != TCPoolSchema {
+		return result, fmt.Errorf("TCPoolProfile has incorrect JSON-LD @context %s\n", c)
+	}
+	err := decodeProfile(rp, &result)
+	return result, err
+}
+
+// encodeProfile takes a struct and converts to a RawProfile
+func encodeProfile(rawVal interface{}) RawProfile {
+	s := structs.New(rawVal)
+	s.TagName = "json"
+	return s.Map()
+}
+
+// RawProfile converts to a naive RawProfile
+func (p DirPoolProfile) RawProfile() RawProfile {
+	return encodeProfile(p)
+}
+
+// RawProfile converts to a naive RawProfile
+func (p RDPoolProfile) RawProfile() RawProfile {
+	return encodeProfile(p)
+}
+
+// RawProfile converts to a naive RawProfile
+func (p SBPoolProfile) RawProfile() RawProfile {
+	return encodeProfile(p)
+}
+
+// RawProfile converts to a naive RawProfile
+func (p TCPoolProfile) RawProfile() RawProfile {
+	return encodeProfile(p)
+}
+
 // DirPoolProfile wraps a Profile for a Directional Pool
 type DirPoolProfile struct {
 	Context         ProfileSchema `json:"@context"`
 	Description     string        `json:"description"`
 	ConflictResolve string        `json:"conflictResolve,omitempty"`
 	RDataInfo       []DPRDataInfo `json:"rdataInfo"`
-	NoResponse      DPRDataInfo   `json:"noResponse"`
+	NoResponse      DPRDataInfo   `json:"noResponse,omitempty"`
 }
 
 // DPRDataInfo wraps the rdataInfo object of a DirPoolProfile response
 type DPRDataInfo struct {
-	AllNonConfigured bool    `json:"allNonConfigured,omitempty"`
-	IPInfo           IPInfo  `json:"ipInfo,omitempty"`
-	GeoInfo          GeoInfo `json:"geoInfo,omitempty"`
+	AllNonConfigured bool     `json:"allNonConfigured,omitempty" terraform:"all_non_configured"`
+	IPInfo           *IPInfo  `json:"ipInfo,omitempty" terraform:"ip_info"`
+	GeoInfo          *GeoInfo `json:"geoInfo,omitempty" terraform:"geo_info"`
 }
 
 // IPInfo wraps the ipInfo object of a DPRDataInfo
 type IPInfo struct {
-	Name           string      `json:"name"`
-	IsAccountLevel bool        `json:"isAccountLevel,omitempty"`
-	Ips            []IPAddrDTO `json:"ips"`
+	Name           string      `json:"name" terraform:"name"`
+	IsAccountLevel bool        `json:"isAccountLevel,omitempty" terraform:"is_account_level"`
+	Ips            []IPAddrDTO `json:"ips,omitempty" terraform:"-"`
 }
 
 // GeoInfo wraps the geoInfo object of a DPRDataInfo
 type GeoInfo struct {
-	Name           string   `json:"name"`
-	IsAccountLevel bool     `json:"isAccountLevel,omitempty"`
-	Codes          []string `json:"codes"`
+	Name           string   `json:"name" terraform:"name"`
+	IsAccountLevel bool     `json:"isAccountLevel,omitempty" terraform:"is_account_level"`
+	Codes          []string `json:"codes,omitempty" terraform:"-"`
 }
 
 // RDPoolProfile wraps a Profile for a Resource Distribution pool
@@ -79,8 +188,8 @@ type RDPoolProfile struct {
 type SBPoolProfile struct {
 	Context       ProfileSchema  `json:"@context"`
 	Description   string         `json:"description"`
-	RunProbes     bool           `json:"runProbes,omitempty"`
-	ActOnProbes   bool           `json:"actOnProbes,omitempty"`
+	RunProbes     bool           `json:"runProbes"`
+	ActOnProbes   bool           `json:"actOnProbes"`
 	Order         string         `json:"order,omitempty"`
 	MaxActive     int            `json:"maxActive,omitempty"`
 	MaxServed     int            `json:"maxServed,omitempty"`
@@ -91,7 +200,7 @@ type SBPoolProfile struct {
 // SBRDataInfo wraps the rdataInfo object of a SBPoolProfile
 type SBRDataInfo struct {
 	State         string `json:"state"`
-	RunProbes     bool   `json:"runProbes,omitempty"`
+	RunProbes     bool   `json:"runProbes"`
 	Priority      int    `json:"priority"`
 	FailoverDelay int    `json:"failoverDelay,omitempty"`
 	Threshold     int    `json:"threshold"`
@@ -100,7 +209,7 @@ type SBRDataInfo struct {
 
 // BackupRecord wraps the backupRecord objects of an SBPoolProfile response
 type BackupRecord struct {
-	RData         string `json:"rdata"`
+	RData         string `json:"rdata,omitempty"`
 	FailoverDelay int    `json:"failoverDelay,omitempty"`
 }
 
@@ -108,109 +217,20 @@ type BackupRecord struct {
 type TCPoolProfile struct {
 	Context      ProfileSchema `json:"@context"`
 	Description  string        `json:"description"`
-	RunProbes    bool          `json:"runProbes,omitempty"`
-	ActOnProbes  bool          `json:"actOnProbes,omitempty"`
+	RunProbes    bool          `json:"runProbes"`
+	ActOnProbes  bool          `json:"actOnProbes"`
 	MaxToLB      int           `json:"maxToLB,omitempty"`
 	RDataInfo    []SBRDataInfo `json:"rdataInfo"`
-	BackupRecord BackupRecord  `json:"backupRecord"`
-}
-
-// UnmarshalJSON does what it says on the tin
-func (sp *StringProfile) UnmarshalJSON(b []byte) (err error) {
-	sp.Profile = string(b)
-	return nil
-}
-
-// MarshalJSON does what it says on the tin
-func (sp *StringProfile) MarshalJSON() ([]byte, error) {
-	if sp.Profile != "" {
-		return []byte(sp.Profile), nil
-	}
-	return json.Marshal(nil)
-}
-
-// Metaprofile converts a StringProfile to a Metaprofile to extract the context
-func (sp *StringProfile) Metaprofile() (Metaprofile, error) {
-	var mp Metaprofile
-	if sp.Profile == "" {
-		return mp, fmt.Errorf("Empty Profile cannot be converted to a Metaprofile")
-	}
-	err := json.Unmarshal([]byte(sp.Profile), &mp)
-	if err != nil {
-		return mp, fmt.Errorf("Error getting profile type: %+v\n", err)
-	}
-	return mp, nil
-}
-
-// Context extracts the schema context from a StringProfile
-func (sp *StringProfile) Context() ProfileSchema {
-	mp, err := sp.Metaprofile()
-	if err != nil {
-		log.Printf("[ERROR] %+s\n", err)
-		return ""
-	}
-	return mp.Context
-}
-
-// GoString returns the StringProfile's Profile.
-func (sp *StringProfile) GoString() string {
-	return sp.Profile
-}
-
-// String returns the StringProfile's Profile.
-func (sp *StringProfile) String() string {
-	return sp.Profile
-}
-
-// GetProfileObject extracts the full Profile by its schema type
-func (sp *StringProfile) GetProfileObject() interface{} {
-	c := sp.Context()
-	switch c {
-	case DirPoolSchema:
-		var dpp DirPoolProfile
-		err := json.Unmarshal([]byte(sp.Profile), &dpp)
-		if err != nil {
-			log.Printf("Could not Unmarshal the DirPoolProfile.\n")
-			return nil
-		}
-		return dpp
-	case RDPoolSchema:
-		var rdp RDPoolProfile
-		err := json.Unmarshal([]byte(sp.Profile), &rdp)
-		if err != nil {
-			log.Printf("Could not Unmarshal the RDPoolProfile.\n")
-			return nil
-		}
-		return rdp
-	case SBPoolSchema:
-		var sbp SBPoolProfile
-		err := json.Unmarshal([]byte(sp.Profile), &sbp)
-		if err != nil {
-			log.Printf("Could not Unmarshal the SBPoolProfile.\n")
-			return nil
-		}
-		return sbp
-	case TCPoolSchema:
-		var tcp TCPoolProfile
-		err := json.Unmarshal([]byte(sp.Profile), &tcp)
-		if err != nil {
-			log.Printf("Could not Unmarshal the TCPoolProfile.\n")
-			return nil
-		}
-		return tcp
-	default:
-		log.Printf("ERROR - Fall through on GetProfileObject - %s.\n", c)
-		return fmt.Errorf("Fallthrough on GetProfileObject type %s\n", c)
-	}
+	BackupRecord *BackupRecord `json:"backupRecord,omitempty"`
 }
 
 // RRSet wraps an RRSet resource
 type RRSet struct {
-	OwnerName string         `json:"ownerName"`
-	RRType    string         `json:"rrtype"`
-	TTL       int            `json:"ttl"`
-	RData     []string       `json:"rdata"`
-	Profile   *StringProfile `json:"profile,omitempty"`
+	OwnerName string     `json:"ownerName"`
+	RRType    string     `json:"rrtype"`
+	TTL       int        `json:"ttl"`
+	RData     []string   `json:"rdata"`
+	Profile   RawProfile `json:"profile,omitempty"`
 }
 
 // RRSetListDTO wraps a list of RRSet resources
@@ -323,7 +343,7 @@ func (s *RRSetsService) Select(k RRSetKey) ([]RRSet, error) {
 	for {
 		reqRrsets, ri, res, err := s.SelectWithOffset(k, offset)
 		if err != nil {
-			if res.StatusCode >= 500 {
+			if res != nil && res.StatusCode >= 500 {
 				errcnt = errcnt + 1
 				if errcnt < maxerrs {
 					time.Sleep(waittime)
@@ -346,7 +366,7 @@ func (s *RRSetsService) Select(k RRSetKey) ([]RRSet, error) {
 }
 
 // SelectWithOffset requests zone rrsets by RRSetKey & optional offset
-func (s *RRSetsService) SelectWithOffset(k RRSetKey, offset int) ([]RRSet, ResultInfo, *Response, error) {
+func (s *RRSetsService) SelectWithOffset(k RRSetKey, offset int) ([]RRSet, ResultInfo, *http.Response, error) {
 	var rrsld RRSetListDTO
 
 	uri := k.QueryURI(offset)
@@ -360,18 +380,18 @@ func (s *RRSetsService) SelectWithOffset(k RRSetKey, offset int) ([]RRSet, Resul
 }
 
 // Create creates an rrset with val
-func (s *RRSetsService) Create(k RRSetKey, rrset RRSet) (*Response, error) {
+func (s *RRSetsService) Create(k RRSetKey, rrset RRSet) (*http.Response, error) {
 	var ignored interface{}
 	return s.client.post(k.URI(), rrset, &ignored)
 }
 
 // Update updates a RRSet with the provided val
-func (s *RRSetsService) Update(k RRSetKey, val RRSet) (*Response, error) {
+func (s *RRSetsService) Update(k RRSetKey, val RRSet) (*http.Response, error) {
 	var ignored interface{}
 	return s.client.put(k.URI(), val, &ignored)
 }
 
 // Delete deletes an RRSet
-func (s *RRSetsService) Delete(k RRSetKey) (*Response, error) {
+func (s *RRSetsService) Delete(k RRSetKey) (*http.Response, error) {
 	return s.client.delete(k.URI(), nil)
 }

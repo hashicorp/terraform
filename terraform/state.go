@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -78,6 +80,11 @@ type State struct {
 	// pull and push state files from a remote storage endpoint.
 	Remote *RemoteState `json:"remote,omitempty"`
 
+	// Backend tracks the configuration for the backend in use with
+	// this state. This is used to track any changes in the backend
+	// configuration.
+	Backend *BackendState `json:"backend,omitempty"`
+
 	// Modules contains all the modules in a breadth-first order
 	Modules []*ModuleState `json:"modules"`
 
@@ -98,10 +105,20 @@ func NewState() *State {
 // the given path. If the path is "root", for example, then children
 // returned might be "root.child", but not "root.child.grandchild".
 func (s *State) Children(path []string) []*ModuleState {
+	s.Lock()
+	defer s.Unlock()
 	// TODO: test
 
+	return s.children(path)
+}
+
+func (s *State) children(path []string) []*ModuleState {
 	result := make([]*ModuleState, 0)
 	for _, m := range s.Modules {
+		if m == nil {
+			continue
+		}
+
 		if len(m.Path) != len(path)+1 {
 			continue
 		}
@@ -120,8 +137,15 @@ func (s *State) Children(path []string) []*ModuleState {
 // This should be the preferred method to add module states since it
 // allows us to optimize lookups later as well as control sorting.
 func (s *State) AddModule(path []string) *ModuleState {
+	s.Lock()
+	defer s.Unlock()
+
+	return s.addModule(path)
+}
+
+func (s *State) addModule(path []string) *ModuleState {
 	// check if the module exists first
-	m := s.ModuleByPath(path)
+	m := s.moduleByPath(path)
 	if m != nil {
 		return m
 	}
@@ -140,7 +164,17 @@ func (s *State) ModuleByPath(path []string) *ModuleState {
 	if s == nil {
 		return nil
 	}
+	s.Lock()
+	defer s.Unlock()
+
+	return s.moduleByPath(path)
+}
+
+func (s *State) moduleByPath(path []string) *ModuleState {
 	for _, mod := range s.Modules {
+		if mod == nil {
+			continue
+		}
 		if mod.Path == nil {
 			panic("missing module path")
 		}
@@ -155,6 +189,14 @@ func (s *State) ModuleByPath(path []string) *ModuleState {
 // returning their full paths. These paths can be used with ModuleByPath
 // to return the actual state.
 func (s *State) ModuleOrphans(path []string, c *config.Config) [][]string {
+	s.Lock()
+	defer s.Unlock()
+
+	return s.moduleOrphans(path, c)
+
+}
+
+func (s *State) moduleOrphans(path []string, c *config.Config) [][]string {
 	// direct keeps track of what direct children we have both in our config
 	// and in our state. childrenKeys keeps track of what isn't an orphan.
 	direct := make(map[string]struct{})
@@ -168,7 +210,7 @@ func (s *State) ModuleOrphans(path []string, c *config.Config) [][]string {
 
 	// Go over the direct children and find any that aren't in our keys.
 	var orphans [][]string
-	for _, m := range s.Children(path) {
+	for _, m := range s.children(path) {
 		key := m.Path[len(m.Path)-1]
 
 		// Record that we found this key as a direct child. We use this
@@ -185,6 +227,10 @@ func (s *State) ModuleOrphans(path []string, c *config.Config) [][]string {
 
 	// Find the orphans that are nested...
 	for _, m := range s.Modules {
+		if m == nil {
+			continue
+		}
+
 		// We only want modules that are at least grandchildren
 		if len(m.Path) < len(path)+2 {
 			continue
@@ -228,8 +274,28 @@ func (s *State) Empty() bool {
 	if s == nil {
 		return true
 	}
+	s.Lock()
+	defer s.Unlock()
 
 	return len(s.Modules) == 0
+}
+
+// HasResources returns true if the state contains any resources.
+//
+// This is similar to !s.Empty, but returns true also in the case where the
+// state has modules but all of them are devoid of resources.
+func (s *State) HasResources() bool {
+	if s.Empty() {
+		return false
+	}
+
+	for _, mod := range s.Modules {
+		if len(mod.Resources) > 0 {
+			return true
+		}
+	}
+
+	return false
 }
 
 // IsRemote returns true if State represents a state that exists and is
@@ -238,6 +304,9 @@ func (s *State) IsRemote() bool {
 	if s == nil {
 		return false
 	}
+	s.Lock()
+	defer s.Unlock()
+
 	if s.Remote == nil {
 		return false
 	}
@@ -258,6 +327,9 @@ func (s *State) IsRemote() bool {
 // If this returns an error, then the user should be notified. The error
 // response will include detailed information on the nature of the error.
 func (s *State) Validate() error {
+	s.Lock()
+	defer s.Unlock()
+
 	var result error
 
 	// !!!! FOR DEVELOPERS !!!!
@@ -274,6 +346,10 @@ func (s *State) Validate() error {
 	{
 		found := make(map[string]struct{})
 		for _, ms := range s.Modules {
+			if ms == nil {
+				continue
+			}
+
 			key := strings.Join(ms.Path, ".")
 			if _, ok := found[key]; ok {
 				result = multierror.Append(result, fmt.Errorf(
@@ -295,6 +371,9 @@ func (s *State) Validate() error {
 // all children as well. To check what will be deleted, use a StateFilter
 // first.
 func (s *State) Remove(addr ...string) error {
+	s.Lock()
+	defer s.Unlock()
+
 	// Filter out what we need to delete
 	filter := &StateFilter{State: s}
 	results, err := filter.Filter(addr...)
@@ -362,7 +441,7 @@ func (s *State) removeModule(path []string, v *ModuleState) {
 
 func (s *State) removeResource(path []string, v *ResourceState) {
 	// Get the module this resource lives in. If it doesn't exist, we're done.
-	mod := s.ModuleByPath(path)
+	mod := s.moduleByPath(path)
 	if mod == nil {
 		return
 	}
@@ -420,6 +499,16 @@ func (s *State) Equal(other *State) bool {
 		return s == other
 	}
 
+	s.Lock()
+	defer s.Unlock()
+	return s.equal(other)
+}
+
+func (s *State) equal(other *State) bool {
+	if s == nil || other == nil {
+		return s == other
+	}
+
 	// If the versions are different, they're certainly not equal
 	if s.Version != other.Version {
 		return false
@@ -431,7 +520,7 @@ func (s *State) Equal(other *State) bool {
 	}
 	for _, m := range s.Modules {
 		// This isn't very optimal currently but works.
-		otherM := other.ModuleByPath(m.Path)
+		otherM := other.moduleByPath(m.Path)
 		if otherM == nil {
 			return false
 		}
@@ -466,7 +555,6 @@ const (
 // An error is returned if the two states are not of the same lineage,
 // in which case the integer returned has no meaning.
 func (s *State) CompareAges(other *State) (StateAgeComparison, error) {
-
 	// nil states are "older" than actual states
 	switch {
 	case s != nil && other == nil:
@@ -483,6 +571,9 @@ func (s *State) CompareAges(other *State) (StateAgeComparison, error) {
 		)
 	}
 
+	s.Lock()
+	defer s.Unlock()
+
 	switch {
 	case s.Serial < other.Serial:
 		return StateAgeReceiverOlder, nil
@@ -496,6 +587,9 @@ func (s *State) CompareAges(other *State) (StateAgeComparison, error) {
 // SameLineage returns true only if the state given in argument belongs
 // to the same "lineage" of states as the reciever.
 func (s *State) SameLineage(other *State) bool {
+	s.Lock()
+	defer s.Unlock()
+
 	// If one of the states has no lineage then it is assumed to predate
 	// this concept, and so we'll accept it as belonging to any lineage
 	// so that a lineage string can be assigned to newer versions
@@ -527,10 +621,13 @@ func (s *State) IncrementSerialMaybe(other *State) {
 	if other == nil {
 		return
 	}
+	s.Lock()
+	defer s.Unlock()
+
 	if s.Serial > other.Serial {
 		return
 	}
-	if other.TFVersion != s.TFVersion || !s.Equal(other) {
+	if other.TFVersion != s.TFVersion || !s.equal(other) {
 		if other.Serial > s.Serial {
 			s.Serial = other.Serial
 		}
@@ -542,6 +639,9 @@ func (s *State) IncrementSerialMaybe(other *State) {
 // FromFutureTerraform checks if this state was written by a Terraform
 // version from the future.
 func (s *State) FromFutureTerraform() bool {
+	s.Lock()
+	defer s.Unlock()
+
 	// No TF version means it is certainly from the past
 	if s.TFVersion == "" {
 		return false
@@ -552,6 +652,8 @@ func (s *State) FromFutureTerraform() bool {
 }
 
 func (s *State) Init() {
+	s.Lock()
+	defer s.Unlock()
 	s.init()
 }
 
@@ -559,21 +661,31 @@ func (s *State) init() {
 	if s.Version == 0 {
 		s.Version = StateVersion
 	}
-	if s.ModuleByPath(rootModulePath) == nil {
-		s.AddModule(rootModulePath)
+	if s.moduleByPath(rootModulePath) == nil {
+		s.addModule(rootModulePath)
 	}
-	s.EnsureHasLineage()
+	s.ensureHasLineage()
 
 	for _, mod := range s.Modules {
-		mod.init()
+		if mod != nil {
+			mod.init()
+		}
 	}
 
 	if s.Remote != nil {
 		s.Remote.init()
 	}
+
 }
 
 func (s *State) EnsureHasLineage() {
+	s.Lock()
+	defer s.Unlock()
+
+	s.ensureHasLineage()
+}
+
+func (s *State) ensureHasLineage() {
 	if s.Lineage == "" {
 		s.Lineage = uuid.NewV4().String()
 		log.Printf("[DEBUG] New state was assigned lineage %q\n", s.Lineage)
@@ -585,7 +697,13 @@ func (s *State) EnsureHasLineage() {
 // AddModuleState insert this module state and override any existing ModuleState
 func (s *State) AddModuleState(mod *ModuleState) {
 	mod.init()
+	s.Lock()
+	defer s.Unlock()
 
+	s.addModuleState(mod)
+}
+
+func (s *State) addModuleState(mod *ModuleState) {
 	for i, m := range s.Modules {
 		if reflect.DeepEqual(m.Path, mod.Path) {
 			s.Modules[i] = mod
@@ -602,6 +720,18 @@ func (s *State) prune() {
 	if s == nil {
 		return
 	}
+
+	// Filter out empty modules.
+	// A module is always assumed to have a path, and it's length isn't always
+	// bounds checked later on. Modules may be "emptied" during destroy, but we
+	// never want to store those in the state.
+	for i := 0; i < len(s.Modules); i++ {
+		if s.Modules[i] == nil || len(s.Modules[i].Path) == 0 {
+			s.Modules = append(s.Modules[:i], s.Modules[i+1:]...)
+			i--
+		}
+	}
+
 	for _, mod := range s.Modules {
 		mod.prune()
 	}
@@ -616,7 +746,9 @@ func (s *State) sort() {
 
 	// Allow modules to be sorted
 	for _, m := range s.Modules {
-		m.sort()
+		if m != nil {
+			m.sort()
+		}
 	}
 }
 
@@ -624,6 +756,8 @@ func (s *State) String() string {
 	if s == nil {
 		return "<nil>"
 	}
+	s.Lock()
+	defer s.Unlock()
 
 	var buf bytes.Buffer
 	for _, m := range s.Modules {
@@ -649,6 +783,22 @@ func (s *State) String() string {
 	}
 
 	return strings.TrimSpace(buf.String())
+}
+
+// BackendState stores the configuration to connect to a remote backend.
+type BackendState struct {
+	Type   string                 `json:"type"`   // Backend type
+	Config map[string]interface{} `json:"config"` // Backend raw config
+
+	// Hash is the hash code to uniquely identify the original source
+	// configuration. We use this to detect when there is a change in
+	// configuration even when "type" isn't changed.
+	Hash uint64 `json:"hash"`
+}
+
+// Empty returns true if BackendState has no state.
+func (s *BackendState) Empty() bool {
+	return s == nil || s.Type == ""
 }
 
 // RemoteState is used to track the information about a remote
@@ -691,10 +841,19 @@ func (r *RemoteState) deepcopy() *RemoteState {
 }
 
 func (r *RemoteState) Empty() bool {
-	return r == nil || r.Type == ""
+	if r == nil {
+		return true
+	}
+	r.Lock()
+	defer r.Unlock()
+
+	return r.Type == ""
 }
 
 func (r *RemoteState) Equals(other *RemoteState) bool {
+	r.Lock()
+	defer r.Unlock()
+
 	if r.Type != other.Type {
 		return false
 	}
@@ -741,6 +900,8 @@ func (s *OutputState) Equal(other *OutputState) bool {
 	if s == nil || other == nil {
 		return false
 	}
+	s.Lock()
+	defer s.Unlock()
 
 	if s.Type != other.Type {
 		return false
@@ -811,6 +972,9 @@ func (s *ModuleState) Unlock() { s.mu.Unlock() }
 
 // Equal tests whether one module state is equal to another.
 func (m *ModuleState) Equal(other *ModuleState) bool {
+	m.Lock()
+	defer m.Unlock()
+
 	// Paths must be equal
 	if !reflect.DeepEqual(m.Path, other.Path) {
 		return false
@@ -859,11 +1023,16 @@ func (m *ModuleState) Equal(other *ModuleState) bool {
 
 // IsRoot says whether or not this module diff is for the root module.
 func (m *ModuleState) IsRoot() bool {
+	m.Lock()
+	defer m.Unlock()
 	return reflect.DeepEqual(m.Path, rootModulePath)
 }
 
 // IsDescendent returns true if other is a descendent of this module.
 func (m *ModuleState) IsDescendent(other *ModuleState) bool {
+	m.Lock()
+	defer m.Unlock()
+
 	i := len(m.Path)
 	return len(other.Path) > i && reflect.DeepEqual(other.Path[:i], m.Path)
 }
@@ -872,6 +1041,9 @@ func (m *ModuleState) IsDescendent(other *ModuleState) bool {
 // but aren't present in the configuration itself. Hence, these keys
 // represent the state of resources that are orphans.
 func (m *ModuleState) Orphans(c *config.Config) []string {
+	m.Lock()
+	defer m.Unlock()
+
 	keys := make(map[string]struct{})
 	for k, _ := range m.Resources {
 		keys[k] = struct{}{}
@@ -953,12 +1125,16 @@ func (m *ModuleState) deepcopy() *ModuleState {
 
 // prune is used to remove any resources that are no longer required
 func (m *ModuleState) prune() {
-	for k, v := range m.Resources {
-		v.prune()
+	m.Lock()
+	defer m.Unlock()
 
-		if (v.Primary == nil || v.Primary.ID == "") && len(v.Deposed) == 0 {
+	for k, v := range m.Resources {
+		if v == nil || (v.Primary == nil || v.Primary.ID == "") && len(v.Deposed) == 0 {
 			delete(m.Resources, k)
+			continue
 		}
+
+		v.prune()
 	}
 
 	for k, v := range m.Outputs {
@@ -975,6 +1151,9 @@ func (m *ModuleState) sort() {
 }
 
 func (m *ModuleState) String() string {
+	m.Lock()
+	defer m.Unlock()
+
 	var buf bytes.Buffer
 
 	if len(m.Resources) == 0 {
@@ -1230,6 +1409,9 @@ func (s *ResourceState) Unlock() { s.mu.Unlock() }
 
 // Equal tests whether two ResourceStates are equal.
 func (s *ResourceState) Equal(other *ResourceState) bool {
+	s.Lock()
+	defer s.Unlock()
+
 	if s.Type != other.Type {
 		return false
 	}
@@ -1259,43 +1441,45 @@ func (s *ResourceState) Equal(other *ResourceState) bool {
 }
 
 // Taint marks a resource as tainted.
-func (r *ResourceState) Taint() {
-	if r.Primary != nil {
-		r.Primary.Tainted = true
+func (s *ResourceState) Taint() {
+	s.Lock()
+	defer s.Unlock()
+
+	if s.Primary != nil {
+		s.Primary.Tainted = true
 	}
 }
 
 // Untaint unmarks a resource as tainted.
-func (r *ResourceState) Untaint() {
-	if r.Primary != nil {
-		r.Primary.Tainted = false
+func (s *ResourceState) Untaint() {
+	s.Lock()
+	defer s.Unlock()
+
+	if s.Primary != nil {
+		s.Primary.Tainted = false
 	}
 }
 
-func (r *ResourceState) init() {
-	r.Lock()
-	defer r.Unlock()
+func (s *ResourceState) init() {
+	s.Lock()
+	defer s.Unlock()
 
-	if r.Primary == nil {
-		r.Primary = &InstanceState{}
+	if s.Primary == nil {
+		s.Primary = &InstanceState{}
 	}
-	r.Primary.init()
+	s.Primary.init()
 
-	if r.Dependencies == nil {
-		r.Dependencies = []string{}
-	}
-
-	if r.Deposed == nil {
-		r.Deposed = make([]*InstanceState, 0)
+	if s.Dependencies == nil {
+		s.Dependencies = []string{}
 	}
 
-	for _, dep := range r.Deposed {
-		dep.init()
+	if s.Deposed == nil {
+		s.Deposed = make([]*InstanceState, 0)
 	}
 }
 
-func (r *ResourceState) deepcopy() *ResourceState {
-	copy, err := copystructure.Config{Lock: true}.Copy(r)
+func (s *ResourceState) deepcopy() *ResourceState {
+	copy, err := copystructure.Config{Lock: true}.Copy(s)
 	if err != nil {
 		panic(err)
 	}
@@ -1304,26 +1488,35 @@ func (r *ResourceState) deepcopy() *ResourceState {
 }
 
 // prune is used to remove any instances that are no longer required
-func (r *ResourceState) prune() {
-	n := len(r.Deposed)
+func (s *ResourceState) prune() {
+	s.Lock()
+	defer s.Unlock()
+
+	n := len(s.Deposed)
 	for i := 0; i < n; i++ {
-		inst := r.Deposed[i]
+		inst := s.Deposed[i]
 		if inst == nil || inst.ID == "" {
-			copy(r.Deposed[i:], r.Deposed[i+1:])
-			r.Deposed[n-1] = nil
+			copy(s.Deposed[i:], s.Deposed[i+1:])
+			s.Deposed[n-1] = nil
 			n--
 			i--
 		}
 	}
 
-	r.Deposed = r.Deposed[:n]
+	s.Deposed = s.Deposed[:n]
 }
 
-func (r *ResourceState) sort() {
-	sort.Strings(r.Dependencies)
+func (s *ResourceState) sort() {
+	s.Lock()
+	defer s.Unlock()
+
+	sort.Strings(s.Dependencies)
 }
 
 func (s *ResourceState) String() string {
+	s.Lock()
+	defer s.Unlock()
+
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("Type = %s", s.Type))
 	return buf.String()
@@ -1360,36 +1553,36 @@ type InstanceState struct {
 func (s *InstanceState) Lock()   { s.mu.Lock() }
 func (s *InstanceState) Unlock() { s.mu.Unlock() }
 
-func (i *InstanceState) init() {
-	i.Lock()
-	defer i.Unlock()
+func (s *InstanceState) init() {
+	s.Lock()
+	defer s.Unlock()
 
-	if i.Attributes == nil {
-		i.Attributes = make(map[string]string)
+	if s.Attributes == nil {
+		s.Attributes = make(map[string]string)
 	}
-	if i.Meta == nil {
-		i.Meta = make(map[string]string)
+	if s.Meta == nil {
+		s.Meta = make(map[string]string)
 	}
-	i.Ephemeral.init()
+	s.Ephemeral.init()
 }
 
 // Copy all the Fields from another InstanceState
-func (i *InstanceState) Set(from *InstanceState) {
-	i.Lock()
-	defer i.Unlock()
+func (s *InstanceState) Set(from *InstanceState) {
+	s.Lock()
+	defer s.Unlock()
 
 	from.Lock()
 	defer from.Unlock()
 
-	i.ID = from.ID
-	i.Attributes = from.Attributes
-	i.Ephemeral = from.Ephemeral
-	i.Meta = from.Meta
-	i.Tainted = from.Tainted
+	s.ID = from.ID
+	s.Attributes = from.Attributes
+	s.Ephemeral = from.Ephemeral
+	s.Meta = from.Meta
+	s.Tainted = from.Tainted
 }
 
-func (i *InstanceState) DeepCopy() *InstanceState {
-	copy, err := copystructure.Config{Lock: true}.Copy(i)
+func (s *InstanceState) DeepCopy() *InstanceState {
+	copy, err := copystructure.Config{Lock: true}.Copy(s)
 	if err != nil {
 		panic(err)
 	}
@@ -1398,7 +1591,13 @@ func (i *InstanceState) DeepCopy() *InstanceState {
 }
 
 func (s *InstanceState) Empty() bool {
-	return s == nil || s.ID == ""
+	if s == nil {
+		return true
+	}
+	s.Lock()
+	defer s.Unlock()
+
+	return s.ID == ""
 }
 
 func (s *InstanceState) Equal(other *InstanceState) bool {
@@ -1406,6 +1605,8 @@ func (s *InstanceState) Equal(other *InstanceState) bool {
 	if s == nil || other == nil {
 		return s == other
 	}
+	s.Lock()
+	defer s.Unlock()
 
 	// IDs must be equal
 	if s.ID != other.ID {
@@ -1465,6 +1666,8 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 	result.init()
 
 	if s != nil {
+		s.Lock()
+		defer s.Unlock()
 		for k, v := range s.Attributes {
 			result.Attributes[k] = v
 		}
@@ -1484,19 +1687,48 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 		}
 	}
 
+	// Remove any now empty array, maps or sets because a parent structure
+	// won't include these entries in the count value.
+	isCount := regexp.MustCompile(`\.[%#]$`).MatchString
+	var deleted []string
+
+	for k, v := range result.Attributes {
+		if isCount(k) && v == "0" {
+			delete(result.Attributes, k)
+			deleted = append(deleted, k)
+		}
+	}
+
+	for _, k := range deleted {
+		// Sanity check for invalid structures.
+		// If we removed the primary count key, there should have been no
+		// other keys left with this prefix.
+
+		// this must have a "#" or "%" which we need to remove
+		base := k[:len(k)-1]
+		for k, _ := range result.Attributes {
+			if strings.HasPrefix(k, base) {
+				panic(fmt.Sprintf("empty structure %q has entry %q", base, k))
+			}
+		}
+	}
+
 	return result
 }
 
-func (i *InstanceState) String() string {
+func (s *InstanceState) String() string {
+	s.Lock()
+	defer s.Unlock()
+
 	var buf bytes.Buffer
 
-	if i == nil || i.ID == "" {
+	if s == nil || s.ID == "" {
 		return "<not created>"
 	}
 
-	buf.WriteString(fmt.Sprintf("ID = %s\n", i.ID))
+	buf.WriteString(fmt.Sprintf("ID = %s\n", s.ID))
 
-	attributes := i.Attributes
+	attributes := s.Attributes
 	attrKeys := make([]string, 0, len(attributes))
 	for ak, _ := range attributes {
 		if ak == "id" {
@@ -1512,7 +1744,7 @@ func (i *InstanceState) String() string {
 		buf.WriteString(fmt.Sprintf("%s = %s\n", ak, av))
 	}
 
-	buf.WriteString(fmt.Sprintf("Tainted = %t\n", i.Tainted))
+	buf.WriteString(fmt.Sprintf("Tainted = %t\n", s.Tainted))
 
 	return buf.String()
 }
@@ -1569,10 +1801,18 @@ func testForV0State(buf *bufio.Reader) error {
 	return nil
 }
 
+// ErrNoState is returned by ReadState when the io.Reader contains no data
+var ErrNoState = errors.New("no state")
+
 // ReadState reads a state structure out of a reader in the format that
 // was written by WriteState.
 func ReadState(src io.Reader) (*State, error) {
 	buf := bufio.NewReader(src)
+	if _, err := buf.Peek(1); err != nil {
+		// the error is either io.EOF or "invalid argument", and both are from
+		// an empty state.
+		return nil, ErrNoState
+	}
 
 	if err := testForV0State(buf); err != nil {
 		return nil, err
@@ -1641,6 +1881,10 @@ func ReadState(src io.Reader) (*State, error) {
 	if result == nil {
 		panic("resulting state in load not set, assertion failed")
 	}
+
+	// Prune the state when read it. Its possible to write unpruned states or
+	// for a user to make a state unpruned (nil-ing a module state for example).
+	result.prune()
 
 	// Validate the state file is valid
 	if err := result.Validate(); err != nil {
@@ -1799,6 +2043,11 @@ func (s moduleStateSort) Len() int {
 func (s moduleStateSort) Less(i, j int) bool {
 	a := s[i]
 	b := s[j]
+
+	// If either is nil, then the nil one is "less" than
+	if a == nil || b == nil {
+		return a == nil
+	}
 
 	// If the lengths are different, then the shorter one always wins
 	if len(a.Path) != len(b.Path) {

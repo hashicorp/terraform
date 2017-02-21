@@ -3,7 +3,6 @@ package aws
 import (
 	"bytes"
 	"crypto/sha1"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -310,7 +309,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	}
 
 	if v, ok := d.GetOk("user_data"); ok {
-		userData := base64.StdEncoding.EncodeToString([]byte(v.(string)))
+		userData := base64Encode([]byte(v.(string)))
 		createLaunchConfigurationOpts.UserData = aws.String(userData)
 	}
 
@@ -545,6 +544,7 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	d.Set("spot_price", lc.SpotPrice)
 	d.Set("enable_monitoring", lc.InstanceMonitoring.Enabled)
 	d.Set("security_groups", lc.SecurityGroups)
+	d.Set("associate_public_ip_address", lc.AssociatePublicIpAddress)
 
 	d.Set("vpc_classic_link_id", lc.ClassicLinkVPCId)
 	d.Set("vpc_classic_link_security_groups", lc.ClassicLinkVPCSecurityGroups)

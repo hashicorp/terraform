@@ -16,16 +16,3 @@ func Provider() terraform.ResourceProvider {
 		},
 	}
 }
-
-// stubRead is a do-nothing Read implementation used for our resources,
-// which don't actually need to do anything on read.
-func stubRead(d *schema.ResourceData, meta interface{}) error {
-	return nil
-}
-
-// stubDelete is a do-nothing Dete implementation used for our resources,
-// which don't actually need to do anything unusual on delete.
-func stubDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
-	return nil
-}

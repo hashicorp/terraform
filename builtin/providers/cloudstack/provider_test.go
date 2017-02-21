@@ -144,6 +144,21 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("CLOUDSTACK_ZONE"); v == "" {
 		t.Fatal("CLOUDSTACK_ZONE must be set for acceptance tests")
 	}
+	if v := os.Getenv("CLOUDSTACK_PRIVGW_GATEWAY"); v == "" {
+		t.Fatal("CLOUDSTACK_PRIVGW_GATEWAY must be set for acceptance tests")
+	}
+	if v := os.Getenv("CLOUDSTACK_PRIVGW_IPADDRESS"); v == "" {
+		t.Fatal("CLOUDSTACK_PRIVGW_IPADDRESS must be set for acceptance tests")
+	}
+	if v := os.Getenv("CLOUDSTACK_PRIVGW_NETMASK"); v == "" {
+		t.Fatal("CLOUDSTACK_PRIVGW_NETMASK must be set for acceptance tests")
+	}
+	if v := os.Getenv("CLOUDSTACK_PRIVGW_VLAN"); v == "" {
+		t.Fatal("CLOUDSTACK_PRIVGW_VLAN must be set for acceptance tests")
+	}
+	if v := os.Getenv("CLOUDSTACK_STATIC_ROUTE_CIDR"); v == "" {
+		t.Fatal("CLOUDSTACK_STATIC_ROUTE_CIDR must be set for acceptance tests")
+	}
 }
 
 // Name of a valid disk offering
@@ -223,3 +238,12 @@ var CLOUDSTACK_PROJECT_NETWORK = os.Getenv("CLOUDSTACK_PROJECT_NETWORK")
 
 // Name of a zone that exists already
 var CLOUDSTACK_ZONE = os.Getenv("CLOUDSTACK_ZONE")
+
+// Details of the private gateway that will be added to VPC testing this, should be done using ROOT keys
+var CLOUDSTACK_PRIVGW_GATEWAY = os.Getenv("CLOUDSTACK_PRIVGW_GATEWAY")
+var CLOUDSTACK_PRIVGW_IPADDRESS = os.Getenv("CLOUDSTACK_PRIVGW_IPADDRESS")
+var CLOUDSTACK_PRIVGW_NETMASK = os.Getenv("CLOUDSTACK_PRIVGW_NETMASK")
+var CLOUDSTACK_PRIVGW_VLAN = os.Getenv("CLOUDSTACK_PRIVGW_VLAN")
+
+// Details of the static route that will be added to private gateway testing this.
+var CLOUDSTACK_STATIC_ROUTE_CIDR = os.Getenv("CLOUDSTACK_STATIC_ROUTE_CIDR")

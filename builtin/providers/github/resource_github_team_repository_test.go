@@ -35,6 +35,24 @@ func TestAccGithubTeamRepository_basic(t *testing.T) {
 	})
 }
 
+func TestAccGithubTeamRepository_importBasic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubTeamRepositoryDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccGithubTeamRepositoryConfig,
+			},
+			resource.TestStep{
+				ResourceName:      "github_team_repository.test_team_test_repo",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCheckGetPermissions(t *testing.T) {
 	pullMap := map[string]bool{"pull": true, "push": false, "admin": false}
 	pushMap := map[string]bool{"pull": true, "push": true, "admin": false}

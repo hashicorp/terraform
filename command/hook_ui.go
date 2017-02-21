@@ -129,7 +129,7 @@ func (h *UiHook) PreApply(
 	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s[reset_bold]%s",
+		"[reset][bold]%s: %s[reset]%s",
 		id,
 		operation,
 		attrString)))
@@ -165,7 +165,7 @@ func (h *UiHook) stillApplying(id string) {
 	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s (%s elapsed)[reset_bold]",
+		"[reset][bold]%s: %s (%s elapsed)[reset]",
 		id,
 		msg,
 		time.Now().Round(time.Second).Sub(state.Start),
@@ -204,7 +204,7 @@ func (h *UiHook) PostApply(
 	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s[reset_bold]",
+		"[reset][bold]%s: %s[reset]",
 		id, msg)))
 
 	return terraform.HookActionContinue, nil
@@ -221,7 +221,7 @@ func (h *UiHook) PreProvision(
 	provId string) (terraform.HookAction, error) {
 	id := n.HumanId()
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: Provisioning with '%s'...[reset_bold]",
+		"[reset][bold]%s: Provisioning with '%s'...[reset]",
 		id, provId)))
 	return terraform.HookActionContinue, nil
 }

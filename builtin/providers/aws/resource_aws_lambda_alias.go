@@ -3,8 +3,10 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -32,6 +34,10 @@ func resourceAwsLambdaAlias() *schema.Resource {
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+			},
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -78,12 +84,19 @@ func resourceAwsLambdaAliasRead(d *schema.ResourceData, meta interface{}) error 
 
 	aliasConfiguration, err := conn.GetAlias(params)
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "ResourceNotFoundException" && strings.Contains(awsErr.Message(), "Cannot find alias arn") {
+				d.SetId("")
+				return nil
+			}
+		}
 		return err
 	}
 
 	d.Set("description", aliasConfiguration.Description)
 	d.Set("function_version", aliasConfiguration.FunctionVersion)
 	d.Set("name", aliasConfiguration.Name)
+	d.Set("arn", aliasConfiguration.AliasArn)
 
 	return nil
 }

@@ -23,20 +23,20 @@ func resourceAwsIamSamlProvider() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"valid_until": &schema.Schema{
+			"valid_until": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"saml_metadata_document": &schema.Schema{
+			"saml_metadata_document": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -75,7 +75,7 @@ func resourceAwsIamSamlProviderRead(d *schema.ResourceData, meta interface{}) er
 
 	validUntil := out.ValidUntil.Format(time.RFC1123)
 	d.Set("arn", d.Id())
-	name, err := extractNameFromIAMSamlProviderArn(d.Id())
+	name, err := extractNameFromIAMSamlProviderArn(d.Id(), meta.(*AWSClient).partition)
 	if err != nil {
 		return err
 	}
@@ -112,9 +112,9 @@ func resourceAwsIamSamlProviderDelete(d *schema.ResourceData, meta interface{}) 
 	return err
 }
 
-func extractNameFromIAMSamlProviderArn(arn string) (string, error) {
+func extractNameFromIAMSamlProviderArn(arn, partition string) (string, error) {
 	// arn:aws:iam::123456789012:saml-provider/tf-salesforce-test
-	r := regexp.MustCompile("^arn:aws:iam::[0-9]{12}:saml-provider/(.+)$")
+	r := regexp.MustCompile(fmt.Sprintf("^arn:%s:iam::[0-9]{12}:saml-provider/(.+)$", partition))
 	submatches := r.FindStringSubmatch(arn)
 	if len(submatches) != 2 {
 		return "", fmt.Errorf("Unable to extract name from a given ARN: %q", arn)

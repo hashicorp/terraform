@@ -18,7 +18,7 @@ func TestAccAWSEIPAssociation_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEIPAssociationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEIPAssociationConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEIPExists(
@@ -37,6 +37,42 @@ func TestAccAWSEIPAssociation_basic(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccAWSEIPAssociation_disappears(t *testing.T) {
+	var a ec2.Address
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEIPAssociationDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSEIPAssociationConfigDisappears,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEIPExists(
+						"aws_eip.bar", &a),
+					testAccCheckAWSEIPAssociationExists(
+						"aws_eip_association.by_allocation_id", &a),
+					testAccCheckEIPAssociationDisappears(&a),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func testAccCheckEIPAssociationDisappears(address *ec2.Address) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		opts := &ec2.DisassociateAddressInput{
+			AssociationId: address.AssociationId,
+		}
+		if _, err := conn.DisassociateAddress(opts); err != nil {
+			return err
+		}
+		return nil
+	}
 }
 
 func testAccCheckAWSEIPAssociationExists(name string, res *ec2.Address) resource.TestCheckFunc {
@@ -132,10 +168,12 @@ resource "aws_eip" "bar" {
 resource "aws_eip_association" "by_allocation_id" {
 	allocation_id = "${aws_eip.bar.0.id}"
 	instance_id = "${aws_instance.foo.0.id}"
+	depends_on = ["aws_instance.foo"]
 }
 resource "aws_eip_association" "by_public_ip" {
 	public_ip = "${aws_eip.bar.1.public_ip}"
 	instance_id = "${aws_instance.foo.1.id}"
+  depends_on = ["aws_instance.foo"]
 }
 resource "aws_eip_association" "to_eni" {
 	allocation_id = "${aws_eip.bar.2.id}"
@@ -144,9 +182,36 @@ resource "aws_eip_association" "to_eni" {
 resource "aws_network_interface" "baz" {
 	subnet_id = "${aws_subnet.sub.id}"
 	private_ips = ["192.168.0.10"]
+  depends_on = ["aws_instance.foo"]
 	attachment {
 		instance = "${aws_instance.foo.0.id}"
 		device_index = 1
 	}
 }
 `
+
+const testAccAWSEIPAssociationConfigDisappears = `
+resource "aws_vpc" "main" {
+	cidr_block = "192.168.0.0/24"
+}
+resource "aws_subnet" "sub" {
+	vpc_id = "${aws_vpc.main.id}"
+	cidr_block = "192.168.0.0/25"
+	availability_zone = "us-west-2a"
+}
+resource "aws_internet_gateway" "igw" {
+	vpc_id = "${aws_vpc.main.id}"
+}
+resource "aws_instance" "foo" {
+	ami = "ami-21f78e11"
+	availability_zone = "us-west-2a"
+	instance_type = "t1.micro"
+	subnet_id = "${aws_subnet.sub.id}"
+}
+resource "aws_eip" "bar" {
+	vpc = true
+}
+resource "aws_eip_association" "by_allocation_id" {
+	allocation_id = "${aws_eip.bar.id}"
+	instance_id = "${aws_instance.foo.id}"
+}`

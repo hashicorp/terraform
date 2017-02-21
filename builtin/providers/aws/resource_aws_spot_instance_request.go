@@ -263,6 +263,9 @@ func readInstance(d *schema.ResourceData, meta interface{}) error {
 				"host": *instance.PrivateIpAddress,
 			})
 		}
+		if err := readBlockDevices(d, instance, conn); err != nil {
+			return err
+		}
 	}
 
 	return nil

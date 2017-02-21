@@ -27,7 +27,7 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBInstanceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
@@ -46,6 +46,7 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 						"aws_db_instance.bar", "username", "foo"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "parameter_group_name", "default.mysql5.6"),
+					resource.TestCheckResourceAttrSet("aws_db_instance.bar", "hosted_zone_id"),
 				),
 			},
 		},
@@ -64,7 +65,7 @@ func TestAccAWSDBInstance_kmsKey(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
@@ -77,21 +78,52 @@ func TestAccAWSDBInstance_kmsKey(t *testing.T) {
 	})
 }
 
-func TestAccAWSDBInstance_optionGroup(t *testing.T) {
+func TestAccAWSDBInstance_subnetGroup(t *testing.T) {
 	var v rds.DBInstance
+	rName := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSDBInstanceConfigWithOptionGroup,
+			{
+				Config: testAccAWSDBInstanceConfigWithSubnetGroup(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "db_subnet_group_name", "foo-"+rName),
+				),
+			},
+			{
+				Config: testAccAWSDBInstanceConfigWithSubnetGroupUpdated(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "db_subnet_group_name", "bar-"+rName),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstance_optionGroup(t *testing.T) {
+	var v rds.DBInstance
+
+	rName := fmt.Sprintf("tf-option-test-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBInstanceConfigWithOptionGroup(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
 					testAccCheckAWSDBInstanceAttributes(&v),
 					resource.TestCheckResourceAttr(
-						"aws_db_instance.bar", "option_group_name", "option-group-test-terraform"),
+						"aws_db_instance.bar", "option_group_name", rName),
 				),
 			},
 		},
@@ -106,12 +138,30 @@ func TestAccAWSDBInstanceReplica(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccReplicaInstanceConfig(rand.New(rand.NewSource(time.Now().UnixNano())).Int()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &s),
 					testAccCheckAWSDBInstanceExists("aws_db_instance.replica", &r),
 					testAccCheckAWSDBInstanceReplicaAttributes(&s, &r),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstanceNoSnapshot(t *testing.T) {
+	var snap rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceNoSnapshot,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccSnapshotInstanceConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.snapshot", &snap),
 				),
 			},
 		},
@@ -128,28 +178,10 @@ func TestAccAWSDBInstanceSnapshot(t *testing.T) {
 		// created, and subequently deletes it
 		CheckDestroy: testAccCheckAWSDBInstanceSnapshot,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccSnapshotInstanceConfig(),
+			{
+				Config: testAccSnapshotInstanceConfigWithSnapshot(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.snapshot", &snap),
-				),
-			},
-		},
-	})
-}
-
-func TestAccAWSDBInstanceNoSnapshot(t *testing.T) {
-	var nosnap rds.DBInstance
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSDBInstanceNoSnapshot,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccNoSnapshotInstanceConfig(),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSDBInstanceExists("aws_db_instance.no_snapshot", &nosnap),
 				),
 			},
 		},
@@ -165,7 +197,7 @@ func TestAccAWSDBInstance_enhancedMonitoring(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceNoSnapshot,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccSnapshotInstanceConfig_enhancedMonitoring(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.enhanced_monitoring", &dbInstance),
@@ -190,7 +222,7 @@ func TestAccAWS_separate_DBInstance_iops_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccSnapshotInstanceConfig_iopsUpdate(rName, 1000),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
@@ -198,7 +230,7 @@ func TestAccAWS_separate_DBInstance_iops_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccSnapshotInstanceConfig_iopsUpdate(rName, 2000),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
@@ -219,7 +251,7 @@ func TestAccAWSDBInstance_portUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccSnapshotInstanceConfig_mysqlPort(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
@@ -228,12 +260,85 @@ func TestAccAWSDBInstance_portUpdate(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccSnapshotInstanceConfig_updateMysqlPort(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "port", "3305"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstance_MSSQL_TZ(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBMSSQL_timezone,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.mssql", &v),
+					testAccCheckAWSDBInstanceAttributes_MSSQL(&v, ""),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.mssql", "allocated_storage", "20"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.mssql", "engine", "sqlserver-ex"),
+				),
+			},
+
+			{
+				Config: testAccAWSDBMSSQL_timezone_AKST,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.mssql", &v),
+					testAccCheckAWSDBInstanceAttributes_MSSQL(&v, "Alaskan Standard Time"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.mssql", "allocated_storage", "20"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.mssql", "engine", "sqlserver-ex"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstance_MinorVersion(t *testing.T) {
+	var v rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBInstanceConfigAutoMinorVersion,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+				),
+			},
+		},
+	})
+}
+
+// See https://github.com/hashicorp/terraform/issues/11881
+func TestAccAWSDBInstance_diffSuppressInitialState(t *testing.T) {
+	var v rds.DBInstance
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBInstanceConfigSuppressInitialState(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
 				),
 			},
 		},
@@ -298,6 +403,26 @@ func testAccCheckAWSDBInstanceAttributes(v *rds.DBInstance) resource.TestCheckFu
 	}
 }
 
+func testAccCheckAWSDBInstanceAttributes_MSSQL(v *rds.DBInstance, tz string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if *v.Engine != "sqlserver-ex" {
+			return fmt.Errorf("bad engine: %#v", *v.Engine)
+		}
+
+		rtz := ""
+		if v.Timezone != nil {
+			rtz = *v.Timezone
+		}
+
+		if tz != rtz {
+			return fmt.Errorf("Expected (%s) Timezone for MSSQL test, got (%s)", tz, rtz)
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckAWSDBInstanceReplicaAttributes(source, replica *rds.DBInstance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
@@ -337,7 +462,7 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 		}
 
 		log.Printf("[INFO] Trying to locate the DBInstance Final Snapshot")
-		snapshot_identifier := "foobarbaz-test-terraform-final-snapshot-1"
+		snapshot_identifier := "foobarbaz-test-terraform-final-snapshot-2"
 		_, snapErr := conn.DescribeDBSnapshots(
 			&rds.DescribeDBSnapshotsInput{
 				DBSnapshotIdentifier: aws.String(snapshot_identifier),
@@ -350,7 +475,7 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 			}
 		} else { // snapshot was found,
 			// verify we have the tags copied to the snapshot
-			instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta().(*AWSClient).accountid, testAccProvider.Meta().(*AWSClient).region)
+			instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta().(*AWSClient).partition, testAccProvider.Meta().(*AWSClient).accountid, testAccProvider.Meta().(*AWSClient).region)
 			// tags have a different ARN, just swapping :db: for :snapshot:
 			tagsARN := strings.Replace(instanceARN, ":db:", ":snapshot:", 1)
 			if err != nil {
@@ -488,6 +613,7 @@ resource "aws_db_instance" "bar" {
 	# documented. Terraform will downcase this to match (as opposed to throw a 
 	# validation error).
 	maintenance_window = "Fri:09:00-Fri:09:30"
+	skip_final_snapshot = true
 
 	backup_retention_period = 0
 
@@ -535,14 +661,16 @@ resource "aws_db_instance" "bar" {
 	storage_encrypted = true
 	kms_key_id = "${aws_kms_key.foo.arn}"
 
+	skip_final_snapshot = true
+
 	parameter_group_name = "default.mysql5.6"
 }
 `
 
-var testAccAWSDBInstanceConfigWithOptionGroup = fmt.Sprintf(`
-
+func testAccAWSDBInstanceConfigWithOptionGroup(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_db_option_group" "bar" {
-	name = "option-group-test-terraform"
+	name = "%s"
 	option_group_description = "Test option group for terraform"
 	engine_name = "mysql"
 	major_engine_version = "5.6"
@@ -559,10 +687,12 @@ resource "aws_db_instance" "bar" {
 	username = "foo"
 
 	backup_retention_period = 0
+	skip_final_snapshot = true
 
 	parameter_group_name = "default.mysql5.6"
 	option_group_name = "${aws_db_option_group.bar.name}"
-}`, acctest.RandInt())
+}`, rName, acctest.RandInt())
+}
 
 func testAccReplicaInstanceConfig(val int) string {
 	return fmt.Sprintf(`
@@ -578,6 +708,7 @@ func testAccReplicaInstanceConfig(val int) string {
 		username = "foo"
 
 		backup_retention_period = 1
+		skip_final_snapshot = true
 
 		parameter_group_name = "default.mysql5.6"
 	}
@@ -592,6 +723,7 @@ func testAccReplicaInstanceConfig(val int) string {
 		instance_class = "${aws_db_instance.bar.instance_class}"
 		password = "${aws_db_instance.bar.password}"
 		username = "${aws_db_instance.bar.username}"
+		skip_final_snapshot = true
 		tags {
 			Name = "tf-replica-db"
 		}
@@ -605,7 +737,7 @@ provider "aws" {
   region = "us-east-1"
 }
 resource "aws_db_instance" "snapshot" {
-	identifier = "tf-snapshot-%d"
+	identifier = "tf-test-%d"
 
 	allocated_storage = 5
 	engine = "mysql"
@@ -621,22 +753,18 @@ resource "aws_db_instance" "snapshot" {
 
 	parameter_group_name = "default.mysql5.6"
 
-	skip_final_snapshot = false
-	copy_tags_to_snapshot = true
+	skip_final_snapshot = true
 	final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-1"
-	tags {
-		Name = "tf-tags-db"
-	}
 }`, acctest.RandInt())
 }
 
-func testAccNoSnapshotInstanceConfig() string {
+func testAccSnapshotInstanceConfigWithSnapshot() string {
 	return fmt.Sprintf(`
 provider "aws" {
   region = "us-east-1"
 }
-resource "aws_db_instance" "no_snapshot" {
-	identifier = "tf-test-%s"
+resource "aws_db_instance" "snapshot" {
+	identifier = "tf-snapshot-%d"
 
 	allocated_storage = 5
 	engine = "mysql"
@@ -646,15 +774,18 @@ resource "aws_db_instance" "no_snapshot" {
 	password = "barbarbarbar"
 	publicly_accessible = true
 	username = "foo"
-    security_group_names = ["default"]
+    	security_group_names = ["default"]
 	backup_retention_period = 1
 
 	parameter_group_name = "default.mysql5.6"
 
-	skip_final_snapshot = true
+	copy_tags_to_snapshot = true
 	final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-2"
+	tags {
+		Name = "tf-tags-db"
+	}
 }
-`, acctest.RandString(5))
+`, acctest.RandInt())
 }
 
 func testAccSnapshotInstanceConfig_enhancedMonitoring(rName string) string {
@@ -721,6 +852,7 @@ resource "aws_db_instance" "bar" {
   username             = "foo"
   password             = "barbarbar"
   parameter_group_name = "default.mysql5.6"
+  skip_final_snapshot = true
 
   apply_immediately = true
 
@@ -743,6 +875,7 @@ resource "aws_db_instance" "bar" {
   parameter_group_name = "default.mysql5.6"
   port = 3306
   allocated_storage = 10
+  skip_final_snapshot = true
 
   apply_immediately = true
 }`, rName)
@@ -761,7 +894,314 @@ resource "aws_db_instance" "bar" {
   parameter_group_name = "default.mysql5.6"
   port = 3305
   allocated_storage = 10
+  skip_final_snapshot = true
 
   apply_immediately = true
 }`, rName)
+}
+
+func testAccAWSDBInstanceConfigWithSubnetGroup(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	availability_zone = "us-west-2a"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-1"
+	}
+}
+
+resource "aws_subnet" "bar" {
+	cidr_block = "10.1.2.0/24"
+	availability_zone = "us-west-2b"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-2"
+	}
+}
+
+resource "aws_db_subnet_group" "foo" {
+	name = "foo-%s"
+	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+	tags {
+		Name = "tf-dbsubnet-group-test"
+	}
+}
+
+resource "aws_db_instance" "bar" {
+  identifier           = "mydb-rds-%s"
+  engine               = "mysql"
+  engine_version       = "5.6.23"
+  instance_class       = "db.t2.micro"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "barbarbar"
+  parameter_group_name = "default.mysql5.6"
+  db_subnet_group_name = "${aws_db_subnet_group.foo.name}"
+  port = 3305
+  allocated_storage = 10
+  skip_final_snapshot = true
+
+	backup_retention_period = 0
+  apply_immediately = true
+}`, rName, rName)
+}
+
+func testAccAWSDBInstanceConfigWithSubnetGroupUpdated(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_vpc" "bar" {
+	cidr_block = "10.10.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	availability_zone = "us-west-2a"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-1"
+	}
+}
+
+resource "aws_subnet" "bar" {
+	cidr_block = "10.1.2.0/24"
+	availability_zone = "us-west-2b"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-2"
+	}
+}
+
+resource "aws_subnet" "test" {
+	cidr_block = "10.10.3.0/24"
+	availability_zone = "us-west-2b"
+	vpc_id = "${aws_vpc.bar.id}"
+	tags {
+		Name = "tf-dbsubnet-test-3"
+	}
+}
+
+resource "aws_subnet" "another_test" {
+	cidr_block = "10.10.4.0/24"
+	availability_zone = "us-west-2a"
+	vpc_id = "${aws_vpc.bar.id}"
+	tags {
+		Name = "tf-dbsubnet-test-4"
+	}
+}
+
+resource "aws_db_subnet_group" "foo" {
+	name = "foo-%s"
+	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+	tags {
+		Name = "tf-dbsubnet-group-test"
+	}
+}
+
+resource "aws_db_subnet_group" "bar" {
+	name = "bar-%s"
+	subnet_ids = ["${aws_subnet.test.id}", "${aws_subnet.another_test.id}"]
+	tags {
+		Name = "tf-dbsubnet-group-test-updated"
+	}
+}
+
+resource "aws_db_instance" "bar" {
+  identifier           = "mydb-rds-%s"
+  engine               = "mysql"
+  engine_version       = "5.6.23"
+  instance_class       = "db.t2.micro"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "barbarbar"
+  parameter_group_name = "default.mysql5.6"
+  db_subnet_group_name = "${aws_db_subnet_group.bar.name}"
+  port = 3305
+  allocated_storage = 10
+  skip_final_snapshot = true
+
+	backup_retention_period = 0
+
+  apply_immediately = true
+}`, rName, rName, rName)
+}
+
+const testAccAWSDBMSSQL_timezone = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "foo" {
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+	tags {
+		Name = "tf-rds-mssql-timezone-test"
+	}
+}
+
+resource "aws_db_subnet_group" "rds_one" {
+  name        = "rds_one_db"
+  description = "db subnets for rds_one"
+
+  subnet_ids = ["${aws_subnet.main.id}", "${aws_subnet.other.id}"]
+}
+
+resource "aws_subnet" "main" {
+  vpc_id            = "${aws_vpc.foo.id}"
+  availability_zone = "us-west-2a"
+  cidr_block        = "10.1.1.0/24"
+}
+
+resource "aws_subnet" "other" {
+  vpc_id            = "${aws_vpc.foo.id}"
+  availability_zone = "us-west-2b"
+  cidr_block        = "10.1.2.0/24"
+}
+
+resource "aws_db_instance" "mssql" {
+  #identifier = "tf-test-mssql"
+
+  db_subnet_group_name = "${aws_db_subnet_group.rds_one.name}"
+
+  instance_class          = "db.t2.micro"
+  allocated_storage       = 20
+  username                = "somecrazyusername"
+  password                = "somecrazypassword"
+  engine                  = "sqlserver-ex"
+  backup_retention_period = 0
+  skip_final_snapshot = true
+
+  #publicly_accessible = true
+
+  vpc_security_group_ids = ["${aws_security_group.rds-mssql.id}"]
+}
+
+resource "aws_security_group" "rds-mssql" {
+  name = "tf-rds-mssql-test"
+
+  description = "TF Testing"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group_rule" "rds-mssql-1" {
+  type        = "egress"
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
+  cidr_blocks = ["0.0.0.0/0"]
+
+  security_group_id = "${aws_security_group.rds-mssql.id}"
+}
+`
+
+const testAccAWSDBMSSQL_timezone_AKST = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "foo" {
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+	tags {
+		Name = "tf-rds-mssql-timezone-test"
+	}
+}
+
+resource "aws_db_subnet_group" "rds_one" {
+  name        = "rds_one_db"
+  description = "db subnets for rds_one"
+
+  subnet_ids = ["${aws_subnet.main.id}", "${aws_subnet.other.id}"]
+}
+
+resource "aws_subnet" "main" {
+  vpc_id            = "${aws_vpc.foo.id}"
+  availability_zone = "us-west-2a"
+  cidr_block        = "10.1.1.0/24"
+}
+
+resource "aws_subnet" "other" {
+  vpc_id            = "${aws_vpc.foo.id}"
+  availability_zone = "us-west-2b"
+  cidr_block        = "10.1.2.0/24"
+}
+
+resource "aws_db_instance" "mssql" {
+  #identifier = "tf-test-mssql"
+
+  db_subnet_group_name = "${aws_db_subnet_group.rds_one.name}"
+
+  instance_class          = "db.t2.micro"
+  allocated_storage       = 20
+  username                = "somecrazyusername"
+  password                = "somecrazypassword"
+  engine                  = "sqlserver-ex"
+  backup_retention_period = 0
+  skip_final_snapshot = true
+
+  #publicly_accessible = true
+
+  vpc_security_group_ids = ["${aws_security_group.rds-mssql.id}"]
+  timezone               = "Alaskan Standard Time"
+}
+
+resource "aws_security_group" "rds-mssql" {
+  name = "tf-rds-mssql-test"
+
+  description = "TF Testing"
+  vpc_id      = "${aws_vpc.foo.id}"
+}
+
+resource "aws_security_group_rule" "rds-mssql-1" {
+  type        = "egress"
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
+  cidr_blocks = ["0.0.0.0/0"]
+
+  security_group_id = "${aws_security_group.rds-mssql.id}"
+}
+`
+
+var testAccAWSDBInstanceConfigAutoMinorVersion = fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+  identifier = "foobarbaz-test-terraform-%d"
+	allocated_storage = 10
+	engine = "MySQL"
+	engine_version = "5.6"
+	instance_class = "db.t1.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+	skip_final_snapshot = true
+}
+`, acctest.RandInt())
+
+func testAccAWSDBInstanceConfigSuppressInitialState(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_db_instance" "bar" {
+  identifier = "foobarbaz-test-terraform-%d"
+	allocated_storage = 10
+	engine = "MySQL"
+	instance_class = "db.t1.micro"
+	name = "baz"
+	password = "barbarbarbar"
+	username = "foo"
+	skip_final_snapshot = true
+}
+
+data "template_file" "test" {
+  template = ""
+  vars = {
+    test_var = "${aws_db_instance.bar.engine_version}"
+  }
+}
+`, rInt)
 }

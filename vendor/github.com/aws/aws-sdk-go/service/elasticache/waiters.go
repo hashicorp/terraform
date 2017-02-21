@@ -6,6 +6,10 @@ import (
 	"github.com/aws/aws-sdk-go/private/waiter"
 )
 
+// WaitUntilCacheClusterAvailable uses the Amazon ElastiCache API operation
+// DescribeCacheClusters to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *ElastiCache) WaitUntilCacheClusterAvailable(input *DescribeCacheClustersInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeCacheClusters",
@@ -53,6 +57,10 @@ func (c *ElastiCache) WaitUntilCacheClusterAvailable(input *DescribeCacheCluster
 	return w.Wait()
 }
 
+// WaitUntilCacheClusterDeleted uses the Amazon ElastiCache API operation
+// DescribeCacheClusters to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *ElastiCache) WaitUntilCacheClusterDeleted(input *DescribeCacheClustersInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeCacheClusters",
@@ -118,6 +126,10 @@ func (c *ElastiCache) WaitUntilCacheClusterDeleted(input *DescribeCacheClustersI
 	return w.Wait()
 }
 
+// WaitUntilReplicationGroupAvailable uses the Amazon ElastiCache API operation
+// DescribeReplicationGroups to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *ElastiCache) WaitUntilReplicationGroupAvailable(input *DescribeReplicationGroupsInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeReplicationGroups",
@@ -147,6 +159,10 @@ func (c *ElastiCache) WaitUntilReplicationGroupAvailable(input *DescribeReplicat
 	return w.Wait()
 }
 
+// WaitUntilReplicationGroupDeleted uses the Amazon ElastiCache API operation
+// DescribeReplicationGroups to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *ElastiCache) WaitUntilReplicationGroupDeleted(input *DescribeReplicationGroupsInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeReplicationGroups",

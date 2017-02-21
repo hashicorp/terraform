@@ -5,6 +5,11 @@ import "fmt"
 func VariableListElementTypesAreHomogenous(variableName string, list []Variable) (Type, error) {
 	listTypes := make(map[Type]struct{})
 	for _, v := range list {
+		// Allow unknown
+		if v.Type == TypeUnknown {
+			continue
+		}
+
 		if _, ok := listTypes[v.Type]; ok {
 			continue
 		}
@@ -25,9 +30,15 @@ func VariableListElementTypesAreHomogenous(variableName string, list []Variable)
 func VariableMapValueTypesAreHomogenous(variableName string, vmap map[string]Variable) (Type, error) {
 	valueTypes := make(map[Type]struct{})
 	for _, v := range vmap {
+		// Allow unknown
+		if v.Type == TypeUnknown {
+			continue
+		}
+
 		if _, ok := valueTypes[v.Type]; ok {
 			continue
 		}
+
 		valueTypes[v.Type] = struct{}{}
 	}
 

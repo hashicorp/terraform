@@ -11,43 +11,36 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
-// Application Auto Scaling is a general purpose Auto Scaling service for supported
-// elastic AWS resources. With Application Auto Scaling, you can automatically
-// scale your AWS resources, with an experience similar to that of Auto Scaling.
+// With Application Auto Scaling, you can automatically scale your AWS resources.
+// The experience similar to that of Auto Scaling (https://aws.amazon.com/autoscaling/).
+// You can use Application Auto Scaling to accomplish the following tasks:
 //
-// Application Auto Scaling supports scaling the following AWS resources:
+//    * Define scaling policies to automatically scale your AWS resources
 //
-//   Amazon ECS services
+//    * Scale your resources in response to CloudWatch alarms
 //
-//   Amazon EC2 Spot fleet instances
+//    * View the history of your scaling events
 //
-//   You can use Application Auto Scaling to accomplish the following tasks:
+// Application Auto Scaling can scale the following AWS resources:
 //
-//   Define scaling policies for automatically adjusting your AWS resources
+//    * Amazon ECS services. For more information, see Service Auto Scaling
+//    (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-auto-scaling.html)
+//    in the Amazon EC2 Container Service Developer Guide.
 //
-//   Scale your resources in response to CloudWatch alarms
+//    * Amazon EC2 Spot fleets. For more information, see Automatic Scaling
+//    for Spot Fleet (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/fleet-auto-scaling.html)
+//    in the Amazon EC2 User Guide.
 //
-//   View history of your scaling events
+//    * Amazon EMR clusters. For more information, see Using Automatic Scaling
+//    in Amazon EMR (http://docs.aws.amazon.com/ElasticMapReduce/latest/ManagementGuide/emr-automatic-scaling.html)
+//    in the Amazon EMR Management Guide.
 //
-//   Application Auto Scaling is available in the following regions:
-//
-//    us-east-1
-//
-//    us-west-1
-//
-//    us-west-2
-//
-//    ap-southeast-1
-//
-//    ap-southeast-2
-//
-//    ap-northeast-1
-//
-//    eu-central-1
-//
-//    eu-west-1
-//The service client's operations are safe to be used concurrently.
+// For a list of supported regions, see AWS Regions and Endpoints: Application
+// Auto Scaling (http://docs.aws.amazon.com/general/latest/gr/rande.html#as-app_region)
+// in the AWS General Reference.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06
 type ApplicationAutoScaling struct {
 	*client.Client
 }
@@ -58,8 +51,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "autoscaling"
+// Service information constants
+const (
+	ServiceName = "autoscaling"             // Service endpoint prefix API calls made to.
+	EndpointsID = "application-autoscaling" // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the ApplicationAutoScaling client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -72,18 +68,21 @@ const ServiceName = "autoscaling"
 //     // Create a ApplicationAutoScaling client with additional configuration
 //     svc := applicationautoscaling.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *ApplicationAutoScaling {
-	c := p.ClientConfig(ServiceName, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
+	c := p.ClientConfig(EndpointsID, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *ApplicationAutoScaling {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *ApplicationAutoScaling {
+	if len(signingName) == 0 {
+		signingName = "application-autoscaling"
+	}
 	svc := &ApplicationAutoScaling{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
-				SigningName:   "application-autoscaling",
+				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2016-02-06",

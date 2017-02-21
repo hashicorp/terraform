@@ -35,6 +35,24 @@ func TestAccGithubTeam_basic(t *testing.T) {
 	})
 }
 
+func TestAccGithubTeam_importBasic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubTeamDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccGithubTeamConfig,
+			},
+			resource.TestStep{
+				ResourceName:      "github_team.foo",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccCheckGithubTeamExists(n string, team *github.Team) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]

@@ -14,7 +14,7 @@ Provides an Elastic Load Balancer Attachment resource.
 both a standalone ELB Attachment resource (describing an instance attached to
 an ELB), and an [Elastic Load Balancer resource](elb.html) with
 `instances` defined in-line. At this time you cannot use an ELB with in-line
-instaces in conjunction with an ELB Attachment resource. Doing so will cause a
+instances in conjunction with an ELB Attachment resource. Doing so will cause a
 conflict and will overwrite attachments.
 ## Example Usage
 

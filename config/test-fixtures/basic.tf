@@ -1,3 +1,7 @@
+terraform {
+    required_version = "foo"
+}
+
 variable "foo" {
     default = "bar"
     description = "bar"

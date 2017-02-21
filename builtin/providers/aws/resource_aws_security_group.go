@@ -955,7 +955,7 @@ func protocolForValue(v string) string {
 		return "-1"
 	}
 	// if it's a name like tcp, return that
-	if _, ok := protocolIntegers()[protocol]; ok {
+	if _, ok := sgProtocolIntegers()[protocol]; ok {
 		return protocol
 	}
 	// convert to int, look for that value
@@ -967,7 +967,7 @@ func protocolForValue(v string) string {
 		return protocol
 	}
 
-	for k, v := range protocolIntegers() {
+	for k, v := range sgProtocolIntegers() {
 		if p == v {
 			// guard against protocolIntegers sometime in the future not having lower
 			// case ids in the map
@@ -978,6 +978,23 @@ func protocolForValue(v string) string {
 	// fall through
 	log.Printf("[WARN] Unable to determine valid protocol: no matching protocols found")
 	return protocol
+}
+
+// a map of protocol names and their codes, defined at
+// https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml,
+// documented to be supported by AWS Security Groups
+// http://docs.aws.amazon.com/fr_fr/AWSEC2/latest/APIReference/API_IpPermission.html
+// Similar to protocolIntegers() used by Network ACLs, but explicitly only
+// supports "tcp", "udp", "icmp", and "all"
+func sgProtocolIntegers() map[string]int {
+	var protocolIntegers = make(map[string]int)
+	protocolIntegers = map[string]int{
+		"udp":  17,
+		"tcp":  6,
+		"icmp": 1,
+		"all":  -1,
+	}
+	return protocolIntegers
 }
 
 // The AWS Lambda service creates ENIs behind the scenes and keeps these around for a while

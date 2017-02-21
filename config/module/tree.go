@@ -66,6 +66,10 @@ func (t *Tree) Config() *config.Config {
 
 // Child returns the child with the given path (by name).
 func (t *Tree) Child(path []string) *Tree {
+	if t == nil {
+		return nil
+	}
+
 	if len(path) == 0 {
 		return t
 	}
@@ -170,7 +174,7 @@ func (t *Tree) Load(s getter.Storage, mode GetMode) error {
 
 		// Get the directory where this module is so we can load it
 		key := strings.Join(path, ".")
-		key = fmt.Sprintf("root.%s-%s", key, source)
+		key = fmt.Sprintf("root.%s-%s", key, m.Source)
 		dir, ok, err := getStorage(s, key, source, mode)
 		if err != nil {
 			return err
@@ -257,10 +261,26 @@ func (t *Tree) Validate() error {
 	// If something goes wrong, here is our error template
 	newErr := &TreeError{Name: []string{t.Name()}}
 
+	// Terraform core does not handle root module children named "root".
+	// We plan to fix this in the future but this bug was brought up in
+	// the middle of a release and we don't want to introduce wide-sweeping
+	// changes at that time.
+	if len(t.path) == 1 && t.name == "root" {
+		return fmt.Errorf("root module cannot contain module named 'root'")
+	}
+
 	// Validate our configuration first.
 	if err := t.config.Validate(); err != nil {
 		newErr.Err = err
 		return newErr
+	}
+
+	// If we're the root, we do extra validation. This validation usually
+	// requires the entire tree (since children don't have parent pointers).
+	if len(t.path) == 0 {
+		if err := t.validateProviderAlias(); err != nil {
+			return err
+		}
 	}
 
 	// Get the child trees

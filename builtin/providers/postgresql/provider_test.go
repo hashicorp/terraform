@@ -36,7 +36,4 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("PGUSER"); v == "" {
 		t.Fatal("PGUSER must be set for acceptance tests")
 	}
-	if v := os.Getenv("PGPASSWORD"); v == "" && host != "localhost" {
-		t.Fatal("PGPASSWORD must be set for acceptance tests if PGHOST is not localhost")
-	}
 }

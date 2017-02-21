@@ -2,11 +2,14 @@ package aws
 
 import (
 	"fmt"
+	"net/url"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -16,6 +19,9 @@ func resourceAwsIamPolicy() *schema.Resource {
 		Read:   resourceAwsIamPolicyRead,
 		Update: resourceAwsIamPolicyUpdate,
 		Delete: resourceAwsIamPolicyDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"description": &schema.Schema{
@@ -30,13 +36,48 @@ func resourceAwsIamPolicy() *schema.Resource {
 				ForceNew: true,
 			},
 			"policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateFunc:     validateJsonString,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8329-L8334
+					value := v.(string)
+					if len(value) > 128 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 128 characters", k))
+					}
+					if !regexp.MustCompile("^[\\w+=,.@-]*$").MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q must match [\\w+=,.@-]", k))
+					}
+					return
+				},
+			},
+			"name_prefix": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8329-L8334
+					value := v.(string)
+					if len(value) > 96 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 96 characters, name is limited to 128", k))
+					}
+					if !regexp.MustCompile("^[\\w+=,.@-]*$").MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q must match [\\w+=,.@-]", k))
+					}
+					return
+				},
 			},
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
@@ -48,7 +89,15 @@ func resourceAwsIamPolicy() *schema.Resource {
 
 func resourceAwsIamPolicyCreate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
-	name := d.Get("name").(string)
+
+	var name string
+	if v, ok := d.GetOk("name"); ok {
+		name = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		name = resource.PrefixedUniqueId(v.(string))
+	} else {
+		name = resource.UniqueId()
+	}
 
 	request := &iam.CreatePolicyInput{
 		Description:    aws.String(d.Get("description").(string)),
@@ -68,11 +117,11 @@ func resourceAwsIamPolicyCreate(d *schema.ResourceData, meta interface{}) error 
 func resourceAwsIamPolicyRead(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	request := &iam.GetPolicyInput{
+	getPolicyRequest := &iam.GetPolicyInput{
 		PolicyArn: aws.String(d.Id()),
 	}
 
-	response, err := iamconn.GetPolicy(request)
+	getPolicyResponse, err := iamconn.GetPolicy(getPolicyRequest)
 	if err != nil {
 		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
 			d.SetId("")
@@ -81,7 +130,29 @@ func resourceAwsIamPolicyRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error reading IAM policy %s: %s", d.Id(), err)
 	}
 
-	return readIamPolicy(d, response.Policy)
+	getPolicyVersionRequest := &iam.GetPolicyVersionInput{
+		PolicyArn: aws.String(d.Id()),
+		VersionId: getPolicyResponse.Policy.DefaultVersionId,
+	}
+
+	getPolicyVersionResponse, err := iamconn.GetPolicyVersion(getPolicyVersionRequest)
+	if err != nil {
+		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+			d.SetId("")
+			return nil
+		}
+		return fmt.Errorf("Error reading IAM policy version %s: %s", d.Id(), err)
+	}
+
+	policy, err := url.QueryUnescape(*getPolicyVersionResponse.PolicyVersion.Document)
+	if err != nil {
+		return err
+	}
+	if err := d.Set("policy", policy); err != nil {
+		return err
+	}
+
+	return readIamPolicy(d, getPolicyResponse.Policy)
 }
 
 func resourceAwsIamPolicyUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -208,20 +279,18 @@ func readIamPolicy(d *schema.ResourceData, policy *iam.Policy) error {
 	d.SetId(*policy.Arn)
 	if policy.Description != nil {
 		// the description isn't present in the response to CreatePolicy.
-		if err := d.Set("description", *policy.Description); err != nil {
+		if err := d.Set("description", policy.Description); err != nil {
 			return err
 		}
 	}
-	if err := d.Set("path", *policy.Path); err != nil {
+	if err := d.Set("path", policy.Path); err != nil {
 		return err
 	}
-	if err := d.Set("name", *policy.PolicyName); err != nil {
+	if err := d.Set("name", policy.PolicyName); err != nil {
 		return err
 	}
-	if err := d.Set("arn", *policy.Arn); err != nil {
+	if err := d.Set("arn", policy.Arn); err != nil {
 		return err
 	}
-	// TODO: set policy
-
 	return nil
 }

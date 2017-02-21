@@ -40,6 +40,23 @@ type IAMPolicyStatementConditionSet []IAMPolicyStatementCondition
 func (ps IAMPolicyStatementPrincipalSet) MarshalJSON() ([]byte, error) {
 	raw := map[string]interface{}{}
 
+	// As a special case, IAM considers the string value "*" to be
+	// equivalent to "AWS": "*", and normalizes policies as such.
+	// We'll follow their lead and do the same normalization here.
+	// IAM also considers {"*": "*"} to be equivalent to this.
+	if len(ps) == 1 {
+		p := ps[0]
+		if p.Type == "AWS" || p.Type == "*" {
+			if sv, ok := p.Identifiers.(string); ok && sv == "*" {
+				return []byte(`"*"`), nil
+			}
+
+			if av, ok := p.Identifiers.([]string); ok && len(av) == 1 && av[0] == "*" {
+				return []byte(`"*"`), nil
+			}
+		}
+	}
+
 	for _, p := range ps {
 		switch i := p.Identifiers.(type) {
 		case []string:

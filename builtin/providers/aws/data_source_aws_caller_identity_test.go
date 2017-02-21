@@ -36,7 +36,7 @@ func testAccCheckAwsCallerIdentityAccountId(n string) resource.TestCheckFunc {
 
 		expected := testAccProvider.Meta().(*AWSClient).accountid
 		if rs.Primary.Attributes["account_id"] != expected {
-			return fmt.Errorf("Incorrect Account ID: expected %q, got %q", expected, rs.Primary.ID)
+			return fmt.Errorf("Incorrect Account ID: expected %q, got %q", expected, rs.Primary.Attributes["account_id"])
 		}
 
 		return nil

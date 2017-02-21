@@ -4,7 +4,7 @@ variable "key_name" {
 
 variable "aws_region" {
   description = "AWS region to launch servers."
-  default = "us-east-1"
+  default     = "us-east-1"
 }
 
 # ubuntu-trusty-14.04 (x64)
@@ -14,4 +14,3 @@ variable "aws_amis" {
     "us-west-2" = "ami-7f675e4f"
   }
 }
-

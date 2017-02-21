@@ -1,6 +1,7 @@
 package copystructure
 
 import (
+	"errors"
 	"reflect"
 	"sync"
 
@@ -27,6 +28,20 @@ type CopierFunc func(interface{}) (interface{}, error)
 // this map as well as to Copy in a mutex.
 var Copiers map[reflect.Type]CopierFunc = make(map[reflect.Type]CopierFunc)
 
+// Must is a helper that wraps a call to a function returning
+// (interface{}, error) and panics if the error is non-nil. It is intended
+// for use in variable initializations and should only be used when a copy
+// error should be a crashing case.
+func Must(v interface{}, err error) interface{} {
+	if err != nil {
+		panic("copy error: " + err.Error())
+	}
+
+	return v
+}
+
+var errPointerRequired = errors.New("Copy argument must be a pointer when Lock is true")
+
 type Config struct {
 	// Lock any types that are a sync.Locker and are not a mutex while copying.
 	// If there is an RLocker method, use that to get the sync.Locker.
@@ -38,6 +53,10 @@ type Config struct {
 }
 
 func (c Config) Copy(v interface{}) (interface{}, error) {
+	if c.Lock && reflect.ValueOf(v).Kind() != reflect.Ptr {
+		return nil, errPointerRequired
+	}
+
 	w := new(walker)
 	if c.Lock {
 		w.useLocks = true
@@ -63,6 +82,14 @@ func (c Config) Copy(v interface{}) (interface{}, error) {
 	return result, nil
 }
 
+// Return the key used to index interfaces types we've seen. Store the number
+// of pointers in the upper 32bits, and the depth in the lower 32bits. This is
+// easy to calculate, easy to match a key with our current depth, and we don't
+// need to deal with initializing and cleaning up nested maps or slices.
+func ifaceKey(pointers, depth int) uint64 {
+	return uint64(pointers)<<32 | uint64(depth)
+}
+
 type walker struct {
 	Result interface{}
 
@@ -70,7 +97,16 @@ type walker struct {
 	ignoreDepth int
 	vals        []reflect.Value
 	cs          []reflect.Value
-	ps          []bool
+
+	// This stores the number of pointers we've walked over, indexed by depth.
+	ps []int
+
+	// If an interface is indirected by a pointer, we need to know the type of
+	// interface to create when creating the new value.  Store the interface
+	// types here, indexed by both the walk depth and the number of pointers
+	// already seen at that depth. Use ifaceKey to calculate the proper uint64
+	// value.
+	ifaceTypes map[uint64]reflect.Type
 
 	// any locks we've taken, indexed by depth
 	locks []sync.Locker
@@ -86,6 +122,10 @@ func (w *walker) Enter(l reflectwalk.Location) error {
 		w.locks = append(w.locks, nil)
 	}
 
+	for len(w.ps) < w.depth+1 {
+		w.ps = append(w.ps, 0)
+	}
+
 	return nil
 }
 
@@ -94,6 +134,16 @@ func (w *walker) Exit(l reflectwalk.Location) error {
 	w.locks[w.depth] = nil
 	if locker != nil {
 		defer locker.Unlock()
+	}
+
+	// clear out pointers and interfaces as we exit the stack
+	w.ps[w.depth] = 0
+
+	for k := range w.ifaceTypes {
+		mask := uint64(^uint32(0))
+		if k&mask == uint64(w.depth) {
+			delete(w.ifaceTypes, k)
+		}
 	}
 
 	w.depth--
@@ -127,8 +177,8 @@ func (w *walker) Exit(l reflectwalk.Location) error {
 	case reflectwalk.SliceElem:
 		// Pop off the value and the index and set it on the slice
 		v := w.valPop()
+		i := w.valPop().Interface().(int)
 		if v.IsValid() {
-			i := w.valPop().Interface().(int)
 			s := w.cs[len(w.cs)-1]
 			se := s.Index(i)
 			if se.CanSet() {
@@ -147,6 +197,7 @@ func (w *walker) Exit(l reflectwalk.Location) error {
 		if v.IsValid() {
 			s := w.cs[len(w.cs)-1]
 			sf := reflect.Indirect(s).FieldByName(f.Name)
+
 			if sf.CanSet() {
 				sf.Set(v)
 			}
@@ -184,20 +235,28 @@ func (w *walker) MapElem(m, k, v reflect.Value) error {
 }
 
 func (w *walker) PointerEnter(v bool) error {
-	if w.ignoring() {
-		return nil
+	if v {
+		w.ps[w.depth]++
 	}
-
-	w.ps = append(w.ps, v)
 	return nil
 }
 
-func (w *walker) PointerExit(bool) error {
-	if w.ignoring() {
+func (w *walker) PointerExit(v bool) error {
+	if v {
+		w.ps[w.depth]--
+	}
+	return nil
+}
+
+func (w *walker) Interface(v reflect.Value) error {
+	if !v.IsValid() {
 		return nil
 	}
+	if w.ifaceTypes == nil {
+		w.ifaceTypes = make(map[uint64]reflect.Type)
+	}
 
-	w.ps = w.ps[:len(w.ps)-1]
+	w.ifaceTypes[ifaceKey(w.ps[w.depth], w.depth)] = v.Type()
 	return nil
 }
 
@@ -212,7 +271,7 @@ func (w *walker) Primitive(v reflect.Value) error {
 	var newV reflect.Value
 	if v.IsValid() && v.CanInterface() {
 		newV = reflect.New(v.Type())
-		reflect.Indirect(newV).Set(v)
+		newV.Elem().Set(v)
 	}
 
 	w.valPush(newV)
@@ -288,10 +347,21 @@ func (w *walker) StructField(f reflect.StructField, v reflect.Value) error {
 		return nil
 	}
 
+	// If PkgPath is non-empty, this is a private (unexported) field.
+	// We do not set this unexported since the Go runtime doesn't allow us.
+	if f.PkgPath != "" {
+		return reflectwalk.SkipEntry
+	}
+
 	// Push the field onto the stack, we'll handle it when we exit
 	// the struct field in Exit...
 	w.valPush(reflect.ValueOf(f))
 	return nil
+}
+
+// ignore causes the walker to ignore any more values until we exit this on
+func (w *walker) ignore() {
+	w.ignoreDepth = w.depth
 }
 
 func (w *walker) ignoring() bool {
@@ -299,7 +369,7 @@ func (w *walker) ignoring() bool {
 }
 
 func (w *walker) pointerPeek() bool {
-	return w.ps[len(w.ps)-1]
+	return w.ps[w.depth] > 0
 }
 
 func (w *walker) valPop() reflect.Value {
@@ -331,7 +401,23 @@ func (w *walker) replacePointerMaybe() {
 	// we need to push that onto the stack.
 	if !w.pointerPeek() {
 		w.valPush(reflect.Indirect(w.valPop()))
+		return
 	}
+
+	v := w.valPop()
+	for i := 1; i < w.ps[w.depth]; i++ {
+		if iType, ok := w.ifaceTypes[ifaceKey(w.ps[w.depth]-i, w.depth)]; ok {
+			iface := reflect.New(iType).Elem()
+			iface.Set(v)
+			v = iface
+		}
+
+		p := reflect.New(v.Type())
+		p.Elem().Set(v)
+		v = p
+	}
+
+	w.valPush(v)
 }
 
 // if this value is a Locker, lock it and add it to the locks slice
@@ -350,19 +436,20 @@ func (w *walker) lock(v reflect.Value) {
 
 	var locker sync.Locker
 
-	// first check if we can get a locker from the value
-	switch l := v.Interface().(type) {
-	case rlocker:
-		// don't lock a mutex directly
-		if _, ok := l.(*sync.RWMutex); !ok {
-			locker = l.RLocker()
+	// We can't call Interface() on a value directly, since that requires
+	// a copy. This is OK, since the pointer to a value which is a sync.Locker
+	// is also a sync.Locker.
+	if v.Kind() == reflect.Ptr {
+		switch l := v.Interface().(type) {
+		case rlocker:
+			// don't lock a mutex directly
+			if _, ok := l.(*sync.RWMutex); !ok {
+				locker = l.RLocker()
+			}
+		case sync.Locker:
+			locker = l
 		}
-	case sync.Locker:
-		locker = l
-	}
-
-	// the value itself isn't a locker, so check the method on a pointer too
-	if locker == nil && v.CanAddr() {
+	} else if v.CanAddr() {
 		switch l := v.Addr().Interface().(type) {
 		case rlocker:
 			// don't lock a mutex directly

@@ -40,6 +40,12 @@ func resourceAwsRouteTableImportState(
 				continue
 			}
 
+			if route.DestinationPrefixListId != nil {
+				// Skipping because VPC endpoint routes are handled separately
+				// See aws_vpc_endpoint
+				continue
+			}
+
 			// Minimal data for route
 			d := subResource.Data(nil)
 			d.SetType("aws_route")

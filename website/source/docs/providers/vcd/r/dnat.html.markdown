@@ -15,10 +15,10 @@ and delete destination NATs to map an external IP/port to a VM.
 
 ```
 resource "vcd_dnat" "web" {
-    edge_gateway  = "Edge Gateway Name"
-    external_ip   = "78.101.10.20"
-    port          = 80
-    internal_ip   = "10.10.0.5"
+  edge_gateway = "Edge Gateway Name"
+  external_ip  = "78.101.10.20"
+  port         = 80
+  internal_ip  = "10.10.0.5"
 }
 ```
 

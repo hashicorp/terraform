@@ -75,6 +75,18 @@ func resourceComputeInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+
+						"disk_encryption_key_raw": &schema.Schema{
+							Type:      schema.TypeString,
+							Optional:  true,
+							ForceNew:  true,
+							Sensitive: true,
+						},
+
+						"disk_encryption_key_sha256": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -111,10 +123,9 @@ func resourceComputeInstance() *schema.Resource {
 			},
 
 			"metadata": &schema.Schema{
-				Type:         schema.TypeMap,
-				Optional:     true,
-				Elem:         schema.TypeString,
-				ValidateFunc: validateInstanceMetadata,
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem:     schema.TypeString,
 			},
 
 			"metadata_startup_script": &schema.Schema{
@@ -141,6 +152,12 @@ func resourceComputeInstance() *schema.Resource {
 						},
 
 						"subnetwork": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"subnetwork_project": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
@@ -291,6 +308,12 @@ func resourceComputeInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"create_timeout": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  4,
+			},
 		},
 	}
 }
@@ -361,6 +384,13 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		disk.Boot = i == 0
 		disk.AutoDelete = d.Get(prefix + ".auto_delete").(bool)
 
+		if _, ok := d.GetOk(prefix + ".disk"); ok {
+			if _, ok := d.GetOk(prefix + ".type"); ok {
+				return fmt.Errorf(
+					"Error: cannot define both disk and type.")
+			}
+		}
+
 		// Load up the disk for this disk if specified
 		if v, ok := d.GetOk(prefix + ".disk"); ok {
 			diskName := v.(string)
@@ -419,6 +449,11 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			disk.DeviceName = v.(string)
 		}
 
+		if v, ok := d.GetOk(prefix + ".disk_encryption_key_raw"); ok {
+			disk.DiskEncryptionKey = &compute.CustomerEncryptionKey{}
+			disk.DiskEncryptionKey.RawKey = v.(string)
+		}
+
 		disks = append(disks, &disk)
 	}
 
@@ -472,6 +507,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			// Load up the name of this network_interface
 			networkName := d.Get(prefix + ".network").(string)
 			subnetworkName := d.Get(prefix + ".subnetwork").(string)
+			subnetworkProject := d.Get(prefix + ".subnetwork_project").(string)
 			address := d.Get(prefix + ".address").(string)
 			var networkLink, subnetworkLink string
 
@@ -487,8 +523,11 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 
 			} else {
 				region := getRegionFromZone(d.Get("zone").(string))
+				if subnetworkProject == "" {
+					subnetworkProject = project
+				}
 				subnetwork, err := config.clientCompute.Subnetworks.Get(
-					project, region, subnetworkName).Do()
+					subnetworkProject, region, subnetworkName).Do()
 				if err != nil {
 					return fmt.Errorf(
 						"Error referencing subnetwork '%s' in region '%s': %s",
@@ -557,6 +596,12 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		scheduling.OnHostMaintenance = val.(string)
 	}
 
+	// Read create timeout
+	var createTimeout int
+	if v, ok := d.GetOk("create_timeout"); ok {
+		createTimeout = v.(int)
+	}
+
 	metadata, err := resourceInstanceMetadata(d)
 	if err != nil {
 		return fmt.Errorf("Error creating metadata: %s", err)
@@ -587,7 +632,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	d.SetId(instance.Name)
 
 	// Wait for the operation to complete
-	waitErr := computeOperationWaitZone(config, op, project, zone.Name, "instance to create")
+	waitErr := computeOperationWaitZoneTime(config, op, project, zone.Name, createTimeout, "instance to create")
 	if waitErr != nil {
 		// The resource didn't actually create
 		d.SetId("")
@@ -614,10 +659,10 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	md := instance.Metadata
 
 	_md := MetadataFormatSchema(d.Get("metadata").(map[string]interface{}), md)
-	delete(_md, "startup-script")
 
 	if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {
 		d.Set("metadata_startup_script", script)
+		delete(_md, "startup-script")
 	}
 
 	if err = d.Set("metadata", _md); err != nil {
@@ -625,6 +670,10 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.Set("can_ip_forward", instance.CanIpForward)
+
+	machineTypeResource := strings.Split(instance.MachineType, "/")
+	machineType := machineTypeResource[len(machineTypeResource)-1]
+	d.Set("machine_type", machineType)
 
 	// Set the service accounts
 	serviceAccounts := make([]map[string]interface{}, 0, 1)
@@ -707,11 +756,12 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 			}
 
 			networkInterfaces = append(networkInterfaces, map[string]interface{}{
-				"name":          iface.Name,
-				"address":       iface.NetworkIP,
-				"network":       d.Get(fmt.Sprintf("network_interface.%d.network", i)),
-				"subnetwork":    d.Get(fmt.Sprintf("network_interface.%d.subnetwork", i)),
-				"access_config": accessConfigs,
+				"name":               iface.Name,
+				"address":            iface.NetworkIP,
+				"network":            d.Get(fmt.Sprintf("network_interface.%d.network", i)),
+				"subnetwork":         d.Get(fmt.Sprintf("network_interface.%d.subnetwork", i)),
+				"subnetwork_project": d.Get(fmt.Sprintf("network_interface.%d.subnetwork_project", i)),
+				"access_config":      accessConfigs,
 			})
 		}
 	}
@@ -740,6 +790,25 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	if instance.Tags != nil {
 		d.Set("tags_fingerprint", instance.Tags.Fingerprint)
 	}
+
+	disks := make([]map[string]interface{}, 0, 1)
+	for i, disk := range instance.Disks {
+		di := map[string]interface{}{
+			"disk":                    d.Get(fmt.Sprintf("disk.%d.disk", i)),
+			"image":                   d.Get(fmt.Sprintf("disk.%d.image", i)),
+			"type":                    d.Get(fmt.Sprintf("disk.%d.type", i)),
+			"scratch":                 d.Get(fmt.Sprintf("disk.%d.scratch", i)),
+			"auto_delete":             d.Get(fmt.Sprintf("disk.%d.auto_delete", i)),
+			"size":                    d.Get(fmt.Sprintf("disk.%d.size", i)),
+			"device_name":             d.Get(fmt.Sprintf("disk.%d.device_name", i)),
+			"disk_encryption_key_raw": d.Get(fmt.Sprintf("disk.%d.disk_encryption_key_raw", i)),
+		}
+		if disk.DiskEncryptionKey != nil && disk.DiskEncryptionKey.Sha256 != "" {
+			di["disk_encryption_key_sha256"] = disk.DiskEncryptionKey.Sha256
+		}
+		disks = append(disks, di)
+	}
+	d.Set("disk", disks)
 
 	d.Set("self_link", instance.SelfLink)
 	d.SetId(instance.Name)
@@ -989,13 +1058,4 @@ func resourceInstanceTags(d *schema.ResourceData) *compute.Tags {
 	}
 
 	return tags
-}
-
-func validateInstanceMetadata(v interface{}, k string) (ws []string, es []error) {
-	mdMap := v.(map[string]interface{})
-	if _, ok := mdMap["startup-script"]; ok {
-		es = append(es, fmt.Errorf(
-			"Use metadata_startup_script instead of a startup-script key in %q.", k))
-	}
-	return
 }

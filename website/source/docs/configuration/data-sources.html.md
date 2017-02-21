@@ -15,7 +15,7 @@ or defined by another separate Terraform configuration.
 
 [Providers](/docs/configuration/providers.html) are responsible in
 Terraform for defining and implementing data sources. Whereas
-a [resource](/docs/configuration/resource.html) causes Terraform
+a [resource](/docs/configuration/resources.html) causes Terraform
 to create and manage a new infrastructure component, data sources
 present read-only views into pre-existing data, or they compute
 new values on the fly within Terraform itself.
@@ -39,11 +39,15 @@ A data source configuration looks like the following:
 ```
 // Find the latest available AMI that is tagged with Component = web
 data "aws_ami" "web" {
-  state = "available"
-  tags = {
-    Component = "web"
+  filter {
+    name = "state"
+    values = ["available"]
   }
-  select = "latest"
+  filter {
+    name = "tag:Component"
+    values = ["web"]
+  }
+  most_recent = true
 }
 ```
 
@@ -70,7 +74,7 @@ resource "aws_instance" "web" {
 
 ## Multiple Provider Instances
 
-Similarly to [resources](/docs/configuration/resource.html), the
+Similarly to [resources](/docs/configuration/resources.html), the
 `provider` meta-parameter can be used where a configuration has
 multiple aliased instances of the same provider:
 

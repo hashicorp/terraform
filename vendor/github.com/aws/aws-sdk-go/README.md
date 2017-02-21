@@ -17,7 +17,7 @@ If you are using Go 1.5 with the `GO15VENDOREXPERIMENT=1` vendoring flag, or 1.6
 
     go get -u github.com/aws/aws-sdk-go
 
-Otherwise if your Go environment does not have vendoring support enabled, or you do not want to include the vendored SDK's dependencies you can use the following command to retrieve the SDK and its non-testing dependencies using `go get`. 
+Otherwise if your Go environment does not have vendoring support enabled, or you do not want to include the vendored SDK's dependencies you can use the following command to retrieve the SDK and its non-testing dependencies using `go get`.
 
     go get -u github.com/aws/aws-sdk-go/aws/...
     go get -u github.com/aws/aws-sdk-go/service/...
@@ -25,12 +25,27 @@ Otherwise if your Go environment does not have vendoring support enabled, or you
 If you're looking to retrieve just the SDK without any dependencies use the following command.
 
     go get -d github.com/aws/aws-sdk-go/
- 
+
 These two processes will still include the `vendor` folder and it should be deleted if its not going to be used by your environment.
 
     rm -rf $GOPATH/src/github.com/aws/aws-sdk-go/vendor
 
+## Getting Help
+
+Please use these community resources for getting help. We use the GitHub issues for tracking bugs and feature requests.
+* Ask a question on [StackOverflow](http://stackoverflow.com/) and tag it with the `aws-sdk-go` tag.
+* Come join the AWS SDK for Go community chat on [gitter](https://gitter.im/aws/aws-sdk-go).
+* Open a support ticket with [AWS Support](http://docs.aws.amazon.com/awssupport/latest/user/getting-started.html).
+* If you think you may of found a bug, please open an [issue](https://github.com/aws/aws-sdk-go/issues/new).
+
+## Opening Issues
+
+If you encounter a bug with the AWS SDK for Go we would like to hear about it. Search the [existing issues]( https://github.com/aws/aws-sdk-go/issues) and see if others are also experiencing the issue before opening a new issue. Please include the version of AWS SDK for Go, Go language, and OS you’re using. Please also include repro case when appropriate.
+
+The GitHub issues are intended for bug reports and feature requests. For help and questions with using AWS SDK for GO please make use of the resources listed in the [Getting Help]( https://github.com/aws/aws-sdk-go#getting-help) section. Keeping the list of open issues lean will help us respond in a timely manner.
+
 ## Reference Documentation
+
 [`Getting Started Guide`](https://aws.amazon.com/sdk-for-go/) - This document is a general introduction how to configure and make requests with the SDK. If this is your first time using the SDK, this documentation and the API documentation will help you get started. This document focuses on the syntax and behavior of the SDK. The [Service Developer Guide](https://aws.amazon.com/documentation/) will help you get started using specific AWS services.
 
 [`SDK API Reference Documentation`](https://docs.aws.amazon.com/sdk-for-go/api/) - Use this document to look up all API operation input and output parameters for AWS services supported by the SDK. The API reference also includes documentation of the SDK, and examples how to using the SDK, service client API operations, and API operation require parameters.
@@ -84,10 +99,15 @@ import (
 )
 
 func main() {
+	sess, err := session.NewSession()
+	if err != nil {
+		panic(err)
+	}
+
 	// Create an EC2 service object in the "us-west-2" region
 	// Note that you can also configure your region globally by
 	// exporting the AWS_REGION environment variable
-	svc := ec2.New(session.New(), &aws.Config{Region: aws.String("us-west-2")})
+	svc := ec2.New(sess, &aws.Config{Region: aws.String("us-west-2")})
 
 	// Call the DescribeInstances Operation
 	resp, err := svc.DescribeInstances(nil)

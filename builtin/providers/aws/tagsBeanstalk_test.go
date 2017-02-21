@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elasticbeanstalk"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -57,6 +58,23 @@ func TestDiffBeanstalkTags(t *testing.T) {
 		}
 		if !reflect.DeepEqual(rm, tc.Remove) {
 			t.Fatalf("%d: bad remove: %#v", i, rm)
+		}
+	}
+}
+
+func TestIgnoringTagsBeanstalk(t *testing.T) {
+	var ignoredTags []*elasticbeanstalk.Tag
+	ignoredTags = append(ignoredTags, &elasticbeanstalk.Tag{
+		Key:   aws.String("aws:cloudformation:logical-id"),
+		Value: aws.String("foo"),
+	})
+	ignoredTags = append(ignoredTags, &elasticbeanstalk.Tag{
+		Key:   aws.String("aws:foo:bar"),
+		Value: aws.String("baz"),
+	})
+	for _, tag := range ignoredTags {
+		if !tagIgnoredBeanstalk(tag) {
+			t.Fatalf("Tag %v with value %v not ignored, but should be!", *tag.Key, *tag.Value)
 		}
 	}
 }

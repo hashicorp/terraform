@@ -18,8 +18,8 @@ device creation.
 ```
 # Create a new SSH key
 resource "packet_ssh_key" "key1" {
-    name = "terraform-1"
-    public_key = "${file("/home/terraform/.ssh/id_rsa.pub")}"
+  name       = "terraform-1"
+  public_key = "${file("/home/terraform/.ssh/id_rsa.pub")}"
 }
 ```
 

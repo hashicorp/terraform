@@ -1,12 +1,16 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -20,15 +24,22 @@ func resourceAwsSsmDocument() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
-				ForceNew: true,
 				Required: true,
 			},
 			"content": {
 				Type:     schema.TypeString,
-				ForceNew: true,
 				Required: true,
 			},
+			"document_type": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateAwsSSMDocumentType,
+			},
 			"created_date": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"default_version": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -44,6 +55,10 @@ func resourceAwsSsmDocument() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"latest_version": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"owner": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -52,9 +67,10 @@ func resourceAwsSsmDocument() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"platform_type": {
-				Type:     schema.TypeString,
+			"platform_types": {
+				Type:     schema.TypeList,
 				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"parameter": {
 				Type:     schema.TypeList,
@@ -106,17 +122,26 @@ func resourceAwsSsmDocumentCreate(d *schema.ResourceData, meta interface{}) erro
 	log.Printf("[INFO] Creating SSM Document: %s", d.Get("name").(string))
 
 	docInput := &ssm.CreateDocumentInput{
-		Name:    aws.String(d.Get("name").(string)),
-		Content: aws.String(d.Get("content").(string)),
+		Name:         aws.String(d.Get("name").(string)),
+		Content:      aws.String(d.Get("content").(string)),
+		DocumentType: aws.String(d.Get("document_type").(string)),
 	}
 
-	resp, err := ssmconn.CreateDocument(docInput)
+	log.Printf("[DEBUG] Waiting for SSM Document %q to be created", d.Get("name").(string))
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		resp, err := ssmconn.CreateDocument(docInput)
+
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		d.SetId(*resp.DocumentDescription.Name)
+		return nil
+	})
 
 	if err != nil {
 		return errwrap.Wrapf("[ERROR] Error creating SSM document: {{err}}", err)
 	}
-
-	d.SetId(*resp.DocumentDescription.Name)
 
 	if v, ok := d.GetOk("permissions"); ok && v != nil {
 		if err := setDocumentPermissions(d, meta); err != nil {
@@ -146,12 +171,21 @@ func resourceAwsSsmDocumentRead(d *schema.ResourceData, meta interface{}) error 
 
 	doc := resp.Document
 	d.Set("created_date", doc.CreatedDate)
+	d.Set("default_version", doc.DefaultVersion)
 	d.Set("description", doc.Description)
+
+	if _, ok := d.GetOk("document_type"); ok {
+		d.Set("document_type", doc.DocumentType)
+	}
+
+	d.Set("document_version", doc.DocumentVersion)
 	d.Set("hash", doc.Hash)
 	d.Set("hash_type", doc.HashType)
+	d.Set("latest_version", doc.LatestVersion)
 	d.Set("name", doc.Name)
 	d.Set("owner", doc.Owner)
-	d.Set("platform_type", doc.PlatformTypes[0])
+	d.Set("platform_types", flattenStringList(doc.PlatformTypes))
+
 	d.Set("status", doc.Status)
 
 	gp, err := getDocumentPermissions(d, meta)
@@ -215,10 +249,37 @@ func resourceAwsSsmDocumentDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	_, err := ssmconn.DeleteDocument(params)
-
 	if err != nil {
 		return err
 	}
+
+	log.Printf("[DEBUG] Waiting for SSM Document %q to be deleted", d.Get("name").(string))
+	err = resource.Retry(10*time.Minute, func() *resource.RetryError {
+		_, err := ssmconn.DescribeDocument(&ssm.DescribeDocumentInput{
+			Name: aws.String(d.Get("name").(string)),
+		})
+
+		if err != nil {
+			awsErr, ok := err.(awserr.Error)
+			if !ok {
+				return resource.NonRetryableError(err)
+			}
+
+			if awsErr.Code() == "InvalidDocument" {
+				return nil
+			}
+
+			return resource.NonRetryableError(err)
+		}
+
+		return resource.RetryableError(
+			fmt.Errorf("%q: Timeout while waiting for the document to be deleted", d.Id()))
+	})
+	if err != nil {
+		return err
+	}
+
+	d.SetId("")
 
 	return nil
 }
@@ -312,4 +373,18 @@ func deleteDocumentPermissions(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
+}
+
+func validateAwsSSMDocumentType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	types := map[string]bool{
+		"Command":    true,
+		"Policy":     true,
+		"Automation": true,
+	}
+
+	if !types[value] {
+		errors = append(errors, fmt.Errorf("CodeBuild: Arifacts Namespace Type can only be NONE / BUILD_ID"))
+	}
+	return
 }

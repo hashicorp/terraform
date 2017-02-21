@@ -6,6 +6,10 @@ import (
 	"github.com/aws/aws-sdk-go/private/waiter"
 )
 
+// WaitUntilDistributionDeployed uses the CloudFront API operation
+// GetDistribution to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *CloudFront) WaitUntilDistributionDeployed(input *GetDistributionInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "GetDistribution",
@@ -29,6 +33,10 @@ func (c *CloudFront) WaitUntilDistributionDeployed(input *GetDistributionInput) 
 	return w.Wait()
 }
 
+// WaitUntilInvalidationCompleted uses the CloudFront API operation
+// GetInvalidation to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *CloudFront) WaitUntilInvalidationCompleted(input *GetInvalidationInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "GetInvalidation",
@@ -52,6 +60,10 @@ func (c *CloudFront) WaitUntilInvalidationCompleted(input *GetInvalidationInput)
 	return w.Wait()
 }
 
+// WaitUntilStreamingDistributionDeployed uses the CloudFront API operation
+// GetStreamingDistribution to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *CloudFront) WaitUntilStreamingDistributionDeployed(input *GetStreamingDistributionInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "GetStreamingDistribution",

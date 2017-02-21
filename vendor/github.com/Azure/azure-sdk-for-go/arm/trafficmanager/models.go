@@ -38,11 +38,11 @@ type DNSConfig struct {
 
 // Endpoint is class representing a Traffic Manager endpoint.
 type Endpoint struct {
-	autorest.Response `json:"-"`
-	ID                *string             `json:"id,omitempty"`
-	Name              *string             `json:"name,omitempty"`
-	Type              *string             `json:"type,omitempty"`
-	Properties        *EndpointProperties `json:"properties,omitempty"`
+	autorest.Response   `json:"-"`
+	ID                  *string `json:"id,omitempty"`
+	Name                *string `json:"name,omitempty"`
+	Type                *string `json:"type,omitempty"`
+	*EndpointProperties `json:"properties,omitempty"`
 }
 
 // EndpointProperties is class representing a Traffic Manager endpoint
@@ -80,13 +80,13 @@ type NameAvailability struct {
 
 // Profile is class representing a Traffic Manager profile.
 type Profile struct {
-	autorest.Response `json:"-"`
-	ID                *string             `json:"id,omitempty"`
-	Name              *string             `json:"name,omitempty"`
-	Type              *string             `json:"type,omitempty"`
-	Location          *string             `json:"location,omitempty"`
-	Tags              *map[string]*string `json:"tags,omitempty"`
-	Properties        *ProfileProperties  `json:"properties,omitempty"`
+	autorest.Response  `json:"-"`
+	ID                 *string             `json:"id,omitempty"`
+	Name               *string             `json:"name,omitempty"`
+	Type               *string             `json:"type,omitempty"`
+	Location           *string             `json:"location,omitempty"`
+	Tags               *map[string]*string `json:"tags,omitempty"`
+	*ProfileProperties `json:"properties,omitempty"`
 }
 
 // ProfileListResult is the list Traffic Manager profiles operation response.

@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -86,8 +88,10 @@ func resourceAwsAlbListener() *schema.Resource {
 func resourceAwsAlbListenerCreate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
+	albArn := d.Get("load_balancer_arn").(string)
+
 	params := &elbv2.CreateListenerInput{
-		LoadBalancerArn: aws.String(d.Get("load_balancer_arn").(string)),
+		LoadBalancerArn: aws.String(albArn),
 		Port:            aws.Int64(int64(d.Get("port").(int))),
 		Protocol:        aws.String(d.Get("protocol").(string)),
 	}
@@ -116,7 +120,25 @@ func resourceAwsAlbListenerCreate(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
-	resp, err := elbconn.CreateListener(params)
+	var resp *elbv2.CreateListenerOutput
+
+	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		var err error
+		log.Printf("[DEBUG] Creating ALB listener for ARN: %s", d.Get("load_balancer_arn").(string))
+		resp, err = elbconn.CreateListener(params)
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "CertificateNotFound" {
+				log.Printf("[WARN] Got an error while trying to create ALB listener for ARN: %s: %s", albArn, err)
+				return resource.RetryableError(err)
+			}
+		}
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return errwrap.Wrapf("Error creating ALB Listener: {{err}}", err)
 	}

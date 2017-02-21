@@ -20,6 +20,9 @@ func resourceAwsOpsworksStack() *schema.Resource {
 		Read:   resourceAwsOpsworksStackRead,
 		Update: resourceAwsOpsworksStackUpdate,
 		Delete: resourceAwsOpsworksStackDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"agent_version": &schema.Schema{
@@ -283,6 +286,9 @@ func resourceAwsOpsworksStackRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("default_subnet_id", stack.DefaultSubnetId)
 	d.Set("hostname_theme", stack.HostnameTheme)
 	d.Set("use_custom_cookbooks", stack.UseCustomCookbooks)
+	if stack.CustomJson != nil {
+		d.Set("custom_json", stack.CustomJson)
+	}
 	d.Set("use_opsworks_security_groups", stack.UseOpsworksSecurityGroups)
 	d.Set("vpc_id", stack.VpcId)
 	if color, ok := stack.Attributes["Color"]; ok {
@@ -331,6 +337,9 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 	}
 	if defaultAvailabilityZone, ok := d.GetOk("default_availability_zone"); ok {
 		req.DefaultAvailabilityZone = aws.String(defaultAvailabilityZone.(string))
+	}
+	if defaultRootDeviceType, ok := d.GetOk("default_root_device_type"); ok {
+		req.DefaultRootDeviceType = aws.String(defaultRootDeviceType.(string))
 	}
 
 	log.Printf("[DEBUG] Creating OpsWorks stack: %s", req)

@@ -1,6 +1,7 @@
 package scaleway
 
 import (
+	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -11,15 +12,31 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("SCALEWAY_ACCESS_KEY", nil),
+				Deprecated:  "Use `token` instead.",
+				Description: "The API key for Scaleway API operations.",
+			},
+			"token": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"SCALEWAY_TOKEN",
+					"SCALEWAY_ACCESS_KEY",
+				}, nil),
 				Description: "The API key for Scaleway API operations.",
 			},
 			"organization": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("SCALEWAY_ORGANIZATION", nil),
-				Description: "The Organization ID for Scaleway API operations.",
+				Description: "The Organization ID (a.k.a. 'access key') for Scaleway API operations.",
+			},
+			"region": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("SCALEWAY_REGION", "par1"),
+				Description: "The Scaleway API region to use.",
 			},
 		},
 
@@ -32,14 +49,31 @@ func Provider() terraform.ResourceProvider {
 			"scaleway_volume_attachment":   resourceScalewayVolumeAttachment(),
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"scaleway_bootscript": dataSourceScalewayBootscript(),
+			"scaleway_image":      dataSourceScalewayImage(),
+		},
+
 		ConfigureFunc: providerConfigure,
 	}
 }
 
+var scalewayMutexKV = mutexkv.NewMutexKV()
+
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+	apiKey := ""
+	if v, ok := d.Get("token").(string); ok {
+		apiKey = v
+	} else {
+		if v, ok := d.Get("access_key").(string); ok {
+			apiKey = v
+		}
+	}
+
 	config := Config{
 		Organization: d.Get("organization").(string),
-		APIKey:       d.Get("access_key").(string),
+		APIKey:       apiKey,
+		Region:       d.Get("region").(string),
 	}
 
 	return config.Client()

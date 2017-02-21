@@ -8,7 +8,6 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -20,43 +19,38 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 		Delete: resourceArmVirtualMachineScaleSetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"location": &schema.Schema{
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"sku": &schema.Schema{
+			"sku": {
 				Type:     schema.TypeSet,
 				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"tier": &schema.Schema{
+						"tier": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"capacity": &schema.Schema{
+						"capacity": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
@@ -65,33 +59,39 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Set: resourceArmVirtualMachineScaleSetSkuHash,
 			},
 
-			"upgrade_policy_mode": &schema.Schema{
+			"upgrade_policy_mode": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"os_profile": &schema.Schema{
+			"overprovision": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			"os_profile": {
 				Type:     schema.TypeSet,
 				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"computer_name_prefix": &schema.Schema{
+						"computer_name_prefix": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"admin_username": &schema.Schema{
+						"admin_username": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"admin_password": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+						"admin_password": {
+							Type:      schema.TypeString,
+							Required:  true,
+							Sensitive: true,
 						},
 
-						"custom_data": &schema.Schema{
+						"custom_data": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -100,26 +100,26 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Set: resourceArmVirtualMachineScaleSetsOsProfileHash,
 			},
 
-			"os_profile_secrets": &schema.Schema{
+			"os_profile_secrets": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"source_vault_id": &schema.Schema{
+						"source_vault_id": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"vault_certificates": &schema.Schema{
+						"vault_certificates": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"certificate_url": &schema.Schema{
+									"certificate_url": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"certificate_store": &schema.Schema{
+									"certificate_store": {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
@@ -130,54 +130,54 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				},
 			},
 
-			"os_profile_windows_config": &schema.Schema{
+			"os_profile_windows_config": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"provision_vm_agent": &schema.Schema{
+						"provision_vm_agent": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
-						"enable_automatic_upgrades": &schema.Schema{
+						"enable_automatic_upgrades": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
-						"winrm": &schema.Schema{
+						"winrm": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"protocol": &schema.Schema{
+									"protocol": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"certificate_url": &schema.Schema{
+									"certificate_url": {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
 								},
 							},
 						},
-						"additional_unattend_config": &schema.Schema{
+						"additional_unattend_config": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"pass": &schema.Schema{
+									"pass": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"component": &schema.Schema{
+									"component": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"setting_name": &schema.Schema{
+									"setting_name": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"content": &schema.Schema{
+									"content": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
@@ -189,29 +189,29 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Set: resourceArmVirtualMachineScaleSetOsProfileLWindowsConfigHash,
 			},
 
-			"os_profile_linux_config": &schema.Schema{
+			"os_profile_linux_config": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"disable_password_authentication": &schema.Schema{
+						"disable_password_authentication": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
 							ForceNew: true,
 						},
-						"ssh_keys": &schema.Schema{
+						"ssh_keys": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"path": &schema.Schema{
+									"path": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"key_data": &schema.Schema{
+									"key_data": {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
@@ -223,40 +223,39 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Set: resourceArmVirtualMachineScaleSetOsProfileLinuxConfigHash,
 			},
 
-			"network_profile": &schema.Schema{
+			"network_profile": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"primary": &schema.Schema{
+						"primary": {
 							Type:     schema.TypeBool,
 							Required: true,
 						},
 
-						"ip_configuration": &schema.Schema{
+						"ip_configuration": {
 							Type:     schema.TypeList,
 							Required: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"name": &schema.Schema{
+									"name": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
 
-									"subnet_id": &schema.Schema{
+									"subnet_id": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
 
-									"load_balancer_backend_address_pool_ids": &schema.Schema{
+									"load_balancer_backend_address_pool_ids": {
 										Type:     schema.TypeSet,
 										Optional: true,
-										Computed: true,
 										Elem:     &schema.Schema{Type: schema.TypeString},
 										Set:      schema.HashString,
 									},
@@ -268,42 +267,40 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Set: resourceArmVirtualMachineScaleSetNetworkConfigurationHash,
 			},
 
-			"storage_profile_os_disk": &schema.Schema{
+			"storage_profile_os_disk": {
 				Type:     schema.TypeSet,
 				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"image": &schema.Schema{
+						"image": {
 							Type:     schema.TypeString,
 							Optional: true,
-							Computed: true,
 						},
 
-						"vhd_containers": &schema.Schema{
+						"vhd_containers": {
 							Type:     schema.TypeSet,
-							Required: true,
+							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
 
-						"caching": &schema.Schema{
+						"caching": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"os_type": &schema.Schema{
+						"os_type": {
 							Type:     schema.TypeString,
 							Optional: true,
-							Computed: true,
 						},
 
-						"create_option": &schema.Schema{
+						"create_option": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -312,29 +309,29 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Set: resourceArmVirtualMachineScaleSetStorageProfileOsDiskHash,
 			},
 
-			"storage_profile_image_reference": &schema.Schema{
+			"storage_profile_image_reference": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"publisher": &schema.Schema{
+						"publisher": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"offer": &schema.Schema{
+						"offer": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"sku": &schema.Schema{
+						"sku": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"version": &schema.Schema{
+						"version": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -384,6 +381,7 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 	}
 
 	updatePolicy := d.Get("upgrade_policy_mode").(string)
+	overprovision := d.Get("overprovision").(bool)
 	scaleSetProps := compute.VirtualMachineScaleSetProperties{
 		UpgradePolicy: &compute.UpgradePolicy{
 			Mode: compute.UpgradeMode(updatePolicy),
@@ -393,14 +391,15 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 			StorageProfile: &storageProfile,
 			OsProfile:      osProfile,
 		},
+		Overprovision: &overprovision,
 	}
 
 	scaleSetParams := compute.VirtualMachineScaleSet{
-		Name:       &name,
-		Location:   &location,
-		Tags:       expandTags(tags),
-		Sku:        sku,
-		Properties: &scaleSetProps,
+		Name:     &name,
+		Location: &location,
+		Tags:     expandTags(tags),
+		Sku:      sku,
+		VirtualMachineScaleSetProperties: &scaleSetProps,
 	}
 	_, vmErr := vmScaleSetClient.CreateOrUpdate(resGroup, name, scaleSetParams, make(chan struct{}))
 	if vmErr != nil {
@@ -432,12 +431,12 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 
 	resp, err := vmScaleSetClient.Get(resGroup, name)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			log.Printf("[INFO] AzureRM Virtual Machine Scale Set (%s) Not Found. Removing from State", name)
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Virtual Machine Scale Set %s: %s", name, err)
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		log.Printf("[INFO] AzureRM Virtual Machine Scale Set (%s) Not Found. Removing from State", name)
-		d.SetId("")
-		return nil
 	}
 
 	d.Set("location", resp.Location)
@@ -447,41 +446,44 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set Sku error: %#v", err)
 	}
 
-	d.Set("upgrade_policy_mode", resp.Properties.UpgradePolicy.Mode)
+	properties := resp.VirtualMachineScaleSetProperties
 
-	if err := d.Set("os_profile", flattenAzureRMVirtualMachineScaleSetOsProfile(resp.Properties.VirtualMachineProfile.OsProfile)); err != nil {
+	d.Set("upgrade_policy_mode", properties.UpgradePolicy.Mode)
+	d.Set("overprovision", properties.Overprovision)
+
+	if err := d.Set("os_profile", flattenAzureRMVirtualMachineScaleSetOsProfile(properties.VirtualMachineProfile.OsProfile)); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set OS Profile error: %#v", err)
 	}
 
-	if resp.Properties.VirtualMachineProfile.OsProfile.Secrets != nil {
-		if err := d.Set("os_profile_secrets", flattenAzureRmVirtualMachineScaleSetOsProfileSecrets(resp.Properties.VirtualMachineProfile.OsProfile.Secrets)); err != nil {
+	if properties.VirtualMachineProfile.OsProfile.Secrets != nil {
+		if err := d.Set("os_profile_secrets", flattenAzureRmVirtualMachineScaleSetOsProfileSecrets(properties.VirtualMachineProfile.OsProfile.Secrets)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set OS Profile Secrets error: %#v", err)
 		}
 	}
 
-	if resp.Properties.VirtualMachineProfile.OsProfile.WindowsConfiguration != nil {
-		if err := d.Set("os_profile_windows_config", flattenAzureRmVirtualMachineScaleSetOsProfileWindowsConfig(resp.Properties.VirtualMachineProfile.OsProfile.WindowsConfiguration)); err != nil {
+	if properties.VirtualMachineProfile.OsProfile.WindowsConfiguration != nil {
+		if err := d.Set("os_profile_windows_config", flattenAzureRmVirtualMachineScaleSetOsProfileWindowsConfig(properties.VirtualMachineProfile.OsProfile.WindowsConfiguration)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set OS Profile Windows config error: %#v", err)
 		}
 	}
 
-	if resp.Properties.VirtualMachineProfile.OsProfile.LinuxConfiguration != nil {
-		if err := d.Set("os_profile_linux_config", flattenAzureRmVirtualMachineScaleSetOsProfileLinuxConfig(resp.Properties.VirtualMachineProfile.OsProfile.LinuxConfiguration)); err != nil {
+	if properties.VirtualMachineProfile.OsProfile.LinuxConfiguration != nil {
+		if err := d.Set("os_profile_linux_config", flattenAzureRmVirtualMachineScaleSetOsProfileLinuxConfig(properties.VirtualMachineProfile.OsProfile.LinuxConfiguration)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set OS Profile Windows config error: %#v", err)
 		}
 	}
 
-	if err := d.Set("network_profile", flattenAzureRmVirtualMachineScaleSetNetworkProfile(resp.Properties.VirtualMachineProfile.NetworkProfile)); err != nil {
+	if err := d.Set("network_profile", flattenAzureRmVirtualMachineScaleSetNetworkProfile(properties.VirtualMachineProfile.NetworkProfile)); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set Network Profile error: %#v", err)
 	}
 
-	if resp.Properties.VirtualMachineProfile.StorageProfile.ImageReference != nil {
-		if err := d.Set("storage_profile_image_reference", flattenAzureRmVirtualMachineScaleSetStorageProfileImageReference(resp.Properties.VirtualMachineProfile.StorageProfile.ImageReference)); err != nil {
+	if properties.VirtualMachineProfile.StorageProfile.ImageReference != nil {
+		if err := d.Set("storage_profile_image_reference", flattenAzureRmVirtualMachineScaleSetStorageProfileImageReference(properties.VirtualMachineProfile.StorageProfile.ImageReference)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set Storage Profile Image Reference error: %#v", err)
 		}
 	}
 
-	if err := d.Set("storage_profile_os_disk", flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(resp.Properties.VirtualMachineProfile.StorageProfile.OsDisk)); err != nil {
+	if err := d.Set("storage_profile_os_disk", flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(properties.VirtualMachineProfile.StorageProfile.OsDisk)); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set Storage Profile OS Disk error: %#v", err)
 	}
 
@@ -607,26 +609,30 @@ func flattenAzureRmVirtualMachineScaleSetNetworkProfile(profile *compute.Virtual
 	for _, netConfig := range *networkConfigurations {
 		s := map[string]interface{}{
 			"name":    *netConfig.Name,
-			"primary": *netConfig.Properties.Primary,
+			"primary": *netConfig.VirtualMachineScaleSetNetworkConfigurationProperties.Primary,
 		}
 
-		if netConfig.Properties.IPConfigurations != nil {
-			ipConfigs := make([]map[string]interface{}, 0, len(*netConfig.Properties.IPConfigurations))
-			for _, ipConfig := range *netConfig.Properties.IPConfigurations {
+		if netConfig.VirtualMachineScaleSetNetworkConfigurationProperties.IPConfigurations != nil {
+			ipConfigs := make([]map[string]interface{}, 0, len(*netConfig.VirtualMachineScaleSetNetworkConfigurationProperties.IPConfigurations))
+			for _, ipConfig := range *netConfig.VirtualMachineScaleSetNetworkConfigurationProperties.IPConfigurations {
 				config := make(map[string]interface{})
 				config["name"] = *ipConfig.Name
 
-				if ipConfig.Properties.Subnet != nil {
-					config["subnet_id"] = *ipConfig.Properties.Subnet.ID
+				properties := ipConfig.VirtualMachineScaleSetIPConfigurationProperties
+
+				if ipConfig.VirtualMachineScaleSetIPConfigurationProperties.Subnet != nil {
+					config["subnet_id"] = *properties.Subnet.ID
 				}
 
-				if ipConfig.Properties.LoadBalancerBackendAddressPools != nil {
-					addressPools := make([]string, 0, len(*ipConfig.Properties.LoadBalancerBackendAddressPools))
-					for _, pool := range *ipConfig.Properties.LoadBalancerBackendAddressPools {
+				if properties.LoadBalancerBackendAddressPools != nil {
+					addressPools := make([]interface{}, 0, len(*properties.LoadBalancerBackendAddressPools))
+					for _, pool := range *properties.LoadBalancerBackendAddressPools {
 						addressPools = append(addressPools, *pool.ID)
 					}
-					config["load_balancer_backend_address_pool_ids"] = addressPools
+					config["load_balancer_backend_address_pool_ids"] = schema.NewSet(schema.HashString, addressPools)
 				}
+
+				ipConfigs = append(ipConfigs, config)
 			}
 
 			s["ip_configuration"] = ipConfigs
@@ -658,14 +664,17 @@ func flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(profile *compute.V
 		result["image"] = *profile.Image.URI
 	}
 
-	containers := make([]interface{}, 0, len(*profile.VhdContainers))
-	for _, container := range *profile.VhdContainers {
-		containers = append(containers, container)
+	if profile.VhdContainers != nil {
+		containers := make([]interface{}, 0, len(*profile.VhdContainers))
+		for _, container := range *profile.VhdContainers {
+			containers = append(containers, container)
+		}
+		result["vhd_containers"] = schema.NewSet(schema.HashString, containers)
 	}
-	result["vhd_containers"] = schema.NewSet(schema.HashString, containers)
 
 	result["caching"] = profile.Caching
 	result["create_option"] = profile.CreateOption
+	result["os_type"] = profile.OsType
 
 	return []interface{}{result}
 }
@@ -690,17 +699,6 @@ func flattenAzureRmVirtualMachineScaleSetSku(sku *compute.Sku) []interface{} {
 	}
 
 	return []interface{}{result}
-}
-
-func virtualMachineScaleSetStateRefreshFunc(client *ArmClient, resourceGroupName string, scaleSetName string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		res, err := client.vmScaleSetClient.Get(resourceGroupName, scaleSetName)
-		if err != nil {
-			return nil, "", fmt.Errorf("Error issuing read request in virtualMachineScaleSetStateRefreshFunc to Azure ARM for Virtual Machine Scale Set '%s' (RG: '%s'): %s", scaleSetName, resourceGroupName, err)
-		}
-
-		return res, *res.Properties.ProvisioningState, nil
-	}
 }
 
 func resourceArmVirtualMachineScaleSetStorageProfileImageReferenceHash(v interface{}) int {
@@ -733,9 +731,6 @@ func resourceArmVirtualMachineScaleSetStorageProfileOsDiskHash(v interface{}) in
 
 	if m["image"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", m["image"].(string)))
-	}
-	if m["os_type"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["os_type"].(string)))
 	}
 
 	return hashcode.String(buf.String())
@@ -820,23 +815,31 @@ func expandAzureRmVirtualMachineScaleSetNetworkProfile(d *schema.ResourceData) *
 
 			ipConfiguration := compute.VirtualMachineScaleSetIPConfiguration{
 				Name: &name,
-				Properties: &compute.VirtualMachineScaleSetIPConfigurationProperties{
+				VirtualMachineScaleSetIPConfigurationProperties: &compute.VirtualMachineScaleSetIPConfigurationProperties{
 					Subnet: &compute.APIEntityReference{
 						ID: &subnetId,
 					},
 				},
 			}
-			//TODO: Add the support for the load balancers when it drops
-			//if v := ipconfig["load_balancer_backend_address_pool_ids"]; v != nil {
-			//
-			//}
+
+			if v := ipconfig["load_balancer_backend_address_pool_ids"]; v != nil {
+				pools := v.(*schema.Set).List()
+				resources := make([]compute.SubResource, 0, len(pools))
+				for _, p := range pools {
+					id := p.(string)
+					resources = append(resources, compute.SubResource{
+						ID: &id,
+					})
+				}
+				ipConfiguration.LoadBalancerBackendAddressPools = &resources
+			}
 
 			ipConfigurations = append(ipConfigurations, ipConfiguration)
 		}
 
 		nProfile := compute.VirtualMachineScaleSetNetworkConfiguration{
 			Name: &name,
-			Properties: &compute.VirtualMachineScaleSetNetworkConfigurationProperties{
+			VirtualMachineScaleSetNetworkConfigurationProperties: &compute.VirtualMachineScaleSetNetworkConfigurationProperties{
 				Primary:          &primary,
 				IPConfigurations: &ipConfigurations,
 			},
@@ -910,25 +913,25 @@ func expandAzureRMVirtualMachineScaleSetsStorageProfileOsDisk(d *schema.Resource
 	osType := osDiskConfig["os_type"].(string)
 	createOption := osDiskConfig["create_option"].(string)
 
-	var vhdContainers []string
-	containers := osDiskConfig["vhd_containers"].(*schema.Set).List()
-	for _, v := range containers {
-		str := v.(string)
-		vhdContainers = append(vhdContainers, str)
-	}
-
 	osDisk := &compute.VirtualMachineScaleSetOSDisk{
-		Name:          &name,
-		Caching:       compute.CachingTypes(caching),
-		OsType:        compute.OperatingSystemTypes(osType),
-		CreateOption:  compute.DiskCreateOptionTypes(createOption),
-		VhdContainers: &vhdContainers,
+		Name:         &name,
+		Caching:      compute.CachingTypes(caching),
+		OsType:       compute.OperatingSystemTypes(osType),
+		CreateOption: compute.DiskCreateOptionTypes(createOption),
 	}
 
 	if image != "" {
 		osDisk.Image = &compute.VirtualHardDisk{
 			URI: &image,
 		}
+	} else {
+		var vhdContainers []string
+		containers := osDiskConfig["vhd_containers"].(*schema.Set).List()
+		for _, v := range containers {
+			str := v.(string)
+			vhdContainers = append(vhdContainers, str)
+		}
+		osDisk.VhdContainers = &vhdContainers
 	}
 
 	return osDisk, nil

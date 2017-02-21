@@ -14,13 +14,13 @@ resource "dnsimple_record" "web" {
   value = "${heroku_app.web.heroku_hostname}"
 
   type = "CNAME"
-  ttl = 3600
+  ttl  = 3600
 }
 
 # The Heroku domain, which will be created and added
 # to the heroku application after we have assigned the domain
 # in DNSimple
 resource "heroku_domain" "foobar" {
-  app = "${heroku_app.web.name}"
+  app      = "${heroku_app.web.name}"
   hostname = "${dnsimple_record.web.hostname}"
 }

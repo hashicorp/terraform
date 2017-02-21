@@ -5,22 +5,84 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
+	"github.com/hashicorp/terraform/helper/acctest"
 	riviera "github.com/jen20/riviera/azure"
 	"github.com/jen20/riviera/storage"
+	"github.com/satori/uuid"
 )
 
 func TestAzureClient_impl(t *testing.T) {
 	var _ Client = new(AzureClient)
 }
 
+// This test creates a bucket in Azure and populates it.
+// It may incur costs, so it will only run if Azure credential environment
+// variables are present.
 func TestAzureClient(t *testing.T) {
-	// This test creates a bucket in Azure and populates it.
-	// It may incur costs, so it will only run if Azure credential environment
-	// variables are present.
+	config := getAzureConfig(t)
 
+	setup(t, config)
+	defer teardown(t, config)
+
+	client, err := azureFactory(config)
+	if err != nil {
+		t.Fatalf("Error for valid config: %v", err)
+	}
+
+	testClient(t, client)
+}
+
+// This test is the same as TestAzureClient with the addition of passing an
+// empty string in the lease_id, we expect the client to pass tests
+func TestAzureClientEmptyLease(t *testing.T) {
+	config := getAzureConfig(t)
+	config["lease_id"] = ""
+
+	setup(t, config)
+	defer teardown(t, config)
+
+	client, err := azureFactory(config)
+	if err != nil {
+		t.Fatalf("Error for valid config: %v", err)
+	}
+
+	testClient(t, client)
+}
+
+// This test is the same as TestAzureClient with the addition of using the
+// lease_id config option
+func TestAzureClientLease(t *testing.T) {
+	leaseID := uuid.NewV4().String()
+	config := getAzureConfig(t)
+	config["lease_id"] = leaseID
+
+	setup(t, config)
+	defer teardown(t, config)
+
+	client, err := azureFactory(config)
+	if err != nil {
+		t.Fatalf("Error for valid config: %v", err)
+	}
+	azureClient := client.(*AzureClient)
+
+	// put empty blob so we can acquire lease against it
+	err = azureClient.blobClient.CreateBlockBlob(azureClient.containerName, azureClient.keyName)
+	if err != nil {
+		t.Fatalf("Error creating blob for leasing: %v", err)
+	}
+
+	_, err = azureClient.blobClient.AcquireLease(azureClient.containerName, azureClient.keyName, -1, leaseID)
+	if err != nil {
+		t.Fatalf("Error acquiring lease: %v", err)
+	}
+
+	// no need to release lease as blob is deleted in testing
+	testClient(t, client)
+}
+
+func getAzureConfig(t *testing.T) map[string]string {
 	config := map[string]string{
 		"arm_subscription_id": os.Getenv("ARM_SUBSCRIPTION_ID"),
 		"arm_client_id":       os.Getenv("ARM_CLIENT_ID"),
@@ -34,20 +96,14 @@ func TestAzureClient(t *testing.T) {
 		}
 	}
 
-	config["resource_group_name"] = fmt.Sprintf("terraform-%x", time.Now().Unix())
-	config["storage_account_name"] = fmt.Sprintf("terraform%x", time.Now().Unix())
+	rs := acctest.RandString(8)
+
+	config["resource_group_name"] = fmt.Sprintf("terraform-%s", rs)
+	config["storage_account_name"] = fmt.Sprintf("terraform%s", rs)
 	config["container_name"] = "terraform"
 	config["key"] = "test.tfstate"
 
-	setup(t, config)
-	defer teardown(t, config)
-
-	client, err := azureFactory(config)
-	if err != nil {
-		t.Fatalf("Error for valid config: %v", err)
-	}
-
-	testClient(t, client)
+	return config
 }
 
 func setup(t *testing.T, conf map[string]string) {

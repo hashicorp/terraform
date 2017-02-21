@@ -195,10 +195,11 @@ func (c *Client) DeleteDictionary(i *DeleteDictionaryInput) error {
 	}
 
 	path := fmt.Sprintf("/service/%s/version/%s/dictionary/%s", i.Service, i.Version, i.Name)
-	_, err := c.Delete(path, nil)
+	resp, err := c.Delete(path, nil)
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	// Unlike other endpoints, the dictionary endpoint does not return a status
 	// response - it just returns a 200 OK.

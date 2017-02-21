@@ -44,20 +44,40 @@ func httpFactory(conf map[string]string) (Client, error) {
 		}
 	}
 
-	return &HTTPClient{
+	ret := &HTTPClient{
 		URL:    url,
 		Client: client,
-	}, nil
+	}
+	if username, ok := conf["username"]; ok && username != "" {
+		ret.Username = username
+	}
+	if password, ok := conf["password"]; ok && password != "" {
+		ret.Password = password
+	}
+	return ret, nil
 }
 
 // HTTPClient is a remote client that stores data in Consul or HTTP REST.
 type HTTPClient struct {
-	URL    *url.URL
-	Client *http.Client
+	URL      *url.URL
+	Client   *http.Client
+	Username string
+	Password string
 }
 
 func (c *HTTPClient) Get() (*Payload, error) {
-	resp, err := c.Client.Get(c.URL.String())
+	req, err := http.NewRequest("GET", c.URL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Prepare the request
+	if c.Username != "" {
+		req.SetBasicAuth(c.Username, c.Password)
+	}
+
+	// Make the request
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -141,6 +161,9 @@ func (c *HTTPClient) Put(data []byte) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-MD5", b64)
 	req.ContentLength = int64(len(data))
+	if c.Username != "" {
+		req.SetBasicAuth(c.Username, c.Password)
+	}
 
 	// Make the request
 	resp, err := c.Client.Do(req)
@@ -162,6 +185,11 @@ func (c *HTTPClient) Delete() error {
 	req, err := http.NewRequest("DELETE", c.URL.String(), nil)
 	if err != nil {
 		return fmt.Errorf("Failed to make HTTP request: %s", err)
+	}
+
+	// Prepare the request
+	if c.Username != "" {
+		req.SetBasicAuth(c.Username, c.Password)
 	}
 
 	// Make the request

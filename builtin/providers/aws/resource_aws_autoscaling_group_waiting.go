@@ -42,7 +42,8 @@ func waitForASGCapacity(
 			d.SetId("")
 			return nil
 		}
-		lbis, err := getLBInstanceStates(g, meta)
+		elbis, err := getELBInstanceStates(g, meta)
+		albis, err := getTargetGroupInstanceStates(g, meta)
 		if err != nil {
 			return resource.NonRetryableError(err)
 		}
@@ -66,9 +67,15 @@ func waitForASGCapacity(
 			haveASG++
 
 			inAllLbs := true
-			for _, states := range lbis {
+			for _, states := range elbis {
 				state, ok := states[*i.InstanceId]
 				if !ok || !strings.EqualFold(state, "InService") {
+					inAllLbs = false
+				}
+			}
+			for _, states := range albis {
+				state, ok := states[*i.InstanceId]
+				if !ok || !strings.EqualFold(state, "healthy") {
 					inAllLbs = false
 				}
 			}
@@ -79,7 +86,7 @@ func waitForASGCapacity(
 
 		satisfied, reason := satisfiedFunc(d, haveASG, haveELB)
 
-		log.Printf("[DEBUG] %q Capacity: %d ASG, %d ELB, satisfied: %t, reason: %q",
+		log.Printf("[DEBUG] %q Capacity: %d ASG, %d ELB/ALB, satisfied: %t, reason: %q",
 			d.Id(), haveASG, haveELB, satisfied, reason)
 
 		if satisfied {

@@ -57,7 +57,7 @@ module "consul" {
 
 (Note that the `provider` block can be omitted in favor of environment
 variables. See the [AWS Provider docs](/docs/providers/aws/index.html)
-for details.)
+for details.  This module requires that your AWS account has a default VPC.)
 
 The `module` block tells Terraform to create and manage a module. It is
 very similar to the `resource` block. It has a logical name -- in this

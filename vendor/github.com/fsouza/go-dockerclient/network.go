@@ -28,6 +28,7 @@ type Network struct {
 	Containers map[string]Endpoint
 	Options    map[string]string
 	Internal   bool
+	EnableIPv6 bool `json:"EnableIPv6"`
 }
 
 // Endpoint contains network resources allocated and used for a container in a network
@@ -111,7 +112,9 @@ type CreateNetworkOptions struct {
 	CheckDuplicate bool                   `json:"CheckDuplicate"`
 	Driver         string                 `json:"Driver"`
 	IPAM           IPAMOptions            `json:"IPAM"`
-	Options        map[string]interface{} `json:"options"`
+	Options        map[string]interface{} `json:"Options"`
+	Internal       bool                   `json:"Internal"`
+	EnableIPv6     bool                   `json:"EnableIPv6"`
 }
 
 // IPAMOptions controls IP Address Management when creating a network
@@ -119,7 +122,7 @@ type CreateNetworkOptions struct {
 // See https://goo.gl/T8kRVH for more details.
 type IPAMOptions struct {
 	Driver string       `json:"Driver"`
-	Config []IPAMConfig `json:"IPAMConfig"`
+	Config []IPAMConfig `json:"Config"`
 }
 
 // IPAMConfig represents IPAM configurations

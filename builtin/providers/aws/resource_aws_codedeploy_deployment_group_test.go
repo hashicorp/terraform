@@ -37,6 +37,9 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 						"aws_codedeploy_deployment_group.foo", "deployment_group_name", "foo_"+rName),
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo", "deployment_config_name", "CodeDeployDefault.OneAtATime"),
+					resource.TestMatchResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "service_role_arn",
+						regexp.MustCompile("arn:aws:iam::[0-9]{12}:role/foo_role_.*")),
 
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.#", "1"),
@@ -46,6 +49,13 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.2916377465.type", "KEY_AND_VALUE"),
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.2916377465.value", "filtervalue"),
+
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "alarm_configuration.#", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "auto_rollback_configuration.#", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "trigger_configuration.#", "0"),
 				),
 			},
 			resource.TestStep{
@@ -58,6 +68,9 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 						"aws_codedeploy_deployment_group.foo", "deployment_group_name", "bar_"+rName),
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo", "deployment_config_name", "CodeDeployDefault.OneAtATime"),
+					resource.TestMatchResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "service_role_arn",
+						regexp.MustCompile("arn:aws:iam::[0-9]{12}:role/bar_role_.*")),
 
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.#", "1"),
@@ -67,6 +80,13 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.2369538975.type", "KEY_AND_VALUE"),
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.2369538975.value", "anotherfiltervalue"),
+
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "alarm_configuration.#", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "auto_rollback_configuration.#", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "trigger_configuration.#", "0"),
 				),
 			},
 		},
@@ -223,6 +243,334 @@ func TestAccAWSCodeDeployDeploymentGroup_triggerConfiguration_multiple(t *testin
 	})
 }
 
+func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_create(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: test_config_auto_rollback_configuration_delete(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.#", "0"),
+				),
+			},
+			resource.TestStep{
+				Config: test_config_auto_rollback_configuration_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.135881253", "DEPLOYMENT_FAILURE"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_update(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: test_config_auto_rollback_configuration_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.135881253", "DEPLOYMENT_FAILURE"),
+				),
+			},
+			resource.TestStep{
+				Config: test_config_auto_rollback_configuration_update(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.#", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.104943466", "DEPLOYMENT_STOP_ON_ALARM"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.135881253", "DEPLOYMENT_FAILURE"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_delete(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: test_config_auto_rollback_configuration_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.135881253", "DEPLOYMENT_FAILURE"),
+				),
+			},
+			resource.TestStep{
+				Config: test_config_auto_rollback_configuration_delete(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_disable(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: test_config_auto_rollback_configuration_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.135881253", "DEPLOYMENT_FAILURE"),
+				),
+			},
+			resource.TestStep{
+				Config: test_config_auto_rollback_configuration_disable(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.enabled", "false"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "auto_rollback_configuration.0.events.135881253", "DEPLOYMENT_FAILURE"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_create(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: test_config_alarm_configuration_delete(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "0"),
+				),
+			},
+			resource.TestStep{
+				Config: test_config_alarm_configuration_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.2356372769", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.ignore_poll_alarm_failure", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_update(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: test_config_alarm_configuration_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.2356372769", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.ignore_poll_alarm_failure", "false"),
+				),
+			},
+			resource.TestStep{
+				Config: test_config_alarm_configuration_update(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.#", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.1996459178", "bar"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.2356372769", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.ignore_poll_alarm_failure", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_delete(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: test_config_alarm_configuration_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.2356372769", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.ignore_poll_alarm_failure", "false"),
+				),
+			},
+			resource.TestStep{
+				Config: test_config_alarm_configuration_delete(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_disable(t *testing.T) {
+	var group codedeploy.DeploymentGroupInfo
+
+	rName := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: test_config_alarm_configuration_create(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.2356372769", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.ignore_poll_alarm_failure", "false"),
+				),
+			},
+			resource.TestStep{
+				Config: test_config_alarm_configuration_disable(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.enabled", "false"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.alarms.2356372769", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_codedeploy_deployment_group.foo_group", "alarm_configuration.0.ignore_poll_alarm_failure", "false"),
+				),
+			},
+		},
+	})
+}
+
 func TestValidateAWSCodeDeployTriggerEvent(t *testing.T) {
 	cases := []struct {
 		Value    string
@@ -242,6 +590,10 @@ func TestValidateAWSCodeDeployTriggerEvent(t *testing.T) {
 		},
 		{
 			Value:    "DeploymentFailure",
+			ErrCount: 0,
+		},
+		{
+			Value:    "DeploymentRollback",
 			ErrCount: 0,
 		},
 		{
@@ -352,6 +704,144 @@ func TestTriggerConfigsToMap(t *testing.T) {
 
 	if fatal {
 		t.Fatalf("triggerConfigsToMap output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+			actual, expected)
+	}
+}
+
+func TestBuildAutoRollbackConfig(t *testing.T) {
+	input := []interface{}{
+		map[string]interface{}{
+			"events": schema.NewSet(schema.HashString, []interface{}{
+				"DEPLOYMENT_FAILURE",
+			}),
+			"enabled": true,
+		},
+	}
+
+	expected := &codedeploy.AutoRollbackConfiguration{
+		Events: []*string{
+			aws.String("DEPLOYMENT_FAILURE"),
+		},
+		Enabled: aws.Bool(true),
+	}
+
+	actual := buildAutoRollbackConfig(input)
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("buildAutoRollbackConfig output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+			actual, expected)
+	}
+}
+
+func TestAutoRollbackConfigToMap(t *testing.T) {
+	input := &codedeploy.AutoRollbackConfiguration{
+		Events: []*string{
+			aws.String("DEPLOYMENT_FAILURE"),
+			aws.String("DEPLOYMENT_STOP_ON_ALARM"),
+		},
+		Enabled: aws.Bool(false),
+	}
+
+	expected := map[string]interface{}{
+		"events": schema.NewSet(schema.HashString, []interface{}{
+			"DEPLOYMENT_FAILURE",
+			"DEPLOYMENT_STOP_ON_ALARM",
+		}),
+		"enabled": false,
+	}
+
+	actual := autoRollbackConfigToMap(input)[0]
+
+	fatal := false
+
+	if actual["enabled"] != expected["enabled"] {
+		fatal = true
+	}
+
+	actualEvents := actual["events"].(*schema.Set)
+	expectedEvents := expected["events"].(*schema.Set)
+	if !actualEvents.Equal(expectedEvents) {
+		fatal = true
+	}
+
+	if fatal {
+		t.Fatalf("autoRollbackConfigToMap output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+			actual, expected)
+	}
+}
+
+func TestBuildAlarmConfig(t *testing.T) {
+	input := []interface{}{
+		map[string]interface{}{
+			"alarms": schema.NewSet(schema.HashString, []interface{}{
+				"foo-alarm",
+			}),
+			"enabled":                   true,
+			"ignore_poll_alarm_failure": false,
+		},
+	}
+
+	expected := &codedeploy.AlarmConfiguration{
+		Alarms: []*codedeploy.Alarm{
+			{
+				Name: aws.String("foo-alarm"),
+			},
+		},
+		Enabled:                aws.Bool(true),
+		IgnorePollAlarmFailure: aws.Bool(false),
+	}
+
+	actual := buildAlarmConfig(input)
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("buildAlarmConfig output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
+			actual, expected)
+	}
+}
+
+func TestAlarmConfigToMap(t *testing.T) {
+	input := &codedeploy.AlarmConfiguration{
+		Alarms: []*codedeploy.Alarm{
+			{
+				Name: aws.String("bar-alarm"),
+			},
+			{
+				Name: aws.String("foo-alarm"),
+			},
+		},
+		Enabled:                aws.Bool(false),
+		IgnorePollAlarmFailure: aws.Bool(true),
+	}
+
+	expected := map[string]interface{}{
+		"alarms": schema.NewSet(schema.HashString, []interface{}{
+			"bar-alarm",
+			"foo-alarm",
+		}),
+		"enabled":                   false,
+		"ignore_poll_alarm_failure": true,
+	}
+
+	actual := alarmConfigToMap(input)[0]
+
+	fatal := false
+
+	if actual["enabled"] != expected["enabled"] {
+		fatal = true
+	}
+
+	if actual["ignore_poll_alarm_failure"] != expected["ignore_poll_alarm_failure"] {
+		fatal = true
+	}
+
+	actualAlarms := actual["alarms"].(*schema.Set)
+	expectedAlarms := expected["alarms"].(*schema.Set)
+	if !actualAlarms.Equal(expectedAlarms) {
+		fatal = true
+	}
+
+	if fatal {
+		t.Fatalf("alarmConfigToMap output is not correct.\nGot:\n%#v\nExpected:\n%#v\n",
 			actual, expected)
 	}
 }
@@ -558,7 +1048,7 @@ resource "aws_codedeploy_app" "foo_app" {
 
 resource "aws_iam_role_policy" "foo_policy" {
 	name = "foo_policy_%s"
-	role = "${aws_iam_role.foo_role.id}"
+	role = "${aws_iam_role.bar_role.id}"
 	policy = <<EOF
 {
 	"Version": "2012-10-17",
@@ -584,8 +1074,8 @@ resource "aws_iam_role_policy" "foo_policy" {
 EOF
 }
 
-resource "aws_iam_role" "foo_role" {
-	name = "foo_role_%s"
+resource "aws_iam_role" "bar_role" {
+	name = "bar_role_%s"
 	assume_role_policy = <<EOF
 {
 	"Version": "2012-10-17",
@@ -608,7 +1098,7 @@ EOF
 resource "aws_codedeploy_deployment_group" "foo" {
 	app_name = "${aws_codedeploy_app.foo_app.name}"
 	deployment_group_name = "bar_%s"
-	service_role_arn = "${aws_iam_role.foo_role.arn}"
+	service_role_arn = "${aws_iam_role.bar_role.arn}"
 	ec2_tag_filter {
 		key = "filterkey"
 		type = "KEY_AND_VALUE"
@@ -748,7 +1238,7 @@ func testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_create(rName strin
 	return fmt.Sprintf(`
 
 	%s
-	
+
 resource "aws_codedeploy_deployment_group" "foo_group" {
 	app_name = "${aws_codedeploy_app.foo_app.name}"
 	deployment_group_name = "foo-group-%s"
@@ -766,7 +1256,7 @@ func testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_update(rName strin
 	return fmt.Sprintf(`
 
 	%s
-	
+
 resource "aws_codedeploy_deployment_group" "foo_group" {
 	app_name = "${aws_codedeploy_app.foo_app.name}"
 	deployment_group_name = "foo-group-%s"
@@ -784,7 +1274,7 @@ func testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_createMultiple(rNa
 	return fmt.Sprintf(`
 
 	%s
-	
+
 resource "aws_sns_topic" "bar_topic" {
 	name = "bar-topic-%s"
 }
@@ -812,7 +1302,7 @@ func testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_updateMultiple(rNa
 	return fmt.Sprintf(`
 
 	%s
-	
+
 resource "aws_sns_topic" "bar_topic" {
 	name = "bar-topic-%s"
 }
@@ -838,4 +1328,131 @@ resource "aws_codedeploy_deployment_group" "foo_group" {
 		trigger_target_arn = "${aws_sns_topic.baz_topic.arn}"
 	}
 }`, baseCodeDeployConfig(rName), rName, rName, rName)
+}
+
+func test_config_auto_rollback_configuration_create(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+
+  auto_rollback_configuration {
+    enabled = true
+    events = ["DEPLOYMENT_FAILURE"]
+  }
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func test_config_auto_rollback_configuration_update(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+
+  auto_rollback_configuration {
+    enabled = true
+    events = ["DEPLOYMENT_FAILURE", "DEPLOYMENT_STOP_ON_ALARM"]
+  }
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func test_config_auto_rollback_configuration_delete(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func test_config_auto_rollback_configuration_disable(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+
+  auto_rollback_configuration {
+    enabled = false
+    events = ["DEPLOYMENT_FAILURE"]
+  }
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func test_config_alarm_configuration_create(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+
+  alarm_configuration {
+    alarms = ["foo"]
+    enabled = true
+  }
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func test_config_alarm_configuration_update(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+
+  alarm_configuration {
+    alarms = ["foo", "bar"]
+    enabled = true
+    ignore_poll_alarm_failure = true
+  }
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func test_config_alarm_configuration_delete(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+}`, baseCodeDeployConfig(rName), rName)
+}
+
+func test_config_alarm_configuration_disable(rName string) string {
+	return fmt.Sprintf(`
+
+  %s
+
+resource "aws_codedeploy_deployment_group" "foo_group" {
+  app_name = "${aws_codedeploy_app.foo_app.name}"
+  deployment_group_name = "foo-group-%s"
+  service_role_arn = "${aws_iam_role.foo_role.arn}"
+
+  alarm_configuration {
+    alarms = ["foo"]
+    enabled = false
+  }
+}`, baseCodeDeployConfig(rName), rName)
 }

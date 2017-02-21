@@ -16,10 +16,10 @@ Manages a V2 VM instance resource within OpenStack.
 
 ```
 resource "openstack_compute_instance_v2" "basic" {
-  name = "basic"
-  image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
-  flavor_id = "3"
-  key_pair = "my_key_pair_name"
+  name            = "basic"
+  image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_id       = "3"
+  key_pair        = "my_key_pair_name"
   security_groups = ["default"]
 
   metadata {
@@ -41,10 +41,10 @@ resource "openstack_blockstorage_volume_v1" "myvol" {
 }
 
 resource "openstack_compute_instance_v2" "volume-attached" {
-  name = "volume-attached"
-  image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
-  flavor_id = "3"
-  key_pair = "my_key_pair_name"
+  name            = "volume-attached"
+  image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_id       = "3"
+  key_pair        = "my_key_pair_name"
   security_groups = ["default"]
 
   network {
@@ -61,17 +61,17 @@ resource "openstack_compute_instance_v2" "volume-attached" {
 
 ```
 resource "openstack_compute_instance_v2" "boot-from-volume" {
-  name = "boot-from-volume"
-  flavor_id = "3"
-  key_pair = "my_key_pair_name"
+  name            = "boot-from-volume"
+  flavor_id       = "3"
+  key_pair        = "my_key_pair_name"
   security_groups = ["default"]
 
   block_device {
-    uuid = "<image-id>"
-    source_type = "image"
-    volume_size = 5
-    boot_index = 0
-    destination_type = "volume"
+    uuid                  = "<image-id>"
+    source_type           = "image"
+    volume_size           = 5
+    boot_index            = 0
+    destination_type      = "volume"
     delete_on_termination = true
   }
 
@@ -85,27 +85,88 @@ resource "openstack_compute_instance_v2" "boot-from-volume" {
 
 ```
 resource "openstack_blockstorage_volume_v1" "myvol" {
-  name = "myvol"
-  size = 5
+  name     = "myvol"
+  size     = 5
   image_id = "<image-id>"
 }
 
 resource "openstack_compute_instance_v2" "boot-from-volume" {
-  name = "bootfromvolume"
-  flavor_id = "3"
-  key_pair = "my_key_pair_name"
+  name            = "bootfromvolume"
+  flavor_id       = "3"
+  key_pair        = "my_key_pair_name"
   security_groups = ["default"]
 
   block_device {
-    uuid = "${openstack_blockstorage_volume_v1.myvol.id}"
-    source_type = "volume"
-    boot_index = 0
-    destination_type = "volume"
+    uuid                  = "${openstack_blockstorage_volume_v1.myvol.id}"
+    source_type           = "volume"
+    boot_index            = 0
+    destination_type      = "volume"
     delete_on_termination = true
   }
 
   network {
     name = "my_network"
+  }
+}
+```
+
+### Boot Instance, Create Volume, and Attach Volume as a Block Device
+
+```
+resource "openstack_compute_instance_v2" "instance_1" {
+  name            = "instance_1"
+  image_id        = "<image-id>"
+  flavor_id       = "3"
+  key_pair        = "my_key_pair_name"
+  security_groups = ["default"]
+
+  block_device {
+    uuid                  = "<image-id>"
+    source_type           = "image"
+    destination_type      = "local"
+    boot_index            = 0
+    delete_on_termination = true
+  }
+
+  block_device {
+    source_type           = "blank"
+    destination_type      = "volume"
+    volume_size           = 1
+    boot_index            = 1
+    delete_on_termination = true
+  }
+}
+```
+
+### Boot Instance and Attach Existing Volume as a Block Device
+
+```
+resource "openstack_blockstorage_volume_v2" "volume_1" {
+  name = "volume_1"
+  size = 1
+}
+
+resource "openstack_compute_instance_v2" "instance_1" {
+  name            = "instance_1"
+  image_id        = "<image-id>"
+  flavor_id       = "3"
+  key_pair        = "my_key_pair_name"
+  security_groups = ["default"]
+
+  block_device {
+    uuid                  = "<image-id>"
+    source_type           = "image"
+    destination_type      = "local"
+    boot_index            = 0
+    delete_on_termination = true
+  }
+
+  block_device {
+    uuid                  = "${openstack_blockstorage_volume_v2.volume_1.id}"
+    source_type           = "volume"
+    destination_type      = "volume"
+    boot_index            = 1
+    delete_on_termination = true
   }
 }
 ```
@@ -118,10 +179,10 @@ resource "openstack_compute_floatingip_v2" "myip" {
 }
 
 resource "openstack_compute_instance_v2" "multi-net" {
-  name = "multi-net"
-  image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
-  flavor_id = "3"
-  key_pair = "my_key_pair_name"
+  name            = "multi-net"
+  image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_id       = "3"
+  key_pair        = "my_key_pair_name"
   security_groups = ["default"]
 
   network {
@@ -129,8 +190,9 @@ resource "openstack_compute_instance_v2" "multi-net" {
   }
 
   network {
-    name = "my_second_network"
+    name        = "my_second_network"
     floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
+
     # Terraform will use this network for provisioning
     access_network = true
   }
@@ -141,14 +203,14 @@ resource "openstack_compute_instance_v2" "multi-net" {
 
 ```
 resource "openstack_compute_instance_v2" "personality" {
-  name = "personality"
-  image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
-  flavor_id = "3"
-  key_pair = "my_key_pair_name"
+  name            = "personality"
+  image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_id       = "3"
+  key_pair        = "my_key_pair_name"
   security_groups = ["default"]
 
   personality {
-    file = "/path/to/file/on/instance.txt
+    file    = "/path/to/file/on/instance.txt"
     content = "contents of file"
   }
 
@@ -162,34 +224,34 @@ resource "openstack_compute_instance_v2" "personality" {
 
 ```
 resource "openstack_compute_instance_v2" "multi-eph" {
-  name = "multi_eph"
-  image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
-  flavor_id = "3"
-  key_pair = "my_key_pair_name"
+  name            = "multi_eph"
+  image_id        = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_id       = "3"
+  key_pair        = "my_key_pair_name"
   security_groups = ["default"]
 
   block_device {
-    boot_index = 0
+    boot_index            = 0
     delete_on_termination = true
-    destination_type = "local"
-    source_type = "image"
-    uuid = "<image-id>"
+    destination_type      = "local"
+    source_type           = "image"
+    uuid                  = "<image-id>"
   }
 
   block_device {
-    boot_index = -1
+    boot_index            = -1
     delete_on_termination = true
-    destination_type = "local"
-    source_type = "blank"
-    volume_size = 1
+    destination_type      = "local"
+    source_type           = "blank"
+    volume_size           = 1
   }
 
   block_device {
-    boot_index = -1
+    boot_index            = -1
     delete_on_termination = true
-    destination_type = "local"
-    source_type = "blank"
-    volume_size = 1
+    destination_type      = "local"
+    source_type           = "blank"
+    volume_size           = 1
   }
 }
 ```
@@ -251,13 +313,18 @@ The following arguments are supported:
     pair must already be created and associated with the tenant's account.
     Changing this creates a new server.
 
-* `block_device` - (Optional) The object for booting by volume. The block_device
-    object structure is documented below. Changing this creates a new server.
+* `block_device` - (Optional) Configuration of block devices. The block_device
+    structure is documented below. Changing this creates a new server.
     You can specify multiple block devices which will create an instance with
-    multiple ephemeral (local) disks.
+    multiple disks. This configuration is very flexible, so please see the
+    following [reference](http://docs.openstack.org/developer/nova/block_device_mapping.html)
+    for more information.
 
 * `volume` - (Optional) Attach an existing volume to the instance. The volume
-    structure is described below.
+    structure is described below. *Note*: This is no longer the recommended
+    method of attaching a volume to an instance. Please see `block_device`
+    (above) or the `openstack_compute_volume_attach_v2` and
+    `openstack_blockstorage_volume_attach_v2` resources.
 
 * `scheduler_hints` - (Optional) Provide the Nova scheduler with hints on how
     the instance should be launched. The available hints are described below.
@@ -306,7 +373,8 @@ The `block_device` block supports:
 
 * `volume_size` - The size of the volume to create (in gigabytes). Required
     in the following combinations: source=image and destination=volume,
-    source=blank and destination=local. Changing this creates a new server.
+    source=blank and destination=local, and source=blank and destination=volume.
+    Changing this creates a new server.
 
 * `boot_index` - (Optional) The boot index of the volume. It defaults to 0.
     Changing this creates a new server.
@@ -404,31 +472,31 @@ disks:
 
 ```
 resource "openstack_compute_instance_v2" "foo" {
-  name = "terraform-test"
+  name            = "terraform-test"
   security_groups = ["default"]
 
   block_device {
-    boot_index = 0
+    boot_index            = 0
     delete_on_termination = true
-    destination_type = "local"
-    source_type = "image"
-    uuid = "<image uuid>"
+    destination_type      = "local"
+    source_type           = "image"
+    uuid                  = "<image uuid>"
   }
 
   block_device {
-    boot_index = -1
+    boot_index            = -1
     delete_on_termination = true
-    destination_type = "local"
-    source_type = "blank"
-    volume_size = 1
+    destination_type      = "local"
+    source_type           = "blank"
+    volume_size           = 1
   }
 
   block_device {
-    boot_index = -1
+    boot_index            = -1
     delete_on_termination = true
-    destination_type = "local"
-    source_type = "blank"
-    volume_size = 1
+    destination_type      = "local"
+    source_type           = "blank"
+    volume_size           = 1
   }
 }
 ```
@@ -453,33 +521,33 @@ via it's network Port, customize the `connection` information:
 
 ```
 resource "openstack_networking_port_v2" "port_1" {
-  name = "port_1"
+  name           = "port_1"
   admin_state_up = "true"
 
   network_id = "0a1d0a27-cffa-4de3-92c5-9d3fd3f2e74d"
+
   security_group_ids = [
     "2f02d20a-8dca-49b7-b26f-b6ce9fddaf4f",
     "ca1e5ed7-dae8-4605-987b-fadaeeb30461",
   ]
-
 }
 
 resource "openstack_compute_instance_v2" "instance_1" {
-  name        = "instance_1"
+  name = "instance_1"
 
   network {
     port = "${openstack_networking_port_v2.port_1.id}"
   }
 
   connection {
-    user = "root"
-    host = "${openstack_networking_port_v2.port_1.fixed_ip.0.ip_address}"
+    user        = "root"
+    host        = "${openstack_networking_port_v2.port_1.fixed_ip.0.ip_address}"
     private_key = "~/path/to/key"
   }
 
   provisioner "remote-exec" {
     inline = [
-      "echo terraform executed > /tmp/foo"
+      "echo terraform executed > /tmp/foo",
     ]
   }
 }

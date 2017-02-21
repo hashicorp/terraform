@@ -24,4 +24,5 @@ func TestState_impl(t *testing.T) {
 	var _ state.StateWriter = new(State)
 	var _ state.StatePersister = new(State)
 	var _ state.StateRefresher = new(State)
+	var _ state.Locker = new(State)
 }

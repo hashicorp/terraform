@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 )
 
 func resourceAwsAutoscalingGroup() *schema.Resource {
@@ -109,6 +110,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			"load_balancers": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
@@ -152,6 +154,13 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			},
 
 			"enabled_metrics": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
+			"suspended_processes": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -380,6 +389,13 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
+	if _, ok := d.GetOk("suspended_processes"); ok {
+		suspendedProcessesErr := enableASGSuspendedProcesses(d, conn)
+		if suspendedProcessesErr != nil {
+			return suspendedProcessesErr
+		}
+	}
+
 	if _, ok := d.GetOk("enabled_metrics"); ok {
 		metricsErr := enableASGMetricsCollection(d, conn)
 		if metricsErr != nil {
@@ -411,6 +427,9 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("health_check_type", g.HealthCheckType)
 	d.Set("launch_configuration", g.LaunchConfigurationName)
 	d.Set("load_balancers", flattenStringList(g.LoadBalancerNames))
+	if err := d.Set("suspended_processes", flattenAsgSuspendedProcesses(g.SuspendedProcesses)); err != nil {
+		log.Printf("[WARN] Error setting suspended_processes for %q: %s", d.Id(), err)
+	}
 	if err := d.Set("target_group_arns", flattenStringList(g.TargetGroupARNs)); err != nil {
 		log.Printf("[ERR] Error setting target groups: %s", err)
 	}
@@ -605,6 +624,12 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
+	if d.HasChange("suspended_processes") {
+		if err := updateASGSuspendedProcesses(d, conn); err != nil {
+			return errwrap.Wrapf("Error updating AutoScaling Group Suspended Processes: {{err}}", err)
+		}
+	}
+
 	return resourceAwsAutoscalingGroupRead(d, meta)
 }
 
@@ -740,6 +765,20 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 	})
 }
 
+func enableASGSuspendedProcesses(d *schema.ResourceData, conn *autoscaling.AutoScaling) error {
+	props := &autoscaling.ScalingProcessQuery{
+		AutoScalingGroupName: aws.String(d.Id()),
+		ScalingProcesses:     expandStringList(d.Get("suspended_processes").(*schema.Set).List()),
+	}
+
+	_, err := conn.SuspendProcesses(props)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func enableASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoScaling) error {
 	props := &autoscaling.EnableMetricsCollectionInput{
 		AutoScalingGroupName: aws.String(d.Id()),
@@ -754,6 +793,48 @@ func enableASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoSc
 	}
 
 	return nil
+}
+
+func updateASGSuspendedProcesses(d *schema.ResourceData, conn *autoscaling.AutoScaling) error {
+	o, n := d.GetChange("suspended_processes")
+	if o == nil {
+		o = new(schema.Set)
+	}
+	if n == nil {
+		n = new(schema.Set)
+	}
+
+	os := o.(*schema.Set)
+	ns := n.(*schema.Set)
+
+	resumeProcesses := os.Difference(ns)
+	if resumeProcesses.Len() != 0 {
+		props := &autoscaling.ScalingProcessQuery{
+			AutoScalingGroupName: aws.String(d.Id()),
+			ScalingProcesses:     expandStringList(resumeProcesses.List()),
+		}
+
+		_, err := conn.ResumeProcesses(props)
+		if err != nil {
+			return fmt.Errorf("Error Resuming Processes for ASG %q: %s", d.Id(), err)
+		}
+	}
+
+	suspendedProcesses := ns.Difference(os)
+	if suspendedProcesses.Len() != 0 {
+		props := &autoscaling.ScalingProcessQuery{
+			AutoScalingGroupName: aws.String(d.Id()),
+			ScalingProcesses:     expandStringList(suspendedProcesses.List()),
+		}
+
+		_, err := conn.SuspendProcesses(props)
+		if err != nil {
+			return fmt.Errorf("Error Suspending Processes for ASG %q: %s", d.Id(), err)
+		}
+	}
+
+	return nil
+
 }
 
 func updateASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoScaling) error {
@@ -799,11 +880,13 @@ func updateASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoSc
 	return nil
 }
 
-// Returns a mapping of the instance states of all the ELBs attached to the
+// getELBInstanceStates returns a mapping of the instance states of all the ELBs attached to the
 // provided ASG.
 //
+// Note that this is the instance state function for ELB Classic.
+//
 // Nested like: lbName -> instanceId -> instanceState
-func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map[string]string, error) {
+func getELBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map[string]string, error) {
 	lbInstanceStates := make(map[string]map[string]string)
 	elbconn := meta.(*AWSClient).elbconn
 
@@ -823,6 +906,35 @@ func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map
 	}
 
 	return lbInstanceStates, nil
+}
+
+// getTargetGroupInstanceStates returns a mapping of the instance states of
+// all the ALB target groups attached to the provided ASG.
+//
+// Note that this is the instance state function for Application Load
+// Balancing (aka ELBv2).
+//
+// Nested like: targetGroupARN -> instanceId -> instanceState
+func getTargetGroupInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map[string]string, error) {
+	targetInstanceStates := make(map[string]map[string]string)
+	elbv2conn := meta.(*AWSClient).elbv2conn
+
+	for _, targetGroupARN := range g.TargetGroupARNs {
+		targetInstanceStates[*targetGroupARN] = make(map[string]string)
+		opts := &elbv2.DescribeTargetHealthInput{TargetGroupArn: targetGroupARN}
+		r, err := elbv2conn.DescribeTargetHealth(opts)
+		if err != nil {
+			return nil, err
+		}
+		for _, desc := range r.TargetHealthDescriptions {
+			if desc.Target == nil || desc.Target.Id == nil || desc.TargetHealth == nil || desc.TargetHealth.State == nil {
+				continue
+			}
+			targetInstanceStates[*targetGroupARN][*desc.Target.Id] = *desc.TargetHealth.State
+		}
+	}
+
+	return targetInstanceStates, nil
 }
 
 func expandVpcZoneIdentifiers(list []interface{}) *string {

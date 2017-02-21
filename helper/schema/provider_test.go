@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
@@ -326,5 +327,57 @@ func TestProviderMeta(t *testing.T) {
 	p.SetMeta(42)
 	if v := p.Meta(); !reflect.DeepEqual(v, expected) {
 		t.Fatalf("bad: %#v", v)
+	}
+}
+
+func TestProviderStop(t *testing.T) {
+	var p Provider
+
+	if p.Stopped() {
+		t.Fatal("should not be stopped")
+	}
+
+	// Verify stopch blocks
+	ch := p.StopContext().Done()
+	select {
+	case <-ch:
+		t.Fatal("should not be stopped")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	// Stop it
+	if err := p.Stop(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Verify
+	if !p.Stopped() {
+		t.Fatal("should be stopped")
+	}
+
+	select {
+	case <-ch:
+	case <-time.After(10 * time.Millisecond):
+		t.Fatal("should be stopped")
+	}
+}
+
+func TestProviderStop_stopFirst(t *testing.T) {
+	var p Provider
+
+	// Stop it
+	if err := p.Stop(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Verify
+	if !p.Stopped() {
+		t.Fatal("should be stopped")
+	}
+
+	select {
+	case <-p.StopContext().Done():
+	case <-time.After(10 * time.Millisecond):
+		t.Fatal("should be stopped")
 	}
 }

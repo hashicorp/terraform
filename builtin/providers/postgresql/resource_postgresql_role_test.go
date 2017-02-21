@@ -10,7 +10,6 @@ import (
 )
 
 func TestAccPostgresqlRole_Basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -20,10 +19,47 @@ func TestAccPostgresqlRole_Basic(t *testing.T) {
 				Config: testAccPostgresqlRoleConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPostgresqlRoleExists("postgresql_role.myrole2", "true"),
-					resource.TestCheckResourceAttr(
-						"postgresql_role.myrole2", "name", "myrole2"),
-					resource.TestCheckResourceAttr(
-						"postgresql_role.myrole2", "login", "true"),
+					resource.TestCheckResourceAttr("postgresql_role.role_with_defaults", "name", "testing_role_with_defaults"),
+					resource.TestCheckResourceAttr("postgresql_role.role_with_defaults", "superuser", "false"),
+					resource.TestCheckResourceAttr("postgresql_role.role_with_defaults", "create_database", "false"),
+					resource.TestCheckResourceAttr("postgresql_role.role_with_defaults", "create_role", "false"),
+					resource.TestCheckResourceAttr("postgresql_role.role_with_defaults", "inherit", "false"),
+					resource.TestCheckResourceAttr("postgresql_role.role_with_defaults", "replication", "false"),
+					resource.TestCheckResourceAttr("postgresql_role.role_with_defaults", "bypass_row_level_security", "false"),
+					resource.TestCheckResourceAttr("postgresql_role.role_with_defaults", "connection_limit", "-1"),
+					resource.TestCheckResourceAttr("postgresql_role.role_with_defaults", "encrypted_password", "true"),
+					resource.TestCheckNoResourceAttr("postgresql_role.role_with_defaults", "password"),
+					resource.TestCheckResourceAttr("postgresql_role.role_with_defaults", "valid_until", "infinity"),
+					resource.TestCheckResourceAttr("postgresql_role.role_with_defaults", "skip_drop_role", "false"),
+					resource.TestCheckResourceAttr("postgresql_role.role_with_defaults", "skip_reassign_owned", "false"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccPostgresqlRole_Update(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckPostgresqlRoleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccPostgresqlRoleUpdate1Config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPostgresqlRoleExists("postgresql_role.update_role", "true"),
+					resource.TestCheckResourceAttr("postgresql_role.update_role", "name", "update_role"),
+					resource.TestCheckResourceAttr("postgresql_role.update_role", "login", "true"),
+					resource.TestCheckResourceAttr("postgresql_role.update_role", "connection_limit", "-1"),
+				),
+			},
+			{
+				Config: testAccPostgresqlRoleUpdate2Config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPostgresqlRoleExists("postgresql_role.update_role", "true"),
+					resource.TestCheckResourceAttr("postgresql_role.update_role", "name", "update_role2"),
+					resource.TestCheckResourceAttr("postgresql_role.update_role", "login", "true"),
+					resource.TestCheckResourceAttr("postgresql_role.update_role", "connection_limit", "5"),
 				),
 			},
 		},
@@ -128,5 +164,37 @@ resource "postgresql_role" "role_with_pwd_no_login" {
 
 resource "postgresql_role" "role_simple" {
   name = "role_simple"
+}
+
+resource "postgresql_role" "role_with_defaults" {
+  name = "testing_role_with_defaults"
+  superuser = false
+  create_database = false
+  create_role = false
+  inherit = false
+  login = false
+  replication = false
+  bypass_row_level_security = false
+  connection_limit = -1
+  encrypted_password = true
+  password = ""
+  skip_drop_role = false
+  skip_reassign_owned = false
+  valid_until = "infinity"
+}
+`
+
+var testAccPostgresqlRoleUpdate1Config = `
+resource "postgresql_role" "update_role" {
+  name = "update_role"
+  login = true
+}
+`
+
+var testAccPostgresqlRoleUpdate2Config = `
+resource "postgresql_role" "update_role" {
+  name = "update_role2"
+  login = true
+  connection_limit = 5
 }
 `

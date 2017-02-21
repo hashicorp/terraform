@@ -10,7 +10,7 @@ const dropletBasePath = "v2/droplets"
 
 var errNoNetworks = errors.New("no networks have been defined")
 
-// DropletsService is an interface for interfacing with the droplet
+// DropletsService is an interface for interfacing with the Droplet
 // endpoints of the DigitalOcean API
 // See: https://developers.digitalocean.com/documentation/v2#droplets
 type DropletsService interface {
@@ -28,7 +28,7 @@ type DropletsService interface {
 	Neighbors(int) ([]Droplet, *Response, error)
 }
 
-// DropletsServiceOp handles communication with the droplet related methods of the
+// DropletsServiceOp handles communication with the Droplet related methods of the
 // DigitalOcean API.
 type DropletsServiceOp struct {
 	client *Client
@@ -38,24 +38,26 @@ var _ DropletsService = &DropletsServiceOp{}
 
 // Droplet represents a DigitalOcean Droplet
 type Droplet struct {
-	ID          int       `json:"id,float64,omitempty"`
-	Name        string    `json:"name,omitempty"`
-	Memory      int       `json:"memory,omitempty"`
-	Vcpus       int       `json:"vcpus,omitempty"`
-	Disk        int       `json:"disk,omitempty"`
-	Region      *Region   `json:"region,omitempty"`
-	Image       *Image    `json:"image,omitempty"`
-	Size        *Size     `json:"size,omitempty"`
-	SizeSlug    string    `json:"size_slug,omitempty"`
-	BackupIDs   []int     `json:"backup_ids,omitempty"`
-	SnapshotIDs []int     `json:"snapshot_ids,omitempty"`
-	Locked      bool      `json:"locked,bool,omitempty"`
-	Status      string    `json:"status,omitempty"`
-	Networks    *Networks `json:"networks,omitempty"`
-	Created     string    `json:"created_at,omitempty"`
-	Kernel      *Kernel   `json:"kernel,omitempty"`
-	Tags        []string  `json:"tags,ommitempty"`
-	VolumeIDs   []string  `json:"volumes"`
+	ID               int           `json:"id,float64,omitempty"`
+	Name             string        `json:"name,omitempty"`
+	Memory           int           `json:"memory,omitempty"`
+	Vcpus            int           `json:"vcpus,omitempty"`
+	Disk             int           `json:"disk,omitempty"`
+	Region           *Region       `json:"region,omitempty"`
+	Image            *Image        `json:"image,omitempty"`
+	Size             *Size         `json:"size,omitempty"`
+	SizeSlug         string        `json:"size_slug,omitempty"`
+	BackupIDs        []int         `json:"backup_ids,omitempty"`
+	NextBackupWindow *BackupWindow `json:"next_backup_window,omitempty"`
+	SnapshotIDs      []int         `json:"snapshot_ids,omitempty"`
+	Features         []string      `json:"features,omitempty"`
+	Locked           bool          `json:"locked,bool,omitempty"`
+	Status           string        `json:"status,omitempty"`
+	Networks         *Networks     `json:"networks,omitempty"`
+	Created          string        `json:"created_at,omitempty"`
+	Kernel           *Kernel       `json:"kernel,omitempty"`
+	Tags             []string      `json:"tags,omitempty"`
+	VolumeIDs        []string      `json:"volume_ids"`
 }
 
 // PublicIPv4 returns the public IPv4 address for the Droplet.
@@ -110,6 +112,12 @@ type Kernel struct {
 	Version string `json:"version,omitempty"`
 }
 
+// BackupWindow object
+type BackupWindow struct {
+	Start *Timestamp `json:"start,omitempty"`
+	End   *Timestamp `json:"end,omitempty"`
+}
+
 // Convert Droplet to a string
 func (d Droplet) String() string {
 	return Stringify(d)
@@ -131,7 +139,7 @@ type kernelsRoot struct {
 	Links   *Links   `json:"links"`
 }
 
-type snapshotsRoot struct {
+type dropletSnapshotsRoot struct {
 	Snapshots []Image `json:"snapshots,omitempty"`
 	Links     *Links  `json:"links"`
 }
@@ -145,6 +153,16 @@ type backupsRoot struct {
 type DropletCreateImage struct {
 	ID   int
 	Slug string
+}
+
+// MarshalJSON returns either the slug or id of the image. It returns the id
+// if the slug is empty.
+func (d DropletCreateImage) MarshalJSON() ([]byte, error) {
+	if d.Slug != "" {
+		return json.Marshal(d.Slug)
+	}
+
+	return json.Marshal(d.ID)
 }
 
 // DropletCreateVolume identifies a volume to attach for the create request. It
@@ -168,16 +186,6 @@ func (d DropletCreateVolume) MarshalJSON() ([]byte, error) {
 	}{ID: d.ID})
 }
 
-// MarshalJSON returns either the slug or id of the image. It returns the id
-// if the slug is empty.
-func (d DropletCreateImage) MarshalJSON() ([]byte, error) {
-	if d.Slug != "" {
-		return json.Marshal(d.Slug)
-	}
-
-	return json.Marshal(d.ID)
-}
-
 // DropletCreateSSHKey identifies a SSH Key for the create request. It prefers fingerprint over ID.
 type DropletCreateSSHKey struct {
 	ID          int
@@ -194,7 +202,7 @@ func (d DropletCreateSSHKey) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.ID)
 }
 
-// DropletCreateRequest represents a request to create a droplet.
+// DropletCreateRequest represents a request to create a Droplet.
 type DropletCreateRequest struct {
 	Name              string                `json:"name"`
 	Region            string                `json:"region"`
@@ -204,11 +212,13 @@ type DropletCreateRequest struct {
 	Backups           bool                  `json:"backups"`
 	IPv6              bool                  `json:"ipv6"`
 	PrivateNetworking bool                  `json:"private_networking"`
+	Monitoring        bool                  `json:"monitoring"`
 	UserData          string                `json:"user_data,omitempty"`
 	Volumes           []DropletCreateVolume `json:"volumes,omitempty"`
+	Tags              []string              `json:"tags"`
 }
 
-// DropletMultiCreateRequest is a request to create multiple droplets.
+// DropletMultiCreateRequest is a request to create multiple Droplets.
 type DropletMultiCreateRequest struct {
 	Names             []string              `json:"names"`
 	Region            string                `json:"region"`
@@ -218,7 +228,9 @@ type DropletMultiCreateRequest struct {
 	Backups           bool                  `json:"backups"`
 	IPv6              bool                  `json:"ipv6"`
 	PrivateNetworking bool                  `json:"private_networking"`
+	Monitoring        bool                  `json:"monitoring"`
 	UserData          string                `json:"user_data,omitempty"`
+	Tags              []string              `json:"tags"`
 }
 
 func (d DropletCreateRequest) String() string {
@@ -229,13 +241,13 @@ func (d DropletMultiCreateRequest) String() string {
 	return Stringify(d)
 }
 
-// Networks represents the droplet's networks
+// Networks represents the Droplet's Networks.
 type Networks struct {
 	V4 []NetworkV4 `json:"v4,omitempty"`
 	V6 []NetworkV6 `json:"v6,omitempty"`
 }
 
-// NetworkV4 represents a DigitalOcean IPv4 Network
+// NetworkV4 represents a DigitalOcean IPv4 Network.
 type NetworkV4 struct {
 	IPAddress string `json:"ip_address,omitempty"`
 	Netmask   string `json:"netmask,omitempty"`
@@ -259,7 +271,7 @@ func (n NetworkV6) String() string {
 	return Stringify(n)
 }
 
-// Performs a list request given a path
+// Performs a list request given a path.
 func (s *DropletsServiceOp) list(path string) ([]Droplet, *Response, error) {
 	req, err := s.client.NewRequest("GET", path, nil)
 	if err != nil {
@@ -278,7 +290,7 @@ func (s *DropletsServiceOp) list(path string) ([]Droplet, *Response, error) {
 	return root.Droplets, resp, err
 }
 
-// List all droplets
+// List all Droplets.
 func (s *DropletsServiceOp) List(opt *ListOptions) ([]Droplet, *Response, error) {
 	path := dropletBasePath
 	path, err := addOptions(path, opt)
@@ -289,7 +301,7 @@ func (s *DropletsServiceOp) List(opt *ListOptions) ([]Droplet, *Response, error)
 	return s.list(path)
 }
 
-// List all droplets by tag
+// ListByTag lists all Droplets matched by a Tag.
 func (s *DropletsServiceOp) ListByTag(tag string, opt *ListOptions) ([]Droplet, *Response, error) {
 	path := fmt.Sprintf("%s?tag_name=%s", dropletBasePath, tag)
 	path, err := addOptions(path, opt)
@@ -300,7 +312,7 @@ func (s *DropletsServiceOp) ListByTag(tag string, opt *ListOptions) ([]Droplet, 
 	return s.list(path)
 }
 
-// Get individual droplet
+// Get individual Droplet.
 func (s *DropletsServiceOp) Get(dropletID int) (*Droplet, *Response, error) {
 	if dropletID < 1 {
 		return nil, nil, NewArgError("dropletID", "cannot be less than 1")
@@ -322,7 +334,7 @@ func (s *DropletsServiceOp) Get(dropletID int) (*Droplet, *Response, error) {
 	return root.Droplet, resp, err
 }
 
-// Create droplet
+// Create Droplet
 func (s *DropletsServiceOp) Create(createRequest *DropletCreateRequest) (*Droplet, *Response, error) {
 	if createRequest == nil {
 		return nil, nil, NewArgError("createRequest", "cannot be nil")
@@ -347,7 +359,7 @@ func (s *DropletsServiceOp) Create(createRequest *DropletCreateRequest) (*Drople
 	return root.Droplet, resp, err
 }
 
-// CreateMultiple creates multiple droplets.
+// CreateMultiple creates multiple Droplets.
 func (s *DropletsServiceOp) CreateMultiple(createRequest *DropletMultiCreateRequest) ([]Droplet, *Response, error) {
 	if createRequest == nil {
 		return nil, nil, NewArgError("createRequest", "cannot be nil")
@@ -384,7 +396,7 @@ func (s *DropletsServiceOp) delete(path string) (*Response, error) {
 	return resp, err
 }
 
-// Delete droplet
+// Delete Droplet.
 func (s *DropletsServiceOp) Delete(dropletID int) (*Response, error) {
 	if dropletID < 1 {
 		return nil, NewArgError("dropletID", "cannot be less than 1")
@@ -395,7 +407,7 @@ func (s *DropletsServiceOp) Delete(dropletID int) (*Response, error) {
 	return s.delete(path)
 }
 
-// Delete droplets by tag
+// DeleteByTag deletes Droplets matched by a Tag.
 func (s *DropletsServiceOp) DeleteByTag(tag string) (*Response, error) {
 	if tag == "" {
 		return nil, NewArgError("tag", "cannot be empty")
@@ -406,7 +418,7 @@ func (s *DropletsServiceOp) DeleteByTag(tag string) (*Response, error) {
 	return s.delete(path)
 }
 
-// Kernels lists kernels available for a droplet.
+// Kernels lists kernels available for a Droplet.
 func (s *DropletsServiceOp) Kernels(dropletID int, opt *ListOptions) ([]Kernel, *Response, error) {
 	if dropletID < 1 {
 		return nil, nil, NewArgError("dropletID", "cannot be less than 1")
@@ -432,7 +444,7 @@ func (s *DropletsServiceOp) Kernels(dropletID int, opt *ListOptions) ([]Kernel, 
 	return root.Kernels, resp, err
 }
 
-// Actions lists the actions for a droplet.
+// Actions lists the actions for a Droplet.
 func (s *DropletsServiceOp) Actions(dropletID int, opt *ListOptions) ([]Action, *Response, error) {
 	if dropletID < 1 {
 		return nil, nil, NewArgError("dropletID", "cannot be less than 1")
@@ -461,7 +473,7 @@ func (s *DropletsServiceOp) Actions(dropletID int, opt *ListOptions) ([]Action, 
 	return root.Actions, resp, err
 }
 
-// Backups lists the backups for a droplet.
+// Backups lists the backups for a Droplet.
 func (s *DropletsServiceOp) Backups(dropletID int, opt *ListOptions) ([]Image, *Response, error) {
 	if dropletID < 1 {
 		return nil, nil, NewArgError("dropletID", "cannot be less than 1")
@@ -490,7 +502,7 @@ func (s *DropletsServiceOp) Backups(dropletID int, opt *ListOptions) ([]Image, *
 	return root.Backups, resp, err
 }
 
-// Snapshots lists the snapshots available for a droplet.
+// Snapshots lists the snapshots available for a Droplet.
 func (s *DropletsServiceOp) Snapshots(dropletID int, opt *ListOptions) ([]Image, *Response, error) {
 	if dropletID < 1 {
 		return nil, nil, NewArgError("dropletID", "cannot be less than 1")
@@ -507,7 +519,7 @@ func (s *DropletsServiceOp) Snapshots(dropletID int, opt *ListOptions) ([]Image,
 		return nil, nil, err
 	}
 
-	root := new(snapshotsRoot)
+	root := new(dropletSnapshotsRoot)
 	resp, err := s.client.Do(req, root)
 	if err != nil {
 		return nil, resp, err
@@ -519,7 +531,7 @@ func (s *DropletsServiceOp) Snapshots(dropletID int, opt *ListOptions) ([]Image,
 	return root.Snapshots, resp, err
 }
 
-// Neighbors lists the neighbors for a droplet.
+// Neighbors lists the neighbors for a Droplet.
 func (s *DropletsServiceOp) Neighbors(dropletID int) ([]Droplet, *Response, error) {
 	if dropletID < 1 {
 		return nil, nil, NewArgError("dropletID", "cannot be less than 1")

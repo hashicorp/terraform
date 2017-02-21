@@ -20,65 +20,66 @@ import (
 // about this product, go to the AWS OpsWorks (http://aws.amazon.com/opsworks/)
 // details page.
 //
-//  SDKs and CLI
+// SDKs and CLI
 //
 // The most common way to use the AWS OpsWorks API is by using the AWS Command
 // Line Interface (CLI) or by using one of the AWS SDKs to implement applications
 // in your preferred language. For more information, see:
 //
-//    AWS CLI (http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html)
+//    * AWS CLI (http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html)
 //
-//    AWS SDK for Java (http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/opsworks/AWSOpsWorksClient.html)
+//    * AWS SDK for Java (http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/opsworks/AWSOpsWorksClient.html)
 //
-//    AWS SDK for .NET (http://docs.aws.amazon.com/sdkfornet/latest/apidocs/html/N_Amazon_OpsWorks.htm)
+//    * AWS SDK for .NET (http://docs.aws.amazon.com/sdkfornet/latest/apidocs/html/N_Amazon_OpsWorks.htm)
 //
-//    AWS SDK for PHP 2 (http://docs.aws.amazon.com/aws-sdk-php-2/latest/class-Aws.OpsWorks.OpsWorksClient.html)
+//    * AWS SDK for PHP 2 (http://docs.aws.amazon.com/aws-sdk-php-2/latest/class-Aws.OpsWorks.OpsWorksClient.html)
 //
-//    AWS SDK for Ruby (http://docs.aws.amazon.com/sdkforruby/api/)
+//    * AWS SDK for Ruby (http://docs.aws.amazon.com/sdkforruby/api/)
 //
-//    AWS SDK for Node.js (http://aws.amazon.com/documentation/sdkforjavascript/)
+//    * AWS SDK for Node.js (http://aws.amazon.com/documentation/sdkforjavascript/)
 //
-//    AWS SDK for Python(Boto) (http://docs.pythonboto.org/en/latest/ref/opsworks.html)
+//    * AWS SDK for Python(Boto) (http://docs.pythonboto.org/en/latest/ref/opsworks.html)
 //
-//    Endpoints
+// Endpoints
 //
 // AWS OpsWorks supports the following endpoints, all HTTPS. You must connect
 // to one of the following endpoints. Stacks can only be accessed or managed
 // within the endpoint in which they are created.
 //
-//   opsworks.us-east-1.amazonaws.com
+//    * opsworks.us-east-1.amazonaws.com
 //
-//   opsworks.us-west-1.amazonaws.com
+//    * opsworks.us-west-1.amazonaws.com
 //
-//   opsworks.us-west-2.amazonaws.com
+//    * opsworks.us-west-2.amazonaws.com
 //
-//   opsworks.eu-west-1.amazonaws.com
+//    * opsworks.eu-west-1.amazonaws.com
 //
-//   opsworks.eu-central-1.amazonaws.com
+//    * opsworks.eu-central-1.amazonaws.com
 //
-//   opsworks.ap-northeast-1.amazonaws.com
+//    * opsworks.ap-northeast-1.amazonaws.com
 //
-//   opsworks.ap-northeast-2.amazonaws.com
+//    * opsworks.ap-northeast-2.amazonaws.com
 //
-//   opsworks.ap-south-1.amazonaws.com
+//    * opsworks.ap-south-1.amazonaws.com
 //
-//   opsworks.ap-southeast-1.amazonaws.com
+//    * opsworks.ap-southeast-1.amazonaws.com
 //
-//   opsworks.ap-southeast-2.amazonaws.com
+//    * opsworks.ap-southeast-2.amazonaws.com
 //
-//   opsworks.sa-east-1.amazonaws.com
+//    * opsworks.sa-east-1.amazonaws.com
 //
-//    Chef Versions
+// Chef Versions
 //
 // When you call CreateStack, CloneStack, or UpdateStack we recommend you use
 // the ConfigurationManager parameter to specify the Chef version. The recommended
 // and default value for Linux stacks is currently 12. Windows stacks use Chef
 // 12.2. For more information, see Chef Versions (http://docs.aws.amazon.com/opsworks/latest/userguide/workingcookbook-chef11.html).
 //
-//  You can specify Chef 12, 11.10, or 11.4 for your Linux stack. We recommend
+// You can specify Chef 12, 11.10, or 11.4 for your Linux stack. We recommend
 // migrating your existing Linux stacks to Chef 12 as soon as possible.
-//The service client's operations are safe to be used concurrently.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/opsworks-2013-02-18
 type OpsWorks struct {
 	*client.Client
 }
@@ -89,8 +90,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "opsworks"
+// Service information constants
+const (
+	ServiceName = "opsworks"  // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the OpsWorks client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -103,17 +107,18 @@ const ServiceName = "opsworks"
 //     // Create a OpsWorks client with additional configuration
 //     svc := opsworks.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *OpsWorks {
-	c := p.ClientConfig(ServiceName, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
+	c := p.ClientConfig(EndpointsID, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *OpsWorks {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *OpsWorks {
 	svc := &OpsWorks{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2013-02-18",

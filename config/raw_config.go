@@ -18,7 +18,7 @@ import (
 const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 
 // RawConfig is a structure that holds a piece of configuration
-// where te overall structure is unknown since it will be used
+// where the overall structure is unknown since it will be used
 // to configure a plugin or some other similar external component.
 //
 // RawConfigs can be interpolated with variables that come from
@@ -62,6 +62,10 @@ func (r *RawConfig) RawMap() map[string]interface{} {
 
 // Copy returns a copy of this RawConfig, uninterpolated.
 func (r *RawConfig) Copy() *RawConfig {
+	if r == nil {
+		return nil
+	}
+
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -123,27 +127,6 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 
 	config := langEvalConfig(vs)
 	return r.interpolate(func(root ast.Node) (interface{}, error) {
-		// We detect the variables again and check if the value of any
-		// of the variables is the computed value. If it is, then we
-		// treat this entire value as computed.
-		//
-		// We have to do this here before the `lang.Eval` because
-		// if any of the variables it depends on are computed, then
-		// the interpolation can fail at runtime for other reasons. Example:
-		// `${count.index+1}`: in a world where `count.index` is computed,
-		// this would fail a type check since the computed placeholder is
-		// a string, but realistically the whole value is just computed.
-		vars, err := DetectVariables(root)
-		if err != nil {
-			return "", err
-		}
-		for _, v := range vars {
-			varVal, ok := vs[v.FullKey()]
-			if ok && varVal.Value == UnknownVariableValue {
-				return UnknownVariableValue, nil
-			}
-		}
-
 		// None of the variables we need are computed, meaning we should
 		// be able to properly evaluate.
 		result, err := hil.Eval(root, config)
@@ -187,17 +170,19 @@ func (r *RawConfig) Merge(other *RawConfig) *RawConfig {
 	}
 
 	// Build the unknown keys
-	unknownKeys := make(map[string]struct{})
-	for _, k := range r.unknownKeys {
-		unknownKeys[k] = struct{}{}
-	}
-	for _, k := range other.unknownKeys {
-		unknownKeys[k] = struct{}{}
-	}
+	if len(r.unknownKeys) > 0 || len(other.unknownKeys) > 0 {
+		unknownKeys := make(map[string]struct{})
+		for _, k := range r.unknownKeys {
+			unknownKeys[k] = struct{}{}
+		}
+		for _, k := range other.unknownKeys {
+			unknownKeys[k] = struct{}{}
+		}
 
-	result.unknownKeys = make([]string, 0, len(unknownKeys))
-	for k, _ := range unknownKeys {
-		result.unknownKeys = append(result.unknownKeys, k)
+		result.unknownKeys = make([]string, 0, len(unknownKeys))
+		for k, _ := range unknownKeys {
+			result.unknownKeys = append(result.unknownKeys, k)
+		}
 	}
 
 	return result
@@ -255,14 +240,24 @@ func (r *RawConfig) interpolate(fn interpolationWalkerFunc) error {
 }
 
 func (r *RawConfig) merge(r2 *RawConfig) *RawConfig {
+	if r == nil && r2 == nil {
+		return nil
+	}
+
+	if r == nil {
+		r = &RawConfig{}
+	}
+
 	rawRaw, err := copystructure.Copy(r.Raw)
 	if err != nil {
 		panic(err)
 	}
 
 	raw := rawRaw.(map[string]interface{})
-	for k, v := range r2.Raw {
-		raw[k] = v
+	if r2 != nil {
+		for k, v := range r2.Raw {
+			raw[k] = v
+		}
 	}
 
 	result, err := NewRawConfig(raw)

@@ -17,7 +17,7 @@ func setTags(conn *godo.Client, d *schema.ResourceData) error {
 	for _, tag := range remove {
 		_, err := conn.Tags.UntagResources(tag, &godo.UntagResourcesRequest{
 			Resources: []godo.Resource{
-				godo.Resource{
+				{
 					ID:   d.Id(),
 					Type: godo.DropletResourceType,
 				},
@@ -32,7 +32,7 @@ func setTags(conn *godo.Client, d *schema.ResourceData) error {
 	for _, tag := range create {
 		_, err := conn.Tags.TagResources(tag, &godo.TagResourcesRequest{
 			Resources: []godo.Resource{
-				godo.Resource{
+				{
 					ID:   d.Id(),
 					Type: godo.DropletResourceType,
 				},

@@ -32,10 +32,11 @@ func resourceAwsAmiCopy() *schema.Resource {
 	}
 
 	resourceSchema["kms_key_id"] = &schema.Schema{
-		Type:     schema.TypeString,
-		Optional: true,
-		Computed: true,
-		ForceNew: true,
+		Type:         schema.TypeString,
+		Optional:     true,
+		Computed:     true,
+		ForceNew:     true,
+		ValidateFunc: validateArn,
 	}
 
 	return &schema.Resource{

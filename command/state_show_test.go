@@ -127,7 +127,7 @@ func TestStateShow_noState(t *testing.T) {
 }
 
 func TestStateShow_emptyState(t *testing.T) {
-	state := &terraform.State{}
+	state := terraform.NewState()
 
 	statePath := testStateFile(t, state)
 
@@ -143,6 +143,34 @@ func TestStateShow_emptyState(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 		"test_instance.foo",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+}
+
+func TestStateShow_emptyStateWithModule(t *testing.T) {
+	// empty state with empty module
+	state := terraform.NewState()
+
+	mod := &terraform.ModuleState{
+		Path: []string{"root", "mod"},
+	}
+	state.Modules = append(state.Modules, mod)
+
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateShowCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())

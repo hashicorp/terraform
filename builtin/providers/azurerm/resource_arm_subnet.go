@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -16,6 +15,9 @@ func resourceArmSubnet() *schema.Resource {
 		Read:   resourceArmSubnetRead,
 		Update: resourceArmSubnetCreate,
 		Delete: resourceArmSubnetDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -97,8 +99,8 @@ func resourceArmSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	subnet := network.Subnet{
-		Name:       &name,
-		Properties: &properties,
+		Name: &name,
+		SubnetPropertiesFormat: &properties,
 	}
 
 	_, err := subnetClient.CreateOrUpdate(resGroup, vnetName, name, subnet, make(chan struct{}))
@@ -133,22 +135,37 @@ func resourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	resp, err := subnetClient.Get(resGroup, vnetName, name, "")
 
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Subnet %s: %s", name, err)
 	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
+
+	d.Set("name", name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("virtual_network_name", vnetName)
+	d.Set("address_prefix", resp.SubnetPropertiesFormat.AddressPrefix)
+
+	if resp.SubnetPropertiesFormat.NetworkSecurityGroup != nil {
+		d.Set("network_security_group_id", resp.SubnetPropertiesFormat.NetworkSecurityGroup.ID)
 	}
 
-	if resp.Properties.IPConfigurations != nil && len(*resp.Properties.IPConfigurations) > 0 {
-		ips := make([]string, 0, len(*resp.Properties.IPConfigurations))
-		for _, ip := range *resp.Properties.IPConfigurations {
+	if resp.SubnetPropertiesFormat.RouteTable != nil {
+		d.Set("route_table_id", resp.SubnetPropertiesFormat.RouteTable.ID)
+	}
+
+	if resp.SubnetPropertiesFormat.IPConfigurations != nil {
+		ips := make([]string, 0, len(*resp.SubnetPropertiesFormat.IPConfigurations))
+		for _, ip := range *resp.SubnetPropertiesFormat.IPConfigurations {
 			ips = append(ips, *ip.ID)
 		}
 
 		if err := d.Set("ip_configurations", ips); err != nil {
 			return err
 		}
+	} else {
+		d.Set("ip_configurations", []string{})
 	}
 
 	return nil
@@ -171,15 +188,4 @@ func resourceArmSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 	_, err = subnetClient.Delete(resGroup, vnetName, name, make(chan struct{}))
 
 	return err
-}
-
-func subnetRuleStateRefreshFunc(client *ArmClient, resourceGroupName string, virtualNetworkName string, subnetName string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		res, err := client.subnetClient.Get(resourceGroupName, virtualNetworkName, subnetName, "")
-		if err != nil {
-			return nil, "", fmt.Errorf("Error issuing read request in subnetRuleStateRefreshFunc to Azure ARM for subnet '%s' (RG: '%s') (VNN: '%s'): %s", subnetName, resourceGroupName, virtualNetworkName, err)
-		}
-
-		return res, *res.Properties.ProvisioningState, nil
-	}
 }

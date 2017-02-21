@@ -15,26 +15,25 @@ modify, and delete vApps.
 
 ```
 resource "vcd_network" "net" {
-    ...
+  # ...
 }
 
 resource "vcd_vapp" "web" {
-    name          = "web"
-    catalog_name  = "Boxes"
-    template_name = "lampstack-1.10.1-ubuntu-10.04"
-    memory        = 2048
-    cpus          = 1
+  name          = "web"
+  catalog_name  = "Boxes"
+  template_name = "lampstack-1.10.1-ubuntu-10.04"
+  memory        = 2048
+  cpus          = 1
 
-    network_name  = "${vcd_network.net.name}"
-    network_href  = "${vcd_network.net.href}"
-    ip            = "10.10.104.160"
+  network_name = "${vcd_network.net.name}"
+  network_href = "${vcd_network.net.href}"
+  ip           = "10.10.104.160"
 
-    metadata {
-        role    = "web"
-        env     = "staging"
-        version = "v1"
-    }
-
+  metadata {
+    role    = "web"
+    env     = "staging"
+    version = "v1"
+  }
 }
 ```
 

@@ -559,7 +559,7 @@ func TestPush_tfvars(t *testing.T) {
 		"-var-file", path + "/terraform.tfvars",
 		"-vcs=false",
 		"-var",
-		"bar=1",
+		"bar=[1,2]",
 		path,
 	}
 	if code := c.Run(args); code != 0 {
@@ -586,7 +586,7 @@ func TestPush_tfvars(t *testing.T) {
 	// update bar to match cli value
 	for i, v := range tfvars {
 		if v.Key == "bar" {
-			tfvars[i].Value = "1"
+			tfvars[i].Value = "[1, 2]"
 			tfvars[i].IsHCL = true
 		}
 	}
@@ -763,12 +763,12 @@ func testArchiveStr(t *testing.T, path string) []string {
 
 func pushTFVars() []atlas.TFVar {
 	return []atlas.TFVar{
-		{"bar", "foo", false},
-		{"baz", `{
+		{Key: "bar", Value: "foo", IsHCL: false},
+		{Key: "baz", Value: `{
   A = "a"
-}`, true},
-		{"fob", `["a", "quotes \"in\" quotes"]`, true},
-		{"foo", "bar", false},
+}`, IsHCL: true},
+		{Key: "fob", Value: `["a", "quotes \"in\" quotes"]`, IsHCL: true},
+		{Key: "foo", Value: "bar", IsHCL: false},
 	}
 }
 

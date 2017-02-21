@@ -3,6 +3,8 @@ package terraform
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -253,30 +255,71 @@ func TestStateModuleOrphans_deepNestedNilConfig(t *testing.T) {
 
 func TestStateDeepCopy(t *testing.T) {
 	cases := []struct {
-		One, Two *State
-		F        func(*State) interface{}
+		State *State
 	}{
+		// Nil
+		{nil},
+
 		// Version
 		{
 			&State{Version: 5},
-			&State{Version: 5},
-			func(s *State) interface{} { return s.Version },
 		},
-
 		// TFVersion
 		{
 			&State{TFVersion: "5"},
-			&State{TFVersion: "5"},
-			func(s *State) interface{} { return s.TFVersion },
+		},
+		// Modules
+		{
+			&State{
+				Version: 6,
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]string{},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		// Deposed
+		// The nil values shouldn't be there if the State was properly init'ed,
+		// but the Copy should still work anyway.
+		{
+			&State{
+				Version: 6,
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]string{},
+								},
+								Deposed: []*InstanceState{
+									{ID: "test"},
+									nil,
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
 	for i, tc := range cases {
-		actual := tc.F(tc.One.DeepCopy())
-		expected := tc.F(tc.Two)
-		if !reflect.DeepEqual(actual, expected) {
-			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, actual, expected)
-		}
+		t.Run(fmt.Sprintf("copy-%d", i), func(t *testing.T) {
+			actual := tc.State.DeepCopy()
+			expected := tc.State
+			if !reflect.DeepEqual(actual, expected) {
+				t.Fatalf("Expected: %#v\nRecevied: %#v\n", expected, actual)
+			}
+		})
 	}
 }
 
@@ -1196,6 +1239,64 @@ func TestStateEmpty(t *testing.T) {
 	}
 }
 
+func TestStateHasResources(t *testing.T) {
+	cases := []struct {
+		In     *State
+		Result bool
+	}{
+		{
+			nil,
+			false,
+		},
+		{
+			&State{},
+			false,
+		},
+		{
+			&State{
+				Remote: &RemoteState{Type: "foo"},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+				},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+					&ModuleState{},
+				},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+					&ModuleState{
+						Resources: map[string]*ResourceState{
+							"foo.foo": &ResourceState{},
+						},
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		if tc.In.HasResources() != tc.Result {
+			t.Fatalf("bad %d %#v:\n\n%#v", i, tc.Result, tc.In)
+		}
+	}
+}
+
 func TestStateFromFutureTerraform(t *testing.T) {
 	cases := []struct {
 		In     string
@@ -1288,6 +1389,66 @@ func TestInstanceState_MergeDiff(t *testing.T) {
 		"foo": "baz",
 		"bar": "foo",
 		"baz": config.UnknownVariableValue,
+	}
+
+	if !reflect.DeepEqual(expected, is2.Attributes) {
+		t.Fatalf("bad: %#v", is2.Attributes)
+	}
+}
+
+// Make sure we don't leave empty maps or arrays in the flatmapped Attributes,
+// since those may affect the counts of a parent structure.
+func TestInstanceState_MergeDiffRemoveCounts(t *testing.T) {
+	is := InstanceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"all.#":        "3",
+			"all.1111":     "x",
+			"all.1234.#":   "1",
+			"all.1234.0":   "a",
+			"all.5678.%":   "1",
+			"all.5678.key": "val",
+
+			// nested empty lists need to be removed cleanly
+			"all.nested.#":         "0",
+			"all.nested.0.empty.#": "0",
+			"all.nested.1.empty.#": "0",
+
+			// the value has a prefix that matches another key
+			// and ntohing should happen to this.
+			"all.nested_value": "y",
+		},
+	}
+
+	diff := &InstanceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"all.#": &ResourceAttrDiff{
+				Old: "3",
+				New: "1",
+			},
+			"all.1234.0": &ResourceAttrDiff{
+				NewRemoved: true,
+			},
+			"all.1234.#": &ResourceAttrDiff{
+				Old: "1",
+				New: "0",
+			},
+			"all.5678.key": &ResourceAttrDiff{
+				NewRemoved: true,
+			},
+			"all.5678.%": &ResourceAttrDiff{
+				Old: "1",
+				New: "0",
+			},
+		},
+	}
+
+	is2 := is.MergeDiff(diff)
+
+	expected := map[string]string{
+		"all.#":            "1",
+		"all.1111":         "x",
+		"all.nested_value": "y",
 	}
 
 	if !reflect.DeepEqual(expected, is2.Attributes) {
@@ -1414,6 +1575,20 @@ func TestReadStateNewVersion(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "does not support state version") {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestReadStateEmptyOrNilFile(t *testing.T) {
+	var emptyState bytes.Buffer
+	_, err := ReadState(&emptyState)
+	if err != ErrNoState {
+		t.Fatal("expected ErrNostate, got", err)
+	}
+
+	var nilFile *os.File
+	_, err = ReadState(nilFile)
+	if err != ErrNoState {
+		t.Fatal("expected ErrNostate, got", err)
 	}
 }
 
@@ -1575,5 +1750,57 @@ func TestParseResourceStateKey(t *testing.T) {
 		if (err != nil) != tc.ExpectedErr {
 			t.Fatalf("%s: expected err: %t, got %s", tc.Input, tc.ExpectedErr, err)
 		}
+	}
+}
+
+func TestStateModuleOrphans_empty(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "foo", "bar"},
+			},
+			&ModuleState{
+				Path: []string{},
+			},
+			nil,
+		},
+	}
+
+	state.init()
+
+	// just calling this to check for panic
+	state.ModuleOrphans(RootModulePath, nil)
+}
+
+func TestReadState_prune(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{Path: rootModulePath},
+			nil,
+		},
+	}
+	state.init()
+
+	buf := new(bytes.Buffer)
+	if err := WriteState(state, buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := &State{
+		Version: state.Version,
+		Lineage: state.Lineage,
+	}
+	expected.init()
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("got:\n%#v", actual)
 	}
 }

@@ -24,11 +24,20 @@ func TestAccAWSRDSClusterInstance_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterInstanceConfig(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.cluster_instances", &v),
 					testAccCheckAWSDBClusterInstanceAttributes(&v),
+					resource.TestCheckResourceAttr("aws_rds_cluster_instance.cluster_instances", "auto_minor_version_upgrade", "true"),
+				),
+			},
+			{
+				Config: testAccAWSClusterInstanceConfigModified(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.cluster_instances", &v),
+					testAccCheckAWSDBClusterInstanceAttributes(&v),
+					resource.TestCheckResourceAttr("aws_rds_cluster_instance.cluster_instances", "auto_minor_version_upgrade", "false"),
 				),
 			},
 		},
@@ -44,7 +53,7 @@ func TestAccAWSRDSClusterInstance_kmsKey(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterInstanceConfigKmsKey(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.cluster_instances", &v),
@@ -65,7 +74,7 @@ func TestAccAWSRDSClusterInstance_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterInstanceConfig(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.cluster_instances", &v),
@@ -76,41 +85,6 @@ func TestAccAWSRDSClusterInstance_disappears(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccCheckAWSClusterInstanceDestroy(s *terraform.State) error {
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "aws_rds_cluster" {
-			continue
-		}
-
-		// Try to find the Group
-		conn := testAccProvider.Meta().(*AWSClient).rdsconn
-		var err error
-		resp, err := conn.DescribeDBInstances(
-			&rds.DescribeDBInstancesInput{
-				DBInstanceIdentifier: aws.String(rs.Primary.ID),
-			})
-
-		if err == nil {
-			if len(resp.DBInstances) != 0 &&
-				*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
-				return fmt.Errorf("DB Cluster Instance %s still exists", rs.Primary.ID)
-			}
-		}
-
-		// Return nil if the Cluster Instance is already destroyed
-		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == "DBInstanceNotFound" {
-				return nil
-			}
-		}
-
-		return err
-
-	}
-
-	return nil
 }
 
 func testAccCheckAWSDBClusterInstanceAttributes(v *rds.DBInstance) resource.TestCheckFunc {
@@ -195,7 +169,7 @@ func TestAccAWSRDSClusterInstance_withInstanceEnhancedMonitor(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterInstanceEnhancedMonitor(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterInstanceExists("aws_rds_cluster_instance.cluster_instances", &v),
@@ -215,6 +189,7 @@ resource "aws_rds_cluster" "default" {
   database_name      = "mydb"
   master_username    = "foo"
   master_password    = "mustbeeightcharaters"
+  skip_final_snapshot = true
 }
 
 resource "aws_rds_cluster_instance" "cluster_instances" {
@@ -223,6 +198,43 @@ resource "aws_rds_cluster_instance" "cluster_instances" {
   instance_class          = "db.r3.large"
   db_parameter_group_name = "${aws_db_parameter_group.bar.name}"
   promotion_tier          = "3"
+}
+
+resource "aws_db_parameter_group" "bar" {
+  name   = "tfcluster-test-group-%d"
+  family = "aurora5.6"
+
+  parameter {
+    name         = "back_log"
+    value        = "32767"
+    apply_method = "pending-reboot"
+  }
+
+  tags {
+    foo = "bar"
+  }
+}
+`, n, n, n)
+}
+
+func testAccAWSClusterInstanceConfigModified(n int) string {
+	return fmt.Sprintf(`
+resource "aws_rds_cluster" "default" {
+  cluster_identifier = "tf-aurora-cluster-test-%d"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+  database_name      = "mydb"
+  master_username    = "foo"
+  master_password    = "mustbeeightcharaters"
+  skip_final_snapshot = true
+}
+
+resource "aws_rds_cluster_instance" "cluster_instances" {
+  identifier                 = "tf-cluster-instance-%d"
+  cluster_identifier         = "${aws_rds_cluster.default.id}"
+  instance_class             = "db.r3.large"
+  db_parameter_group_name    = "${aws_db_parameter_group.bar.name}"
+  auto_minor_version_upgrade = false
+  promotion_tier             = "3"
 }
 
 resource "aws_db_parameter_group" "bar" {
@@ -274,6 +286,7 @@ resource "aws_rds_cluster" "default" {
   master_password    = "mustbeeightcharaters"
   storage_encrypted = true
   kms_key_id = "${aws_kms_key.foo.arn}"
+  skip_final_snapshot = true
 }
 
 resource "aws_rds_cluster_instance" "cluster_instances" {
@@ -281,8 +294,6 @@ resource "aws_rds_cluster_instance" "cluster_instances" {
   cluster_identifier      = "${aws_rds_cluster.default.id}"
   instance_class          = "db.r3.large"
   db_parameter_group_name = "${aws_db_parameter_group.bar.name}"
-  storage_encrypted = true
-  kms_key_id = "${aws_kms_key.foo.arn}"
 }
 
 resource "aws_db_parameter_group" "bar" {
@@ -310,6 +321,7 @@ resource "aws_rds_cluster" "default" {
   database_name      = "mydb"
   master_username    = "foo"
   master_password    = "mustbeeightcharaters"
+  skip_final_snapshot = true
 }
 
 resource "aws_rds_cluster_instance" "cluster_instances" {

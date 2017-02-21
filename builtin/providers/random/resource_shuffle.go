@@ -7,23 +7,23 @@ import (
 func resourceShuffle() *schema.Resource {
 	return &schema.Resource{
 		Create: CreateShuffle,
-		Read:   stubRead,
-		Delete: stubDelete,
+		Read:   schema.Noop,
+		Delete: schema.RemoveFromState,
 
 		Schema: map[string]*schema.Schema{
-			"keepers": &schema.Schema{
+			"keepers": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"seed": &schema.Schema{
+			"seed": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"input": &schema.Schema{
+			"input": {
 				Type:     schema.TypeList,
 				Required: true,
 				ForceNew: true,
@@ -32,7 +32,7 @@ func resourceShuffle() *schema.Resource {
 				},
 			},
 
-			"result": &schema.Schema{
+			"result": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
@@ -40,7 +40,7 @@ func resourceShuffle() *schema.Resource {
 				},
 			},
 
-			"result_count": &schema.Schema{
+			"result_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
@@ -49,7 +49,7 @@ func resourceShuffle() *schema.Resource {
 	}
 }
 
-func CreateShuffle(d *schema.ResourceData, meta interface{}) error {
+func CreateShuffle(d *schema.ResourceData, _ interface{}) error {
 	input := d.Get("input").([]interface{})
 	seed := d.Get("seed").(string)
 

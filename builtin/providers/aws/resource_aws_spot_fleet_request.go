@@ -324,7 +324,7 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 
 	if v, ok := d["user_data"]; ok {
 		opts.UserData = aws.String(
-			base64.StdEncoding.EncodeToString([]byte(v.(string))))
+			base64Encode([]byte(v.(string))))
 	}
 
 	if v, ok := d["key_name"]; ok {
@@ -375,6 +375,7 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 		// the same request
 		ni := &ec2.InstanceNetworkInterfaceSpecification{
 			AssociatePublicIpAddress: aws.Bool(true),
+			DeleteOnTermination:      aws.Bool(true),
 			DeviceIndex:              aws.Int64(int64(0)),
 			SubnetId:                 aws.String(subnetId.(string)),
 			Groups:                   groupIds,
@@ -657,7 +658,7 @@ func resourceAwsSpotFleetRequestRead(d *schema.ResourceData, meta interface{}) e
 		// If the spot request was not found, return nil so that we can show
 		// that it is gone.
 		ec2err, ok := err.(awserr.Error)
-		if ok && ec2err.Code() == "InvalidSpotFleetRequestID.NotFound" {
+		if ok && ec2err.Code() == "InvalidSpotFleetRequestId.NotFound" {
 			d.SetId("")
 			return nil
 		}
@@ -805,7 +806,7 @@ func launchSpecToMap(
 }
 
 func ebsBlockDevicesToSet(bdm []*ec2.BlockDeviceMapping, rootDevName *string) *schema.Set {
-	set := &schema.Set{F: hashEphemeralBlockDevice}
+	set := &schema.Set{F: hashEbsBlockDevice}
 
 	for _, val := range bdm {
 		if val.Ebs != nil {
@@ -934,18 +935,53 @@ func resourceAwsSpotFleetRequestUpdate(d *schema.ResourceData, meta interface{})
 func resourceAwsSpotFleetRequestDelete(d *schema.ResourceData, meta interface{}) error {
 	// http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CancelSpotFleetRequests.html
 	conn := meta.(*AWSClient).ec2conn
+	terminateInstances := d.Get("terminate_instances_with_expiration").(bool)
 
 	log.Printf("[INFO] Cancelling spot fleet request: %s", d.Id())
-	_, err := conn.CancelSpotFleetRequests(&ec2.CancelSpotFleetRequestsInput{
+	resp, err := conn.CancelSpotFleetRequests(&ec2.CancelSpotFleetRequestsInput{
 		SpotFleetRequestIds: []*string{aws.String(d.Id())},
-		TerminateInstances:  aws.Bool(d.Get("terminate_instances_with_expiration").(bool)),
+		TerminateInstances:  aws.Bool(terminateInstances),
 	})
 
 	if err != nil {
 		return fmt.Errorf("Error cancelling spot request (%s): %s", d.Id(), err)
 	}
 
-	return nil
+	// check response successfulFleetRequestSet to make sure our request was canceled
+	var found bool
+	for _, s := range resp.SuccessfulFleetRequests {
+		if *s.SpotFleetRequestId == d.Id() {
+			found = true
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("[ERR] Spot Fleet request (%s) was not found to be successfully canceled, dangling resources may exit", d.Id())
+	}
+
+	// Only wait for instance termination if requested
+	if !terminateInstances {
+		return nil
+	}
+
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+		resp, err := conn.DescribeSpotFleetInstances(&ec2.DescribeSpotFleetInstancesInput{
+			SpotFleetRequestId: aws.String(d.Id()),
+		})
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		if len(resp.ActiveInstances) == 0 {
+			log.Printf("[DEBUG] Active instance count is 0 for Spot Fleet Request (%s), removing", d.Id())
+			return nil
+		}
+
+		log.Printf("[DEBUG] Active instance count in Spot Fleet Request (%s): %d", d.Id(), len(resp.ActiveInstances))
+
+		return resource.RetryableError(
+			fmt.Errorf("fleet still has (%d) running instances", len(resp.ActiveInstances)))
+	})
 }
 
 func hashEphemeralBlockDevice(v interface{}) int {
@@ -980,7 +1016,11 @@ func hashLaunchSpecification(v interface{}) int {
 func hashEbsBlockDevice(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["snapshot_id"].(string)))
+	if name, ok := m["device_name"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", name.(string)))
+	}
+	if id, ok := m["snapshot_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", id.(string)))
+	}
 	return hashcode.String(buf.String())
 }
