@@ -1,6 +1,7 @@
 package pagerduty
 
 import (
+	"fmt"
 	"log"
 
 	pagerduty "github.com/PagerDuty/go-pagerduty"
@@ -13,6 +14,9 @@ func resourcePagerDutyServiceIntegration() *schema.Resource {
 		Read:   resourcePagerDutyServiceIntegrationRead,
 		Update: resourcePagerDutyServiceIntegrationUpdate,
 		Delete: resourcePagerDutyServiceIntegrationDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourcePagerDutyServiceIntegrationImport,
+		},
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -130,8 +134,8 @@ func resourcePagerDutyServiceIntegrationRead(d *schema.ResourceData, meta interf
 
 	d.Set("name", serviceIntegration.Name)
 	d.Set("type", serviceIntegration.Type)
-	d.Set("service", serviceIntegration.Service)
-	d.Set("vendor", serviceIntegration.Vendor)
+	d.Set("service", serviceIntegration.Service.ID)
+	d.Set("vendor", serviceIntegration.Vendor.ID)
 	d.Set("integration_key", serviceIntegration.IntegrationKey)
 	d.Set("integration_email", serviceIntegration.IntegrationEmail)
 
@@ -172,4 +176,31 @@ func resourcePagerDutyServiceIntegrationDelete(d *schema.ResourceData, meta inte
 	d.SetId("")
 
 	return nil
+}
+
+func resourcePagerDutyServiceIntegrationImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*pagerduty.Client)
+
+	resp, err := client.ListServices(pagerduty.ListServiceOptions{})
+	if err != nil {
+		return []*schema.ResourceData{}, err
+	}
+
+	var serviceID string
+
+	for _, service := range resp.Services {
+		for _, integration := range service.Integrations {
+			if integration.ID == d.Id() {
+				serviceID = service.ID
+			}
+		}
+	}
+
+	if serviceID == "" {
+		return []*schema.ResourceData{}, fmt.Errorf("Error importing pagerduty_service_integration. Could not locate a service ID for the integration")
+	}
+
+	d.Set("service", serviceID)
+
+	return []*schema.ResourceData{d}, nil
 }
