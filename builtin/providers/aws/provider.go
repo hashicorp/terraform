@@ -234,6 +234,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_cloudtrail":                               resourceAwsCloudTrail(),
 			"aws_cloudwatch_event_rule":                    resourceAwsCloudWatchEventRule(),
 			"aws_cloudwatch_event_target":                  resourceAwsCloudWatchEventTarget(),
+			"aws_cloudwatch_log_destination":               resourceAwsCloudWatchLogDestination(),
+			"aws_cloudwatch_log_destination_policy":        resourceAwsCloudWatchLogDestinationPolicy(),
 			"aws_cloudwatch_log_group":                     resourceAwsCloudWatchLogGroup(),
 			"aws_cloudwatch_log_metric_filter":             resourceAwsCloudWatchLogMetricFilter(),
 			"aws_cloudwatch_log_stream":                    resourceAwsCloudWatchLogStream(),
