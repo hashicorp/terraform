@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Interpolation:**  `slice` [GH-9729]
  * **New Data Source:**  `openstack_images_image_v2` [GH-12097]
  * **New Resource:**  `aws_elastic_beanstalk_application_version` [GH-5770]
  * **New Resource:**  `openstack_images_image_v2` [GH-11942]
@@ -43,7 +44,6 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
- * **New Interpolation:**  `slice` ([#9729](https://github.com/hashicorp/terraform/issues/9729))
  * **New Provider:**  `arukas` ([#11171](https://github.com/hashicorp/terraform/issues/11171))
  * **New Data Source:**  `aws_db_instance` ([#11717](https://github.com/hashicorp/terraform/issues/11717))
  * **New Data Source:**  `aws_vpn_gateway` ([#11886](https://github.com/hashicorp/terraform/issues/11886))
