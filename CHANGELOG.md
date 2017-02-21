@@ -1,8 +1,12 @@
+## 0.6.16.ens.15 (Febuary 21, 2017)
+### Added
+ * provider/aws: updated regions and region zone ids.
+
 ## 0.6.16 (May 9, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
- * provider/aws: `aws_eip` field `private_ip` is now a computed value, and cannot be set in your configuration. 
+ * provider/aws: `aws_eip` field `private_ip` is now a computed value, and cannot be set in your configuration.
     Use `associate_with_private_ip` instead. See ([#6521](https://github.com/hashicorp/terraform/issues/6521))
 
 FEATURES:
@@ -14,14 +18,14 @@ FEATURES:
  * **New resource:** `aws_db_event_subscription` ([#6367](https://github.com/hashicorp/terraform/issues/6367))
  * **New resource:** `aws_db_option_group` ([#4401](https://github.com/hashicorp/terraform/issues/4401))
  * **New resource:** `aws_eip_association` ([#6552](https://github.com/hashicorp/terraform/issues/6552))
- * **New resource:** `openstack_networking_secgroup_rule_v2` ([#6410](https://github.com/hashicorp/terraform/issues/6410)) 
+ * **New resource:** `openstack_networking_secgroup_rule_v2` ([#6410](https://github.com/hashicorp/terraform/issues/6410))
  * **New resource:** `openstack_networking_secgroup_v2` ([#6410](https://github.com/hashicorp/terraform/issues/6410))
  * **New resource:** `vsphere_file` ([#6401](https://github.com/hashicorp/terraform/issues/6401))
 
 IMPROVEMENTS:
 
  * core: update HCL dependency to improve whitespace handling in `terraform fmt` ([#6347](https://github.com/hashicorp/terraform/issues/6347))
- * provider/aws: Add agent_version argument to `aws_opswork_stack` ([#6493](https://github.com/hashicorp/terraform/issues/6493)) 
+ * provider/aws: Add agent_version argument to `aws_opswork_stack` ([#6493](https://github.com/hashicorp/terraform/issues/6493))
  * provider/aws: Add support for request parameters to `api_gateway_method` & `api_gateway_integration` ([#6501](https://github.com/hashicorp/terraform/issues/6501))
  * provider/aws: Add support for response parameters to `api_gateway_method_response` & `api_gateway_integration_response` ([#6344](https://github.com/hashicorp/terraform/issues/6344))
  * provider/aws: Allow empty S3 config in Cloudfront Origin ([#6487](https://github.com/hashicorp/terraform/issues/6487))

@@ -5,9 +5,13 @@ package aws
 // It currently cannot be generated from the API json.
 var hostedZoneIDsMap = map[string]string{
 	"us-east-1":      "Z3AQBSTGFYJSTF",
+	"us-east-2":      "Z2O1EMRO9K5GLX",
 	"us-west-2":      "Z3BJ6K6RIION7M",
 	"us-west-1":      "Z2F56UZL2M1ACD",
+	"ca-central-1":   "Z1QDHH18159H29",
+	"ap-south-1":     "Z11RGJOFQNVJUP",
 	"eu-west-1":      "Z1BKCTXD74EZPE",
+	"eu-west-2":      "Z3GKZC51ZF0DB4",
 	"eu-central-1":   "Z21DNDUVLTQW6Q",
 	"ap-southeast-1": "Z3O0J2DXBE1FTB",
 	"ap-southeast-2": "Z1WCIGYICN2BYD",
