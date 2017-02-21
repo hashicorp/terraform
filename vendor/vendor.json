@@ -806,10 +806,10 @@
 		{
 			"checksumSHA1": "LXjLQyMAadcANG0UURWuw4di2YE=",
 			"path": "github.com/aws/aws-sdk-go/service/codepipeline",
-			"revision": "744809bad4e1770e6f2127c022c4d60117828bed",
-			"revisionTime": "2017-02-14T21:54:43Z",
-			"version": "v1.6.22",
-			"versionExact": "v1.6.22"
+			"revision": "b2852089fcfd0794d25d57f193e15121ab8a6d9e",
+			"revisionTime": "2017-02-17T18:38:06Z",
+			"version": "v1.6.25",
+			"versionExact": "v1.6.25"
 		},
 		{
 			"checksumSHA1": "tTOqlqLdJim89F/7bLsXe5WfIyQ=",
