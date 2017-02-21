@@ -1,4 +1,4 @@
-// +build linux darwin openbsd solaris
+// +build linux darwin openbsd netbsd solaris
 
 package module
 
