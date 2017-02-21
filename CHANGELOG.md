@@ -3,6 +3,7 @@
 FEATURES:
 
  * **New Interpolation:**  `slice` [GH-9729]
+ * **New Data Source:**  `aws_sns_topic` [GH-11752]
  * **New Data Source:**  `openstack_images_image_v2` [GH-12097]
  * **New Resource:**  `aws_elastic_beanstalk_application_version` [GH-5770]
  * **New Resource:**  `aws_cloudwatch_log_destination` [GH-11940]
