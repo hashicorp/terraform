@@ -22,6 +22,12 @@ func dataSource() *schema.Resource {
 				},
 			},
 
+			"working_dir": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default: "",
+			},
+
 			"query": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
@@ -44,6 +50,7 @@ func dataSource() *schema.Resource {
 func dataSourceRead(d *schema.ResourceData, meta interface{}) error {
 
 	programI := d.Get("program").([]interface{})
+	workingDir := d.Get("working_dir").(string)
 	query := d.Get("query").(map[string]interface{})
 
 	// This would be a ValidateFunc if helper/schema allowed these
@@ -58,6 +65,8 @@ func dataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	cmd := exec.Command(program[0], program[1:]...)
+
+	cmd.Dir = workingDir
 
 	queryJson, err := json.Marshal(query)
 	if err != nil {
