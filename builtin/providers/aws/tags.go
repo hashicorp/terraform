@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 	"regexp"
 	"strings"
@@ -19,8 +20,9 @@ import (
 //
 func tagsSchema() *schema.Schema {
 	return &schema.Schema{
-		Type:     schema.TypeMap,
-		Optional: true,
+		Type:         schema.TypeMap,
+		Optional:     true,
+		ValidateFunc: validateTags,
 	}
 }
 
@@ -347,4 +349,20 @@ func diffTagsDynamoDb(oldTags, newTags []*dynamodb.Tag) ([]*dynamodb.Tag, []*str
 		}
 	}
 	return tagsFromMapDynamoDb(create), remove
+}
+
+func validateTags(v interface{}, k string) (ws []string, errors []error) {
+	m := v.(map[string]interface{})
+	for key, value := range m {
+		if len(key) > 127 {
+			errors = append(errors, fmt.Errorf("tag %q name cannot be longer than '127' characters", key))
+		}
+		if len(value.(string)) > 255 {
+			errors = append(errors, fmt.Errorf("tag %q value %q cannot be longer than '255' characters", key, value.(string)))
+		}
+		if !regexp.MustCompile(`^[0-9A-Za-z+-=._:\@]+$`).MatchString(value.(string)) {
+			errors = append(errors, fmt.Errorf("tag %q value %q contains invalid characters (^[0-9A-Za-z+-=._:\\@]+$)", k, value.(string)))
+		}
+	}
+	return
 }
