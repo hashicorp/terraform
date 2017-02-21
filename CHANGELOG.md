@@ -4,6 +4,8 @@ FEATURES:
 
  * **New Data Source:**  `openstack_images_image_v2` [GH-12097]
  * **New Resource:**  `aws_elastic_beanstalk_application_version` [GH-5770]
+ * **New Resource:**  `aws_cloudwatch_log_destination` [GH-11940]
+ * **New Resource:**  `aws_cloudwatch_log_destination_policy` [GH-11940]
  * **New Resource:**  `openstack_images_image_v2` [GH-11942]
 
 IMPROVEMENTS:
