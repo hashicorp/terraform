@@ -1238,7 +1238,12 @@ func flattenAwsGroupLaunchSpecification(lspec *spotinst.AwsGroupComputeLaunchSpe
 		result["image_id"] = spotinst.StringValue(lspec.ImageID)
 	}
 	result["key_pair"] = spotinst.StringValue(lspec.KeyPair)
-	result["user_data"] = spotinst.StringValue(lspec.UserData)
+	if lspec.UserData != nil && spotinst.StringValue(lspec.UserData) != "" {
+		decodedUserData, _ := base64.StdEncoding.DecodeString(spotinst.StringValue(lspec.UserData))
+		result["user_data"] = string(decodedUserData)
+	} else {
+		result["user_data"] = ""
+	}
 	result["monitoring"] = spotinst.BoolValue(lspec.Monitoring)
 	result["ebs_optimized"] = spotinst.BoolValue(lspec.EBSOptimized)
 	result["load_balancer_names"] = lspec.LoadBalancerNames
@@ -2072,6 +2077,8 @@ func expandAwsGroupLaunchSpecification(data interface{}) (*spotinst.AwsGroupComp
 
 	if v, ok := m["user_data"].(string); ok && v != "" {
 		lc.UserData = spotinst.String(base64.StdEncoding.EncodeToString([]byte(v)))
+	} else {
+		lc.UserData = spotinst.String("")
 	}
 
 	if v, ok := m["security_group_ids"].([]interface{}); ok {
