@@ -548,10 +548,14 @@ func resourceAwsCodeBuildProjectEnvironmentHash(v interface{}) int {
 	environmentType := m["type"].(string)
 	computeType := m["compute_type"].(string)
 	image := m["image"].(string)
-
+	environmentVariables := m["environment_variable"].([]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", environmentType))
 	buf.WriteString(fmt.Sprintf("%s-", computeType))
 	buf.WriteString(fmt.Sprintf("%s-", image))
+	for _, e := range environmentVariables {
+		ev := e.(map[string]interface{})
+		buf.WriteString(fmt.Sprintf("%s:%s-", ev["name"].(string), ev["value"].(string)))
+	}
 
 	return hashcode.String(buf.String())
 }
@@ -584,14 +588,12 @@ func resourceAwsCodeBuildProjectSourceAuthHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func environmentVariablesToMap(environmentVariables []*codebuild.EnvironmentVariable) []map[string]interface{} {
+func environmentVariablesToMap(environmentVariables []*codebuild.EnvironmentVariable) []interface{} {
 
-	envVariables := make([]map[string]interface{}, len(environmentVariables))
-
+	envVariables := []interface{}{}
 	if len(environmentVariables) > 0 {
-		for i := 0; i < len(environmentVariables); i++ {
-			env := environmentVariables[i]
-			item := make(map[string]interface{})
+		for _, env := range environmentVariables {
+			item := map[string]interface{}{}
 			item["name"] = *env.Name
 			item["value"] = *env.Value
 			envVariables = append(envVariables, item)
