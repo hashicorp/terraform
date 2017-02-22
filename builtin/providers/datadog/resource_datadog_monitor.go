@@ -104,6 +104,7 @@ func resourceDatadogMonitor() *schema.Resource {
 			"require_full_window": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  true,
 			},
 			"locked": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -122,6 +123,7 @@ func resourceDatadogMonitor() *schema.Resource {
 			"include_tags": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  true,
 			},
 			"tags": &schema.Schema{
 				Type:     schema.TypeList,
@@ -147,8 +149,10 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 	}
 
 	o := datadog.Options{
-		Thresholds:   &thresholds,
-		NotifyNoData: datadog.Bool(d.Get("notify_no_data").(bool)),
+		Thresholds:        &thresholds,
+		NotifyNoData:      datadog.Bool(d.Get("notify_no_data").(bool)),
+		RequireFullWindow: datadog.Bool(d.Get("require_full_window").(bool)),
+		IncludeTags:       datadog.Bool(d.Get("include_tags").(bool)),
 	}
 	if attr, ok := d.GetOk("silenced"); ok {
 		s := make(map[string]int)
@@ -178,12 +182,6 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 	}
 	if attr, ok := d.GetOk("escalation_message"); ok {
 		o.SetEscalationMessage(attr.(string))
-	}
-	if attr, ok := d.GetOk("include_tags"); ok {
-		o.SetIncludeTags(attr.(bool))
-	}
-	if attr, ok := d.GetOk("require_full_window"); ok {
-		o.SetRequireFullWindow(attr.(bool))
 	}
 	if attr, ok := d.GetOk("locked"); ok {
 		o.SetLocked(attr.(bool))
