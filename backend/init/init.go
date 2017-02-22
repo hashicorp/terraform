@@ -49,7 +49,21 @@ func Backend(name string) func() backend.Backend {
 	return backends[name]
 }
 
-// NOTE(@mitchellh): At some point I'm sure we'll want Add() to add a backend
-// to the list. Right now we hardcode all backends and there isn't a reasonable
-// use case for this so we're leaving it out. It would be trivial to add in
-// the future.
+// Set sets a new backend in the list of backends. If f is nil then the
+// backend will be removed from the map. If this backend already exists
+// then it will be overwritten.
+//
+// This method sets this backend globally and care should be taken to do
+// this only before Terraform is executing to prevent odd behavior of backends
+// changing mid-execution.
+func Set(name string, f func() backend.Backend) {
+	backendsLock.Lock()
+	defer backendsLock.Unlock()
+
+	if f == nil {
+		delete(backends, name)
+		return
+	}
+
+	backends[name] = f
+}
