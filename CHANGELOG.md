@@ -32,6 +32,7 @@ Bug FIXES:
 
  * core: Fix a hang that could occur at the end of a Terraform command with custom plugins used [GH-12048]
  * command/fmt: Fix incorrect formatting with single line object following complex object [GH-12049]
+ * command/state: `-backup` flags work with `mv` and `rm` [GH-12156]
  * provider/aws: add bucket name to delete error notification [GH-11952]
  * provider/aws: Use proper Set for source.Auth in resource_aws_codebuild_project [GH-11741]
  * provider/aws: aws_ecs_service should output service name along with err [GH-12072]
