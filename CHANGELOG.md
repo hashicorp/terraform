@@ -39,6 +39,7 @@ Bug FIXES:
  * provider/aws: Add VRRP to allowed protocols in network ACL rules [GH-12107]
  * provider/aws: Add owner_account option to aws_redshift_cluster [GH-12062]
  * provider/aws: Update of inspector_assessment_target should use ARN not Name [GH-12115]
+ * provider/azurerm: Ignore case on protocol and allocation types [GH-12176]
  * provider/cloudflare: add validation for proxied record types [GH-11993]
  * provider/datadog: Adding default values to datadog_monitor [GH-12168]
  * provider/google: make local_traffic_selector computed [GH-11631]
