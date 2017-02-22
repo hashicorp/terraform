@@ -2077,8 +2077,6 @@ func expandAwsGroupLaunchSpecification(data interface{}) (*spotinst.AwsGroupComp
 
 	if v, ok := m["user_data"].(string); ok && v != "" {
 		lc.UserData = spotinst.String(base64.StdEncoding.EncodeToString([]byte(v)))
-	} else {
-		lc.UserData = spotinst.String("")
 	}
 
 	if v, ok := m["security_group_ids"].([]interface{}); ok {
