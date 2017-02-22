@@ -1,8 +1,10 @@
 package local
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -15,6 +17,7 @@ func TestLocal_impl(t *testing.T) {
 	var _ backend.Enhanced = new(Local)
 	var _ backend.Local = new(Local)
 	var _ backend.CLI = new(Local)
+	var _ backend.MultiState = new(Local)
 }
 
 func checkState(t *testing.T, path, expected string) {
@@ -53,7 +56,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(states, expectedStates) {
-		t.Fatal("expected []string{%q}, got %q", dflt, states)
+		t.Fatalf("expected []string{%q}, got %q", dflt, states)
 	}
 
 	expectedA := "test_A"
@@ -62,6 +65,9 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 
 	states, current, err = b.States()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if current != expectedA {
 		t.Fatalf("expected %q, got %q", expectedA, current)
 	}
@@ -77,6 +83,9 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 
 	states, current, err = b.States()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if current != expectedB {
 		t.Fatalf("expected %q, got %q", expectedB, current)
 	}
@@ -91,6 +100,9 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 
 	states, current, err = b.States()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if current != expectedB {
 		t.Fatalf("expected %q, got %q", dflt, current)
 	}
@@ -105,6 +117,9 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 
 	states, current, err = b.States()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if current != dflt {
 		t.Fatalf("expected %q, got %q", dflt, current)
 	}
@@ -117,6 +132,101 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	if err := b.DeleteState(dflt); err == nil {
 		t.Fatal("expected error deleting default state")
 	}
+}
+
+// verify the behavior with a backend that doesn't support multiple states
+func TestLocal_noMultiStateBackend(t *testing.T) {
+	type noMultiState struct {
+		backend.Backend
+	}
+
+	b := &Local{
+		Backend: &noMultiState{},
+	}
+
+	_, _, err := b.States()
+	if err != ErrEnvNotSupported {
+		t.Fatal("backend does not support environments.", err)
+	}
+
+	err = b.ChangeState("test")
+	if err != ErrEnvNotSupported {
+		t.Fatal("backend does not support environments.", err)
+	}
+
+	err = b.ChangeState("test")
+	if err != ErrEnvNotSupported {
+		t.Fatal("backend does not support environments.", err)
+	}
+}
+
+// verify that the MultiState methods are dispatched to the correct Backend.
+func TestLocal_multiStateBackend(t *testing.T) {
+	defer testTmpDir(t)()
+
+	dflt := backend.DefaultStateName
+	expectedStates := []string{dflt}
+
+	// make a second tmp dir for the sub-Backend.
+	// we verify the corret backend was called by checking the paths.
+	tmp, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmp)
+
+	fmt.Println("second tmp:", tmp)
+
+	b := &Local{
+		Backend: &Local{
+			workingDir: tmp,
+		},
+	}
+
+	testA := "test_A"
+	if err := b.ChangeState(testA); err != nil {
+		t.Fatal(err)
+	}
+
+	states, current, err := b.States()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current != testA {
+		t.Fatalf("expected %q, got %q", testA, current)
+	}
+
+	expectedStates = append(expectedStates, testA)
+	if !reflect.DeepEqual(states, expectedStates) {
+		t.Fatalf("expected %q, got %q", expectedStates, states)
+	}
+
+	// verify that no environment paths were created for the top-level Backend
+	if _, err := os.Stat(DefaultDataDir); !os.IsNotExist(err) {
+		t.Fatal("remote state operations should not have written local files")
+	}
+
+	if _, err := os.Stat(filepath.Join(DefaultEnvDir, testA)); !os.IsNotExist(err) {
+		t.Fatal("remote state operations should not have written local files")
+	}
+
+	// remove the new state
+	if err := b.DeleteState(testA); err != nil {
+		t.Fatal(err)
+	}
+
+	states, current, err = b.States()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current != dflt {
+		t.Fatalf("expected %q, got %q", dflt, current)
+	}
+
+	if !reflect.DeepEqual(states, expectedStates[:1]) {
+		t.Fatalf("expected %q, got %q", expectedStates, states)
+	}
+
 }
 
 // change into a tmp dir and return a deferable func to change back and cleanup
