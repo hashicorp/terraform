@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
@@ -111,11 +110,6 @@ func (b *Local) State() (state.State, error) {
 	var s state.State = &state.LocalState{
 		Path:    b.StatePath,
 		PathOut: b.StateOutPath,
-	}
-
-	// Load the state as a sanity check
-	if err := s.RefreshState(); err != nil {
-		return nil, errwrap.Wrapf("Error reading local state: {{err}}", err)
 	}
 
 	// If we are backing up the state, wrap it
