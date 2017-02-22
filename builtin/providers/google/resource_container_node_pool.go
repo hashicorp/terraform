@@ -1,6 +1,7 @@
 package google
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -13,11 +14,20 @@ func resourceContainerNodePool() *schema.Resource {
 		Create: resourceContainerNodePoolCreate,
 		Read:   resourceContainerNodePoolRead,
 		Delete: resourceContainerNodePoolDelete,
+		Exists: resourceContainerNodePoolExists,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ForceNew:      true,
+			},
+
+			"name_prefix": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
 
@@ -52,8 +62,16 @@ func resourceContainerNodePoolCreate(d *schema.ResourceData, meta interface{}) e
 
 	zone := d.Get("zone").(string)
 	cluster := d.Get("cluster").(string)
-	name := d.Get("name").(string)
 	nodeCount := d.Get("initial_node_count").(int)
+
+	var name string
+	if v, ok := d.GetOk("name"); ok {
+		name = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		name = resource.PrefixedUniqueId(v.(string))
+	} else {
+		name = resource.UniqueId()
+	}
 
 	nodePool := &container.NodePool{
 		Name:             name,
@@ -67,7 +85,7 @@ func resourceContainerNodePoolCreate(d *schema.ResourceData, meta interface{}) e
 	op, err := config.clientContainer.Projects.Zones.Clusters.NodePools.Create(project, zone, cluster, req).Do()
 
 	if err != nil {
-		return err
+		return fmt.Errorf("Error creating NodePool: %s", err)
 	}
 
 	waitErr := containerOperationWait(config, op, project, zone, "creating GKE NodePool", 10, 3)
@@ -131,7 +149,7 @@ func resourceContainerNodePoolDelete(d *schema.ResourceData, meta interface{}) e
 	op, err := config.clientContainer.Projects.Zones.Clusters.NodePools.Delete(
 		project, zone, cluster, name).Do()
 	if err != nil {
-		return err
+		return fmt.Errorf("Error deleting NodePool: %s", err)
 	}
 
 	// Wait until it's deleted
@@ -145,4 +163,24 @@ func resourceContainerNodePoolDelete(d *schema.ResourceData, meta interface{}) e
 	d.SetId("")
 
 	return nil
+}
+
+func resourceContainerNodePoolExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	config := meta.(*Config)
+
+	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
+	zone := d.Get("zone").(string)
+	name := d.Get("name").(string)
+	cluster := d.Get("cluster").(string)
+
+	nodePool, err := config.clientContainer.Projects.Zones.Clusters.NodePools.Get(
+		project, zone, cluster, name).Do()
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
