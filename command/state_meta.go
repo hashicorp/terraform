@@ -36,12 +36,16 @@ func (c *StateMeta) State(m *Meta) (state.State, error) {
 		panic(err)
 	}
 	localB := localRaw.(*backendlocal.Local)
+	_, stateOutPath, _, err := localB.StatePaths()
+	if err != nil {
+		return nil, err
+	}
 
 	// Determine the backup path. stateOutPath is set to the resulting
 	// file where state is written (cached in the case of remote state)
 	backupPath := fmt.Sprintf(
 		"%s.%d%s",
-		localB.StateOutPath,
+		stateOutPath,
 		time.Now().UTC().Unix(),
 		DefaultBackupExtension)
 
