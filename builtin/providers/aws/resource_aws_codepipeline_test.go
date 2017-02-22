@@ -23,11 +23,19 @@ func TestAccAWSCodePipeline_basic(t *testing.T) {
 				Config: testAccAWSCodePipelineConfig_basic(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodePipelineExists("aws_codepipeline.bar"),
+					resource.TestCheckResourceAttr("aws_codepipeline.bar", "artifact_store.0.type", "S3"),
+					resource.TestCheckResourceAttr("aws_codepipeline.bar", "artifact_store.0.encryption_key.0.id", "1234"),
+					resource.TestCheckResourceAttr("aws_codepipeline.bar", "artifact_store.0.encryption_key.0.type", "KMS"),
 				),
-			}, {
-				ResourceName:      "aws_codepipeline.bar",
-				ImportState:       true,
-				ImportStateVerify: true,
+			},
+			{
+				Config: testAccAWSCodePipelineConfig_basicUpdated(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSCodePipelineExists("aws_codepipeline.bar"),
+					resource.TestCheckResourceAttr("aws_codepipeline.bar", "artifact_store.0.type", "S3"),
+					resource.TestCheckResourceAttr("aws_codepipeline.bar", "artifact_store.0.encryption_key.0.id", "4567"),
+					resource.TestCheckResourceAttr("aws_codepipeline.bar", "artifact_store.0.encryption_key.0.type", "KMS"),
+				),
 			},
 		},
 	})
@@ -183,6 +191,118 @@ resource "aws_codepipeline" "bar" {
 
       configuration {
         ProjectName = "test"
+      }
+    }
+  }
+}
+`, rName, rName, rName)
+}
+
+func testAccAWSCodePipelineConfig_basicUpdated(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "foo" {
+  bucket = "tf-test-pipeline-%s"
+  acl    = "private"
+}
+
+resource "aws_iam_role" "codepipeline_role" {
+  name = "codepipeline-role-%s"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "codepipeline.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "codepipeline_policy" {
+  name = "codepipeline_policy"
+  role = "${aws_iam_role.codepipeline_role.id}"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect":"Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+        "s3:GetBucketVersioning"
+      ],
+      "Resource": [
+        "${aws_s3_bucket.foo.arn}",
+        "${aws_s3_bucket.foo.arn}/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "codebuild:BatchGetBuilds",
+        "codebuild:StartBuild"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_codepipeline" "bar" {
+  name     = "test-pipeline-%s"
+  role_arn = "${aws_iam_role.codepipeline_role.arn}"
+
+  artifact_store {
+    location = "${aws_s3_bucket.foo.bucket}"
+    type     = "S3"
+
+    encryption_key {
+      id   = "4567"
+      type = "KMS"
+    }
+  }
+
+  stage {
+    name = "Source"
+
+    action {
+      name             = "Source"
+      category         = "Source"
+      owner            = "ThirdParty"
+      provider         = "GitHub"
+      version          = "1"
+      output_artifacts = ["bar"]
+
+      configuration {
+        Owner  = "foo-terraform"
+        Repo   = "bar"
+        Branch = "stable"
+      }
+    }
+  }
+
+  stage {
+    name = "Build"
+
+    action {
+      name            = "Build"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      input_artifacts = ["bar"]
+      version         = "1"
+
+      configuration {
+        ProjectName = "foo"
       }
     }
   }
