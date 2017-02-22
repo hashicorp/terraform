@@ -311,3 +311,15 @@ func azureStateRefreshFunc(resourceURI string, client *ArmClient, command rivier
 func resourceAzurermResourceGroupNameDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
 	return strings.ToLower(old) == strings.ToLower(new)
 }
+
+// ignoreCaseDiffSuppressFunc is a DiffSuppressFunc from helper/schema that is
+// used to ignore any case-changes in a return value.
+func ignoreCaseDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	return strings.ToLower(old) == strings.ToLower(new)
+}
+
+// ignoreCaseStateFunc is a StateFunc from helper/schema that converts the
+// supplied value to lower before saving to state for consistency.
+func ignoreCaseStateFunc(val interface{}) string {
+	return strings.ToLower(val.(string))
+}
