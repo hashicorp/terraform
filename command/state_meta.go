@@ -16,9 +16,6 @@ type StateMeta struct{}
 // in the way that backups are done. This configures backups to be timestamped
 // rather than just the original state path plus a backup path.
 func (c *StateMeta) State(m *Meta) (state.State, error) {
-	// Disable backups since we wrap it manually below
-	m.backupPath = "-"
-
 	// Get the state (shouldn't be wrapped in a backup)
 	s, err := m.State()
 	if err != nil {

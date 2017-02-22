@@ -16,9 +16,8 @@ type StateRmCommand struct {
 func (c *StateRmCommand) Run(args []string) int {
 	args = c.Meta.process(args, true)
 
-	var backupPath string
 	cmdFlags := c.Meta.flagSet("state show")
-	cmdFlags.StringVar(&backupPath, "backup", "", "backup")
+	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "-", "backup")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
@@ -75,7 +74,8 @@ Options:
   -backup=PATH        Path where Terraform should write the backup
                       state. This can't be disabled. If not set, Terraform
                       will write it to the same path as the statefile with
-                      a backup extension.
+                      a backup extension. This backup will be made in addition
+                      to the timestamped backup.
 
   -state=statefile    Path to a Terraform state file to use to look
                       up Terraform-managed resources. By default it will
