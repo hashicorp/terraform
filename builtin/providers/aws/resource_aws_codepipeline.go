@@ -141,24 +141,14 @@ func resourceAwsCodePipeline() *schema.Resource {
 	}
 }
 func validateAwsCodePipelineEncryptionKeyType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	types := map[string]bool{
-		"KMS": true,
-	}
-
-	if !types[value] {
+	if v.(string) != "KMS" {
 		errors = append(errors, fmt.Errorf("CodePipeline: encryption_key type can only be KMS"))
 	}
 	return
 }
 
 func validateAwsCodePipelineArtifactStoreType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	types := map[string]bool{
-		"S3": true,
-	}
-
-	if !types[value] {
+	if v.(string) != "S3" {
 		errors = append(errors, fmt.Errorf("CodePipeline: artifact_store type can only be S3"))
 	}
 	return
@@ -196,13 +186,8 @@ func validateAwsCodePipelineStageActionOwner(v interface{}, k string) (ws []stri
 }
 
 func validateAwsCodePipelineStageActionConfiguration(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(map[string]interface{})
-	types := map[string]bool{
-		"OAuthToken": true,
-	}
-
-	for k := range value {
-		if types[k] {
+	for k := range v.(map[string]interface{}) {
+		if k == "OAuthToken" {
 			errors = append(errors, fmt.Errorf("CodePipeline: OAuthToken should be set as environment variable 'GITHUB_TOKEN'"))
 		}
 	}
@@ -211,9 +196,8 @@ func validateAwsCodePipelineStageActionConfiguration(v interface{}, k string) (w
 
 func resourceAwsCodePipelineCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codepipelineconn
-	pipeline := expandAwsCodePipeline(d)
 	params := &codepipeline.CreatePipelineInput{
-		Pipeline: pipeline,
+		Pipeline: expandAwsCodePipeline(d),
 	}
 
 	var resp *codepipeline.CreatePipelineOutput
@@ -231,6 +215,10 @@ func resourceAwsCodePipelineCreate(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		return fmt.Errorf("[ERROR] Error creating CodePipeline: %s", err)
 	}
+	if resp.Pipeline == nil {
+		return fmt.Errorf("[ERROR] Error creating CodePipeline: invalid response from AWS")
+	}
+
 	d.SetId(*resp.Pipeline.Name)
 	return resourceAwsCodePipelineUpdate(d, meta)
 }
