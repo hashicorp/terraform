@@ -20,9 +20,9 @@ func (c *StateMvCommand) Run(args []string) int {
 	// We create two metas to track the two states
 	var meta1, meta2 Meta
 	cmdFlags := c.Meta.flagSet("state mv")
-	cmdFlags.StringVar(&meta1.stateOutPath, "backup", "", "backup")
+	cmdFlags.StringVar(&meta1.backupPath, "backup", "-", "backup")
 	cmdFlags.StringVar(&meta1.statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.StringVar(&meta2.stateOutPath, "backup-out", "", "backup")
+	cmdFlags.StringVar(&meta2.backupPath, "backup-out", "-", "backup")
 	cmdFlags.StringVar(&meta2.statePath, "state-out", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
 		return cli.RunResultHelp
@@ -193,7 +193,8 @@ Options:
   -backup=PATH        Path where Terraform should write the backup for the original
                       state. This can't be disabled. If not set, Terraform
                       will write it to the same path as the statefile with
-                      a backup extension.
+                      a backup extension. This backup will be made in addition
+                      to the timestamped backup.
 
   -backup-out=PATH    Path where Terraform should write the backup for the destination
                       state. This can't be disabled. If not set, Terraform
