@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -12,6 +13,10 @@ import (
 )
 
 func TestAccAWSCodePipeline_basic(t *testing.T) {
+	if os.Getenv("GITHUB_TOKEN") == "" {
+		t.Skip("Environment variable GITHUB_TOKEN is not set")
+	}
+
 	name := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
