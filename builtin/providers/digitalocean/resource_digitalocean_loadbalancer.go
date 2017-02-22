@@ -21,8 +21,7 @@ func resourceDigitalOceanLoadbalancer() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Required: true,
 			},
 
 			"region": {
@@ -117,6 +116,7 @@ func resourceDigitalOceanLoadbalancer() *schema.Resource {
 			"sticky_sessions": {
 				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true, //this needs to be computed as the API returns a struct with none as the type
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -126,11 +126,11 @@ func resourceDigitalOceanLoadbalancer() *schema.Resource {
 							Default:  "none",
 						},
 						"cookie_name": {
-							Type:     schema.TypeInt,
+							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"cookie_ttl_seconds": {
-							Type:     schema.TypeString,
+							Type:     schema.TypeInt,
 							Optional: true,
 						},
 					},
@@ -212,12 +212,12 @@ func resourceDigitalOceanLoadbalancerCreate(d *schema.ResourceData, meta interfa
 	log.Printf("[DEBUG] Loadbalancer Create: %#v", lbOpts)
 	loadbalancer, _, err := client.LoadBalancers.Create(lbOpts)
 	if err != nil {
-		return fmt.Errorf("Error creating Loadbalancer: %s", err)
+		return fmt.Errorf("Error creating Load Balancer: %s", err)
 	}
 
 	d.SetId(loadbalancer.ID)
 
-	log.Printf("[DEBUG] Waiting for Loadbalancer (%s) to become active", d.Get("name"))
+	log.Printf("[DEBUG] Waiting for Load Balancer (%s) to become active", d.Get("name"))
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"new"},
 		Target:     []string{"active"},
@@ -226,7 +226,7 @@ func resourceDigitalOceanLoadbalancerCreate(d *schema.ResourceData, meta interfa
 		MinTimeout: 15 * time.Second,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for Loadbalancer (%s) to become active: %s", d.Get("name"), err)
+		return fmt.Errorf("Error waiting for Load Balancer (%s) to become active: %s", d.Get("name"), err)
 	}
 
 	return resourceDigitalOceanLoadbalancerRead(d, meta)
@@ -248,13 +248,18 @@ func resourceDigitalOceanLoadbalancerRead(d *schema.ResourceData, meta interface
 	d.Set("redirect_http_to_https", loadbalancer.RedirectHttpToHttps)
 	d.Set("droplet_ids", flattenDropletIds(loadbalancer.DropletIDs))
 	d.Set("droplet_tag", loadbalancer.Tag)
-	if loadbalancer.StickySessions != nil {
-		d.Set("sticky_sessions", flattenStickySessions(loadbalancer.StickySessions))
+
+	if err := d.Set("sticky_sessions", flattenStickySessions(loadbalancer.StickySessions)); err != nil {
+		return fmt.Errorf("[DEBUG] Error setting Load Balancer sticky_sessions - error: %#v", err)
 	}
-	if loadbalancer.HealthCheck != nil {
-		d.Set("healthcheck", flattenHealthChecks(loadbalancer.HealthCheck))
+
+	if err := d.Set("healthcheck", flattenHealthChecks(loadbalancer.HealthCheck)); err != nil {
+		return fmt.Errorf("[DEBUG] Error setting Load Balancer healthcheck - error: %#v", err)
 	}
-	d.Set("forwarding_rule", flattenForwardingRules(loadbalancer.ForwardingRules))
+
+	if err := d.Set("forwarding_rule", flattenForwardingRules(loadbalancer.ForwardingRules)); err != nil {
+		return fmt.Errorf("[DEBUG] Error setting Load Balancer forwarding_rule - error: %#v", err)
+	}
 
 	return nil
 
@@ -268,10 +273,10 @@ func resourceDigitalOceanLoadbalancerUpdate(d *schema.ResourceData, meta interfa
 		return err
 	}
 
-	log.Printf("[DEBUG] Loadbalancer Update: %#v", lbOpts)
+	log.Printf("[DEBUG] Load Balancer Update: %#v", lbOpts)
 	_, _, err = client.LoadBalancers.Update(d.Id(), lbOpts)
 	if err != nil {
-		return fmt.Errorf("Error updating Loadbalancer: %s", err)
+		return fmt.Errorf("Error updating Load Balancer: %s", err)
 	}
 
 	return resourceDigitalOceanLoadbalancerRead(d, meta)
@@ -280,10 +285,10 @@ func resourceDigitalOceanLoadbalancerUpdate(d *schema.ResourceData, meta interfa
 func resourceDigitalOceanLoadbalancerDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*godo.Client)
 
-	log.Printf("[INFO] Deleting Loadbalancer: %s", d.Id())
+	log.Printf("[INFO] Deleting Load Balancer: %s", d.Id())
 	_, err := client.LoadBalancers.Delete(d.Id())
 	if err != nil {
-		return fmt.Errorf("Error deleting Loadbalancer: %s", err)
+		return fmt.Errorf("Error deleting Load Balancer: %s", err)
 	}
 
 	d.SetId("")

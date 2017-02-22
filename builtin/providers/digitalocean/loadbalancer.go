@@ -11,7 +11,7 @@ func loadbalancerStateRefreshFunc(client *godo.Client, loadbalancerId string) re
 	return func() (interface{}, string, error) {
 		lb, _, err := client.LoadBalancers.Get(loadbalancerId)
 		if err != nil {
-			return nil, "", fmt.Errorf("Error issuing read request in LoadbalancerStateRefreshFunc to DigitalOcean for Loadbalancer '%s': %s", loadbalancerId, err)
+			return nil, "", fmt.Errorf("Error issuing read request in LoadbalancerStateRefreshFunc to DigitalOcean for Load Balancer '%s': %s", loadbalancerId, err)
 		}
 
 		return lb, lb.Status, nil
@@ -91,16 +91,19 @@ func flattenDropletIds(list []int) []interface{} {
 func flattenHealthChecks(health *godo.HealthCheck) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
 
-	r := make(map[string]interface{})
-	r["protocol"] = (*health).Protocol
-	r["port"] = (*health).Port
-	r["path"] = (*health).Path
-	r["check_interval_seconds"] = (*health).CheckIntervalSeconds
-	r["response_timeout_seconds"] = (*health).ResponseTimeoutSeconds
-	r["unhealthy_threshold"] = (*health).UnhealthyThreshold
-	r["healthy_threshold"] = (*health).HealthyThreshold
+	if health != nil {
 
-	result = append(result, r)
+		r := make(map[string]interface{})
+		r["protocol"] = (*health).Protocol
+		r["port"] = (*health).Port
+		r["path"] = (*health).Path
+		r["check_interval_seconds"] = (*health).CheckIntervalSeconds
+		r["response_timeout_seconds"] = (*health).ResponseTimeoutSeconds
+		r["unhealthy_threshold"] = (*health).UnhealthyThreshold
+		r["healthy_threshold"] = (*health).HealthyThreshold
+
+		result = append(result, r)
+	}
 
 	return result
 }
@@ -108,12 +111,15 @@ func flattenHealthChecks(health *godo.HealthCheck) []map[string]interface{} {
 func flattenStickySessions(session *godo.StickySessions) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
 
-	r := make(map[string]interface{})
-	r["type"] = (*session).Type
-	r["cookie_name"] = (*session).CookieName
-	r["cookie_ttl_seconds"] = (*session).CookieTtlSeconds
+	if session != nil {
 
-	result = append(result, r)
+		r := make(map[string]interface{})
+		r["type"] = (*session).Type
+		r["cookie_name"] = (*session).CookieName
+		r["cookie_ttl_seconds"] = (*session).CookieTtlSeconds
+
+		result = append(result, r)
+	}
 
 	return result
 }
@@ -121,16 +127,18 @@ func flattenStickySessions(session *godo.StickySessions) []map[string]interface{
 func flattenForwardingRules(rules []godo.ForwardingRule) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
 
-	for _, rule := range rules {
-		r := make(map[string]interface{})
-		r["entry_protocol"] = rule.EntryProtocol
-		r["entry_port"] = rule.EntryPort
-		r["target_protocol"] = rule.TargetProtocol
-		r["target_port"] = rule.TargetPort
-		r["certificate_id"] = rule.CertificateID
-		r["tls_passthrough"] = rule.TlsPassthrough
+	if rules != nil {
+		for _, rule := range rules {
+			r := make(map[string]interface{})
+			r["entry_protocol"] = rule.EntryProtocol
+			r["entry_port"] = rule.EntryPort
+			r["target_protocol"] = rule.TargetProtocol
+			r["target_port"] = rule.TargetPort
+			r["certificate_id"] = rule.CertificateID
+			r["tls_passthrough"] = rule.TlsPassthrough
 
-		result = append(result, r)
+			result = append(result, r)
+		}
 	}
 
 	return result
