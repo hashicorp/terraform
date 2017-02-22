@@ -200,6 +200,10 @@ func resourceAwsCodeBuildProjectCreate(d *schema.ResourceData, meta interface{})
 		params.TimeoutInMinutes = aws.Int64(int64(v.(int)))
 	}
 
+	if v, ok := d.GetOk("tags"); ok {
+		params.Tags = tagsFromMapCodeBuild(v.(map[string]interface{}))
+	}
+
 	var resp *codebuild.CreateProjectOutput
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 		var err error
@@ -416,9 +420,9 @@ func resourceAwsCodeBuildProjectUpdate(d *schema.ResourceData, meta interface{})
 		params.TimeoutInMinutes = aws.Int64(int64(d.Get("timeout").(int)))
 	}
 
-	if d.HasChange("tags") {
-		params.Tags = tagsFromMapCodeBuild(d.Get("tags").(map[string]interface{}))
-	}
+	// The documentation clearly says "The replacement set of tags for this build project."
+	// But its a slice of pointers so if not set for every update, they get removed.
+	params.Tags = tagsFromMapCodeBuild(d.Get("tags").(map[string]interface{}))
 
 	_, err := conn.UpdateProject(params)
 
