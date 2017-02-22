@@ -162,7 +162,6 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		m := make(map[string]interface{})
-
 		if r.DestinationCidrBlock != nil {
 			m["cidr_block"] = *r.DestinationCidrBlock
 		}
@@ -184,7 +183,10 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 
 		route.Add(m)
 	}
-	d.Set("route", route)
+
+	if err := d.Set("route", route); err != nil {
+		log.Printf("[ERR] Error setting routes for AWS Route Table (%s): %s", d.Id(), err)
+	}
 
 	// Tags
 	d.Set("tags", tagsToMap(rt.Tags))
@@ -316,9 +318,6 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 			if err != nil {
 				return err
 			}
-
-			routes.Add(route)
-			d.Set("route", routes)
 		}
 	}
 
@@ -402,27 +401,33 @@ func resourceAwsRouteTableHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 
-	if v, ok := m["cidr_block"]; ok {
+	// Only has values if they are not empty
+	// On reading from config, these keys can have an empty value default
+	// On reading from AWS API, these keys will not be present, so a different
+	// hash can be calculated.
+	// See https://github.com/hashicorp/terraform/issues/4799 (and fix)
+
+	if v, ok := m["cidr_block"]; ok && v.(string) != "" {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
-	if v, ok := m["gateway_id"]; ok {
+	if v, ok := m["gateway_id"]; ok && v.(string) != "" {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
 	natGatewaySet := false
-	if v, ok := m["nat_gateway_id"]; ok {
-		natGatewaySet = v.(string) != ""
+	if v, ok := m["nat_gateway_id"]; ok && v.(string) != "" {
+		natGatewaySet = true
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
 	instanceSet := false
-	if v, ok := m["instance_id"]; ok {
-		instanceSet = v.(string) != ""
+	if v, ok := m["instance_id"]; ok && v.(string) != "" {
+		instanceSet = true
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
-	if v, ok := m["vpc_peering_connection_id"]; ok {
+	if v, ok := m["vpc_peering_connection_id"]; ok && v.(string) != "" {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 

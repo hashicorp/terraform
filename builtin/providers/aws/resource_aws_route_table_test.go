@@ -154,6 +154,24 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 	})
 }
 
+func TestAccAWSRouteTable_Peers(t *testing.T) {
+	var route_table ec2.RouteTable
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRouteTableDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRouteTableConfigPeers,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRouteTableExists("aws_route_table.monitor_public", &route_table),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckRouteTableDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -380,6 +398,65 @@ resource "aws_route_table" "foo" {
 	tags {
 		foo = "bar"
 	}
+}
+`
+
+const testAccRouteTableConfigPeers = `
+resource "aws_vpc" "monitoring" {
+  cidr_block = "10.250.0.0/16"
+
+  tags {
+    Name = "monitoring"
+  }
+}
+
+resource "aws_internet_gateway" "monitoring" {
+  vpc_id = "${aws_vpc.monitoring.id}"
+}
+
+resource "aws_route_table" "monitor_public" {
+  vpc_id = "${aws_vpc.monitoring.id}"
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = "${aws_internet_gateway.monitoring.id}"
+  }
+
+  route {
+    cidr_block = "10.200.0.0/16"
+    gateway_id = "${aws_vpc_peering_connection.development.id}"
+  }
+
+  tags {
+    Name = "tf-peer-test"
+  }
+}
+
+resource "aws_vpc_peering_connection" "development" {
+  vpc_id        = "${aws_vpc.monitoring.id}"
+  peer_vpc_id   = "${aws_vpc.development.id}"
+  peer_owner_id = "470663696735"
+
+  tags {
+    foo = "bar"
+  }
+
+  auto_accept = true
+}
+
+
+#### 
+## dev
+resource "aws_vpc" "development" {
+  cidr_block = "10.200.0.0/16"
+
+  tags {
+    Name = "development"
+  }
+}
+
+resource "aws_internet_gateway" "monitoring_dev" {
+  vpc_id = "${aws_vpc.development.id}"
 }
 `
 
