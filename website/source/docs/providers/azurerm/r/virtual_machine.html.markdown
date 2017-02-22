@@ -266,7 +266,7 @@ For more information on the different example configurations, please check out t
 * `computer_name` - (Required) Specifies the name of the virtual machine.
 * `admin_username` - (Required) Specifies the name of the administrator account.
 * `admin_password` - (Required) Specifies the password of the administrator account.
-* `custom_data` - (Optional) Specifies a base-64 encoded string of custom data. The base-64 encoded string is decoded to a binary array that is saved as a file on the Virtual Machine. The maximum length of the binary array is 65535 bytes.
+* `custom_data` - (Optional) Specifies custom data to supply to the machine. On linux-based systems, this can be used as a cloud-init script. On other systems, this will be copied as a file on disk. Internally, Terraform will base64 encode this value before sending it to the API. The maximum length of the binary array is 65535 bytes.
 
 ~> **NOTE:** `admin_password` must be between 6-72 characters long and must satisfy at least 3 of password complexity requirements from the following:  
 1. Contains an uppercase character  

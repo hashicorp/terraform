@@ -134,7 +134,7 @@ The following arguments are supported:
 * `computer_name_prefix` - (Required) Specifies the computer name prefix for all of the virtual machines in the scale set. Computer name prefixes must be 1 to 15 characters long.
 * `admin_username` - (Required) Specifies the administrator account name to use for all the instances of virtual machines in the scale set.
 * `admin_password` - (Required) Specifies the administrator password to use for all the instances of virtual machines in a scale set..
-* `custom_data` - (Optional) Specifies a base-64 encoded string of custom data. The base-64 encoded string is decoded to a binary array that is saved as a file on all the Virtual Machines in the scale set. The maximum length of the binary array is 65535 bytes.
+* `custom_data` - (Optional) Specifies custom data to supply to the machine. On linux-based systems, this can be used as a cloud-init script. On other systems, this will be copied as a file on disk. Internally, Terraform will base64 encode this value before sending it to the API. The maximum length of the binary array is 65535 bytes.
 
 `os_profile_secrets` supports the following:
 
