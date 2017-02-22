@@ -40,6 +40,63 @@ test_instance.foo:
 	`)
 }
 
+func TestLocal_refreshNilModule(t *testing.T) {
+	b := TestLocal(t)
+	p := TestLocalProvider(t, b, "test")
+	terraform.TestStateFile(t, b.StatePath, testRefreshState())
+
+	p.RefreshFn = nil
+	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+
+	op := testOperationRefresh()
+	op.Module = nil
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+
+	if !p.RefreshCalled {
+		t.Fatal("refresh should be called")
+	}
+
+	checkState(t, b.StateOutPath, `
+test_instance.foo:
+  ID = yes
+	`)
+}
+
+// GH-12174
+func TestLocal_refreshNilModuleWithInput(t *testing.T) {
+	b := TestLocal(t)
+	p := TestLocalProvider(t, b, "test")
+	terraform.TestStateFile(t, b.StatePath, testRefreshState())
+
+	p.RefreshFn = nil
+	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+
+	b.OpInput = true
+
+	op := testOperationRefresh()
+	op.Module = nil
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+
+	if !p.RefreshCalled {
+		t.Fatal("refresh should be called")
+	}
+
+	checkState(t, b.StateOutPath, `
+test_instance.foo:
+  ID = yes
+	`)
+}
+
 func TestLocal_refreshInput(t *testing.T) {
 	b := TestLocal(t)
 	p := TestLocalProvider(t, b, "test")
