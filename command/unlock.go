@@ -33,10 +33,7 @@ func (c *UnlockCommand) Run(args []string) int {
 	}
 
 	lockID := args[0]
-
-	if len(args) > 1 {
-		args = args[1:]
-	}
+	args = args[1:]
 
 	// assume everything is initialized. The user can manually init if this is
 	// required.
