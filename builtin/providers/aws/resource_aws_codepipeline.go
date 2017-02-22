@@ -25,6 +25,7 @@ func resourceAwsCodePipeline() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"role_arn": {
