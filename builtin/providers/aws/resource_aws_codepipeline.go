@@ -221,7 +221,7 @@ func resourceAwsCodePipelineCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	d.SetId(*resp.Pipeline.Name)
-	return resourceAwsCodePipelineUpdate(d, meta)
+	return resourceAwsCodePipelineRead(d, meta)
 }
 
 func expandAwsCodePipeline(d *schema.ResourceData) *codepipeline.PipelineDeclaration {
