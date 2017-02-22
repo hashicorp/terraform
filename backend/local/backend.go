@@ -2,7 +2,13 @@ package local
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/backend"
@@ -11,6 +17,14 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
+)
+
+const (
+	DefaultEnvDir          = "terraform.tfstate.d"
+	DefaultEnvFile         = "environment"
+	DefaultStateFilename   = "terraform.tfstate"
+	DefaultDataDir         = ".terraform"
+	DefaultBackupExtension = ".backup"
 )
 
 // Local is an implementation of EnhancedBackend that performs all operations
@@ -22,19 +36,25 @@ type Local struct {
 	CLI      cli.Ui
 	CLIColor *colorstring.Colorize
 
+	// The State* paths are set from the CLI options, and may be left blank to
+	// use the defaults. If the actual paths for the local backend state are
+	// needed, use the StatePaths method.
+	//
 	// StatePath is the local path where state is read from.
 	//
 	// StateOutPath is the local path where the state will be written.
 	// If this is empty, it will default to StatePath.
 	//
 	// StateBackupPath is the local path where a backup file will be written.
-	// If this is empty, no backup will be taken.
+	// Set this to "-" to disable state backup.
 	StatePath       string
 	StateOutPath    string
 	StateBackupPath string
 
 	// we only want to create a single instance of the local state
 	state state.State
+	// the name of the current state
+	currentState string
 
 	// ContextOpts are the base context options to set when initializing a
 	// Terraform context. Many of these will be overridden or merged by
@@ -97,10 +117,110 @@ func (b *Local) Configure(c *terraform.ResourceConfig) error {
 }
 
 func (b *Local) States() ([]string, string, error) {
-	return []string{backend.DefaultStateName}, backend.DefaultStateName, nil
+	// the listing always start with "default"
+	envs := []string{backend.DefaultStateName}
+
+	current := b.currentState
+	if current == "" {
+		name, err := b.currentStateName()
+		if err != nil {
+			return nil, "", err
+		}
+		current = name
+	}
+
+	entries, err := ioutil.ReadDir(DefaultEnvDir)
+	// no error if there's no envs configured
+	if os.IsNotExist(err) {
+		return envs, current, nil
+	}
+	if err != nil {
+		return nil, "", err
+	}
+
+	var listed []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			listed = append(listed, filepath.Base(entry.Name()))
+		}
+	}
+
+	sort.Strings(listed)
+	envs = append(envs, listed...)
+
+	return envs, current, nil
 }
 
+// DeleteState removes a named state.
+// The "default" state cannot be removed.
+func (b *Local) DeleteState(name string) error {
+	if name == "" {
+		return errors.New("empty state name")
+	}
+
+	if name == backend.DefaultStateName {
+		return errors.New("cannot delete default state")
+	}
+
+	// if we're deleting the current state, we change back to the default
+	if name == b.currentState {
+		if err := b.ChangeState(backend.DefaultStateName); err != nil {
+			return err
+		}
+	}
+
+	return os.RemoveAll(filepath.Join(DefaultEnvDir, name))
+}
+
+// Change to the named state, creating it if it doesn't exist.
 func (b *Local) ChangeState(name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return errors.New("state name cannot be empty")
+	}
+
+	envs, current, err := b.States()
+	if err != nil {
+		return err
+	}
+
+	if name == current {
+		return nil
+	}
+
+	exists := false
+	for _, env := range envs {
+		if env == name {
+			exists = true
+			break
+		}
+	}
+
+	if !exists {
+		if err := b.createState(name); err != nil {
+			return err
+		}
+	}
+
+	err = os.MkdirAll(DefaultDataDir, 0755)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(
+		filepath.Join(DefaultDataDir, DefaultEnvFile),
+		[]byte(name),
+		0644,
+	)
+	if err != nil {
+		return err
+	}
+
+	b.currentState = name
+
+	// remove the current state so it's reloaded on the next call to State
+	b.state = nil
+
 	return nil
 }
 
@@ -114,17 +234,22 @@ func (b *Local) State() (state.State, error) {
 		return b.state, nil
 	}
 
+	statePath, stateOutPath, backupPath, err := b.StatePaths()
+	if err != nil {
+		return nil, err
+	}
+
 	// Otherwise, we need to load the state.
 	var s state.State = &state.LocalState{
-		Path:    b.StatePath,
-		PathOut: b.StateOutPath,
+		Path:    statePath,
+		PathOut: stateOutPath,
 	}
 
 	// If we are backing up the state, wrap it
-	if path := b.StateBackupPath; path != "" {
+	if backupPath != "" {
 		s = &state.BackupState{
 			Real: s,
-			Path: path,
+			Path: backupPath,
 		}
 	}
 
@@ -219,4 +344,86 @@ func (b *Local) schemaConfigure(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// StatePaths returns the StatePath, StateOutPath, and StateBackupPath as
+// configured by the current environment. If backups are disabled,
+// StateBackupPath will be an empty string.
+func (b *Local) StatePaths() (string, string, string, error) {
+	statePath := b.StatePath
+	stateOutPath := b.StateOutPath
+	backupPath := b.StateBackupPath
+
+	if statePath == "" {
+		path, err := b.statePath()
+		if err != nil {
+			return "", "", "", err
+		}
+		statePath = path
+	}
+	if stateOutPath == "" {
+		stateOutPath = statePath
+	}
+
+	switch backupPath {
+	case "-":
+		backupPath = ""
+	case "":
+		backupPath = stateOutPath + DefaultBackupExtension
+	}
+
+	return statePath, stateOutPath, backupPath, nil
+}
+
+func (b *Local) statePath() (string, error) {
+	_, current, err := b.States()
+	if err != nil {
+		return "", err
+	}
+	path := DefaultStateFilename
+
+	if current != backend.DefaultStateName && current != "" {
+		path = filepath.Join(DefaultEnvDir, b.currentState, DefaultStateFilename)
+	}
+	return path, nil
+}
+
+func (b *Local) createState(name string) error {
+	stateNames, _, err := b.States()
+	if err != nil {
+		return err
+	}
+
+	for _, n := range stateNames {
+		if name == n {
+			// state exists, nothing to do
+			return nil
+		}
+	}
+
+	err = os.MkdirAll(filepath.Join(DefaultEnvDir, name), 0755)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// currentStateName returns the name of the current named state as set in the
+// configuration files.
+// If there are no configured environments, currentStateName returns "default"
+func (b *Local) currentStateName() (string, error) {
+	contents, err := ioutil.ReadFile(filepath.Join(DefaultDataDir, DefaultEnvFile))
+	if os.IsNotExist(err) {
+		return backend.DefaultStateName, nil
+	}
+	if err != nil {
+		return "", err
+	}
+
+	if fromFile := strings.TrimSpace(string(contents)); fromFile != "" {
+		return fromFile, nil
+	}
+
+	return backend.DefaultStateName, nil
 }
