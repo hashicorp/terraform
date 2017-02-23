@@ -357,7 +357,13 @@ func flattenPlacementStrategy(pss []*ecs.PlacementStrategy) []map[string]interfa
 	for _, ps := range pss {
 		c := make(map[string]interface{})
 		c["type"] = *ps.Type
-		c["field"] = strings.ToLower(*ps.Field)
+		c["field"] = *ps.Field
+
+		// for some fields the API requires lowercase for creation but will return uppercase on query
+		if *ps.Field == "MEMORY" || *ps.Field == "CPU" {
+			c["field"] = strings.ToLower(*ps.Field)
+		}
+
 		results = append(results, c)
 	}
 	return results
