@@ -139,7 +139,7 @@ func (r *Resource) Apply(
 	// ResourceData meta
 	rt := ResourceTimeout{}
 	if _, ok := d.Meta[TimeoutKey]; ok {
-		if err := rt.MetaDecode(d); err != nil {
+		if err := rt.DiffDecode(d); err != nil {
 			//TODO-cts: verify what kind of error may be thrown here
 			log.Printf("[ERR] Error decoding ResourceTimeout: %s", err)
 		}
@@ -273,12 +273,20 @@ func (r *Resource) Refresh(
 		return nil, nil
 	}
 
-	//TODO-cts: Refresh doesn't seem to have Timeout data
+	rt := ResourceTimeout{}
+	if _, ok := s.Meta[TimeoutKey]; ok {
+		if err := rt.StateDecode(s); err != nil {
+			//TODO-cts: verify what kind of error may be thrown here
+			log.Printf("[ERR] Error decoding ResourceTimeout: %s", err)
+		}
+	}
 
 	if r.Exists != nil {
 		// Make a copy of data so that if it is modified it doesn't
 		// affect our Read later.
 		data, err := schemaMap(r.Schema).Data(s, nil)
+		data.timeouts = &rt
+
 		if err != nil {
 			return s, err
 		}
@@ -301,6 +309,7 @@ func (r *Resource) Refresh(
 	}
 
 	data, err := schemaMap(r.Schema).Data(s, nil)
+	data.timeouts = &rt
 	if err != nil {
 		return s, err
 	}

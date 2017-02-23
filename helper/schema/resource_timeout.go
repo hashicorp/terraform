@@ -23,8 +23,20 @@ func timeKeys() []string {
 	return []string{"create", "read", "update", "delete", "default"}
 }
 
-func DefaultTimeout(tx time.Duration) *time.Duration {
-	return &tx
+// could be time.Duration, int64 or float64
+func DefaultTimeout(tx interface{}) *time.Duration {
+	var td time.Duration
+	switch raw := tx.(type) {
+	case time.Duration:
+		return &raw
+	case int64:
+		td = time.Duration(raw)
+	case float64:
+		td = time.Duration(int64(raw))
+	default:
+		log.Printf("[WARN] Unknown type in DefaultTimeout: %#v", tx)
+	}
+	return &td
 }
 
 type ResourceTimeout struct {
@@ -194,39 +206,56 @@ func (t *ResourceTimeout) metaEncode(ids interface{}) error {
 		default:
 			return fmt.Errorf("[ERR] Error matching type for Diff Encode")
 		}
-
 	}
 
 	return nil
 }
 
-func (t *ResourceTimeout) MetaDecode(id *terraform.InstanceDiff) error {
+func (t *ResourceTimeout) StateDecode(id *terraform.InstanceState) error {
+	return t.metaDecode(id)
+}
+func (t *ResourceTimeout) DiffDecode(is *terraform.InstanceDiff) error {
+	return t.metaDecode(is)
+}
+
+func (t *ResourceTimeout) metaDecode(ids interface{}) error {
+	var rawMeta interface{}
+	var ok bool
+	switch rawInstance := ids.(type) {
+	case *terraform.InstanceDiff:
+		rawMeta, ok = rawInstance.Meta[TimeoutKey]
+		if !ok {
+			return nil
+		}
+	case *terraform.InstanceState:
+		rawMeta, ok = rawInstance.Meta[TimeoutKey]
+		if !ok {
+			return nil
+		}
+	default:
+		return fmt.Errorf("[ERR] Unknown or unsupported type in metaDecode: %#v", ids)
+	}
+
+	times := rawMeta.(map[string]interface{})
 	//TODO-cts - I don't think this is needed
-	if len(id.Meta) == 0 {
+	if len(times) == 0 {
 		return nil
 	}
-
-	tv, ok := id.Meta[TimeoutKey]
-	if !ok {
-		return nil
-	}
-
-	times := tv.(map[string]interface{})
 
 	if v, ok := times[rtCreate]; ok {
-		t.Create = DefaultTimeout(time.Duration(v.(int64)))
+		t.Create = DefaultTimeout(v)
 	}
 	if v, ok := times[rtRead]; ok {
-		t.Read = DefaultTimeout(time.Duration(v.(int64)))
+		t.Read = DefaultTimeout(v)
 	}
 	if v, ok := times[rtUpdate]; ok {
-		t.Update = DefaultTimeout(time.Duration(v.(int64)))
+		t.Update = DefaultTimeout(v)
 	}
 	if v, ok := times[rtDelete]; ok {
-		t.Delete = DefaultTimeout(time.Duration(v.(int64)))
+		t.Delete = DefaultTimeout(v)
 	}
 	if v, ok := times[rtDefault]; ok {
-		t.Default = DefaultTimeout(time.Duration(v.(int64)))
+		t.Default = DefaultTimeout(v)
 	}
 
 	return nil

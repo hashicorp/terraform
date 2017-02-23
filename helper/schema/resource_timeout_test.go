@@ -183,7 +183,7 @@ func TestResourceTimeout_MetaDecode_basic(t *testing.T) {
 
 	for _, c := range cases {
 		rt := &ResourceTimeout{}
-		err := rt.MetaDecode(c.State)
+		err := rt.DiffDecode(c.State)
 		if err != nil && !c.ShouldErr {
 			t.Fatalf("Error, expected:\n%#v\n got:\n%#v\n", c.Expected, rt)
 		}
