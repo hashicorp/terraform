@@ -1456,6 +1456,45 @@ func TestInstanceState_MergeDiffRemoveCounts(t *testing.T) {
 	}
 }
 
+// GH-12183. This tests that a list with a computed set generates the
+// right partial state. This never failed but is put here for completion
+// of the test case for GH-12183.
+func TestInstanceState_MergeDiff_computedSet(t *testing.T) {
+	is := InstanceState{}
+
+	diff := &InstanceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"config.#": &ResourceAttrDiff{
+				Old:         "0",
+				New:         "1",
+				RequiresNew: true,
+			},
+
+			"config.0.name": &ResourceAttrDiff{
+				Old: "",
+				New: "hello",
+			},
+
+			"config.0.rules.#": &ResourceAttrDiff{
+				Old:         "",
+				NewComputed: true,
+			},
+		},
+	}
+
+	is2 := is.MergeDiff(diff)
+
+	expected := map[string]string{
+		"config.#":         "1",
+		"config.0.name":    "hello",
+		"config.0.rules.#": config.UnknownVariableValue,
+	}
+
+	if !reflect.DeepEqual(expected, is2.Attributes) {
+		t.Fatalf("bad: %#v", is2.Attributes)
+	}
+}
+
 func TestInstanceState_MergeDiff_nil(t *testing.T) {
 	var is *InstanceState
 

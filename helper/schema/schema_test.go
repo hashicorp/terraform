@@ -862,6 +862,65 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
+			Name: "List with computed set",
+			Schema: map[string]*Schema{
+				"config": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					ForceNew: true,
+					MinItems: 1,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"name": {
+								Type:     TypeString,
+								Required: true,
+							},
+
+							"rules": {
+								Type:     TypeSet,
+								Computed: true,
+								Elem:     &Schema{Type: TypeString},
+								Set:      HashString,
+							},
+						},
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"config": []interface{}{
+					map[string]interface{}{
+						"name": "hello",
+					},
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"config.#": &terraform.ResourceAttrDiff{
+						Old:         "0",
+						New:         "1",
+						RequiresNew: true,
+					},
+
+					"config.0.name": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "hello",
+					},
+
+					"config.0.rules.#": &terraform.ResourceAttrDiff{
+						Old:         "",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
 			Name: "Set",
 			Schema: map[string]*Schema{
 				"ports": &Schema{
