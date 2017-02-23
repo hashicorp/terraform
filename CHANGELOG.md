@@ -43,6 +43,7 @@ BUG FIXES:
  * provider/aws: Add owner_account option to aws_redshift_cluster [GH-12062]
  * provider/aws: Update of inspector_assessment_target should use ARN not Name [GH-12115]
  * provider/aws: Fix the panic in ssm_association with parameters [GH-12215]
+ * provider/aws: Fix update of environment_variable in codebuild_project [GH-12169]
  * provider/azurerm: Ignore case on protocol and allocation types [GH-12176]
  * provider/cloudflare: add validation for proxied record types [GH-11993]
  * provider/datadog: Adding default values to datadog_monitor [GH-12168]
