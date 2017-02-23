@@ -75,6 +75,30 @@ func init() {
 			}, nil
 		},
 
+		"env list": func() (cli.Command, error) {
+			return &command.EnvListCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"env select": func() (cli.Command, error) {
+			return &command.EnvSelectCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"env new": func() (cli.Command, error) {
+			return &command.EnvNewCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"env delete": func() (cli.Command, error) {
+			return &command.EnvDeleteCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"fmt": func() (cli.Command, error) {
 			return &command.FmtCommand{
 				Meta: meta,
