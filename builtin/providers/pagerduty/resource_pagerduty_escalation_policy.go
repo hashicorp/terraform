@@ -14,7 +14,7 @@ func resourcePagerDutyEscalationPolicy() *schema.Resource {
 		Update: resourcePagerDutyEscalationPolicyUpdate,
 		Delete: resourcePagerDutyEscalationPolicyDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourcePagerDutyEscalationPolicyImport,
+			State: schema.ImportStatePassthrough,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -166,11 +166,4 @@ func resourcePagerDutyEscalationPolicyDelete(d *schema.ResourceData, meta interf
 	d.SetId("")
 
 	return nil
-}
-
-func resourcePagerDutyEscalationPolicyImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	if err := resourcePagerDutyEscalationPolicyRead(d, meta); err != nil {
-		return nil, err
-	}
-	return []*schema.ResourceData{d}, nil
 }

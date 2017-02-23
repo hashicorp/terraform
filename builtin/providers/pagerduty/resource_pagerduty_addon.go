@@ -14,7 +14,7 @@ func resourcePagerDutyAddon() *schema.Resource {
 		Update: resourcePagerDutyAddonUpdate,
 		Delete: resourcePagerDutyAddonDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourcePagerDutyAddonImport,
+			State: schema.ImportStatePassthrough,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -104,11 +104,4 @@ func resourcePagerDutyAddonDelete(d *schema.ResourceData, meta interface{}) erro
 	d.SetId("")
 
 	return nil
-}
-
-func resourcePagerDutyAddonImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	if err := resourcePagerDutyAddonRead(d, meta); err != nil {
-		return nil, err
-	}
-	return []*schema.ResourceData{d}, nil
 }
