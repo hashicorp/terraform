@@ -71,7 +71,7 @@ The following arguments are supported:
 
 * `dns_servers` - (Optional) List of DNS servers IP addresses to use for this NIC, overrides the VNet-level server list
 
-* `ip_configuration` - (Optional) Collection of ipConfigurations associated with this NIC. Each `ip_configuration` block supports fields documented below.
+* `ip_configuration` - (Required) Collection of ipConfigurations associated with this NIC. Each `ip_configuration` block supports fields documented below.
 
 * `tags` - (Optional) A mapping of tags to assign to the resource. 
 
