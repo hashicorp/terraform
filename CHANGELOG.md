@@ -20,6 +20,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * core: targeting will remove untargeted providers [GH-12050]
+ * core: doing a map lookup in a resource config with a computed set no longer crashes [GH-12210]
 
 0.9.0-beta1 FIXES:
 
