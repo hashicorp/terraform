@@ -153,18 +153,12 @@ func testAccCheckContainerClusterDestroy(s *terraform.State) error {
 
 func testAccCheckContainerCluster(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
+		attributes, err := getResourceAttributes(n, s)
+		if err != nil {
+			return err
 		}
 
 		config := testAccProvider.Meta().(*Config)
-
-		attributes := rs.Primary.Attributes
 		cluster, err := config.clientContainer.Projects.Zones.Clusters.Get(
 			config.Project, attributes["zone"], attributes["name"]).Do()
 		if err != nil {
@@ -172,117 +166,84 @@ func testAccCheckContainerCluster(n string) resource.TestCheckFunc {
 		}
 
 		if cluster.Name != attributes["name"] {
-			return fmt.Errorf("Cluster not found")
+			return fmt.Errorf("Cluster %s not found, found %s instead", attributes["name"], cluster.Name)
 		}
 
-		if c := checkMatch(attributes, "initial_node_count", strconv.FormatInt(cluster.InitialNodeCount, 10)); c != "" {
-			return fmt.Errorf(c)
+		type clusterTestField struct {
+			tf_attr  string
+			gcp_attr interface{}
 		}
 
-		if c := checkMatch(attributes, "master_auth.0.client_certificate", cluster.MasterAuth.ClientCertificate); c != "" {
-			return fmt.Errorf(c)
+		clusterTests := []clusterTestField{
+			{"initial_node_count", strconv.FormatInt(cluster.InitialNodeCount, 10)},
+			{"master_auth.0.client_certificate", cluster.MasterAuth.ClientCertificate},
+			{"master_auth.0.client_key", cluster.MasterAuth.ClientKey},
+			{"master_auth.0.cluster_ca_certificate", cluster.MasterAuth.ClusterCaCertificate},
+			{"master_auth.0.password", cluster.MasterAuth.Password},
+			{"master_auth.0.username", cluster.MasterAuth.Username},
+			{"zone", cluster.Zone},
+			{"cluster_ipv4_cidr", cluster.ClusterIpv4Cidr},
+			{"description", cluster.Description},
+			{"endpoint", cluster.Endpoint},
+			{"instance_group_urls", cluster.InstanceGroupUrls},
+			{"logging_service", cluster.LoggingService},
+			{"monitoring_service", cluster.MonitoringService},
+			// TODO(danawillow): Add this back in. Currently this field is saved via the config instead of from the API response,
+			// and the config may contain the network name or self_link, whereas the API only returns the self_link.
+			// {"network", cluster.Network},
+			{"subnetwork", cluster.Subnetwork},
+			{"node_config.0.machine_type", cluster.NodeConfig.MachineType},
+			{"node_config.0.disk_size_gb", strconv.FormatInt(cluster.NodeConfig.DiskSizeGb, 10)},
+			{"node_config.0.oauth_scopes", cluster.NodeConfig.OauthScopes},
+			{"node_version", cluster.CurrentNodeVersion},
 		}
 
-		if c := checkMatch(attributes, "master_auth.0.client_key", cluster.MasterAuth.ClientKey); c != "" {
-			return fmt.Errorf(c)
-		}
-
-		if c := checkMatch(attributes, "master_auth.0.cluster_ca_certificate", cluster.MasterAuth.ClusterCaCertificate); c != "" {
-			return fmt.Errorf(c)
-		}
-
-		if c := checkMatch(attributes, "master_auth.0.password", cluster.MasterAuth.Password); c != "" {
-			return fmt.Errorf(c)
-		}
-
-		if c := checkMatch(attributes, "master_auth.0.username", cluster.MasterAuth.Username); c != "" {
-			return fmt.Errorf(c)
-		}
-
-		if c := checkMatch(attributes, "zone", cluster.Zone); c != "" {
-			return fmt.Errorf(c)
-		}
-
+		// Remove Zone from additional_zones since that's what the resource writes in state
 		additionalZones := []string{}
 		for _, location := range cluster.Locations {
 			if location != cluster.Zone {
 				additionalZones = append(additionalZones, location)
 			}
 		}
-
-		if c := checkListMatch(attributes, "additional_zones", additionalZones); c != "" {
-			return fmt.Errorf(c)
-		}
-
-		if c := checkMatch(attributes, "cluster_ipv4_cidr", cluster.ClusterIpv4Cidr); c != "" {
-			return fmt.Errorf(c)
-		}
-
-		if c := checkMatch(attributes, "description", cluster.Description); c != "" {
-			return fmt.Errorf(c)
-		}
-
-		if c := checkMatch(attributes, "endpoint", cluster.Endpoint); c != "" {
-			return fmt.Errorf(c)
-		}
-
-		if c := checkListMatch(attributes, "instance_group_urls", cluster.InstanceGroupUrls); c != "" {
-			return fmt.Errorf("%s,\nIGU[0]: %s", c, attributes["instance_group_urls.0"])
-		}
-
-		if c := checkMatch(attributes, "logging_service", cluster.LoggingService); c != "" {
-			return fmt.Errorf(c)
-		}
-
-		if c := checkMatch(attributes, "monitoring_service", cluster.MonitoringService); c != "" {
-			return fmt.Errorf(c)
-		}
-
-		// TODO(danawillow): Add this back in. Currently this field is saved via the config instead of from the API response,
-		// and the config may contain the network name or self_link, whereas the API only returns the self_link.
-		// if c := checkMatch(attributes, "network", cluster.Network, "network"); c != "" {
-		// 	return fmt.Errorf(c)
-		// }
-
-		if c := checkMatch(attributes, "subnetwork", cluster.Subnetwork); c != "" {
-			return fmt.Errorf(c)
-		}
+		clusterTests = append(clusterTests, clusterTestField{"additional_zones", additionalZones})
 
 		// AddonsConfig is neither Required or Computed, so the API may return nil for it
 		if cluster.AddonsConfig != nil {
 			if cluster.AddonsConfig.HttpLoadBalancing != nil {
-				if c := checkMatch(attributes, "addons_config.0.http_load_balancing.0.disabled", strconv.FormatBool(cluster.AddonsConfig.HttpLoadBalancing.Disabled)); c != "" {
-					return fmt.Errorf(c)
-				}
+				clusterTests = append(clusterTests, clusterTestField{"addons_config.0.http_load_balancing.0.disabled", strconv.FormatBool(cluster.AddonsConfig.HttpLoadBalancing.Disabled)})
 			}
-
 			if cluster.AddonsConfig.HorizontalPodAutoscaling != nil {
-				if c := checkMatch(attributes, "addons_config.0.horizontal_pod_autoscaling.0.disabled", strconv.FormatBool(cluster.AddonsConfig.HorizontalPodAutoscaling.Disabled)); c != "" {
-					return fmt.Errorf(c)
-				}
+				clusterTests = append(clusterTests, clusterTestField{"addons_config.0.horizontal_pod_autoscaling.0.disabled", strconv.FormatBool(cluster.AddonsConfig.HorizontalPodAutoscaling.Disabled)})
 			}
 		}
 
-		if c := checkMatch(attributes, "node_config.0.machine_type", cluster.NodeConfig.MachineType); c != "" {
-			return fmt.Errorf(c)
+		for _, attrs := range clusterTests {
+			if c := checkMatch(attributes, attrs.tf_attr, attrs.gcp_attr); c != "" {
+				return fmt.Errorf(c)
+			}
 		}
 
-		if c := checkMatch(attributes, "node_config.0.disk_size_gb", strconv.FormatInt(cluster.NodeConfig.DiskSizeGb, 10)); c != "" {
-			return fmt.Errorf(c)
-		}
-
-		if c := checkListMatch(attributes, "node_config.0.oauth_scopes", cluster.NodeConfig.OauthScopes); c != "" {
-			return fmt.Errorf(c)
-		}
-
-		if c := checkMatch(attributes, "node_version", cluster.CurrentNodeVersion); c != "" {
-			return fmt.Errorf(c)
-		}
 		return nil
 	}
 }
 
+func getResourceAttributes(n string, s *terraform.State) (map[string]string, error) {
+	rs, ok := s.RootModule().Resources[n]
+	if !ok {
+		return nil, fmt.Errorf("Not found: %s", n)
+	}
+
+	if rs.Primary.ID == "" {
+		return nil, fmt.Errorf("No ID is set")
+	}
+
+	return rs.Primary.Attributes, nil
+}
+
 func checkMatch(attributes map[string]string, attr string, gcp interface{}) string {
+	if gcpList, ok := gcp.([]string); ok {
+		return checkListMatch(attributes, attr, gcpList)
+	}
 	tf := attributes[attr]
 	if tf != gcp {
 		return fmt.Sprintf("Cluster has mismatched %s.\nTF State: %+v\nGCP State: %+v", attr, tf, gcp)
