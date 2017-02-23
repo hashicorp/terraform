@@ -143,8 +143,8 @@ func resourceProfitBricksServer() *schema.Resource {
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Computed: true,
 						},
-						"nat" :{
-							Type: schema.TypeBool,
+						"nat": {
+							Type:     schema.TypeBool,
 							Optional: true,
 						},
 						"firewall_active": {
@@ -305,13 +305,13 @@ func resourceProfitBricksServerCreate(d *schema.ResourceData, meta interface{}) 
 					Items: []profitbricks.Volume{
 						{
 							Properties: profitbricks.VolumeProperties{
-								Name:          rawMap["name"].(string),
-								Size:          rawMap["size"].(int),
-								Type:          rawMap["disk_type"].(string),
-								ImagePassword: imagePassword,
-								Image:         image,
-								Bus:           rawMap["bus"].(string),
-								LicenceType:   licenceType,
+								Name:             rawMap["name"].(string),
+								Size:             rawMap["size"].(int),
+								Type:             rawMap["disk_type"].(string),
+								ImagePassword:    imagePassword,
+								Image:            image,
+								Bus:              rawMap["bus"].(string),
+								LicenceType:      licenceType,
 								AvailabilityZone: availabilityZone,
 							},
 						},
@@ -400,7 +400,7 @@ func resourceProfitBricksServerCreate(d *schema.ResourceData, meta interface{}) 
 					}
 
 					request.Entities.Nics.Items[0].Entities = &profitbricks.NicEntities{
-						Firewallrules : &profitbricks.FirewallRules{
+						Firewallrules: &profitbricks.FirewallRules{
 							Items: []profitbricks.FirewallRule{
 								firewall,
 							},
