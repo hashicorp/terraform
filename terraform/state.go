@@ -1633,13 +1633,11 @@ func (s *InstanceState) Equal(other *InstanceState) bool {
 	if len(s.Meta) != len(other.Meta) {
 		return false
 	}
-	for k, v := range s.Meta {
-		otherV, ok := other.Meta[k]
-		if !ok {
-			return false
-		}
-
-		if v != otherV {
+	if s.Meta != nil && other.Meta != nil {
+		// We only do the deep check if both are non-nil. If one is nil
+		// we treat it as equal since their lengths are both zero (check
+		// above).
+		if !reflect.DeepEqual(s.Meta, other.Meta) {
 			return false
 		}
 	}
