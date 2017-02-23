@@ -22,7 +22,7 @@ func TestEnv_createAndChange(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	c := &EnvCommand{}
+	newCmd := &EnvNewCommand{}
 
 	current, err := currentEnv()
 	if err != nil {
@@ -32,10 +32,10 @@ func TestEnv_createAndChange(t *testing.T) {
 		t.Fatal("current env should be 'default'")
 	}
 
-	args := []string{"-new", "test"}
+	args := []string{"test"}
 	ui := new(cli.MockUi)
-	c.Meta = Meta{Ui: ui}
-	if code := c.Run(args); code != 0 {
+	newCmd.Meta = Meta{Ui: ui}
+	if code := newCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
@@ -47,10 +47,11 @@ func TestEnv_createAndChange(t *testing.T) {
 		t.Fatal("current env should be 'test'")
 	}
 
+	selCmd := &EnvSelectCommand{}
 	args = []string{backend.DefaultStateName}
 	ui = new(cli.MockUi)
-	c.Meta = Meta{Ui: ui}
-	if code := c.Run(args); code != 0 {
+	selCmd.Meta = Meta{Ui: ui}
+	if code := selCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
@@ -74,31 +75,30 @@ func TestEnv_createAndList(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	c := &EnvCommand{}
+	newCmd := &EnvNewCommand{}
 
 	envs := []string{"test_a", "test_b", "test_c"}
 
 	// create multiple envs
 	for _, env := range envs {
-		args := []string{"-new", env}
 		ui := new(cli.MockUi)
-		c.Meta = Meta{Ui: ui}
-		if code := c.Run(args); code != 0 {
+		newCmd.Meta = Meta{Ui: ui}
+		if code := newCmd.Run([]string{env}); code != 0 {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 		}
 	}
 
-	// now check the listing
-	expected := "default\n  test_a\n  test_b\n* test_c"
-
+	listCmd := &EnvListCommand{}
 	ui := new(cli.MockUi)
-	c.Meta = Meta{Ui: ui}
+	listCmd.Meta = Meta{Ui: ui}
 
-	if code := c.Run(nil); code != 0 {
+	if code := listCmd.Run(nil); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
+	expected := "default\n  test_a\n  test_b\n* test_c"
+
 	if actual != expected {
 		t.Fatalf("\nexpcted: %q\nactual:  %q", expected, actual)
 	}
@@ -132,12 +132,12 @@ func TestEnv_createWithState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	args := []string{"-new", "test", "-state", "test.tfstate"}
+	args := []string{"-state", "test.tfstate", "test"}
 	ui := new(cli.MockUi)
-	c := &EnvCommand{
+	newCmd := &EnvNewCommand{
 		Meta: Meta{Ui: ui},
 	}
-	if code := c.Run(args); code != 0 {
+	if code := newCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
@@ -183,11 +183,11 @@ func TestEnv_delete(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
-	c := &EnvCommand{
+	delCmd := &EnvDeleteCommand{
 		Meta: Meta{Ui: ui},
 	}
-	args := []string{"-delete", "test"}
-	if code := c.Run(args); code != 0 {
+	args := []string{"test"}
+	if code := delCmd.Run(args); code != 0 {
 		t.Fatalf("failure: %s", ui.ErrorWriter)
 	}
 
@@ -235,19 +235,19 @@ func TestEnv_deleteWithState(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
-	c := &EnvCommand{
+	delCmd := &EnvDeleteCommand{
 		Meta: Meta{Ui: ui},
 	}
-	args := []string{"-delete", "test"}
-	if code := c.Run(args); code == 0 {
+	args := []string{"test"}
+	if code := delCmd.Run(args); code == 0 {
 		t.Fatalf("expected failure without -force.\noutput: %s", ui.OutputWriter)
 	}
 
 	ui = new(cli.MockUi)
-	c.Meta.Ui = ui
+	delCmd.Meta.Ui = ui
 
-	args = []string{"-delete", "test", "-force"}
-	if code := c.Run(args); code != 0 {
+	args = []string{"-force", "test"}
+	if code := delCmd.Run(args); code != 0 {
 		t.Fatalf("failure: %s", ui.ErrorWriter)
 	}
 
