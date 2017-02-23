@@ -19,14 +19,14 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the UltraDNS provider
 provider "ultradns" {
-    username = "${var.ultradns_username}"
-    password = "${var.ultradns_password}"
-    baseurl  = "https://test-restapi.ultradns.com/"
+  username = "${var.ultradns_username}"
+  password = "${var.ultradns_password}"
+  baseurl  = "https://test-restapi.ultradns.com/"
 }
 
 # Create a record
 resource "ultradns_record" "www" {
-    ...
+  # ...
 }
 ```
 

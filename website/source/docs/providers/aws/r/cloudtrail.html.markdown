@@ -13,16 +13,17 @@ Provides a CloudTrail resource.
 ## Example Usage
 ```
 resource "aws_cloudtrail" "foobar" {
-    name = "tf-trail-foobar"
-    s3_bucket_name = "${aws_s3_bucket.foo.id}"
-    s3_key_prefix = "prefix"
-    include_global_service_events = false
+  name                          = "tf-trail-foobar"
+  s3_bucket_name                = "${aws_s3_bucket.foo.id}"
+  s3_key_prefix                 = "prefix"
+  include_global_service_events = false
 }
 
 resource "aws_s3_bucket" "foo" {
-    bucket = "tf-test-trail"
-    force_destroy = true
-    policy = <<POLICY
+  bucket        = "tf-test-trail"
+  force_destroy = true
+
+  policy = <<POLICY
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -91,7 +92,7 @@ The following attributes are exported:
 
 ## Import
 
-Cloudtrails can be imported using the `name`, e.g. 
+Cloudtrails can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_cloudtrail.sample my-sample-trail

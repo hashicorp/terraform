@@ -79,6 +79,25 @@ func TestAccAWSSSMDocument_params(t *testing.T) {
 	})
 }
 
+func TestAccAWSSSMDocument_automation(t *testing.T) {
+	name := acctest.RandString(10)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSSMDocumentDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSSMDocumentTypeAutomationConfig(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSSMDocumentExists("aws_ssm_document.foo"),
+					resource.TestCheckResourceAttr(
+						"aws_ssm_document.foo", "document_type", "Automation"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSSSMDocumentExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -141,6 +160,7 @@ func testAccAWSSSMDocumentBasicConfig(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_ssm_document" "foo" {
   name = "test_document-%s"
+	document_type = "Command"
 
   content = <<DOC
     {
@@ -170,6 +190,7 @@ func testAccAWSSSMDocumentPermissionConfig(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_ssm_document" "foo" {
   name = "test_document-%s"
+	document_type = "Command"
 
   permissions = {
     type        = "Share"
@@ -203,6 +224,7 @@ func testAccAWSSSMDocumentParamConfig(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_ssm_document" "foo" {
   name = "test_document-%s"
+	document_type = "Command"
 
   content = <<DOC
 		{
@@ -245,4 +267,114 @@ DOC
 }
 
 `, rName)
+}
+
+func testAccAWSSSMDocumentTypeAutomationConfig(rName string) string {
+	return fmt.Sprintf(`
+data "aws_ami" "ssm_ami" {
+	most_recent = true
+	filter {
+		name = "name"
+		values = ["*hvm-ssd/ubuntu-trusty-14.04*"]
+	}
+}
+
+resource "aws_iam_instance_profile" "ssm_profile" {
+  name = "ssm_profile-%s"
+  roles = ["${aws_iam_role.ssm_role.name}"]
+}
+
+resource "aws_iam_role" "ssm_role" {
+    name = "ssm_role-%s"
+    path = "/"
+    assume_role_policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": "sts:AssumeRole",
+            "Principal": {
+               "Service": "ec2.amazonaws.com"
+            },
+            "Effect": "Allow",
+            "Sid": ""
+        }
+    ]
+}
+EOF
+}
+
+resource "aws_ssm_document" "foo" {
+  name = "test_document-%s"
+	document_type = "Automation"
+  content = <<DOC
+	{
+	   "description": "Systems Manager Automation Demo",
+	   "schemaVersion": "0.3",
+	   "assumeRole": "${aws_iam_role.ssm_role.arn}",
+	   "mainSteps": [
+	      {
+	         "name": "startInstances",
+	         "action": "aws:runInstances",
+	         "timeoutSeconds": 1200,
+	         "maxAttempts": 1,
+	         "onFailure": "Abort",
+	         "inputs": {
+	            "ImageId": "${data.aws_ami.ssm_ami.id}",
+	            "InstanceType": "t2.small",
+	            "MinInstanceCount": 1,
+	            "MaxInstanceCount": 1,
+	            "IamInstanceProfileName": "${aws_iam_instance_profile.ssm_profile.name}"
+	         }
+	      },
+	      {
+	         "name": "stopInstance",
+	         "action": "aws:changeInstanceState",
+	         "maxAttempts": 1,
+	         "onFailure": "Continue",
+	         "inputs": {
+	            "InstanceIds": [
+	               "{{ startInstances.InstanceIds }}"
+	            ],
+	            "DesiredState": "stopped"
+	         }
+	      },
+	      {
+	         "name": "terminateInstance",
+	         "action": "aws:changeInstanceState",
+	         "maxAttempts": 1,
+	         "onFailure": "Continue",
+	         "inputs": {
+	            "InstanceIds": [
+	               "{{ startInstances.InstanceIds }}"
+	            ],
+	            "DesiredState": "terminated"
+	         }
+	      }
+	   ]
+	}
+DOC
+}
+
+`, rName, rName, rName)
+}
+
+func TestAccAWSSSMDocument_documentTypeValidation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{Value: "Command", ErrCount: 0},
+		{Value: "Policy", ErrCount: 0},
+		{Value: "Automation", ErrCount: 0},
+		{Value: "XYZ", ErrCount: 1},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAwsSSMDocumentType(tc.Value, "aws_ssm_document")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the AWS SSM Document document_type to trigger a validation error")
+		}
+	}
 }

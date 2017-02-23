@@ -19,13 +19,13 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the DNSimple provider
 provider "dnsimple" {
-    token = "${var.dnsimple_token}"
-    email = "${var.dnsimple_email}"
+  token = "${var.dnsimple_token}"
+  email = "${var.dnsimple_email}"
 }
 
 # Create a record
 resource "dnsimple_record" "www" {
-    ...
+  # ...
 }
 ```
 

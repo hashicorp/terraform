@@ -15,20 +15,19 @@ For additional details please refer to [API documentation](https://developer.sca
 
 ```
 resource "scaleway_security_group" "test" {
-  name = "test"
+  name        = "test"
   description = "test"
 }
 
 resource "scaleway_security_group_rule" "smtp_drop_1" {
   security_group = "${scaleway_security_group.test.id}"
 
-  action = "accept"
+  action    = "accept"
   direction = "inbound"
-  ip_range = "0.0.0.0/0"
-  protocol = "TCP"
-  port = 25
+  ip_range  = "0.0.0.0/0"
+  protocol  = "TCP"
+  port      = 25
 }
-
 ```
 
 ## Argument Reference

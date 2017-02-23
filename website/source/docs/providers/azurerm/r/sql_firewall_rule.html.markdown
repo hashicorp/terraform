@@ -14,26 +14,26 @@ Allows you to manage an Azure SQL Firewall Rule
 
 ```
 resource "azurerm_resource_group" "test" {
-   name = "acceptanceTestResourceGroup1"
-   location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
-resource "azurerm_sql_database" "test" {
-    name = "MySQLDatabase"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "West US"
-    
 
-    tags {
-    	environment = "production"
-    }
+resource "azurerm_sql_database" "test" {
+  name                = "MySQLDatabase"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "West US"
+
+  tags {
+    environment = "production"
+  }
 }
 
 resource "azurerm_sql_firewall_rule" "test" {
-    name = "FirewallRule1"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    server_name = "${azurerm_sql_server.test.name}"
-    start_ip_address = "10.0.17.62"
-    end_ip_address = "10.0.17.62"
+  name                = "FirewallRule1"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  server_name         = "${azurerm_sql_server.test.name}"
+  start_ip_address    = "10.0.17.62"
+  end_ip_address      = "10.0.17.62"
 }
 ```
 ## Argument Reference
@@ -59,7 +59,7 @@ The following attributes are exported:
 
 ## Import
 
-SQL Firewall Rules can be imported using the `resource id`, e.g. 
+SQL Firewall Rules can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_sql_firewall_rule.rule1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myresourcegroup/providers/Microsoft.Sql/servers/myserver/firewallRules/rule1

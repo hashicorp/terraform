@@ -14,7 +14,7 @@ func resourcePagerDutyUser() *schema.Resource {
 		Update: resourcePagerDutyUserUpdate,
 		Delete: resourcePagerDutyUserDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourcePagerDutyUserImport,
+			State: schema.ImportStatePassthrough,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -226,11 +226,4 @@ func resourcePagerDutyUserDelete(d *schema.ResourceData, meta interface{}) error
 	d.SetId("")
 
 	return nil
-}
-
-func resourcePagerDutyUserImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	if err := resourcePagerDutyUserRead(d, meta); err != nil {
-		return nil, err
-	}
-	return []*schema.ResourceData{d}, nil
 }

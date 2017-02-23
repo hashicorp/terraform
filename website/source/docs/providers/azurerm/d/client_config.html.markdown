@@ -14,7 +14,7 @@ provider.
 ## Example Usage
 
 ```
-data "azurerm_client_config" "current" { }
+data "azurerm_client_config" "current" {}
 
 output "account_id" {
   value = "${data.azurerm_client_config.current.account_id}"
@@ -27,6 +27,6 @@ There are no arguments available for this data source.
 
 ## Attributes Reference
 
-* `client_id` is set to the Azure Client ID. 
+* `client_id` is set to the Azure Client ID.
 * `tenant_id` is set to the Azure Tenant ID.
-* `subscription_id` is set to the Azure Subscription ID. 
+* `subscription_id` is set to the Azure Subscription ID.

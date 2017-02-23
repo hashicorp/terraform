@@ -75,6 +75,12 @@ func init() {
 			}, nil
 		},
 
+		"force-unlock": func() (cli.Command, error) {
+			return &command.UnlockCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"get": func() (cli.Command, error) {
 			return &command.GetCommand{
 				Meta: meta,
@@ -125,12 +131,6 @@ func init() {
 
 		"refresh": func() (cli.Command, error) {
 			return &command.RefreshCommand{
-				Meta: meta,
-			}, nil
-		},
-
-		"remote": func() (cli.Command, error) {
-			return &command.RemoteCommand{
 				Meta: meta,
 			}, nil
 		},
@@ -205,6 +205,18 @@ func init() {
 
 		"state mv": func() (cli.Command, error) {
 			return &command.StateMvCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state pull": func() (cli.Command, error) {
+			return &command.StatePullCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state push": func() (cli.Command, error) {
+			return &command.StatePushCommand{
 				Meta: meta,
 			}, nil
 		},

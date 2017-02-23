@@ -14,20 +14,20 @@ Create a CDN Profile to create a collection of CDN Endpoints.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "resourceGroup1"
-    location = "West US"
+  name     = "resourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_cdn_profile" "test" {
-    name = "acceptanceTestCdnProfile1"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard_Verizon"
+  name                = "acceptanceTestCdnProfile1"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  sku                 = "Standard_Verizon"
 
-    tags {
-    	environment = "Production"
-    	cost_center = "MSFT"
-    }
+  tags {
+    environment = "Production"
+    cost_center = "MSFT"
+  }
 }
 ```
 

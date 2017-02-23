@@ -162,7 +162,8 @@ const testAccBlockStorageV1Volume_basic = `
 resource "openstack_blockstorage_volume_v1" "volume_1" {
   name = "volume_1"
   description = "first test volume"
-  metadata{
+  availability_zone = "nova"
+  metadata {
     foo = "bar"
   }
   size = 1
@@ -173,7 +174,7 @@ const testAccBlockStorageV1Volume_update = `
 resource "openstack_blockstorage_volume_v1" "volume_1" {
   name = "volume_1-updated"
   description = "first test volume"
-  metadata{
+  metadata {
     foo = "bar"
   }
   size = 1

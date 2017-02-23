@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/helper/logging"
 )
 
@@ -98,6 +99,24 @@ func TestConfigCount_string(t *testing.T) {
 	}
 }
 
+// Terraform GH-11800
+func TestConfigCount_list(t *testing.T) {
+	c := testConfig(t, "count-list")
+
+	// The key is to interpolate so it doesn't fail parsing
+	c.Resources[0].RawCount.Interpolate(map[string]ast.Variable{
+		"var.list": ast.Variable{
+			Value: []ast.Variable{},
+			Type:  ast.TypeList,
+		},
+	})
+
+	_, err := c.Resources[0].Count()
+	if err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func TestConfigCount_var(t *testing.T) {
 	c := testConfig(t, "count-var")
 	_, err := c.Resources[0].Count()
@@ -167,6 +186,13 @@ func TestConfigValidate_table(t *testing.T) {
 			"validate-data-provisioner",
 			true,
 			"data sources cannot have",
+		},
+
+		{
+			"basic provisioners",
+			"validate-basic-provisioners",
+			false,
+			"",
 		},
 	}
 
@@ -247,29 +273,8 @@ func TestConfigValidate_countCountVar(t *testing.T) {
 	}
 }
 
-func TestConfigValidate_countModuleVar(t *testing.T) {
-	c := testConfig(t, "validate-count-module-var")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
-	}
-}
-
 func TestConfigValidate_countNotInt(t *testing.T) {
 	c := testConfig(t, "validate-count-not-int")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
-	}
-}
-
-func TestConfigValidate_countResourceVar(t *testing.T) {
-	c := testConfig(t, "validate-count-resource-var")
-	if err := c.Validate(); err == nil {
-		t.Fatal("should not be valid")
-	}
-}
-
-func TestConfigValidate_countResourceVarMulti(t *testing.T) {
-	c := testConfig(t, "validate-count-resource-var-multi")
 	if err := c.Validate(); err == nil {
 		t.Fatal("should not be valid")
 	}

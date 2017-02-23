@@ -15,13 +15,13 @@ For additional details please refer to [API documentation](https://developer.sca
 
 ```
 resource "scaleway_server" "test" {
-  name = "test"
+  name  = "test"
   image = "5faef9cd-ea9b-4a63-9171-9e26bec03dbc"
-  type = "VC1M"
+  type  = "VC1M"
 
   volume {
     size_in_gb = 20
-    type = "l_ssd"
+    type       = "l_ssd"
   }
 }
 ```

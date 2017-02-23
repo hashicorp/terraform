@@ -14,7 +14,7 @@ func resourcePagerDutyTeam() *schema.Resource {
 		Update: resourcePagerDutyTeamUpdate,
 		Delete: resourcePagerDutyTeamDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourcePagerDutyTeamImport,
+			State: schema.ImportStatePassthrough,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -104,11 +104,4 @@ func resourcePagerDutyTeamDelete(d *schema.ResourceData, meta interface{}) error
 	d.SetId("")
 
 	return nil
-}
-
-func resourcePagerDutyTeamImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	if err := resourcePagerDutyTeamRead(d, meta); err != nil {
-		return nil, err
-	}
-	return []*schema.ResourceData{d}, nil
 }

@@ -15,9 +15,9 @@ server.
 
 ```
 resource "mysql_user" "jdoe" {
-    user = "jdoe"
-    host = "example.com"
-    password = "password"
+  user     = "jdoe"
+  host     = "example.com"
+  password = "password"
 }
 ```
 

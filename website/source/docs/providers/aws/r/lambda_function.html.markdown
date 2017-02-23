@@ -16,8 +16,9 @@ For information about Lambda and how to use it, see [What is AWS Lambda?][1]
 
 ```
 resource "aws_iam_role" "iam_for_lambda" {
-    name = "iam_for_lambda"
-    assume_role_policy = <<EOF
+  name = "iam_for_lambda"
+
+  assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -35,16 +36,17 @@ EOF
 }
 
 resource "aws_lambda_function" "test_lambda" {
-    filename = "lambda_function_payload.zip"
-    function_name = "lambda_function_name"
-    role = "${aws_iam_role.iam_for_lambda.arn}"
-    handler = "exports.test"
-    source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
-    environment {
-        variables = {
-            foo = "bar"
-        }
+  filename         = "lambda_function_payload.zip"
+  function_name    = "lambda_function_name"
+  role             = "${aws_iam_role.iam_for_lambda.arn}"
+  handler          = "exports.test"
+  source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
+
+  environment {
+    variables = {
+      foo = "bar"
     }
+  }
 }
 ```
 
@@ -52,9 +54,10 @@ resource "aws_lambda_function" "test_lambda" {
 
 * `filename` - (Optional) A [zip file][2] containing your lambda function source code. If defined, The `s3_*` options cannot be used.
 * `s3_bucket` - (Optional) The S3 bucket location containing your lambda function source code. Conflicts with `filename`.
-* `s3_key` - (Optional) The S3 key containing your lambda function source code. Conflicts with `filename`.
+* `s3_key` - (Optional) The S3 key of a [zip file][2] containing your lambda function source code. Conflicts with `filename`.
 * `s3_object_version` - (Optional) The object version of your lambda function source code. Conflicts with `filename`.
 * `function_name` - (Required) A unique name for your Lambda Function.
+* `dead_letter_config` - (Optional) Nested block to configure the function's *dead letter queue*. See details below.
 * `handler` - (Required) The function [entrypoint][3] in your code.
 * `role` - (Required) IAM role attached to the Lambda Function. This governs both who / what can invoke your Lambda Function, as well as what resources our Lambda Function has access to. See [Lambda Permission Model][4] for more details.
 * `description` - (Optional) Description of what your Lambda Function does.
@@ -67,6 +70,13 @@ resource "aws_lambda_function" "test_lambda" {
 * `kms_key_arn` - (Optional) The ARN for the KMS encryption key.
 * `source_code_hash` - (Optional) Used to trigger updates. This is only useful in conjunction with `filename`.
   The only useful value is `${base64sha256(file("file.zip"))}`.
+
+**dead\_letter\_config** is a child block with a single argument:
+
+* `target_arn` - (Required) The ARN of an SNS topic or SQS queue to notify when an invocation fails. If this
+  option is used, the function's IAM role must be granted suitable access to write to the target object,
+  which means allowing either the `sns:Publish` or `sqs:SendMessage` action on this ARN, depending on
+  which service is targeted.
 
 **vpc\_config** requires the following:
 
@@ -100,7 +110,7 @@ For **environment** the following attributes are supported:
 
 ## Import
 
-Lambda Functions can be imported using the `function_name`, e.g. 
+Lambda Functions can be imported using the `function_name`, e.g.
 
 ```
 $ terraform import aws_lambda_function.tesr_lambda my_test_lambda_function

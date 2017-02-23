@@ -13,6 +13,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
+	"google.golang.org/api/cloudbilling/v1"
 	"google.golang.org/api/cloudresourcemanager/v1"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/container/v1"
@@ -31,6 +32,7 @@ type Config struct {
 	Project     string
 	Region      string
 
+	clientBilling         *cloudbilling.Service
 	clientCompute         *compute.Service
 	clientContainer       *container.Service
 	clientDns             *dns.Service
@@ -159,6 +161,13 @@ func (c *Config) loadAndValidate() error {
 		return err
 	}
 	c.clientServiceMan.UserAgent = userAgent
+
+	log.Printf("[INFO] Instantiating Google Cloud Billing Client...")
+	c.clientBilling, err = cloudbilling.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientBilling.UserAgent = userAgent
 
 	return nil
 }

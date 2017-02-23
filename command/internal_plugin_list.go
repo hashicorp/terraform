@@ -8,6 +8,7 @@ package command
 import (
 	alicloudprovider "github.com/hashicorp/terraform/builtin/providers/alicloud"
 	archiveprovider "github.com/hashicorp/terraform/builtin/providers/archive"
+	arukasprovider "github.com/hashicorp/terraform/builtin/providers/arukas"
 	atlasprovider "github.com/hashicorp/terraform/builtin/providers/atlas"
 	awsprovider "github.com/hashicorp/terraform/builtin/providers/aws"
 	azureprovider "github.com/hashicorp/terraform/builtin/providers/azure"
@@ -22,6 +23,7 @@ import (
 	datadogprovider "github.com/hashicorp/terraform/builtin/providers/datadog"
 	digitaloceanprovider "github.com/hashicorp/terraform/builtin/providers/digitalocean"
 	dmeprovider "github.com/hashicorp/terraform/builtin/providers/dme"
+	dnsprovider "github.com/hashicorp/terraform/builtin/providers/dns"
 	dnsimpleprovider "github.com/hashicorp/terraform/builtin/providers/dnsimple"
 	dockerprovider "github.com/hashicorp/terraform/builtin/providers/docker"
 	dynprovider "github.com/hashicorp/terraform/builtin/providers/dyn"
@@ -55,6 +57,7 @@ import (
 	rundeckprovider "github.com/hashicorp/terraform/builtin/providers/rundeck"
 	scalewayprovider "github.com/hashicorp/terraform/builtin/providers/scaleway"
 	softlayerprovider "github.com/hashicorp/terraform/builtin/providers/softlayer"
+	spotinstprovider "github.com/hashicorp/terraform/builtin/providers/spotinst"
 	statuscakeprovider "github.com/hashicorp/terraform/builtin/providers/statuscake"
 	templateprovider "github.com/hashicorp/terraform/builtin/providers/template"
 	terraformprovider "github.com/hashicorp/terraform/builtin/providers/terraform"
@@ -65,18 +68,21 @@ import (
 	vaultprovider "github.com/hashicorp/terraform/builtin/providers/vault"
 	vcdprovider "github.com/hashicorp/terraform/builtin/providers/vcd"
 	vsphereprovider "github.com/hashicorp/terraform/builtin/providers/vsphere"
-	chefresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
-	fileresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
-	localexecresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
-	remoteexecresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
+	fileprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
+	localexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
+	remoteexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
 
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
+
+	// Legacy, will remove once it conforms with new structure
+	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
 	"alicloud":     alicloudprovider.Provider,
 	"archive":      archiveprovider.Provider,
+	"arukas":       arukasprovider.Provider,
 	"atlas":        atlasprovider.Provider,
 	"aws":          awsprovider.Provider,
 	"azure":        azureprovider.Provider,
@@ -91,6 +97,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"datadog":      datadogprovider.Provider,
 	"digitalocean": digitaloceanprovider.Provider,
 	"dme":          dmeprovider.Provider,
+	"dns":          dnsprovider.Provider,
 	"dnsimple":     dnsimpleprovider.Provider,
 	"docker":       dockerprovider.Provider,
 	"dyn":          dynprovider.Provider,
@@ -124,6 +131,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"rundeck":      rundeckprovider.Provider,
 	"scaleway":     scalewayprovider.Provider,
 	"softlayer":    softlayerprovider.Provider,
+	"spotinst":     spotinstprovider.Provider,
 	"statuscake":   statuscakeprovider.Provider,
 	"template":     templateprovider.Provider,
 	"terraform":    terraformprovider.Provider,
@@ -137,8 +145,13 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 }
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
-	"chef":        func() terraform.ResourceProvisioner { return new(chefresourceprovisioner.ResourceProvisioner) },
-	"file":        func() terraform.ResourceProvisioner { return new(fileresourceprovisioner.ResourceProvisioner) },
-	"local-exec":  func() terraform.ResourceProvisioner { return new(localexecresourceprovisioner.ResourceProvisioner) },
-	"remote-exec": func() terraform.ResourceProvisioner { return new(remoteexecresourceprovisioner.ResourceProvisioner) },
+	"file":        fileprovisioner.Provisioner,
+	"local-exec":  localexecprovisioner.Provisioner,
+	"remote-exec": remoteexecprovisioner.Provisioner,
+}
+
+func init() {
+	// Legacy provisioners that don't match our heuristics for auto-finding
+	// built-in provisioners.
+	InternalProvisioners["chef"] = func() terraform.ResourceProvisioner { return new(chefprovisioner.ResourceProvisioner) }
 }

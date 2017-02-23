@@ -15,8 +15,8 @@ Provides a Logentries logset resource. A logset is a collection of `logentries_l
 ```
 # Create a log set
 resource "logentries_logset" "host_logs" {
-   name = "${var.server}-logs"
-   location = "www.example.com"
+  name     = "${var.server}-logs"
+  location = "www.example.com"
 }
 ```
 

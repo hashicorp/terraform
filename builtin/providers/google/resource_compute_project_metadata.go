@@ -192,6 +192,10 @@ func resourceComputeProjectMetadataDelete(d *schema.ResourceData, meta interface
 
 	op, err := config.clientCompute.Projects.SetCommonInstanceMetadata(projectID, md).Do()
 
+	if err != nil {
+		return fmt.Errorf("Error removing metadata from project %s: %s", projectID, err)
+	}
+
 	log.Printf("[DEBUG] SetCommonMetadata: %d (%s)", op.Id, op.SelfLink)
 
 	err = computeOperationWaitGlobal(config, op, project.Name, "SetCommonMetadata")

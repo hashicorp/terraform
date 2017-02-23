@@ -33,7 +33,7 @@ The easiest source is the local file path. For maximum portability, this should 
 
 ```
 module "consul" {
-	source = "./consul"
+  source = "./consul"
 }
 ```
 
@@ -45,7 +45,7 @@ Terraform will automatically recognize GitHub URLs and turn them into a link to 
 
 ```
 module "consul" {
-	source = "github.com/hashicorp/example"
+  source = "github.com/hashicorp/example"
 }
 ```
 
@@ -53,7 +53,15 @@ Subdirectories within the repository can also be referenced:
 
 ```
 module "consul" {
-	source = "github.com/hashicorp/example//subdir"
+  source = "github.com/hashicorp/example//subdir"
+}
+```
+
+These will fetch the modules using HTTPS.  If you want to use SSH instead:
+
+```
+module "consul" {
+  source = "git@github.com:hashicorp/example.git//subdir"
 }
 ```
 
@@ -83,7 +91,7 @@ Terraform will automatically recognize BitBucket URLs and turn them into a link 
 
 ```
 module "consul" {
-	source = "bitbucket.org/hashicorp/consul"
+  source = "bitbucket.org/hashicorp/consul"
 }
 ```
 
@@ -91,7 +99,7 @@ Subdirectories within the repository can also be referenced:
 
 ```
 module "consul" {
-	source = "bitbucket.org/hashicorp/consul//subdir"
+  source = "bitbucket.org/hashicorp/consul//subdir"
 }
 ```
 
@@ -105,7 +113,7 @@ Generic Git repositories are also supported. The value of `source` in this case 
 
 ```
 module "consul" {
-	source = "git://hashicorp.com/consul.git"
+  source = "git://hashicorp.com/consul.git"
 }
 ```
 
@@ -113,11 +121,11 @@ You can also use protocols such as HTTP or SSH to reference a module, but you'll
 
 ```
 module "consul" {
-	source = "git::https://hashicorp.com/consul.git"
+  source = "git::https://hashicorp.com/consul.git"
 }
 
 module "ami" {
-	source = "git::ssh://git@github.com/owner/repo.git"
+  source = "git::ssh://git@github.com/owner/repo.git"
 }
 ```
 
@@ -129,7 +137,7 @@ The URLs for Git repositories support the following query parameters:
 
 ```
 module "consul" {
-	source = "git::https://hashicorp.com/consul.git?ref=master"
+  source = "git::https://hashicorp.com/consul.git?ref=master"
 }
 ```
 
@@ -139,7 +147,7 @@ Generic Mercurial repositories are supported. The value of `source` in this case
 
 ```
 module "consul" {
-	source = "hg::http://hashicorp.com/consul.hg"
+  source = "hg::http://hashicorp.com/consul.hg"
 }
 ```
 
@@ -149,7 +157,7 @@ URLs for Mercurial repositories support the following query parameters:
 
 ```
 module "consul" {
-	source = "hg::http://hashicorp.com/consul.hg?ref=master"
+  source = "hg::http://hashicorp.com/consul.hg?ref=master"
 }
 ```
 
@@ -177,7 +185,7 @@ available via shared credentials or environment variables.
 There are a variety of S3 bucket addressing schemes, most are
 [documented in the S3
 configuration](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#access-bucket-intro).
-Here are a couple of examples. 
+Here are a couple of examples.
 
 Using the `s3` protocol.
 

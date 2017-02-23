@@ -149,6 +149,42 @@ func TestAccCheckLBCookieStickinessPolicy_drift(t *testing.T) {
 	})
 }
 
+func TestAccAWSLBCookieStickinessPolicy_missingLB(t *testing.T) {
+	lbName := fmt.Sprintf("tf-test-lb-%s", acctest.RandString(5))
+
+	// check that we can destroy the policy if the LB is missing
+	removeLB := func() {
+		conn := testAccProvider.Meta().(*AWSClient).elbconn
+		deleteElbOpts := elb.DeleteLoadBalancerInput{
+			LoadBalancerName: aws.String(lbName),
+		}
+		if _, err := conn.DeleteLoadBalancer(&deleteElbOpts); err != nil {
+			t.Fatalf("Error deleting ELB: %s", err)
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLBCookieStickinessPolicyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccLBCookieStickinessPolicyConfig(lbName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLBCookieStickinessPolicy(
+						"aws_elb.lb",
+						"aws_lb_cookie_stickiness_policy.foo",
+					),
+				),
+			},
+			resource.TestStep{
+				PreConfig: removeLB,
+				Config:    testAccLBCookieStickinessPolicyConfigDestroy(lbName),
+			},
+		},
+	})
+}
+
 func testAccLBCookieStickinessPolicyConfig(rName string) string {
 	return fmt.Sprintf(`
 resource "aws_elb" "lb" {
@@ -188,5 +224,20 @@ resource "aws_lb_cookie_stickiness_policy" "foo" {
 	load_balancer = "${aws_elb.lb.id}"
 	lb_port = 80
 	cookie_expiration_period = 300
+}`, rName)
+}
+
+// attempt to destroy the policy, but we'll delete the LB in the PreConfig
+func testAccLBCookieStickinessPolicyConfigDestroy(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_elb" "lb" {
+	name = "%s"
+	availability_zones = ["us-west-2a"]
+	listener {
+		instance_port = 8000
+		instance_protocol = "http"
+		lb_port = 80
+		lb_protocol = "http"
+	}
 }`, rName)
 }

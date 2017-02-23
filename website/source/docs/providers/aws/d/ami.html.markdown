@@ -15,18 +15,21 @@ resources.
 
 ```
 data "aws_ami" "nat_ami" {
-  most_recent = true
+  most_recent      = true
   executable_users = ["self"]
+
   filter {
-    name = "owner-alias"
+    name   = "owner-alias"
     values = ["amazon"]
   }
+
   filter {
-    name = "name"
+    name   = "name"
     values = ["amzn-ami-vpc-nat*"]
   }
+
   name_regex = "^myami-\\d{3}"
-  owners = ["self"]
+  owners     = ["self"]
 }
 ```
 

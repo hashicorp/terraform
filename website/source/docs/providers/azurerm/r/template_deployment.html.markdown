@@ -14,14 +14,15 @@ Create a template deployment of resources
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-01"
-    location = "West US"
-  }
+  name     = "acctestrg-01"
+  location = "West US"
+}
 
-  resource "azurerm_template_deployment" "test" {
-    name = "acctesttemplate-01"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    template_body = <<DEPLOY
+resource "azurerm_template_deployment" "test" {
+  name                = "acctesttemplate-01"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+
+  template_body = <<DEPLOY
 {
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
@@ -72,8 +73,9 @@ resource "azurerm_resource_group" "test" {
   ]
 }
 DEPLOY
-    deployment_mode = "Complete"
-  }
+
+  deployment_mode = "Complete"
+}
 ```
 
 ## Argument Reference
@@ -83,8 +85,8 @@ The following arguments are supported:
 * `name` - (Required) Specifies the name of the template deployment. Changing this forces a
     new resource to be created.
 * `resource_group_name` - (Required) The name of the resource group in which to
-    create the template deployment. 
-* `deployment_mode` - (Required) Specifies the mode that is used to deploy resources. This value could be either `Incremental` or `Complete`. 
+    create the template deployment.
+* `deployment_mode` - (Required) Specifies the mode that is used to deploy resources. This value could be either `Incremental` or `Complete`.
     Note that you will almost *always* want this to be set to `Incremental` otherwise the deployment will destroy all infrastructure not
     specified within the template, and Terraform will not be aware of this.
 * `template_body` - (Optional) Specifies the JSON definition for the template.

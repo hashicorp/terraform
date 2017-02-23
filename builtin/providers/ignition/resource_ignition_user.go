@@ -1,6 +1,8 @@
 package ignition
 
 import (
+	"reflect"
+
 	"github.com/coreos/ignition/config/types"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -107,20 +109,29 @@ func resourceUserRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func buildUser(d *schema.ResourceData, c *cache) (string, error) {
-	return c.addUser(&types.User{
+	uc := types.UserCreate{
+		Uid:          getUInt(d, "uid"),
+		GECOS:        d.Get("gecos").(string),
+		Homedir:      d.Get("home_dir").(string),
+		NoCreateHome: d.Get("no_create_home").(bool),
+		PrimaryGroup: d.Get("primary_group").(string),
+		Groups:       castSliceInterface(d.Get("groups").([]interface{})),
+		NoUserGroup:  d.Get("no_user_group").(bool),
+		NoLogInit:    d.Get("no_log_init").(bool),
+		Shell:        d.Get("shell").(string),
+	}
+
+	puc := &uc
+	if reflect.DeepEqual(uc, types.UserCreate{}) { // check if the struct is empty
+		puc = nil
+	}
+
+	user := types.User{
 		Name:              d.Get("name").(string),
 		PasswordHash:      d.Get("password_hash").(string),
 		SSHAuthorizedKeys: castSliceInterface(d.Get("ssh_authorized_keys").([]interface{})),
-		Create: &types.UserCreate{
-			Uid:          getUInt(d, "uid"),
-			GECOS:        d.Get("gecos").(string),
-			Homedir:      d.Get("home_dir").(string),
-			NoCreateHome: d.Get("no_create_home").(bool),
-			PrimaryGroup: d.Get("primary_group").(string),
-			Groups:       castSliceInterface(d.Get("groups").([]interface{})),
-			NoUserGroup:  d.Get("no_user_group").(bool),
-			NoLogInit:    d.Get("no_log_init").(bool),
-			Shell:        d.Get("shell").(string),
-		},
-	}), nil
+		Create:            puc,
+	}
+
+	return c.addUser(&user), nil
 }

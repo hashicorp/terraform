@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/hashicorp/errwrap"
 )
@@ -54,7 +55,10 @@ func resourceAwsCloudWatchLogGroupCreate(d *schema.ResourceData, meta interface{
 		LogGroupName: aws.String(d.Get("name").(string)),
 	})
 	if err != nil {
-		return fmt.Errorf("Creating CloudWatch Log Group failed: %s", err)
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "ResourceAlreadyExistsException" {
+			return fmt.Errorf("Creating CloudWatch Log Group failed: %s:  The CloudWatch Log Group '%s' already exists.", err, d.Get("name").(string))
+		}
+		return fmt.Errorf("Creating CloudWatch Log Group failed: %s '%s'", err, d.Get("name"))
 	}
 
 	d.SetId(d.Get("name").(string))
@@ -218,7 +222,7 @@ func flattenCloudWatchTags(d *schema.ResourceData, conn *cloudwatchlogs.CloudWat
 		LogGroupName: aws.String(d.Get("name").(string)),
 	})
 	if err != nil {
-		return nil, errwrap.Wrapf("Error Getting CloudWatch Logs Tag List: %s", err)
+		return nil, errwrap.Wrapf("Error Getting CloudWatch Logs Tag List: {{err}}", err)
 	}
 	if tagsOutput != nil {
 		output := make(map[string]interface{}, len(tagsOutput.Tags))

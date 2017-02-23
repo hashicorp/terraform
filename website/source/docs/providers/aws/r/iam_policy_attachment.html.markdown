@@ -14,27 +14,29 @@ Attaches a Managed IAM Policy to user(s), role(s), and/or group(s)
 
 ```
 resource "aws_iam_user" "user" {
-    name = "test-user"
+  name = "test-user"
 }
+
 resource "aws_iam_role" "role" {
-    name = "test-role"
+  name = "test-role"
 }
+
 resource "aws_iam_group" "group" {
-    name = "test-group"
+  name = "test-group"
 }
 
 resource "aws_iam_policy" "policy" {
-    name = "test-policy"
-    description = "A test policy"
-    policy = 	#omitted
+  name        = "test-policy"
+  description = "A test policy"
+  policy      =  # omitted
 }
 
 resource "aws_iam_policy_attachment" "test-attach" {
-    name = "test-attachment"
-    users = ["${aws_iam_user.user.name}"]
-    roles = ["${aws_iam_role.role.name}"]
-    groups = ["${aws_iam_group.group.name}"]
-    policy_arn = "${aws_iam_policy.policy.arn}"
+  name       = "test-attachment"
+  users      = ["{aws_iam_user.user.name}"]
+  roles      = ["{aws_iam_role.role.name}"]
+  groups     = ["{aws_iam_group.group.name}"]
+  policy_arn = "${aws_iam_policy.policy.arn}"
 }
 ```
 

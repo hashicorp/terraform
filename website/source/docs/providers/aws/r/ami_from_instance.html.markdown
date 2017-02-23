@@ -30,8 +30,8 @@ to produce a fresh snapshot.
 
 ```
 resource "aws_ami_from_instance" "example" {
-    name = "terraform-example"
-    source_instance_id = "i-xxxxxxxx"
+  name               = "terraform-example"
+  source_instance_id = "i-xxxxxxxx"
 }
 ```
 

@@ -15,22 +15,22 @@ Provides a DNSimple record resource.
 ```
 # Add a record to the root domain
 resource "dnsimple_record" "foobar" {
-	domain = "${var.dnsimple_domain}"
-	name = ""
-	value = "192.168.0.11"
-	type = "A"
-	ttl = 3600
+  domain = "${var.dnsimple_domain}"
+  name   = ""
+  value  = "192.168.0.11"
+  type   = "A"
+  ttl    = 3600
 }
 ```
 
 ```
 # Add a record to a sub-domain
 resource "dnsimple_record" "foobar" {
-	domain = "${var.dnsimple_domain}"
-	name = "terraform"
-	value = "192.168.0.11"
-	type = "A"
-	ttl = 3600
+  domain = "${var.dnsimple_domain}"
+  name   = "terraform"
+  value  = "192.168.0.11"
+  type   = "A"
+  ttl    = 3600
 }
 ```
 

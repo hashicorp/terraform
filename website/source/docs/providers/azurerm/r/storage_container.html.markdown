@@ -14,26 +14,26 @@ Create an Azure Storage Container.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg"
-    location = "westus"
+  name     = "acctestrg"
+  location = "westus"
 }
 
 resource "azurerm_storage_account" "test" {
-    name = "accteststorageaccount"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
-    account_type = "Standard_LRS"
+  name                = "accteststorageaccount"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "westus"
+  account_type        = "Standard_LRS"
 
-    tags {
-        environment = "staging"
-    }
+  tags {
+    environment = "staging"
+  }
 }
 
 resource "azurerm_storage_container" "test" {
-    name = "vhds"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    storage_account_name = "${azurerm_storage_account.test.name}"
-    container_access_type = "private"
+  name                  = "vhds"
+  resource_group_name   = "${azurerm_resource_group.test.name}"
+  storage_account_name  = "${azurerm_storage_account.test.name}"
+  container_access_type = "private"
 }
 ```
 

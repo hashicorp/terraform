@@ -13,12 +13,13 @@ Use this data source to get the Account ID of the [AWS Billing and Cost Manageme
 ## Example Usage
 
 ```
-data "aws_billing_service_account" "main" { }
+data "aws_billing_service_account" "main" {}
 
 resource "aws_s3_bucket" "billing_logs" {
-    bucket = "my-billing-tf-test-bucket"
-    acl = "private"
-    policy = <<POLICY
+  bucket = "my-billing-tf-test-bucket"
+  acl    = "private"
+
+  policy = <<POLICY
 {
   "Id": "Policy",
   "Version": "2012-10-17",

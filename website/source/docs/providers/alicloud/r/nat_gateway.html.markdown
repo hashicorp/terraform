@@ -16,31 +16,36 @@ Basic usage
 
 ```
 resource "alicloud_vpc" "vpc" {
-	name = "tf_test_foo"
-	cidr_block = "172.16.0.0/12"
+  name       = "tf_test_foo"
+  cidr_block = "172.16.0.0/12"
 }
 
 resource "alicloud_vswitch" "vsw" {
-	vpc_id = "${alicloud_vpc.vpc.id}"
-	cidr_block = "172.16.0.0/21"
-	availability_zone = "cn-beijing-b"
+  vpc_id            = "${alicloud_vpc.vpc.id}"
+  cidr_block        = "172.16.0.0/21"
+  availability_zone = "cn-beijing-b"
 }
 
 resource "alicloud_nat_gateway" "nat_gateway" {
-	vpc_id = "${alicloud_vpc.vpc.id}"
-	spec = "Small"
-	name = "test_foo"
-	bandwidth_packages = [{
-	  ip_count = 1
-	  bandwidth = 5
-	  zone = "cn-beijing-b"
-	}, {
-	  ip_count = 2
-	  bandwidth = 10
-	  zone = "cn-beijing-b"
-	}]
-	depends_on = [
-    	"alicloud_vswitch.vsw"]
+  vpc_id = "${alicloud_vpc.vpc.id}"
+  spec   = "Small"
+  name   = "test_foo"
+
+  bandwidth_packages = [{
+    ip_count  = 1
+    bandwidth = 5
+    zone      = "cn-beijing-b"
+  },
+    {
+      ip_count  = 2
+      bandwidth = 10
+      zone      = "cn-beijing-b"
+    },
+  ]
+
+  depends_on = [
+    "alicloud_vswitch.vsw",
+  ]
 }
 ```
 

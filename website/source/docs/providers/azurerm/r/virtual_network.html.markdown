@@ -36,7 +36,7 @@ resource "azurerm_virtual_network" "test" {
     address_prefix = "10.0.3.0/24"
     security_group = "${azurerm_network_security_group.test.id}"
   }
-  
+
   tags {
     environment = "Production"
   }
@@ -65,7 +65,7 @@ The following arguments are supported:
 * `subnet` - (Optional) Can be specified multiple times to define multiple
     subnets. Each `subnet` block supports fields documented below.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 The `subnet` block supports:
 
@@ -85,7 +85,7 @@ The following attributes are exported:
 
 ## Import
 
-Virtual Networks can be imported using the `resource id`, e.g. 
+Virtual Networks can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_virtual_network.testNetwork /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/virtualNetworks/myvnet1

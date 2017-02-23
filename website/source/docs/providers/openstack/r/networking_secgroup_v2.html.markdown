@@ -16,7 +16,7 @@ and also allows an admin to target a specific tenant_id.
 
 ```
 resource "openstack_networking_secgroup_v2" "secgroup_1" {
-  name = "secgroup_1"
+  name        = "secgroup_1"
   description = "My neutron security group"
 }
 ```

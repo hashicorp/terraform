@@ -16,8 +16,8 @@ Basic usage:
 
 ```
 resource "cloudstack_vpn_connection" "default" {
-    customer_gateway_id = "8dab9381-ae73-48b8-9a3d-c460933ef5f7"
-    vpn_gateway_id = "a7900060-f8a8-44eb-be15-ea54cf499703"
+  customer_gateway_id = "8dab9381-ae73-48b8-9a3d-c460933ef5f7"
+  vpn_gateway_id      = "a7900060-f8a8-44eb-be15-ea54cf499703"
 }
 ```
 

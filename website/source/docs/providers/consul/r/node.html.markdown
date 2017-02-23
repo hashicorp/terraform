@@ -15,8 +15,8 @@ node. Currently, defining health checks is not supported.
 
 ```
 resource "consul_node" "foobar" {
-    address = "192.168.10.10"
-    name = "foobar"
+  address = "192.168.10.10"
+  name    = "foobar"
 }
 ```
 

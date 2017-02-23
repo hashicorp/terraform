@@ -17,14 +17,13 @@ within a PostgreSQL server instance.
 
 ```
 resource "postgresql_database" "my_db" {
-   name = "my_db"
-   owner = "my_role"
-   template = "template0"
-   collation = "C"
-   connection_limit = -1
-   allow_connections = true
+  name              = "my_db"
+  owner             = "my_role"
+  template          = "template0"
+  collation         = "C"
+  connection_limit  = -1
+  allow_connections = true
 }
-
 ```
 
 ## Argument Reference

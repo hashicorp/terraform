@@ -3,13 +3,14 @@ package rancher
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	rancherClient "github.com/rancher/go-rancher/client"
 )
 
-func TestAccRancherRegistryCredential(t *testing.T) {
+func TestAccRancherRegistryCredential_basic(t *testing.T) {
 	var registry rancherClient.RegistryCredential
 
 	resource.Test(t, resource.TestCase{
@@ -39,6 +40,83 @@ func TestAccRancherRegistryCredential(t *testing.T) {
 	})
 }
 
+func TestAccRancherRegistryCredential_disappears(t *testing.T) {
+	var registry rancherClient.RegistryCredential
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRancherRegistryCredentialDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRancherRegistryCredentialConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRancherRegistryCredentialExists("rancher_registry_credential.foo", &registry),
+					testAccRancherRegistryCredentialDisappears(&registry),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func testAccRancherRegistryCredentialDisappears(reg *rancherClient.RegistryCredential) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		client, err := testAccProvider.Meta().(*Config).EnvironmentClient(reg.AccountId)
+		if err != nil {
+			return err
+		}
+
+		// Step 1: Deactivate
+		if _, e := client.RegistryCredential.ActionDeactivate(reg); e != nil {
+			return fmt.Errorf("Error deactivating RegistryCredential: %s", err)
+		}
+
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"active", "inactive", "deactivating"},
+			Target:     []string{"inactive"},
+			Refresh:    RegistryCredentialStateRefreshFunc(client, reg.Id),
+			Timeout:    10 * time.Minute,
+			Delay:      1 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, waitErr := stateConf.WaitForState()
+		if waitErr != nil {
+			return fmt.Errorf(
+				"Error waiting for registry credential (%s) to be deactivated: %s", reg.Id, waitErr)
+		}
+
+		// Update resource to reflect its state
+		reg, err = client.RegistryCredential.ById(reg.Id)
+		if err != nil {
+			return fmt.Errorf("Failed to refresh state of deactivated registry credential (%s): %s", reg.Id, err)
+		}
+
+		// Step 2: Remove
+		if _, err := client.RegistryCredential.ActionRemove(reg); err != nil {
+			return fmt.Errorf("Error removing RegistryCredential: %s", err)
+		}
+
+		stateConf = &resource.StateChangeConf{
+			Pending:    []string{"inactive", "removed", "removing"},
+			Target:     []string{"removed"},
+			Refresh:    RegistryCredentialStateRefreshFunc(client, reg.Id),
+			Timeout:    10 * time.Minute,
+			Delay:      1 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, waitErr = stateConf.WaitForState()
+		if waitErr != nil {
+			return fmt.Errorf(
+				"Error waiting for registry (%s) to be removed: %s", reg.Id, waitErr)
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckRancherRegistryCredentialExists(n string, reg *rancherClient.RegistryCredential) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -51,7 +129,10 @@ func testAccCheckRancherRegistryCredentialExists(n string, reg *rancherClient.Re
 			return fmt.Errorf("No App Name is set")
 		}
 
-		client := testAccProvider.Meta().(*Config)
+		client, err := testAccProvider.Meta().(*Config).RegistryClient(rs.Primary.Attributes["registry_id"])
+		if err != nil {
+			return err
+		}
 
 		foundReg, err := client.RegistryCredential.ById(rs.Primary.ID)
 		if err != nil {
@@ -59,7 +140,7 @@ func testAccCheckRancherRegistryCredentialExists(n string, reg *rancherClient.Re
 		}
 
 		if foundReg.Resource.Id != rs.Primary.ID {
-			return fmt.Errorf("Environment not found")
+			return fmt.Errorf("RegistryCredential not found")
 		}
 
 		*reg = *foundReg
@@ -69,12 +150,15 @@ func testAccCheckRancherRegistryCredentialExists(n string, reg *rancherClient.Re
 }
 
 func testAccCheckRancherRegistryCredentialDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config)
-
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "rancher_registry_credential" {
 			continue
 		}
+		client, err := testAccProvider.Meta().(*Config).GlobalClient()
+		if err != nil {
+			return err
+		}
+
 		reg, err := client.RegistryCredential.ById(rs.Primary.ID)
 
 		if err == nil {

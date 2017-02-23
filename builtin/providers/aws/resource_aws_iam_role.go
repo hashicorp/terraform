@@ -82,10 +82,11 @@ func resourceAwsIamRole() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"assume_role_policy": &schema.Schema{
+			"assume_role_policy": {
 				Type:             schema.TypeString,
 				Required:         true,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
+				ValidateFunc:     validateJsonString,
 			},
 
 			"create_date": {

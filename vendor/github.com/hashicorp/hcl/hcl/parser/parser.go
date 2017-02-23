@@ -389,9 +389,15 @@ func (p *Parser) listType() (*ast.ListType, error) {
 			l.Add(node)
 			needComma = true
 		case token.LBRACK:
-			// TODO(arslan) should we support nested lists? Even though it's
-			// written in README of HCL, it's not a part of the grammar
-			// (not defined in parse.y)
+			node, err := p.listType()
+			if err != nil {
+				return nil, &PosError{
+					Pos: tok.Pos,
+					Err: fmt.Errorf(
+						"error while trying to parse list within list: %s", err),
+				}
+			}
+			l.Add(node)
 		case token.RBRACK:
 			// finished
 			l.Rbrack = p.tok.Pos

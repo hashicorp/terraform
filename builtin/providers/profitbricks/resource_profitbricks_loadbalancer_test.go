@@ -48,7 +48,11 @@ func testAccCheckDProfitBricksLoadbalancerDestroyCheck(s *terraform.State) error
 		resp := profitbricks.GetLoadbalancer(rs.Primary.Attributes["datacenter_id"], rs.Primary.ID)
 
 		if resp.StatusCode < 299 {
-			return fmt.Errorf("Firewall still exists %s %s", rs.Primary.ID, resp.Response)
+			resp := profitbricks.DeleteDatacenter(rs.Primary.Attributes["datacenter_id"])
+
+			if resp.StatusCode > 299 {
+				return fmt.Errorf("Firewall still exists %s %s", rs.Primary.ID, string(resp.Body))
+			}
 		}
 	}
 

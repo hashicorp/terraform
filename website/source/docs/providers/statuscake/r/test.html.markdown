@@ -14,11 +14,11 @@ The test resource allows StatusCake tests to be managed by Terraform.
 
 ```
 resource "statuscake_test" "google" {
-    website_name = "google.com"
-    website_url = "www.google.com"
-    test_type = "HTTP"
-    check_rate = 300
-    contact_id = 12345
+  website_name = "google.com"
+  website_url  = "www.google.com"
+  test_type    = "HTTP"
+  check_rate   = 300
+  contact_id   = 12345
 }
 ```
 
@@ -35,6 +35,7 @@ The following arguments are supported:
 * `timeout` - (Optional) The timeout of the test in seconds.
 * `contact_id` - (Optional) The ID of the contact group to associate with the test.
 * `confirmations` - (Optional) The number of confirmation servers to use in order to detect downtime. Defaults to 0.
+* `port` - (Optional) The port to use when specifying a TCP test.
 
 
 ## Attributes Reference

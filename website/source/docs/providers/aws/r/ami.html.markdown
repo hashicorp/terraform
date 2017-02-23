@@ -81,10 +81,10 @@ Nested `ebs_block_device` blocks have the following structure:
   as the selected snapshot.
 * `volume_type` - (Optional) The type of EBS volume to create. Can be one of "standard" (the
   default), "io1" or "gp2".
-* `encrypted` - (Optional) Specifies whether the destination snapshots of the copied image should be encrypted. 
+* `encrypted` - (Optional) Specifies whether the destination snapshots of the copied image should be encrypted.
 The default CMK for EBS is used unless a non-default AWS Key Management Service (AWS KMS) CMK is specified with KmsKeyId.
-* `kms_key_id` - (Optional) The full ARN of the AWS Key Management Service (AWS KMS) CMK to use when encrypting the snapshots of 
-an image during a copy operation. This parameter is only required if you want to use a non-default CMK; 
+* `kms_key_id` - (Optional) The full ARN of the AWS Key Management Service (AWS KMS) CMK to use when encrypting the snapshots of
+an image during a copy operation. This parameter is only required if you want to use a non-default CMK;
 if this parameter is not specified, the default CMK for EBS is used
 
 Nested `ephemeral_block_device` blocks have the following structure:

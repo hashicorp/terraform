@@ -15,28 +15,29 @@ to your security groups in order to add an additional layer of security to your 
 
 ```
 resource "aws_network_acl" "main" {
-	vpc_id = "${aws_vpc.main.id}"
-	egress {
-		protocol = "tcp"
-		rule_no = 2
-		action = "allow"
-		cidr_block =  "10.3.0.0/18"
-		from_port = 443
-		to_port = 443
-	}
+  vpc_id = "${aws_vpc.main.id}"
 
-	ingress {
-		protocol = "tcp"
-		rule_no = 1
-		action = "allow"
-		cidr_block =  "10.3.0.0/18"
-		from_port = 80
-		to_port = 80
-	}
+  egress {
+    protocol   = "tcp"
+    rule_no    = 2
+    action     = "allow"
+    cidr_block = "10.3.0.0/18"
+    from_port  = 443
+    to_port    = 443
+  }
 
-	tags {
-		Name = "main"
-	}
+  ingress {
+    protocol   = "tcp"
+    rule_no    = 1
+    action     = "allow"
+    cidr_block = "10.3.0.0/18"
+    from_port  = 80
+    to_port    = 80
+  }
+
+  tags {
+    Name = "main"
+  }
 }
 ```
 
@@ -76,7 +77,7 @@ The following attributes are exported:
 
 ## Import
 
-Network ACLs can be imported using the `id`, e.g. 
+Network ACLs can be imported using the `id`, e.g.
 
 ```
 $ terraform import aws_network_acl.main acl-7aaabd18
