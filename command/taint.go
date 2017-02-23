@@ -24,6 +24,7 @@ func (c *TaintCommand) Run(args []string) int {
 
 	var allowMissing bool
 	var module string
+	var resourceAddressStr string
 	cmdFlags := c.Meta.flagSet("taint")
 	cmdFlags.BoolVar(&allowMissing, "allow-missing", false, "module")
 	cmdFlags.StringVar(&module, "module", "", "module")
@@ -46,19 +47,17 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	name := args[0]
-	if module == "" {
-		module = "root"
-	} else {
-		module = "root." + module
-	}
+	resourceAddressStr = "module.root." + name
 
-	rsk, err := terraform.ParseResourceStateKey(name)
+	// get the resource address from name
+	rsa, err := terraform.ParseResourceAddress(resourceAddressStr)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to parse resource name: %s", err))
+		c.Ui.Error(fmt.Sprintf("Failed to find resource address: %s", err))
 		return 1
 	}
 
-	if !rsk.Mode.Taintable() {
+	// check to make sure the resource address is taintable
+	if !rsa.Mode.Taintable() {
 		c.Ui.Error(fmt.Sprintf("Resource '%s' cannot be tainted", name))
 		return 1
 	}
@@ -92,6 +91,7 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	// Get the actual state structure
+	module = strings.Join(rsa.Path, ".")
 	s := st.State()
 	if s.Empty() {
 		if allowMissing {
@@ -106,43 +106,13 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Get the proper module we want to taint
-	modPath := strings.Split(module, ".")
-	mod := s.ModuleByPath(modPath)
-	if mod == nil {
+	// Getting resource state
+	rs := s.GetResourceStateFromResourceAddress(rsa, rsa.Type)
+	if rs == nil {
 		if allowMissing {
 			return c.allowMissingExit(name, module)
 		}
-
-		c.Ui.Error(fmt.Sprintf(
-			"The module %s could not be found. There is nothing to taint.",
-			module))
-		return 1
-	}
-
-	// If there are no resources in this module, it is an error
-	if len(mod.Resources) == 0 {
-		if allowMissing {
-			return c.allowMissingExit(name, module)
-		}
-
-		c.Ui.Error(fmt.Sprintf(
-			"The module %s has no resources. There is nothing to taint.",
-			module))
-		return 1
-	}
-
-	// Get the resource we're looking for
-	rs, ok := mod.Resources[name]
-	if !ok {
-		if allowMissing {
-			return c.allowMissingExit(name, module)
-		}
-
-		c.Ui.Error(fmt.Sprintf(
-			"The resource %s couldn't be found in the module %s.",
-			name,
-			module))
+		c.Ui.Error(fmt.Sprintf("Error getting resource state: The module %s has no resources. There is nothing to taint.", module))
 		return 1
 	}
 

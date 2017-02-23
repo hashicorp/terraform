@@ -2005,3 +2005,87 @@ func TestResourceNameSort(t *testing.T) {
 		t.Fatalf("got: %q\nexpected: %q\n", names, expected)
 	}
 }
+
+func TestGetResourceStateFromResourceAddress_noResource(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{RootModuleName, "foo"},
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "bar"},
+			},
+		},
+	}
+
+	state.init()
+
+	rsa := &ResourceAddress{
+		Path: []string{"root", "foo"},
+	}
+
+	actual := state.GetResourceStateFromResourceAddress(rsa, "test_instance")
+
+	if actual != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestGetResourceStateFromResourceAddress_resourceNotFound(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{RootModuleName, "foo"},
+				Resources: map[string]*ResourceState{
+					"test_instance.foo": &ResourceState{},
+				},
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "bar"},
+			},
+		},
+	}
+
+	state.init()
+
+	rsa := &ResourceAddress{
+		Path: []string{"root", "foo"},
+		Name: "test",
+	}
+
+	actual := state.GetResourceStateFromResourceAddress(rsa, "test_instance")
+
+	if actual != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestGetResourceStateFromResourceAddress_positiveFlow(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{RootModuleName, "foo"},
+				Resources: map[string]*ResourceState{
+					"test_instance.test": &ResourceState{
+						Type: "test",
+					},
+				},
+			},
+		},
+	}
+
+	rsa := &ResourceAddress{
+		Path:  []string{"root", "foo"},
+		Index: -1,
+		Name:  "test",
+	}
+
+	actual := state.GetResourceStateFromResourceAddress(rsa, "test_instance")
+	expected := &ResourceState{
+		Type: "test",
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("got:\n%#v", actual)
+	}
+}

@@ -186,6 +186,37 @@ func (s *State) moduleByPath(path []string) *ModuleState {
 	return nil
 }
 
+// GetResourceStateFromResourceAddress accept a ResourceAddress and
+// ResourceType and return the ResourceState that correspoding to the
+// ResourceAddress
+func (s *State) GetResourceStateFromResourceAddress(rsa *ResourceAddress, resourceType string) *ResourceState {
+
+	// Getting ModuleState from resource address path
+	mod := s.ModuleByPath(rsa.Path)
+	if mod == nil {
+		return nil
+	}
+
+	var name string
+	if rsa.Index != -1 {
+		name = strings.Join([]string{resourceType, rsa.Name, strconv.Itoa(rsa.Index)}, ".")
+	} else {
+		name = strings.Join([]string{resourceType, rsa.Name}, ".")
+	}
+
+	// If there are no resources in this module, it is an error
+	if len(mod.Resources) == 0 {
+		return nil
+	}
+
+	rs, ok := mod.Resources[name]
+	if !ok {
+		return nil
+	}
+
+	return rs
+}
+
 // ModuleOrphans returns all the module orphans in this state by
 // returning their full paths. These paths can be used with ModuleByPath
 // to return the actual state.
