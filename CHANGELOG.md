@@ -30,6 +30,7 @@ BUG FIXES:
  * command/apply: fix crash that could happen with an empty directory [GH-11989]
  * command/refresh: fix crash when no configs were in the pwd [GH-12178]
  * command/{state,taint}: work properly with backend state [GH-12155]
+ * providers/terraform: remote state data source works with new backends [GH-12173]
 
 ## 0.9.0-beta1 (February 15, 2017)
 
