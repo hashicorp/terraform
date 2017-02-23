@@ -109,7 +109,7 @@ func (c *TaintCommand) Run(args []string) int {
 	resourceType := strings.Split(name, ".")[0]
 
 	// Getting resource state
-	rs, err := s.ResourceState(rsa, allowMissing, module, resourceType)
+	rs, err := s.GetResourceStateFromResourceAddress(rsa, allowMissing, module, resourceType)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error getting resource state: %s", err))
 		return 1

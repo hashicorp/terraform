@@ -185,7 +185,7 @@ func (s *State) moduleByPath(path []string) *ModuleState {
 	return nil
 }
 
-func (s *State) ResourceState(rsa *ResourceAddress, allowMissing bool, module, resourceType string) (*ResourceState, error) {
+func (s *State) GetResourceStateFromResourceAddress(rsa *ResourceAddress, allowMissing bool, module, resourceType string) (*ResourceState, error) {
 
 	// Getting ModuleState from resource address path
 	mod := s.ModuleByPath(rsa.Path)
