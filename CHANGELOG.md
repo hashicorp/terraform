@@ -30,7 +30,7 @@ IMPROVEMENTS:
  * provider/random_id: Add prefix attribute [GH-12016]
  * provider/statuscake: Add support for Port in statuscake_test [GH-11966]
 
-Bug FIXES:
+BUG FIXES:
 
  * core: Fix a hang that could occur at the end of a Terraform command with custom plugins used [GH-12048]
  * command/fmt: Fix incorrect formatting with single line object following complex object [GH-12049]
@@ -41,6 +41,7 @@ Bug FIXES:
  * provider/aws: Add VRRP to allowed protocols in network ACL rules [GH-12107]
  * provider/aws: Add owner_account option to aws_redshift_cluster [GH-12062]
  * provider/aws: Update of inspector_assessment_target should use ARN not Name [GH-12115]
+ * provider/aws: Fix the panic in ssm_association with parameters [GH-12215]
  * provider/azurerm: Ignore case on protocol and allocation types [GH-12176]
  * provider/cloudflare: add validation for proxied record types [GH-11993]
  * provider/datadog: Adding default values to datadog_monitor [GH-12168]
