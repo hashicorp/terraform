@@ -26,6 +26,7 @@ IMPROVEMENTS:
  * provider/google: google_project supports billing account [GH-11653]
  * provider/openstack: Don't allow floating IP and port [GH-12099]
  * provider/openstack: Enable HTTP Logging [GH-12089]
+ * provider/pagerduty: Import support for service integrations [GH-12141]
  * provider/random_id: Add prefix attribute [GH-12016]
  * provider/statuscake: Add support for Port in statuscake_test [GH-11966]
 
