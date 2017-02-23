@@ -40,7 +40,7 @@ type ArmClient struct {
 	rivieraClient *riviera.Client
 
 	availSetClient         compute.AvailabilitySetsClient
-	usageOpsClient         compute.UsageOperationsClient
+	usageOpsClient         compute.UsageClient
 	vmExtensionImageClient compute.VirtualMachineExtensionImagesClient
 	vmExtensionClient      compute.VirtualMachineExtensionsClient
 	vmScaleSetClient       compute.VirtualMachineScaleSetsClient
@@ -76,7 +76,7 @@ type ArmClient struct {
 	providers           resources.ProvidersClient
 	resourceGroupClient resources.GroupsClient
 	tagsClient          resources.TagsClient
-	resourceFindClient  resources.Client
+	resourceFindClient  resources.GroupClient
 
 	jobsClient            scheduler.JobsClient
 	jobsCollectionsClient scheduler.JobCollectionsClient
@@ -86,7 +86,7 @@ type ArmClient struct {
 
 	deploymentsClient resources.DeploymentsClient
 
-	redisClient redis.Client
+	redisClient redis.GroupClient
 
 	trafficManagerProfilesClient  trafficmanager.ProfilesClient
 	trafficManagerEndpointsClient trafficmanager.EndpointsClient
@@ -191,7 +191,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	asc.Sender = autorest.CreateSender(withRequestLogging())
 	client.availSetClient = asc
 
-	uoc := compute.NewUsageOperationsClientWithBaseURI(endpoint, c.SubscriptionID)
+	uoc := compute.NewUsageClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&uoc.Client)
 	uoc.Authorizer = spt
 	uoc.Sender = autorest.CreateSender(withRequestLogging())
@@ -359,7 +359,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	tc.Sender = autorest.CreateSender(withRequestLogging())
 	client.tagsClient = tc
 
-	rf := resources.NewClientWithBaseURI(endpoint, c.SubscriptionID)
+	rf := resources.NewGroupClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&rf.Client)
 	rf.Authorizer = spt
 	rf.Sender = autorest.CreateSender(withRequestLogging())
@@ -419,7 +419,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	tmec.Sender = autorest.CreateSender(withRequestLogging())
 	client.trafficManagerEndpointsClient = tmec
 
-	rdc := redis.NewClientWithBaseURI(endpoint, c.SubscriptionID)
+	rdc := redis.NewGroupClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&rdc.Client)
 	rdc.Authorizer = spt
 	rdc.Sender = autorest.CreateSender(withRequestLogging())
