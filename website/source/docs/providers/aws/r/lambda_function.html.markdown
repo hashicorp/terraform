@@ -57,6 +57,7 @@ resource "aws_lambda_function" "test_lambda" {
 * `s3_key` - (Optional) The S3 key of a [zip file][2] containing your lambda function source code. Conflicts with `filename`.
 * `s3_object_version` - (Optional) The object version of your lambda function source code. Conflicts with `filename`.
 * `function_name` - (Required) A unique name for your Lambda Function.
+* `dead_letter_config` - (Optional) Nested block to configure the function's *dead letter queue*. See details below.
 * `handler` - (Required) The function [entrypoint][3] in your code.
 * `role` - (Required) IAM role attached to the Lambda Function. This governs both who / what can invoke your Lambda Function, as well as what resources our Lambda Function has access to. See [Lambda Permission Model][4] for more details.
 * `description` - (Optional) Description of what your Lambda Function does.
@@ -69,6 +70,13 @@ resource "aws_lambda_function" "test_lambda" {
 * `kms_key_arn` - (Optional) The ARN for the KMS encryption key.
 * `source_code_hash` - (Optional) Used to trigger updates. This is only useful in conjunction with `filename`.
   The only useful value is `${base64sha256(file("file.zip"))}`.
+
+**dead\_letter\_config** is a child block with a single argument:
+
+* `target_arn` - (Required) The ARN of an SNS topic or SQS queue to notify when an invocation fails. If this
+  option is used, the function's IAM role must be granted suitable access to write to the target object,
+  which means allowing either the `sns:Publish` or `sqs:SendMessage` action on this ARN, depending on
+  which service is targeted.
 
 **vpc\_config** requires the following:
 
