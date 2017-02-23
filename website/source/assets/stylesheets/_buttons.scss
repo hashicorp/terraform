@@ -30,6 +30,13 @@
 		border: 2px solid $purple;
 	}
 
+  &.small-outline-btn{
+    font-size: 16px;
+    padding: 0px 15px 3px 10px;
+    letter-spacing: 0;
+    border: 2px solid rgba(255, 255, 255, .7);
+  }
+
 	&:hover{
 		color: $white;
 		background-color: rgba(255, 255, 255, .2);
@@ -38,6 +45,31 @@
 		&.purple{
 			background-color: rgba(255, 255, 255, .5);
 		}
+	}
+}
+
+.simple-btn{
+	position: relative;
+	display: inline-block;
+	// Extra 3px of bottom padding compensates for ::after content
+	background-color: transparent;
+	color: $white;
+	font-size: 16px;
+	font-weight: 500;
+	text-transform: uppercase;
+	text-decoration: none !important;
+	@include transition(color .3s ease-in-out);
+
+	&::after {
+		font-size: 1.2em;
+		content: "»";
+		position: relative;
+		left: 5px;
+	}
+
+	&:hover{
+		color: rgba(255, 255, 255, .4);
+		@include transition(color .3s ease-in-out);
 	}
 }
 
