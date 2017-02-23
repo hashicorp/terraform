@@ -1,17 +1,13 @@
 package profitbricks
 
 import (
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
-	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/profitbricks/profitbricks-sdk-go"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"log"
-	"strconv"
 	"strings"
 )
 
@@ -147,8 +143,8 @@ func resourceProfitBricksServer() *schema.Resource {
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Computed: true,
 						},
-						"nat": {
-							Type:     schema.TypeBool,
+						"nat" :{
+							Type: schema.TypeBool,
 							Optional: true,
 						},
 						"firewall_active": {
@@ -258,18 +254,19 @@ func resourceProfitBricksServerCreate(d *schema.ResourceData, meta interface{}) 
 			var sshkey_path []interface{}
 			var image, licenceType, availabilityZone string
 
-			if rawMap["image_name"] != nil {
-				if !IsValidUUID(rawMap["image_name"].(string)) {
+			if !IsValidUUID(rawMap["image_name"].(string)) {
+				if rawMap["image_name"] != nil {
 					image = getImageId(d.Get("datacenter_id").(string), rawMap["image_name"].(string), rawMap["disk_type"].(string))
 					if image == "" {
 						dc := profitbricks.GetDatacenter(d.Get("datacenter_id").(string))
 						return fmt.Errorf("Image '%s' doesn't exist. in location %s", rawMap["image_name"], dc.Properties.Location)
 
 					}
-				} else {
-					image = rawMap["image_name"].(string)
 				}
+			} else {
+				image = rawMap["image_name"].(string)
 			}
+
 			if rawMap["licence_type"] != nil {
 				licenceType = rawMap["licence_type"].(string)
 			}
@@ -291,7 +288,7 @@ func resourceProfitBricksServerCreate(d *schema.ResourceData, meta interface{}) 
 					log.Printf("[DEBUG] Reading file %s", path)
 					publicKey, err := readPublicKey(path.(string))
 					if err != nil {
-						return fmt.Errorf("Error fetching sshkey from file (%s) (%s)", path, err.Error())
+						return fmt.Errorf("Error fetching sshkey from file (%s) %s", path, err.Error())
 					}
 					publicKeys = append(publicKeys, publicKey)
 				}
@@ -308,13 +305,13 @@ func resourceProfitBricksServerCreate(d *schema.ResourceData, meta interface{}) 
 					Items: []profitbricks.Volume{
 						{
 							Properties: profitbricks.VolumeProperties{
-								Name:             rawMap["name"].(string),
-								Size:             rawMap["size"].(int),
-								Type:             rawMap["disk_type"].(string),
-								ImagePassword:    imagePassword,
-								Image:            image,
-								Bus:              rawMap["bus"].(string),
-								LicenceType:      licenceType,
+								Name:          rawMap["name"].(string),
+								Size:          rawMap["size"].(int),
+								Type:          rawMap["disk_type"].(string),
+								ImagePassword: imagePassword,
+								Image:         image,
+								Bus:           rawMap["bus"].(string),
+								LicenceType:   licenceType,
 								AvailabilityZone: availabilityZone,
 							},
 						},
@@ -403,7 +400,7 @@ func resourceProfitBricksServerCreate(d *schema.ResourceData, meta interface{}) 
 					}
 
 					request.Entities.Nics.Items[0].Entities = &profitbricks.NicEntities{
-						Firewallrules: &profitbricks.FirewallRules{
+						Firewallrules : &profitbricks.FirewallRules{
 							Items: []profitbricks.FirewallRule{
 								firewall,
 							},
@@ -435,7 +432,8 @@ func resourceProfitBricksServerCreate(d *schema.ResourceData, meta interface{}) 
 	}
 	d.SetId(server.Id)
 	server = profitbricks.GetServer(d.Get("datacenter_id").(string), server.Id)
-	d.Set("primary_nic", server.Entities.Nics.Items[0])
+
+	d.Set("primary_nic", server.Entities.Nics.Items[0].Id)
 	if len(server.Entities.Nics.Items[0].Properties.Ips) > 0 {
 		d.SetConnInfo(map[string]string{
 			"type":     "ssh",
@@ -448,31 +446,41 @@ func resourceProfitBricksServerCreate(d *schema.ResourceData, meta interface{}) 
 
 func resourceProfitBricksServerRead(d *schema.ResourceData, meta interface{}) error {
 	dcId := d.Get("datacenter_id").(string)
+	serverId := d.Id()
 
-	server := profitbricks.GetServer(dcId, d.Id())
-
-	primarynic := ""
-
-	if server.Entities != nil && server.Entities.Nics != nil && len(server.Entities.Nics.Items) > 0 {
-		for _, n := range server.Entities.Nics.Items {
-			if n.Properties.Lan != 0 {
-				lan := profitbricks.GetLan(dcId, strconv.Itoa(n.Properties.Lan))
-				if lan.StatusCode > 299 {
-					return fmt.Errorf("Error while fetching a lan %s", lan.Response)
-				}
-				if lan.Properties.Public.(interface{}) == true {
-					primarynic = n.Id
-					break
-				}
-			}
-		}
-	}
+	server := profitbricks.GetServer(dcId, serverId)
+	primarynic := d.Get("primary_nic").(string)
 
 	d.Set("name", server.Properties.Name)
 	d.Set("cores", server.Properties.Cores)
 	d.Set("ram", server.Properties.Ram)
 	d.Set("availability_zone", server.Properties.AvailabilityZone)
 	d.Set("primary_nic", primarynic)
+
+	nic := profitbricks.GetNic(dcId, serverId, primarynic)
+
+	if len(nic.Properties.Ips) > 0 {
+		d.Set("primary_ip", nic.Properties.Ips[0])
+	}
+
+	if nRaw, ok := d.GetOk("nic"); ok {
+		log.Printf("[DEBUG] parsing nic")
+
+		nicRaw := nRaw.(*schema.Set).List()
+
+		for _, raw := range nicRaw {
+
+			rawMap := raw.(map[string]interface{})
+
+			rawMap["lan"] = nic.Properties.Lan
+			rawMap["name"] = nic.Properties.Name
+			rawMap["dhcp"] = nic.Properties.Dhcp
+			rawMap["nat"] = nic.Properties.Nat
+			rawMap["firewall_active"] = nic.Properties.FirewallActive
+			rawMap["ips"] = nic.Properties.Ips
+		}
+		d.Set("nic", nicRaw)
+	}
 
 	if server.Properties.BootVolume != nil {
 		d.Set("boot_volume", server.Properties.BootVolume.Id)
@@ -638,38 +646,4 @@ func readPublicKey(path string) (key string, err error) {
 		return "", err
 	}
 	return string(ssh.MarshalAuthorizedKey(pubKey)[:]), nil
-}
-
-func getSshKey(d *schema.ResourceData, path string) (privatekey string, publickey string, err error) {
-	pemBytes, err := ioutil.ReadFile(path)
-
-	if err != nil {
-		return "", "", err
-	}
-
-	block, _ := pem.Decode(pemBytes)
-
-	if block == nil {
-		return "", "", errors.New("File " + path + " contains nothing")
-	}
-
-	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-
-	if err != nil {
-		return "", "", err
-	}
-	priv_blk := pem.Block{
-		Type:    "RSA PRIVATE KEY",
-		Headers: nil,
-		Bytes:   x509.MarshalPKCS1PrivateKey(priv),
-	}
-
-	pub, err := ssh.NewPublicKey(&priv.PublicKey)
-	if err != nil {
-		return "", "", err
-	}
-	publickey = string(ssh.MarshalAuthorizedKey(pub))
-	privatekey = string(pem.EncodeToMemory(&priv_blk))
-
-	return privatekey, publickey, nil
 }
