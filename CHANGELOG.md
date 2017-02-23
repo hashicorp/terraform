@@ -46,6 +46,7 @@ Bug FIXES:
  * provider/datadog: Adding default values to datadog_monitor [GH-12168]
  * provider/google: make local_traffic_selector computed [GH-11631]
  * provider/google: Write the raw disk encryption key in the state file to avoid diffs on plan [GH-12068]
+ * provider/pagerduty: Setting incident_urgency_rule as optional [GH-12211]
  * provider/profitbricks: Fixing how primary_nic is added to profitbricks server [GH-12197]
 
 ## 0.8.7 (February 15, 2017)
