@@ -52,7 +52,7 @@ func resourcePagerDutyService() *schema.Resource {
 			},
 			"incident_urgency_rule": &schema.Schema{
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
