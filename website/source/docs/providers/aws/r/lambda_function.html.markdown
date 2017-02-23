@@ -92,6 +92,7 @@ For **environment** the following attributes are supported:
 ## Attributes Reference
 
 * `arn` - The Amazon Resource Name (ARN) identifying your Lambda Function.
+* `function_name` - The function name identifying your Lambda Function.
 * `qualified_arn` - The Amazon Resource Name (ARN) identifying your Lambda Function Version
   (if versioning is enabled via `publish = true`).
 * `version` - Latest published version of your Lambda Function.
