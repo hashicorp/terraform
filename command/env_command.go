@@ -1,12 +1,6 @@
 package command
 
-import (
-	"fmt"
-	"strings"
-
-	"github.com/hashicorp/terraform/backend"
-	"github.com/mitchellh/cli"
-)
+import "strings"
 
 // EnvCommand is a Command Implementation that manipulates local state
 // environments.
@@ -19,34 +13,7 @@ func (c *EnvCommand) Run(args []string) int {
 
 	cmdFlags := c.Meta.flagSet("env")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		return 1
-	}
-	args = cmdFlags.Args()
-	if len(args) > 0 {
-		c.Ui.Error("0 arguments expected.\n")
-		return cli.RunResultHelp
-	}
 
-	// Load the backend
-	b, err := c.Backend(nil)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
-		return 1
-	}
-
-	multi, ok := b.(backend.MultiState)
-	if !ok {
-		c.Ui.Error(envNotSupported)
-		return 1
-	}
-	_, current, err := multi.States()
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
-	c.Ui.Output(fmt.Sprintf("Current environment is %q\n", current))
 	c.Ui.Output(c.Help())
 	return 0
 }

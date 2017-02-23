@@ -29,15 +29,21 @@ func (c *EnvNewCommand) Run(args []string) int {
 		return 1
 	}
 	args = cmdFlags.Args()
-	if len(args) != 1 {
+	if len(args) == 0 {
 		c.Ui.Error("expected NAME.\n")
 		return cli.RunResultHelp
 	}
 
 	newEnv := args[0]
 
+	configPath, err := ModulePath(args[1:])
+	if err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+
 	// Load the backend
-	b, err := c.Backend(nil)
+	b, err := c.Backend(&BackendOpts{ConfigPath: configPath})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
@@ -116,7 +122,7 @@ func (c *EnvNewCommand) Run(args []string) int {
 
 func (c *EnvNewCommand) Help() string {
 	helpText := `
-Usage: terraform env new [OPTIONS] NAME
+Usage: terraform env new [OPTIONS] NAME [DIR]
 
   Create a new Terraform environment.
 

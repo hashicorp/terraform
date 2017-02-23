@@ -21,13 +21,19 @@ func (c *EnvSelectCommand) Run(args []string) int {
 		return 1
 	}
 	args = cmdFlags.Args()
-	if len(args) != 1 {
+	if len(args) == 0 {
 		c.Ui.Error("expected NAME.\n")
 		return cli.RunResultHelp
 	}
 
+	configPath, err := ModulePath(args[1:])
+	if err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+
 	// Load the backend
-	b, err := c.Backend(nil)
+	b, err := c.Backend(&BackendOpts{ConfigPath: configPath})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
@@ -81,7 +87,7 @@ func (c *EnvSelectCommand) Run(args []string) int {
 
 func (c *EnvSelectCommand) Help() string {
 	helpText := `
-Usage: terraform env select NAME
+Usage: terraform env select NAME [DIR]
 
   Change Terraform environment.
 `
