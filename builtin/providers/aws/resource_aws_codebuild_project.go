@@ -557,8 +557,10 @@ func resourceAwsCodeBuildProjectEnvironmentHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", computeType))
 	buf.WriteString(fmt.Sprintf("%s-", image))
 	for _, e := range environmentVariables {
-		ev := e.(map[string]interface{})
-		buf.WriteString(fmt.Sprintf("%s:%s-", ev["name"].(string), ev["value"].(string)))
+		if e != nil { // Old statefiles might have nil values in them
+			ev := e.(map[string]interface{})
+			buf.WriteString(fmt.Sprintf("%s:%s-", ev["name"].(string), ev["value"].(string)))
+		}
 	}
 
 	return hashcode.String(buf.String())
