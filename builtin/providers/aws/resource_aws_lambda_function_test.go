@@ -172,6 +172,37 @@ func TestAccAWSLambdaFunction_versioned(t *testing.T) {
 	})
 }
 
+func TestAccAWSLambdaFunction_DeadLetterConfig(t *testing.T) {
+	var conf lambda.GetFunctionOutput
+
+	rSt := acctest.RandString(5)
+	rName := fmt.Sprintf("tf_test_%s", rSt)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaFunctionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSLambdaConfigWithDeadLetterConfig(rName, rSt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
+					testAccCheckAwsLambdaFunctionName(&conf, rName),
+					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":"+rName),
+					func(s *terraform.State) error {
+						if !strings.HasSuffix(*conf.Configuration.DeadLetterConfig.TargetArn, ":"+rName) {
+							return fmt.Errorf(
+								"Expected DeadLetterConfig.TargetArn %s to have suffix %s", *conf.Configuration.DeadLetterConfig.TargetArn, ":"+rName,
+							)
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSLambdaFunction_VPC(t *testing.T) {
 	var conf lambda.GetFunctionOutput
 
@@ -681,6 +712,15 @@ resource "aws_iam_role_policy" "iam_policy_for_lambda" {
       "Resource": [
         "*"
       ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "SNS:Publish"
+      ],
+      "Resource": [
+        "*"
+      ]
     }
   ]
 }
@@ -877,6 +917,27 @@ resource "aws_lambda_function" "lambda_function_test" {
     runtime = "nodejs4.3"
 }
 `, rName)
+}
+
+func testAccAWSLambdaConfigWithDeadLetterConfig(rName, rSt string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig(rSt)+`
+resource "aws_lambda_function" "lambda_function_test" {
+    filename = "test-fixtures/lambdatest.zip"
+    function_name = "%s"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+    runtime = "nodejs4.3"
+
+    dead_letter_config {
+        target_arn = "${aws_sns_topic.lambda_function_test.arn}"
+    }
+}
+
+resource "aws_sns_topic" "lambda_function_test" {
+	name = "%s"
+}
+
+`, rName, rName)
 }
 
 func testAccAWSLambdaConfigWithVPC(rName, rSt string) string {
