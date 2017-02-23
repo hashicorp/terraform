@@ -196,31 +196,31 @@ func (c *SimpleDB) BatchPutAttributesRequest(input *BatchPutAttributesInput) (re
 // API operation BatchPutAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * DuplicateItemName
+//   * ErrCodeDuplicateItemName "DuplicateItemName"
 //   The item name was specified more than once.
 //
-//   * InvalidParameterValue
+//   * ErrCodeInvalidParameterValue "InvalidParameterValue"
 //   The value for a parameter is invalid.
 //
-//   * MissingParameter
+//   * ErrCodeMissingParameter "MissingParameter"
 //   The request must contain the specified missing parameter.
 //
-//   * NoSuchDomain
+//   * ErrCodeNoSuchDomain "NoSuchDomain"
 //   The specified domain does not exist.
 //
-//   * NumberItemAttributesExceeded
+//   * ErrCodeNumberItemAttributesExceeded "NumberItemAttributesExceeded"
 //   Too many attributes in this item.
 //
-//   * NumberDomainAttributesExceeded
+//   * ErrCodeNumberDomainAttributesExceeded "NumberDomainAttributesExceeded"
 //   Too many attributes in this domain.
 //
-//   * NumberDomainBytesExceeded
+//   * ErrCodeNumberDomainBytesExceeded "NumberDomainBytesExceeded"
 //   Too many bytes in this domain.
 //
-//   * NumberSubmittedItemsExceeded
+//   * ErrCodeNumberSubmittedItemsExceeded "NumberSubmittedItemsExceeded"
 //   Too many items exist in a single call.
 //
-//   * NumberSubmittedAttributesExceeded
+//   * ErrCodeNumberSubmittedAttributesExceeded "NumberSubmittedAttributesExceeded"
 //   Too many attributes exist in a single call.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI//BatchPutAttributes
@@ -295,13 +295,13 @@ func (c *SimpleDB) CreateDomainRequest(input *CreateDomainInput) (req *request.R
 // API operation CreateDomain for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValue
+//   * ErrCodeInvalidParameterValue "InvalidParameterValue"
 //   The value for a parameter is invalid.
 //
-//   * MissingParameter
+//   * ErrCodeMissingParameter "MissingParameter"
 //   The request must contain the specified missing parameter.
 //
-//   * NumberDomainsExceeded
+//   * ErrCodeNumberDomainsExceeded "NumberDomainsExceeded"
 //   Too many domains exist per this account.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI//CreateDomain
@@ -378,16 +378,16 @@ func (c *SimpleDB) DeleteAttributesRequest(input *DeleteAttributesInput) (req *r
 // API operation DeleteAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValue
+//   * ErrCodeInvalidParameterValue "InvalidParameterValue"
 //   The value for a parameter is invalid.
 //
-//   * MissingParameter
+//   * ErrCodeMissingParameter "MissingParameter"
 //   The request must contain the specified missing parameter.
 //
-//   * NoSuchDomain
+//   * ErrCodeNoSuchDomain "NoSuchDomain"
 //   The specified domain does not exist.
 //
-//   * AttributeDoesNotExist
+//   * ErrCodeAttributeDoesNotExist "AttributeDoesNotExist"
 //   The specified attribute does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI//DeleteAttributes
@@ -459,7 +459,7 @@ func (c *SimpleDB) DeleteDomainRequest(input *DeleteDomainInput) (req *request.R
 // API operation DeleteDomain for usage and error information.
 //
 // Returned Error Codes:
-//   * MissingParameter
+//   * ErrCodeMissingParameter "MissingParameter"
 //   The request must contain the specified missing parameter.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI//DeleteDomain
@@ -526,10 +526,10 @@ func (c *SimpleDB) DomainMetadataRequest(input *DomainMetadataInput) (req *reque
 // API operation DomainMetadata for usage and error information.
 //
 // Returned Error Codes:
-//   * MissingParameter
+//   * ErrCodeMissingParameter "MissingParameter"
 //   The request must contain the specified missing parameter.
 //
-//   * NoSuchDomain
+//   * ErrCodeNoSuchDomain "NoSuchDomain"
 //   The specified domain does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI//DomainMetadata
@@ -603,13 +603,13 @@ func (c *SimpleDB) GetAttributesRequest(input *GetAttributesInput) (req *request
 // API operation GetAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValue
+//   * ErrCodeInvalidParameterValue "InvalidParameterValue"
 //   The value for a parameter is invalid.
 //
-//   * MissingParameter
+//   * ErrCodeMissingParameter "MissingParameter"
 //   The request must contain the specified missing parameter.
 //
-//   * NoSuchDomain
+//   * ErrCodeNoSuchDomain "NoSuchDomain"
 //   The specified domain does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI//GetAttributes
@@ -685,10 +685,10 @@ func (c *SimpleDB) ListDomainsRequest(input *ListDomainsInput) (req *request.Req
 // API operation ListDomains for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValue
+//   * ErrCodeInvalidParameterValue "InvalidParameterValue"
 //   The value for a parameter is invalid.
 //
-//   * InvalidNextToken
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
 //   The specified NextToken is not valid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI//ListDomains
@@ -810,25 +810,25 @@ func (c *SimpleDB) PutAttributesRequest(input *PutAttributesInput) (req *request
 // API operation PutAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValue
+//   * ErrCodeInvalidParameterValue "InvalidParameterValue"
 //   The value for a parameter is invalid.
 //
-//   * MissingParameter
+//   * ErrCodeMissingParameter "MissingParameter"
 //   The request must contain the specified missing parameter.
 //
-//   * NoSuchDomain
+//   * ErrCodeNoSuchDomain "NoSuchDomain"
 //   The specified domain does not exist.
 //
-//   * NumberDomainAttributesExceeded
+//   * ErrCodeNumberDomainAttributesExceeded "NumberDomainAttributesExceeded"
 //   Too many attributes in this domain.
 //
-//   * NumberDomainBytesExceeded
+//   * ErrCodeNumberDomainBytesExceeded "NumberDomainBytesExceeded"
 //   Too many bytes in this domain.
 //
-//   * NumberItemAttributesExceeded
+//   * ErrCodeNumberItemAttributesExceeded "NumberItemAttributesExceeded"
 //   Too many attributes in this item.
 //
-//   * AttributeDoesNotExist
+//   * ErrCodeAttributeDoesNotExist "AttributeDoesNotExist"
 //   The specified attribute does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI//PutAttributes
@@ -909,32 +909,32 @@ func (c *SimpleDB) SelectRequest(input *SelectInput) (req *request.Request, outp
 // API operation Select for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValue
+//   * ErrCodeInvalidParameterValue "InvalidParameterValue"
 //   The value for a parameter is invalid.
 //
-//   * InvalidNextToken
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
 //   The specified NextToken is not valid.
 //
-//   * InvalidNumberPredicates
+//   * ErrCodeInvalidNumberPredicates "InvalidNumberPredicates"
 //   Too many predicates exist in the query expression.
 //
-//   * InvalidNumberValueTests
+//   * ErrCodeInvalidNumberValueTests "InvalidNumberValueTests"
 //   Too many predicates exist in the query expression.
 //
-//   * InvalidQueryExpression
+//   * ErrCodeInvalidQueryExpression "InvalidQueryExpression"
 //   The specified query expression syntax is not valid.
 //
-//   * MissingParameter
+//   * ErrCodeMissingParameter "MissingParameter"
 //   The request must contain the specified missing parameter.
 //
-//   * NoSuchDomain
+//   * ErrCodeNoSuchDomain "NoSuchDomain"
 //   The specified domain does not exist.
 //
-//   * RequestTimeout
+//   * ErrCodeRequestTimeout "RequestTimeout"
 //   A timeout occurred when attempting to query the specified domain with specified
 //   query expression.
 //
-//   * TooManyRequestedAttributes
+//   * ErrCodeTooManyRequestedAttributes "TooManyRequestedAttributes"
 //   Too many attributes requested.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI//Select

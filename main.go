@@ -7,15 +7,22 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mattn/go-colorable"
+	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/panicwrap"
 	"github.com/mitchellh/prefixedio"
+)
+
+const (
+	// EnvCLI is the environment variable name to set additional CLI args.
+	EnvCLI = "TF_CLI_ARGS"
 )
 
 func main() {
@@ -96,6 +103,7 @@ func wrappedMain() int {
 	log.Printf(
 		"[INFO] Terraform version: %s %s %s",
 		Version, VersionPrerelease, GitCommit)
+	log.Printf("[INFO] Go runtime version: %s", runtime.Version())
 	log.Printf("[INFO] CLI args: %#v", os.Args)
 
 	// Load the configuration
@@ -129,9 +137,35 @@ func wrappedMain() int {
 	// Make sure we clean up any managed plugins at the end of this
 	defer plugin.CleanupClients()
 
-	// Get the command line args. We shortcut "--version" and "-v" to
-	// just show the version.
+	// Get the command line args.
 	args := os.Args[1:]
+
+	// Build the CLI so far, we do this so we can query the subcommand.
+	cliRunner := &cli.CLI{
+		Args:       args,
+		Commands:   Commands,
+		HelpFunc:   helpFunc,
+		HelpWriter: os.Stdout,
+	}
+
+	// Prefix the args with any args from the EnvCLI
+	args, err = mergeEnvArgs(EnvCLI, cliRunner.Subcommand(), args)
+	if err != nil {
+		Ui.Error(err.Error())
+		return 1
+	}
+
+	// Prefix the args with any args from the EnvCLI targeting this command
+	suffix := strings.Replace(strings.Replace(
+		cliRunner.Subcommand(), "-", "_", -1), " ", "_", -1)
+	args, err = mergeEnvArgs(
+		fmt.Sprintf("%s_%s", EnvCLI, suffix), cliRunner.Subcommand(), args)
+	if err != nil {
+		Ui.Error(err.Error())
+		return 1
+	}
+
+	// We shortcut "--version" and "-v" to just show the version
 	for _, arg := range args {
 		if arg == "-v" || arg == "-version" || arg == "--version" {
 			newArgs := make([]string, len(args)+1)
@@ -142,7 +176,9 @@ func wrappedMain() int {
 		}
 	}
 
-	cli := &cli.CLI{
+	// Rebuild the CLI with any modified args.
+	log.Printf("[INFO] CLI command args: %#v", args)
+	cliRunner = &cli.CLI{
 		Args:       args,
 		Commands:   Commands,
 		HelpFunc:   helpFunc,
@@ -153,7 +189,7 @@ func wrappedMain() int {
 	ContextOpts.Providers = config.ProviderFactories()
 	ContextOpts.Provisioners = config.ProvisionerFactories()
 
-	exitCode, err := cli.Run()
+	exitCode, err := cliRunner.Run()
 	if err != nil {
 		Ui.Error(fmt.Sprintf("Error executing CLI: %s", err.Error()))
 		return 1
@@ -240,4 +276,48 @@ func copyOutput(r io.Reader, doneCh chan<- struct{}) {
 	}()
 
 	wg.Wait()
+}
+
+func mergeEnvArgs(envName string, cmd string, args []string) ([]string, error) {
+	v := os.Getenv(envName)
+	if v == "" {
+		return args, nil
+	}
+
+	log.Printf("[INFO] %s value: %q", envName, v)
+	extra, err := shellwords.Parse(v)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Error parsing extra CLI args from %s: %s",
+			envName, err)
+	}
+
+	// Find the command to look for in the args. If there is a space,
+	// we need to find the last part.
+	search := cmd
+	if idx := strings.LastIndex(search, " "); idx >= 0 {
+		search = cmd[idx+1:]
+	}
+
+	// Find the index to place the flags. We put them exactly
+	// after the first non-flag arg.
+	idx := -1
+	for i, v := range args {
+		if v == search {
+			idx = i
+			break
+		}
+	}
+
+	// idx points to the exact arg that isn't a flag. We increment
+	// by one so that all the copying below expects idx to be the
+	// insertion point.
+	idx++
+
+	// Copy the args
+	newArgs := make([]string, len(args)+len(extra))
+	copy(newArgs, args[:idx])
+	copy(newArgs[idx:], extra)
+	copy(newArgs[len(extra)+idx:], args[idx:])
+	return newArgs, nil
 }

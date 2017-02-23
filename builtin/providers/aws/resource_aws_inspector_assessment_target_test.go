@@ -17,14 +17,20 @@ func TestAccAWSInspectorTarget_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSInspectorTargetAssessmentDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSInspectorTargetAssessment,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSInspectorTargetExists("aws_inspector_assessment_target.foo"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckAWSInspectorTargetAssessmentModified,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSInspectorTargetExists("aws_inspector_assessment_target.foo"),
+				),
+			},
+			{
+				Config: testAccCheckAWSInspectorTargetAssessmentUpdatedResourceGroup,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSInspectorTargetExists("aws_inspector_assessment_target.foo"),
 				),
@@ -98,4 +104,23 @@ resource "aws_inspector_resource_group" "foo" {
 resource "aws_inspector_assessment_target" "foo" {
 	name = "bar"
 	resource_group_arn =  "${aws_inspector_resource_group.foo.arn}"
+}`
+
+var testAccCheckAWSInspectorTargetAssessmentUpdatedResourceGroup = `
+
+resource "aws_inspector_resource_group" "foo" {
+	tags {
+	  Name  = "bar"
+  }
+}
+
+resource "aws_inspector_resource_group" "bar" {
+	tags {
+	  Name  = "test"
+  }
+}
+
+resource "aws_inspector_assessment_target" "foo" {
+	name = "bar"
+	resource_group_arn =  "${aws_inspector_resource_group.bar.arn}"
 }`

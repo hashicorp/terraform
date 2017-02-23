@@ -3,13 +3,13 @@ layout: "newrelic"
 page_title: "Provider: New Relic"
 sidebar_current: "docs-newrelic-index"
 description: |-
-  New Relic offers a performance management solution enabling developers to 
+  New Relic offers a performance management solution enabling developers to
   diagnose and fix application performance problems in real time.
 ---
 
 # New Relic Provider
 
-[New Relic](https://newrelic.com/) offers a performance management solution 
+[New Relic](https://newrelic.com/) offers a performance management solution
 enabling developers to diagnose and fix application performance problems in real time.
 
 Use the navigation to the left to read about the available resources.
@@ -19,12 +19,12 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the New Relic provider
 provider "newrelic" {
-    api_key = "${var.newrelic_api_key}"
+  api_key = "${var.newrelic_api_key}"
 }
 
 # Create an alert policy
 resource "newrelic_alert_policy" "alert" {
-    name = "Alert"
+  name = "Alert"
 }
 
 # Add a condition
@@ -33,7 +33,7 @@ resource "newrelic_alert_condition" "foo" {
 
   name        = "foo"
   type        = "apm_app_metric"
-  entities    = ["12345"] # You can look this up in New Relic
+  entities    = ["12345"]                             # You can look this up in New Relic
   metric      = "apdex"
   runbook_url = "https://docs.example.com/my-runbook"
 
@@ -52,7 +52,7 @@ resource "newrelic_alert_channel" "email" {
   type = "email"
 
   configuration = {
-    recipients = "paul@example.com"
+    recipients              = "paul@example.com"
     include_json_attachment = "1"
   }
 }

@@ -19,13 +19,13 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Heroku provider
 provider "heroku" {
-    email = "ops@company.com"
-	api_key = "${var.heroku_api_key}"
+  email   = "ops@company.com"
+  api_key = "${var.heroku_api_key}"
 }
 
 # Create a new application
 resource "heroku_app" "default" {
-    ...
+  # ...
 }
 ```
 

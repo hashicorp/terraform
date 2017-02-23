@@ -17,7 +17,7 @@ func resourceRancherRegistryCredential() *schema.Resource {
 		Update: resourceRancherRegistryCredentialUpdate,
 		Delete: resourceRancherRegistryCredentialDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceRancherRegistryCredentialImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -104,11 +104,26 @@ func resourceRancherRegistryCredentialCreate(d *schema.ResourceData, meta interf
 
 func resourceRancherRegistryCredentialRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing RegistryCredential: %s", d.Id())
-	client := meta.(*Config)
+	client, err := meta.(*Config).RegistryClient(d.Get("registry_id").(string))
+	if err != nil {
+		return err
+	}
 
 	registryCred, err := client.RegistryCredential.ById(d.Id())
 	if err != nil {
 		return err
+	}
+
+	if registryCred == nil {
+		log.Printf("[INFO] RegistryCredential %s not found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	if removed(registryCred.State) {
+		log.Printf("[INFO] Registry Credential %s was removed on %v", d.Id(), registryCred.Removed)
+		d.SetId("")
+		return nil
 	}
 
 	log.Printf("[INFO] RegistryCredential Name: %s", registryCred.Name)
@@ -215,6 +230,25 @@ func resourceRancherRegistryCredentialDelete(d *schema.ResourceData, meta interf
 
 	d.SetId("")
 	return nil
+}
+
+func resourceRancherRegistryCredentialImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	regID, resourceID := splitID(d.Id())
+	d.SetId(resourceID)
+	if regID != "" {
+		d.Set("registry_id", regID)
+	} else {
+		client, err := meta.(*Config).GlobalClient()
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		cred, err := client.RegistryCredential.ById(d.Id())
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		d.Set("registry_id", cred.RegistryId)
+	}
+	return []*schema.ResourceData{d}, nil
 }
 
 // RegistryCredentialStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch

@@ -14,12 +14,12 @@ Manages a distribution within Cobbler.
 
 ```
 resource "cobbler_distro" "ubuntu-1404-x86_64" {
-  name = "foo"
-  breed = "ubuntu"
+  name       = "foo"
+  breed      = "ubuntu"
   os_version = "trusty"
-  arch = "x86_64"
-  kernel = "/var/www/cobbler/ks_mirror/Ubuntu-14.04/install/netboot/ubuntu-installer/amd64/linux"
-  initrd = "/var/www/cobbler/ks_mirror/Ubuntu-14.04/install/netboot/ubuntu-installer/amd64/initrd.gz"
+  arch       = "x86_64"
+  kernel     = "/var/www/cobbler/ks_mirror/Ubuntu-14.04/install/netboot/ubuntu-installer/amd64/linux"
+  initrd     = "/var/www/cobbler/ks_mirror/Ubuntu-14.04/install/netboot/ubuntu-installer/amd64/initrd.gz"
 }
 ```
 

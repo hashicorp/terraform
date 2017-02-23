@@ -20,9 +20,9 @@ resource "pagerduty_team" "example" {
 }
 
 resource "pagerduty_user" "example" {
-    name  = "Earline Greenholt"
-    email = "125.greenholt.earline@graham.name"
-    teams = ["${pagerduty_team.example.id}"]
+  name  = "Earline Greenholt"
+  email = "125.greenholt.earline@graham.name"
+  teams = ["${pagerduty_team.example.id}"]
 }
 ```
 

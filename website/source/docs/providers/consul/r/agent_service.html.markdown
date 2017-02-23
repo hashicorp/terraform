@@ -16,10 +16,10 @@ health checks for an agent service is not supported.
 
 ```
 resource "consul_agent_service" "app" {
-    address = "www.google.com"
-    name = "google"
-    port = 80
-    tags = ["tag0", "tag1"]
+  address = "www.google.com"
+  name    = "google"
+  port    = 80
+  tags    = ["tag0", "tag1"]
 }
 ```
 

@@ -4,6 +4,7 @@
 package codecommit
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -73,33 +74,33 @@ func (c *CodeCommit) BatchGetRepositoriesRequest(input *BatchGetRepositoriesInpu
 // API operation BatchGetRepositories for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNamesRequiredException
+//   * ErrCodeRepositoryNamesRequiredException "RepositoryNamesRequiredException"
 //   A repository names object is required but was not specified.
 //
-//   * MaximumRepositoryNamesExceededException
+//   * ErrCodeMaximumRepositoryNamesExceededException "MaximumRepositoryNamesExceededException"
 //   The maximum number of allowed repository names was exceeded. Currently, this
 //   number is 25.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/BatchGetRepositories
@@ -169,51 +170,51 @@ func (c *CodeCommit) CreateBranchRequest(input *CreateBranchInput) (req *request
 // API operation CreateBranch for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * BranchNameRequiredException
+//   * ErrCodeBranchNameRequiredException "BranchNameRequiredException"
 //   A branch name is required but was not specified.
 //
-//   * BranchNameExistsException
+//   * ErrCodeBranchNameExistsException "BranchNameExistsException"
 //   The specified branch name already exists.
 //
-//   * InvalidBranchNameException
+//   * ErrCodeInvalidBranchNameException "InvalidBranchNameException"
 //   The specified branch name is not valid.
 //
-//   * CommitIdRequiredException
+//   * ErrCodeCommitIdRequiredException "CommitIdRequiredException"
 //   A commit ID was not specified.
 //
-//   * CommitDoesNotExistException
+//   * ErrCodeCommitDoesNotExistException "CommitDoesNotExistException"
 //   The specified commit does not exist or no commit was specified, and the specified
 //   repository has no default branch.
 //
-//   * InvalidCommitIdException
+//   * ErrCodeInvalidCommitIdException "InvalidCommitIdException"
 //   The specified commit ID is not valid.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/CreateBranch
@@ -278,38 +279,38 @@ func (c *CodeCommit) CreateRepositoryRequest(input *CreateRepositoryInput) (req 
 // API operation CreateRepository for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameExistsException
+//   * ErrCodeRepositoryNameExistsException "RepositoryNameExistsException"
 //   The specified repository name already exists.
 //
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * InvalidRepositoryDescriptionException
+//   * ErrCodeInvalidRepositoryDescriptionException "InvalidRepositoryDescriptionException"
 //   The specified repository description is not valid.
 //
-//   * RepositoryLimitExceededException
+//   * ErrCodeRepositoryLimitExceededException "RepositoryLimitExceededException"
 //   A repository resource limit was exceeded.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/CreateRepository
@@ -379,34 +380,138 @@ func (c *CodeCommit) DeleteRepositoryRequest(input *DeleteRepositoryInput) (req 
 // API operation DeleteRepository for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/DeleteRepository
 func (c *CodeCommit) DeleteRepository(input *DeleteRepositoryInput) (*DeleteRepositoryOutput, error) {
 	req, out := c.DeleteRepositoryRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetBlob = "GetBlob"
+
+// GetBlobRequest generates a "aws/request.Request" representing the
+// client's request for the GetBlob operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetBlob for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetBlob method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetBlobRequest method.
+//    req, resp := client.GetBlobRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetBlob
+func (c *CodeCommit) GetBlobRequest(input *GetBlobInput) (req *request.Request, output *GetBlobOutput) {
+	op := &request.Operation{
+		Name:       opGetBlob,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetBlobInput{}
+	}
+
+	output = &GetBlobOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetBlob API operation for AWS CodeCommit.
+//
+// Returns the base-64 encoded content of an individual blob within a repository.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeCommit's
+// API operation GetBlob for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
+//   A repository name is required but was not specified.
+//
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
+//   At least one specified repository name is not valid.
+//
+//   This exception only occurs when a specified repository name is not valid.
+//   Other exceptions occur when a required repository parameter is missing, or
+//   when a specified repository does not exist.
+//
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
+//   The specified repository does not exist.
+//
+//   * ErrCodeBlobIdRequiredException "BlobIdRequiredException"
+//   A blob ID is required but was not specified.
+//
+//   * ErrCodeInvalidBlobIdException "InvalidBlobIdException"
+//   The specified blob is not valid.
+//
+//   * ErrCodeBlobIdDoesNotExistException "BlobIdDoesNotExistException"
+//   The specified blob does not exist.
+//
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
+//   An encryption integrity check failed.
+//
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
+//   An encryption key could not be accessed.
+//
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
+//   The encryption key is disabled.
+//
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
+//   No encryption key was found.
+//
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
+//   The encryption key is not available.
+//
+//   * ErrCodeFileTooLargeException "FileTooLargeException"
+//   The specified file exceeds the file size limit for AWS CodeCommit. For more
+//   information about limits in AWS CodeCommit, see AWS CodeCommit User Guide
+//   (http://docs.aws.amazon.com/codecommit/latest/userguide/limits.html).
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetBlob
+func (c *CodeCommit) GetBlob(input *GetBlobInput) (*GetBlobOutput, error) {
+	req, out := c.GetBlobRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -467,41 +572,41 @@ func (c *CodeCommit) GetBranchRequest(input *GetBranchInput) (req *request.Reque
 // API operation GetBranch for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * BranchNameRequiredException
+//   * ErrCodeBranchNameRequiredException "BranchNameRequiredException"
 //   A branch name is required but was not specified.
 //
-//   * InvalidBranchNameException
+//   * ErrCodeInvalidBranchNameException "InvalidBranchNameException"
 //   The specified branch name is not valid.
 //
-//   * BranchDoesNotExistException
+//   * ErrCodeBranchDoesNotExistException "BranchDoesNotExistException"
 //   The specified branch does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetBranch
@@ -567,41 +672,41 @@ func (c *CodeCommit) GetCommitRequest(input *GetCommitInput) (req *request.Reque
 // API operation GetCommit for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * CommitIdRequiredException
+//   * ErrCodeCommitIdRequiredException "CommitIdRequiredException"
 //   A commit ID was not specified.
 //
-//   * InvalidCommitIdException
+//   * ErrCodeInvalidCommitIdException "InvalidCommitIdException"
 //   The specified commit ID is not valid.
 //
-//   * CommitIdDoesNotExistException
+//   * ErrCodeCommitIdDoesNotExistException "CommitIdDoesNotExistException"
 //   The specified commit ID does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetCommit
@@ -609,6 +714,154 @@ func (c *CodeCommit) GetCommit(input *GetCommitInput) (*GetCommitOutput, error) 
 	req, out := c.GetCommitRequest(input)
 	err := req.Send()
 	return out, err
+}
+
+const opGetDifferences = "GetDifferences"
+
+// GetDifferencesRequest generates a "aws/request.Request" representing the
+// client's request for the GetDifferences operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetDifferences for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDifferences method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDifferencesRequest method.
+//    req, resp := client.GetDifferencesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetDifferences
+func (c *CodeCommit) GetDifferencesRequest(input *GetDifferencesInput) (req *request.Request, output *GetDifferencesOutput) {
+	op := &request.Operation{
+		Name:       opGetDifferences,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetDifferencesInput{}
+	}
+
+	output = &GetDifferencesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetDifferences API operation for AWS CodeCommit.
+//
+// Returns information about the differences in a valid commit specifier (such
+// as a branch, tag, HEAD, commit ID or other fully qualified reference). Results
+// can be limited to a specified path.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeCommit's
+// API operation GetDifferences for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
+//   A repository name is required but was not specified.
+//
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
+//   The specified repository does not exist.
+//
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
+//   At least one specified repository name is not valid.
+//
+//   This exception only occurs when a specified repository name is not valid.
+//   Other exceptions occur when a required repository parameter is missing, or
+//   when a specified repository does not exist.
+//
+//   * ErrCodeInvalidContinuationTokenException "InvalidContinuationTokenException"
+//   The specified continuation token is not valid.
+//
+//   * ErrCodeInvalidMaxResultsException "InvalidMaxResultsException"
+//   The specified number of maximum results is not valid.
+//
+//   * ErrCodeInvalidCommitIdException "InvalidCommitIdException"
+//   The specified commit ID is not valid.
+//
+//   * ErrCodeCommitRequiredException "CommitRequiredException"
+//   A commit was not specified.
+//
+//   * ErrCodeInvalidCommitException "InvalidCommitException"
+//   The specified commit is not valid.
+//
+//   * ErrCodeCommitDoesNotExistException "CommitDoesNotExistException"
+//   The specified commit does not exist or no commit was specified, and the specified
+//   repository has no default branch.
+//
+//   * ErrCodeInvalidPathException "InvalidPathException"
+//   The specified path is not valid.
+//
+//   * ErrCodePathDoesNotExistException "PathDoesNotExistException"
+//   The specified path does not exist.
+//
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
+//   An encryption integrity check failed.
+//
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
+//   An encryption key could not be accessed.
+//
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
+//   The encryption key is disabled.
+//
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
+//   No encryption key was found.
+//
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
+//   The encryption key is not available.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetDifferences
+func (c *CodeCommit) GetDifferences(input *GetDifferencesInput) (*GetDifferencesOutput, error) {
+	req, out := c.GetDifferencesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+// GetDifferencesPages iterates over the pages of a GetDifferences operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetDifferences method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetDifferences operation.
+//    pageNum := 0
+//    err := client.GetDifferencesPages(params,
+//        func(page *GetDifferencesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *CodeCommit) GetDifferencesPages(input *GetDifferencesInput, fn func(p *GetDifferencesOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.GetDifferencesRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*GetDifferencesOutput), lastPage)
+	})
 }
 
 const opGetRepository = "GetRepository"
@@ -672,32 +925,32 @@ func (c *CodeCommit) GetRepositoryRequest(input *GetRepositoryInput) (req *reque
 // API operation GetRepository for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetRepository
@@ -762,32 +1015,32 @@ func (c *CodeCommit) GetRepositoryTriggersRequest(input *GetRepositoryTriggersIn
 // API operation GetRepositoryTriggers for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetRepositoryTriggers
@@ -858,35 +1111,35 @@ func (c *CodeCommit) ListBranchesRequest(input *ListBranchesInput) (req *request
 // API operation ListBranches for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
-//   * InvalidContinuationTokenException
+//   * ErrCodeInvalidContinuationTokenException "InvalidContinuationTokenException"
 //   The specified continuation token is not valid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/ListBranches
@@ -982,13 +1235,13 @@ func (c *CodeCommit) ListRepositoriesRequest(input *ListRepositoriesInput) (req 
 // API operation ListRepositories for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidSortByException
+//   * ErrCodeInvalidSortByException "InvalidSortByException"
 //   The specified sort by value is not valid.
 //
-//   * InvalidOrderException
+//   * ErrCodeInvalidOrderException "InvalidOrderException"
 //   The specified sort order is not valid.
 //
-//   * InvalidContinuationTokenException
+//   * ErrCodeInvalidContinuationTokenException "InvalidContinuationTokenException"
 //   The specified continuation token is not valid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/ListRepositories
@@ -1079,77 +1332,77 @@ func (c *CodeCommit) PutRepositoryTriggersRequest(input *PutRepositoryTriggersIn
 // API operation PutRepositoryTriggers for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * RepositoryTriggersListRequiredException
+//   * ErrCodeRepositoryTriggersListRequiredException "RepositoryTriggersListRequiredException"
 //   The list of triggers for the repository is required but was not specified.
 //
-//   * MaximumRepositoryTriggersExceededException
+//   * ErrCodeMaximumRepositoryTriggersExceededException "MaximumRepositoryTriggersExceededException"
 //   The number of triggers allowed for the repository was exceeded.
 //
-//   * InvalidRepositoryTriggerNameException
+//   * ErrCodeInvalidRepositoryTriggerNameException "InvalidRepositoryTriggerNameException"
 //   The name of the trigger is not valid.
 //
-//   * InvalidRepositoryTriggerDestinationArnException
+//   * ErrCodeInvalidRepositoryTriggerDestinationArnException "InvalidRepositoryTriggerDestinationArnException"
 //   The Amazon Resource Name (ARN) for the trigger is not valid for the specified
 //   destination. The most common reason for this error is that the ARN does not
 //   meet the requirements for the service type.
 //
-//   * InvalidRepositoryTriggerRegionException
+//   * ErrCodeInvalidRepositoryTriggerRegionException "InvalidRepositoryTriggerRegionException"
 //   The region for the trigger target does not match the region for the repository.
 //   Triggers must be created in the same region as the target for the trigger.
 //
-//   * InvalidRepositoryTriggerCustomDataException
+//   * ErrCodeInvalidRepositoryTriggerCustomDataException "InvalidRepositoryTriggerCustomDataException"
 //   The custom data provided for the trigger is not valid.
 //
-//   * MaximumBranchesExceededException
+//   * ErrCodeMaximumBranchesExceededException "MaximumBranchesExceededException"
 //   The number of branches for the trigger was exceeded.
 //
-//   * InvalidRepositoryTriggerBranchNameException
+//   * ErrCodeInvalidRepositoryTriggerBranchNameException "InvalidRepositoryTriggerBranchNameException"
 //   One or more branch names specified for the trigger is not valid.
 //
-//   * InvalidRepositoryTriggerEventsException
+//   * ErrCodeInvalidRepositoryTriggerEventsException "InvalidRepositoryTriggerEventsException"
 //   One or more events specified for the trigger is not valid. Check to make
 //   sure that all events specified match the requirements for allowed events.
 //
-//   * RepositoryTriggerNameRequiredException
+//   * ErrCodeRepositoryTriggerNameRequiredException "RepositoryTriggerNameRequiredException"
 //   A name for the trigger is required but was not specified.
 //
-//   * RepositoryTriggerDestinationArnRequiredException
+//   * ErrCodeRepositoryTriggerDestinationArnRequiredException "RepositoryTriggerDestinationArnRequiredException"
 //   A destination ARN for the target service for the trigger is required but
 //   was not specified.
 //
-//   * RepositoryTriggerBranchNameListRequiredException
+//   * ErrCodeRepositoryTriggerBranchNameListRequiredException "RepositoryTriggerBranchNameListRequiredException"
 //   At least one branch name is required but was not specified in the trigger
 //   configuration.
 //
-//   * RepositoryTriggerEventsListRequiredException
+//   * ErrCodeRepositoryTriggerEventsListRequiredException "RepositoryTriggerEventsListRequiredException"
 //   At least one event for the trigger is required but was not specified.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/PutRepositoryTriggers
@@ -1217,77 +1470,77 @@ func (c *CodeCommit) TestRepositoryTriggersRequest(input *TestRepositoryTriggers
 // API operation TestRepositoryTriggers for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * RepositoryTriggersListRequiredException
+//   * ErrCodeRepositoryTriggersListRequiredException "RepositoryTriggersListRequiredException"
 //   The list of triggers for the repository is required but was not specified.
 //
-//   * MaximumRepositoryTriggersExceededException
+//   * ErrCodeMaximumRepositoryTriggersExceededException "MaximumRepositoryTriggersExceededException"
 //   The number of triggers allowed for the repository was exceeded.
 //
-//   * InvalidRepositoryTriggerNameException
+//   * ErrCodeInvalidRepositoryTriggerNameException "InvalidRepositoryTriggerNameException"
 //   The name of the trigger is not valid.
 //
-//   * InvalidRepositoryTriggerDestinationArnException
+//   * ErrCodeInvalidRepositoryTriggerDestinationArnException "InvalidRepositoryTriggerDestinationArnException"
 //   The Amazon Resource Name (ARN) for the trigger is not valid for the specified
 //   destination. The most common reason for this error is that the ARN does not
 //   meet the requirements for the service type.
 //
-//   * InvalidRepositoryTriggerRegionException
+//   * ErrCodeInvalidRepositoryTriggerRegionException "InvalidRepositoryTriggerRegionException"
 //   The region for the trigger target does not match the region for the repository.
 //   Triggers must be created in the same region as the target for the trigger.
 //
-//   * InvalidRepositoryTriggerCustomDataException
+//   * ErrCodeInvalidRepositoryTriggerCustomDataException "InvalidRepositoryTriggerCustomDataException"
 //   The custom data provided for the trigger is not valid.
 //
-//   * MaximumBranchesExceededException
+//   * ErrCodeMaximumBranchesExceededException "MaximumBranchesExceededException"
 //   The number of branches for the trigger was exceeded.
 //
-//   * InvalidRepositoryTriggerBranchNameException
+//   * ErrCodeInvalidRepositoryTriggerBranchNameException "InvalidRepositoryTriggerBranchNameException"
 //   One or more branch names specified for the trigger is not valid.
 //
-//   * InvalidRepositoryTriggerEventsException
+//   * ErrCodeInvalidRepositoryTriggerEventsException "InvalidRepositoryTriggerEventsException"
 //   One or more events specified for the trigger is not valid. Check to make
 //   sure that all events specified match the requirements for allowed events.
 //
-//   * RepositoryTriggerNameRequiredException
+//   * ErrCodeRepositoryTriggerNameRequiredException "RepositoryTriggerNameRequiredException"
 //   A name for the trigger is required but was not specified.
 //
-//   * RepositoryTriggerDestinationArnRequiredException
+//   * ErrCodeRepositoryTriggerDestinationArnRequiredException "RepositoryTriggerDestinationArnRequiredException"
 //   A destination ARN for the target service for the trigger is required but
 //   was not specified.
 //
-//   * RepositoryTriggerBranchNameListRequiredException
+//   * ErrCodeRepositoryTriggerBranchNameListRequiredException "RepositoryTriggerBranchNameListRequiredException"
 //   At least one branch name is required but was not specified in the trigger
 //   configuration.
 //
-//   * RepositoryTriggerEventsListRequiredException
+//   * ErrCodeRepositoryTriggerEventsListRequiredException "RepositoryTriggerEventsListRequiredException"
 //   At least one event for the trigger is required but was not specified.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/TestRepositoryTriggers
@@ -1358,41 +1611,41 @@ func (c *CodeCommit) UpdateDefaultBranchRequest(input *UpdateDefaultBranchInput)
 // API operation UpdateDefaultBranch for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * BranchNameRequiredException
+//   * ErrCodeBranchNameRequiredException "BranchNameRequiredException"
 //   A branch name is required but was not specified.
 //
-//   * InvalidBranchNameException
+//   * ErrCodeInvalidBranchNameException "InvalidBranchNameException"
 //   The specified branch name is not valid.
 //
-//   * BranchDoesNotExistException
+//   * ErrCodeBranchDoesNotExistException "BranchDoesNotExistException"
 //   The specified branch does not exist.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdateDefaultBranch
@@ -1465,35 +1718,35 @@ func (c *CodeCommit) UpdateRepositoryDescriptionRequest(input *UpdateRepositoryD
 // API operation UpdateRepositoryDescription for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
 //   Other exceptions occur when a required repository parameter is missing, or
 //   when a specified repository does not exist.
 //
-//   * InvalidRepositoryDescriptionException
+//   * ErrCodeInvalidRepositoryDescriptionException "InvalidRepositoryDescriptionException"
 //   The specified repository description is not valid.
 //
-//   * EncryptionIntegrityChecksFailedException
+//   * ErrCodeEncryptionIntegrityChecksFailedException "EncryptionIntegrityChecksFailedException"
 //   An encryption integrity check failed.
 //
-//   * EncryptionKeyAccessDeniedException
+//   * ErrCodeEncryptionKeyAccessDeniedException "EncryptionKeyAccessDeniedException"
 //   An encryption key could not be accessed.
 //
-//   * EncryptionKeyDisabledException
+//   * ErrCodeEncryptionKeyDisabledException "EncryptionKeyDisabledException"
 //   The encryption key is disabled.
 //
-//   * EncryptionKeyNotFoundException
+//   * ErrCodeEncryptionKeyNotFoundException "EncryptionKeyNotFoundException"
 //   No encryption key was found.
 //
-//   * EncryptionKeyUnavailableException
+//   * ErrCodeEncryptionKeyUnavailableException "EncryptionKeyUnavailableException"
 //   The encryption key is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/UpdateRepositoryDescription
@@ -1565,16 +1818,16 @@ func (c *CodeCommit) UpdateRepositoryNameRequest(input *UpdateRepositoryNameInpu
 // API operation UpdateRepositoryName for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryDoesNotExistException
+//   * ErrCodeRepositoryDoesNotExistException "RepositoryDoesNotExistException"
 //   The specified repository does not exist.
 //
-//   * RepositoryNameExistsException
+//   * ErrCodeRepositoryNameExistsException "RepositoryNameExistsException"
 //   The specified repository name already exists.
 //
-//   * RepositoryNameRequiredException
+//   * ErrCodeRepositoryNameRequiredException "RepositoryNameRequiredException"
 //   A repository name is required but was not specified.
 //
-//   * InvalidRepositoryNameException
+//   * ErrCodeInvalidRepositoryNameException "InvalidRepositoryNameException"
 //   At least one specified repository name is not valid.
 //
 //   This exception only occurs when a specified repository name is not valid.
@@ -1662,6 +1915,57 @@ func (s *BatchGetRepositoriesOutput) SetRepositoriesNotFound(v []*string) *Batch
 	return s
 }
 
+// Returns information about a specific Git blob object.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/BlobMetadata
+type BlobMetadata struct {
+	_ struct{} `type:"structure"`
+
+	// The full ID of the blob.
+	BlobId *string `locationName:"blobId" type:"string"`
+
+	// The file mode permissions of the blob. File mode permission codes include:
+	//
+	//    * 100644 indicates read/write
+	//
+	//    * 100755 indicates read/write/execute
+	//
+	//    * 160000 indicates a submodule
+	//
+	//    * 120000 indicates a symlink
+	Mode *string `locationName:"mode" type:"string"`
+
+	// The path to the blob and any associated file name, if any.
+	Path *string `locationName:"path" type:"string"`
+}
+
+// String returns the string representation
+func (s BlobMetadata) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BlobMetadata) GoString() string {
+	return s.String()
+}
+
+// SetBlobId sets the BlobId field's value.
+func (s *BlobMetadata) SetBlobId(v string) *BlobMetadata {
+	s.BlobId = &v
+	return s
+}
+
+// SetMode sets the Mode field's value.
+func (s *BlobMetadata) SetMode(v string) *BlobMetadata {
+	s.Mode = &v
+	return s
+}
+
+// SetPath sets the Path field's value.
+func (s *BlobMetadata) SetPath(v string) *BlobMetadata {
+	s.Path = &v
+	return s
+}
+
 // Returns information about a branch.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/BranchInfo
 type BranchInfo struct {
@@ -1704,16 +2008,22 @@ type Commit struct {
 	// Any additional data associated with the specified commit.
 	AdditionalData *string `locationName:"additionalData" type:"string"`
 
-	// Information about the author of the specified commit.
+	// Information about the author of the specified commit. Information includes
+	// the date in timestamp format with GMT offset, the name of the author, and
+	// the email address for the author, as configured in Git.
 	Author *UserInfo `locationName:"author" type:"structure"`
 
 	// Information about the person who committed the specified commit, also known
-	// as the committer. For more information about the difference between an author
-	// and a committer in Git, see Viewing the Commit History (http://git-scm.com/book/ch2-3.html)
+	// as the committer. Information includes the date in timestamp format with
+	// GMT offset, the name of the committer, and the email address for the committer,
+	// as configured in Git.
+	//
+	// For more information about the difference between an author and a committer
+	// in Git, see Viewing the Commit History (http://git-scm.com/book/ch2-3.html)
 	// in Pro Git by Scott Chacon and Ben Straub.
 	Committer *UserInfo `locationName:"committer" type:"structure"`
 
-	// The message associated with the specified commit.
+	// The commit message associated with the specified commit.
 	Message *string `locationName:"message" type:"string"`
 
 	// The parent list for the specified commit.
@@ -2015,6 +2325,138 @@ func (s *DeleteRepositoryOutput) SetRepositoryId(v string) *DeleteRepositoryOutp
 	return s
 }
 
+// Returns information about a set of differences for a commit specifier.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/Difference
+type Difference struct {
+	_ struct{} `type:"structure"`
+
+	// Information about an afterBlob data type object, including the ID, the file
+	// mode permission code, and the path.
+	AfterBlob *BlobMetadata `locationName:"afterBlob" type:"structure"`
+
+	// Information about a beforeBlob data type object, including the ID, the file
+	// mode permission code, and the path.
+	BeforeBlob *BlobMetadata `locationName:"beforeBlob" type:"structure"`
+
+	// Whether the change type of the difference is an addition (A), deletion (D),
+	// or modification (M).
+	ChangeType *string `locationName:"changeType" type:"string" enum:"ChangeTypeEnum"`
+}
+
+// String returns the string representation
+func (s Difference) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Difference) GoString() string {
+	return s.String()
+}
+
+// SetAfterBlob sets the AfterBlob field's value.
+func (s *Difference) SetAfterBlob(v *BlobMetadata) *Difference {
+	s.AfterBlob = v
+	return s
+}
+
+// SetBeforeBlob sets the BeforeBlob field's value.
+func (s *Difference) SetBeforeBlob(v *BlobMetadata) *Difference {
+	s.BeforeBlob = v
+	return s
+}
+
+// SetChangeType sets the ChangeType field's value.
+func (s *Difference) SetChangeType(v string) *Difference {
+	s.ChangeType = &v
+	return s
+}
+
+// Represents the input of a get blob operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetBlobInput
+type GetBlobInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the blob, which is its SHA-1 pointer.
+	//
+	// BlobId is a required field
+	BlobId *string `locationName:"blobId" type:"string" required:"true"`
+
+	// The name of the repository that contains the blob.
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetBlobInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetBlobInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetBlobInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetBlobInput"}
+	if s.BlobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("BlobId"))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBlobId sets the BlobId field's value.
+func (s *GetBlobInput) SetBlobId(v string) *GetBlobInput {
+	s.BlobId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *GetBlobInput) SetRepositoryName(v string) *GetBlobInput {
+	s.RepositoryName = &v
+	return s
+}
+
+// Represents the output of a get blob operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetBlobOutput
+type GetBlobOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The content of the blob, usually a file.
+	//
+	// Content is automatically base64 encoded/decoded by the SDK.
+	//
+	// Content is a required field
+	Content []byte `locationName:"content" type:"blob" required:"true"`
+}
+
+// String returns the string representation
+func (s GetBlobOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetBlobOutput) GoString() string {
+	return s.String()
+}
+
+// SetContent sets the Content field's value.
+func (s *GetBlobOutput) SetContent(v []byte) *GetBlobOutput {
+	s.Content = v
+	return s
+}
+
 // Represents the input of a get branch operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetBranchInput
 type GetBranchInput struct {
@@ -2153,7 +2595,7 @@ func (s *GetCommitInput) SetRepositoryName(v string) *GetCommitInput {
 type GetCommitOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Information about the specified commit.
+	// A commit data type object that contains information about the specified commit.
 	//
 	// Commit is a required field
 	Commit *Commit `locationName:"commit" type:"structure" required:"true"`
@@ -2172,6 +2614,153 @@ func (s GetCommitOutput) GoString() string {
 // SetCommit sets the Commit field's value.
 func (s *GetCommitOutput) SetCommit(v *Commit) *GetCommitOutput {
 	s.Commit = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetDifferencesInput
+type GetDifferencesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The branch, tag, HEAD, or other fully qualified reference used to identify
+	// a commit.
+	//
+	// AfterCommitSpecifier is a required field
+	AfterCommitSpecifier *string `locationName:"afterCommitSpecifier" type:"string" required:"true"`
+
+	// The file path in which to check differences. Limits the results to this path.
+	// Can also be used to specify the changed name of a directory or folder, if
+	// it has changed. If not specified, differences will be shown for all paths.
+	AfterPath *string `locationName:"afterPath" type:"string"`
+
+	// The branch, tag, HEAD, or other fully qualified reference used to identify
+	// a commit. For example, the full commit ID. Optional. If not specified, all
+	// changes prior to the afterCommitSpecifier value will be shown. If you do
+	// not use beforeCommitSpecifier in your request, consider limiting the results
+	// with maxResults.
+	BeforeCommitSpecifier *string `locationName:"beforeCommitSpecifier" type:"string"`
+
+	// The file path in which to check for differences. Limits the results to this
+	// path. Can also be used to specify the previous name of a directory or folder.
+	// If beforePath and afterPath are not specified, differences will be shown
+	// for all paths.
+	BeforePath *string `locationName:"beforePath" type:"string"`
+
+	// A non-negative integer used to limit the number of returned results.
+	MaxResults *int64 `type:"integer"`
+
+	// An enumeration token that when provided in a request, returns the next batch
+	// of the results.
+	NextToken *string `type:"string"`
+
+	// The name of the repository where you want to get differences.
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetDifferencesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDifferencesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDifferencesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDifferencesInput"}
+	if s.AfterCommitSpecifier == nil {
+		invalidParams.Add(request.NewErrParamRequired("AfterCommitSpecifier"))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAfterCommitSpecifier sets the AfterCommitSpecifier field's value.
+func (s *GetDifferencesInput) SetAfterCommitSpecifier(v string) *GetDifferencesInput {
+	s.AfterCommitSpecifier = &v
+	return s
+}
+
+// SetAfterPath sets the AfterPath field's value.
+func (s *GetDifferencesInput) SetAfterPath(v string) *GetDifferencesInput {
+	s.AfterPath = &v
+	return s
+}
+
+// SetBeforeCommitSpecifier sets the BeforeCommitSpecifier field's value.
+func (s *GetDifferencesInput) SetBeforeCommitSpecifier(v string) *GetDifferencesInput {
+	s.BeforeCommitSpecifier = &v
+	return s
+}
+
+// SetBeforePath sets the BeforePath field's value.
+func (s *GetDifferencesInput) SetBeforePath(v string) *GetDifferencesInput {
+	s.BeforePath = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *GetDifferencesInput) SetMaxResults(v int64) *GetDifferencesInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetDifferencesInput) SetNextToken(v string) *GetDifferencesInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *GetDifferencesInput) SetRepositoryName(v string) *GetDifferencesInput {
+	s.RepositoryName = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/codecommit-2015-04-13/GetDifferencesOutput
+type GetDifferencesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A differences data type object that contains information about the differences,
+	// including whether the difference is added, modified, or deleted (A, D, M).
+	Differences []*Difference `locationName:"differences" type:"list"`
+
+	// An enumeration token that can be used in a request to return the next batch
+	// of the results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetDifferencesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDifferencesOutput) GoString() string {
+	return s.String()
+}
+
+// SetDifferences sets the Differences field's value.
+func (s *GetDifferencesOutput) SetDifferences(v []*Difference) *GetDifferencesOutput {
+	s.Differences = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetDifferencesOutput) SetNextToken(v string) *GetDifferencesOutput {
+	s.NextToken = &v
 	return s
 }
 
@@ -2249,7 +2838,9 @@ type GetRepositoryTriggersInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the repository for which the trigger is configured.
-	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string"`
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -2265,6 +2856,9 @@ func (s GetRepositoryTriggersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *GetRepositoryTriggersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "GetRepositoryTriggersInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
 	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
 	}
@@ -2490,10 +3084,14 @@ type PutRepositoryTriggersInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the repository where you want to create or update the trigger.
-	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string"`
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string" required:"true"`
 
 	// The JSON block of configuration information for each trigger.
-	Triggers []*RepositoryTrigger `locationName:"triggers" type:"list"`
+	//
+	// Triggers is a required field
+	Triggers []*RepositoryTrigger `locationName:"triggers" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -2509,8 +3107,24 @@ func (s PutRepositoryTriggersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *PutRepositoryTriggersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "PutRepositoryTriggersInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
 	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+	if s.Triggers == nil {
+		invalidParams.Add(request.NewErrParamRequired("Triggers"))
+	}
+	if s.Triggers != nil {
+		for i, v := range s.Triggers {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Triggers", i), err.(request.ErrInvalidParams))
+			}
+		}
 	}
 
 	if invalidParams.Len() > 0 {
@@ -2711,16 +3325,23 @@ type RepositoryTrigger struct {
 
 	// The ARN of the resource that is the target for a trigger. For example, the
 	// ARN of a topic in Amazon Simple Notification Service (SNS).
-	DestinationArn *string `locationName:"destinationArn" type:"string"`
+	//
+	// DestinationArn is a required field
+	DestinationArn *string `locationName:"destinationArn" type:"string" required:"true"`
 
 	// The repository events that will cause the trigger to run actions in another
 	// service, such as sending a notification through Amazon Simple Notification
-	// Service (SNS). If no events are specified, the trigger will run for all repository
-	// events.
-	Events []*string `locationName:"events" type:"list"`
+	// Service (SNS).
+	//
+	// The valid value "all" cannot be used with any other values.
+	//
+	// Events is a required field
+	Events []*string `locationName:"events" type:"list" required:"true"`
 
 	// The name of the trigger.
-	Name *string `locationName:"name" type:"string"`
+	//
+	// Name is a required field
+	Name *string `locationName:"name" type:"string" required:"true"`
 }
 
 // String returns the string representation
@@ -2731,6 +3352,25 @@ func (s RepositoryTrigger) String() string {
 // GoString returns the string representation
 func (s RepositoryTrigger) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RepositoryTrigger) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RepositoryTrigger"}
+	if s.DestinationArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("DestinationArn"))
+	}
+	if s.Events == nil {
+		invalidParams.Add(request.NewErrParamRequired("Events"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetBranches sets the Branches field's value.
@@ -2803,10 +3443,14 @@ type TestRepositoryTriggersInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the repository in which to test the triggers.
-	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string"`
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"1" type:"string" required:"true"`
 
 	// The list of triggers to test.
-	Triggers []*RepositoryTrigger `locationName:"triggers" type:"list"`
+	//
+	// Triggers is a required field
+	Triggers []*RepositoryTrigger `locationName:"triggers" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -2822,8 +3466,24 @@ func (s TestRepositoryTriggersInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *TestRepositoryTriggersInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "TestRepositoryTriggersInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
 	if s.RepositoryName != nil && len(*s.RepositoryName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 1))
+	}
+	if s.Triggers == nil {
+		invalidParams.Add(request.NewErrParamRequired("Triggers"))
+	}
+	if s.Triggers != nil {
+		for i, v := range s.Triggers {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Triggers", i), err.(request.ErrInvalidParams))
+			}
+		}
 	}
 
 	if invalidParams.Len() > 0 {
@@ -3140,6 +3800,17 @@ func (s *UserInfo) SetName(v string) *UserInfo {
 	s.Name = &v
 	return s
 }
+
+const (
+	// ChangeTypeEnumA is a ChangeTypeEnum enum value
+	ChangeTypeEnumA = "A"
+
+	// ChangeTypeEnumM is a ChangeTypeEnum enum value
+	ChangeTypeEnumM = "M"
+
+	// ChangeTypeEnumD is a ChangeTypeEnum enum value
+	ChangeTypeEnumD = "D"
+)
 
 const (
 	// OrderEnumAscending is a OrderEnum enum value

@@ -97,6 +97,7 @@ func TestAccDigitalOceanVolume_Droplet(t *testing.T) {
 		volume  = godo.Volume{Name: fmt.Sprintf("volume-%s", acctest.RandString(10))}
 		droplet godo.Droplet
 	)
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -104,10 +105,7 @@ func TestAccDigitalOceanVolume_Droplet(t *testing.T) {
 		CheckDestroy: testAccCheckDigitalOceanVolumeDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(
-					testAccCheckDigitalOceanVolumeConfig_droplet,
-					testAccValidPublicKey, volume.Name,
-				),
+				Config: testAccCheckDigitalOceanVolumeConfig_droplet(rInt, volume.Name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanVolumeExists("digitalocean_volume.foobar", &volume),
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
@@ -120,12 +118,8 @@ func TestAccDigitalOceanVolume_Droplet(t *testing.T) {
 	})
 }
 
-const testAccCheckDigitalOceanVolumeConfig_droplet = `
-resource "digitalocean_ssh_key" "foobar" {
-  name       = "foobar"
-  public_key = "%s"
-}
-
+func testAccCheckDigitalOceanVolumeConfig_droplet(rInt int, vName string) string {
+	return fmt.Sprintf(`
 resource "digitalocean_volume" "foobar" {
 	region      = "nyc1"
 	name        = "%s"
@@ -134,12 +128,12 @@ resource "digitalocean_volume" "foobar" {
 }
 
 resource "digitalocean_droplet" "foobar" {
-  name               = "baz"
+  name               = "baz-%d"
   size               = "1gb"
-  image              = "coreos-stable"
+  image              = "centos-7-x64"
   region             = "nyc1"
   ipv6               = true
   private_networking = true
-  ssh_keys           = ["${digitalocean_ssh_key.foobar.id}"]
   volume_ids         = ["${digitalocean_volume.foobar.id}"]
-}`
+}`, vName, rInt)
+}

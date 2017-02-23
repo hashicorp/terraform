@@ -3,16 +3,16 @@ layout: "aws"
 page_title: "AWS: aws_lightsail_domain"
 sidebar_current: "docs-aws-resource-lightsail-domain"
 description: |-
-  Provides an Lightsail Domain 
+  Provides an Lightsail Domain
 ---
 
 # aws\_lightsail\_domain
 
 Creates a domain resource for the specified domain (e.g., example.com).
 You cannot register a new domain name using Lightsail. You must register
-a domain name using Amazon Route 53 or another domain name registrar. 
-If you have already registered your domain, you can enter its name in 
-this parameter to manage the DNS records for that domain. 
+a domain name using Amazon Route 53 or another domain name registrar.
+If you have already registered your domain, you can enter its name in
+this parameter to manage the DNS records for that domain.
 
 ~> **Note:** Lightsail is currently only supported in `us-east-1` region.
 

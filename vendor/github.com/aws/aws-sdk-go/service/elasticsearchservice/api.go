@@ -72,18 +72,18 @@ func (c *ElasticsearchService) AddTagsRequest(input *AddTagsInput) (req *request
 // API operation AddTags for usage and error information.
 //
 // Returned Error Codes:
-//   * BaseException
+//   * ErrCodeBaseException "BaseException"
 //   An error occurred while processing the request.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   An exception for trying to create more than allowed resources or sub-resources.
 //   Gives http status code of 409.
 //
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception for missing / invalid input fields. Gives http status code of
 //   400.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request processing has failed because of an unknown error, exception
 //   or failure (the failure is internal to the service) . Gives http status code
 //   of 500.
@@ -152,31 +152,31 @@ func (c *ElasticsearchService) CreateElasticsearchDomainRequest(input *CreateEla
 // API operation CreateElasticsearchDomain for usage and error information.
 //
 // Returned Error Codes:
-//   * BaseException
+//   * ErrCodeBaseException "BaseException"
 //   An error occurred while processing the request.
 //
-//   * DisabledOperationException
+//   * ErrCodeDisabledOperationException "DisabledOperationException"
 //   An error occured because the client wanted to access a not supported operation.
 //   Gives http status code of 409.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request processing has failed because of an unknown error, exception
 //   or failure (the failure is internal to the service) . Gives http status code
 //   of 500.
 //
-//   * InvalidTypeException
+//   * ErrCodeInvalidTypeException "InvalidTypeException"
 //   An exception for trying to create or access sub-resource that is either invalid
 //   or not supported. Gives http status code of 409.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   An exception for trying to create more than allowed resources or sub-resources.
 //   Gives http status code of 409.
 //
-//   * ResourceAlreadyExistsException
+//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
 //   An exception for creating a resource that already exists. Gives http status
 //   code of 400.
 //
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception for missing / invalid input fields. Gives http status code of
 //   400.
 //
@@ -243,19 +243,19 @@ func (c *ElasticsearchService) DeleteElasticsearchDomainRequest(input *DeleteEla
 // API operation DeleteElasticsearchDomain for usage and error information.
 //
 // Returned Error Codes:
-//   * BaseException
+//   * ErrCodeBaseException "BaseException"
 //   An error occurred while processing the request.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request processing has failed because of an unknown error, exception
 //   or failure (the failure is internal to the service) . Gives http status code
 //   of 500.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   An exception for accessing or deleting a resource that does not exist. Gives
 //   http status code of 400.
 //
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception for missing / invalid input fields. Gives http status code of
 //   400.
 //
@@ -322,19 +322,19 @@ func (c *ElasticsearchService) DescribeElasticsearchDomainRequest(input *Describ
 // API operation DescribeElasticsearchDomain for usage and error information.
 //
 // Returned Error Codes:
-//   * BaseException
+//   * ErrCodeBaseException "BaseException"
 //   An error occurred while processing the request.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request processing has failed because of an unknown error, exception
 //   or failure (the failure is internal to the service) . Gives http status code
 //   of 500.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   An exception for accessing or deleting a resource that does not exist. Gives
 //   http status code of 400.
 //
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception for missing / invalid input fields. Gives http status code of
 //   400.
 //
@@ -402,19 +402,19 @@ func (c *ElasticsearchService) DescribeElasticsearchDomainConfigRequest(input *D
 // API operation DescribeElasticsearchDomainConfig for usage and error information.
 //
 // Returned Error Codes:
-//   * BaseException
+//   * ErrCodeBaseException "BaseException"
 //   An error occurred while processing the request.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request processing has failed because of an unknown error, exception
 //   or failure (the failure is internal to the service) . Gives http status code
 //   of 500.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   An exception for accessing or deleting a resource that does not exist. Gives
 //   http status code of 400.
 //
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception for missing / invalid input fields. Gives http status code of
 //   400.
 //
@@ -481,15 +481,15 @@ func (c *ElasticsearchService) DescribeElasticsearchDomainsRequest(input *Descri
 // API operation DescribeElasticsearchDomains for usage and error information.
 //
 // Returned Error Codes:
-//   * BaseException
+//   * ErrCodeBaseException "BaseException"
 //   An error occurred while processing the request.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request processing has failed because of an unknown error, exception
 //   or failure (the failure is internal to the service) . Gives http status code
 //   of 500.
 //
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception for missing / invalid input fields. Gives http status code of
 //   400.
 //
@@ -556,10 +556,10 @@ func (c *ElasticsearchService) ListDomainNamesRequest(input *ListDomainNamesInpu
 // API operation ListDomainNames for usage and error information.
 //
 // Returned Error Codes:
-//   * BaseException
+//   * ErrCodeBaseException "BaseException"
 //   An error occurred while processing the request.
 //
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception for missing / invalid input fields. Gives http status code of
 //   400.
 //
@@ -625,18 +625,18 @@ func (c *ElasticsearchService) ListTagsRequest(input *ListTagsInput) (req *reque
 // API operation ListTags for usage and error information.
 //
 // Returned Error Codes:
-//   * BaseException
+//   * ErrCodeBaseException "BaseException"
 //   An error occurred while processing the request.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   An exception for accessing or deleting a resource that does not exist. Gives
 //   http status code of 400.
 //
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception for missing / invalid input fields. Gives http status code of
 //   400.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request processing has failed because of an unknown error, exception
 //   or failure (the failure is internal to the service) . Gives http status code
 //   of 500.
@@ -705,14 +705,14 @@ func (c *ElasticsearchService) RemoveTagsRequest(input *RemoveTagsInput) (req *r
 // API operation RemoveTags for usage and error information.
 //
 // Returned Error Codes:
-//   * BaseException
+//   * ErrCodeBaseException "BaseException"
 //   An error occurred while processing the request.
 //
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception for missing / invalid input fields. Gives http status code of
 //   400.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request processing has failed because of an unknown error, exception
 //   or failure (the failure is internal to the service) . Gives http status code
 //   of 500.
@@ -780,27 +780,27 @@ func (c *ElasticsearchService) UpdateElasticsearchDomainConfigRequest(input *Upd
 // API operation UpdateElasticsearchDomainConfig for usage and error information.
 //
 // Returned Error Codes:
-//   * BaseException
+//   * ErrCodeBaseException "BaseException"
 //   An error occurred while processing the request.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request processing has failed because of an unknown error, exception
 //   or failure (the failure is internal to the service) . Gives http status code
 //   of 500.
 //
-//   * InvalidTypeException
+//   * ErrCodeInvalidTypeException "InvalidTypeException"
 //   An exception for trying to create or access sub-resource that is either invalid
 //   or not supported. Gives http status code of 409.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   An exception for trying to create more than allowed resources or sub-resources.
 //   Gives http status code of 409.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   An exception for accessing or deleting a resource that does not exist. Gives
 //   http status code of 400.
 //
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception for missing / invalid input fields. Gives http status code of
 //   400.
 //

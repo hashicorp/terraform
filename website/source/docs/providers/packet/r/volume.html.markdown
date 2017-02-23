@@ -8,7 +8,7 @@ description: |-
 
 # packet\_volume
 
-Provides a Packet Block Storage Volume resource to allow you to 
+Provides a Packet Block Storage Volume resource to allow you to
 manage block volumes on your account.
 Once created by Terraform, they must then be attached and mounted
 using the api and `packet_block_attach` and `packet_block_detach`
@@ -19,14 +19,24 @@ scripts.
 ```
 # Create a new block volume
 resource "packet_volume" "volume1" {
-    description = "terraform-volume-1"
-    facility = "ewr1"
-		project_id = "${packet_project.cool_project.id}"
-    plan = 'storage_1'
-    size = 100
-    billing_cycle = "hourly"
-    snapshot_policies = { snapshot_frequency = "1day", snapshot_count = 7 }
-    snapshot_policies = { snapshot_frequency = "1month", snapshot_count = 6 }
+  description   = "terraform-volume-1"
+  facility      = "ewr1"
+  project_id    = "${packet_project.cool_project.id}"
+  plan          = "storage_1"
+  size          = 100
+  billing_cycle = "hourly"
+
+  snapshot_policies = {
+    snapshot_frequency = "1day"
+
+    snapshot_count = 7
+  }
+
+  snapshot_policies = {
+    snapshot_frequency = "1month"
+
+    snapshot_count = 6
+  }
 }
 ```
 

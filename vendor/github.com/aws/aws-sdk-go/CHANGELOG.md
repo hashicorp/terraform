@@ -1,3 +1,123 @@
+Release v1.6.25 (2017-02-17)
+===
+
+Service Client Updates
+---
+* `service/directconnect`: Updates service API, documentation, and paginators
+  * This update will introduce the ability for Direct Connect customers to take advantage of Link Aggregation (LAG).     This allows you to bundle many individual physical interfaces into a single logical interface, referred to as a LAG.     This makes administration much simpler as the majority of configuration is done on the LAG while you are free     to add or remove physical interfaces from the bundle as bandwidth demand increases or decreases. A concrete example     of the simplification added by LAG is that customers need only a single BGP session as opposed to one session per     physical connection.
+
+Release v1.6.24 (2017-02-16)
+===
+
+Service Client Updates
+---
+* `service/cognitoidentity`: Updates service API, documentation, and paginators
+  * Allow createIdentityPool and updateIdentityPool API to set server side token check value on identity pool
+* `service/configservice`: Updates service API and documentation
+  * AWS Config now supports a new test mode for the PutEvaluations API. Set the TestMode parameter to true in your custom rule to verify whether your AWS Lambda function will deliver evaluation results to AWS Config. No updates occur to your existing evaluations, and evaluation results are not sent to AWS Config.
+
+Release v1.6.23 (2017-02-15)
+===
+
+Service Client Updates
+---
+* `service/kms`: Updates service API, documentation, paginators, and examples
+  * his release of AWS Key Management Service introduces the ability to tag keys. Tagging keys can help you organize your keys and track your KMS costs in the cost allocation report. This release also increases the maximum length of a key ID to accommodate ARNs that include a long key alias.
+
+Release v1.6.22 (2017-02-14)
+===
+
+Service Client Updates
+---
+* `service/ec2`: Updates service API, documentation, and paginators
+  * Adds support for the new Modify Volumes apis.
+
+Release v1.6.21 (2017-02-11)
+===
+
+Service Client Updates
+---
+* `service/storagegateway`: Updates service API, documentation, and paginators
+  * File gateway mode in AWS Storage gateway provides access to objects in S3 as files on a Network File System (NFS) mount point. This is done by creating Nfs file shares using existing APIs CreateNfsFileShare. Using the feature in this update, the customer can restrict the clients that have read/write access to the gateway by specifying the list of clients as a list of IP addresses or CIDR blocks. This list can be specified using the API CreateNfsFileShare while creating new file shares, or UpdateNfsFileShare while update existing file shares. To find out the list of clients that have access, the existing API DescribeNfsFileShare will now output the list of clients that have access.
+
+Release v1.6.20 (2017-02-09)
+===
+
+Service Client Updates
+---
+* `service/ec2`: Updates service API and documentation
+  * This feature allows customers to associate an IAM profile to running instances that do not have any.
+* `service/rekognition`: Updates service API and documentation
+  * DetectFaces and IndexFaces operations now return an estimate of the age of the face as an age range.
+
+SDK Features
+---
+* `aws/endpoints`: Add option to resolve unknown endpoints (#1074)
+Release v1.6.19 (2017-02-08)
+===
+
+Service Client Updates
+---
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/glacier`: Updates service examples
+	* Doc Update
+* `service/lexruntimeservice`: Adds new service
+	* Preview release
+
+SDK Bug Fixes
+---
+* `private/protocol/json`: Fixes json to throw an error if a float number is (+/-)Inf and NaN (#1068)
+* `private/model/api`: Fix documentation error listing (#1067)
+
+SDK Features
+---
+* `private/model`: Add service response error code generation (#1061)
+
+Release v1.6.18 (2017-01-27)
+===
+
+Service Client Updates
+---
+* `service/clouddirectory`: Adds new service
+  * Amazon Cloud Directory is a highly scalable, high performance, multi-tenant directory service in the cloud. Its web-based directories make it easy for you to organize and manage application resources such as users, groups, locations, devices, policies, and the rich relationships between them.
+* `service/codedeploy`: Updates service API, documentation, and paginators
+  * This release of AWS CodeDeploy introduces support for blue/green deployments. In a blue/green deployment, the current set of instances in a deployment group is replaced by new instances that have the latest application revision installed on them. After traffic is rerouted behind a load balancer to the replacement instances, the original instances can be terminated automatically or kept running for other uses.
+* `service/ec2`: Updates service API and documentation
+  * Adds instance health check functionality to replace unhealthy EC2 Spot fleet instances with fresh ones.
+* `service/rds`: Updates service API and documentation
+  * Snapshot Engine Version Upgrade
+
+Release v1.6.17 (2017-01-25)
+===
+
+Service Client Updates
+---
+* `service/elbv2`: Updates service API, documentation, and paginators
+  * Application Load Balancers now support native Internet Protocol version 6 (IPv6) in an Amazon Virtual Private Cloud (VPC). With this ability, clients can now connect to the Application Load Balancer in a dual-stack mode via either IPv4 or IPv6.
+* `service/rds`: Updates service API and documentation
+  * Cross Region Read Replica Copying (CreateDBInstanceReadReplica)
+
+Release v1.6.16 (2017-01-24)
+===
+
+Service Client Updates
+---
+* `service/codebuild`: Updates service documentation and paginators
+  * Documentation updates
+* `service/codecommit`: Updates service API, documentation, and paginators
+  * AWS CodeCommit now includes the option to view the differences between a commit and its parent commit from within the console. You can view the differences inline (Unified view) or side by side (Split view). To view information about the differences between a commit and something other than its parent, you can use the AWS CLI and the get-differences and get-blob commands, or you can use the GetDifferences and GetBlob APIs.
+* `service/ecs`: Updates service API and documentation
+  * Amazon ECS now supports a state for container instances that can be used to drain a container instance in preparation for maintenance or cluster scale down.
+
+Release v1.6.15 (2017-01-20)
+===
+
+Service Client Updates
+---
+* `service/acm`: Updates service API, documentation, and paginators
+  * Update for AWS Certificate Manager: Updated response elements for DescribeCertificate API in support of managed renewal
+* `service/health`: Updates service documentation
+
 Release v1.6.14 (2017-01-19)
 ===
 

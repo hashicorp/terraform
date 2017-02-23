@@ -14,20 +14,20 @@ Provides an HTTP Method Integration for an API Gateway Resource.
 
 ```
 resource "aws_api_gateway_rest_api" "MyDemoAPI" {
-  name = "MyDemoAPI"
+  name        = "MyDemoAPI"
   description = "This is my API for demonstration purposes"
 }
 
 resource "aws_api_gateway_resource" "MyDemoResource" {
   rest_api_id = "${aws_api_gateway_rest_api.MyDemoAPI.id}"
-  parent_id = "${aws_api_gateway_rest_api.MyDemoAPI.root_resource_id}"
-  path_part = "mydemoresource"
+  parent_id   = "${aws_api_gateway_rest_api.MyDemoAPI.root_resource_id}"
+  path_part   = "mydemoresource"
 }
 
 resource "aws_api_gateway_method" "MyDemoMethod" {
-  rest_api_id = "${aws_api_gateway_rest_api.MyDemoAPI.id}"
-  resource_id = "${aws_api_gateway_resource.MyDemoResource.id}"
-  http_method = "GET"
+  rest_api_id   = "${aws_api_gateway_rest_api.MyDemoAPI.id}"
+  resource_id   = "${aws_api_gateway_resource.MyDemoResource.id}"
+  http_method   = "GET"
   authorization = "NONE"
 }
 
@@ -35,7 +35,7 @@ resource "aws_api_gateway_integration" "MyDemoIntegration" {
   rest_api_id = "${aws_api_gateway_rest_api.MyDemoAPI.id}"
   resource_id = "${aws_api_gateway_resource.MyDemoResource.id}"
   http_method = "${aws_api_gateway_method.MyDemoMethod.http_method}"
-  type = "MOCK"
+  type        = "MOCK"
 
   # Transforms the incoming XML request to JSON
   request_templates {
@@ -82,7 +82,9 @@ resource "aws_lambda_permission" "apigw_lambda" {
   action        = "lambda:InvokeFunction"
   function_name = "${aws_lambda_function.lambda.arn}"
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "arn:aws:execute-api:${var.myregion}:${var.accountId}:${aws_api_gateway_rest_api.api.id}/*/${aws_api_gateway_method.method.http_method}/"
+
+  # More: http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-control-access-using-iam-policies-to-invoke-api.html
+  source_arn = "arn:aws:execute-api:${var.myregion}:${var.accountId}:${aws_api_gateway_rest_api.api.id}/*/${aws_api_gateway_method.method.http_method}/resourcepath/subresourcepath"
 }
 
 resource "aws_lambda_function" "lambda" {
@@ -96,7 +98,8 @@ resource "aws_lambda_function" "lambda" {
 
 # IAM
 resource "aws_iam_role" "role" {
-  name               = "myrole"
+  name = "myrole"
+
   assume_role_policy = <<POLICY
 {
   "Version": "2012-10-17",

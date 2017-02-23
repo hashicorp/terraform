@@ -18,37 +18,37 @@ Basic usage
 # Create a new ECS disk-attachment and use it attach one disk to a new instance.
 
 resource "alicloud_security_group" "ecs_sg" {
-    name = "terraform-test-group"
-    description = "New security group"
+  name        = "terraform-test-group"
+  description = "New security group"
 }
 
 resource "alicloud_disk" "ecs_disk" {
-    availability_zone = "cn-beijing-a"
-    size = "50"
+  availability_zone = "cn-beijing-a"
+  size              = "50"
 
-    tags {
-        Name = "TerraformTest-disk"
-    }
+  tags {
+    Name = "TerraformTest-disk"
+  }
 }
 
 resource "alicloud_instance" "ecs_instance" {
-    image_id = "ubuntu_140405_64_40G_cloudinit_20161115.vhd"
-    instance_type = "ecs.s1.small"
-    availability_zone = "cn-beijing-a"
-    security_groups = ["${alicloud_security_group.ecs_sg.id}"]
-    instance_name = "Hello"
-    instance_network_type = "classic"
-    internet_charge_type = "PayByBandwidth"
+  image_id              = "ubuntu_140405_64_40G_cloudinit_20161115.vhd"
+  instance_type         = "ecs.s1.small"
+  availability_zone     = "cn-beijing-a"
+  security_groups       = ["${alicloud_security_group.ecs_sg.id}"]
+  instance_name         = "Hello"
+  instance_network_type = "classic"
+  internet_charge_type  = "PayByBandwidth"
 
-    tags {
-        Name = "TerraformTest-instance"
-    }
+  tags {
+    Name = "TerraformTest-instance"
+  }
 }
 
 resource "alicloud_disk_attachment" "ecs_disk_att" {
-    disk_id = "${alicloud_disk.ecs_disk.id}"
-    instance_id = "${alicloud_instance.ecs_instance.id}"
-    device_name = "/dev/xvdb"
+  disk_id     = "${alicloud_disk.ecs_disk.id}"
+  instance_id = "${alicloud_instance.ecs_instance.id}"
+  device_name = "/dev/xvdb"
 }
 ```
 ## Argument Reference

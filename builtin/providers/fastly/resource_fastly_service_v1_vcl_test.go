@@ -82,11 +82,6 @@ resource "fastly_service_v1" "foo" {
     comment = "tf-testing-domain"
   }
 
-  backend {
-    address = "aws.amazon.com"
-    name    = "amazon docs"
-  }
-
   vcl {
     name    = "my_custom_main_vcl"
     content = <<EOF
@@ -98,6 +93,11 @@ sub vcl_recv {
     }
 
     return(lookup);
+}
+
+backend amazondocs {
+  .host = "127.0.0.1";
+  .port = "80";
 }
 EOF
     main    = true
@@ -117,11 +117,6 @@ resource "fastly_service_v1" "foo" {
     comment = "tf-testing-domain"
   }
 
-  backend {
-    address = "aws.amazon.com"
-    name    = "amazon docs"
-  }
-
   vcl {
     name    = "my_custom_main_vcl"
     content = <<EOF
@@ -134,6 +129,11 @@ sub vcl_recv {
 
     return(lookup);
 }
+
+backend amazondocs {
+  .host = "127.0.0.1";
+  .port = "80";
+}
 EOF
     main    = true
   }
@@ -143,6 +143,11 @@ EOF
                 content = <<EOF
 sub vcl_error {
 #FASTLY error
+}
+
+backend amazondocs {
+  .host = "127.0.0.1";
+  .port = "80";
 }
 EOF
         }

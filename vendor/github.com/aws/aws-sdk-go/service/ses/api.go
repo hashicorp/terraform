@@ -75,13 +75,13 @@ func (c *SES) CloneReceiptRuleSetRequest(input *CloneReceiptRuleSetInput) (req *
 // API operation CloneReceiptRuleSet for usage and error information.
 //
 // Returned Error Codes:
-//   * RuleSetDoesNotExist
+//   * ErrCodeRuleSetDoesNotExistException "RuleSetDoesNotExist"
 //   Indicates that the provided receipt rule set does not exist.
 //
-//   * AlreadyExists
+//   * ErrCodeAlreadyExistsException "AlreadyExists"
 //   Indicates that a resource could not be created because of a naming conflict.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   Indicates that a resource could not be created because of service limits.
 //   For a list of Amazon SES limits, see the Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/limits.html).
 //
@@ -152,15 +152,15 @@ func (c *SES) CreateConfigurationSetRequest(input *CreateConfigurationSetInput) 
 // API operation CreateConfigurationSet for usage and error information.
 //
 // Returned Error Codes:
-//   * ConfigurationSetAlreadyExists
+//   * ErrCodeConfigurationSetAlreadyExistsException "ConfigurationSetAlreadyExists"
 //   Indicates that the configuration set could not be created because of a naming
 //   conflict.
 //
-//   * InvalidConfigurationSet
+//   * ErrCodeInvalidConfigurationSetException "InvalidConfigurationSet"
 //   Indicates that the configuration set is invalid. See the error message for
 //   details.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   Indicates that a resource could not be created because of service limits.
 //   For a list of Amazon SES limits, see the Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/limits.html).
 //
@@ -236,22 +236,22 @@ func (c *SES) CreateConfigurationSetEventDestinationRequest(input *CreateConfigu
 // API operation CreateConfigurationSetEventDestination for usage and error information.
 //
 // Returned Error Codes:
-//   * ConfigurationSetDoesNotExist
+//   * ErrCodeConfigurationSetDoesNotExistException "ConfigurationSetDoesNotExist"
 //   Indicates that the configuration set does not exist.
 //
-//   * EventDestinationAlreadyExists
+//   * ErrCodeEventDestinationAlreadyExistsException "EventDestinationAlreadyExists"
 //   Indicates that the event destination could not be created because of a naming
 //   conflict.
 //
-//   * InvalidCloudWatchDestination
+//   * ErrCodeInvalidCloudWatchDestinationException "InvalidCloudWatchDestination"
 //   Indicates that the Amazon CloudWatch destination is invalid. See the error
 //   message for details.
 //
-//   * InvalidFirehoseDestination
+//   * ErrCodeInvalidFirehoseDestinationException "InvalidFirehoseDestination"
 //   Indicates that the Amazon Kinesis Firehose destination is invalid. See the
 //   error message for details.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   Indicates that a resource could not be created because of service limits.
 //   For a list of Amazon SES limits, see the Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/limits.html).
 //
@@ -322,11 +322,11 @@ func (c *SES) CreateReceiptFilterRequest(input *CreateReceiptFilterInput) (req *
 // API operation CreateReceiptFilter for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   Indicates that a resource could not be created because of service limits.
 //   For a list of Amazon SES limits, see the Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/limits.html).
 //
-//   * AlreadyExists
+//   * ErrCodeAlreadyExistsException "AlreadyExists"
 //   Indicates that a resource could not be created because of a naming conflict.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/email-2010-12-01/CreateReceiptFilter
@@ -396,33 +396,33 @@ func (c *SES) CreateReceiptRuleRequest(input *CreateReceiptRuleInput) (req *requ
 // API operation CreateReceiptRule for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidSnsTopic
+//   * ErrCodeInvalidSnsTopicException "InvalidSnsTopic"
 //   Indicates that the provided Amazon SNS topic is invalid, or that Amazon SES
 //   could not publish to the topic, possibly due to permissions issues. For information
 //   about giving permissions, see the Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/receiving-email-permissions.html).
 //
-//   * InvalidS3Configuration
+//   * ErrCodeInvalidS3ConfigurationException "InvalidS3Configuration"
 //   Indicates that the provided Amazon S3 bucket or AWS KMS encryption key is
 //   invalid, or that Amazon SES could not publish to the bucket, possibly due
 //   to permissions issues. For information about giving permissions, see the
 //   Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/receiving-email-permissions.html).
 //
-//   * InvalidLambdaFunction
+//   * ErrCodeInvalidLambdaFunctionException "InvalidLambdaFunction"
 //   Indicates that the provided AWS Lambda function is invalid, or that Amazon
 //   SES could not execute the provided function, possibly due to permissions
 //   issues. For information about giving permissions, see the Amazon SES Developer
 //   Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/receiving-email-permissions.html).
 //
-//   * AlreadyExists
+//   * ErrCodeAlreadyExistsException "AlreadyExists"
 //   Indicates that a resource could not be created because of a naming conflict.
 //
-//   * RuleDoesNotExist
+//   * ErrCodeRuleDoesNotExistException "RuleDoesNotExist"
 //   Indicates that the provided receipt rule does not exist.
 //
-//   * RuleSetDoesNotExist
+//   * ErrCodeRuleSetDoesNotExistException "RuleSetDoesNotExist"
 //   Indicates that the provided receipt rule set does not exist.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   Indicates that a resource could not be created because of service limits.
 //   For a list of Amazon SES limits, see the Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/limits.html).
 //
@@ -493,10 +493,10 @@ func (c *SES) CreateReceiptRuleSetRequest(input *CreateReceiptRuleSetInput) (req
 // API operation CreateReceiptRuleSet for usage and error information.
 //
 // Returned Error Codes:
-//   * AlreadyExists
+//   * ErrCodeAlreadyExistsException "AlreadyExists"
 //   Indicates that a resource could not be created because of a naming conflict.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   Indicates that a resource could not be created because of service limits.
 //   For a list of Amazon SES limits, see the Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/limits.html).
 //
@@ -567,7 +567,7 @@ func (c *SES) DeleteConfigurationSetRequest(input *DeleteConfigurationSetInput) 
 // API operation DeleteConfigurationSet for usage and error information.
 //
 // Returned Error Codes:
-//   * ConfigurationSetDoesNotExist
+//   * ErrCodeConfigurationSetDoesNotExistException "ConfigurationSetDoesNotExist"
 //   Indicates that the configuration set does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/email-2010-12-01/DeleteConfigurationSet
@@ -638,10 +638,10 @@ func (c *SES) DeleteConfigurationSetEventDestinationRequest(input *DeleteConfigu
 // API operation DeleteConfigurationSetEventDestination for usage and error information.
 //
 // Returned Error Codes:
-//   * ConfigurationSetDoesNotExist
+//   * ErrCodeConfigurationSetDoesNotExistException "ConfigurationSetDoesNotExist"
 //   Indicates that the configuration set does not exist.
 //
-//   * EventDestinationDoesNotExist
+//   * ErrCodeEventDestinationDoesNotExistException "EventDestinationDoesNotExist"
 //   Indicates that the event destination does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/email-2010-12-01/DeleteConfigurationSetEventDestination
@@ -910,7 +910,7 @@ func (c *SES) DeleteReceiptRuleRequest(input *DeleteReceiptRuleInput) (req *requ
 // API operation DeleteReceiptRule for usage and error information.
 //
 // Returned Error Codes:
-//   * RuleSetDoesNotExist
+//   * ErrCodeRuleSetDoesNotExistException "RuleSetDoesNotExist"
 //   Indicates that the provided receipt rule set does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/email-2010-12-01/DeleteReceiptRule
@@ -982,7 +982,7 @@ func (c *SES) DeleteReceiptRuleSetRequest(input *DeleteReceiptRuleSetInput) (req
 // API operation DeleteReceiptRuleSet for usage and error information.
 //
 // Returned Error Codes:
-//   * CannotDelete
+//   * ErrCodeCannotDeleteException "CannotDelete"
 //   Indicates that the delete operation could not be completed.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/email-2010-12-01/DeleteReceiptRuleSet
@@ -1185,7 +1185,7 @@ func (c *SES) DescribeConfigurationSetRequest(input *DescribeConfigurationSetInp
 // API operation DescribeConfigurationSet for usage and error information.
 //
 // Returned Error Codes:
-//   * ConfigurationSetDoesNotExist
+//   * ErrCodeConfigurationSetDoesNotExistException "ConfigurationSetDoesNotExist"
 //   Indicates that the configuration set does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/email-2010-12-01/DescribeConfigurationSet
@@ -1255,10 +1255,10 @@ func (c *SES) DescribeReceiptRuleRequest(input *DescribeReceiptRuleInput) (req *
 // API operation DescribeReceiptRule for usage and error information.
 //
 // Returned Error Codes:
-//   * RuleDoesNotExist
+//   * ErrCodeRuleDoesNotExistException "RuleDoesNotExist"
 //   Indicates that the provided receipt rule does not exist.
 //
-//   * RuleSetDoesNotExist
+//   * ErrCodeRuleSetDoesNotExistException "RuleSetDoesNotExist"
 //   Indicates that the provided receipt rule set does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/email-2010-12-01/DescribeReceiptRule
@@ -1328,7 +1328,7 @@ func (c *SES) DescribeReceiptRuleSetRequest(input *DescribeReceiptRuleSetInput) 
 // API operation DescribeReceiptRuleSet for usage and error information.
 //
 // Returned Error Codes:
-//   * RuleSetDoesNotExist
+//   * ErrCodeRuleSetDoesNotExistException "RuleSetDoesNotExist"
 //   Indicates that the provided receipt rule set does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/email-2010-12-01/DescribeReceiptRuleSet
@@ -2308,7 +2308,7 @@ func (c *SES) PutIdentityPolicyRequest(input *PutIdentityPolicyInput) (req *requ
 // API operation PutIdentityPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidPolicy
+//   * ErrCodeInvalidPolicyException "InvalidPolicy"
 //   Indicates that the provided policy is invalid. Check the error stack for
 //   more information about what caused the error.
 //
@@ -2383,10 +2383,10 @@ func (c *SES) ReorderReceiptRuleSetRequest(input *ReorderReceiptRuleSetInput) (r
 // API operation ReorderReceiptRuleSet for usage and error information.
 //
 // Returned Error Codes:
-//   * RuleSetDoesNotExist
+//   * ErrCodeRuleSetDoesNotExistException "RuleSetDoesNotExist"
 //   Indicates that the provided receipt rule set does not exist.
 //
-//   * RuleDoesNotExist
+//   * ErrCodeRuleDoesNotExistException "RuleDoesNotExist"
 //   Indicates that the provided receipt rule does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/email-2010-12-01/ReorderReceiptRuleSet
@@ -2461,7 +2461,7 @@ func (c *SES) SendBounceRequest(input *SendBounceInput) (req *request.Request, o
 // API operation SendBounce for usage and error information.
 //
 // Returned Error Codes:
-//   * MessageRejected
+//   * ErrCodeMessageRejected "MessageRejected"
 //   Indicates that the action failed, and the message could not be sent. Check
 //   the error stack for more information about what caused the error.
 //
@@ -2551,17 +2551,17 @@ func (c *SES) SendEmailRequest(input *SendEmailInput) (req *request.Request, out
 // API operation SendEmail for usage and error information.
 //
 // Returned Error Codes:
-//   * MessageRejected
+//   * ErrCodeMessageRejected "MessageRejected"
 //   Indicates that the action failed, and the message could not be sent. Check
 //   the error stack for more information about what caused the error.
 //
-//   * MailFromDomainNotVerifiedException
+//   * ErrCodeMailFromDomainNotVerifiedException "MailFromDomainNotVerifiedException"
 //   Indicates that the message could not be sent because Amazon SES could not
 //   read the MX record required to use the specified MAIL FROM domain. For information
 //   about editing the custom MAIL FROM domain settings for an identity, see the
 //   Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/mail-from-edit.html).
 //
-//   * ConfigurationSetDoesNotExist
+//   * ErrCodeConfigurationSetDoesNotExistException "ConfigurationSetDoesNotExist"
 //   Indicates that the configuration set does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/email-2010-12-01/SendEmail
@@ -2682,17 +2682,17 @@ func (c *SES) SendRawEmailRequest(input *SendRawEmailInput) (req *request.Reques
 // API operation SendRawEmail for usage and error information.
 //
 // Returned Error Codes:
-//   * MessageRejected
+//   * ErrCodeMessageRejected "MessageRejected"
 //   Indicates that the action failed, and the message could not be sent. Check
 //   the error stack for more information about what caused the error.
 //
-//   * MailFromDomainNotVerifiedException
+//   * ErrCodeMailFromDomainNotVerifiedException "MailFromDomainNotVerifiedException"
 //   Indicates that the message could not be sent because Amazon SES could not
 //   read the MX record required to use the specified MAIL FROM domain. For information
 //   about editing the custom MAIL FROM domain settings for an identity, see the
 //   Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/mail-from-edit.html).
 //
-//   * ConfigurationSetDoesNotExist
+//   * ErrCodeConfigurationSetDoesNotExistException "ConfigurationSetDoesNotExist"
 //   Indicates that the configuration set does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/email-2010-12-01/SendRawEmail
@@ -2765,7 +2765,7 @@ func (c *SES) SetActiveReceiptRuleSetRequest(input *SetActiveReceiptRuleSetInput
 // API operation SetActiveReceiptRuleSet for usage and error information.
 //
 // Returned Error Codes:
-//   * RuleSetDoesNotExist
+//   * ErrCodeRuleSetDoesNotExistException "RuleSetDoesNotExist"
 //   Indicates that the provided receipt rule set does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/email-2010-12-01/SetActiveReceiptRuleSet
@@ -3188,10 +3188,10 @@ func (c *SES) SetReceiptRulePositionRequest(input *SetReceiptRulePositionInput) 
 // API operation SetReceiptRulePosition for usage and error information.
 //
 // Returned Error Codes:
-//   * RuleSetDoesNotExist
+//   * ErrCodeRuleSetDoesNotExistException "RuleSetDoesNotExist"
 //   Indicates that the provided receipt rule set does not exist.
 //
-//   * RuleDoesNotExist
+//   * ErrCodeRuleDoesNotExistException "RuleDoesNotExist"
 //   Indicates that the provided receipt rule does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/email-2010-12-01/SetReceiptRulePosition
@@ -3267,17 +3267,17 @@ func (c *SES) UpdateConfigurationSetEventDestinationRequest(input *UpdateConfigu
 // API operation UpdateConfigurationSetEventDestination for usage and error information.
 //
 // Returned Error Codes:
-//   * ConfigurationSetDoesNotExist
+//   * ErrCodeConfigurationSetDoesNotExistException "ConfigurationSetDoesNotExist"
 //   Indicates that the configuration set does not exist.
 //
-//   * EventDestinationDoesNotExist
+//   * ErrCodeEventDestinationDoesNotExistException "EventDestinationDoesNotExist"
 //   Indicates that the event destination does not exist.
 //
-//   * InvalidCloudWatchDestination
+//   * ErrCodeInvalidCloudWatchDestinationException "InvalidCloudWatchDestination"
 //   Indicates that the Amazon CloudWatch destination is invalid. See the error
 //   message for details.
 //
-//   * InvalidFirehoseDestination
+//   * ErrCodeInvalidFirehoseDestinationException "InvalidFirehoseDestination"
 //   Indicates that the Amazon Kinesis Firehose destination is invalid. See the
 //   error message for details.
 //
@@ -3348,30 +3348,30 @@ func (c *SES) UpdateReceiptRuleRequest(input *UpdateReceiptRuleInput) (req *requ
 // API operation UpdateReceiptRule for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidSnsTopic
+//   * ErrCodeInvalidSnsTopicException "InvalidSnsTopic"
 //   Indicates that the provided Amazon SNS topic is invalid, or that Amazon SES
 //   could not publish to the topic, possibly due to permissions issues. For information
 //   about giving permissions, see the Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/receiving-email-permissions.html).
 //
-//   * InvalidS3Configuration
+//   * ErrCodeInvalidS3ConfigurationException "InvalidS3Configuration"
 //   Indicates that the provided Amazon S3 bucket or AWS KMS encryption key is
 //   invalid, or that Amazon SES could not publish to the bucket, possibly due
 //   to permissions issues. For information about giving permissions, see the
 //   Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/receiving-email-permissions.html).
 //
-//   * InvalidLambdaFunction
+//   * ErrCodeInvalidLambdaFunctionException "InvalidLambdaFunction"
 //   Indicates that the provided AWS Lambda function is invalid, or that Amazon
 //   SES could not execute the provided function, possibly due to permissions
 //   issues. For information about giving permissions, see the Amazon SES Developer
 //   Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/receiving-email-permissions.html).
 //
-//   * RuleSetDoesNotExist
+//   * ErrCodeRuleSetDoesNotExistException "RuleSetDoesNotExist"
 //   Indicates that the provided receipt rule set does not exist.
 //
-//   * RuleDoesNotExist
+//   * ErrCodeRuleDoesNotExistException "RuleDoesNotExist"
 //   Indicates that the provided receipt rule does not exist.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   Indicates that a resource could not be created because of service limits.
 //   For a list of Amazon SES limits, see the Amazon SES Developer Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/limits.html).
 //

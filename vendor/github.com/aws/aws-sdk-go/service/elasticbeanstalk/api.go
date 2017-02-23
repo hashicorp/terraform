@@ -71,7 +71,7 @@ func (c *ElasticBeanstalk) AbortEnvironmentUpdateRequest(input *AbortEnvironment
 // API operation AbortEnvironmentUpdate for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
@@ -139,10 +139,10 @@ func (c *ElasticBeanstalk) ApplyEnvironmentManagedActionRequest(input *ApplyEnvi
 // API operation ApplyEnvironmentManagedAction for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A generic service exception has occurred.
 //
-//   * ManagedActionInvalidStateException
+//   * ErrCodeManagedActionInvalidStateException "ManagedActionInvalidStateException"
 //   Cannot modify the managed action in its current state.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplyEnvironmentManagedAction
@@ -273,10 +273,10 @@ func (c *ElasticBeanstalk) ComposeEnvironmentsRequest(input *ComposeEnvironments
 // API operation ComposeEnvironments for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyEnvironmentsException
+//   * ErrCodeTooManyEnvironmentsException "TooManyEnvironmentsException"
 //   The specified account has reached its limit of environments.
 //
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
@@ -343,7 +343,7 @@ func (c *ElasticBeanstalk) CreateApplicationRequest(input *CreateApplicationInpu
 // API operation CreateApplication for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyApplicationsException
+//   * ErrCodeTooManyApplicationsException "TooManyApplicationsException"
 //   The specified account has reached its limit of applications.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateApplication
@@ -424,17 +424,17 @@ func (c *ElasticBeanstalk) CreateApplicationVersionRequest(input *CreateApplicat
 // API operation CreateApplicationVersion for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyApplicationsException
+//   * ErrCodeTooManyApplicationsException "TooManyApplicationsException"
 //   The specified account has reached its limit of applications.
 //
-//   * TooManyApplicationVersionsException
+//   * ErrCodeTooManyApplicationVersionsException "TooManyApplicationVersionsException"
 //   The specified account has reached its limit of application versions.
 //
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
-//   * S3LocationNotInServiceRegionException
+//   * ErrCodeS3LocationNotInServiceRegionException "S3LocationNotInServiceRegionException"
 //   The specified S3 bucket does not belong to the S3 region in which the service
 //   is running. The following regions are supported:
 //
@@ -444,7 +444,7 @@ func (c *ElasticBeanstalk) CreateApplicationVersionRequest(input *CreateApplicat
 //
 //      * DUB/eu-west-1
 //
-//   * CodeBuildNotInServiceRegionException
+//   * ErrCodeCodeBuildNotInServiceRegionException "CodeBuildNotInServiceRegionException"
 //   AWS CodeBuild is not available in the specified region.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateApplicationVersion
@@ -519,14 +519,14 @@ func (c *ElasticBeanstalk) CreateConfigurationTemplateRequest(input *CreateConfi
 // API operation CreateConfigurationTemplate for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
-//   * TooManyBucketsException
+//   * ErrCodeTooManyBucketsException "TooManyBucketsException"
 //   The specified account has reached its limit of Amazon S3 buckets.
 //
-//   * TooManyConfigurationTemplatesException
+//   * ErrCodeTooManyConfigurationTemplatesException "TooManyConfigurationTemplatesException"
 //   The specified account has reached its limit of configuration templates.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateConfigurationTemplate
@@ -592,10 +592,10 @@ func (c *ElasticBeanstalk) CreateEnvironmentRequest(input *CreateEnvironmentInpu
 // API operation CreateEnvironment for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyEnvironmentsException
+//   * ErrCodeTooManyEnvironmentsException "TooManyEnvironmentsException"
 //   The specified account has reached its limit of environments.
 //
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
@@ -663,13 +663,13 @@ func (c *ElasticBeanstalk) CreateStorageLocationRequest(input *CreateStorageLoca
 // API operation CreateStorageLocation for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyBucketsException
+//   * ErrCodeTooManyBucketsException "TooManyBucketsException"
 //   The specified account has reached its limit of Amazon S3 buckets.
 //
-//   * S3SubscriptionRequiredException
+//   * ErrCodeS3SubscriptionRequiredException "S3SubscriptionRequiredException"
 //   The specified account does not have a subscription to Amazon S3.
 //
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
@@ -741,7 +741,7 @@ func (c *ElasticBeanstalk) DeleteApplicationRequest(input *DeleteApplicationInpu
 // API operation DeleteApplication for usage and error information.
 //
 // Returned Error Codes:
-//   * OperationInProgressFailure
+//   * ErrCodeOperationInProgressException "OperationInProgressFailure"
 //   Unable to perform the specified operation because another operation that
 //   effects an element in this activity is already in progress.
 //
@@ -812,19 +812,19 @@ func (c *ElasticBeanstalk) DeleteApplicationVersionRequest(input *DeleteApplicat
 // API operation DeleteApplicationVersion for usage and error information.
 //
 // Returned Error Codes:
-//   * SourceBundleDeletionFailure
+//   * ErrCodeSourceBundleDeletionException "SourceBundleDeletionFailure"
 //   Unable to delete the Amazon S3 source bundle associated with the application
 //   version. The application version was deleted successfully.
 //
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
-//   * OperationInProgressFailure
+//   * ErrCodeOperationInProgressException "OperationInProgressFailure"
 //   Unable to perform the specified operation because another operation that
 //   effects an element in this activity is already in progress.
 //
-//   * S3LocationNotInServiceRegionException
+//   * ErrCodeS3LocationNotInServiceRegionException "S3LocationNotInServiceRegionException"
 //   The specified S3 bucket does not belong to the S3 region in which the service
 //   is running. The following regions are supported:
 //
@@ -902,7 +902,7 @@ func (c *ElasticBeanstalk) DeleteConfigurationTemplateRequest(input *DeleteConfi
 // API operation DeleteConfigurationTemplate for usage and error information.
 //
 // Returned Error Codes:
-//   * OperationInProgressFailure
+//   * ErrCodeOperationInProgressException "OperationInProgressFailure"
 //   Unable to perform the specified operation because another operation that
 //   effects an element in this activity is already in progress.
 //
@@ -1161,7 +1161,7 @@ func (c *ElasticBeanstalk) DescribeConfigurationOptionsRequest(input *DescribeCo
 // API operation DescribeConfigurationOptions for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyBucketsException
+//   * ErrCodeTooManyBucketsException "TooManyBucketsException"
 //   The specified account has reached its limit of Amazon S3 buckets.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeConfigurationOptions
@@ -1238,7 +1238,7 @@ func (c *ElasticBeanstalk) DescribeConfigurationSettingsRequest(input *DescribeC
 // API operation DescribeConfigurationSettings for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyBucketsException
+//   * ErrCodeTooManyBucketsException "TooManyBucketsException"
 //   The specified account has reached its limit of Amazon S3 buckets.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeConfigurationSettings
@@ -1305,11 +1305,11 @@ func (c *ElasticBeanstalk) DescribeEnvironmentHealthRequest(input *DescribeEnvir
 // API operation DescribeEnvironmentHealth for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   One or more input parameters is not valid. Please correct the input parameters
 //   and try the operation again.
 //
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A generic service exception has occurred.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentHealth
@@ -1374,7 +1374,7 @@ func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionHistoryRequest(input 
 // API operation DescribeEnvironmentManagedActionHistory for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A generic service exception has occurred.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentManagedActionHistory
@@ -1439,7 +1439,7 @@ func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionsRequest(input *Descr
 // API operation DescribeEnvironmentManagedActions for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A generic service exception has occurred.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentManagedActions
@@ -1504,7 +1504,7 @@ func (c *ElasticBeanstalk) DescribeEnvironmentResourcesRequest(input *DescribeEn
 // API operation DescribeEnvironmentResources for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
@@ -1724,11 +1724,11 @@ func (c *ElasticBeanstalk) DescribeInstancesHealthRequest(input *DescribeInstanc
 // API operation DescribeInstancesHealth for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   One or more input parameters is not valid. Please correct the input parameters
 //   and try the operation again.
 //
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A generic service exception has occurred.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeInstancesHealth
@@ -1856,7 +1856,7 @@ func (c *ElasticBeanstalk) RebuildEnvironmentRequest(input *RebuildEnvironmentIn
 // API operation RebuildEnvironment for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
@@ -2187,7 +2187,7 @@ func (c *ElasticBeanstalk) TerminateEnvironmentRequest(input *TerminateEnvironme
 // API operation TerminateEnvironment for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
@@ -2316,7 +2316,7 @@ func (c *ElasticBeanstalk) UpdateApplicationResourceLifecycleRequest(input *Upda
 // API operation UpdateApplicationResourceLifecycle for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
@@ -2453,11 +2453,11 @@ func (c *ElasticBeanstalk) UpdateConfigurationTemplateRequest(input *UpdateConfi
 // API operation UpdateConfigurationTemplate for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
-//   * TooManyBucketsException
+//   * ErrCodeTooManyBucketsException "TooManyBucketsException"
 //   The specified account has reached its limit of Amazon S3 buckets.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateConfigurationTemplate
@@ -2532,11 +2532,11 @@ func (c *ElasticBeanstalk) UpdateEnvironmentRequest(input *UpdateEnvironmentInpu
 // API operation UpdateEnvironment for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
-//   * TooManyBucketsException
+//   * ErrCodeTooManyBucketsException "TooManyBucketsException"
 //   The specified account has reached its limit of Amazon S3 buckets.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateEnvironment
@@ -2605,11 +2605,11 @@ func (c *ElasticBeanstalk) ValidateConfigurationSettingsRequest(input *ValidateC
 // API operation ValidateConfigurationSettings for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
-//   * TooManyBucketsException
+//   * ErrCodeTooManyBucketsException "TooManyBucketsException"
 //   The specified account has reached its limit of Amazon S3 buckets.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ValidateConfigurationSettings

@@ -2,6 +2,7 @@ package remote
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -11,10 +12,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
+	uuid "github.com/hashicorp/go-uuid"
 	terraformAws "github.com/hashicorp/terraform/builtin/providers/aws"
+	"github.com/hashicorp/terraform/state"
 )
 
 func s3Factory(conf map[string]string) (Client, error) {
@@ -66,7 +70,12 @@ func s3Factory(conf map[string]string) (Client, error) {
 		Token:         conf["token"],
 		Profile:       conf["profile"],
 		CredsFilename: conf["shared_credentials_file"],
+		AssumeRoleARN: conf["role_arn"],
 	})
+	if err != nil {
+		return nil, err
+	}
+
 	// Call Get to check for credential provider. If nothing found, we'll get an
 	// error, and we can present it nicely to the user
 	_, err = creds.Get()
@@ -89,6 +98,7 @@ providing credentials for the AWS S3 remote`))
 	}
 	sess := session.New(awsConfig)
 	nativeClient := s3.New(sess)
+	dynClient := dynamodb.New(sess)
 
 	return &S3Client{
 		nativeClient:         nativeClient,
@@ -97,6 +107,8 @@ providing credentials for the AWS S3 remote`))
 		serverSideEncryption: serverSideEncryption,
 		acl:                  acl,
 		kmsKeyID:             kmsKeyID,
+		dynClient:            dynClient,
+		lockTable:            conf["lock_table"],
 	}, nil
 }
 
@@ -107,6 +119,8 @@ type S3Client struct {
 	serverSideEncryption bool
 	acl                  string
 	kmsKeyID             string
+	dynClient            *dynamodb.DynamoDB
+	lockTable            string
 }
 
 func (c *S3Client) Get() (*Payload, error) {
@@ -187,4 +201,111 @@ func (c *S3Client) Delete() error {
 	})
 
 	return err
+}
+
+func (c *S3Client) Lock(info *state.LockInfo) (string, error) {
+	if c.lockTable == "" {
+		return "", nil
+	}
+
+	stateName := fmt.Sprintf("%s/%s", c.bucketName, c.keyName)
+	info.Path = stateName
+
+	if info.ID == "" {
+		lockID, err := uuid.GenerateUUID()
+		if err != nil {
+			return "", err
+		}
+
+		info.ID = lockID
+	}
+
+	putParams := &dynamodb.PutItemInput{
+		Item: map[string]*dynamodb.AttributeValue{
+			"LockID": {S: aws.String(stateName)},
+			"Info":   {S: aws.String(string(info.Marshal()))},
+		},
+		TableName:           aws.String(c.lockTable),
+		ConditionExpression: aws.String("attribute_not_exists(LockID)"),
+	}
+	_, err := c.dynClient.PutItem(putParams)
+
+	if err != nil {
+		lockInfo, infoErr := c.getLockInfo()
+		if infoErr != nil {
+			err = multierror.Append(err, infoErr)
+		}
+
+		lockErr := &state.LockError{
+			Err:  err,
+			Info: lockInfo,
+		}
+		return "", lockErr
+	}
+	return info.ID, nil
+}
+
+func (c *S3Client) getLockInfo() (*state.LockInfo, error) {
+	getParams := &dynamodb.GetItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.keyName))},
+		},
+		ProjectionExpression: aws.String("LockID, Info"),
+		TableName:            aws.String(c.lockTable),
+	}
+
+	resp, err := c.dynClient.GetItem(getParams)
+	if err != nil {
+		return nil, err
+	}
+
+	var infoData string
+	if v, ok := resp.Item["Info"]; ok && v.S != nil {
+		infoData = *v.S
+	}
+
+	lockInfo := &state.LockInfo{}
+	err = json.Unmarshal([]byte(infoData), lockInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return lockInfo, nil
+}
+
+func (c *S3Client) Unlock(id string) error {
+	if c.lockTable == "" {
+		return nil
+	}
+
+	lockErr := &state.LockError{}
+
+	// TODO: store the path and lock ID in separate fields, and have proper
+	// projection expression only delete the lock if both match, rather than
+	// checking the ID from the info field first.
+	lockInfo, err := c.getLockInfo()
+	if err != nil {
+		lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
+		return lockErr
+	}
+	lockErr.Info = lockInfo
+
+	if lockInfo.ID != id {
+		lockErr.Err = fmt.Errorf("lock id %q does not match existing lock", id)
+		return lockErr
+	}
+
+	params := &dynamodb.DeleteItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"LockID": {S: aws.String(fmt.Sprintf("%s/%s", c.bucketName, c.keyName))},
+		},
+		TableName: aws.String(c.lockTable),
+	}
+	_, err = c.dynClient.DeleteItem(params)
+
+	if err != nil {
+		lockErr.Err = err
+		return lockErr
+	}
+	return nil
 }

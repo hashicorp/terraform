@@ -14,23 +14,23 @@ Creates a new Route Resource
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
-    location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_route_table" "test" {
-    name = "acceptanceTestRouteTable1"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "acceptanceTestRouteTable1"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
 resource "azurerm_route" "test" {
-    name = "acceptanceTestRoute1"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    route_table_name = "${azurerm_route_table.test.name}"
+  name                = "acceptanceTestRoute1"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  route_table_name    = "${azurerm_route_table.test.name}"
 
-    address_prefix = "10.1.0.0/16"
-    next_hop_type = "vnetlocal"
+  address_prefix = "10.1.0.0/16"
+  next_hop_type  = "vnetlocal"
 }
 ```
 
@@ -43,10 +43,10 @@ The following arguments are supported:
 
 * `resource_group_name` - (Required) The name of the resource group in which to
     create the route.
-    
-    
+
+
 * `route_table_name` - (Required) The name of the route table to which to create the route
-    
+
 * `address_prefix` - (Required) The destination CIDR to which the route applies, such as 10.1.0.0/16
 
 * `next_hop_type` - (Required) The type of Azure hop the packet should be sent to.
@@ -63,7 +63,7 @@ The following attributes are exported:
 ## Import
 
 
-Routes can be imported using the `resource id`, e.g. 
+Routes can be imported using the `resource id`, e.g.
 ```
 terraform import azurerm_route.testRoute /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/routeTables/mytable1/routes/myroute1
 ```

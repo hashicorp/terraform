@@ -32,44 +32,46 @@ Use the navigation to the left to read about the available resources.
 
 ```
 provider "rundeck" {
-    url = "http://rundeck.example.com/"
-    auth_token = "abcd1234"
+  url        = "http://rundeck.example.com/"
+  auth_token = "abcd1234"
 }
 
 resource "rundeck_project" "anvils" {
-    name = "anvils"
-    description = "Application for managing Anvils"
+  name        = "anvils"
+  description = "Application for managing Anvils"
 
-    ssh_key_storage_path = "${rundeck_private_key.anvils.path}"
+  ssh_key_storage_path = "${rundeck_private_key.anvils.path}"
 
-    resource_model_source {
-        type = "file"
-        config = {
-            format = "resourcexml"
-            # This path is interpreted on the Rundeck server.
-            file = "/var/rundeck/projects/anvils/resources.xml"
-        }
+  resource_model_source {
+    type = "file"
+
+    config = {
+      format = "resourcexml"
+
+      # This path is interpreted on the Rundeck server.
+      file = "/var/rundeck/projects/anvils/resources.xml"
     }
+  }
 }
 
 resource "rundeck_job" "bounceweb" {
-    name = "Bounce Web Servers"
-    project_name = "${rundeck_project.anvils.name}"
-    node_filter_query = "tags: web"
-    description = "Restart the service daemons on all the web servers"
+  name              = "Bounce Web Servers"
+  project_name      = "${rundeck_project.anvils.name}"
+  node_filter_query = "tags: web"
+  description       = "Restart the service daemons on all the web servers"
 
-    command {
-        shell_command = "sudo service anvils restart"
-    }
+  command {
+    shell_command = "sudo service anvils restart"
+  }
 }
 
 resource "rundeck_public_key" "anvils" {
-    path = "anvils/id_rsa.pub"
-    key_material = "ssh-rsa yada-yada-yada"
+  path         = "anvils/id_rsa.pub"
+  key_material = "ssh-rsa yada-yada-yada"
 }
 
 resource "rundeck_private_key" "anvils" {
-    path = "anvils/id_rsa"
-    key_material = "${file(\"id_rsa.pub\")}"
+  path         = "anvils/id_rsa"
+  key_material = "${file(\"id_rsa.pub\")}"
 }
 ```

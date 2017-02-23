@@ -15,30 +15,33 @@ and queues.
 
 ```
 resource "rabbitmq_vhost" "test" {
-    name = "test"
+  name = "test"
 }
 
 resource "rabbitmq_permissions" "guest" {
-    user = "guest"
-    vhost = "${rabbitmq_vhost.test.name}"
-    permissions {
-        configure = ".*"
-        write = ".*"
-        read = ".*"
-    }
+  user  = "guest"
+  vhost = "${rabbitmq_vhost.test.name}"
+
+  permissions {
+    configure = ".*"
+    write     = ".*"
+    read      = ".*"
+  }
 }
 
 resource "rabbitmq_policy" "test" {
-    name = "test"
-    vhost = "${rabbitmq_permissions.guest.vhost}"
-    policy {
-        pattern = ".*"
-        priority = 0
-        apply_to = "all"
-        definition {
-          ha-mode = "all"
-        }
+  name  = "test"
+  vhost = "${rabbitmq_permissions.guest.vhost}"
+
+  policy {
+    pattern  = ".*"
+    priority = 0
+    apply_to = "all"
+
+    definition {
+      ha-mode = "all"
     }
+  }
 }
 ```
 

@@ -13,13 +13,14 @@ description: |-
 
 ```
 resource "aws_elasticsearch_domain" "es" {
-	domain_name = "tf-test"
-	elasticsearch_version = "1.5"
-	advanced_options {
-		"rest.action.multi.allow_explicit_index" = true
-	}
+  domain_name           = "tf-test"
+  elasticsearch_version = "1.5"
 
-	access_policies = <<CONFIG
+  advanced_options {
+    "rest.action.multi.allow_explicit_index" = true
+  }
+
+  access_policies = <<CONFIG
 {
 	"Version": "2012-10-17",
 	"Statement": [
@@ -35,13 +36,13 @@ resource "aws_elasticsearch_domain" "es" {
 }
 CONFIG
 
-	snapshot_options {
-		automated_snapshot_start_hour = 23
-	}
-	
-	tags {
-      Domain = "TestDomain"
-    }
+  snapshot_options {
+    automated_snapshot_start_hour = 23
+  }
+
+  tags {
+    Domain = "TestDomain"
+  }
 }
 ```
 
@@ -55,7 +56,7 @@ The following arguments are supported:
 * `ebs_options` - (Optional) EBS related options, see below.
 * `cluster_config` - (Optional) Cluster configuration of the domain, see below.
 * `snapshot_options` - (Optional) Snapshot related options, see below.
-* `elasticsearch_version` - (Optional) The version of ElasticSearch to deploy. Only valid values are `1.5` and `2.3`. Defaults to `1.5`
+* `elasticsearch_version` - (Optional) The version of ElasticSearch to deploy. Defaults to `1.5`
 * `tags` - (Optional) A mapping of tags to assign to the resource
 
 **ebs_options** supports the following attributes:

@@ -21,6 +21,10 @@ type MockResourceProvisioner struct {
 	ValidateFn           func(c *ResourceConfig) ([]string, []error)
 	ValidateReturnWarns  []string
 	ValidateReturnErrors []error
+
+	StopCalled      bool
+	StopFn          func() error
+	StopReturnError error
 }
 
 func (p *MockResourceProvisioner) Validate(c *ResourceConfig) ([]string, []error) {
@@ -40,14 +44,29 @@ func (p *MockResourceProvisioner) Apply(
 	state *InstanceState,
 	c *ResourceConfig) error {
 	p.Lock()
-	defer p.Unlock()
 
 	p.ApplyCalled = true
 	p.ApplyOutput = output
 	p.ApplyState = state
 	p.ApplyConfig = c
 	if p.ApplyFn != nil {
-		return p.ApplyFn(state, c)
+		fn := p.ApplyFn
+		p.Unlock()
+		return fn(state, c)
 	}
+
+	defer p.Unlock()
 	return p.ApplyReturnError
+}
+
+func (p *MockResourceProvisioner) Stop() error {
+	p.Lock()
+	defer p.Unlock()
+
+	p.StopCalled = true
+	if p.StopFn != nil {
+		return p.StopFn()
+	}
+
+	return p.StopReturnError
 }

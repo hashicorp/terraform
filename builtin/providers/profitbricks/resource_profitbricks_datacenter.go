@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/profitbricks/profitbricks-sdk-go"
 	"log"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -38,9 +39,6 @@ func resourceProfitBricksDatacenter() *schema.Resource {
 }
 
 func resourceProfitBricksDatacenterCreate(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
-
 	datacenter := profitbricks.Datacenter{
 		Properties: profitbricks.DatacenterProperties{
 			Name:     d.Get("name").(string),
@@ -69,9 +67,6 @@ func resourceProfitBricksDatacenterCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceProfitBricksDatacenterRead(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-
-	profitbricks.SetAuth(config.Username, config.Password)
 	datacenter := profitbricks.GetDatacenter(d.Id())
 	if datacenter.StatusCode > 299 {
 		return fmt.Errorf("Error while fetching a data center ID %s %s", d.Id(), datacenter.Response)
@@ -84,10 +79,6 @@ func resourceProfitBricksDatacenterRead(d *schema.ResourceData, meta interface{}
 }
 
 func resourceProfitBricksDatacenterUpdate(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-
-	profitbricks.SetAuth(config.Username, config.Password)
-
 	obj := profitbricks.DatacenterProperties{}
 
 	if d.HasChange("name") {
@@ -107,9 +98,6 @@ func resourceProfitBricksDatacenterUpdate(d *schema.ResourceData, meta interface
 }
 
 func resourceProfitBricksDatacenterDelete(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-
-	profitbricks.SetAuth(config.Username, config.Password)
 	dcid := d.Id()
 	resp := profitbricks.DeleteDatacenter(dcid)
 
@@ -126,9 +114,12 @@ func resourceProfitBricksDatacenterDelete(d *schema.ResourceData, meta interface
 
 func waitTillProvisioned(meta interface{}, path string) error {
 	config := meta.(*Config)
-	profitbricks.SetAuth(config.Username, config.Password)
+	waitCount := 50
 
-	for i := 0; i < config.Retries; i++ {
+	if config.Retries != 0 {
+		waitCount = config.Retries
+	}
+	for i := 0; i < waitCount; i++ {
 		request := profitbricks.GetRequestStatus(path)
 		pc, _, _, ok := runtime.Caller(1)
 		details := runtime.FuncForPC(pc)
@@ -181,4 +172,9 @@ func getImageId(dcId string, imageName string, imageType string) string {
 		}
 	}
 	return ""
+}
+
+func IsValidUUID(uuid string) bool {
+	r := regexp.MustCompile("^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$")
+	return r.MatchString(uuid)
 }

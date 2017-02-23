@@ -26,8 +26,8 @@ func TestIngnitionUser(t *testing.T) {
 
 		resource "ignition_user" "qux" {
 			name = "qux"
-		}		
-		
+		}
+
 		resource "ignition_config" "test" {
 			users = [
 				"${ignition_user.foo.id}",
@@ -95,8 +95,8 @@ func TestIngnitionUser(t *testing.T) {
 			return fmt.Errorf("name, found %q", u.Name)
 		}
 
-		if u.Create.Uid != nil {
-			return fmt.Errorf("uid, found %d", *u.Create.Uid)
+		if u.Create != nil {
+			return fmt.Errorf("create struct found")
 		}
 
 		return nil

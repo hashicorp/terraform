@@ -48,6 +48,7 @@ func TestAccAWSDataSourceIAMServerCertificate_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("aws_iam_server_certificate.test_cert", "arn"),
 					resource.TestCheckResourceAttrSet("data.aws_iam_server_certificate.test", "arn"),
+					resource.TestCheckResourceAttrSet("data.aws_iam_server_certificate.test", "id"),
 					resource.TestCheckResourceAttrSet("data.aws_iam_server_certificate.test", "name"),
 					resource.TestCheckResourceAttrSet("data.aws_iam_server_certificate.test", "path"),
 				),

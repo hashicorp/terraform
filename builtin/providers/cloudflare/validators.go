@@ -7,26 +7,44 @@ import (
 )
 
 // validateRecordType ensures that the cloudflare record type is valid
-func validateRecordType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	validTypes := map[string]struct{}{
-		"A":     {},
-		"AAAA":  {},
-		"CNAME": {},
-		"TXT":   {},
-		"SRV":   {},
-		"LOC":   {},
-		"MX":    {},
-		"NS":    {},
-		"SPF":   {},
+func validateRecordType(t string, proxied bool) error {
+	switch t {
+	case "A":
+		return nil
+	case "AAAA":
+		return nil
+	case "CNAME":
+		return nil
+	case "TXT":
+		if !proxied {
+			return nil
+		}
+	case "SRV":
+		if !proxied {
+			return nil
+		}
+	case "LOC":
+		if !proxied {
+			return nil
+		}
+	case "MX":
+		if !proxied {
+			return nil
+		}
+	case "NS":
+		if !proxied {
+			return nil
+		}
+	case "SPF":
+		if !proxied {
+			return nil
+		}
+	default:
+		return fmt.Errorf(
+			`Invalid type %q. Valid types are "A", "AAAA", "CNAME", "TXT", "SRV", "LOC", "MX", "NS" or "SPF"`, t)
 	}
 
-	if _, ok := validTypes[value]; !ok {
-		errors = append(errors, fmt.Errorf(
-			`%q contains an invalid type %q. Valid types are "A", "AAAA", "CNAME", "TXT", "SRV", "LOC", "MX", "NS" or "SPF"`, k, value))
-	}
-	return
+	return fmt.Errorf("Type %q cannot be proxied", t)
 }
 
 // validateRecordName ensures that based on supplied record type, the name content matches

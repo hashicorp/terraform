@@ -16,20 +16,20 @@ Basic Usage
 
 ```
 resource "alicloud_vpc" "vpc" {
-  name = "tf_test_foo"
+  name       = "tf_test_foo"
   cidr_block = "172.16.0.0/12"
 }
 
 resource "alicloud_route_entry" "default" {
-	router_id = "${alicloud_vpc.default.router_id}"
-	route_table_id = "${alicloud_vpc.default.router_table_id}"
-	destination_cidrblock = "${var.entry_cidr}"
-	nexthop_type = "Instance"
-	nexthop_id = "${alicloud_instance.snat.id}"
+  router_id             = "${alicloud_vpc.default.router_id}"
+  route_table_id        = "${alicloud_vpc.default.router_table_id}"
+  destination_cidrblock = "${var.entry_cidr}"
+  nexthop_type          = "Instance"
+  nexthop_id            = "${alicloud_instance.snat.id}"
 }
 
 resource "alicloud_instance" "snat" {
-    // ...
+  // ...
 }
 ```
 ## Argument Reference

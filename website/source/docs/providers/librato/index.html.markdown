@@ -19,13 +19,13 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Librato provider
 provider "librato" {
-    email = "ops@company.com"
-    token = "${var.librato_token}"
+  email = "ops@company.com"
+  token = "${var.librato_token}"
 }
 
 # Create a new space
 resource "librato_space" "default" {
-    ...
+  # ...
 }
 ```
 

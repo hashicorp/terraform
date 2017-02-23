@@ -498,7 +498,7 @@ func (c *EC2) WaitUntilKeyPairExists(input *DescribeKeyPairsInput) error {
 		Acceptors: []waiter.WaitAcceptor{
 			{
 				State:    "success",
-				Matcher:  "pathAll",
+				Matcher:  "path",
 				Argument: "length(KeyPairs[].KeyName) > `0`",
 				Expected: true,
 			},
@@ -909,6 +909,39 @@ func (c *EC2) WaitUntilVpcExists(input *DescribeVpcsInput) error {
 				Matcher:  "error",
 				Argument: "",
 				Expected: "InvalidVpcID.NotFound",
+			},
+		},
+	}
+
+	w := waiter.Waiter{
+		Client: c,
+		Input:  input,
+		Config: waiterCfg,
+	}
+	return w.Wait()
+}
+
+// WaitUntilVpcPeeringConnectionDeleted uses the Amazon EC2 API operation
+// DescribeVpcPeeringConnections to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
+func (c *EC2) WaitUntilVpcPeeringConnectionDeleted(input *DescribeVpcPeeringConnectionsInput) error {
+	waiterCfg := waiter.Config{
+		Operation:   "DescribeVpcPeeringConnections",
+		Delay:       15,
+		MaxAttempts: 40,
+		Acceptors: []waiter.WaitAcceptor{
+			{
+				State:    "success",
+				Matcher:  "pathAll",
+				Argument: "VpcPeeringConnections[].Status.Code",
+				Expected: "deleted",
+			},
+			{
+				State:    "success",
+				Matcher:  "error",
+				Argument: "",
+				Expected: "InvalidVpcPeeringConnectionID.NotFound",
 			},
 		},
 	}

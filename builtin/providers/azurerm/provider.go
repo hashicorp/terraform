@@ -68,6 +68,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_cdn_endpoint":       resourceArmCdnEndpoint(),
 			"azurerm_cdn_profile":        resourceArmCdnProfile(),
 			"azurerm_container_registry": resourceArmContainerRegistry(),
+			"azurerm_container_service":  resourceArmContainerService(),
 
 			"azurerm_eventhub":                    resourceArmEventHub(),
 			"azurerm_eventhub_authorization_rule": resourceArmEventHubAuthorizationRule(),
@@ -232,6 +233,7 @@ func registerAzureResourceProvidersWithSubscription(providerList []resources.Pro
 			"Microsoft.Compute":           struct{}{},
 			"Microsoft.Cache":             struct{}{},
 			"Microsoft.ContainerRegistry": struct{}{},
+			"Microsoft.ContainerService":  struct{}{},
 			"Microsoft.Network":           struct{}{},
 			"Microsoft.Cdn":               struct{}{},
 			"Microsoft.Storage":           struct{}{},
@@ -308,4 +310,16 @@ func azureStateRefreshFunc(resourceURI string, client *ArmClient, command rivier
 // Use a custom diff function to avoid creation of new resources.
 func resourceAzurermResourceGroupNameDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
 	return strings.ToLower(old) == strings.ToLower(new)
+}
+
+// ignoreCaseDiffSuppressFunc is a DiffSuppressFunc from helper/schema that is
+// used to ignore any case-changes in a return value.
+func ignoreCaseDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	return strings.ToLower(old) == strings.ToLower(new)
+}
+
+// ignoreCaseStateFunc is a StateFunc from helper/schema that converts the
+// supplied value to lower before saving to state for consistency.
+func ignoreCaseStateFunc(val interface{}) string {
+	return strings.ToLower(val.(string))
 }

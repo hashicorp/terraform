@@ -134,6 +134,7 @@ func (p *printer) output(n interface{}) []byte {
 				// Go through all the comments in the group. The group
 				// should be printed together, not separated by double newlines.
 				printed := false
+				newlinePrinted := false
 				for _, comment := range c.List {
 					// We only care about comments after the previous item
 					// we've printed so that comments are printed in the
@@ -144,8 +145,9 @@ func (p *printer) output(n interface{}) []byte {
 						// we don't do this if prev is invalid which means the
 						// beginning of the file since the first comment should
 						// be at the first line.
-						if p.prev.IsValid() && index == len(t.Items) {
+						if !newlinePrinted && p.prev.IsValid() && index == len(t.Items) {
 							buf.Write([]byte{newline, newline})
+							newlinePrinted = true
 						}
 
 						// Write the actual comment.
@@ -174,10 +176,23 @@ func (p *printer) output(n interface{}) []byte {
 				// Always write a newline to separate us from the next item
 				buf.WriteByte(newline)
 
-				// If the next item is an object that is exactly one line,
-				// then we don't output another newline.
+				// Need to determine if we're going to separate the next item
+				// with a blank line. The logic here is simple, though there
+				// are a few conditions:
+				//
+				//   1. The next object is more than one line away anyways,
+				//      so we need an empty line.
+				//
+				//   2. The next object is not a "single line" object, so
+				//      we need an empty line.
+				//
+				//   3. This current object is not a single line object,
+				//      so we need an empty line.
+				current := t.Items[index]
 				next := t.Items[index+1]
-				if next.Pos().Line != t.Items[index].Pos().Line+1 || !p.isSingleLineObject(next) {
+				if next.Pos().Line != t.Items[index].Pos().Line+1 ||
+					!p.isSingleLineObject(next) ||
+					!p.isSingleLineObject(current) {
 					buf.WriteByte(newline)
 				}
 			}

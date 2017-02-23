@@ -298,6 +298,23 @@ func TestAccAWSEcsServiceWithPlacementConstraints(t *testing.T) {
 	})
 }
 
+func TestAccAWSEcsServiceWithPlacementConstraints_emptyExpression(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSEcsServiceWithPlacementConstraintEmptyExpression,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsServiceExists("aws_ecs_service.mongo"),
+					resource.TestCheckResourceAttr("aws_ecs_service.mongo", "placement_constraints.#", "1"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSEcsServiceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ecsconn
 
@@ -428,7 +445,7 @@ resource "aws_ecs_service" "mongo" {
   desired_count = 1
   placement_strategy {
 	type = "binpack"
-	field = "MEMORY"
+	field = "memory"
   }
 }
 `
@@ -461,6 +478,35 @@ resource "aws_ecs_service" "mongo" {
   placement_constraints {
 	type = "memberOf"
 	expression = "attribute:ecs.availability-zone in [us-west-2a, us-west-2b]"
+  }
+}
+`
+
+var testAccAWSEcsServiceWithPlacementConstraintEmptyExpression = `
+resource "aws_ecs_cluster" "default" {
+	name = "terraformecstest212"
+}
+resource "aws_ecs_task_definition" "mongo" {
+  family = "mongodb"
+  container_definitions = <<DEFINITION
+[
+  {
+    "cpu": 128,
+    "essential": true,
+    "image": "mongo:latest",
+    "memory": 128,
+    "name": "mongodb"
+  }
+]
+DEFINITION
+}
+resource "aws_ecs_service" "mongo" {
+  name = "mongodb"
+  cluster = "${aws_ecs_cluster.default.id}"
+  task_definition = "${aws_ecs_task_definition.mongo.arn}"
+  desired_count = 1
+  placement_constraints {
+	  type = "distinctInstance"
   }
 }
 `

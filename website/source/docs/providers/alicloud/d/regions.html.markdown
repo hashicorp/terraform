@@ -14,9 +14,8 @@ The Regions data source allows access to the list of Alicloud Regions.
 
 ```
 data "alicloud_regions" "current" {
-	current = true
+  current = true
 }
-
 ```
 
 ## Argument Reference
