@@ -325,17 +325,20 @@ func TestStateDeepCopy(t *testing.T) {
 
 func TestStateEqual(t *testing.T) {
 	cases := []struct {
+		Name     string
 		Result   bool
 		One, Two *State
 	}{
 		// Nils
 		{
+			"one nil",
 			false,
 			nil,
 			&State{Version: 2},
 		},
 
 		{
+			"both nil",
 			true,
 			nil,
 			nil,
@@ -343,6 +346,7 @@ func TestStateEqual(t *testing.T) {
 
 		// Different versions
 		{
+			"different state versions",
 			false,
 			&State{Version: 5},
 			&State{Version: 2},
@@ -350,6 +354,7 @@ func TestStateEqual(t *testing.T) {
 
 		// Different modules
 		{
+			"different module states",
 			false,
 			&State{
 				Modules: []*ModuleState{
@@ -362,6 +367,7 @@ func TestStateEqual(t *testing.T) {
 		},
 
 		{
+			"same module states",
 			true,
 			&State{
 				Modules: []*ModuleState{
@@ -381,6 +387,7 @@ func TestStateEqual(t *testing.T) {
 
 		// Meta differs
 		{
+			"differing meta values with primitives",
 			false,
 			&State{
 				Modules: []*ModuleState{
@@ -415,15 +422,61 @@ func TestStateEqual(t *testing.T) {
 				},
 			},
 		},
+
+		// Meta with complex types
+		{
+			"same meta with complex types",
+			true,
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]interface{}{
+										"timeouts": map[string]interface{}{
+											"create": 42,
+											"read":   "27",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]interface{}{
+										"timeouts": map[string]interface{}{
+											"create": 42,
+											"read":   "27",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
-		if tc.One.Equal(tc.Two) != tc.Result {
-			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
-		}
-		if tc.Two.Equal(tc.One) != tc.Result {
-			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
-		}
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			if tc.One.Equal(tc.Two) != tc.Result {
+				t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
+			}
+			if tc.Two.Equal(tc.One) != tc.Result {
+				t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
+			}
+		})
 	}
 }
 
