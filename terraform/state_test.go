@@ -1456,6 +1456,76 @@ func TestInstanceState_MergeDiffRemoveCounts(t *testing.T) {
 	}
 }
 
+func TestInstanceState_MergeDiff_removeNestedFields(t *testing.T) {
+	is := &InstanceState{
+		ID: "f4e0a336-defe-4d89-9327-a6d4c74e2f0d",
+		Attributes: map[string]string{
+			"alarm_configuration.#":                           "1",
+			"alarm_configuration.0.alarms.#":                  "1",
+			"alarm_configuration.0.alarms.2356372769":         "foo",
+			"alarm_configuration.0.enabled":                   "true",
+			"alarm_configuration.0.ignore_poll_alarm_failure": "false",
+			"app_name":                      "foo-app-32345345345",
+			"auto_rollback_configuration.#": "0",
+			"autoscaling_groups.#":          "0",
+			"deployment_config_name":        "CodeDeployDefault.OneAtATime",
+			"deployment_group_name":         "foo-group-32345345345",
+			"ec2_tag_filter.#":              "0",
+			"id":                            "f4e0a336-defe-4d89-9327-a6d4c74e2f0d",
+			"on_premises_instance_tag_filter.#": "0",
+			"service_role_arn":                  "arn:aws:iam::123456789012:role/foo-role-32345345345",
+			"trigger_configuration.#":           "0",
+		},
+	}
+
+	diff := &InstanceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"alarm_configuration.#": &ResourceAttrDiff{
+				Old:         "1",
+				New:         "0",
+				NewComputed: false,
+				NewRemoved:  false,
+				RequiresNew: false,
+			},
+			"alarm_configuration.0.alarms.#": &ResourceAttrDiff{
+				Old:         "1",
+				New:         "0",
+				NewComputed: false,
+				NewRemoved:  false,
+				RequiresNew: false,
+			},
+			"alarm_configuration.0.alarms.2356372769": &ResourceAttrDiff{
+				Old:         "foo",
+				New:         "",
+				NewComputed: false,
+				NewRemoved:  true,
+				RequiresNew: false,
+			},
+			"alarm_configuration.0.enabled": &ResourceAttrDiff{
+				Old:         "true",
+				New:         "false",
+				NewComputed: false,
+				NewRemoved:  true,
+				RequiresNew: false,
+			},
+		},
+	}
+
+	is2 := is.MergeDiff(diff)
+
+	expected := map[string]string{
+		"app_name":               "foo-app-32345345345",
+		"deployment_config_name": "CodeDeployDefault.OneAtATime",
+		"deployment_group_name":  "foo-group-32345345345",
+		"id":               "f4e0a336-defe-4d89-9327-a6d4c74e2f0d",
+		"service_role_arn": "arn:aws:iam::123456789012:role/foo-role-32345345345",
+	}
+
+	if !reflect.DeepEqual(expected, is2.Attributes) {
+		t.Fatalf("expected: %#v\ngiven: %#v", expected, is2.Attributes)
+	}
+}
+
 func TestInstanceState_MergeDiff_nil(t *testing.T) {
 	var is *InstanceState
 
