@@ -29,6 +29,10 @@ func (c *StateRmCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return cli.RunResultHelp
 	}
+	if err := state.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		return 1
+	}
 
 	stateReal := state.State()
 	if stateReal == nil {

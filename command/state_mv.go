@@ -45,6 +45,11 @@ func (c *StateMvCommand) Run(args []string) int {
 		return cli.RunResultHelp
 	}
 
+	if err := stateFrom.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		return 1
+	}
+
 	stateFromReal := stateFrom.State()
 	if stateFromReal == nil {
 		c.Ui.Error(fmt.Sprintf(errStateNotFound))
@@ -59,6 +64,11 @@ func (c *StateMvCommand) Run(args []string) int {
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 			return cli.RunResultHelp
+		}
+
+		if err := stateTo.RefreshState(); err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+			return 1
 		}
 
 		stateToReal = stateTo.State()
