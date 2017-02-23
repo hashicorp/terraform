@@ -103,6 +103,9 @@ func TestMetaBackend_emptyWithDefaultState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
+	if err := s.RefreshState(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if actual := s.State().String(); actual != testState().String() {
 		t.Fatalf("bad: %s", actual)
 	}
@@ -172,6 +175,9 @@ func TestMetaBackend_emptyWithExplicitState(t *testing.T) {
 	s, err := b.State()
 	if err != nil {
 		t.Fatalf("bad: %s", err)
+	}
+	if err := s.RefreshState(); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 	if actual := s.State().String(); actual != testState().String() {
 		t.Fatalf("bad: %s", actual)
