@@ -23,7 +23,7 @@ type ResourceData struct {
 	config *terraform.ResourceConfig
 	state  *terraform.InstanceState
 	diff   *terraform.InstanceDiff
-	meta   map[string]string
+	meta   map[string]interface{}
 
 	// Don't set
 	multiReader *MultiLevelFieldReader

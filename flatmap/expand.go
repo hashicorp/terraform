@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/hil"
 )
 
 // Expand takes a map and a key (prefix) and expands that value into
@@ -22,7 +24,14 @@ func Expand(m map[string]string, key string) interface{} {
 	}
 
 	// Check if the key is an array, and if so, expand the array
-	if _, ok := m[key+".#"]; ok {
+	if v, ok := m[key+".#"]; ok {
+		// If the count of the key is unknown, then just put the unknown
+		// value in the value itself. This will be detected by Terraform
+		// core later.
+		if v == hil.UnknownValue {
+			return v
+		}
+
 		return expandArray(m, key)
 	}
 

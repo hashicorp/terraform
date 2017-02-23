@@ -107,6 +107,9 @@
                         <li<%= sidebar_current("docs-aws-datasource-security-group") %>>
                          <a href="/docs/providers/aws/d/security_group.html">aws_security_group</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-datasource-sns-topic") %>>
+                         <a href="/docs/providers/aws/d/sns_topic.html">aws_sns_topic</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-subnet") %>>
                             <a href="/docs/providers/aws/d/subnet.html">aws_subnet</a>
                         </li>
@@ -231,6 +234,14 @@
                             <a href="/docs/providers/aws/r/cloudwatch_event_target.html">aws_cloudwatch_event_target</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-cloudwatch-log-destination") %>>
+                            <a href="/docs/providers/aws/r/cloudwatch_log_destination.html">aws_cloudwatch_log_destination</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-cloudwatch-log-destination-policy") %>>
+                            <a href="/docs/providers/aws/r/cloudwatch_log_destination_policy.html">aws_cloudwatch_log_destination_policy</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-aws-resource-cloudwatch-log-group") %>>
                             <a href="/docs/providers/aws/r/cloudwatch_log_group.html">aws_cloudwatch_log_group</a>
                         </li>
@@ -295,6 +306,17 @@
 
                         <li<%= sidebar_current("docs-aws-resource-codedeploy-deployment-group") %>>
                             <a href="/docs/providers/aws/r/codedeploy_deployment_group.html">aws_codedeploy_deployment_group</a>
+                        </li>
+
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current(/^docs-aws-resource-codepipeline/) %>>
+                    <a href="#">CodePipeline Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-codepipeline") %>>
+                            <a href="/docs/providers/aws/r/codepipeline.html">aws_codepipeline</a>
                         </li>
 
                     </ul>
@@ -1155,6 +1177,14 @@
                 <li<%= sidebar_current(/^docs-aws-resource-ssm/) %>>
                     <a href="#">SSM Resources</a>
                     <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-ssm-association") %>>
+                            <a href="/docs/providers/aws/r/ssm_association.html">aws_ssm_association</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-ssm-activation") %>>
+                            <a href="/docs/providers/aws/r/ssm_activation.html">aws_ssm_activation</a>
+                        </li>
 
                         <li<%= sidebar_current("docs-aws-resource-ssm-document") %>>
                             <a href="/docs/providers/aws/r/ssm_document.html">aws_ssm_document</a>

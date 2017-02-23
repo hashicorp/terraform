@@ -226,10 +226,28 @@ func testAccCheckAWSClusterSnapshot(rInt int) resource.TestCheckFunc {
 				continue
 			}
 
+			// Try and delete the snapshot before we check for the cluster not found
 			snapshot_identifier := fmt.Sprintf("foobarbaz-test-terraform-final-snapshot-%d", rInt)
 
+			awsClient := testAccProvider.Meta().(*AWSClient)
+			conn := awsClient.rdsconn
+
+			arn, arnErr := buildRDSClusterARN(snapshot_identifier, awsClient.partition, awsClient.accountid, awsClient.region)
+			tagsARN := strings.Replace(arn, ":cluster:", ":snapshot:", 1)
+			if arnErr != nil {
+				return fmt.Errorf("Error building ARN for tags check with ARN (%s): %s", tagsARN, arnErr)
+			}
+
+			log.Printf("[INFO] Deleting the Snapshot %s", snapshot_identifier)
+			_, snapDeleteErr := conn.DeleteDBClusterSnapshot(
+				&rds.DeleteDBClusterSnapshotInput{
+					DBClusterSnapshotIdentifier: aws.String(snapshot_identifier),
+				})
+			if snapDeleteErr != nil {
+				return snapDeleteErr
+			}
+
 			// Try to find the Group
-			conn := testAccProvider.Meta().(*AWSClient).rdsconn
 			var err error
 			resp, err := conn.DescribeDBClusters(
 				&rds.DescribeDBClustersInput{
@@ -248,23 +266,6 @@ func testAccCheckAWSClusterSnapshot(rInt int) resource.TestCheckFunc {
 				if awsErr.Code() == "DBClusterNotFoundFault" {
 					return nil
 				}
-			} else {
-				awsClient := testAccProvider.Meta().(*AWSClient)
-				arn, err := buildRDSClusterARN(snapshot_identifier, awsClient.partition, awsClient.accountid, awsClient.region)
-				tagsARN := strings.Replace(arn, ":cluster:", ":snapshot:", 1)
-				if err != nil {
-					return fmt.Errorf("Error building ARN for tags check with ARN (%s): %s", tagsARN, err)
-				}
-
-				log.Printf("[INFO] Deleting the Snapshot %s", snapshot_identifier)
-				_, snapDeleteErr := conn.DeleteDBClusterSnapshot(
-					&rds.DeleteDBClusterSnapshotInput{
-						DBClusterSnapshotIdentifier: aws.String(snapshot_identifier),
-					})
-				if snapDeleteErr != nil {
-					return err
-				}
-
 			}
 
 			return err
