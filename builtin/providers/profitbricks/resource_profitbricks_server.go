@@ -447,14 +447,6 @@ func resourceProfitBricksServerCreate(d *schema.ResourceData, meta interface{}) 
 func resourceProfitBricksServerRead(d *schema.ResourceData, meta interface{}) error {
 	dcId := d.Get("datacenter_id").(string)
 	serverId := d.Id()
-	if dcId == "" {
-		s := strings.Split(d.Id(), ";")
-		if (len(s) > 1) {
-			dcId = s[0]
-			serverId = s[1]
-			d.SetId(s[0])
-		}
-	}
 
 	server := profitbricks.GetServer(dcId, serverId)
 	primarynic := d.Get("primary_nic").(string)
