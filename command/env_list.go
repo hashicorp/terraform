@@ -21,8 +21,14 @@ func (c *EnvListCommand) Run(args []string) int {
 		return 1
 	}
 
+	configPath, err := ModulePath(args)
+	if err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+
 	// Load the backend
-	b, err := c.Backend(nil)
+	b, err := c.Backend(&BackendOpts{ConfigPath: configPath})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
@@ -56,7 +62,7 @@ func (c *EnvListCommand) Run(args []string) int {
 
 func (c *EnvListCommand) Help() string {
 	helpText := `
-Usage: terraform env list
+Usage: terraform env list [DIR]
 
   List Terraform environments.
 `
