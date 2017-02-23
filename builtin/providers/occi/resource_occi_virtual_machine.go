@@ -102,9 +102,7 @@ func resourceVirtualMachineCreate(d *schema.ResourceData, meta interface{}) erro
 	if cmdOut, err = exec.Command(cmd_name, cmd_args_create...).CombinedOutput(); err != nil {
 		return fmt.Errorf("Error while creating virtual machine: %s", cmdOut)
 	}
-	compute_id_address := strings.Split(string(cmdOut), "/")
-	compute_id := strings.Trim(compute_id_address[len(compute_id_address)-1], "\n")
-	compute := strings.Join([]string{"/compute/", compute_id}, "")
+	compute := strings.Trim(string(cmdOut), "\n")
 	d.Set("vm_id", compute)
 	d.SetId(compute)
 
@@ -115,7 +113,6 @@ func resourceVirtualMachineCreate(d *schema.ResourceData, meta interface{}) erro
 	if cmdOut, err = exec.Command(cmd_name, cmd_args_describe...).CombinedOutput(); err != nil {
 		return fmt.Errorf("Error while trying to get IP address: %s", cmdOut)
 	}
-
 	byte_array := bytes.Fields(cmdOut)
 	for i, line := range byte_array {
 		if bytes.Contains(line, []byte("occi.networkinterface.address")) {
@@ -129,14 +126,12 @@ func resourceVirtualMachineCreate(d *schema.ResourceData, meta interface{}) erro
 	storage_size := d.Get("storage_size").(int)
 	if storage_size > 0 {
 		log.Printf("[INFO] Linking storage with size %v", storage_size)
-		storage_params := strings.Join([]string{"occi.storage.size=", "'num(", strconv.Itoa(storage_size), ")',occi.core.title=storage_terraform", "_", compute_id}, "")
+		storage_params := strings.Join([]string{"occi.storage.size=", "'num(", strconv.Itoa(storage_size), ")',occi.core.title=storage_terraform", "_", strings.Split(compute, "/")[len(strings.Split(compute, "/")) - 1]}, "")
 		cmd_args_storage := []string{"-e", endpoint, "-n", "x509", "-x", proxy_file, "-X", "-a", "create", "-r", "storage", "-t", storage_params, "-w", "3600"}
 		if cmdOut, err = exec.Command(cmd_name, cmd_args_storage...).CombinedOutput(); err != nil {
 			return fmt.Errorf("Error while creating storage: %s", cmdOut)
 		}
-		storage_id_split := strings.Split(string(cmdOut), "/")
-		storage_id_trim := strings.Trim(storage_id_split[len(storage_id_split)-1], "\n")
-		storage_id := strings.Join([]string{"/storage/", storage_id_trim}, "")
+		storage_id := strings.Trim(string(cmdOut), "\n")
 		d.Set("storage_id", storage_id)
 
 		// link storage to VM
