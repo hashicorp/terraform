@@ -52,7 +52,7 @@ func TestResourceApply_create(t *testing.T) {
 			"id":  "foo",
 			"foo": "42",
 		},
-		Meta: map[string]string{
+		Meta: map[string]interface{}{
 			"schema_version": "2",
 		},
 	}
@@ -210,7 +210,7 @@ func TestResourceApply_destroyPartial(t *testing.T) {
 			"id":  "bar",
 			"foo": "42",
 		},
-		Meta: map[string]string{
+		Meta: map[string]interface{}{
 			"schema_version": "3",
 		},
 	}
@@ -558,7 +558,7 @@ func TestResourceRefresh(t *testing.T) {
 			"id":  "bar",
 			"foo": "13",
 		},
-		Meta: map[string]string{
+		Meta: map[string]interface{}{
 			"schema_version": "2",
 		},
 	}
@@ -749,7 +749,7 @@ func TestResourceRefresh_needsMigration(t *testing.T) {
 		Attributes: map[string]string{
 			"oldfoo": "1.2",
 		},
-		Meta: map[string]string{
+		Meta: map[string]interface{}{
 			"schema_version": "1",
 		},
 	}
@@ -765,7 +765,7 @@ func TestResourceRefresh_needsMigration(t *testing.T) {
 			"id":     "bar",
 			"newfoo": "13",
 		},
-		Meta: map[string]string{
+		Meta: map[string]interface{}{
 			"schema_version": "2",
 		},
 	}
@@ -803,7 +803,7 @@ func TestResourceRefresh_noMigrationNeeded(t *testing.T) {
 		Attributes: map[string]string{
 			"newfoo": "12",
 		},
-		Meta: map[string]string{
+		Meta: map[string]interface{}{
 			"schema_version": "2",
 		},
 	}
@@ -819,7 +819,7 @@ func TestResourceRefresh_noMigrationNeeded(t *testing.T) {
 			"id":     "bar",
 			"newfoo": "13",
 		},
-		Meta: map[string]string{
+		Meta: map[string]interface{}{
 			"schema_version": "2",
 		},
 	}
@@ -871,7 +871,7 @@ func TestResourceRefresh_stateSchemaVersionUnset(t *testing.T) {
 			"id":     "bar",
 			"newfoo": "13",
 		},
-		Meta: map[string]string{
+		Meta: map[string]interface{}{
 			"schema_version": "1",
 		},
 	}
@@ -945,7 +945,7 @@ func TestResourceData(t *testing.T) {
 	}
 
 	// Set expectations
-	state.Meta = map[string]string{
+	state.Meta = map[string]interface{}{
 		"schema_version": "2",
 	}
 

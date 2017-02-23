@@ -278,7 +278,7 @@ func TestStateDeepCopy(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{},
+									Meta: map[string]interface{}{},
 								},
 							},
 						},
@@ -298,7 +298,7 @@ func TestStateDeepCopy(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{},
+									Meta: map[string]interface{}{},
 								},
 								Deposed: []*InstanceState{
 									{ID: "test"},
@@ -389,7 +389,7 @@ func TestStateEqual(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{
+									Meta: map[string]interface{}{
 										"schema_version": "1",
 									},
 								},
@@ -405,7 +405,7 @@ func TestStateEqual(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{
+									Meta: map[string]interface{}{
 										"schema_version": "2",
 									},
 								},
@@ -610,7 +610,7 @@ func TestStateIncrementSerialMaybe(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{},
+									Meta: map[string]interface{}{},
 								},
 							},
 						},
@@ -625,7 +625,7 @@ func TestStateIncrementSerialMaybe(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{
+									Meta: map[string]interface{}{
 										"schema_version": "1",
 									},
 								},
