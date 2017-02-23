@@ -34,7 +34,7 @@ func (f *StateFilter) Filter(fs ...string) ([]*StateFilterResult, error) {
 		as[i] = a
 	}
 
-	// If we werent given any filters, then we list all
+	// If we weren't given any filters, then we list all
 	if len(fs) == 0 {
 		as = append(as, &ResourceAddress{Index: -1})
 	}
@@ -249,6 +249,13 @@ func (s StateFilterResultSlice) Len() int      { return len(s) }
 func (s StateFilterResultSlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s StateFilterResultSlice) Less(i, j int) bool {
 	a, b := s[i], s[j]
+
+	// if these address contain an index, we want to sort by index rather than name
+	addrA, errA := ParseResourceAddress(a.Address)
+	addrB, errB := ParseResourceAddress(b.Address)
+	if errA == nil && errB == nil && addrA.Name == addrB.Name && addrA.Index != addrB.Index {
+		return addrA.Index < addrB.Index
+	}
 
 	// If the addresses are different it is just lexographic sorting
 	if a.Address != b.Address {
