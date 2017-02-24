@@ -1896,3 +1896,124 @@ func TestReadState_prune(t *testing.T) {
 		t.Fatalf("got:\n%#v", actual)
 	}
 }
+
+func TestGetResourceStateFromResourceAddress_noModule(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{RootModuleName, "foo"},
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "bar"},
+			},
+		},
+	}
+
+	state.init()
+
+	rsa := &ResourceAddress{
+		Path: []string{"root"},
+	}
+
+	actual, err := state.GetResourceStateFromResourceAddress(rsa, "test_instance")
+	if err == nil {
+		t.Fatalf("error is nil")
+	}
+
+	if actual != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestGetResourceStateFromResourceAddress_noResource(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{RootModuleName, "foo"},
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "bar"},
+			},
+		},
+	}
+
+	state.init()
+
+	rsa := &ResourceAddress{
+		Path: []string{"root", "foo"},
+	}
+
+	actual, err := state.GetResourceStateFromResourceAddress(rsa, "test_instance")
+	if err == nil {
+		t.Fatalf("error is nil")
+	}
+
+	if actual != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestGetResourceStateFromResourceAddress_resourceNotFound(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{RootModuleName, "foo"},
+				Resources: map[string]*ResourceState{
+					"test_instance.foo": &ResourceState{},
+				},
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "bar"},
+			},
+		},
+	}
+
+	state.init()
+
+	rsa := &ResourceAddress{
+		Path: []string{"root", "foo"},
+		Name: "test",
+	}
+
+	actual, err := state.GetResourceStateFromResourceAddress(rsa, "test_instance")
+	if err == nil {
+		t.Fatalf("error is nil")
+	}
+
+	if actual != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestGetResourceStateFromResourceAddress_positiveFlow(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{RootModuleName, "foo"},
+				Resources: map[string]*ResourceState{
+					"test_instance.test": &ResourceState{
+						Type: "test",
+					},
+				},
+			},
+		},
+	}
+
+	rsa := &ResourceAddress{
+		Path:  []string{"root", "foo"},
+		Index: -1,
+		Name:  "test",
+	}
+
+	actual, err := state.GetResourceStateFromResourceAddress(rsa, "test_instance")
+	expected := &ResourceState{
+		Type: "test",
+	}
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("got:\n%#v", actual)
+	}
+}
