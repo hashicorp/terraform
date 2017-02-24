@@ -1317,6 +1317,18 @@
 			"revisionTime": "2017-02-21T19:08:14Z"
 		},
 		{
+			"checksumSHA1": "fIcQAnRueVtFU2fqw+2ajJ8MfJo=",
+			"path": "github.com/docker/docker/pkg/namesgenerator",
+			"revision": "3470c8d7676ec7e16db2f2be32805c569ad9448e",
+			"revisionTime": "2017-02-24T14:35:27Z"
+		},
+		{
+			"checksumSHA1": "lThih54jzz9A4zHKEFb9SIV3Ed0=",
+			"path": "github.com/docker/docker/pkg/random",
+			"revision": "3470c8d7676ec7e16db2f2be32805c569ad9448e",
+			"revisionTime": "2017-02-24T14:35:27Z"
+		},
+		{
 			"checksumSHA1": "zkENTbOfU8YoxPfFwVAhTz516Dg=",
 			"path": "github.com/dustin/go-humanize",
 			"revision": "7a41df006ff9af79a29f0ffa9c5f21fbe6314a2d",
@@ -2434,6 +2446,12 @@
 			"revisionTime": "2016-02-22T16:21:17Z"
 		},
 		{
+			"checksumSHA1": "WcXDSYIAP73RAvy22iD57nE/peI=",
+			"path": "github.com/moul/gotty-client",
+			"revision": "99224eea3278d662fce9124bb2bf6c2bb39f5160",
+			"revisionTime": "2017-02-05T09:54:39Z"
+		},
+		{
 			"checksumSHA1": "/iig5lYSPCL3C8J7e4nTAevYNDE=",
 			"comment": "v0.2.0-8-g841842b",
 			"path": "github.com/nesv/go-dynect/dynect",
@@ -2669,21 +2687,28 @@
 			"revisionTime": "2016-09-27T10:08:44Z"
 		},
 		{
+			"checksumSHA1": "/hY/JUzzV5+IMAGkfTGI3VA4k9Y=",
 			"path": "github.com/scaleway/scaleway-cli/pkg/api",
-			"revision": "15e90c8d6bd96a674cfe6539f0dc0fa122a7412b",
-			"revisionTime": "2016-12-07T13:39:28Z"
+			"revision": "2938313569b7f6cee34fdaae2a23c0daa7de5f3c",
+			"revisionTime": "2017-02-07T21:56:28Z"
 		},
 		{
-			"checksumSHA1": "aU2+iXO1oHS4vBtAXXBgicA9YBY=",
+			"checksumSHA1": "puRmTVCmWrk+Qq6/yeHjNC3uvy0=",
 			"path": "github.com/scaleway/scaleway-cli/pkg/scwversion",
-			"revision": "88132ecdd39da62f7c73c5a8e1a383d7da5e0e09",
-			"revisionTime": "2016-10-27T15:40:24Z"
+			"revision": "2938313569b7f6cee34fdaae2a23c0daa7de5f3c",
+			"revisionTime": "2017-02-07T21:56:28Z"
 		},
 		{
 			"checksumSHA1": "kveaAmNlnvmIIuEkFcMlB+N7TqY=",
 			"path": "github.com/scaleway/scaleway-cli/pkg/sshcommand",
-			"revision": "15e90c8d6bd96a674cfe6539f0dc0fa122a7412b",
-			"revisionTime": "2016-12-07T13:39:28Z"
+			"revision": "2938313569b7f6cee34fdaae2a23c0daa7de5f3c",
+			"revisionTime": "2017-02-07T21:56:28Z"
+		},
+		{
+			"checksumSHA1": "xM3G5ct9YYYnVIL3XMRrcf41xVw=",
+			"path": "github.com/scaleway/scaleway-cli/pkg/utils",
+			"revision": "2938313569b7f6cee34fdaae2a23c0daa7de5f3c",
+			"revisionTime": "2017-02-07T21:56:28Z"
 		},
 		{
 			"checksumSHA1": "tEKRyau4iRjmq2iwJbduD9RhN5s=",
