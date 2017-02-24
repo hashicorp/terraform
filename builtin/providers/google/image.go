@@ -48,10 +48,18 @@ func resolveImageFamilyExists(c *Config, project, name string) (bool, error) {
 }
 
 // If the given name is a URL, return it.
-// If it is of the form project/name, search the specified project first, then
-// search image families in the specified project.
-// If it is of the form name then look in the configured project, then hosted
-// image projects, and lastly at image families in hosted image projects.
+// If it's in the form projects/{project}/global/images/{image}, return it
+// If it's in the form projects/{project}/global/images/family/{family}, return it
+// If it's in the form global/images/{image}, return it
+// If it's in the form global/images/family/{family}, return it
+// If it's in the form family/{family}, check if it's a family in the current project. If it is, return it as global/images/family/{family}.
+//    If not, check if it could be a GCP-provided family, and if it exists. If it does, return it as projects/{project}/global/images/family/{family}.
+// If it's in the form {project}/{family-or-image}, check if it's an image in the named project. If it is, return it as projects/{project}/global/images/{image}.
+//    If not, check if it's a family in the named project. If it is, return it as projects/{project}/global/images/family/{family}.
+// If it's in the form {family-or-image}, check if it's an image in the current project. If it is, return it as global/images/{image}.
+//    If not, check if it could be a GCP-provided image, and if it exists. If it does, return it as projects/{project}/global/images/{image}.
+//    If not, check if it's a family in the current project. If it is, return it as global/images/family/{family}.
+//    If not, check if it could be a GCP-provided family, and if it exists. If it does, return it as projects/{project}/global/images/family/{family}
 func resolveImage(c *Config, name string) (string, error) {
 	// built-in projects to look for images/families containing the string
 	// on the left in
