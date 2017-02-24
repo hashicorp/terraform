@@ -2754,6 +2754,7 @@
 			"revisionTime": "2017-02-13T08:20:48Z"
 		},
 		{
+			"checksumSHA1": "GQ9bu6PuydK3Yor1JgtVKUfEJm8=",
 			"path": "github.com/tent/http-link-go",
 			"revision": "ac974c61c2f990f4115b119354b5e0b47550e888",
 			"revisionTime": "2013-07-02T22:55:49Z"
