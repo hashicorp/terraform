@@ -42,22 +42,18 @@
 			"versionExact": "v8.0.1-beta"
 		},
 		{
-			"checksumSHA1": "Amd1JuJVsI9wU3+KI4Ba4jBbxps=",
+			"checksumSHA1": "N5cEhrAIjNoOIwciU7M8XBxUBdk=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/containerservice",
-			"revision": "0984e0641ae43b89283223034574d6465be93bf4",
-			"revisionTime": "2016-11-30T22:29:01Z",
-			"version": "v7.0.1-beta",
-			"versionExact": "v7.0.1-beta"
+			"revision": "8e625d1702a32d01cef05a9252198d231c4af113",
+			"revisionTime": "2017-02-08T01:01:20Z"
 		},
 		{
-			"checksumSHA1": "NJGBM6QQwUQEhaCBZlN9sCoaBZE=",
+			"checksumSHA1": "Amd1JuJVsI9wU3+KI4Ba4jBbxps=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/eventhub",
 			"revision": "8e625d1702a32d01cef05a9252198d231c4af113",
-			"revisionTime": "2017-02-08T01:01:20Z",
-			"version": "v8.0.1-beta",
-			"versionExact": "v8.0.1-beta"
+			"revisionTime": "2017-02-08T01:01:20Z"
 		},
 		{
 			"checksumSHA1": "HqDiYte7S7N9SRNpPJE7U/cDw3c=",
@@ -824,12 +820,10 @@
 			"versionExact": "v1.6.25"
 		},
 		{
-			"checksumSHA1": "tTOqlqLdJim89F/7bLsXe5WfIyQ=",
+			"checksumSHA1": "NYRd4lqocAcZdkEvLHAZYyXz8Bs=",
 			"path": "github.com/aws/aws-sdk-go/service/configservice",
 			"revision": "b2852089fcfd0794d25d57f193e15121ab8a6d9e",
-			"revisionTime": "2017-02-17T18:38:06Z",
-			"version": "v1.6.25",
-			"versionExact": "v1.6.25"
+			"revisionTime": "2017-02-17T18:38:06Z"
 		},
 		{
 			"checksumSHA1": "fcYSy6jPQjLB7mtOfxsMqWnjobU=",
@@ -2675,21 +2669,22 @@
 			"revisionTime": "2016-09-27T10:08:44Z"
 		},
 		{
+			"checksumSHA1": "6NyHxCamdKavA6RYSRuCEG3MtKA=",
 			"path": "github.com/scaleway/scaleway-cli/pkg/api",
-			"revision": "15e90c8d6bd96a674cfe6539f0dc0fa122a7412b",
-			"revisionTime": "2016-12-07T13:39:28Z"
+			"revision": "2938313569b7f6cee34fdaae2a23c0daa7de5f3c",
+			"revisionTime": "2017-02-07T21:56:28Z"
 		},
 		{
-			"checksumSHA1": "aU2+iXO1oHS4vBtAXXBgicA9YBY=",
+			"checksumSHA1": "puRmTVCmWrk+Qq6/yeHjNC3uvy0=",
 			"path": "github.com/scaleway/scaleway-cli/pkg/scwversion",
-			"revision": "88132ecdd39da62f7c73c5a8e1a383d7da5e0e09",
-			"revisionTime": "2016-10-27T15:40:24Z"
+			"revision": "2938313569b7f6cee34fdaae2a23c0daa7de5f3c",
+			"revisionTime": "2017-02-07T21:56:28Z"
 		},
 		{
 			"checksumSHA1": "kveaAmNlnvmIIuEkFcMlB+N7TqY=",
 			"path": "github.com/scaleway/scaleway-cli/pkg/sshcommand",
-			"revision": "15e90c8d6bd96a674cfe6539f0dc0fa122a7412b",
-			"revisionTime": "2016-12-07T13:39:28Z"
+			"revision": "2938313569b7f6cee34fdaae2a23c0daa7de5f3c",
+			"revisionTime": "2017-02-07T21:56:28Z"
 		},
 		{
 			"checksumSHA1": "tEKRyau4iRjmq2iwJbduD9RhN5s=",
@@ -2735,6 +2730,7 @@
 			"revisionTime": "2017-02-13T08:20:48Z"
 		},
 		{
+			"checksumSHA1": "GQ9bu6PuydK3Yor1JgtVKUfEJm8=",
 			"path": "github.com/tent/http-link-go",
 			"revision": "ac974c61c2f990f4115b119354b5e0b47550e888",
 			"revisionTime": "2013-07-02T22:55:49Z"
@@ -2892,10 +2888,10 @@
 			"revision": "75ce5fbba34b1912a3641adbd58cf317d7315821"
 		},
 		{
-			"checksumSHA1": "9x64JhJGo6z8TS0Q33cGcR64kjA=",
+			"checksumSHA1": "C1KKOxFoW7/W/NFNpiXK+boguNo=",
 			"path": "golang.org/x/crypto/curve25519",
-			"revision": "b8a2a83acfe6e6770b75de42d5ff4c67596675c0",
-			"revisionTime": "2017-01-13T19:21:00Z"
+			"revision": "453249f01cfeb54c3d549ddb75ff152ca243f9d8",
+			"revisionTime": "2017-02-08T20:51:15Z"
 		},
 		{
 			"checksumSHA1": "wGb//LjBPNxYHqk+dcLo7BjPXK8=",
@@ -2918,14 +2914,14 @@
 		{
 			"checksumSHA1": "SJ3Ma3Ozavxpbh1usZWBCnzMKIc=",
 			"path": "golang.org/x/crypto/ssh/agent",
-			"revision": "b8a2a83acfe6e6770b75de42d5ff4c67596675c0",
-			"revisionTime": "2017-01-13T19:21:00Z"
+			"revision": "453249f01cfeb54c3d549ddb75ff152ca243f9d8",
+			"revisionTime": "2017-02-08T20:51:15Z"
 		},
 		{
 			"checksumSHA1": "xiderUuvye8Kpn7yX3niiJg32bE=",
 			"path": "golang.org/x/crypto/ssh/terminal",
-			"revision": "b8a2a83acfe6e6770b75de42d5ff4c67596675c0",
-			"revisionTime": "2017-01-13T19:21:00Z"
+			"revision": "453249f01cfeb54c3d549ddb75ff152ca243f9d8",
+			"revisionTime": "2017-02-08T20:51:15Z"
 		},
 		{
 			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
