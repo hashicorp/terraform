@@ -185,13 +185,14 @@ func (s *State) moduleByPath(path []string) *ModuleState {
 	return nil
 }
 
-func (s *State) GetResourceStateFromResourceAddress(rsa *ResourceAddress, allowMissing bool, module, resourceType string) (*ResourceState, error) {
+func (s *State) GetResourceStateFromResourceAddress(rsa *ResourceAddress, resourceType string) (*ResourceState, error) {
 
 	// Getting ModuleState from resource address path
 	mod := s.ModuleByPath(rsa.Path)
+	module := strings.Join(rsa.Path, ".")
 	if mod == nil {
 		return nil, fmt.Errorf(
-			"The module %s could not be found. There is nothing to taint.", strings.Join(rsa.Path, "."))
+			"The module %s could not be found. There is nothing to taint.", module)
 	}
 
 	var name string
