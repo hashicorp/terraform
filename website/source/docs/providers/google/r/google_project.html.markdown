@@ -19,6 +19,24 @@ resource must have `roles/resourcemanager.projectCreator`. See the
 [Access Control for Organizations Using IAM](https://cloud.google.com/resource-manager/docs/access-control-org)
 doc for more information.
 
+Note that prior to 0.8.5, `google_project` functioned like a data source,
+meaning any project referenced by it had to be created and managed outside
+Terraform. As of 0.8.5, `google_project` functions like any other Terraform
+resource, with Terraform creating and managing the project. To replicate the old
+behavior, either:
+
+* Use the project ID directly in whatever is referencing the project, using the
+  [google_project_iam_policy](/docs/providers/google/r/google_project_iam_policy.html)
+  to replace the old `policy_data` property.
+* Use the [import](/docs/import/usage.html) functionality
+  to import your pre-existing project into Terraform, where it can be referenced and
+  used just like always, keeping in mind that Terraform will attempt to undo any changes
+  made outside Terraform.
+
+~> It's important to note that any project resources that were added to your Terraform config
+prior to 0.8.5 will continue to function as they always have, and will not be managed by
+Terraform. Only newly added projects are affected.
+
 ## Example Usage
 
 ```js
@@ -58,9 +76,6 @@ The following arguments are supported:
 * `name` - (Optional) The display name of the project.
     This is required if you are creating a new project.
 
-* `services` - (Optional) The services/APIs that are enabled for this project.
-    For a list of available services, run `gcloud beta service-management list`
-
 * `skip_delete` - (Optional) If true, the Terraform resource can be deleted
     without deleting the Project via the Google API.
 
@@ -81,7 +96,7 @@ exported:
 
 ## ID Field
 
-In previous versions of Terraform, `google_project` resources used an `id` field in
+In versions of Terraform prior to 0.8.5, `google_project` resources used an `id` field in
 config files to specify the project ID. Unfortunately, due to limitations in Terraform,
 this field always looked empty to Terraform. Terraform fell back on using the project
 the Google Cloud provider is configured with. If you're using the `id` field in your
