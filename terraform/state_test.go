@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -1894,5 +1895,39 @@ func TestReadState_prune(t *testing.T) {
 
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("got:\n%#v", actual)
+	}
+}
+
+func TestResourceNameSort(t *testing.T) {
+	names := []string{
+		"a",
+		"b",
+		"a.0",
+		"a.c",
+		"a.d",
+		"c",
+		"a.b.0",
+		"a.b.1",
+		"a.b.10",
+		"a.b.2",
+	}
+
+	sort.Sort(resourceNameSort(names))
+
+	expected := []string{
+		"a",
+		"a.0",
+		"a.b.0",
+		"a.b.1",
+		"a.b.2",
+		"a.b.10",
+		"a.c",
+		"a.d",
+		"b",
+		"c",
+	}
+
+	if !reflect.DeepEqual(names, expected) {
+		t.Fatalf("got: %q\nexpected: %q\n", names, expected)
 	}
 }
