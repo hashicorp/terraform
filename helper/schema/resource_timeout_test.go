@@ -1,7 +1,7 @@
 package schema
 
 import (
-	"log"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -11,36 +11,74 @@ import (
 )
 
 func TestResourceTimeout_ConfigDecode_badkey(t *testing.T) {
-	r := &Resource{
-		Timeouts: &ResourceTimeout{
-			Create: DefaultTimeout(10 * time.Minute),
-			Update: DefaultTimeout(5 * time.Minute),
+	cases := []struct {
+		// what the resource has defined in source
+		ResourceDefaultTimeout *ResourceTimeout
+		// configuration provider by user in tf file
+		Config []map[string]interface{}
+		// what we expect the parsed ResourceTimeout to be
+		Expected *ResourceTimeout
+		// Should we have an error (key not defined in source)
+		ShouldErr bool
+	}{
+		// 0 - Source does not define 'delete' key
+		{
+			ResourceDefaultTimeout: timeoutForValues(10, 0, 5, 0, 0),
+			Config:                 expectedConfigForValues(2, 0, 0, 1, 0),
+			Expected:               timeoutForValues(10, 0, 5, 0, 0),
+			ShouldErr:              true,
+		},
+		// 1 - Config overrides create
+		{
+			ResourceDefaultTimeout: timeoutForValues(10, 0, 5, 0, 0),
+			Config:                 expectedConfigForValues(2, 0, 7, 0, 0),
+			Expected:               timeoutForValues(2, 0, 7, 0, 0),
+			ShouldErr:              false,
+		},
+		// 1 - Config overrides create, default provided. Note that expected still
+		// has zero values, even with a config. The default lookup is handled in
+		// ResourceData
+		{
+			ResourceDefaultTimeout: timeoutForValues(10, 0, 5, 0, 3),
+			Config:                 expectedConfigForValues(2, 0, 7, 0, 0),
+			Expected:               timeoutForValues(2, 0, 7, 0, 3),
+			ShouldErr:              false,
 		},
 	}
 
-	//@TODO convert to test table
-	raw, err := config.NewRawConfig(
-		map[string]interface{}{
-			"foo": "bar",
-			"timeout": []map[string]interface{}{
-				map[string]interface{}{
-					"create": "2m",
-				},
-				map[string]interface{}{
-					"delete": "1m",
-				},
-			},
-		})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	c := terraform.NewResourceConfig(raw)
+	for i, c := range cases {
+		r := &Resource{
+			Timeouts: c.ResourceDefaultTimeout,
+		}
 
-	timeout := &ResourceTimeout{}
-	err = timeout.ConfigDecode(r, c)
-	if err == nil {
-		log.Println("Expected bad timeout key")
-		t.Fatalf("err: %s", err)
+		raw, err := config.NewRawConfig(
+			map[string]interface{}{
+				"foo":     "bar",
+				"timeout": c.Config,
+			})
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		conf := terraform.NewResourceConfig(raw)
+
+		timeout := &ResourceTimeout{}
+		decodeErr := timeout.ConfigDecode(r, conf)
+		if c.ShouldErr {
+			if decodeErr == nil {
+				t.Fatalf("ConfigDecode case (%d): Expected bad timeout key: %s", i, decodeErr)
+			}
+			// should error, err was not nil, continue
+			continue
+		} else {
+			if decodeErr != nil {
+				// should not error, error was not nil, fatal
+				t.Fatalf("decodeError was not nil: %s", decodeErr)
+			}
+		}
+
+		if !reflect.DeepEqual(c.Expected, timeout) {
+			t.Fatalf("ConfigDecode match error case (%d), expected:\n%#v\ngot:\n%#v", i, c.Expected, timeout)
+		}
 	}
 }
 
@@ -72,8 +110,7 @@ func TestResourceTimeout_ConfigDecode(t *testing.T) {
 	timeout := &ResourceTimeout{}
 	err = timeout.ConfigDecode(r, c)
 	if err != nil {
-		log.Println("Expected good timeout returned")
-		t.Fatalf("err: %s", err)
+		t.Fatalf("Expected good timeout returned:, %s", err)
 	}
 
 	expected := &ResourceTimeout{
@@ -246,5 +283,27 @@ func expectedForValues(create, read, update, del, def int) map[string]interface{
 		}
 	}
 
+	return ex
+}
+
+func expectedConfigForValues(create, read, update, delete, def int) []map[string]interface{} {
+	ex := make([]map[string]interface{}, 0)
+
+	if create != 0 {
+		ex = append(ex, map[string]interface{}{"create": fmt.Sprintf("%dm", create)})
+	}
+	if read != 0 {
+		ex = append(ex, map[string]interface{}{"read": fmt.Sprintf("%dm", read)})
+	}
+	if update != 0 {
+		ex = append(ex, map[string]interface{}{"update": fmt.Sprintf("%dm", update)})
+	}
+	if delete != 0 {
+		ex = append(ex, map[string]interface{}{"delete": fmt.Sprintf("%dm", delete)})
+	}
+
+	if def != 0 {
+		ex = append(ex, map[string]interface{}{"default": fmt.Sprintf("%dm", def)})
+	}
 	return ex
 }
