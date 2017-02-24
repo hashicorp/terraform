@@ -5,10 +5,10 @@ import (
 	"log"
 	"regexp"
 	"sort"
+	"time"
 
 	"github.com/denverdino/aliyungo/ecs"
 	"github.com/hashicorp/terraform/helper/schema"
-	"time"
 )
 
 func dataSourceAlicloudImages() *schema.Resource {
@@ -175,15 +175,28 @@ func dataSourceAlicloudImagesRead(d *schema.ResourceData, meta interface{}) erro
 		params.ImageOwnerAlias = ecs.ImageOwnerAlias(owners.(string))
 	}
 
-	resp, _, err := conn.DescribeImages(params)
-	if err != nil {
-		return err
+	var allImages []ecs.ImageType
+
+	for {
+		images, paginationResult, err := conn.DescribeImages(params)
+		if err != nil {
+			break
+		}
+
+		allImages = append(allImages, images...)
+
+		pagination := paginationResult.NextPage()
+		if pagination == nil {
+			break
+		}
+
+		params.Pagination = *pagination
 	}
 
 	var filteredImages []ecs.ImageType
 	if nameRegexOk {
 		r := regexp.MustCompile(nameRegex.(string))
-		for _, image := range resp {
+		for _, image := range allImages {
 			// Check for a very rare case where the response would include no
 			// image name. No name means nothing to attempt a match against,
 			// therefore we are skipping such image.
@@ -198,7 +211,7 @@ func dataSourceAlicloudImagesRead(d *schema.ResourceData, meta interface{}) erro
 			}
 		}
 	} else {
-		filteredImages = resp[:]
+		filteredImages = allImages[:]
 	}
 
 	var images []ecs.ImageType

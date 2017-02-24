@@ -5,7 +5,7 @@ resource "alicloud_security_group" "group" {
 
 
 resource "alicloud_disk" "disk" {
-  availability_zone = "${var.availability_zones}"
+  availability_zone = "${alicloud_instance.instance.0.availability_zone}"
   category = "${var.disk_category}"
   size = "${var.disk_size}"
   count = "${var.count}"
@@ -17,7 +17,6 @@ resource "alicloud_instance" "instance" {
   image_id = "${var.image_id}"
   instance_type = "${var.ecs_type}"
   count = "${var.count}"
-  availability_zone = "${var.availability_zones}"
   security_groups = ["${alicloud_security_group.group.*.id}"]
 
   internet_charge_type = "${var.internet_charge_type}"

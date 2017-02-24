@@ -2,6 +2,7 @@ package alicloud
 
 import (
 	"github.com/denverdino/aliyungo/common"
+	"github.com/denverdino/aliyungo/ecs"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -50,3 +51,10 @@ func isProtocalValid(value string) bool {
 	}
 	return res
 }
+
+var DefaultBusinessInfo = ecs.BusinessInfo{
+	Pack: "terraform",
+}
+
+// default region for all resource
+const DEFAULT_REGION = "cn-beijing"
