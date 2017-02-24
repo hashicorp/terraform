@@ -258,8 +258,9 @@ func resourceAwsDbInstance() *schema.Resource {
 			},
 
 			"replicate_source_db": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:       schema.TypeString,
+				Optional:   true,
+				Deprecated: "DB Instance Replicas will be moving to a separate resource as of Terraform 0.9",
 			},
 
 			"replicas": {
