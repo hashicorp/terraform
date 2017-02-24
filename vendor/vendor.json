@@ -2446,12 +2446,6 @@
 			"revisionTime": "2016-02-22T16:21:17Z"
 		},
 		{
-			"checksumSHA1": "WcXDSYIAP73RAvy22iD57nE/peI=",
-			"path": "github.com/moul/gotty-client",
-			"revision": "99224eea3278d662fce9124bb2bf6c2bb39f5160",
-			"revisionTime": "2017-02-05T09:54:39Z"
-		},
-		{
 			"checksumSHA1": "/iig5lYSPCL3C8J7e4nTAevYNDE=",
 			"comment": "v0.2.0-8-g841842b",
 			"path": "github.com/nesv/go-dynect/dynect",
