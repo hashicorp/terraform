@@ -185,6 +185,9 @@ func (s *State) moduleByPath(path []string) *ModuleState {
 	return nil
 }
 
+// GetResourceStateFromResourceAddress accept a ResourceAddress and
+// ResourceType and return the ResourceState that correspoding to the
+// ResourceAddress
 func (s *State) GetResourceStateFromResourceAddress(rsa *ResourceAddress, resourceType string) (*ResourceState, error) {
 
 	// Getting ModuleState from resource address path
