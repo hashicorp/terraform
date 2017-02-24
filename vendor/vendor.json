@@ -1317,18 +1317,6 @@
 			"revisionTime": "2017-02-21T19:08:14Z"
 		},
 		{
-			"checksumSHA1": "fIcQAnRueVtFU2fqw+2ajJ8MfJo=",
-			"path": "github.com/docker/docker/pkg/namesgenerator",
-			"revision": "3470c8d7676ec7e16db2f2be32805c569ad9448e",
-			"revisionTime": "2017-02-24T14:35:27Z"
-		},
-		{
-			"checksumSHA1": "lThih54jzz9A4zHKEFb9SIV3Ed0=",
-			"path": "github.com/docker/docker/pkg/random",
-			"revision": "3470c8d7676ec7e16db2f2be32805c569ad9448e",
-			"revisionTime": "2017-02-24T14:35:27Z"
-		},
-		{
 			"checksumSHA1": "zkENTbOfU8YoxPfFwVAhTz516Dg=",
 			"path": "github.com/dustin/go-humanize",
 			"revision": "7a41df006ff9af79a29f0ffa9c5f21fbe6314a2d",
