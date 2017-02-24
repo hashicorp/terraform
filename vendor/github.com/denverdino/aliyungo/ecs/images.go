@@ -112,6 +112,7 @@ func (client *Client) DescribeImages(args *DescribeImagesArgs) (images []ImageTy
 type CreateImageArgs struct {
 	RegionId     common.Region
 	SnapshotId   string
+        InstanceId   string
 	ImageName    string
 	ImageVersion string
 	Description  string
