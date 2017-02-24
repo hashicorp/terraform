@@ -2074,7 +2074,7 @@ func (r resourceNameSort) Less(i, j int) bool {
 		}
 	}
 
-	return false
+	return r[i] < r[j]
 }
 
 // moduleStateSort implements sort.Interface to sort module states
