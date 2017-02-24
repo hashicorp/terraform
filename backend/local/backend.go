@@ -55,10 +55,6 @@ type Local struct {
 
 	// we only want to create a single instance of the local state
 	state state.State
-	// the name of the current state
-	currentState string
-
-	// ContextOpts are the base context options to set when initializing a
 	// Terraform context. Many of these will be overridden or merged by
 	// Operation. See Operation for more details.
 	ContextOpts *terraform.ContextOpts
@@ -135,29 +131,35 @@ func (b *Local) States() ([]string, string, error) {
 	// the listing always start with "default"
 	envs := []string{backend.DefaultStateName}
 
-	current := b.currentState
-	if current == "" {
-		name, err := b.currentStateName()
-		if err != nil {
-			return nil, "", err
-		}
-		current = name
+	current, err := b.currentStateName()
+	if err != nil {
+		return nil, "", err
 	}
 
 	entries, err := ioutil.ReadDir(filepath.Join(b.workingDir, DefaultEnvDir))
 	// no error if there's no envs configured
 	if os.IsNotExist(err) {
-		return envs, current, nil
+		return envs, backend.DefaultStateName, nil
 	}
 	if err != nil {
 		return nil, "", err
 	}
 
+	currentExists := false
 	var listed []string
 	for _, entry := range entries {
 		if entry.IsDir() {
-			listed = append(listed, filepath.Base(entry.Name()))
+			name := filepath.Base(entry.Name())
+			if name == current {
+				currentExists = true
+			}
+			listed = append(listed, name)
 		}
+	}
+
+	// current was out of sync for some reason, so return defualt
+	if !currentExists {
+		current = backend.DefaultStateName
 	}
 
 	sort.Strings(listed)
@@ -253,8 +255,6 @@ func (b *Local) ChangeState(name string) error {
 	if err != nil {
 		return err
 	}
-
-	b.currentState = name
 
 	// remove the current state so it's reloaded on the next call to State
 	b.state = nil
@@ -421,7 +421,7 @@ func (b *Local) statePath() (string, error) {
 	path := DefaultStateFilename
 
 	if current != backend.DefaultStateName && current != "" {
-		path = filepath.Join(b.workingDir, DefaultEnvDir, b.currentState, DefaultStateFilename)
+		path = filepath.Join(b.workingDir, DefaultEnvDir, current, DefaultStateFilename)
 	}
 	return path, nil
 }
