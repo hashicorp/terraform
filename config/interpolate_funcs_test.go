@@ -964,6 +964,43 @@ func TestInterpolateFuncDistinct(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncFilter(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// normal usage
+			{
+				`${filter(list("a", "b", "c"), list("ref1", "ref2", "ref3"), "ref2")}`,
+				[]interface{}{"b"},
+				false,
+			},
+			// zero case
+			{
+				`${filter(list(), list(), "nope")}`,
+				[]interface{}{},
+				false,
+			},
+			// non-string list is an error
+			{
+				`${filter(list(list("a"), list("a")), list("a"), "a")}`,
+				nil,
+				true,
+			},
+			// non-string keys list is an error
+			{
+				`${filter(list("a"), list(list("a"), list("a")), "a")}`,
+				nil,
+				true,
+			},
+			// lists of different length is an error
+			{
+				`${filter(list("a"), list("a", "b"), "a")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncFile(t *testing.T) {
 	tf, err := ioutil.TempFile("", "tf")
 	if err != nil {

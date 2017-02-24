@@ -69,6 +69,7 @@ func Funcs() map[string]ast.Function {
 		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
 		"file":         interpolationFuncFile(),
+		"filter":       interpolationFuncFilter(),
 		"floor":        interpolationFuncFloor(),
 		"format":       interpolationFuncFormat(),
 		"formatlist":   interpolationFuncFormatList(),
@@ -666,6 +667,44 @@ func appendIfMissing(slice []string, element string) []string {
 		}
 	}
 	return append(slice, element)
+}
+
+// interpolationFuncFilter implements the "filter" function that
+// removes elements from a list
+func interpolationFuncFilter() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeList, ast.TypeList, ast.TypeString},
+		ReturnType: ast.TypeList,
+		Callback: func(args []interface{}) (interface{}, error) {
+			var list []string
+
+			argument, _ := args[0].([]ast.Variable)
+			keys, _ := args[1].([]ast.Variable)
+			searchkey, _ := args[2].(string)
+
+			if len(argument) != len(keys) {
+				return nil, fmt.Errorf("length of lists should be equal")
+			}
+
+			for i, element := range argument {
+				if element.Type != ast.TypeString {
+					return nil, fmt.Errorf(
+						"only works for flat lists, this list contains elements of %s",
+						element.Type.Printable())
+				}
+				if keys[i].Type != ast.TypeString {
+					return nil, fmt.Errorf(
+						"only works for flat lists, this list contains elements of %s",
+						keys[i].Type.Printable())
+				}
+				if keys[i].Value.(string) == searchkey {
+					list = append(list, element.Value.(string))
+				}
+			}
+
+			return stringSliceToVariableValue(list), nil
+		},
+	}
 }
 
 // interpolationFuncJoin implements the "join" function that allows
