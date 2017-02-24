@@ -42,22 +42,18 @@
 			"versionExact": "v8.0.1-beta"
 		},
 		{
-			"checksumSHA1": "Amd1JuJVsI9wU3+KI4Ba4jBbxps=",
+			"checksumSHA1": "N5cEhrAIjNoOIwciU7M8XBxUBdk=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/containerservice",
-			"revision": "0984e0641ae43b89283223034574d6465be93bf4",
-			"revisionTime": "2016-11-30T22:29:01Z",
-			"version": "v7.0.1-beta",
-			"versionExact": "v7.0.1-beta"
+			"revision": "8e625d1702a32d01cef05a9252198d231c4af113",
+			"revisionTime": "2017-02-08T01:01:20Z"
 		},
 		{
-			"checksumSHA1": "NJGBM6QQwUQEhaCBZlN9sCoaBZE=",
+			"checksumSHA1": "Amd1JuJVsI9wU3+KI4Ba4jBbxps=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/eventhub",
 			"revision": "8e625d1702a32d01cef05a9252198d231c4af113",
-			"revisionTime": "2017-02-08T01:01:20Z",
-			"version": "v8.0.1-beta",
-			"versionExact": "v8.0.1-beta"
+			"revisionTime": "2017-02-08T01:01:20Z"
 		},
 		{
 			"checksumSHA1": "HqDiYte7S7N9SRNpPJE7U/cDw3c=",
