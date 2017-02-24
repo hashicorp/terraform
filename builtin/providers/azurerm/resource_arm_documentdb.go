@@ -5,8 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"strings"
-
 	"bytes"
 
 	"github.com/Azure/azure-sdk-for-go/arm/documentdb"
