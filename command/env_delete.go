@@ -99,9 +99,9 @@ func (c *EnvDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	empty := sMgr.State().Empty()
+	hasResources := sMgr.State().HasResources()
 
-	if !empty && !force {
+	if hasResources && !force {
 		c.Ui.Error(fmt.Sprintf(envNotEmpty, delEnv))
 		return 1
 	}
@@ -128,7 +128,7 @@ func (c *EnvDeleteCommand) Run(args []string) int {
 		),
 	)
 
-	if !empty {
+	if hasResources {
 		c.Ui.Output(
 			c.Colorize().Color(
 				fmt.Sprintf(envWarnNotEmpty, delEnv),
