@@ -391,6 +391,42 @@ func TestTaint_module(t *testing.T) {
 	testStateOutput(t, statePath, testTaintModuleStr)
 }
 
+func TestTaint_index(t *testing.T) {
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo.0": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	statePath := testStateFile(t, state)
+
+	ui := new(cli.MockUi)
+	c := &TaintCommand{
+		Meta: Meta{
+			Ui: ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo[0]",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	testStateOutput(t, statePath, testTaintStrIndex)
+}
+
 const testTaintStr = `
 test_instance.foo: (tainted)
   ID = bar
@@ -408,4 +444,8 @@ test_instance.foo:
 module.child:
   test_instance.blah: (tainted)
     ID = blah
+`
+const testTaintStrIndex = `
+test_instance.foo.0: (tainted)
+  ID = bar
 `
