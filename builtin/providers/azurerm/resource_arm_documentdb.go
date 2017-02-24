@@ -103,7 +103,6 @@ func resourceArmDocumentDb() *schema.Resource {
 						"priority": {
 							Type:     schema.TypeInt,
 							Required: true,
-							// TODO: validation
 						},
 					},
 				},
@@ -296,7 +295,7 @@ func expandAzureRmDocumentDbFailoverPolicies(databaseName string, d *schema.Reso
 	// TODO: all priorities must be unique
 
 	if !containsWriteLocation {
-		err := fmt.Errorf("DocumentDB Offer Type can only be 'Standard' or 'Premium'")
+		err := fmt.Errorf("DocumentDB Failover Policy should contain a Write Location (Location '0')")
 		return nil, err
 	}
 
