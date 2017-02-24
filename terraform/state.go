@@ -1164,7 +1164,8 @@ func (m *ModuleState) String() string {
 	for name, _ := range m.Resources {
 		names = append(names, name)
 	}
-	sort.Strings(names)
+
+	sort.Sort(resourceNameSort(names))
 
 	for _, k := range names {
 		rs := m.Resources[k]
@@ -1204,6 +1205,7 @@ func (m *ModuleState) String() string {
 
 			attrKeys = append(attrKeys, ak)
 		}
+
 		sort.Strings(attrKeys)
 
 		for _, ak := range attrKeys {
@@ -1234,6 +1236,7 @@ func (m *ModuleState) String() string {
 		for k, _ := range m.Outputs {
 			ks = append(ks, k)
 		}
+
 		sort.Strings(ks)
 
 		for _, k := range ks {
@@ -2030,6 +2033,48 @@ func WriteState(d *State, dst io.Writer) error {
 	}
 
 	return nil
+}
+
+// resourceNameSort implements the sort.Interface to sort name parts lexically for
+// strings and numerically for integer indexes.
+type resourceNameSort []string
+
+func (r resourceNameSort) Len() int      { return len(r) }
+func (r resourceNameSort) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
+
+func (r resourceNameSort) Less(i, j int) bool {
+	iParts := strings.Split(r[i], ".")
+	jParts := strings.Split(r[j], ".")
+
+	end := len(iParts)
+	if len(jParts) < end {
+		end = len(jParts)
+	}
+
+	for idx := 0; idx < end; idx++ {
+		if iParts[idx] == jParts[idx] {
+			continue
+		}
+
+		// sort on the first non-matching part
+		iInt, iIntErr := strconv.Atoi(iParts[idx])
+		jInt, jIntErr := strconv.Atoi(jParts[idx])
+
+		switch {
+		case iIntErr == nil && jIntErr == nil:
+			// sort numerically if both parts are integers
+			return iInt < jInt
+		case iIntErr == nil:
+			// numbers sort before strings
+			return true
+		case jIntErr == nil:
+			return false
+		default:
+			return iParts[idx] < jParts[idx]
+		}
+	}
+
+	return false
 }
 
 // moduleStateSort implements sort.Interface to sort module states
