@@ -3,12 +3,12 @@ variable "aws_region" {
   default     = "us-west-2"
 }
 
-# Ubuntu Precise 12.04 LTS (x64)
+# Ubuntu Xenial 16.04 LTS (x64)
 variable "aws_amis" {
   default = {
-    "eu-west-1" = "ami-b1cf19c6"
-    "us-east-1" = "ami-de7ab6b6"
-    "us-west-1" = "ami-3f75767a"
-    "us-west-2" = "ami-21f78e11"
+    "eu-west-1" = "ami-405f7226"
+    "us-east-1" = "ami-f4cc1de2"
+    "us-west-1" = "ami-16efb076"
+    "us-west-2" = "ami-a58d0dc5"
   }
 }
