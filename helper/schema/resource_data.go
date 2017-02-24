@@ -345,19 +345,19 @@ func (d *ResourceData) Timeout(key string) time.Duration {
 	key = strings.ToLower(key)
 
 	switch key {
-	case "create":
+	case resourceTimeoutCreateKey:
 		if d.timeouts.Create != nil {
 			return *d.timeouts.Create
 		}
-	case "read":
+	case resourceTimeoutReadKey:
 		if d.timeouts.Read != nil {
 			return *d.timeouts.Read
 		}
-	case "update":
+	case resourceTimeoutUpdateKey:
 		if d.timeouts.Update != nil {
 			return *d.timeouts.Update
 		}
-	case "delete":
+	case resourceTimeoutDeleteKey:
 		if d.timeouts.Delete != nil {
 			return *d.timeouts.Delete
 		}

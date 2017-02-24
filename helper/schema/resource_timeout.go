@@ -12,15 +12,21 @@ import (
 const TimeoutKey = "e2bfb730-ecaa-11e6-8f88-34363bc7c4c0"
 
 const (
-	rtCreate  = "create"
-	rtRead    = "read"
-	rtUpdate  = "update"
-	rtDelete  = "delete"
-	rtDefault = "default"
+	resourceTimeoutCreateKey  = "create"
+	resourceTimeoutReadKey    = "read"
+	resourceTimeoutUpdateKey  = "update"
+	resourceTimeoutDeleteKey  = "delete"
+	resourceTimeoutDefaultKey = "default"
 )
 
 func timeKeys() []string {
-	return []string{"create", "read", "update", "delete", "default"}
+	return []string{
+		resourceTimeoutCreateKey,
+		resourceTimeoutReadKey,
+		resourceTimeoutUpdateKey,
+		resourceTimeoutDeleteKey,
+		resourceTimeoutDefaultKey,
+	}
 }
 
 // could be time.Duration, int64 or float64
@@ -70,77 +76,49 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 					return fmt.Errorf("Unsupported timeout key found (%s)", mk)
 				}
 
-				//TODO-cts: refactor this to remove duplication, using something like a swich
-				//on the type
-				if mk == "create" {
+				// Get timeout
+				rt, err := time.ParseDuration(mv.(string))
+				if err != nil {
+					return fmt.Errorf("Error parsing Timeout for (%s): %s", mk, err)
+				}
+
+				switch mk {
+				case resourceTimeoutCreateKey:
 					if t.Create == nil {
-						return fmt.Errorf("Timeout (%s) is not supported", mk)
-					} else {
-						rt, err := time.ParseDuration(mv.(string))
-						if err != nil {
-							return fmt.Errorf("Error parsing Timeout for (%s): %s", mk, err)
-						}
-						t.Create = &rt
-						continue
+						return unsupportedTimeoutKeyError(mk)
 					}
-				}
-
-				if mk == "read" {
-					if t.Read == nil {
-						return fmt.Errorf("Timeout (%s) is not supported", mk)
-					} else {
-						rt, err := time.ParseDuration(mv.(string))
-						if err != nil {
-							return fmt.Errorf("Error parsing Timeout for (%s): %s", mk, err)
-						}
-						t.Read = &rt
-						continue
-					}
-				}
-
-				if mk == "update" {
+					t.Create = &rt
+				case resourceTimeoutUpdateKey:
 					if t.Update == nil {
-						return fmt.Errorf("Timeout (%s) is not supported", mk)
-					} else {
-						rt, err := time.ParseDuration(mv.(string))
-						if err != nil {
-							return fmt.Errorf("Error parsing Timeout for (%s): %s", mk, err)
-						}
-						t.Update = &rt
-						continue
+						return unsupportedTimeoutKeyError(mk)
 					}
-				}
-
-				if mk == "delete" {
+					t.Update = &rt
+				case resourceTimeoutReadKey:
+					if t.Read == nil {
+						return unsupportedTimeoutKeyError(mk)
+					}
+					t.Read = &rt
+				case resourceTimeoutDeleteKey:
 					if t.Delete == nil {
-						return fmt.Errorf("Timeout (%s) is not supported", mk)
-					} else {
-						rt, err := time.ParseDuration(mv.(string))
-						if err != nil {
-							return fmt.Errorf("Error parsing Timeout for (%s): %s", mk, err)
-						}
-						t.Delete = &rt
-						continue
+						return unsupportedTimeoutKeyError(mk)
 					}
+					t.Delete = &rt
+				case resourceTimeoutDefaultKey:
+					if t.Default == nil {
+						return unsupportedTimeoutKeyError(mk)
+					}
+					t.Default = &rt
 				}
 
-				if mk == "default" {
-					if t.Default == nil {
-						return fmt.Errorf("Timeout (%s) is not supported", mk)
-					} else {
-						rt, err := time.ParseDuration(mv.(string))
-						if err != nil {
-							return fmt.Errorf("Error parsing Timeout for (%s): %s", mk, err)
-						}
-						t.Default = &rt
-						continue
-					}
-				}
 			}
 		}
 	}
 
 	return nil
+}
+
+func unsupportedTimeoutKeyError(key string) error {
+	return fmt.Errorf("Timeout Key (%s) is not supported", key)
 }
 
 // DiffEncode, StateEncode, and MetaDecode are analogous to the Go stdlib JSONEncoder
@@ -168,19 +146,19 @@ func (t *ResourceTimeout) metaEncode(ids interface{}) error {
 	m := make(map[string]interface{})
 
 	if t.Create != nil {
-		m["create"] = t.Create.Nanoseconds()
+		m[resourceTimeoutCreateKey] = t.Create.Nanoseconds()
 	}
 	if t.Read != nil {
-		m["read"] = t.Read.Nanoseconds()
+		m[resourceTimeoutReadKey] = t.Read.Nanoseconds()
 	}
 	if t.Update != nil {
-		m["update"] = t.Update.Nanoseconds()
+		m[resourceTimeoutUpdateKey] = t.Update.Nanoseconds()
 	}
 	if t.Delete != nil {
-		m["delete"] = t.Delete.Nanoseconds()
+		m[resourceTimeoutDeleteKey] = t.Delete.Nanoseconds()
 	}
 	if t.Default != nil {
-		m["default"] = t.Default.Nanoseconds()
+		m[resourceTimeoutDefaultKey] = t.Default.Nanoseconds()
 		// for any key above that is nil, if default is specified, we need to
 		// populate it with the default
 		for _, k := range timeKeys() {
@@ -242,19 +220,19 @@ func (t *ResourceTimeout) metaDecode(ids interface{}) error {
 		return nil
 	}
 
-	if v, ok := times[rtCreate]; ok {
+	if v, ok := times[resourceTimeoutCreateKey]; ok {
 		t.Create = DefaultTimeout(v)
 	}
-	if v, ok := times[rtRead]; ok {
+	if v, ok := times[resourceTimeoutReadKey]; ok {
 		t.Read = DefaultTimeout(v)
 	}
-	if v, ok := times[rtUpdate]; ok {
+	if v, ok := times[resourceTimeoutUpdateKey]; ok {
 		t.Update = DefaultTimeout(v)
 	}
-	if v, ok := times[rtDelete]; ok {
+	if v, ok := times[resourceTimeoutDeleteKey]; ok {
 		t.Delete = DefaultTimeout(v)
 	}
-	if v, ok := times[rtDefault]; ok {
+	if v, ok := times[resourceTimeoutDefaultKey]; ok {
 		t.Default = DefaultTimeout(v)
 	}
 

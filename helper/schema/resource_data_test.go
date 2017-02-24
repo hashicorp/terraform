@@ -1129,15 +1129,15 @@ func TestResourceDataTimeout(t *testing.T) {
 			got := c.Rd.Timeout(k)
 			var ex *time.Duration
 			switch k {
-			case "create":
+			case resourceTimeoutCreateKey:
 				ex = c.Expected.Create
-			case "read":
+			case resourceTimeoutReadKey:
 				ex = c.Expected.Read
-			case "update":
+			case resourceTimeoutUpdateKey:
 				ex = c.Expected.Update
-			case "delete":
+			case resourceTimeoutDeleteKey:
 				ex = c.Expected.Delete
-			case "default":
+			case resourceTimeoutDefaultKey:
 				ex = c.Expected.Default
 			}
 
