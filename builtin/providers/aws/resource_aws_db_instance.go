@@ -290,8 +290,9 @@ func resourceAwsDbInstance() *schema.Resource {
 	}
 
 	resourceSchema["replicate_source_db"] = &schema.Schema{
-		Type:     schema.TypeString,
-		Computed: true,
+		Type:       schema.TypeString,
+		Optional:   true,
+		Deprecated: "Please use `aws_db_instance_replica` instead. This option/attribute will be removed in a future version",
 	}
 
 	resourceSchema["replicas"] = &schema.Schema{
