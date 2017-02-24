@@ -45,10 +45,8 @@ func (c *TaintCommand) Run(args []string) int {
 	name := args[0]
 	if module == "" {
 		resourceAddressStr = "module.root." + name
-		module = "root"
 	} else {
 		resourceAddressStr = "module.root.module." + module + "." + name
-		module = "root." + module
 	}
 
 	// get the resource address from name
@@ -95,6 +93,7 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	// Get the actual state structure
+	module = strings.Join(rsa.Path, ".")
 	s := st.State()
 	if s.Empty() {
 		if allowMissing {
@@ -113,7 +112,7 @@ func (c *TaintCommand) Run(args []string) int {
 	resourceType := strings.Split(name, ".")[0]
 
 	// Getting resource state
-	rs, err := s.GetResourceStateFromResourceAddress(rsa, allowMissing, module, resourceType)
+	rs, err := s.GetResourceStateFromResourceAddress(rsa, resourceType)
 	if err != nil {
 		if allowMissing {
 			return c.allowMissingExit(name, module)
