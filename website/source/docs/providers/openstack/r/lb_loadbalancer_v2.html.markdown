@@ -50,7 +50,7 @@ The following arguments are supported:
 * `flavor` - (Optional) The UUID of a flavor. Changing this creates a new
     loadbalancer.
 
-* `provider` - (Optional) The name of the provider. Changing this creates a new
+* `loadbalancer_provider` - (Optional) The name of the provider. Changing this creates a new
     loadbalancer.
 
 * `security_group_ids` - (Optional) A list of security group IDs to apply to the
@@ -69,6 +69,6 @@ The following attributes are exported:
 * `vip_address` - See Argument Reference above.
 * `admin_state_up` - See Argument Reference above.
 * `flavor` - See Argument Reference above.
-* `provider` - See Argument Reference above.
+* `loadbalancer_provider` - See Argument Reference above.
 * `security_group_ids` - See Argument Reference above.
 * `vip_port_id` - The Port ID of the Load Balancer IP.
