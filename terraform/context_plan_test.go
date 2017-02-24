@@ -2756,12 +2756,6 @@ aws_instance.foo.0:
   ID = i-abc0
 aws_instance.foo.1:
   ID = i-abc1
-aws_instance.foo.10:
-  ID = i-abc10
-aws_instance.foo.11:
-  ID = i-abc11
-aws_instance.foo.12:
-  ID = i-abc12
 aws_instance.foo.2:
   ID = i-abc2
 aws_instance.foo.3:
@@ -2778,6 +2772,12 @@ aws_instance.foo.8:
   ID = i-abc8
 aws_instance.foo.9:
   ID = i-abc9
+aws_instance.foo.10:
+  ID = i-abc10
+aws_instance.foo.11:
+  ID = i-abc11
+aws_instance.foo.12:
+  ID = i-abc12
 	`)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
