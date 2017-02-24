@@ -2681,7 +2681,7 @@
 			"revisionTime": "2016-09-27T10:08:44Z"
 		},
 		{
-			"checksumSHA1": "/hY/JUzzV5+IMAGkfTGI3VA4k9Y=",
+			"checksumSHA1": "6NyHxCamdKavA6RYSRuCEG3MtKA=",
 			"path": "github.com/scaleway/scaleway-cli/pkg/api",
 			"revision": "2938313569b7f6cee34fdaae2a23c0daa7de5f3c",
 			"revisionTime": "2017-02-07T21:56:28Z"
@@ -2695,12 +2695,6 @@
 		{
 			"checksumSHA1": "kveaAmNlnvmIIuEkFcMlB+N7TqY=",
 			"path": "github.com/scaleway/scaleway-cli/pkg/sshcommand",
-			"revision": "2938313569b7f6cee34fdaae2a23c0daa7de5f3c",
-			"revisionTime": "2017-02-07T21:56:28Z"
-		},
-		{
-			"checksumSHA1": "xM3G5ct9YYYnVIL3XMRrcf41xVw=",
-			"path": "github.com/scaleway/scaleway-cli/pkg/utils",
 			"revision": "2938313569b7f6cee34fdaae2a23c0daa7de5f3c",
 			"revisionTime": "2017-02-07T21:56:28Z"
 		},
