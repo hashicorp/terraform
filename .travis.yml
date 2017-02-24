@@ -10,7 +10,7 @@ install:
 - bash scripts/gogetcookie.sh
 - go get github.com/kardianos/govendor
 script:
-- make vet test
+- make vet vendor-status test
 - GOOS=windows go build
 branches:
   only:
