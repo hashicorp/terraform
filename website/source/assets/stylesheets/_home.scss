@@ -434,13 +434,69 @@ body.page-home {
 	#latest-announcement{
 		position: relative;
 		margin-top: -80px;
-		padding: 240px 0 160px;
+		padding: 160px 0 200px;
 		color: $white;
-		text-align: center;
+  	text-align: left;
 
 		>.container{
 			z-index: 51;
 		}
+
+    h2{
+      margin-bottom: 60px;
+    }
+
+    .latest-col-right{
+      position: relative;
+      padding-left: 60px;
+
+      &:after{
+        content: '';
+        position: absolute;
+        left: 30px;
+        top: 0;
+        width: 2px;
+        height: 100%;
+        background-color: rgba(255, 255, 255, .15);
+      }
+    }
+
+    .latest-item{
+      &.latest-item-text{
+        border-bottom: 2px solid rgba(255, 255, 255, .15);
+
+        &:first-child{
+          h3{
+            margin-top: 0;
+          }
+        }
+
+        &:last-child{
+          border-bottom: none;
+        }
+      }
+
+      img{
+        box-shadow: 8px 8px 8px rgba(0,0,0,.25);
+        margin-bottom: 10px;
+        max-width: 100%;
+      }
+
+      h3{
+        line-height: 1.2;
+        font-family: $font-family-open-sans;
+        text-transform: none;
+      }
+
+      p{
+        margin-bottom: 10px;
+      }
+
+      a{
+        margin-top: 5px;
+        margin-bottom: 10px;
+      }
+    }
 	}
 
 	#latest-announcement-bg{
@@ -552,7 +608,7 @@ body.page-home {
 
 		#latest-announcement{
 			margin-top: -140px;
-			padding: 320px 0 180px;
+			padding: 180px 0 240px;
 		}
 
 		#enterprise-intro{
@@ -562,7 +618,6 @@ body.page-home {
 	}
 
 	@media (max-width: 992px) {
-
 
 		#demos{
 			.terminals{
@@ -580,6 +635,37 @@ body.page-home {
 				}
 			}
 		}
+
+    #latest-announcement{
+      .latest-col-left{
+        .latest-item{
+          border-bottom: 2px solid rgba(255, 255, 255, .15);
+        }
+      }
+
+      .latest-col-right{
+        padding-left: 15px;
+
+        &:after{
+          width: 0;
+        }
+      }
+
+      .latest-item{
+        padding-bottom: 30px;
+        margin-bottom: 30px;
+
+        &.latest-item-text{
+          border-bottom: 2px solid rgba(255, 255, 255, .15);
+
+          &:first-child{
+            h3{
+              margin-top: 20px;
+            }
+          }
+        }
+      }
+    }
 	}
 
 	@media (max-width: 768px) {

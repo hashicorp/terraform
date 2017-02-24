@@ -38,6 +38,11 @@ func (c *StateListCommand) Run(args []string) int {
 		return 1
 	}
 
+	if err := state.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		return 1
+	}
+
 	stateReal := state.State()
 	if stateReal == nil {
 		c.Ui.Error(fmt.Sprintf(errStateNotFound))

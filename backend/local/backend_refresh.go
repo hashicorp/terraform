@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	clistate "github.com/hashicorp/terraform/command/state"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
 )
 
@@ -40,6 +41,12 @@ func (b *Local) opRefresh(
 				b.StatePath, err)
 			return
 		}
+	}
+
+	// If we have no config module given to use, create an empty tree to
+	// avoid crashes when Terraform.Context is initialized.
+	if op.Module == nil {
+		op.Module = module.NewEmptyTree()
 	}
 
 	// Get our context

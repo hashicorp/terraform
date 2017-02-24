@@ -51,9 +51,11 @@ func resourceArmLoadBalancerProbe() *schema.Resource {
 			},
 
 			"protocol": {
-				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
+				Type:             schema.TypeString,
+				Computed:         true,
+				Optional:         true,
+				StateFunc:        ignoreCaseStateFunc,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"port": {

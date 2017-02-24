@@ -13,12 +13,14 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 IMPROVEMENTS:
 
  * core: "terraformrc" can contain env var references with $FOO [GH-11929]
+ * provider/aws: AWS Lambda DeadLetterConfig support [GH-12188]
  * provider/azurerm: Mark the azurerm_scale_set machine password as sensitive [GH-11982]
  * provider/azurerm: Mark the azurerm_sql_server admin password as sensitive [GH-12004]
 
 BUG FIXES:
 
  * core: targeting will remove untargeted providers [GH-12050]
+ * core: doing a map lookup in a resource config with a computed set no longer crashes [GH-12210]
 
 0.9.0-beta1 FIXES:
 
@@ -28,6 +30,9 @@ BUG FIXES:
  * core: invalid resource attribute interpolation in a destroy provisioner errors [GH-12063]
  * command/init: allow unsetting a backend properly [GH-11988]
  * command/apply: fix crash that could happen with an empty directory [GH-11989]
+ * command/refresh: fix crash when no configs were in the pwd [GH-12178]
+ * command/{state,taint}: work properly with backend state [GH-12155]
+ * providers/terraform: remote state data source works with new backends [GH-12173]
 
 ## 0.9.0-beta1 (February 15, 2017)
 

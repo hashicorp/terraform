@@ -114,7 +114,7 @@ func resourceAwsSsmAssociationDelete(d *schema.ResourceData, meta interface{}) e
 func expandSSMDocumentParameters(params map[string]interface{}) map[string][]*string {
 	var docParams = make(map[string][]*string)
 	for k, v := range params {
-		var values []*string
+		values := make([]*string, 1)
 		values[0] = aws.String(v.(string))
 		docParams[k] = values
 	}

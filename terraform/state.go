@@ -1583,8 +1583,9 @@ type InstanceState struct {
 
 	// Meta is a simple K/V map that is persisted to the State but otherwise
 	// ignored by Terraform core. It's meant to be used for accounting by
-	// external client code.
-	Meta map[string]string `json:"meta"`
+	// external client code. The value here must only contain Go primitives
+	// and collections.
+	Meta map[string]interface{} `json:"meta"`
 
 	// Tainted is used to mark a resource for recreation.
 	Tainted bool `json:"tainted"`
@@ -1603,7 +1604,7 @@ func (s *InstanceState) init() {
 		s.Attributes = make(map[string]string)
 	}
 	if s.Meta == nil {
-		s.Meta = make(map[string]string)
+		s.Meta = make(map[string]interface{})
 	}
 	s.Ephemeral.init()
 }
@@ -1674,13 +1675,11 @@ func (s *InstanceState) Equal(other *InstanceState) bool {
 	if len(s.Meta) != len(other.Meta) {
 		return false
 	}
-	for k, v := range s.Meta {
-		otherV, ok := other.Meta[k]
-		if !ok {
-			return false
-		}
-
-		if v != otherV {
+	if s.Meta != nil && other.Meta != nil {
+		// We only do the deep check if both are non-nil. If one is nil
+		// we treat it as equal since their lengths are both zero (check
+		// above).
+		if !reflect.DeepEqual(s.Meta, other.Meta) {
 			return false
 		}
 	}

@@ -14,7 +14,7 @@ func resourcePagerDutyService() *schema.Resource {
 		Update: resourcePagerDutyServiceUpdate,
 		Delete: resourcePagerDutyServiceDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourcePagerDutyServiceImport,
+			State: schema.ImportStatePassthrough,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -52,7 +52,7 @@ func resourcePagerDutyService() *schema.Resource {
 			},
 			"incident_urgency_rule": &schema.Schema{
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"type": {
@@ -302,12 +302,4 @@ func resourcePagerDutyServiceDelete(d *schema.ResourceData, meta interface{}) er
 	d.SetId("")
 
 	return nil
-}
-
-func resourcePagerDutyServiceImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	if err := resourcePagerDutyServiceRead(d, meta); err != nil {
-		return nil, err
-	}
-
-	return []*schema.ResourceData{d}, nil
 }

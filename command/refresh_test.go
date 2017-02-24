@@ -794,7 +794,7 @@ func newInstanceState(id string) *terraform.InstanceState {
 		Ephemeral: terraform.EphemeralState{
 			ConnInfo: make(map[string]string),
 		},
-		Meta: make(map[string]string),
+		Meta: make(map[string]interface{}),
 	}
 }
 

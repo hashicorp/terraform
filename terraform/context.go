@@ -207,6 +207,7 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, error) {
 		opts = &ContextGraphOpts{Validate: true}
 	}
 
+	log.Printf("[INFO] terraform: building graph: %s", typ)
 	switch typ {
 	case GraphTypeApply:
 		return (&ApplyGraphBuilder{

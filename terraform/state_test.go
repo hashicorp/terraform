@@ -278,7 +278,7 @@ func TestStateDeepCopy(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{},
+									Meta: map[string]interface{}{},
 								},
 							},
 						},
@@ -298,7 +298,7 @@ func TestStateDeepCopy(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{},
+									Meta: map[string]interface{}{},
 								},
 								Deposed: []*InstanceState{
 									{ID: "test"},
@@ -325,17 +325,20 @@ func TestStateDeepCopy(t *testing.T) {
 
 func TestStateEqual(t *testing.T) {
 	cases := []struct {
+		Name     string
 		Result   bool
 		One, Two *State
 	}{
 		// Nils
 		{
+			"one nil",
 			false,
 			nil,
 			&State{Version: 2},
 		},
 
 		{
+			"both nil",
 			true,
 			nil,
 			nil,
@@ -343,6 +346,7 @@ func TestStateEqual(t *testing.T) {
 
 		// Different versions
 		{
+			"different state versions",
 			false,
 			&State{Version: 5},
 			&State{Version: 2},
@@ -350,6 +354,7 @@ func TestStateEqual(t *testing.T) {
 
 		// Different modules
 		{
+			"different module states",
 			false,
 			&State{
 				Modules: []*ModuleState{
@@ -362,6 +367,7 @@ func TestStateEqual(t *testing.T) {
 		},
 
 		{
+			"same module states",
 			true,
 			&State{
 				Modules: []*ModuleState{
@@ -381,6 +387,7 @@ func TestStateEqual(t *testing.T) {
 
 		// Meta differs
 		{
+			"differing meta values with primitives",
 			false,
 			&State{
 				Modules: []*ModuleState{
@@ -389,7 +396,7 @@ func TestStateEqual(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{
+									Meta: map[string]interface{}{
 										"schema_version": "1",
 									},
 								},
@@ -405,8 +412,52 @@ func TestStateEqual(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{
+									Meta: map[string]interface{}{
 										"schema_version": "2",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		// Meta with complex types
+		{
+			"same meta with complex types",
+			true,
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]interface{}{
+										"timeouts": map[string]interface{}{
+											"create": 42,
+											"read":   "27",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]interface{}{
+										"timeouts": map[string]interface{}{
+											"create": 42,
+											"read":   "27",
+										},
 									},
 								},
 							},
@@ -418,12 +469,14 @@ func TestStateEqual(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		if tc.One.Equal(tc.Two) != tc.Result {
-			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
-		}
-		if tc.Two.Equal(tc.One) != tc.Result {
-			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
-		}
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			if tc.One.Equal(tc.Two) != tc.Result {
+				t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
+			}
+			if tc.Two.Equal(tc.One) != tc.Result {
+				t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
+			}
+		})
 	}
 }
 
@@ -610,7 +663,7 @@ func TestStateIncrementSerialMaybe(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{},
+									Meta: map[string]interface{}{},
 								},
 							},
 						},
@@ -625,7 +678,7 @@ func TestStateIncrementSerialMaybe(t *testing.T) {
 						Resources: map[string]*ResourceState{
 							"test_instance.foo": &ResourceState{
 								Primary: &InstanceState{
-									Meta: map[string]string{
+									Meta: map[string]interface{}{
 										"schema_version": "1",
 									},
 								},
@@ -1449,6 +1502,45 @@ func TestInstanceState_MergeDiffRemoveCounts(t *testing.T) {
 		"all.#":            "1",
 		"all.1111":         "x",
 		"all.nested_value": "y",
+	}
+
+	if !reflect.DeepEqual(expected, is2.Attributes) {
+		t.Fatalf("bad: %#v", is2.Attributes)
+	}
+}
+
+// GH-12183. This tests that a list with a computed set generates the
+// right partial state. This never failed but is put here for completion
+// of the test case for GH-12183.
+func TestInstanceState_MergeDiff_computedSet(t *testing.T) {
+	is := InstanceState{}
+
+	diff := &InstanceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"config.#": &ResourceAttrDiff{
+				Old:         "0",
+				New:         "1",
+				RequiresNew: true,
+			},
+
+			"config.0.name": &ResourceAttrDiff{
+				Old: "",
+				New: "hello",
+			},
+
+			"config.0.rules.#": &ResourceAttrDiff{
+				Old:         "",
+				NewComputed: true,
+			},
+		},
+	}
+
+	is2 := is.MergeDiff(diff)
+
+	expected := map[string]string{
+		"config.#":         "1",
+		"config.0.name":    "hello",
+		"config.0.rules.#": config.UnknownVariableValue,
 	}
 
 	if !reflect.DeepEqual(expected, is2.Attributes) {
