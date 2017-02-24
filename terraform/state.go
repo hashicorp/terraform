@@ -189,6 +189,10 @@ func (s *State) GetResourceStateFromResourceAddress(rsa *ResourceAddress, allowM
 
 	// Getting ModuleState from resource address path
 	mod := s.ModuleByPath(rsa.Path)
+	if mod == nil {
+		return nil, fmt.Errorf(
+			"The module %s could not be found. There is nothing to taint.", strings.Join(rsa.Path, "."))
+	}
 
 	var name string
 	if rsa.Index != -1 {
@@ -197,34 +201,14 @@ func (s *State) GetResourceStateFromResourceAddress(rsa *ResourceAddress, allowM
 		name = strings.Join([]string{resourceType, rsa.Name}, ".")
 	}
 
-	if mod == nil {
-		if allowMissing {
-			return nil, fmt.Errorf("The resource %s in the module %s was not found, but\n"+
-				"-allow-missing is set, so we're exiting successfully.", name, module)
-		}
-
-		return nil, fmt.Errorf(
-			"The module %s could not be found. There is nothing to taint.", module)
-	}
-
 	// If there are no resources in this module, it is an error
 	if len(mod.Resources) == 0 {
-		if allowMissing {
-			return nil, fmt.Errorf("The resource %s in the module %s was not found, but\n"+
-				"-allow-missing is set, so we're exiting successfully.", name, module)
-		}
-
 		return nil, fmt.Errorf(
 			"The module %s has no resources. There is nothing to taint.", module)
 	}
 
 	rs, ok := mod.Resources[name]
 	if !ok {
-		if allowMissing {
-			return nil, fmt.Errorf("The resource %s in the module %s was not found, but\n"+
-				"-allow-missing is set, so we're exiting successfully.", name, module)
-		}
-
 		return nil, fmt.Errorf(
 			"The resource %s couldn't be found in the module %s.", name, module)
 	}
