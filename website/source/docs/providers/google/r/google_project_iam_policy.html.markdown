@@ -11,6 +11,9 @@ description: |-
 Allows creation and management of an IAM policy for an existing Google Cloud
 Platform project.
 
+~> **Be careful!** You can accidentally lock yourself out of your project
+   using this resource. Proceed with caution.
+
 ## Example Usage
 
 ```js
