@@ -185,13 +185,18 @@ func (s *State) moduleByPath(path []string) *ModuleState {
 	return nil
 }
 
-func (s *State) ResourceState(rsa *ResourceAddress, allowMissing bool, module, resourceType string) (*ResourceState, error) {
+func (s *State) GetResourceStateFromResourceAddress(rsa *ResourceAddress, allowMissing bool, module, resourceType string) (*ResourceState, error) {
 
 	// Getting ModuleState from resource address path
 	mod := s.ModuleByPath(rsa.Path)
 
-	// Figure out the part of name
-	name := strings.Join([]string{resourceType, rsa.Name, strconv.Itoa(rsa.Index)}, ".")
+	var name string
+	if rsa.Index != -1 {
+		name = strings.Join([]string{resourceType, rsa.Name, strconv.Itoa(rsa.Index)}, ".")
+	} else {
+		name = strings.Join([]string{resourceType, rsa.Name}, ".")
+	}
+
 	if mod == nil {
 		if allowMissing {
 			return nil, fmt.Errorf("The resource %s in the module %s was not found, but\n"+
