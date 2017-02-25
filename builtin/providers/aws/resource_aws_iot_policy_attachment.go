@@ -12,12 +12,12 @@ func resourceAwsIotPolicyAttachment() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsIotPolicyAttachmentCreate,
 		Read:   resourceAwsIotPolicyAttachmentRead,
-		Update: resourceAwsIotPolicyAttachmentUpdate,
 		Delete: resourceAwsIotPolicyAttachmentDelete,
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"principals": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -25,10 +25,12 @@ func resourceAwsIotPolicyAttachment() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				ForceNew: true,
 			},
 			"policy": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -50,9 +52,8 @@ func resourceAwsIotPolicyAttachmentCreate(d *schema.ResourceData, meta interface
 	}
 
 	d.SetId(d.Get("name").(string))
-	d.Set("policy", d.Get("policy").(string))
-	d.Set("principals", d.Get("principals").(*schema.Set).List())
-	return nil
+
+	return resourceAwsIotPolicyAttachmentRead(d, meta)
 }
 
 func resourceAwsIotPolicyAttachmentRead(d *schema.ResourceData, meta interface{}) error {
@@ -72,62 +73,8 @@ func resourceAwsIotPolicyAttachmentRead(d *schema.ResourceData, meta interface{}
 		principals[i] = *p
 	}
 
-	d.SetId(d.Get("name").(string))
 	d.Set("policy", d.Get("policy").(string))
 	d.Set("principals", principals)
-
-	return nil
-}
-
-func resourceAwsIotPolicyAttachmentUpdate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).iotconn
-
-	if d.HasChange("principals") {
-		err := updatePrincipalsPolicy(conn, d)
-		if err != nil {
-			log.Printf("[ERROR] %v", err)
-			return err
-		}
-	}
-
-	return resourceAwsIotPolicyAttachmentRead(d, meta)
-}
-
-func updatePrincipalsPolicy(conn *iot.IoT, d *schema.ResourceData) error {
-	o, n := d.GetChange("principals")
-	if o == nil {
-		o = new(schema.Set)
-	}
-	if n == nil {
-		n = new(schema.Set)
-	}
-	os := o.(*schema.Set)
-	ns := n.(*schema.Set)
-
-	toBeDetached := expandStringList(os.Difference(ns).List())
-	toBeAttached := expandStringList(ns.Difference(os).List())
-
-	policyName := d.Get("policy").(string)
-	for _, p := range toBeDetached {
-		_, err := conn.DetachPrincipalPolicy(&iot.DetachPrincipalPolicyInput{
-			PolicyName: aws.String(policyName),
-			Principal:  aws.String(*p),
-		})
-
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, p := range toBeAttached {
-		_, err := conn.AttachPrincipalPolicy(&iot.AttachPrincipalPolicyInput{
-			PolicyName: aws.String(policyName),
-			Principal:  aws.String(*p),
-		})
-		if err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
