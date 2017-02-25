@@ -103,7 +103,7 @@ func resourceAwsIotThingRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] Received IoT thing: %s", out.ThingName)
+	log.Printf("[DEBUG] Received IoT thing: %s", *out.ThingName)
 
 	d.SetId(*out.ThingName)
 	d.Set("name", out.ThingName)
