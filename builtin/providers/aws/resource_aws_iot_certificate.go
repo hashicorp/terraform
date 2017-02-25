@@ -47,9 +47,8 @@ func resourceAwsIotCertificateCreate(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Created certificate from csr")
 
 	d.SetId(*out.CertificateId)
-	d.Set("arn", *out.CertificateArn)
 
-	return nil
+	return resourceAwsIotCertificateRead(d, meta)
 }
 
 func resourceAwsIotCertificateRead(d *schema.ResourceData, meta interface{}) error {
@@ -65,8 +64,7 @@ func resourceAwsIotCertificateRead(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	d.SetId(*out.CertificateDescription.CertificateId)
-	d.Set("arn", *out.CertificateDescription.CertificateArn)
+	d.Set("arn", out.CertificateDescription.CertificateArn)
 
 	return nil
 }
@@ -75,10 +73,10 @@ func resourceAwsIotCertificateUpdate(d *schema.ResourceData, meta interface{}) e
 	conn := meta.(*AWSClient).iotconn
 
 	if d.HasChange("csr") {
-		//Make old cert inactive
-		_, err := conn.UpdateCertificate(&iot.UpdateCertificateInput{
-			CertificateId: aws.String(d.Id()),
-			NewStatus:     aws.String("INACTIVE"),
+		// First create certificate with new CSR
+		out, err := conn.CreateCertificateFromCsr(&iot.CreateCertificateFromCsrInput{
+			CertificateSigningRequest: aws.String(d.Get("csr").(string)),
+			SetAsActive:               aws.Bool(d.Get("active").(bool)),
 		})
 
 		if err != nil {
@@ -86,14 +84,10 @@ func resourceAwsIotCertificateUpdate(d *schema.ResourceData, meta interface{}) e
 			return nil
 		}
 
-		//TODO: Remove old cert??
-		//conn.DeleteCertificate(&iot.DeleteCertificateInput{
-		//	CertificateId: aws.String(d.Id()),
-		//})
-
-		out, err := conn.CreateCertificateFromCsr(&iot.CreateCertificateFromCsrInput{
-			CertificateSigningRequest: aws.String(d.Get("csr").(string)),
-			SetAsActive:               aws.Bool(d.Get("active").(bool)),
+		// If everything worked, make the old one inactive
+		_, err = conn.UpdateCertificate(&iot.UpdateCertificateInput{
+			CertificateId: aws.String(d.Id()),
+			NewStatus:     aws.String("INACTIVE"),
 		})
 
 		if err != nil {
@@ -102,27 +96,27 @@ func resourceAwsIotCertificateUpdate(d *schema.ResourceData, meta interface{}) e
 		}
 
 		d.SetId(*out.CertificateId)
-		d.Set("arn", *out.CertificateArn)
 
 	} else {
 
-		// What about a status like REVOKED etc. ??
-		status := "INACTIVE"
-		if d.Get("active").(bool) {
-			status = "ACTIVE"
-		}
+		if d.HasChange("active") {
+			status := "INACTIVE"
+			if d.Get("active").(bool) {
+				status = "ACTIVE"
+			}
 
-		_, err := conn.UpdateCertificate(&iot.UpdateCertificateInput{
-			CertificateId: aws.String(d.Id()),
-			NewStatus:     aws.String(status),
-		})
+			_, err := conn.UpdateCertificate(&iot.UpdateCertificateInput{
+				CertificateId: aws.String(d.Id()),
+				NewStatus:     aws.String(status),
+			})
 
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	return nil
+	return resourceAwsIotCertificateRead(d, meta)
 }
 
 func resourceAwsIotCertificateDelete(d *schema.ResourceData, meta interface{}) error {
