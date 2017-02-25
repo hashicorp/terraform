@@ -50,10 +50,8 @@ func resourceAwsIotPolicyCreate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.SetId(*out.PolicyName)
-	d.Set("arn", *out.PolicyArn)
-	d.Set("defaultVersionId", *out.PolicyVersionId)
 
-	return nil
+	return resourceAwsIotPolicyRead(d, meta)
 }
 
 func resourceAwsIotPolicyRead(d *schema.ResourceData, meta interface{}) error {
@@ -68,9 +66,8 @@ func resourceAwsIotPolicyRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.SetId(*out.PolicyName)
-	d.Set("arn", *out.PolicyArn)
-	d.Set("defaultVersionId", *out.DefaultVersionId)
+	d.Set("arn", out.PolicyArn)
+	d.Set("defaultVersionId", out.DefaultVersionId)
 
 	return nil
 }
@@ -78,10 +75,8 @@ func resourceAwsIotPolicyRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsIotPolicyUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iotconn
 
-	//TODO: prune old versions
-
 	if d.HasChange("policy") {
-		out, err := conn.CreatePolicyVersion(&iot.CreatePolicyVersionInput{
+		_, err := conn.CreatePolicyVersion(&iot.CreatePolicyVersionInput{
 			PolicyName:     aws.String(d.Id()),
 			PolicyDocument: aws.String(d.Get("policy").(string)),
 			SetAsDefault:   aws.Bool(true),
@@ -91,12 +86,9 @@ func resourceAwsIotPolicyUpdate(d *schema.ResourceData, meta interface{}) error 
 			log.Printf("[ERROR] %s", err)
 			return err
 		}
-
-		d.Set("arn", *out.PolicyArn)
-		d.Set("defaultVersionId", *out.PolicyVersionId)
 	}
 
-	return nil
+	return resourceAwsIotPolicyRead(d, meta)
 }
 
 func resourceAwsIotPolicyDelete(d *schema.ResourceData, meta interface{}) error {
