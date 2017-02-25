@@ -761,11 +761,12 @@ func testArchiveStr(t *testing.T, path string) []string {
 	return result
 }
 
+// we always quote map keys to be safe
 func pushTFVars() []atlas.TFVar {
 	return []atlas.TFVar{
 		{Key: "bar", Value: "foo", IsHCL: false},
 		{Key: "baz", Value: `{
-  A = "a"
+  "A" = "a"
 }`, IsHCL: true},
 		{Key: "fob", Value: `["a", "quotes \"in\" quotes"]`, IsHCL: true},
 		{Key: "foo", Value: "bar", IsHCL: false},
