@@ -85,10 +85,9 @@ func resourceAwsIotThingCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(*out.ThingName)
-	d.Set("name", *out.ThingName)
-	d.Set("arn", *out.ThingArn)
+	d.Set("arn", out.ThingArn) // This is only returned when creating the thing so we set this here
 
-	return nil
+	return resourceAwsIotThingRead(d, meta)
 }
 
 func resourceAwsIotThingRead(d *schema.ResourceData, meta interface{}) error {
@@ -107,7 +106,18 @@ func resourceAwsIotThingRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Received IoT thing: %s", out.ThingName)
 
 	d.SetId(*out.ThingName)
+	d.Set("name", out.ThingName)
 	d.Set("attributes", aws.StringValueMap(out.Attributes))
+
+	listPrincipalsOut, err := conn.ListThingPrincipals(&iot.ListThingPrincipalsInput{
+		ThingName: aws.String(thingName),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	d.Set("principals", listPrincipalsOut.Principals)
 
 	return nil
 }
