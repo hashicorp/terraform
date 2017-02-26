@@ -16,67 +16,56 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The IBM ID.",
-				DefaultFunc: func() (interface{}, error) {
-					return ValueFromEnv("ibmid"), nil
-				},
+				DefaultFunc: schema.EnvDefaultFunc("IBMID", ""),
 			},
 			"password": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The password for the IBM ID.",
-				DefaultFunc: func() (interface{}, error) {
-					return ValueFromEnv("password"), nil
-				},
+				DefaultFunc: schema.EnvDefaultFunc("IBMID_PASSWORD", ""),
 			},
 			"region": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "The Bluemix Region (for example 'ng').",
-				DefaultFunc: func() (interface{}, error) {
-					return ValueFromEnv("region"), nil
-				},
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"BM_REGION", "BLUEMIX_REGION"}, "ng"),
 			},
 			"timeout": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Description: "The timeout (in seconds) to set for any BlueMix API calls made.",
+				Description: "The timeout (in seconds) to set for any Bluemix API calls made.",
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"BM_TIMEOUT", "BLUEMIX_TIMEOUT"}, 60),
 			},
 			"softlayer_username": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The SoftLayer user name.",
-				DefaultFunc: func() (interface{}, error) {
-					return ValueFromEnv("softlayer_username"), nil
-				},
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"SL_USERNAME", "SOFTLAYER_USERNAME"}, ""),
 			},
 			"softlayer_api_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The API key for SoftLayer API operations.",
-				DefaultFunc: func() (interface{}, error) {
-					return ValueFromEnv("softlayer_api_key"), nil
-				},
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"SL_API_KEY", "SOFTLAYER_API_KEY"}, ""),
 			},
 			"softlayer_endpoint_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The endpoint url for the SoftLayer API.",
-				DefaultFunc: func() (interface{}, error) {
-					return "", nil
-				},
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"SL_ENDPOINT_URL", "SOFTLAYER_ENDPOINT_URL"},
+					"https://api.softlayer.com/rest/v3"),
 			},
 			"softlayer_timeout": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Description: "The timeout (in seconds) to set for any SoftLayer API calls made.",
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"SL_TIMEOUT", "SOFTLAYER_TIMEOUT"}, 60),
 			},
 			"softlayer_account_number": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The SoftLayer IMS account number.",
-				DefaultFunc: func() (interface{}, error) {
-					return ValueFromEnv("softlayer_account_number"), nil
-				},
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"SL_ACCOUNT_NUMBER", "SOFTLAYER_ACCOUNT_NUMBER"}, ""),
 			},
 		},
 
@@ -94,15 +83,8 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	timeout := ""
-	softlayerTimeout := ""
-	if rawTimeout, ok := d.GetOk("timeout"); ok {
-		timeout = strconv.Itoa(rawTimeout.(int))
-		envFallback(&timeout, "timeout")
-	}
-	if rawSoftlayerTimeout, ok := d.GetOk("softlayer_timeout"); ok {
-		softlayerTimeout = strconv.Itoa(rawSoftlayerTimeout.(int))
-	}
+	timeout := strconv.Itoa(d.Get("timeout").(int))
+	softlayerTimeout := strconv.Itoa(d.Get("softlayer_timeout").(int))
 
 	region := d.Get("region").(string)
 	bmDomainName := fmt.Sprintf("%s.bluemix.net", region)
@@ -122,7 +104,5 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Endpoint:               bluemixAPIEndpoint,
 		IAMEndpoint:            iamEndpoint,
 	}
-
 	return config.ClientSession()
-
 }

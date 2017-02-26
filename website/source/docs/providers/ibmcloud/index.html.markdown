@@ -129,9 +129,9 @@ The following arguments are supported in the `provider` block:
   It can also be sourced from the `BM_TIMEOUT` or `BLUEMIX_TIMEOUT` environment variable.
   The former variable has higher precedence. Default value is `60 seconds`.
 
-* `region` - (Required) This is the Bluemix region. It must be provided, but
-  it can also be sourced from the `BM_REGION` or `BLUEMIX_REGION` environment variable.
- The former variable has higher precedence. 
+* `region` - (Optional) This is the Bluemix region. It can also be sourced from the 
+  `BM_REGION` or `BLUEMIX_REGION` environment variable. The former variable has higher precedence. 
+  The default value is "ng"
 
 * `softlayer_username` - (Optional) This is the SoftLayer user name. It must be provided, but
   it can also be sourced from the `SL_USERNAME`  or `SOFTLAYER_USERNAME` environment variable.
@@ -141,9 +141,9 @@ The following arguments are supported in the `provider` block:
   it can also be sourced from the `SL_API_KEY`  or `SOFTLAYER_API_KEY` environment variable.
   The former variable has higher precedence.
   
-* `softlayer_endpoint_url` - (Optional) This is the SoftLayer user API Key. It must be provided, but
-  it can also be sourced from the `SL_ENDPOINT_URL`  or `SOFTLAYER_ENDPOINT_URL` environment variable.
-  The former variable has higher precedence. 
+* `softlayer_endpoint_url` - (Optional) This is the SoftLayer user API Key. It can be also
+  be sourced from the `SL_ENDPOINT_URL`  or `SOFTLAYER_ENDPOINT_URL` environment variable.
+  The former variable has higher precedence. The default value is `https://api.softlayer.com/rest/v3`.
 
 * `softlayer_timeout` - (Optional) This is the timeout in seconds for the SoftLayer API Key.
   It can also be sourced from the `SL_TIMEOUT`  or `SOFTLAYER_TIMEOUT` environment variable.

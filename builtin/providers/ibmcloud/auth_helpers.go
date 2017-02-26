@@ -14,28 +14,31 @@ import (
 	"time"
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/terraform/helper/schema"
 	slsession "github.com/softlayer/softlayer-go/session"
 )
 
-// DefaultTimeout is default  API timeout if not specified
-const DefaultTimeout = time.Second * 60
-
-//DefaultSoftLayerEndpoint is the default API endpoint of SoftLayer
-const DefaultSoftLayerEndpoint = "https://api.softlayer.com/rest/v3"
-
-//DefaultRegion is the default Blumix region
-const DefaultRegion = "ng"
+const (
+	uaaServerTokenRequestURI = "/oauth/token"
+	iamServerTokenRequestURI = "/oidc/token"
+)
 
 //ErrorBluemixParamaterValidation sums the insufficient credentials to login to Bluemix API
-var ErrorBluemixParamaterValidation = errors.New("Either IBM ID and password (IBMID/IBMID_PASSWORD environment " +
+var ErrorBluemixParamaterValidation = errors.New("Either ibmid and password (IBMID/IBMID_PASSWORD environment " +
 	"variable) or Bluemix identity cookie via BLUEMIX_IDENTITY_COOKIE environment variable are required")
 
 //ErrorSoftLayerParamaterValidation sums the insufficient credentials to login to SoftLayer API
-var ErrorSoftLayerParamaterValidation = errors.New("Either softlayer_username and softlayer_api_key (SOFTLAYER_USERNAME and SOFTLAYER_API_KEY environment variable" +
-	" or Softlayer Account number (SOFTLAYER_ACCOUNT_NUMBER environment variable) are required")
+var ErrorSoftLayerParamaterValidation = errors.New("Either softlayer_username and softlayer_api_key " +
+	"(SOFTLAYER_USERNAME and SOFTLAYER_API_KEY environment variable  or softlayer_account_number " +
+	"(SOFTLAYER_ACCOUNT_NUMBER environment variable) are required")
+
+//ErrorIMSTokenRetrieval announces the error in retrieving IMS Token
+var ErrorIMSTokenRetrieval = errors.New("[ERROR] Failed to retrieve the IMS token")
 
 // Session stores the information required for communication with the SoftLayer
 // and Bluemix API
+// At this point we don't have a bluemix-go client. Once this is in place
+// All this code will be a part of that sdk. For now define the required session here
 type Session struct {
 	// Timeout specifies a time limit for http requests made by this
 	// session. Requests that take longer that the specified timeout
@@ -71,30 +74,34 @@ type Session struct {
 // from a provided Config
 func newSession(c *Config) (*Session, error) {
 
-	//These are not exposed in schema at this point
-	//and are meant to be used internally by IBM Cloud
-	identityCookie := ValueFromEnv("identity_cookie")
-	iamClientID := ValueFromEnv("iam_client_id")
-	iamSecret := ValueFromEnv("iam_secret")
+	identityCookie, err := valueFromEnv("identity_cookie")
+	if err != nil {
+		return nil, err
+	}
 
-	// username/password or identity cookie needs to be provided
+	// ibmid/password or identity cookie needs to be provided
 	// identity cookie is meant to be used internally at this point
 	if (c.IBMID == "" || c.Password == "") && (identityCookie == "") {
 		return nil, ErrorBluemixParamaterValidation
 	}
 
-	// Bluemix timeout
-	timeout := c.Timeout
-	var timeoutDuration time.Duration
-	if timeout != "" {
-		timeoutDuration, _ = time.ParseDuration(fmt.Sprintf("%ss", timeout))
-	} else {
-		timeoutDuration, _ = time.ParseDuration(fmt.Sprintf("%ss", DefaultTimeout))
-	}
-
+	// either SoftLayer username/password or the SoftLayer account number must be provided
 	if (c.SoftLayerUsername == "" || c.SoftLayerAPIKey == "") && (c.SoftLayerAccountNumber == "") {
 		return nil, ErrorSoftLayerParamaterValidation
 	}
+
+	iamClientID, err := valueFromEnv("iam_client_id")
+	if err != nil {
+		return nil, err
+	}
+	iamSecret, err := valueFromEnv("iam_secret")
+	if err != nil {
+		return nil, err
+	}
+
+	// Bluemix timeout
+	timeout := c.Timeout
+	timeoutDuration, _ := time.ParseDuration(fmt.Sprintf("%ss", timeout))
 
 	bluemixSession := &Session{
 		IdentityCookie: identityCookie,
@@ -106,13 +113,9 @@ func newSession(c *Config) (*Session, error) {
 	bluemixSession.HTTPClient = cleanhttp.DefaultClient()
 	bluemixSession.HTTPClient.Timeout = timeoutDuration
 
-	err := bluemixSession.authenticate(c)
+	err = bluemixSession.authenticate(c)
 	if err != nil {
 		return nil, err
-	}
-
-	if c.SoftLayerEndpointURL == "" {
-		c.SoftLayerEndpointURL = DefaultSoftLayerEndpoint
 	}
 
 	softlayerSession := slsession.New(
@@ -130,13 +133,11 @@ func newSession(c *Config) (*Session, error) {
 	if c.SoftLayerAccountNumber != "" {
 
 		if identityCookie == "" {
-			// creates the identity cookie
 			err = bluemixSession.createIdentityCookie(c)
 		}
 		if err != nil {
 			return bluemixSession, err
 		}
-		// obtain an IMS token
 		err := bluemixSession.createIMSToken(c)
 		if err != nil {
 			return bluemixSession, err
@@ -159,7 +160,7 @@ func (s *Session) authenticate(c *Config) error {
 		"password":   {c.Password},
 	}
 
-	authURL := fmt.Sprintf("%s/oauth/token", c.Endpoint)
+	authURL := fmt.Sprintf("%s%s", c.Endpoint, uaaServerTokenRequestURI)
 
 	authHeaders := map[string]string{
 		"Authorization": "Basic Y2Y6",
@@ -180,7 +181,7 @@ func (s *Session) authenticate(c *Config) error {
 
 	req, err := http.NewRequest("POST", authURL, strings.NewReader(bodyAsValues.Encode()))
 	if err != nil {
-		return err
+		return fmt.Errorf("error occurred while composing request to retrieve acess token: %s ", err)
 	}
 	for k, v := range authHeaders {
 		req.Header.Add(k, v)
@@ -188,7 +189,7 @@ func (s *Session) authenticate(c *Config) error {
 	response, err := s.HTTPClient.Do(req)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("error occurred while retrieving acces token: %s ", err)
 	}
 
 	defer response.Body.Close()
@@ -216,7 +217,7 @@ func (s *Session) createIdentityCookie(c *Config) error {
 		"response_type": {"identity_cookie"},
 	}
 
-	authURL := fmt.Sprintf("%s/oauth/token", c.Endpoint)
+	authURL := fmt.Sprintf("%s%s", c.Endpoint, uaaServerTokenRequestURI)
 	authHeaders := map[string]string{
 		"Authorization": "Basic Y2Y6",
 		"Content-Type":  "application/x-www-form-urlencoded",
@@ -234,14 +235,14 @@ func (s *Session) createIdentityCookie(c *Config) error {
 
 	req, err := http.NewRequest("POST", authURL, strings.NewReader(bodyAsValues.Encode()))
 	if err != nil {
-		return err
+		return fmt.Errorf("error occurred while composing request to create identity cookie: %s ", err)
 	}
 	for k, v := range authHeaders {
 		req.Header.Add(k, v)
 	}
 	response, err := s.HTTPClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("error occurred while creating identity cookie: %s ", err)
 	}
 
 	defer response.Body.Close()
@@ -268,7 +269,7 @@ func (s *Session) createIMSToken(c *Config) error {
 		"response_type": {"cloud_iam, ims_portal"},
 	}
 
-	authURL := fmt.Sprintf("%s/oidc/token", c.IAMEndpoint)
+	authURL := fmt.Sprintf("%s%s", c.IAMEndpoint, iamServerTokenRequestURI)
 
 	authHeaders := map[string]string{
 		"Authorization": "Basic Y2Y6",
@@ -288,7 +289,10 @@ func (s *Session) createIMSToken(c *Config) error {
 		IMSTokenErrorResponse
 	}
 
-	count := 10
+	//retry parameters
+	count := 5
+	delay := 4000 * time.Millisecond
+
 	for count > 0 {
 		req, _ := http.NewRequest("POST", authURL, strings.NewReader(bodyAsValues.Encode()))
 		for k, v := range authHeaders {
@@ -299,13 +303,13 @@ func (s *Session) createIMSToken(c *Config) error {
 		response, err := s.HTTPClient.Do(req)
 		if err != nil {
 			log.Println("[WARNING] Error occurred while aquiring the IMS token:  ", err)
-			time.Sleep(1000 * time.Millisecond)
+			time.Sleep(delay)
 			count--
 			continue
 		}
 		if response.StatusCode != 200 {
-			log.Printf("[ERROR] Response Status: %s", response.Status)
-			time.Sleep(1000 * time.Millisecond)
+			log.Printf("[WARNING] Response Status: %s", response.Status)
+			time.Sleep(delay)
 			response.Body.Close()
 			count--
 			continue
@@ -313,7 +317,7 @@ func (s *Session) createIMSToken(c *Config) error {
 		responseBody, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			log.Println("[WARNING] Error occurred while reading the HTTP response body:  ", err)
-			time.Sleep(1000 * time.Millisecond)
+			time.Sleep(delay)
 			count--
 			continue
 		}
@@ -322,13 +326,13 @@ func (s *Session) createIMSToken(c *Config) error {
 
 		if err != nil {
 			log.Println("[WARNING] Error occurred while unmarshalling the IMSTokenResponse:  ", err)
-			time.Sleep(1000 * time.Millisecond)
+			time.Sleep(delay)
 			count--
 			continue
 		}
 		if jsonResponse.IMSToken == "" {
 			log.Printf("[WARNING] Retrying to aquire the IMS token...")
-			time.Sleep(1000 * time.Millisecond)
+			time.Sleep(delay)
 			count--
 			continue
 		}
@@ -338,85 +342,40 @@ func (s *Session) createIMSToken(c *Config) error {
 		response.Body.Close()
 		return nil
 	}
-	return errors.New("[ERROR] Failed to retrieve the IMS token")
+	return ErrorIMSTokenRetrieval
 }
 
-// ValueFromEnv will return the value for param from tne environment if it's set, or "" if not set
-func ValueFromEnv(paramName string) string {
-	var defValue string
+func valueFromEnv(paramName string) (string, error) {
 
 	switch paramName {
-	case "ibmid":
-		defValue = os.Getenv("IBMID")
-
-	case "password":
-		defValue = os.Getenv("IBMID_PASSWORD")
-
-	case "softlayer_username":
-		// Prioritize SL_USERNAME
-		defValue = os.Getenv("SL_USERNAME")
-		if defValue == "" {
-			defValue = os.Getenv("SOFTLAYER_USERNAME")
-		}
-
-	case "softlayer_api_key":
-		// Prioritize SL_API_KEY
-		defValue = os.Getenv("SL_API_KEY")
-		if defValue == "" {
-			defValue = os.Getenv("SOFTLAYER_API_KEY")
-		}
 
 	case "identity_cookie":
-		// Prioritize BM_IDENTITY_COOKIE
-		defValue = os.Getenv("BM_IDENTITY_COOKIE")
-		if defValue == "" {
-			defValue = os.Getenv("BLUEMIX_IDENTITY_COOKIE")
+		//These envs not exposed in schema at this point and are meant to be used internally by IBM Cloud
+		identityCookie, err := schema.MultiEnvDefaultFunc([]string{"BM_IDENTITY_COOKIE", "BLUEMIX_IDENTITY_COOKIE"}, "")()
+		if err != nil {
+			return "", err
 		}
-
-	case "region":
-		// Prioritize BM_REGION
-		defValue = os.Getenv("BM_REGION")
-		if defValue == "" {
-			defValue = os.Getenv("BLUEMIX_REGION")
-		}
-		if defValue == "" {
-			defValue = DefaultRegion
-		}
-
-	case "timeout":
-		// Prioritize BM_TIMEOUT
-		defValue = os.Getenv("BM_TIMEOUT")
-		if defValue == "" {
-			defValue = os.Getenv("BLUEMIX_TIMEOUT")
-		}
+		return identityCookie.(string), nil
 
 	case "iam_client_id":
-		// Prioritize BM_IAM_CLIENT_ID
-		defValue = os.Getenv("BM_IAM_CLIENT_ID")
-		if defValue == "" {
-			defValue = os.Getenv("BLUEMIX_IAM_CLIENT_ID")
+		//These envs not exposed in schema at this point and are meant to be used internally by IBM Cloud
+		iamClientID, err := schema.MultiEnvDefaultFunc([]string{"BM_IAM_CLIENT_ID", "BLUEMIX_IAM_CLIENT_ID"}, "")()
+		if err != nil {
+			return "", err
 		}
+
+		return iamClientID.(string), nil
 
 	case "iam_secret":
-		// Prioritize BM_IAM_SECRET
-		defValue = os.Getenv("BM_IAM_SECRET")
-		if defValue == "" {
-			defValue = os.Getenv("BLUEMIX_IAM_SECRET")
+		//These envs not exposed in schema at this point and are meant to be used internally by IBM Cloud
+		iamSecret, err := schema.MultiEnvDefaultFunc([]string{"BM_IAM_SECRET", "BLUEMIX_IAM_SECRET"}, "")()
+		if err != nil {
+			return "", err
 		}
+		return iamSecret.(string), nil
 
-	case "softlayer_account_number":
-		// PRIORITIZE SL_ACCOUNT_NUMBER
-		defValue = os.Getenv("SL_ACCOUNT_NUMBER")
-		if defValue == "" {
-			defValue = os.Getenv("SOFTLAYER_ACCOUNT_NUMBER")
-		}
+	default:
+		return "", fmt.Errorf("Invalid parameter provided to fetch from Environment variables %s", paramName)
 	}
 
-	return defValue
-}
-
-func envFallback(value *string, paramName string) {
-	if *value == "" {
-		*value = ValueFromEnv(paramName)
-	}
 }
