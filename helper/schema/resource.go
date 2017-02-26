@@ -353,7 +353,7 @@ func (r *Resource) Data(s *terraform.InstanceState) *ResourceData {
 	}
 
 	// Set the schema version to latest by default
-	result.meta = map[string]string{
+	result.meta = map[string]interface{}{
 		"schema_version": strconv.Itoa(r.SchemaVersion),
 	}
 
@@ -378,7 +378,22 @@ func (r *Resource) isTopLevel() bool {
 // Determines if a given InstanceState needs to be migrated by checking the
 // stored version number with the current SchemaVersion
 func (r *Resource) checkSchemaVersion(is *terraform.InstanceState) (bool, int) {
-	stateSchemaVersion, _ := strconv.Atoi(is.Meta["schema_version"])
+	// Get the raw interface{} value for the schema version. If it doesn't
+	// exist or is nil then set it to zero.
+	raw := is.Meta["schema_version"]
+	if raw == nil {
+		raw = "0"
+	}
+
+	// Try to convert it to a string. If it isn't a string then we pretend
+	// that it isn't set at all. It should never not be a string unless it
+	// was manually tampered with.
+	rawString, ok := raw.(string)
+	if !ok {
+		rawString = "0"
+	}
+
+	stateSchemaVersion, _ := strconv.Atoi(rawString)
 	return stateSchemaVersion < r.SchemaVersion, stateSchemaVersion
 }
 
@@ -386,7 +401,7 @@ func (r *Resource) recordCurrentSchemaVersion(
 	state *terraform.InstanceState) *terraform.InstanceState {
 	if state != nil && r.SchemaVersion > 0 {
 		if state.Meta == nil {
-			state.Meta = make(map[string]string)
+			state.Meta = make(map[string]interface{})
 		}
 		state.Meta["schema_version"] = strconv.Itoa(r.SchemaVersion)
 	}
