@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/zorkian/go-datadog-api"
+	"gopkg.in/zorkian/go-datadog-api.v2"
 )
 
 func TestAccDatadogDowntime_Basic(t *testing.T) {
@@ -28,9 +28,9 @@ func TestAccDatadogDowntime_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "end", "1735765200"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.type", "days"),
+						"datadog_downtime.foo", "recurrence.0.type", "days"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.period", "1"),
+						"datadog_downtime.foo", "recurrence.0.period", "1"),
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "message", "Example Datadog downtime message."),
 				),
@@ -58,9 +58,9 @@ func TestAccDatadogDowntime_BasicMultiScope(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "end", "1735765200"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.type", "days"),
+						"datadog_downtime.foo", "recurrence.0.type", "days"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.period", "1"),
+						"datadog_downtime.foo", "recurrence.0.period", "1"),
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "message", "Example Datadog downtime message."),
 				),
@@ -110,11 +110,11 @@ func TestAccDatadogDowntime_BasicUntilDateRecurrence(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "end", "1735765200"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.type", "days"),
+						"datadog_downtime.foo", "recurrence.0.type", "days"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.period", "1"),
+						"datadog_downtime.foo", "recurrence.0.period", "1"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.until_date", "1736226000"),
+						"datadog_downtime.foo", "recurrence.0.until_date", "1736226000"),
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "message", "Example Datadog downtime message."),
 				),
@@ -140,11 +140,11 @@ func TestAccDatadogDowntime_BasicUntilOccurrencesRecurrence(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "end", "1735765200"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.type", "days"),
+						"datadog_downtime.foo", "recurrence.0.type", "days"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.period", "1"),
+						"datadog_downtime.foo", "recurrence.0.period", "1"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.until_occurrences", "5"),
+						"datadog_downtime.foo", "recurrence.0.until_occurrences", "5"),
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "message", "Example Datadog downtime message."),
 				),
@@ -166,17 +166,17 @@ func TestAccDatadogDowntime_WeekDayRecurring(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "scope.0", "WeekDaysRecurrence"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "start", "1483246800"),
+						"datadog_downtime.foo", "start", "1735646400"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "end", "1483333199"),
+						"datadog_downtime.foo", "end", "1735732799"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.type", "weeks"),
+						"datadog_downtime.foo", "recurrence.0.type", "weeks"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.period", "1"),
+						"datadog_downtime.foo", "recurrence.0.period", "1"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.week_days.0", "Sat"),
+						"datadog_downtime.foo", "recurrence.0.week_days.0", "Sat"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.week_days.1", "Sun"),
+						"datadog_downtime.foo", "recurrence.0.week_days.1", "Sun"),
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "message", "Example Datadog downtime message."),
 				),
@@ -202,9 +202,9 @@ func TestAccDatadogDowntime_Updated(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "end", "1735765200"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.type", "days"),
+						"datadog_downtime.foo", "recurrence.0.type", "days"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.period", "1"),
+						"datadog_downtime.foo", "recurrence.0.period", "1"),
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "message", "Example Datadog downtime message."),
 				),
@@ -220,9 +220,9 @@ func TestAccDatadogDowntime_Updated(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "end", "1735765200"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.type", "days"),
+						"datadog_downtime.foo", "recurrence.0.type", "days"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.period", "3"),
+						"datadog_downtime.foo", "recurrence.0.period", "3"),
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "message", "Example Datadog downtime message."),
 				),
@@ -248,9 +248,9 @@ func TestAccDatadogDowntime_TrimWhitespace(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "end", "1735765200"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.type", "days"),
+						"datadog_downtime.foo", "recurrence.0.type", "days"),
 					resource.TestCheckResourceAttr(
-						"datadog_downtime.foo", "recurrence.period", "1"),
+						"datadog_downtime.foo", "recurrence.0.period", "1"),
 					resource.TestCheckResourceAttr(
 						"datadog_downtime.foo", "message", "Example Datadog downtime message."),
 				),
@@ -397,6 +397,104 @@ EOF
 }
 `
 
+func TestResourceDatadogDowntimeRecurrenceTypeValidation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "daily",
+			ErrCount: 1,
+		},
+		{
+			Value:    "days",
+			ErrCount: 0,
+		},
+		{
+			Value:    "days,weeks",
+			ErrCount: 1,
+		},
+		{
+			Value:    "months",
+			ErrCount: 0,
+		},
+		{
+			Value:    "years",
+			ErrCount: 0,
+		},
+		{
+			Value:    "weeks",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateDatadogDowntimeRecurrenceType(tc.Value, "datadog_downtime_recurrence_type")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected Datadog Downtime Recurrence Type validation to trigger %d error(s) for value %q - instead saw %d",
+				tc.ErrCount, tc.Value, len(errors))
+		}
+	}
+}
+
+func TestResourceDatadogDowntimeRecurrenceWeekDaysValidation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "Mon",
+			ErrCount: 0,
+		},
+		{
+			Value:    "Mon,",
+			ErrCount: 1,
+		},
+		{
+			Value:    "Monday",
+			ErrCount: 1,
+		},
+		{
+			Value:    "mon",
+			ErrCount: 1,
+		},
+		{
+			Value:    "mon,",
+			ErrCount: 1,
+		},
+		{
+			Value:    "monday",
+			ErrCount: 1,
+		},
+		{
+			Value:    "mon,Tue",
+			ErrCount: 1,
+		},
+		{
+			Value:    "Mon,tue",
+			ErrCount: 1,
+		},
+		{
+			Value:    "Mon,Tue",
+			ErrCount: 1,
+		},
+		{
+			Value:    "Mon, Tue",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateDatadogDowntimeRecurrenceWeekDays(tc.Value, "datadog_downtime_recurrence_week_days")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected Datadog Downtime Recurrence Week Days validation to trigger %d error(s) for value %q - instead saw %d",
+				tc.ErrCount, tc.Value, len(errors))
+		}
+	}
+}
+
 func datadogDowntimeDestroyHelper(s *terraform.State, client *datadog.Client) error {
 	for _, r := range s.RootModule().Resources {
 		id, _ := strconv.Atoi(r.Primary.ID)
@@ -410,7 +508,7 @@ func datadogDowntimeDestroyHelper(s *terraform.State, client *datadog.Client) er
 		}
 
 		// Datadog only cancels downtime on DELETE
-		if !dt.Active {
+		if !dt.GetActive() {
 			continue
 		}
 		return fmt.Errorf("Downtime still exists")

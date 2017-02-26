@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/zorkian/go-datadog-api"
+	"gopkg.in/zorkian/go-datadog-api.v2"
 )
 
 func resourceDatadogDowntime() *schema.Resource {
@@ -42,8 +42,9 @@ func resourceDatadogDowntime() *schema.Resource {
 				},
 			},
 			"recurrence": {
-				Type:     schema.TypeMap,
+				Type:     schema.TypeList,
 				Optional: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"period": {
@@ -51,8 +52,9 @@ func resourceDatadogDowntime() *schema.Resource {
 							Required: true,
 						},
 						"type": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateDatadogDowntimeRecurrenceType,
 						},
 						"until_date": {
 							Type:          schema.TypeInt,
@@ -69,7 +71,7 @@ func resourceDatadogDowntime() *schema.Resource {
 							Optional: true,
 							Elem: &schema.Schema{
 								Type:         schema.TypeString,
-								ValidateFunc: validateWeekDay,
+								ValidateFunc: validateDatadogDowntimeRecurrenceWeekDays,
 							},
 						},
 					},
@@ -89,54 +91,52 @@ func resourceDatadogDowntime() *schema.Resource {
 }
 
 func buildDowntimeStruct(d *schema.ResourceData) *datadog.Downtime {
+	var dt datadog.Downtime
+
+	if attr, ok := d.GetOk("active"); ok {
+		dt.SetActive(attr.(bool))
+	}
+	if attr, ok := d.GetOk("disabled"); ok {
+		dt.SetDisabled(attr.(bool))
+	}
+	if attr, ok := d.GetOk("end"); ok {
+		dt.SetEnd(attr.(int))
+	}
+	if attr, ok := d.GetOk("message"); ok {
+		dt.SetMessage(strings.TrimSpace(attr.(string)))
+	}
+	if _, ok := d.GetOk("recurrence"); ok {
+		var recurrence datadog.Recurrence
+
+		if attr, ok := d.GetOk("recurrence.0.period"); ok {
+			recurrence.SetPeriod(attr.(int))
+		}
+		if attr, ok := d.GetOk("recurrence.0.type"); ok {
+			recurrence.SetType(attr.(string))
+		}
+		if attr, ok := d.GetOk("recurrence.0.until_date"); ok {
+			recurrence.SetUntilDate(attr.(int))
+		}
+		if attr, ok := d.GetOk("recurrence.0.until_occurrences"); ok {
+			recurrence.SetUntilOccurrences(attr.(int))
+		}
+		if attr, ok := d.GetOk("recurrence.0.week_days"); ok {
+			weekDays := make([]string, 0, len(attr.([]interface{})))
+			for _, weekDay := range attr.([]interface{}) {
+				weekDays = append(weekDays, weekDay.(string))
+			}
+			recurrence.WeekDays = weekDays
+		}
+
+		dt.SetRecurrence(recurrence)
+	}
 	scope := []string{}
 	for _, s := range d.Get("scope").([]interface{}) {
 		scope = append(scope, s.(string))
 	}
-
-	dt := datadog.Downtime{
-		Scope: scope,
-	}
-
-	if attr, ok := d.GetOk("recurrence"); ok {
-		r := attr.(map[string]interface{})
-		period, _ := strconv.Atoi(r["period"].(string))
-
-		dt.Recurrence = &datadog.Recurrence{
-			Period: period,
-			Type:   r["type"].(string),
-		}
-
-		if r["until_date"] != nil {
-			dt.Recurrence.UntilDate, _ = strconv.Atoi(r["until_date"].(string))
-		}
-		if r["until_occurrences"] != nil {
-			dt.Recurrence.UntilOccurrences, _ = strconv.Atoi(r["until_occurrences"].(string))
-		}
-		if r["week_days"] != nil {
-			weekDays := []string{}
-			fmt.Printf("%v\n", r["week_days"])
-			for _, s := range r["week_days"].([]interface{}) {
-				weekDays = append(weekDays, s.(string))
-			}
-			dt.Recurrence.WeekDays = weekDays
-		}
-	}
-
-	if attr, ok := d.GetOk("active"); ok {
-		dt.Active = attr.(bool)
-	}
-	if attr, ok := d.GetOk("disabled"); ok {
-		dt.Disabled = attr.(bool)
-	}
-	if attr, ok := d.GetOk("end"); ok {
-		dt.End = attr.(int)
-	}
-	if attr, ok := d.GetOk("message"); ok {
-		dt.Message = strings.TrimSpace(attr.(string))
-	}
+	dt.Scope = scope
 	if attr, ok := d.GetOk("start"); ok {
-		dt.Start = attr.(int)
+		dt.SetStart(attr.(int))
 	}
 
 	return &dt
@@ -171,7 +171,7 @@ func resourceDatadogDowntimeCreate(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("error updating downtime: %s", err.Error())
 	}
 
-	d.SetId(strconv.Itoa(dt.Id))
+	d.SetId(strconv.Itoa(dt.GetId()))
 
 	return nil
 }
@@ -189,23 +189,39 @@ func resourceDatadogDowntimeRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	recurrence := make(map[string]interface{})
-	if dt.Recurrence != nil {
-		recurrence["period"] = dt.Recurrence.Period
-		recurrence["type"] = dt.Recurrence.Type
-		recurrence["until_date"] = dt.Recurrence.UntilDate
-		recurrence["until_occurrences"] = dt.Recurrence.UntilOccurrences
-		recurrence["week_days"] = dt.Recurrence.WeekDays
-	}
-
 	log.Printf("[DEBUG] downtime: %v", dt)
-	d.Set("active", dt.Active)
-	d.Set("disabled", dt.Disabled)
-	d.Set("end", dt.End)
-	d.Set("message", dt.Message)
-	d.Set("recurrence", recurrence)
+	d.Set("active", dt.GetActive())
+	d.Set("disabled", dt.GetDisabled())
+	d.Set("end", dt.GetEnd())
+	d.Set("message", dt.GetMessage())
+	if r, ok := dt.GetRecurrenceOk(); ok {
+		recurrence := make(map[string]interface{})
+		recurrenceList := make([]map[string]interface{}, 0, 1)
+
+		if attr, ok := r.GetPeriodOk(); ok {
+			recurrence["period"] = strconv.Itoa(attr)
+		}
+		if attr, ok := r.GetTypeOk(); ok {
+			recurrence["type"] = attr
+		}
+		if attr, ok := r.GetUntilDateOk(); ok {
+			recurrence["until_date"] = strconv.Itoa(attr)
+		}
+		if attr, ok := r.GetUntilOccurrencesOk(); ok {
+			recurrence["until_occurrences"] = strconv.Itoa(attr)
+		}
+		if r.WeekDays != nil {
+			weekDays := make([]string, 0, len(r.WeekDays))
+			for _, weekDay := range r.WeekDays {
+				weekDays = append(weekDays, weekDay)
+			}
+			recurrence["week_days"] = weekDays
+		}
+		recurrenceList = append(recurrenceList, recurrence)
+		d.Set("recurrence", recurrenceList)
+	}
 	d.Set("scope", dt.Scope)
-	d.Set("start", dt.Start)
+	d.Set("start", dt.GetStart())
 
 	return nil
 }
@@ -213,57 +229,63 @@ func resourceDatadogDowntimeRead(d *schema.ResourceData, meta interface{}) error
 func resourceDatadogDowntimeUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*datadog.Client)
 
-	dt := &datadog.Downtime{}
+	var dt datadog.Downtime
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return err
 	}
 
-	dt.Id = id
+	dt.SetId(id)
 	if attr, ok := d.GetOk("active"); ok {
-		dt.Active = attr.(bool)
+		dt.SetActive(attr.(bool))
 	}
 	if attr, ok := d.GetOk("disabled"); ok {
-		dt.Disabled = attr.(bool)
+		dt.SetDisabled(attr.(bool))
 	}
 	if attr, ok := d.GetOk("end"); ok {
-		dt.End = attr.(int)
+		dt.SetEnd(attr.(int))
 	}
 	if attr, ok := d.GetOk("message"); ok {
-		dt.Message = attr.(string)
+		dt.SetMessage(attr.(string))
 	}
-	recurrence := datadog.Recurrence{}
-	if attr, ok := d.GetOk("recurrence"); ok {
-		r := attr.(map[string]interface{})
-		recurrence.Period, _ = strconv.Atoi(r["period"].(string))
-		recurrence.Type = r["type"].(string)
-		if r["until_date"] != nil {
-			recurrence.UntilDate, _ = strconv.Atoi(r["until_date"].(string))
+
+	if _, ok := d.GetOk("recurrence"); ok {
+		var recurrence datadog.Recurrence
+
+		if attr, ok := d.GetOk("recurrence.0.period"); ok {
+			recurrence.SetPeriod(attr.(int))
 		}
-		if r["until_occurrences"] != nil {
-			recurrence.UntilOccurrences, _ = strconv.Atoi(r["until_occurrences"].(string))
+		if attr, ok := d.GetOk("recurrence.0.type"); ok {
+			recurrence.SetType(attr.(string))
 		}
-		if r["week_days"] != nil {
-			weekDays := []string{}
-			for _, s := range r["week_days"].([]interface{}) {
-				weekDays = append(weekDays, s.(string))
+		if attr, ok := d.GetOk("recurrence.0.until_date"); ok {
+			recurrence.SetUntilDate(attr.(int))
+		}
+		if attr, ok := d.GetOk("recurrence.0.until_occurrences"); ok {
+			recurrence.SetUntilOccurrences(attr.(int))
+		}
+		if attr, ok := d.GetOk("recurrence.0.week_days"); ok {
+			weekDays := make([]string, 0, len(attr.([]interface{})))
+			for _, weekDay := range attr.([]interface{}) {
+				weekDays = append(weekDays, weekDay.(string))
 			}
 			recurrence.WeekDays = weekDays
-			//recurrence.WeekDays = r["week_days"].([]string)
 		}
+
+		dt.SetRecurrence(recurrence)
 	}
-	dt.Recurrence = &recurrence
+
 	scope := make([]string, 0)
 	for _, v := range d.Get("scope").([]interface{}) {
 		scope = append(scope, v.(string))
 	}
 	dt.Scope = scope
 	if attr, ok := d.GetOk("start"); ok {
-		dt.Start = attr.(int)
+		dt.SetStart(attr.(int))
 	}
 
-	if err = client.UpdateDowntime(dt); err != nil {
+	if err = client.UpdateDowntime(&dt); err != nil {
 		return fmt.Errorf("error updating downtime: %s", err.Error())
 	}
 
@@ -292,15 +314,26 @@ func resourceDatadogDowntimeImport(d *schema.ResourceData, meta interface{}) ([]
 	return []*schema.ResourceData{d}, nil
 }
 
-// validateWeekDay ensures that the week_days resource parameter is
-// correct.
-func validateWeekDay(v interface{}, k string) (ws []string, errors []error) {
+func validateDatadogDowntimeRecurrenceType(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-
-	if value != "Mon" && value != "Tue" && value != "Wed" && value != "Thu" && value != "Fri" && value != "Sat" && value != "Sun" {
+	switch value {
+	case "days", "months", "weeks", "years":
+		break
+	default:
 		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid week day parameter %q. Valid parameters are %q, %q, %q, %q, %q, %q, or %q",
-			k, value, "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
+			"%q contains an invalid recurrence type parameter %q. Valid parameters are days, months, weeks, or years", k, value))
+	}
+	return
+}
+
+func validateDatadogDowntimeRecurrenceWeekDays(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	switch value {
+	case "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun":
+		break
+	default:
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid recurrence week day parameter %q. Valid parameters are Mon, Tue, Wed, Thu, Fri, Sat, or Sun", k, value))
 	}
 	return
 }
