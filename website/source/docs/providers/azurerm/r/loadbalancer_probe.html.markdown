@@ -68,3 +68,11 @@ The following attributes are exported:
 
 * `id` - The ID of the LoadBalancer to which the resource is attached.
 
+## Import
+
+Load Balancer Probes can be imported using the `resource id`, e.g.
+
+```
+terraform import azurerm_lb_probe.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.Network/loadBalancers/lb1/probes/probe1
+```
+

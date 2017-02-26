@@ -37,7 +37,6 @@ const opAbortMultipartUpload = "AbortMultipartUpload"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) AbortMultipartUploadRequest(input *AbortMultipartUploadInput) (req *request.Request, output *AbortMultipartUploadOutput) {
 	op := &request.Operation{
 		Name:       opAbortMultipartUpload,
@@ -49,11 +48,10 @@ func (c *Glacier) AbortMultipartUploadRequest(input *AbortMultipartUploadInput) 
 		input = &AbortMultipartUploadInput{}
 	}
 
+	output = &AbortMultipartUploadOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AbortMultipartUploadOutput{}
-	req.Data = output
 	return
 }
 
@@ -88,17 +86,17 @@ func (c *Glacier) AbortMultipartUploadRequest(input *AbortMultipartUploadInput) 
 // API operation AbortMultipartUpload for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) AbortMultipartUpload(input *AbortMultipartUploadInput) (*AbortMultipartUploadOutput, error) {
@@ -132,7 +130,6 @@ const opAbortVaultLock = "AbortVaultLock"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) AbortVaultLockRequest(input *AbortVaultLockInput) (req *request.Request, output *AbortVaultLockOutput) {
 	op := &request.Operation{
 		Name:       opAbortVaultLock,
@@ -144,11 +141,10 @@ func (c *Glacier) AbortVaultLockRequest(input *AbortVaultLockInput) (req *reques
 		input = &AbortVaultLockInput{}
 	}
 
+	output = &AbortVaultLockOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AbortVaultLockOutput{}
-	req.Data = output
 	return
 }
 
@@ -179,17 +175,17 @@ func (c *Glacier) AbortVaultLockRequest(input *AbortVaultLockInput) (req *reques
 // API operation AbortVaultLock for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) AbortVaultLock(input *AbortVaultLockInput) (*AbortVaultLockOutput, error) {
@@ -223,7 +219,6 @@ const opAddTagsToVault = "AddTagsToVault"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) AddTagsToVaultRequest(input *AddTagsToVaultInput) (req *request.Request, output *AddTagsToVaultOutput) {
 	op := &request.Operation{
 		Name:       opAddTagsToVault,
@@ -235,11 +230,10 @@ func (c *Glacier) AddTagsToVaultRequest(input *AddTagsToVaultInput) (req *reques
 		input = &AddTagsToVaultInput{}
 	}
 
+	output = &AddTagsToVaultOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddTagsToVaultOutput{}
-	req.Data = output
 	return
 }
 
@@ -260,20 +254,20 @@ func (c *Glacier) AddTagsToVaultRequest(input *AddTagsToVaultInput) (req *reques
 // API operation AddTagsToVault for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   Returned if the request results in a vault or account limit being exceeded.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) AddTagsToVault(input *AddTagsToVaultInput) (*AddTagsToVaultOutput, error) {
@@ -307,7 +301,6 @@ const opCompleteMultipartUpload = "CompleteMultipartUpload"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) CompleteMultipartUploadRequest(input *CompleteMultipartUploadInput) (req *request.Request, output *ArchiveCreationOutput) {
 	op := &request.Operation{
 		Name:       opCompleteMultipartUpload,
@@ -319,9 +312,8 @@ func (c *Glacier) CompleteMultipartUploadRequest(input *CompleteMultipartUploadI
 		input = &CompleteMultipartUploadInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ArchiveCreationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -380,17 +372,17 @@ func (c *Glacier) CompleteMultipartUploadRequest(input *CompleteMultipartUploadI
 // API operation CompleteMultipartUpload for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) CompleteMultipartUpload(input *CompleteMultipartUploadInput) (*ArchiveCreationOutput, error) {
@@ -424,7 +416,6 @@ const opCompleteVaultLock = "CompleteVaultLock"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) CompleteVaultLockRequest(input *CompleteVaultLockInput) (req *request.Request, output *CompleteVaultLockOutput) {
 	op := &request.Operation{
 		Name:       opCompleteVaultLock,
@@ -436,11 +427,10 @@ func (c *Glacier) CompleteVaultLockRequest(input *CompleteVaultLockInput) (req *
 		input = &CompleteVaultLockInput{}
 	}
 
+	output = &CompleteVaultLockOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CompleteVaultLockOutput{}
-	req.Data = output
 	return
 }
 
@@ -470,17 +460,17 @@ func (c *Glacier) CompleteVaultLockRequest(input *CompleteVaultLockInput) (req *
 // API operation CompleteVaultLock for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) CompleteVaultLock(input *CompleteVaultLockInput) (*CompleteVaultLockOutput, error) {
@@ -514,7 +504,6 @@ const opCreateVault = "CreateVault"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) CreateVaultRequest(input *CreateVaultInput) (req *request.Request, output *CreateVaultOutput) {
 	op := &request.Operation{
 		Name:       opCreateVault,
@@ -526,9 +515,8 @@ func (c *Glacier) CreateVaultRequest(input *CreateVaultInput) (req *request.Requ
 		input = &CreateVaultInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVaultOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -567,16 +555,16 @@ func (c *Glacier) CreateVaultRequest(input *CreateVaultInput) (req *request.Requ
 // API operation CreateVault for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   Returned if the request results in a vault or account limit being exceeded.
 //
 func (c *Glacier) CreateVault(input *CreateVaultInput) (*CreateVaultOutput, error) {
@@ -610,7 +598,6 @@ const opDeleteArchive = "DeleteArchive"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) DeleteArchiveRequest(input *DeleteArchiveInput) (req *request.Request, output *DeleteArchiveOutput) {
 	op := &request.Operation{
 		Name:       opDeleteArchive,
@@ -622,11 +609,10 @@ func (c *Glacier) DeleteArchiveRequest(input *DeleteArchiveInput) (req *request.
 		input = &DeleteArchiveInput{}
 	}
 
+	output = &DeleteArchiveOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteArchiveOutput{}
-	req.Data = output
 	return
 }
 
@@ -666,17 +652,17 @@ func (c *Glacier) DeleteArchiveRequest(input *DeleteArchiveInput) (req *request.
 // API operation DeleteArchive for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) DeleteArchive(input *DeleteArchiveInput) (*DeleteArchiveOutput, error) {
@@ -710,7 +696,6 @@ const opDeleteVault = "DeleteVault"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) DeleteVaultRequest(input *DeleteVaultInput) (req *request.Request, output *DeleteVaultOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVault,
@@ -722,11 +707,10 @@ func (c *Glacier) DeleteVaultRequest(input *DeleteVaultInput) (req *request.Requ
 		input = &DeleteVaultInput{}
 	}
 
+	output = &DeleteVaultOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVaultOutput{}
-	req.Data = output
 	return
 }
 
@@ -764,17 +748,17 @@ func (c *Glacier) DeleteVaultRequest(input *DeleteVaultInput) (req *request.Requ
 // API operation DeleteVault for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) DeleteVault(input *DeleteVaultInput) (*DeleteVaultOutput, error) {
@@ -808,7 +792,6 @@ const opDeleteVaultAccessPolicy = "DeleteVaultAccessPolicy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) DeleteVaultAccessPolicyRequest(input *DeleteVaultAccessPolicyInput) (req *request.Request, output *DeleteVaultAccessPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVaultAccessPolicy,
@@ -820,11 +803,10 @@ func (c *Glacier) DeleteVaultAccessPolicyRequest(input *DeleteVaultAccessPolicyI
 		input = &DeleteVaultAccessPolicyInput{}
 	}
 
+	output = &DeleteVaultAccessPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVaultAccessPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -849,17 +831,17 @@ func (c *Glacier) DeleteVaultAccessPolicyRequest(input *DeleteVaultAccessPolicyI
 // API operation DeleteVaultAccessPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) DeleteVaultAccessPolicy(input *DeleteVaultAccessPolicyInput) (*DeleteVaultAccessPolicyOutput, error) {
@@ -893,7 +875,6 @@ const opDeleteVaultNotifications = "DeleteVaultNotifications"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) DeleteVaultNotificationsRequest(input *DeleteVaultNotificationsInput) (req *request.Request, output *DeleteVaultNotificationsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVaultNotifications,
@@ -905,11 +886,10 @@ func (c *Glacier) DeleteVaultNotificationsRequest(input *DeleteVaultNotification
 		input = &DeleteVaultNotificationsInput{}
 	}
 
+	output = &DeleteVaultNotificationsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVaultNotificationsOutput{}
-	req.Data = output
 	return
 }
 
@@ -939,17 +919,17 @@ func (c *Glacier) DeleteVaultNotificationsRequest(input *DeleteVaultNotification
 // API operation DeleteVaultNotifications for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) DeleteVaultNotifications(input *DeleteVaultNotificationsInput) (*DeleteVaultNotificationsOutput, error) {
@@ -983,7 +963,6 @@ const opDescribeJob = "DescribeJob"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) DescribeJobRequest(input *DescribeJobInput) (req *request.Request, output *JobDescription) {
 	op := &request.Operation{
 		Name:       opDescribeJob,
@@ -995,9 +974,8 @@ func (c *Glacier) DescribeJobRequest(input *DescribeJobInput) (req *request.Requ
 		input = &DescribeJobInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &JobDescription{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1034,17 +1012,17 @@ func (c *Glacier) DescribeJobRequest(input *DescribeJobInput) (req *request.Requ
 // API operation DescribeJob for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) DescribeJob(input *DescribeJobInput) (*JobDescription, error) {
@@ -1078,7 +1056,6 @@ const opDescribeVault = "DescribeVault"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) DescribeVaultRequest(input *DescribeVaultInput) (req *request.Request, output *DescribeVaultOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVault,
@@ -1090,9 +1067,8 @@ func (c *Glacier) DescribeVaultRequest(input *DescribeVaultInput) (req *request.
 		input = &DescribeVaultInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVaultOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1127,17 +1103,17 @@ func (c *Glacier) DescribeVaultRequest(input *DescribeVaultInput) (req *request.
 // API operation DescribeVault for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) DescribeVault(input *DescribeVaultInput) (*DescribeVaultOutput, error) {
@@ -1171,7 +1147,6 @@ const opGetDataRetrievalPolicy = "GetDataRetrievalPolicy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) GetDataRetrievalPolicyRequest(input *GetDataRetrievalPolicyInput) (req *request.Request, output *GetDataRetrievalPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetDataRetrievalPolicy,
@@ -1183,9 +1158,8 @@ func (c *Glacier) GetDataRetrievalPolicyRequest(input *GetDataRetrievalPolicyInp
 		input = &GetDataRetrievalPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetDataRetrievalPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1203,13 +1177,13 @@ func (c *Glacier) GetDataRetrievalPolicyRequest(input *GetDataRetrievalPolicyInp
 // API operation GetDataRetrievalPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) GetDataRetrievalPolicy(input *GetDataRetrievalPolicyInput) (*GetDataRetrievalPolicyOutput, error) {
@@ -1243,7 +1217,6 @@ const opGetJobOutput = "GetJobOutput"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) GetJobOutputRequest(input *GetJobOutputInput) (req *request.Request, output *GetJobOutputOutput) {
 	op := &request.Operation{
 		Name:       opGetJobOutput,
@@ -1255,9 +1228,8 @@ func (c *Glacier) GetJobOutputRequest(input *GetJobOutputInput) (req *request.Re
 		input = &GetJobOutputInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetJobOutputOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1316,17 +1288,17 @@ func (c *Glacier) GetJobOutputRequest(input *GetJobOutputInput) (req *request.Re
 // API operation GetJobOutput for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) GetJobOutput(input *GetJobOutputInput) (*GetJobOutputOutput, error) {
@@ -1360,7 +1332,6 @@ const opGetVaultAccessPolicy = "GetVaultAccessPolicy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) GetVaultAccessPolicyRequest(input *GetVaultAccessPolicyInput) (req *request.Request, output *GetVaultAccessPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetVaultAccessPolicy,
@@ -1372,9 +1343,8 @@ func (c *Glacier) GetVaultAccessPolicyRequest(input *GetVaultAccessPolicyInput) 
 		input = &GetVaultAccessPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetVaultAccessPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1395,17 +1365,17 @@ func (c *Glacier) GetVaultAccessPolicyRequest(input *GetVaultAccessPolicyInput) 
 // API operation GetVaultAccessPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) GetVaultAccessPolicy(input *GetVaultAccessPolicyInput) (*GetVaultAccessPolicyOutput, error) {
@@ -1439,7 +1409,6 @@ const opGetVaultLock = "GetVaultLock"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) GetVaultLockRequest(input *GetVaultLockInput) (req *request.Request, output *GetVaultLockOutput) {
 	op := &request.Operation{
 		Name:       opGetVaultLock,
@@ -1451,9 +1420,8 @@ func (c *Glacier) GetVaultLockRequest(input *GetVaultLockInput) (req *request.Re
 		input = &GetVaultLockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetVaultLockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1488,17 +1456,17 @@ func (c *Glacier) GetVaultLockRequest(input *GetVaultLockInput) (req *request.Re
 // API operation GetVaultLock for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) GetVaultLock(input *GetVaultLockInput) (*GetVaultLockOutput, error) {
@@ -1532,7 +1500,6 @@ const opGetVaultNotifications = "GetVaultNotifications"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) GetVaultNotificationsRequest(input *GetVaultNotificationsInput) (req *request.Request, output *GetVaultNotificationsOutput) {
 	op := &request.Operation{
 		Name:       opGetVaultNotifications,
@@ -1544,9 +1511,8 @@ func (c *Glacier) GetVaultNotificationsRequest(input *GetVaultNotificationsInput
 		input = &GetVaultNotificationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetVaultNotificationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1580,17 +1546,17 @@ func (c *Glacier) GetVaultNotificationsRequest(input *GetVaultNotificationsInput
 // API operation GetVaultNotifications for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) GetVaultNotifications(input *GetVaultNotificationsInput) (*GetVaultNotificationsOutput, error) {
@@ -1624,7 +1590,6 @@ const opInitiateJob = "InitiateJob"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) InitiateJobRequest(input *InitiateJobInput) (req *request.Request, output *InitiateJobOutput) {
 	op := &request.Operation{
 		Name:       opInitiateJob,
@@ -1636,9 +1601,8 @@ func (c *Glacier) InitiateJobRequest(input *InitiateJobInput) (req *request.Requ
 		input = &InitiateJobInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &InitiateJobOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1789,26 +1753,26 @@ func (c *Glacier) InitiateJobRequest(input *InitiateJobInput) (req *request.Requ
 // API operation InitiateJob for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * PolicyEnforcedException
+//   * ErrCodePolicyEnforcedException "PolicyEnforcedException"
 //   Returned if a retrieval job would exceed the current data policy's retrieval
 //   rate limit. For more information about data retrieval policies,
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * InsufficientCapacityException
+//   * ErrCodeInsufficientCapacityException "InsufficientCapacityException"
 //   Returned if there is insufficient capacity to process this expedited request.
 //   This error only applies to expedited retrievals and not to standard or bulk
 //   retrievals.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) InitiateJob(input *InitiateJobInput) (*InitiateJobOutput, error) {
@@ -1842,7 +1806,6 @@ const opInitiateMultipartUpload = "InitiateMultipartUpload"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) InitiateMultipartUploadRequest(input *InitiateMultipartUploadInput) (req *request.Request, output *InitiateMultipartUploadOutput) {
 	op := &request.Operation{
 		Name:       opInitiateMultipartUpload,
@@ -1854,9 +1817,8 @@ func (c *Glacier) InitiateMultipartUploadRequest(input *InitiateMultipartUploadI
 		input = &InitiateMultipartUploadInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &InitiateMultipartUploadOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1906,17 +1868,17 @@ func (c *Glacier) InitiateMultipartUploadRequest(input *InitiateMultipartUploadI
 // API operation InitiateMultipartUpload for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) InitiateMultipartUpload(input *InitiateMultipartUploadInput) (*InitiateMultipartUploadOutput, error) {
@@ -1950,7 +1912,6 @@ const opInitiateVaultLock = "InitiateVaultLock"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) InitiateVaultLockRequest(input *InitiateVaultLockInput) (req *request.Request, output *InitiateVaultLockOutput) {
 	op := &request.Operation{
 		Name:       opInitiateVaultLock,
@@ -1962,9 +1923,8 @@ func (c *Glacier) InitiateVaultLockRequest(input *InitiateVaultLockInput) (req *
 		input = &InitiateVaultLockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &InitiateVaultLockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2008,17 +1968,17 @@ func (c *Glacier) InitiateVaultLockRequest(input *InitiateVaultLockInput) (req *
 // API operation InitiateVaultLock for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) InitiateVaultLock(input *InitiateVaultLockInput) (*InitiateVaultLockOutput, error) {
@@ -2052,7 +2012,6 @@ const opListJobs = "ListJobs"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) ListJobsRequest(input *ListJobsInput) (req *request.Request, output *ListJobsOutput) {
 	op := &request.Operation{
 		Name:       opListJobs,
@@ -2070,9 +2029,8 @@ func (c *Glacier) ListJobsRequest(input *ListJobsInput) (req *request.Request, o
 		input = &ListJobsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListJobsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2127,17 +2085,17 @@ func (c *Glacier) ListJobsRequest(input *ListJobsInput) (req *request.Request, o
 // API operation ListJobs for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) ListJobs(input *ListJobsInput) (*ListJobsOutput, error) {
@@ -2196,7 +2154,6 @@ const opListMultipartUploads = "ListMultipartUploads"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) (req *request.Request, output *ListMultipartUploadsOutput) {
 	op := &request.Operation{
 		Name:       opListMultipartUploads,
@@ -2214,9 +2171,8 @@ func (c *Glacier) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) 
 		input = &ListMultipartUploadsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListMultipartUploadsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2261,17 +2217,17 @@ func (c *Glacier) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) 
 // API operation ListMultipartUploads for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) ListMultipartUploads(input *ListMultipartUploadsInput) (*ListMultipartUploadsOutput, error) {
@@ -2330,7 +2286,6 @@ const opListParts = "ListParts"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) ListPartsRequest(input *ListPartsInput) (req *request.Request, output *ListPartsOutput) {
 	op := &request.Operation{
 		Name:       opListParts,
@@ -2348,9 +2303,8 @@ func (c *Glacier) ListPartsRequest(input *ListPartsInput) (req *request.Request,
 		input = &ListPartsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListPartsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2389,17 +2343,17 @@ func (c *Glacier) ListPartsRequest(input *ListPartsInput) (req *request.Request,
 // API operation ListParts for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) ListParts(input *ListPartsInput) (*ListPartsOutput, error) {
@@ -2458,7 +2412,6 @@ const opListProvisionedCapacity = "ListProvisionedCapacity"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) ListProvisionedCapacityRequest(input *ListProvisionedCapacityInput) (req *request.Request, output *ListProvisionedCapacityOutput) {
 	op := &request.Operation{
 		Name:       opListProvisionedCapacity,
@@ -2470,9 +2423,8 @@ func (c *Glacier) ListProvisionedCapacityRequest(input *ListProvisionedCapacityI
 		input = &ListProvisionedCapacityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListProvisionedCapacityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2488,13 +2440,13 @@ func (c *Glacier) ListProvisionedCapacityRequest(input *ListProvisionedCapacityI
 // API operation ListProvisionedCapacity for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) ListProvisionedCapacity(input *ListProvisionedCapacityInput) (*ListProvisionedCapacityOutput, error) {
@@ -2528,7 +2480,6 @@ const opListTagsForVault = "ListTagsForVault"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) ListTagsForVaultRequest(input *ListTagsForVaultInput) (req *request.Request, output *ListTagsForVaultOutput) {
 	op := &request.Operation{
 		Name:       opListTagsForVault,
@@ -2540,9 +2491,8 @@ func (c *Glacier) ListTagsForVaultRequest(input *ListTagsForVaultInput) (req *re
 		input = &ListTagsForVaultInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsForVaultOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2560,17 +2510,17 @@ func (c *Glacier) ListTagsForVaultRequest(input *ListTagsForVaultInput) (req *re
 // API operation ListTagsForVault for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) ListTagsForVault(input *ListTagsForVaultInput) (*ListTagsForVaultOutput, error) {
@@ -2604,7 +2554,6 @@ const opListVaults = "ListVaults"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) ListVaultsRequest(input *ListVaultsInput) (req *request.Request, output *ListVaultsOutput) {
 	op := &request.Operation{
 		Name:       opListVaults,
@@ -2622,9 +2571,8 @@ func (c *Glacier) ListVaultsRequest(input *ListVaultsInput) (req *request.Reques
 		input = &ListVaultsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListVaultsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2660,17 +2608,17 @@ func (c *Glacier) ListVaultsRequest(input *ListVaultsInput) (req *request.Reques
 // API operation ListVaults for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) ListVaults(input *ListVaultsInput) (*ListVaultsOutput, error) {
@@ -2729,7 +2677,6 @@ const opPurchaseProvisionedCapacity = "PurchaseProvisionedCapacity"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) PurchaseProvisionedCapacityRequest(input *PurchaseProvisionedCapacityInput) (req *request.Request, output *PurchaseProvisionedCapacityOutput) {
 	op := &request.Operation{
 		Name:       opPurchaseProvisionedCapacity,
@@ -2741,9 +2688,8 @@ func (c *Glacier) PurchaseProvisionedCapacityRequest(input *PurchaseProvisionedC
 		input = &PurchaseProvisionedCapacityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseProvisionedCapacityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2759,16 +2705,16 @@ func (c *Glacier) PurchaseProvisionedCapacityRequest(input *PurchaseProvisionedC
 // API operation PurchaseProvisionedCapacity for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   Returned if the request results in a vault or account limit being exceeded.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) PurchaseProvisionedCapacity(input *PurchaseProvisionedCapacityInput) (*PurchaseProvisionedCapacityOutput, error) {
@@ -2802,7 +2748,6 @@ const opRemoveTagsFromVault = "RemoveTagsFromVault"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) RemoveTagsFromVaultRequest(input *RemoveTagsFromVaultInput) (req *request.Request, output *RemoveTagsFromVaultOutput) {
 	op := &request.Operation{
 		Name:       opRemoveTagsFromVault,
@@ -2814,11 +2759,10 @@ func (c *Glacier) RemoveTagsFromVaultRequest(input *RemoveTagsFromVaultInput) (r
 		input = &RemoveTagsFromVaultInput{}
 	}
 
+	output = &RemoveTagsFromVaultOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemoveTagsFromVaultOutput{}
-	req.Data = output
 	return
 }
 
@@ -2838,17 +2782,17 @@ func (c *Glacier) RemoveTagsFromVaultRequest(input *RemoveTagsFromVaultInput) (r
 // API operation RemoveTagsFromVault for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) RemoveTagsFromVault(input *RemoveTagsFromVaultInput) (*RemoveTagsFromVaultOutput, error) {
@@ -2882,7 +2826,6 @@ const opSetDataRetrievalPolicy = "SetDataRetrievalPolicy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) SetDataRetrievalPolicyRequest(input *SetDataRetrievalPolicyInput) (req *request.Request, output *SetDataRetrievalPolicyOutput) {
 	op := &request.Operation{
 		Name:       opSetDataRetrievalPolicy,
@@ -2894,11 +2837,10 @@ func (c *Glacier) SetDataRetrievalPolicyRequest(input *SetDataRetrievalPolicyInp
 		input = &SetDataRetrievalPolicyInput{}
 	}
 
+	output = &SetDataRetrievalPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetDataRetrievalPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -2920,13 +2862,13 @@ func (c *Glacier) SetDataRetrievalPolicyRequest(input *SetDataRetrievalPolicyInp
 // API operation SetDataRetrievalPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) SetDataRetrievalPolicy(input *SetDataRetrievalPolicyInput) (*SetDataRetrievalPolicyOutput, error) {
@@ -2960,7 +2902,6 @@ const opSetVaultAccessPolicy = "SetVaultAccessPolicy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) SetVaultAccessPolicyRequest(input *SetVaultAccessPolicyInput) (req *request.Request, output *SetVaultAccessPolicyOutput) {
 	op := &request.Operation{
 		Name:       opSetVaultAccessPolicy,
@@ -2972,11 +2913,10 @@ func (c *Glacier) SetVaultAccessPolicyRequest(input *SetVaultAccessPolicyInput) 
 		input = &SetVaultAccessPolicyInput{}
 	}
 
+	output = &SetVaultAccessPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetVaultAccessPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -2998,17 +2938,17 @@ func (c *Glacier) SetVaultAccessPolicyRequest(input *SetVaultAccessPolicyInput) 
 // API operation SetVaultAccessPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) SetVaultAccessPolicy(input *SetVaultAccessPolicyInput) (*SetVaultAccessPolicyOutput, error) {
@@ -3042,7 +2982,6 @@ const opSetVaultNotifications = "SetVaultNotifications"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) SetVaultNotificationsRequest(input *SetVaultNotificationsInput) (req *request.Request, output *SetVaultNotificationsOutput) {
 	op := &request.Operation{
 		Name:       opSetVaultNotifications,
@@ -3054,11 +2993,10 @@ func (c *Glacier) SetVaultNotificationsRequest(input *SetVaultNotificationsInput
 		input = &SetVaultNotificationsInput{}
 	}
 
+	output = &SetVaultNotificationsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetVaultNotificationsOutput{}
-	req.Data = output
 	return
 }
 
@@ -3105,17 +3043,17 @@ func (c *Glacier) SetVaultNotificationsRequest(input *SetVaultNotificationsInput
 // API operation SetVaultNotifications for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) SetVaultNotifications(input *SetVaultNotificationsInput) (*SetVaultNotificationsOutput, error) {
@@ -3149,7 +3087,6 @@ const opUploadArchive = "UploadArchive"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) UploadArchiveRequest(input *UploadArchiveInput) (req *request.Request, output *ArchiveCreationOutput) {
 	op := &request.Operation{
 		Name:       opUploadArchive,
@@ -3161,9 +3098,8 @@ func (c *Glacier) UploadArchiveRequest(input *UploadArchiveInput) (req *request.
 		input = &UploadArchiveInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ArchiveCreationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3214,21 +3150,21 @@ func (c *Glacier) UploadArchiveRequest(input *UploadArchiveInput) (req *request.
 // API operation UploadArchive for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * RequestTimeoutException
+//   * ErrCodeRequestTimeoutException "RequestTimeoutException"
 //   Returned if, when uploading an archive, Amazon Glacier times out while receiving
 //   the upload.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) UploadArchive(input *UploadArchiveInput) (*ArchiveCreationOutput, error) {
@@ -3262,7 +3198,6 @@ const opUploadMultipartPart = "UploadMultipartPart"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *Glacier) UploadMultipartPartRequest(input *UploadMultipartPartInput) (req *request.Request, output *UploadMultipartPartOutput) {
 	op := &request.Operation{
 		Name:       opUploadMultipartPart,
@@ -3274,9 +3209,8 @@ func (c *Glacier) UploadMultipartPartRequest(input *UploadMultipartPartInput) (r
 		input = &UploadMultipartPartInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UploadMultipartPartOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3337,21 +3271,21 @@ func (c *Glacier) UploadMultipartPartRequest(input *UploadMultipartPartInput) (r
 // API operation UploadMultipartPart for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Returned if the specified resource (such as a vault, upload ID, or job ID)
 //   doesn't exist.
 //
-//   * InvalidParameterValueException
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
 //   Returned if a parameter of the request is incorrectly specified.
 //
-//   * MissingParameterValueException
+//   * ErrCodeMissingParameterValueException "MissingParameterValueException"
 //   Returned if a required header or parameter is missing from the request.
 //
-//   * RequestTimeoutException
+//   * ErrCodeRequestTimeoutException "RequestTimeoutException"
 //   Returned if, when uploading an archive, Amazon Glacier times out while receiving
 //   the upload.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   Returned if the service cannot complete the request.
 //
 func (c *Glacier) UploadMultipartPart(input *UploadMultipartPartInput) (*UploadMultipartPartOutput, error) {

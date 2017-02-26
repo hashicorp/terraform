@@ -28,7 +28,7 @@ func TestAccUltradnsProbeHTTP(t *testing.T) {
 					resource.TestCheckResourceAttr("ultradns_probe_http.it", "agents.4091180299", "DALLAS"),
 					resource.TestCheckResourceAttr("ultradns_probe_http.it", "agents.2144410488", "AMSTERDAM"),
 					resource.TestCheckResourceAttr("ultradns_probe_http.it", "interval", "ONE_MINUTE"),
-					resource.TestCheckResourceAttr("ultradns_probe_http.it", "threshold", "1"),
+					resource.TestCheckResourceAttr("ultradns_probe_http.it", "threshold", "2"),
 					resource.TestCheckResourceAttr("ultradns_probe_http.it", "http_probe.0.transaction.0.method", "GET"),
 					resource.TestCheckResourceAttr("ultradns_probe_http.it", "http_probe.0.transaction.0.url", "http://localhost/index"),
 					resource.TestCheckResourceAttr("ultradns_probe_http.it", "http_probe.0.transaction.0.limit.#", "2"),
@@ -55,7 +55,7 @@ func TestAccUltradnsProbeHTTP(t *testing.T) {
 					resource.TestCheckResourceAttr("ultradns_probe_http.it", "agents.4091180299", "DALLAS"),
 					resource.TestCheckResourceAttr("ultradns_probe_http.it", "agents.2144410488", "AMSTERDAM"),
 					resource.TestCheckResourceAttr("ultradns_probe_http.it", "interval", "ONE_MINUTE"),
-					resource.TestCheckResourceAttr("ultradns_probe_http.it", "threshold", "1"),
+					resource.TestCheckResourceAttr("ultradns_probe_http.it", "threshold", "2"),
 					resource.TestCheckResourceAttr("ultradns_probe_http.it", "http_probe.0.transaction.0.method", "POST"),
 					resource.TestCheckResourceAttr("ultradns_probe_http.it", "http_probe.0.transaction.0.url", "http://localhost/index"),
 
@@ -109,7 +109,7 @@ resource "ultradns_tcpool" "test-probe-http-minimal" {
     run_probes     = true
     priority       = 1
     failover_delay = 0
-    threshold      = 1
+    threshold      = 2
     weight         = 2
   }
 
@@ -120,7 +120,7 @@ resource "ultradns_tcpool" "test-probe-http-minimal" {
     run_probes     = true
     priority       = 2
     failover_delay = 0
-    threshold      = 1
+    threshold      = 2
     weight         = 2
   }
 
@@ -136,7 +136,7 @@ resource "ultradns_probe_http" "it" {
   agents = ["DALLAS", "AMSTERDAM"]
 
   interval  = "ONE_MINUTE"
-  threshold = 1
+  threshold = 2
 
   http_probe {
     transaction {
@@ -182,7 +182,7 @@ resource "ultradns_tcpool" "test-probe-http-maximal" {
     run_probes     = true
     priority       = 1
     failover_delay = 0
-    threshold      = 1
+    threshold      = 2
     weight         = 2
   }
 
@@ -193,7 +193,7 @@ resource "ultradns_tcpool" "test-probe-http-maximal" {
     run_probes     = true
     priority       = 2
     failover_delay = 0
-    threshold      = 1
+    threshold      = 2
     weight         = 2
   }
 
@@ -209,7 +209,7 @@ resource "ultradns_probe_http" "it" {
   agents = ["DALLAS", "AMSTERDAM"]
 
   interval  = "ONE_MINUTE"
-  threshold = 1
+  threshold = 2
 
   http_probe {
     transaction {

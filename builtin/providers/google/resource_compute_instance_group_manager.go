@@ -216,17 +216,33 @@ func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interf
 		return config.clientCompute.InstanceGroupManagers.Get(project, zone, d.Id()).Do()
 	}
 
-	resource, err := getZonalResourceFromRegion(getInstanceGroupManager, region, config.clientCompute, project)
-	if err != nil {
-		return err
+	var manager *compute.InstanceGroupManager
+	var e error
+	if zone, ok := d.GetOk("zone"); ok {
+		manager, e = config.clientCompute.InstanceGroupManagers.Get(project, zone.(string), d.Id()).Do()
+
+		if e != nil {
+			return e
+		}
+	} else {
+		// If the resource was imported, the only info we have is the ID. Try to find the resource
+		// by searching in the region of the project.
+		var resource interface{}
+		resource, e = getZonalResourceFromRegion(getInstanceGroupManager, region, config.clientCompute, project)
+
+		if e != nil {
+			return e
+		}
+
+		manager = resource.(*compute.InstanceGroupManager)
 	}
-	if resource == nil {
+
+	if manager == nil {
 		log.Printf("[WARN] Removing Instance Group Manager %q because it's gone", d.Get("name").(string))
 		// The resource doesn't exist anymore
 		d.SetId("")
 		return nil
 	}
-	manager := resource.(*compute.InstanceGroupManager)
 
 	zoneUrl := strings.Split(manager.Zone, "/")
 	d.Set("base_instance_name", manager.BaseInstanceName)
@@ -242,7 +258,11 @@ func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interf
 	d.Set("instance_group", manager.InstanceGroup)
 	d.Set("target_size", manager.TargetSize)
 	d.Set("self_link", manager.SelfLink)
-	d.Set("update_strategy", "RESTART") //this field doesn't match the manager api, set to default value
+	update_strategy, ok := d.GetOk("update_strategy")
+	if !ok {
+		update_strategy = "RESTART"
+	}
+	d.Set("update_strategy", update_strategy.(string))
 
 	return nil
 }

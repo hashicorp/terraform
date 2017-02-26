@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -40,10 +42,14 @@ func TestAccAWSS3Bucket_basic(t *testing.T) {
 						"aws_s3_bucket.bucket", "hosted_zone_id", HostedZoneIDForRegion("us-west-2")),
 					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "region", "us-west-2"),
-					resource.TestCheckResourceAttr(
-						"aws_s3_bucket.bucket", "website_endpoint", ""),
+					resource.TestCheckNoResourceAttr(
+						"aws_s3_bucket.bucket", "website_endpoint"),
 					resource.TestMatchResourceAttr(
 						"aws_s3_bucket.bucket", "arn", arnRegexp),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "bucket", testAccBucketName(rInt)),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "bucket_domain_name", testAccBucketDomainName(rInt)),
 				),
 			},
 		},
@@ -690,6 +696,68 @@ func TestAccAWSS3Bucket_ReplicationExpectVersioningValidationError(t *testing.T)
 	})
 }
 
+func TestAWSS3BucketName(t *testing.T) {
+	validDnsNames := []string{
+		"foobar",
+		"foo.bar",
+		"foo.bar.baz",
+		"1234",
+		"foo-bar",
+		strings.Repeat("x", 63),
+	}
+
+	for _, v := range validDnsNames {
+		if err := validateS3BucketName(v, "us-west-2"); err != nil {
+			t.Fatalf("%q should be a valid S3 bucket name", v)
+		}
+	}
+
+	invalidDnsNames := []string{
+		"foo..bar",
+		"Foo.Bar",
+		"192.168.0.1",
+		"127.0.0.1",
+		".foo",
+		"bar.",
+		"foo_bar",
+		strings.Repeat("x", 64),
+	}
+
+	for _, v := range invalidDnsNames {
+		if err := validateS3BucketName(v, "us-west-2"); err == nil {
+			t.Fatalf("%q should not be a valid S3 bucket name", v)
+		}
+	}
+
+	validEastNames := []string{
+		"foobar",
+		"foo_bar",
+		"127.0.0.1",
+		"foo..bar",
+		"foo_bar_baz",
+		"foo.bar.baz",
+		"Foo.Bar",
+		strings.Repeat("x", 255),
+	}
+
+	for _, v := range validEastNames {
+		if err := validateS3BucketName(v, "us-east-1"); err != nil {
+			t.Fatalf("%q should be a valid S3 bucket name", v)
+		}
+	}
+
+	invalidEastNames := []string{
+		"foo;bar",
+		strings.Repeat("x", 256),
+	}
+
+	for _, v := range invalidEastNames {
+		if err := validateS3BucketName(v, "us-east-1"); err == nil {
+			t.Fatalf("%q should not be a valid S3 bucket name", v)
+		}
+	}
+}
+
 func testAccCheckAWSS3BucketDestroy(s *terraform.State) error {
 	return testAccCheckInstanceDestroyWithProvider(s, testAccProvider)
 }
@@ -1025,6 +1093,14 @@ func testAccCheckAWSS3BucketLogging(n, b, p string) resource.TestCheckFunc {
 
 // These need a bit of randomness as the name can only be used once globally
 // within AWS
+func testAccBucketName(randInt int) string {
+	return fmt.Sprintf("tf-test-bucket-%d", randInt)
+}
+
+func testAccBucketDomainName(randInt int) string {
+	return fmt.Sprintf("tf-test-bucket-%d.s3.amazonaws.com", randInt)
+}
+
 func testAccWebsiteEndpoint(randInt int) string {
 	return fmt.Sprintf("tf-test-bucket-%d.s3-website-us-west-2.amazonaws.com", randInt)
 }

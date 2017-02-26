@@ -146,8 +146,8 @@ func GetCredentials(c *Config) (*awsCredentials.Credentials, error) {
 
 	// Otherwise we need to construct and STS client with the main credentials, and verify
 	// that we can assume the defined role.
-	log.Printf("[INFO] Attempting to AssumeRole %s (SessionName: %q, ExternalId: %q)",
-		c.AssumeRoleARN, c.AssumeRoleSessionName, c.AssumeRoleExternalID)
+	log.Printf("[INFO] Attempting to AssumeRole %s (SessionName: %q, ExternalId: %q, Policy: %q)",
+		c.AssumeRoleARN, c.AssumeRoleSessionName, c.AssumeRoleExternalID, c.AssumeRolePolicy)
 
 	creds := awsCredentials.NewChainCredentials(providers)
 	cp, err := creds.Get()
@@ -181,6 +181,9 @@ func GetCredentials(c *Config) (*awsCredentials.Credentials, error) {
 	}
 	if c.AssumeRoleExternalID != "" {
 		assumeRoleProvider.ExternalID = aws.String(c.AssumeRoleExternalID)
+	}
+	if c.AssumeRolePolicy != "" {
+		assumeRoleProvider.Policy = aws.String(c.AssumeRolePolicy)
 	}
 
 	providers = []awsCredentials.Provider{assumeRoleProvider}

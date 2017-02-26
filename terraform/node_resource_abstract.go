@@ -52,7 +52,8 @@ func (n *NodeAbstractResource) ReferenceableName() []string {
 		id = n.Config.Id()
 	} else if n.Addr != nil {
 		addrCopy := n.Addr.Copy()
-		addrCopy.Index = -1
+		addrCopy.Path = nil // ReferenceTransformer handles paths
+		addrCopy.Index = -1 // We handle indexes below
 		id = addrCopy.String()
 	} else {
 		// No way to determine our type.name, just return

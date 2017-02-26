@@ -37,6 +37,7 @@ const opDeleteScalingPolicy = "DeleteScalingPolicy"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeleteScalingPolicy
 func (c *ApplicationAutoScaling) DeleteScalingPolicyRequest(input *DeleteScalingPolicyInput) (req *request.Request, output *DeleteScalingPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteScalingPolicy,
@@ -48,9 +49,8 @@ func (c *ApplicationAutoScaling) DeleteScalingPolicyRequest(input *DeleteScaling
 		input = &DeleteScalingPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteScalingPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -72,11 +72,11 @@ func (c *ApplicationAutoScaling) DeleteScalingPolicyRequest(input *DeleteScaling
 // API operation DeleteScalingPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception was thrown for a validation issue. Review the available parameters
 //   for the API request.
 //
-//   * ObjectNotFoundException
+//   * ErrCodeObjectNotFoundException "ObjectNotFoundException"
 //   The specified object could not be found. For any Put or Register API operation,
 //   which depends on the existence of a scalable target, this exception is thrown
 //   if the scalable target with the specified service namespace, resource ID,
@@ -84,13 +84,14 @@ func (c *ApplicationAutoScaling) DeleteScalingPolicyRequest(input *DeleteScaling
 //   this exception is thrown if the resource that is to be deleted or deregistered
 //   cannot be found.
 //
-//   * ConcurrentUpdateException
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
-//   * InternalServiceException
+//   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeleteScalingPolicy
 func (c *ApplicationAutoScaling) DeleteScalingPolicy(input *DeleteScalingPolicyInput) (*DeleteScalingPolicyOutput, error) {
 	req, out := c.DeleteScalingPolicyRequest(input)
 	err := req.Send()
@@ -123,6 +124,7 @@ const opDeregisterScalableTarget = "DeregisterScalableTarget"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeregisterScalableTarget
 func (c *ApplicationAutoScaling) DeregisterScalableTargetRequest(input *DeregisterScalableTargetInput) (req *request.Request, output *DeregisterScalableTargetOutput) {
 	op := &request.Operation{
 		Name:       opDeregisterScalableTarget,
@@ -134,9 +136,8 @@ func (c *ApplicationAutoScaling) DeregisterScalableTargetRequest(input *Deregist
 		input = &DeregisterScalableTargetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeregisterScalableTargetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -157,11 +158,11 @@ func (c *ApplicationAutoScaling) DeregisterScalableTargetRequest(input *Deregist
 // API operation DeregisterScalableTarget for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception was thrown for a validation issue. Review the available parameters
 //   for the API request.
 //
-//   * ObjectNotFoundException
+//   * ErrCodeObjectNotFoundException "ObjectNotFoundException"
 //   The specified object could not be found. For any Put or Register API operation,
 //   which depends on the existence of a scalable target, this exception is thrown
 //   if the scalable target with the specified service namespace, resource ID,
@@ -169,13 +170,14 @@ func (c *ApplicationAutoScaling) DeregisterScalableTargetRequest(input *Deregist
 //   this exception is thrown if the resource that is to be deleted or deregistered
 //   cannot be found.
 //
-//   * ConcurrentUpdateException
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
-//   * InternalServiceException
+//   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeregisterScalableTarget
 func (c *ApplicationAutoScaling) DeregisterScalableTarget(input *DeregisterScalableTargetInput) (*DeregisterScalableTargetOutput, error) {
 	req, out := c.DeregisterScalableTargetRequest(input)
 	err := req.Send()
@@ -208,6 +210,7 @@ const opDescribeScalableTargets = "DescribeScalableTargets"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalableTargets
 func (c *ApplicationAutoScaling) DescribeScalableTargetsRequest(input *DescribeScalableTargetsInput) (req *request.Request, output *DescribeScalableTargetsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeScalableTargets,
@@ -225,9 +228,8 @@ func (c *ApplicationAutoScaling) DescribeScalableTargetsRequest(input *DescribeS
 		input = &DescribeScalableTargetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeScalableTargetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -250,20 +252,21 @@ func (c *ApplicationAutoScaling) DescribeScalableTargetsRequest(input *DescribeS
 // API operation DescribeScalableTargets for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception was thrown for a validation issue. Review the available parameters
 //   for the API request.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The next token supplied was invalid.
 //
-//   * ConcurrentUpdateException
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
-//   * InternalServiceException
+//   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalableTargets
 func (c *ApplicationAutoScaling) DescribeScalableTargets(input *DescribeScalableTargetsInput) (*DescribeScalableTargetsOutput, error) {
 	req, out := c.DescribeScalableTargetsRequest(input)
 	err := req.Send()
@@ -321,6 +324,7 @@ const opDescribeScalingActivities = "DescribeScalingActivities"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalingActivities
 func (c *ApplicationAutoScaling) DescribeScalingActivitiesRequest(input *DescribeScalingActivitiesInput) (req *request.Request, output *DescribeScalingActivitiesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeScalingActivities,
@@ -338,9 +342,8 @@ func (c *ApplicationAutoScaling) DescribeScalingActivitiesRequest(input *Describ
 		input = &DescribeScalingActivitiesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeScalingActivitiesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -364,20 +367,21 @@ func (c *ApplicationAutoScaling) DescribeScalingActivitiesRequest(input *Describ
 // API operation DescribeScalingActivities for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception was thrown for a validation issue. Review the available parameters
 //   for the API request.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The next token supplied was invalid.
 //
-//   * ConcurrentUpdateException
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
-//   * InternalServiceException
+//   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalingActivities
 func (c *ApplicationAutoScaling) DescribeScalingActivities(input *DescribeScalingActivitiesInput) (*DescribeScalingActivitiesOutput, error) {
 	req, out := c.DescribeScalingActivitiesRequest(input)
 	err := req.Send()
@@ -435,6 +439,7 @@ const opDescribeScalingPolicies = "DescribeScalingPolicies"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalingPolicies
 func (c *ApplicationAutoScaling) DescribeScalingPoliciesRequest(input *DescribeScalingPoliciesInput) (req *request.Request, output *DescribeScalingPoliciesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeScalingPolicies,
@@ -452,9 +457,8 @@ func (c *ApplicationAutoScaling) DescribeScalingPoliciesRequest(input *DescribeS
 		input = &DescribeScalingPoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeScalingPoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -477,11 +481,11 @@ func (c *ApplicationAutoScaling) DescribeScalingPoliciesRequest(input *DescribeS
 // API operation DescribeScalingPolicies for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception was thrown for a validation issue. Review the available parameters
 //   for the API request.
 //
-//   * FailedResourceAccessException
+//   * ErrCodeFailedResourceAccessException "FailedResourceAccessException"
 //   Failed access to resources caused an exception. This exception currently
 //   only applies to DescribeScalingPolicies. It is thrown when Application Auto
 //   Scaling is unable to retrieve the alarms associated with a scaling policy
@@ -490,16 +494,17 @@ func (c *ApplicationAutoScaling) DescribeScalingPoliciesRequest(input *DescribeS
 //   (http://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_DescribeAlarms.html)
 //   API operation on behalf of your account.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The next token supplied was invalid.
 //
-//   * ConcurrentUpdateException
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
-//   * InternalServiceException
+//   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalingPolicies
 func (c *ApplicationAutoScaling) DescribeScalingPolicies(input *DescribeScalingPoliciesInput) (*DescribeScalingPoliciesOutput, error) {
 	req, out := c.DescribeScalingPoliciesRequest(input)
 	err := req.Send()
@@ -557,6 +562,7 @@ const opPutScalingPolicy = "PutScalingPolicy"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScalingPolicy
 func (c *ApplicationAutoScaling) PutScalingPolicyRequest(input *PutScalingPolicyInput) (req *request.Request, output *PutScalingPolicyOutput) {
 	op := &request.Operation{
 		Name:       opPutScalingPolicy,
@@ -568,9 +574,8 @@ func (c *ApplicationAutoScaling) PutScalingPolicyRequest(input *PutScalingPolicy
 		input = &PutScalingPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutScalingPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -598,16 +603,16 @@ func (c *ApplicationAutoScaling) PutScalingPolicyRequest(input *PutScalingPolicy
 // API operation PutScalingPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception was thrown for a validation issue. Review the available parameters
 //   for the API request.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   Your account exceeded a limit. This exception is thrown when a per-account
 //   resource limit is exceeded. For more information, see Application Auto Scaling
 //   Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_as-app).
 //
-//   * ObjectNotFoundException
+//   * ErrCodeObjectNotFoundException "ObjectNotFoundException"
 //   The specified object could not be found. For any Put or Register API operation,
 //   which depends on the existence of a scalable target, this exception is thrown
 //   if the scalable target with the specified service namespace, resource ID,
@@ -615,13 +620,14 @@ func (c *ApplicationAutoScaling) PutScalingPolicyRequest(input *PutScalingPolicy
 //   this exception is thrown if the resource that is to be deleted or deregistered
 //   cannot be found.
 //
-//   * ConcurrentUpdateException
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
-//   * InternalServiceException
+//   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScalingPolicy
 func (c *ApplicationAutoScaling) PutScalingPolicy(input *PutScalingPolicyInput) (*PutScalingPolicyOutput, error) {
 	req, out := c.PutScalingPolicyRequest(input)
 	err := req.Send()
@@ -654,6 +660,7 @@ const opRegisterScalableTarget = "RegisterScalableTarget"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/RegisterScalableTarget
 func (c *ApplicationAutoScaling) RegisterScalableTargetRequest(input *RegisterScalableTargetInput) (req *request.Request, output *RegisterScalableTargetOutput) {
 	op := &request.Operation{
 		Name:       opRegisterScalableTarget,
@@ -665,9 +672,8 @@ func (c *ApplicationAutoScaling) RegisterScalableTargetRequest(input *RegisterSc
 		input = &RegisterScalableTargetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RegisterScalableTargetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -691,22 +697,23 @@ func (c *ApplicationAutoScaling) RegisterScalableTargetRequest(input *RegisterSc
 // API operation RegisterScalableTarget for usage and error information.
 //
 // Returned Error Codes:
-//   * ValidationException
+//   * ErrCodeValidationException "ValidationException"
 //   An exception was thrown for a validation issue. Review the available parameters
 //   for the API request.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   Your account exceeded a limit. This exception is thrown when a per-account
 //   resource limit is exceeded. For more information, see Application Auto Scaling
 //   Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_as-app).
 //
-//   * ConcurrentUpdateException
+//   * ErrCodeConcurrentUpdateException "ConcurrentUpdateException"
 //   Concurrent updates caused an exception, for example, if you request an update
 //   to an Application Auto Scaling resource that already has a pending update.
 //
-//   * InternalServiceException
+//   * ErrCodeInternalServiceException "InternalServiceException"
 //   The service encountered an internal error.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/RegisterScalableTarget
 func (c *ApplicationAutoScaling) RegisterScalableTarget(input *RegisterScalableTargetInput) (*RegisterScalableTargetOutput, error) {
 	req, out := c.RegisterScalableTargetRequest(input)
 	err := req.Send()
@@ -714,6 +721,7 @@ func (c *ApplicationAutoScaling) RegisterScalableTarget(input *RegisterScalableT
 }
 
 // Represents a CloudWatch alarm associated with a scaling policy.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/Alarm
 type Alarm struct {
 	_ struct{} `type:"structure"`
 
@@ -750,6 +758,7 @@ func (s *Alarm) SetAlarmName(v string) *Alarm {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeleteScalingPolicyRequest
 type DeleteScalingPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -857,6 +866,7 @@ func (s *DeleteScalingPolicyInput) SetServiceNamespace(v string) *DeleteScalingP
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeleteScalingPolicyResponse
 type DeleteScalingPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -871,6 +881,7 @@ func (s DeleteScalingPolicyOutput) GoString() string {
 	return s.String()
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeregisterScalableTargetRequest
 type DeregisterScalableTargetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -961,6 +972,7 @@ func (s *DeregisterScalableTargetInput) SetServiceNamespace(v string) *Deregiste
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DeregisterScalableTargetResponse
 type DeregisterScalableTargetOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -975,6 +987,7 @@ func (s DeregisterScalableTargetOutput) GoString() string {
 	return s.String()
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalableTargetsRequest
 type DescribeScalableTargetsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1078,6 +1091,7 @@ func (s *DescribeScalableTargetsInput) SetServiceNamespace(v string) *DescribeSc
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalableTargetsResponse
 type DescribeScalableTargetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1111,6 +1125,7 @@ func (s *DescribeScalableTargetsOutput) SetScalableTargets(v []*ScalableTarget) 
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalingActivitiesRequest
 type DescribeScalingActivitiesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1217,6 +1232,7 @@ func (s *DescribeScalingActivitiesInput) SetServiceNamespace(v string) *Describe
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalingActivitiesResponse
 type DescribeScalingActivitiesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1250,6 +1266,7 @@ func (s *DescribeScalingActivitiesOutput) SetScalingActivities(v []*ScalingActiv
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalingPoliciesRequest
 type DescribeScalingPoliciesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1365,6 +1382,7 @@ func (s *DescribeScalingPoliciesInput) SetServiceNamespace(v string) *DescribeSc
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/DescribeScalingPoliciesResponse
 type DescribeScalingPoliciesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1398,6 +1416,7 @@ func (s *DescribeScalingPoliciesOutput) SetScalingPolicies(v []*ScalingPolicy) *
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScalingPolicyRequest
 type PutScalingPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1532,6 +1551,7 @@ func (s *PutScalingPolicyInput) SetStepScalingPolicyConfiguration(v *StepScaling
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/PutScalingPolicyResponse
 type PutScalingPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1557,6 +1577,7 @@ func (s *PutScalingPolicyOutput) SetPolicyARN(v string) *PutScalingPolicyOutput 
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/RegisterScalableTargetRequest
 type RegisterScalableTargetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1683,6 +1704,7 @@ func (s *RegisterScalableTargetInput) SetServiceNamespace(v string) *RegisterSca
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/RegisterScalableTargetResponse
 type RegisterScalableTargetOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1698,6 +1720,7 @@ func (s RegisterScalableTargetOutput) GoString() string {
 }
 
 // Represents a scalable target.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/ScalableTarget
 type ScalableTarget struct {
 	_ struct{} `type:"structure"`
 
@@ -1812,6 +1835,7 @@ func (s *ScalableTarget) SetServiceNamespace(v string) *ScalableTarget {
 }
 
 // Represents a scaling activity.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/ScalingActivity
 type ScalingActivity struct {
 	_ struct{} `type:"structure"`
 
@@ -1963,6 +1987,7 @@ func (s *ScalingActivity) SetStatusMessage(v string) *ScalingActivity {
 }
 
 // Represents a scaling policy.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/ScalingPolicy
 type ScalingPolicy struct {
 	_ struct{} `type:"structure"`
 
@@ -2121,6 +2146,7 @@ func (s *ScalingPolicy) SetStepScalingPolicyConfiguration(v *StepScalingPolicyCo
 //    with a null upper bound.
 //
 //    * The upper and lower bound can't be null in the same step adjustment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/StepAdjustment
 type StepAdjustment struct {
 	_ struct{} `type:"structure"`
 
@@ -2191,6 +2217,7 @@ func (s *StepAdjustment) SetScalingAdjustment(v int64) *StepAdjustment {
 }
 
 // Represents a step scaling policy configuration.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/application-autoscaling-2016-02-06/StepScalingPolicyConfiguration
 type StepScalingPolicyConfiguration struct {
 	_ struct{} `type:"structure"`
 

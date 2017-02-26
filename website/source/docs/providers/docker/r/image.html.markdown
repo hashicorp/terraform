@@ -14,7 +14,7 @@ Pulls a Docker image to a given Docker host from a Docker Registry.
 
 This resource will *not* pull new layers of the image automatically unless used in
 conjunction with [`docker_registry_image`](/docs/providers/docker/d/registry_image.html)
-data source to update the `pull_trigger` field.
+data source to update the `pull_triggers` field.
 
 ## Example Usage
 
@@ -36,7 +36,7 @@ data "docker_registry_image" "ubuntu" {
 
 resource "docker_image" "ubuntu" {
     name = "${data.docker_registry_image.ubuntu.name}"
-    pull_trigger = "${data.docker_registry_image.ubuntu.sha256_digest}"
+    pull_triggers = ["${data.docker_registry_image.ubuntu.sha256_digest}"]
 }
 ```
 
@@ -48,10 +48,12 @@ The following arguments are supported:
 * `keep_locally` - (Optional, boolean) If true, then the Docker image won't be
   deleted on destroy operation. If this is false, it will delete the image from
   the docker local storage on destroy operation.
-* `pull_trigger` - (Optional, string) Used to store the image digest from the
-  registry and will cause an image pull when changed. Needed when using
-  the `docker_registry_image` [data source](/docs/providers/docker/d/registry_image.html)
-  to trigger an update of the image.
+* `pull_triggers` - (Optional, list of strings) List of values which cause an
+  image pull when changed. This is used to store the image digest from the
+  registry when using the `docker_registry_image` [data source](/docs/providers/docker/d/registry_image.html)
+  to trigger an image update.
+* `pull_trigger` - **Deprecated**, use `pull_triggers` instead.
+
 
 ## Attributes Reference
 

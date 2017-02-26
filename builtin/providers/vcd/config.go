@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/hmrc/vmware-govcd"
+	govcd "github.com/ukcloud/govcloudair" // Forked from vmware/govcloudair
 )
 
 type Config struct {

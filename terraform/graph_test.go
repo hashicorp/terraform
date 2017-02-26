@@ -124,6 +124,18 @@ func testGraphHappensBefore(t *testing.T, g *Graph, A, B string) {
 		A, B, g.String())
 }
 
+// testGraphnotContains is an assertion helper that tests that a node is
+// NOT contained in the graph.
+func testGraphNotContains(t *testing.T, g *Graph, name string) {
+	for _, v := range g.Vertices() {
+		if dag.VertexName(v) == name {
+			t.Fatalf(
+				"Expected %q to NOT be in:\n\n%s",
+				name, g.String())
+		}
+	}
+}
+
 type testGraphSubPath struct {
 	PathFn func() []string
 }

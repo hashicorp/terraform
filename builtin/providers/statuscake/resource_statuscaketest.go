@@ -18,42 +18,55 @@ func resourceStatusCakeTest() *schema.Resource {
 		Read:   ReadTest,
 
 		Schema: map[string]*schema.Schema{
-			"test_id": &schema.Schema{
+			"test_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"website_name": &schema.Schema{
+			"website_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"website_url": &schema.Schema{
+			"website_url": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"check_rate": &schema.Schema{
+			"contact_id": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+
+			"check_rate": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  300,
 			},
 
-			"test_type": &schema.Schema{
+			"test_type": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"paused": &schema.Schema{
+			"paused": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"timeout": &schema.Schema{
+
+			"timeout": {
 				Type:     schema.TypeInt,
-				Computed: true,
+				Optional: true,
+				Default:  40,
 			},
-			"contact_id": &schema.Schema{
+
+			"confirmations": {
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+
+			"port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
@@ -65,13 +78,15 @@ func CreateTest(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*statuscake.Client)
 
 	newTest := &statuscake.Test{
-		WebsiteName: d.Get("website_name").(string),
-		WebsiteURL:  d.Get("website_url").(string),
-		CheckRate:   d.Get("check_rate").(int),
-		TestType:    d.Get("test_type").(string),
-		Paused:      d.Get("paused").(bool),
-		Timeout:     d.Get("timeout").(int),
-		ContactID:   d.Get("contact_id").(int),
+		WebsiteName:  d.Get("website_name").(string),
+		WebsiteURL:   d.Get("website_url").(string),
+		CheckRate:    d.Get("check_rate").(int),
+		TestType:     d.Get("test_type").(string),
+		Paused:       d.Get("paused").(bool),
+		Timeout:      d.Get("timeout").(int),
+		ContactID:    d.Get("contact_id").(int),
+		Confirmation: d.Get("confirmations").(int),
+		Port:         d.Get("port").(int),
 	}
 
 	log.Printf("[DEBUG] Creating new StatusCake Test: %s", d.Get("website_name").(string))
@@ -134,6 +149,8 @@ func ReadTest(d *schema.ResourceData, meta interface{}) error {
 	d.Set("paused", testResp.Paused)
 	d.Set("timeout", testResp.Timeout)
 	d.Set("contact_id", testResp.ContactID)
+	d.Set("confirmations", testResp.Confirmation)
+	d.Set("port", testResp.Port)
 
 	return nil
 }
@@ -155,6 +172,9 @@ func getStatusCakeTestInput(d *schema.ResourceData) *statuscake.Test {
 	if v, ok := d.GetOk("check_rate"); ok {
 		test.CheckRate = v.(int)
 	}
+	if v, ok := d.GetOk("contact_id"); ok {
+		test.ContactID = v.(int)
+	}
 	if v, ok := d.GetOk("test_type"); ok {
 		test.TestType = v.(string)
 	}
@@ -166,6 +186,12 @@ func getStatusCakeTestInput(d *schema.ResourceData) *statuscake.Test {
 	}
 	if v, ok := d.GetOk("contact_id"); ok {
 		test.ContactID = v.(int)
+	}
+	if v, ok := d.GetOk("confirmations"); ok {
+		test.Confirmation = v.(int)
+	}
+	if v, ok := d.GetOk("port"); ok {
+		test.Port = v.(int)
 	}
 	return test
 }

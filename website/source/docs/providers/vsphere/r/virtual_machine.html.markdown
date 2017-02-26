@@ -15,7 +15,7 @@ modify, and delete virtual machines.
 
 ```
 resource "vsphere_virtual_machine" "web" {
-  name   = "terraform_web"
+  name   = "terraform-web"
   vcpu   = 2
   memory = 4096
 
@@ -61,7 +61,7 @@ resource "vsphere_virtual_machine" "lb" {
 
 The following arguments are supported:
 
-* `name` - (Required) The virtual machine name
+* `name` - (Required) The virtual machine name (cannot contain underscores and must be less than 15 characters)
 * `vcpu` - (Required) The number of virtual CPUs to allocate to the virtual machine
 * `memory` - (Required) The amount of RAM (in MB) to allocate to the virtual machine
 * `memory_reservation` - (Optional) The amount of RAM (in MB) to reserve physical memory resource; defaults to 0 (means not to reserve)

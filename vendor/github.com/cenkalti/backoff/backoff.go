@@ -1,6 +1,13 @@
 // Package backoff implements backoff algorithms for retrying operations.
 //
-// Also has a Retry() helper for retrying operations that may fail.
+// Use Retry function for retrying operations that may fail.
+// If Retry does not meet your needs,
+// copy/paste the function into your project and modify as you wish.
+//
+// There is also Ticker type similar to time.Ticker.
+// You can use it if you need to work with channels.
+//
+// See Examples section below for usage examples.
 package backoff
 
 import "time"
@@ -25,7 +32,7 @@ type BackOff interface {
 	Reset()
 }
 
-// Indicates that no more retries should be made for use in NextBackOff().
+// Stop indicates that no more retries should be made for use in NextBackOff().
 const Stop time.Duration = -1
 
 // ZeroBackOff is a fixed backoff policy whose backoff time is always zero,

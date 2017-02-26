@@ -125,8 +125,9 @@ func resourceAwsRDSCluster() *schema.Resource {
 			},
 
 			"master_password": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
 			},
 
 			"snapshot_identifier": {
@@ -160,9 +161,10 @@ func resourceAwsRDSCluster() *schema.Resource {
 			},
 
 			"preferred_backup_window": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateOnceADayWindowFormat,
 			},
 
 			"preferred_maintenance_window": {
@@ -175,6 +177,7 @@ func resourceAwsRDSCluster() *schema.Resource {
 					}
 					return strings.ToLower(val.(string))
 				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
 			},
 
 			"backup_retention_period": {
@@ -288,11 +291,11 @@ func resourceAwsRDSClusterCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	} else {
 		if _, ok := d.GetOk("master_password"); !ok {
-			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_password": required field is not set`, d.Get("name").(string))
+			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_password": required field is not set`, d.Get("database_name").(string))
 		}
 
 		if _, ok := d.GetOk("master_username"); !ok {
-			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_username": required field is not set`, d.Get("name").(string))
+			return fmt.Errorf(`provider.aws: aws_rds_cluster: %s: "master_username": required field is not set`, d.Get("database_name").(string))
 		}
 
 		createOpts := &rds.CreateDBClusterInput{
@@ -548,6 +551,13 @@ func resourceAwsRDSClusterDelete(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] RDS Cluster delete options: %s", deleteOpts)
 	_, err := conn.DeleteDBCluster(&deleteOpts)
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			if "InvalidDBClusterStateFault" == awsErr.Code() {
+				return fmt.Errorf("RDS Cluster cannot be deleted: %s", awsErr.Message())
+			}
+		}
+	}
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"available", "deleting", "backing-up", "modifying"},

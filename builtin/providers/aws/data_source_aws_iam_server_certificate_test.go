@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"testing"
 	"time"
@@ -47,9 +48,24 @@ func TestAccAWSDataSourceIAMServerCertificate_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("aws_iam_server_certificate.test_cert", "arn"),
 					resource.TestCheckResourceAttrSet("data.aws_iam_server_certificate.test", "arn"),
+					resource.TestCheckResourceAttrSet("data.aws_iam_server_certificate.test", "id"),
 					resource.TestCheckResourceAttrSet("data.aws_iam_server_certificate.test", "name"),
 					resource.TestCheckResourceAttrSet("data.aws_iam_server_certificate.test", "path"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDataSourceIAMServerCertificate_matchNamePrefix(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckIAMServerCertificateDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAwsDataIAMServerCertConfigMatchNamePrefix,
+				ExpectError: regexp.MustCompile(`Search for AWS IAM server certificate returned no results`),
 			},
 		},
 	})
@@ -61,3 +77,10 @@ data "aws_iam_server_certificate" "test" {
   latest = true
 }
 `, testAccIAMServerCertConfig)
+
+var testAccAwsDataIAMServerCertConfigMatchNamePrefix = `
+data "aws_iam_server_certificate" "test" {
+  name_prefix = "MyCert"
+  latest = true
+}
+`

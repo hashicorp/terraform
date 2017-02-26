@@ -838,6 +838,44 @@ func TestInterpolator_nestedMapsAndLists(t *testing.T) {
 		interfaceToVariableSwallowError(mapOfList))
 }
 
+func TestInterpolator_sets(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_network_interface.set": &ResourceState{
+						Type:         "aws_network_interface",
+						Dependencies: []string{},
+						Primary: &InstanceState{
+							ID: "null",
+							Attributes: map[string]string{
+								"private_ips.#":          "1",
+								"private_ips.3977356764": "10.42.16.179",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: new(sync.RWMutex),
+		State:     state,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	set := []interface{}{"10.42.16.179"}
+
+	testInterpolate(t, i, scope, "aws_network_interface.set.private_ips",
+		interfaceToVariableSwallowError(set))
+}
+
 func testInterpolate(
 	t *testing.T, i *Interpolater,
 	scope *InterpolationScope,

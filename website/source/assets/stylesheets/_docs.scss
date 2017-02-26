@@ -7,7 +7,9 @@ body.page-sub{
 }
 
 body.layout-commands-state,
+body.layout-alicloud,
 body.layout-archive,
+body.layout-arukas,
 body.layout-atlas,
 body.layout-aws,
 body.layout-azure,
@@ -31,6 +33,7 @@ body.layout-grafana,
 body.layout-fastly,
 body.layout-google,
 body.layout-heroku,
+body.layout-ignition,
 body.layout-icinga2,
 body.layout-influxdb,
 body.layout-librato,
@@ -39,16 +42,20 @@ body.layout-mailgun,
 body.layout-mysql,
 body.layout-newrelic,
 body.layout-nomad,
+body.layout-ns1,
 body.layout-openstack,
+body.layout-opsgenie,
 body.layout-packet,
 body.layout-pagerduty,
 body.layout-postgresql,
 body.layout-powerdns,
+body.layout-profitbricks,
 body.layout-rabbitmq,
 body.layout-rancher,
 body.layout-random,
 body.layout-rundeck,
 body.layout-scaleway,
+body.layout-spotinst,
 body.layout-statuscake,
 body.layout-softlayer,
 body.layout-template,
@@ -93,6 +100,8 @@ body.layout-intro{
 	.docs-sidenav{
 		padding-top: 15px;
 		padding-bottom: 15px;
+		font-family: "Klavika-web";
+		font-size: 16px;
 
 		:last-child{
 			border-bottom: none;
@@ -123,6 +132,7 @@ body.layout-intro{
 			>.nav{
 				li{
 					a{
+						font-family: $font-family-open-sans;
 						color: white;
 					}
 				}
@@ -131,7 +141,7 @@ body.layout-intro{
 			&.active {
 				>a{
           color: lighten($purple, 4%);
-					font-weight: 500;
+					font-weight: 600;
 				}
 
 				&:before{
@@ -148,11 +158,6 @@ body.layout-intro{
 				> a{
           -webkit-font-smoothing: antialiased;
 				}
-
-				/*> a:hover,
-				> a:focus {
-					font-weight: $font-weight-lato-xb;
-				}*/
 
 				.nav {
 					display: block;
@@ -192,9 +197,7 @@ body.layout-intro{
 
 
 .bs-docs-section{
-	padding-top: 10px;
-	padding-left: 3%;
-	padding-bottom: 80px;
+	padding: 10px 10px 80px 10px;
 
 	.lead{
 		margin-bottom: 48px
@@ -205,9 +208,7 @@ body.layout-intro{
 	}
 
 	p, li, .alert {
-		font-size: 20px;
-		font-family: $font-family-open-sans;
-		font-weight: $font-weight-open;
+		font-size: 18px;
     line-height: 1.5em;
 		margin: 0 0 18px;
     -webkit-font-smoothing: antialiased;
@@ -236,10 +237,9 @@ body.layout-intro{
 		text-transform: uppercase;
     word-wrap: break-word;
 		padding-bottom: 24px;
-    margin-top: 40px;
-		margin-bottom: 24px;
+    margin-top: 24px;
+		margin-bottom: 30px;
     border-bottom: 1px solid #eeeeee;
-    @include lato-light();
 	}
 
 	h2, h3, h4{

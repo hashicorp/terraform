@@ -74,13 +74,16 @@ The following arguments are supported:
   `OS_INSECURE` environment variable is used.
 
 * `cacert_file` - (Optional) Specify a custom CA certificate when communicating
-  over SSL. If omitted, the `OS_CACERT` environment variable is used.
+  over SSL. You can specify either a path to the file or the contents of the
+  certificate. If omitted, the `OS_CACERT` environment variable is used.
 
 * `cert` - (Optional) Specify client certificate file for SSL client
-  authentication. If omitted the `OS_CERT` environment variable is used.
+  authentication. You can specify either a path to the file or the contents of
+  the certificate. If omitted the `OS_CERT` environment variable is used.
 
 * `key` - (Optional) Specify client private key file for SSL client
-  authentication. If omitted the `OS_KEY` environment variable is used.
+  authentication. You can specify either a path to the file or the contents of
+  the key. If omitted the `OS_KEY` environment variable is used.
 
 * `endpoint_type` - (Optional) Specify which type of endpoint to use from the
   service catalog. It can be set using the OS_ENDPOINT_TYPE environment
@@ -92,6 +95,22 @@ The following arguments are supported:
   such as `username:project`. Set the `password` to the Swauth/Swift key.
   Finally, set `auth_url` as the location of the Swift service. Note that this
   will only work when used with the OpenStack Object Storage resources.
+
+## Additional Logging
+
+This provider has the ability to log all HTTP requests and responses between
+Terraform and the OpenStack cloud which is useful for troubleshooting and
+debugging.
+
+To enable these logs, set the `OS_DEBUG` environment variable to `1` along
+with the usual `TF_LOG=DEBUG` environment variable:
+
+```shell
+$ OS_DEBUG=1 TF_LOG=DEBUG terraform apply
+```
+
+If you submit these logs with a bug report, please ensure any sensitive
+information has been scrubbed first!
 
 ## Rackspace Compatibility
 

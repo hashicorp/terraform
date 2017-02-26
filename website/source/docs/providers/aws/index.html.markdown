@@ -188,6 +188,10 @@ The following arguments are supported in the `provider` block:
   validation via the STS API. Useful for AWS API implementations that do
   not have STS available or implemented.
 
+* `skip_region_validation` - (Optional) Skip validation of provided region name.
+  Useful for AWS-like implementations that use their own region names
+  or to bypass the validation for regions that aren't publicly available yet.
+
 * `skip_requesting_account_id` - (Optional) Skip requesting the account
   ID.  Useful for AWS API implementations that do not have the IAM, STS
   API, or metadata API.  When set to `true`, prevents you from managing
@@ -226,6 +230,11 @@ The nested `assume_role` block supports the following:
 
 * `external_id` - (Optional) The external ID to use when making the
   AssumeRole call.
+
+* `policy` - (Optional) A more restrictive policy to apply to the temporary credentials. 
+This gives you a way to further restrict the permissions for the resulting temporary
+security credentials. You cannot use the passed policy to grant permissions that are
+in excess of those allowed by the access policy of the role that is being assumed.
 
 Nested `endpoints` block supports the following:
 

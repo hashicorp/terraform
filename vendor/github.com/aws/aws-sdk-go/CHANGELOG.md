@@ -1,3 +1,268 @@
+Release v1.6.25 (2017-02-17)
+===
+
+Service Client Updates
+---
+* `service/directconnect`: Updates service API, documentation, and paginators
+  * This update will introduce the ability for Direct Connect customers to take advantage of Link Aggregation (LAG).     This allows you to bundle many individual physical interfaces into a single logical interface, referred to as a LAG.     This makes administration much simpler as the majority of configuration is done on the LAG while you are free     to add or remove physical interfaces from the bundle as bandwidth demand increases or decreases. A concrete example     of the simplification added by LAG is that customers need only a single BGP session as opposed to one session per     physical connection.
+
+Release v1.6.24 (2017-02-16)
+===
+
+Service Client Updates
+---
+* `service/cognitoidentity`: Updates service API, documentation, and paginators
+  * Allow createIdentityPool and updateIdentityPool API to set server side token check value on identity pool
+* `service/configservice`: Updates service API and documentation
+  * AWS Config now supports a new test mode for the PutEvaluations API. Set the TestMode parameter to true in your custom rule to verify whether your AWS Lambda function will deliver evaluation results to AWS Config. No updates occur to your existing evaluations, and evaluation results are not sent to AWS Config.
+
+Release v1.6.23 (2017-02-15)
+===
+
+Service Client Updates
+---
+* `service/kms`: Updates service API, documentation, paginators, and examples
+  * his release of AWS Key Management Service introduces the ability to tag keys. Tagging keys can help you organize your keys and track your KMS costs in the cost allocation report. This release also increases the maximum length of a key ID to accommodate ARNs that include a long key alias.
+
+Release v1.6.22 (2017-02-14)
+===
+
+Service Client Updates
+---
+* `service/ec2`: Updates service API, documentation, and paginators
+  * Adds support for the new Modify Volumes apis.
+
+Release v1.6.21 (2017-02-11)
+===
+
+Service Client Updates
+---
+* `service/storagegateway`: Updates service API, documentation, and paginators
+  * File gateway mode in AWS Storage gateway provides access to objects in S3 as files on a Network File System (NFS) mount point. This is done by creating Nfs file shares using existing APIs CreateNfsFileShare. Using the feature in this update, the customer can restrict the clients that have read/write access to the gateway by specifying the list of clients as a list of IP addresses or CIDR blocks. This list can be specified using the API CreateNfsFileShare while creating new file shares, or UpdateNfsFileShare while update existing file shares. To find out the list of clients that have access, the existing API DescribeNfsFileShare will now output the list of clients that have access.
+
+Release v1.6.20 (2017-02-09)
+===
+
+Service Client Updates
+---
+* `service/ec2`: Updates service API and documentation
+  * This feature allows customers to associate an IAM profile to running instances that do not have any.
+* `service/rekognition`: Updates service API and documentation
+  * DetectFaces and IndexFaces operations now return an estimate of the age of the face as an age range.
+
+SDK Features
+---
+* `aws/endpoints`: Add option to resolve unknown endpoints (#1074)
+Release v1.6.19 (2017-02-08)
+===
+
+Service Client Updates
+---
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/glacier`: Updates service examples
+	* Doc Update
+* `service/lexruntimeservice`: Adds new service
+	* Preview release
+
+SDK Bug Fixes
+---
+* `private/protocol/json`: Fixes json to throw an error if a float number is (+/-)Inf and NaN (#1068)
+* `private/model/api`: Fix documentation error listing (#1067)
+
+SDK Features
+---
+* `private/model`: Add service response error code generation (#1061)
+
+Release v1.6.18 (2017-01-27)
+===
+
+Service Client Updates
+---
+* `service/clouddirectory`: Adds new service
+  * Amazon Cloud Directory is a highly scalable, high performance, multi-tenant directory service in the cloud. Its web-based directories make it easy for you to organize and manage application resources such as users, groups, locations, devices, policies, and the rich relationships between them.
+* `service/codedeploy`: Updates service API, documentation, and paginators
+  * This release of AWS CodeDeploy introduces support for blue/green deployments. In a blue/green deployment, the current set of instances in a deployment group is replaced by new instances that have the latest application revision installed on them. After traffic is rerouted behind a load balancer to the replacement instances, the original instances can be terminated automatically or kept running for other uses.
+* `service/ec2`: Updates service API and documentation
+  * Adds instance health check functionality to replace unhealthy EC2 Spot fleet instances with fresh ones.
+* `service/rds`: Updates service API and documentation
+  * Snapshot Engine Version Upgrade
+
+Release v1.6.17 (2017-01-25)
+===
+
+Service Client Updates
+---
+* `service/elbv2`: Updates service API, documentation, and paginators
+  * Application Load Balancers now support native Internet Protocol version 6 (IPv6) in an Amazon Virtual Private Cloud (VPC). With this ability, clients can now connect to the Application Load Balancer in a dual-stack mode via either IPv4 or IPv6.
+* `service/rds`: Updates service API and documentation
+  * Cross Region Read Replica Copying (CreateDBInstanceReadReplica)
+
+Release v1.6.16 (2017-01-24)
+===
+
+Service Client Updates
+---
+* `service/codebuild`: Updates service documentation and paginators
+  * Documentation updates
+* `service/codecommit`: Updates service API, documentation, and paginators
+  * AWS CodeCommit now includes the option to view the differences between a commit and its parent commit from within the console. You can view the differences inline (Unified view) or side by side (Split view). To view information about the differences between a commit and something other than its parent, you can use the AWS CLI and the get-differences and get-blob commands, or you can use the GetDifferences and GetBlob APIs.
+* `service/ecs`: Updates service API and documentation
+  * Amazon ECS now supports a state for container instances that can be used to drain a container instance in preparation for maintenance or cluster scale down.
+
+Release v1.6.15 (2017-01-20)
+===
+
+Service Client Updates
+---
+* `service/acm`: Updates service API, documentation, and paginators
+  * Update for AWS Certificate Manager: Updated response elements for DescribeCertificate API in support of managed renewal
+* `service/health`: Updates service documentation
+
+Release v1.6.14 (2017-01-19)
+===
+
+Service Client Updates
+---
+* `service/ec2`: Updates service API, documentation, and paginators
+  * Amazon EC2 Spot instances now support dedicated tenancy, providing the ability to run Spot instances single-tenant manner on physically isolated hardware within a VPC to satisfy security, privacy, or other compliance requirements. Dedicated Spot instances can be requested using RequestSpotInstances and RequestSpotFleet.
+
+Release v1.6.13 (2017-01-18)
+===
+
+Service Client Updates
+---
+* `service/rds`: Updates service API, documentation, and paginators
+
+Release v1.6.12 (2017-01-17)
+===
+
+Service Client Updates
+---
+* `service/dynamodb`: Updates service API, documentation, and paginators
+  * Tagging Support for Amazon DynamoDB Tables and Indexes
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/glacier`: Updates service API, paginators, and examples
+  * Doc-only Update for Glacier: Added code snippets
+* `service/polly`: Updates service documentation and examples
+  * Doc-only update for Amazon Polly -- added snippets
+* `service/rekognition`: Updates service documentation and paginators
+  * Added code samples to Rekognition reference topics.
+* `service/route53`: Updates service API and paginators
+  * Add ca-central-1 and eu-west-2 enum values to CloudWatchRegion enum
+
+Release v1.6.11 (2017-01-16)
+===
+
+Service Client Updates
+---
+* `service/configservice`: Updates service API, documentation, and paginators
+* `service/costandusagereportservice`: Adds new service
+  * The AWS Cost and Usage Report Service API allows you to enable and disable the Cost & Usage report, as well as modify the report name, the data granularity, and the delivery preferences.
+* `service/dynamodb`: Updates service API, documentation, and examples
+  * Snippets for the DynamoDB API.
+* `service/elasticache`: Updates service API, documentation, and examples
+  * Adds new code examples.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+
+Release v1.6.10 (2017-01-04)
+===
+
+Service Client Updates
+---
+* `service/configservice`: Updates service API and documentation
+  * AWSConfig is planning to add support for OversizedConfigurationItemChangeNotification message type in putConfigRule. After this release customers can use/write rules based on OversizedConfigurationItemChangeNotification mesage type.
+* `service/efs`: Updates service API, documentation, and examples
+  * Doc-only Update for EFS: Added code snippets
+* `service/iam`: Updates service documentation and examples
+* `service/lambda`: Updates service documentation and examples
+  * Doc only updates for Lambda: Added code snippets
+* `service/marketplacecommerceanalytics`: Updates service API and documentation
+  * Added support for data set disbursed_amount_by_instance_hours, with historical data available starting 2012-09-04. New data is published to this data set every 30 days.
+* `service/rds`: Updates service documentation
+  * Updated documentation for CopyDBSnapshot.
+* `service/rekognition`: Updates service documentation and examples
+  * Doc-only Update for Rekognition: Added code snippets
+* `service/snowball`: Updates service examples
+* `service/dynamodbstreams`: Updates service API and examples
+  * Doc-only Update for DynamoDB Streams:  Added code snippets
+
+SDK Feature
+---
+* `private/model/api`: Increasing the readability of code generated files. (#1024)
+Release v1.6.9 (2016-12-30)
+===
+
+Service Client Updates
+---
+* `service/codedeploy`: Updates service API and documentation
+  * CodeDeploy will support Iam Session Arns in addition to Iam User Arns for on premise host authentication.
+* `service/ecs`: Updates service API and documentation
+  * Amazon EC2 Container Service (ECS) now supports the ability to customize the placement of tasks on container instances.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+
+Release v1.6.8 (2016-12-22)
+===
+
+Service Client Updates
+---
+* `service/apigateway`: Updates service API and documentation
+  * Amazon API Gateway is adding support for generating SDKs in more languages. This update introduces two new operations used to dynamically discover these SDK types and what configuration each type accepts.
+* `service/directoryservice`: Updates service documentation
+  * Added code snippets for the DS SDKs
+* `service/elasticbeanstalk`: Updates service API and documentation
+* `service/iam`: Updates service API and documentation
+  * Adds service-specific credentials to IAM service to make it easier to onboard CodeCommit customers.  These are username/password credentials that work with a single service.
+* `service/kms`: Updates service API, documentation, and examples
+  * Update docs and add SDK examples
+
+Release v1.6.7 (2016-12-22)
+===
+
+Service Client Updates
+---
+* `service/ecr`: Updates service API and documentation
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/rds`: Updates service API and documentation
+  * Cross Region Encrypted Snapshot Copying (CopyDBSnapshot)
+
+Release v1.6.6 (2016-12-20)
+===
+
+Service Client Updates
+---
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/firehose`: Updates service API, documentation, and examples
+  * Processing feature enables users to process and modify records before Amazon Firehose delivers them to destinations.
+* `service/route53`: Updates service API and documentation
+  * Enum updates for eu-west-2 and ca-central-1
+* `service/storagegateway`: Updates service API, documentation, and examples
+  * File gateway is a new mode in the AWS Storage Gateway that support a file interface into S3, alongside the current block-based volume and VTL storage. File gateway combines a service and virtual software appliance, enabling you to store and retrieve objects in Amazon S3 using industry standard file protocols such as NFS. The software appliance, or gateway, is deployed into your on-premises environment as a virtual machine (VM) running on VMware ESXi. The gateway provides access to objects in S3 as files on a Network File System (NFS) mount point.
+
+Release v1.6.5 (2016-12-19)
+===
+
+Service Client Updates
+---
+* `service/cloudformation`: Updates service documentation
+  * Minor doc update for CloudFormation.
+* `service/cloudtrail`: Updates service paginators
+* `service/cognitoidentity`: Updates service API and documentation
+  * We are adding Groups to Cognito user pools. Developers can perform CRUD operations on groups, add and remove users from groups, list users in groups, etc. We are adding fine-grained role-based access control for Cognito identity pools. Developers can configure an identity pool to get the IAM role from an authenticated user's token, or they can configure rules that will map a user to a different role
+* `service/applicationdiscoveryservice`: Updates service API and documentation
+  * Adds new APIs to group discovered servers into Applications with get summary and neighbors. Includes additional filters for ListConfigurations and DescribeAgents API.
+* `service/inspector`: Updates service API, documentation, and examples
+  * Doc-only Update for Inspector: Adding SDK code snippets for Inspector
+* `service/sqs`: Updates service documentation
+
+SDK Bug Fixes
+---
+* `aws/request`: Add PriorRequestNotComplete to throttle retry codes (#1011)
+  * Fixes: Not retrying when PriorRequestNotComplete #1009
+
+SDK Feature
+---
+* `private/model/api`: Adds crosslinking to service documentation (#1010)
+
 Release v1.6.4 (2016-12-15)
 ===
 

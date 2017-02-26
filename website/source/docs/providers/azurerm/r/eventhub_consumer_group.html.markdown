@@ -40,12 +40,12 @@ resource "azurerm_eventhub" "test" {
 }
 
 resource "azurerm_eventhub_consumer_group" "test" {
-    name = "acceptanceTestEventHubConsumerGroup"
-    namespace_name = "${azurerm_eventhub_namespace.test.name}"
-    eventhub_name = "${azurerm_eventhub.test.name}"
+    name                = "acceptanceTestEventHubConsumerGroup"
+    namespace_name      = "${azurerm_eventhub_namespace.test.name}"
+    eventhub_name       = "${azurerm_eventhub.test.name}"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "${azurerm_resource_group.test.location}"
-    user_metadata = "some-meta-data"
+    location            = "${azurerm_resource_group.test.location}"
+    user_metadata       = "some-meta-data"
 }
 ```
 
@@ -56,6 +56,8 @@ The following arguments are supported:
 * `name` - (Required) Specifies the name of the EventHub Consumer Group resource. Changing this forces a new resource to be created.
 
 * `namespace_name` - (Required) Specifies the name of the grandparent EventHub Namespace. Changing this forces a new resource to be created.
+
+* `eventhub_name` - (Required) Specifies the name of the EventHub. Changing this forces a new resource to be created.
 
 * `resource_group_name` - (Required) The name of the resource group in which the EventHub Consumer Group's grandparent Namespace exists. Changing this forces a new resource to be created.
 

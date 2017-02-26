@@ -101,6 +101,7 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 					}
 					return strings.ToLower(val.(string))
 				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
 			},
 
 			"cluster_parameter_group_name": {
@@ -244,6 +245,11 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Optional: true,
 			},
 
+			"owner_account": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -271,6 +277,10 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 			NodeType:                         aws.String(d.Get("node_type").(string)),
 			PubliclyAccessible:               aws.Bool(d.Get("publicly_accessible").(bool)),
 			AutomatedSnapshotRetentionPeriod: aws.Int64(int64(d.Get("automated_snapshot_retention_period").(int))),
+		}
+
+		if v, ok := d.GetOk("owner_account"); ok {
+			restoreOpts.OwnerAccount = aws.String(v.(string))
 		}
 
 		if v, ok := d.GetOk("snapshot_cluster_identifier"); ok {
@@ -416,7 +426,7 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		Pending:    []string{"creating", "backing-up", "modifying", "restoring"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsRedshiftClusterStateRefreshFunc(d, meta),
-		Timeout:    40 * time.Minute,
+		Timeout:    75 * time.Minute,
 		MinTimeout: 10 * time.Second,
 	}
 
@@ -594,8 +604,8 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 		requestUpdate = true
 	}
 
-	if d.HasChange("vpc_security_group_ips") {
-		req.VpcSecurityGroupIds = expandStringList(d.Get("vpc_security_group_ips").(*schema.Set).List())
+	if d.HasChange("vpc_security_group_ids") {
+		req.VpcSecurityGroupIds = expandStringList(d.Get("vpc_security_group_ids").(*schema.Set).List())
 		requestUpdate = true
 	}
 

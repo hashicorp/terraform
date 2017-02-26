@@ -39,6 +39,7 @@ const opAbortEnvironmentUpdate = "AbortEnvironmentUpdate"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/AbortEnvironmentUpdate
 func (c *ElasticBeanstalk) AbortEnvironmentUpdateRequest(input *AbortEnvironmentUpdateInput) (req *request.Request, output *AbortEnvironmentUpdateOutput) {
 	op := &request.Operation{
 		Name:       opAbortEnvironmentUpdate,
@@ -50,11 +51,10 @@ func (c *ElasticBeanstalk) AbortEnvironmentUpdateRequest(input *AbortEnvironment
 		input = &AbortEnvironmentUpdateInput{}
 	}
 
+	output = &AbortEnvironmentUpdateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AbortEnvironmentUpdateOutput{}
-	req.Data = output
 	return
 }
 
@@ -71,10 +71,11 @@ func (c *ElasticBeanstalk) AbortEnvironmentUpdateRequest(input *AbortEnvironment
 // API operation AbortEnvironmentUpdate for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/AbortEnvironmentUpdate
 func (c *ElasticBeanstalk) AbortEnvironmentUpdate(input *AbortEnvironmentUpdateInput) (*AbortEnvironmentUpdateOutput, error) {
 	req, out := c.AbortEnvironmentUpdateRequest(input)
 	err := req.Send()
@@ -107,6 +108,7 @@ const opApplyEnvironmentManagedAction = "ApplyEnvironmentManagedAction"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplyEnvironmentManagedAction
 func (c *ElasticBeanstalk) ApplyEnvironmentManagedActionRequest(input *ApplyEnvironmentManagedActionInput) (req *request.Request, output *ApplyEnvironmentManagedActionOutput) {
 	op := &request.Operation{
 		Name:       opApplyEnvironmentManagedAction,
@@ -118,9 +120,8 @@ func (c *ElasticBeanstalk) ApplyEnvironmentManagedActionRequest(input *ApplyEnvi
 		input = &ApplyEnvironmentManagedActionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApplyEnvironmentManagedActionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -138,12 +139,13 @@ func (c *ElasticBeanstalk) ApplyEnvironmentManagedActionRequest(input *ApplyEnvi
 // API operation ApplyEnvironmentManagedAction for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A generic service exception has occurred.
 //
-//   * ManagedActionInvalidStateException
+//   * ErrCodeManagedActionInvalidStateException "ManagedActionInvalidStateException"
 //   Cannot modify the managed action in its current state.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplyEnvironmentManagedAction
 func (c *ElasticBeanstalk) ApplyEnvironmentManagedAction(input *ApplyEnvironmentManagedActionInput) (*ApplyEnvironmentManagedActionOutput, error) {
 	req, out := c.ApplyEnvironmentManagedActionRequest(input)
 	err := req.Send()
@@ -176,6 +178,7 @@ const opCheckDNSAvailability = "CheckDNSAvailability"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CheckDNSAvailability
 func (c *ElasticBeanstalk) CheckDNSAvailabilityRequest(input *CheckDNSAvailabilityInput) (req *request.Request, output *CheckDNSAvailabilityOutput) {
 	op := &request.Operation{
 		Name:       opCheckDNSAvailability,
@@ -187,9 +190,8 @@ func (c *ElasticBeanstalk) CheckDNSAvailabilityRequest(input *CheckDNSAvailabili
 		input = &CheckDNSAvailabilityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CheckDNSAvailabilityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -203,6 +205,7 @@ func (c *ElasticBeanstalk) CheckDNSAvailabilityRequest(input *CheckDNSAvailabili
 //
 // See the AWS API reference guide for AWS Elastic Beanstalk's
 // API operation CheckDNSAvailability for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CheckDNSAvailability
 func (c *ElasticBeanstalk) CheckDNSAvailability(input *CheckDNSAvailabilityInput) (*CheckDNSAvailabilityOutput, error) {
 	req, out := c.CheckDNSAvailabilityRequest(input)
 	err := req.Send()
@@ -235,6 +238,7 @@ const opComposeEnvironments = "ComposeEnvironments"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ComposeEnvironments
 func (c *ElasticBeanstalk) ComposeEnvironmentsRequest(input *ComposeEnvironmentsInput) (req *request.Request, output *EnvironmentDescriptionsMessage) {
 	op := &request.Operation{
 		Name:       opComposeEnvironments,
@@ -246,9 +250,8 @@ func (c *ElasticBeanstalk) ComposeEnvironmentsRequest(input *ComposeEnvironments
 		input = &ComposeEnvironmentsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnvironmentDescriptionsMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -270,13 +273,14 @@ func (c *ElasticBeanstalk) ComposeEnvironmentsRequest(input *ComposeEnvironments
 // API operation ComposeEnvironments for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyEnvironmentsException
+//   * ErrCodeTooManyEnvironmentsException "TooManyEnvironmentsException"
 //   The specified account has reached its limit of environments.
 //
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ComposeEnvironments
 func (c *ElasticBeanstalk) ComposeEnvironments(input *ComposeEnvironmentsInput) (*EnvironmentDescriptionsMessage, error) {
 	req, out := c.ComposeEnvironmentsRequest(input)
 	err := req.Send()
@@ -309,6 +313,7 @@ const opCreateApplication = "CreateApplication"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateApplication
 func (c *ElasticBeanstalk) CreateApplicationRequest(input *CreateApplicationInput) (req *request.Request, output *ApplicationDescriptionMessage) {
 	op := &request.Operation{
 		Name:       opCreateApplication,
@@ -320,9 +325,8 @@ func (c *ElasticBeanstalk) CreateApplicationRequest(input *CreateApplicationInpu
 		input = &CreateApplicationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApplicationDescriptionMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -339,9 +343,10 @@ func (c *ElasticBeanstalk) CreateApplicationRequest(input *CreateApplicationInpu
 // API operation CreateApplication for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyApplicationsException
+//   * ErrCodeTooManyApplicationsException "TooManyApplicationsException"
 //   The specified account has reached its limit of applications.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateApplication
 func (c *ElasticBeanstalk) CreateApplication(input *CreateApplicationInput) (*ApplicationDescriptionMessage, error) {
 	req, out := c.CreateApplicationRequest(input)
 	err := req.Send()
@@ -374,6 +379,7 @@ const opCreateApplicationVersion = "CreateApplicationVersion"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateApplicationVersion
 func (c *ElasticBeanstalk) CreateApplicationVersionRequest(input *CreateApplicationVersionInput) (req *request.Request, output *ApplicationVersionDescriptionMessage) {
 	op := &request.Operation{
 		Name:       opCreateApplicationVersion,
@@ -385,9 +391,8 @@ func (c *ElasticBeanstalk) CreateApplicationVersionRequest(input *CreateApplicat
 		input = &CreateApplicationVersionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApplicationVersionDescriptionMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -419,17 +424,17 @@ func (c *ElasticBeanstalk) CreateApplicationVersionRequest(input *CreateApplicat
 // API operation CreateApplicationVersion for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyApplicationsException
+//   * ErrCodeTooManyApplicationsException "TooManyApplicationsException"
 //   The specified account has reached its limit of applications.
 //
-//   * TooManyApplicationVersionsException
+//   * ErrCodeTooManyApplicationVersionsException "TooManyApplicationVersionsException"
 //   The specified account has reached its limit of application versions.
 //
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
-//   * S3LocationNotInServiceRegionException
+//   * ErrCodeS3LocationNotInServiceRegionException "S3LocationNotInServiceRegionException"
 //   The specified S3 bucket does not belong to the S3 region in which the service
 //   is running. The following regions are supported:
 //
@@ -439,9 +444,10 @@ func (c *ElasticBeanstalk) CreateApplicationVersionRequest(input *CreateApplicat
 //
 //      * DUB/eu-west-1
 //
-//   * CodeBuildNotInServiceRegionException
+//   * ErrCodeCodeBuildNotInServiceRegionException "CodeBuildNotInServiceRegionException"
 //   AWS CodeBuild is not available in the specified region.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateApplicationVersion
 func (c *ElasticBeanstalk) CreateApplicationVersion(input *CreateApplicationVersionInput) (*ApplicationVersionDescriptionMessage, error) {
 	req, out := c.CreateApplicationVersionRequest(input)
 	err := req.Send()
@@ -474,6 +480,7 @@ const opCreateConfigurationTemplate = "CreateConfigurationTemplate"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateConfigurationTemplate
 func (c *ElasticBeanstalk) CreateConfigurationTemplateRequest(input *CreateConfigurationTemplateInput) (req *request.Request, output *ConfigurationSettingsDescription) {
 	op := &request.Operation{
 		Name:       opCreateConfigurationTemplate,
@@ -485,9 +492,8 @@ func (c *ElasticBeanstalk) CreateConfigurationTemplateRequest(input *CreateConfi
 		input = &CreateConfigurationTemplateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ConfigurationSettingsDescription{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -513,16 +519,17 @@ func (c *ElasticBeanstalk) CreateConfigurationTemplateRequest(input *CreateConfi
 // API operation CreateConfigurationTemplate for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
-//   * TooManyBucketsException
+//   * ErrCodeTooManyBucketsException "TooManyBucketsException"
 //   The specified account has reached its limit of Amazon S3 buckets.
 //
-//   * TooManyConfigurationTemplatesException
+//   * ErrCodeTooManyConfigurationTemplatesException "TooManyConfigurationTemplatesException"
 //   The specified account has reached its limit of configuration templates.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateConfigurationTemplate
 func (c *ElasticBeanstalk) CreateConfigurationTemplate(input *CreateConfigurationTemplateInput) (*ConfigurationSettingsDescription, error) {
 	req, out := c.CreateConfigurationTemplateRequest(input)
 	err := req.Send()
@@ -555,6 +562,7 @@ const opCreateEnvironment = "CreateEnvironment"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateEnvironment
 func (c *ElasticBeanstalk) CreateEnvironmentRequest(input *CreateEnvironmentInput) (req *request.Request, output *EnvironmentDescription) {
 	op := &request.Operation{
 		Name:       opCreateEnvironment,
@@ -566,9 +574,8 @@ func (c *ElasticBeanstalk) CreateEnvironmentRequest(input *CreateEnvironmentInpu
 		input = &CreateEnvironmentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnvironmentDescription{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -585,13 +592,14 @@ func (c *ElasticBeanstalk) CreateEnvironmentRequest(input *CreateEnvironmentInpu
 // API operation CreateEnvironment for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyEnvironmentsException
+//   * ErrCodeTooManyEnvironmentsException "TooManyEnvironmentsException"
 //   The specified account has reached its limit of environments.
 //
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateEnvironment
 func (c *ElasticBeanstalk) CreateEnvironment(input *CreateEnvironmentInput) (*EnvironmentDescription, error) {
 	req, out := c.CreateEnvironmentRequest(input)
 	err := req.Send()
@@ -624,6 +632,7 @@ const opCreateStorageLocation = "CreateStorageLocation"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateStorageLocation
 func (c *ElasticBeanstalk) CreateStorageLocationRequest(input *CreateStorageLocationInput) (req *request.Request, output *CreateStorageLocationOutput) {
 	op := &request.Operation{
 		Name:       opCreateStorageLocation,
@@ -635,9 +644,8 @@ func (c *ElasticBeanstalk) CreateStorageLocationRequest(input *CreateStorageLoca
 		input = &CreateStorageLocationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateStorageLocationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -655,16 +663,17 @@ func (c *ElasticBeanstalk) CreateStorageLocationRequest(input *CreateStorageLoca
 // API operation CreateStorageLocation for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyBucketsException
+//   * ErrCodeTooManyBucketsException "TooManyBucketsException"
 //   The specified account has reached its limit of Amazon S3 buckets.
 //
-//   * S3SubscriptionRequiredException
+//   * ErrCodeS3SubscriptionRequiredException "S3SubscriptionRequiredException"
 //   The specified account does not have a subscription to Amazon S3.
 //
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateStorageLocation
 func (c *ElasticBeanstalk) CreateStorageLocation(input *CreateStorageLocationInput) (*CreateStorageLocationOutput, error) {
 	req, out := c.CreateStorageLocationRequest(input)
 	err := req.Send()
@@ -697,6 +706,7 @@ const opDeleteApplication = "DeleteApplication"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteApplication
 func (c *ElasticBeanstalk) DeleteApplicationRequest(input *DeleteApplicationInput) (req *request.Request, output *DeleteApplicationOutput) {
 	op := &request.Operation{
 		Name:       opDeleteApplication,
@@ -708,11 +718,10 @@ func (c *ElasticBeanstalk) DeleteApplicationRequest(input *DeleteApplicationInpu
 		input = &DeleteApplicationInput{}
 	}
 
+	output = &DeleteApplicationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteApplicationOutput{}
-	req.Data = output
 	return
 }
 
@@ -732,10 +741,11 @@ func (c *ElasticBeanstalk) DeleteApplicationRequest(input *DeleteApplicationInpu
 // API operation DeleteApplication for usage and error information.
 //
 // Returned Error Codes:
-//   * OperationInProgressFailure
+//   * ErrCodeOperationInProgressException "OperationInProgressFailure"
 //   Unable to perform the specified operation because another operation that
 //   effects an element in this activity is already in progress.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteApplication
 func (c *ElasticBeanstalk) DeleteApplication(input *DeleteApplicationInput) (*DeleteApplicationOutput, error) {
 	req, out := c.DeleteApplicationRequest(input)
 	err := req.Send()
@@ -768,6 +778,7 @@ const opDeleteApplicationVersion = "DeleteApplicationVersion"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteApplicationVersion
 func (c *ElasticBeanstalk) DeleteApplicationVersionRequest(input *DeleteApplicationVersionInput) (req *request.Request, output *DeleteApplicationVersionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteApplicationVersion,
@@ -779,11 +790,10 @@ func (c *ElasticBeanstalk) DeleteApplicationVersionRequest(input *DeleteApplicat
 		input = &DeleteApplicationVersionInput{}
 	}
 
+	output = &DeleteApplicationVersionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteApplicationVersionOutput{}
-	req.Data = output
 	return
 }
 
@@ -802,19 +812,19 @@ func (c *ElasticBeanstalk) DeleteApplicationVersionRequest(input *DeleteApplicat
 // API operation DeleteApplicationVersion for usage and error information.
 //
 // Returned Error Codes:
-//   * SourceBundleDeletionFailure
+//   * ErrCodeSourceBundleDeletionException "SourceBundleDeletionFailure"
 //   Unable to delete the Amazon S3 source bundle associated with the application
 //   version. The application version was deleted successfully.
 //
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
-//   * OperationInProgressFailure
+//   * ErrCodeOperationInProgressException "OperationInProgressFailure"
 //   Unable to perform the specified operation because another operation that
 //   effects an element in this activity is already in progress.
 //
-//   * S3LocationNotInServiceRegionException
+//   * ErrCodeS3LocationNotInServiceRegionException "S3LocationNotInServiceRegionException"
 //   The specified S3 bucket does not belong to the S3 region in which the service
 //   is running. The following regions are supported:
 //
@@ -824,6 +834,7 @@ func (c *ElasticBeanstalk) DeleteApplicationVersionRequest(input *DeleteApplicat
 //
 //      * DUB/eu-west-1
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteApplicationVersion
 func (c *ElasticBeanstalk) DeleteApplicationVersion(input *DeleteApplicationVersionInput) (*DeleteApplicationVersionOutput, error) {
 	req, out := c.DeleteApplicationVersionRequest(input)
 	err := req.Send()
@@ -856,6 +867,7 @@ const opDeleteConfigurationTemplate = "DeleteConfigurationTemplate"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteConfigurationTemplate
 func (c *ElasticBeanstalk) DeleteConfigurationTemplateRequest(input *DeleteConfigurationTemplateInput) (req *request.Request, output *DeleteConfigurationTemplateOutput) {
 	op := &request.Operation{
 		Name:       opDeleteConfigurationTemplate,
@@ -867,11 +879,10 @@ func (c *ElasticBeanstalk) DeleteConfigurationTemplateRequest(input *DeleteConfi
 		input = &DeleteConfigurationTemplateInput{}
 	}
 
+	output = &DeleteConfigurationTemplateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteConfigurationTemplateOutput{}
-	req.Data = output
 	return
 }
 
@@ -891,10 +902,11 @@ func (c *ElasticBeanstalk) DeleteConfigurationTemplateRequest(input *DeleteConfi
 // API operation DeleteConfigurationTemplate for usage and error information.
 //
 // Returned Error Codes:
-//   * OperationInProgressFailure
+//   * ErrCodeOperationInProgressException "OperationInProgressFailure"
 //   Unable to perform the specified operation because another operation that
 //   effects an element in this activity is already in progress.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteConfigurationTemplate
 func (c *ElasticBeanstalk) DeleteConfigurationTemplate(input *DeleteConfigurationTemplateInput) (*DeleteConfigurationTemplateOutput, error) {
 	req, out := c.DeleteConfigurationTemplateRequest(input)
 	err := req.Send()
@@ -927,6 +939,7 @@ const opDeleteEnvironmentConfiguration = "DeleteEnvironmentConfiguration"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteEnvironmentConfiguration
 func (c *ElasticBeanstalk) DeleteEnvironmentConfigurationRequest(input *DeleteEnvironmentConfigurationInput) (req *request.Request, output *DeleteEnvironmentConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opDeleteEnvironmentConfiguration,
@@ -938,11 +951,10 @@ func (c *ElasticBeanstalk) DeleteEnvironmentConfigurationRequest(input *DeleteEn
 		input = &DeleteEnvironmentConfigurationInput{}
 	}
 
+	output = &DeleteEnvironmentConfigurationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteEnvironmentConfigurationOutput{}
-	req.Data = output
 	return
 }
 
@@ -963,6 +975,7 @@ func (c *ElasticBeanstalk) DeleteEnvironmentConfigurationRequest(input *DeleteEn
 //
 // See the AWS API reference guide for AWS Elastic Beanstalk's
 // API operation DeleteEnvironmentConfiguration for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteEnvironmentConfiguration
 func (c *ElasticBeanstalk) DeleteEnvironmentConfiguration(input *DeleteEnvironmentConfigurationInput) (*DeleteEnvironmentConfigurationOutput, error) {
 	req, out := c.DeleteEnvironmentConfigurationRequest(input)
 	err := req.Send()
@@ -995,6 +1008,7 @@ const opDescribeApplicationVersions = "DescribeApplicationVersions"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeApplicationVersions
 func (c *ElasticBeanstalk) DescribeApplicationVersionsRequest(input *DescribeApplicationVersionsInput) (req *request.Request, output *DescribeApplicationVersionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeApplicationVersions,
@@ -1006,9 +1020,8 @@ func (c *ElasticBeanstalk) DescribeApplicationVersionsRequest(input *DescribeApp
 		input = &DescribeApplicationVersionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeApplicationVersionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1022,6 +1035,7 @@ func (c *ElasticBeanstalk) DescribeApplicationVersionsRequest(input *DescribeApp
 //
 // See the AWS API reference guide for AWS Elastic Beanstalk's
 // API operation DescribeApplicationVersions for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeApplicationVersions
 func (c *ElasticBeanstalk) DescribeApplicationVersions(input *DescribeApplicationVersionsInput) (*DescribeApplicationVersionsOutput, error) {
 	req, out := c.DescribeApplicationVersionsRequest(input)
 	err := req.Send()
@@ -1054,6 +1068,7 @@ const opDescribeApplications = "DescribeApplications"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeApplications
 func (c *ElasticBeanstalk) DescribeApplicationsRequest(input *DescribeApplicationsInput) (req *request.Request, output *DescribeApplicationsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeApplications,
@@ -1065,9 +1080,8 @@ func (c *ElasticBeanstalk) DescribeApplicationsRequest(input *DescribeApplicatio
 		input = &DescribeApplicationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeApplicationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1081,6 +1095,7 @@ func (c *ElasticBeanstalk) DescribeApplicationsRequest(input *DescribeApplicatio
 //
 // See the AWS API reference guide for AWS Elastic Beanstalk's
 // API operation DescribeApplications for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeApplications
 func (c *ElasticBeanstalk) DescribeApplications(input *DescribeApplicationsInput) (*DescribeApplicationsOutput, error) {
 	req, out := c.DescribeApplicationsRequest(input)
 	err := req.Send()
@@ -1113,6 +1128,7 @@ const opDescribeConfigurationOptions = "DescribeConfigurationOptions"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeConfigurationOptions
 func (c *ElasticBeanstalk) DescribeConfigurationOptionsRequest(input *DescribeConfigurationOptionsInput) (req *request.Request, output *DescribeConfigurationOptionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeConfigurationOptions,
@@ -1124,9 +1140,8 @@ func (c *ElasticBeanstalk) DescribeConfigurationOptionsRequest(input *DescribeCo
 		input = &DescribeConfigurationOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeConfigurationOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1146,9 +1161,10 @@ func (c *ElasticBeanstalk) DescribeConfigurationOptionsRequest(input *DescribeCo
 // API operation DescribeConfigurationOptions for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyBucketsException
+//   * ErrCodeTooManyBucketsException "TooManyBucketsException"
 //   The specified account has reached its limit of Amazon S3 buckets.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeConfigurationOptions
 func (c *ElasticBeanstalk) DescribeConfigurationOptions(input *DescribeConfigurationOptionsInput) (*DescribeConfigurationOptionsOutput, error) {
 	req, out := c.DescribeConfigurationOptionsRequest(input)
 	err := req.Send()
@@ -1181,6 +1197,7 @@ const opDescribeConfigurationSettings = "DescribeConfigurationSettings"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeConfigurationSettings
 func (c *ElasticBeanstalk) DescribeConfigurationSettingsRequest(input *DescribeConfigurationSettingsInput) (req *request.Request, output *DescribeConfigurationSettingsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeConfigurationSettings,
@@ -1192,9 +1209,8 @@ func (c *ElasticBeanstalk) DescribeConfigurationSettingsRequest(input *DescribeC
 		input = &DescribeConfigurationSettingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeConfigurationSettingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1222,9 +1238,10 @@ func (c *ElasticBeanstalk) DescribeConfigurationSettingsRequest(input *DescribeC
 // API operation DescribeConfigurationSettings for usage and error information.
 //
 // Returned Error Codes:
-//   * TooManyBucketsException
+//   * ErrCodeTooManyBucketsException "TooManyBucketsException"
 //   The specified account has reached its limit of Amazon S3 buckets.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeConfigurationSettings
 func (c *ElasticBeanstalk) DescribeConfigurationSettings(input *DescribeConfigurationSettingsInput) (*DescribeConfigurationSettingsOutput, error) {
 	req, out := c.DescribeConfigurationSettingsRequest(input)
 	err := req.Send()
@@ -1257,6 +1274,7 @@ const opDescribeEnvironmentHealth = "DescribeEnvironmentHealth"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentHealth
 func (c *ElasticBeanstalk) DescribeEnvironmentHealthRequest(input *DescribeEnvironmentHealthInput) (req *request.Request, output *DescribeEnvironmentHealthOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEnvironmentHealth,
@@ -1268,9 +1286,8 @@ func (c *ElasticBeanstalk) DescribeEnvironmentHealthRequest(input *DescribeEnvir
 		input = &DescribeEnvironmentHealthInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEnvironmentHealthOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1288,13 +1305,14 @@ func (c *ElasticBeanstalk) DescribeEnvironmentHealthRequest(input *DescribeEnvir
 // API operation DescribeEnvironmentHealth for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   One or more input parameters is not valid. Please correct the input parameters
 //   and try the operation again.
 //
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A generic service exception has occurred.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentHealth
 func (c *ElasticBeanstalk) DescribeEnvironmentHealth(input *DescribeEnvironmentHealthInput) (*DescribeEnvironmentHealthOutput, error) {
 	req, out := c.DescribeEnvironmentHealthRequest(input)
 	err := req.Send()
@@ -1327,6 +1345,7 @@ const opDescribeEnvironmentManagedActionHistory = "DescribeEnvironmentManagedAct
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentManagedActionHistory
 func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionHistoryRequest(input *DescribeEnvironmentManagedActionHistoryInput) (req *request.Request, output *DescribeEnvironmentManagedActionHistoryOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEnvironmentManagedActionHistory,
@@ -1338,9 +1357,8 @@ func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionHistoryRequest(input 
 		input = &DescribeEnvironmentManagedActionHistoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEnvironmentManagedActionHistoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1356,9 +1374,10 @@ func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionHistoryRequest(input 
 // API operation DescribeEnvironmentManagedActionHistory for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A generic service exception has occurred.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentManagedActionHistory
 func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionHistory(input *DescribeEnvironmentManagedActionHistoryInput) (*DescribeEnvironmentManagedActionHistoryOutput, error) {
 	req, out := c.DescribeEnvironmentManagedActionHistoryRequest(input)
 	err := req.Send()
@@ -1391,6 +1410,7 @@ const opDescribeEnvironmentManagedActions = "DescribeEnvironmentManagedActions"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentManagedActions
 func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionsRequest(input *DescribeEnvironmentManagedActionsInput) (req *request.Request, output *DescribeEnvironmentManagedActionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEnvironmentManagedActions,
@@ -1402,9 +1422,8 @@ func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionsRequest(input *Descr
 		input = &DescribeEnvironmentManagedActionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEnvironmentManagedActionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1420,9 +1439,10 @@ func (c *ElasticBeanstalk) DescribeEnvironmentManagedActionsRequest(input *Descr
 // API operation DescribeEnvironmentManagedActions for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A generic service exception has occurred.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentManagedActions
 func (c *ElasticBeanstalk) DescribeEnvironmentManagedActions(input *DescribeEnvironmentManagedActionsInput) (*DescribeEnvironmentManagedActionsOutput, error) {
 	req, out := c.DescribeEnvironmentManagedActionsRequest(input)
 	err := req.Send()
@@ -1455,6 +1475,7 @@ const opDescribeEnvironmentResources = "DescribeEnvironmentResources"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentResources
 func (c *ElasticBeanstalk) DescribeEnvironmentResourcesRequest(input *DescribeEnvironmentResourcesInput) (req *request.Request, output *DescribeEnvironmentResourcesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEnvironmentResources,
@@ -1466,9 +1487,8 @@ func (c *ElasticBeanstalk) DescribeEnvironmentResourcesRequest(input *DescribeEn
 		input = &DescribeEnvironmentResourcesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEnvironmentResourcesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1484,10 +1504,11 @@ func (c *ElasticBeanstalk) DescribeEnvironmentResourcesRequest(input *DescribeEn
 // API operation DescribeEnvironmentResources for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentResources
 func (c *ElasticBeanstalk) DescribeEnvironmentResources(input *DescribeEnvironmentResourcesInput) (*DescribeEnvironmentResourcesOutput, error) {
 	req, out := c.DescribeEnvironmentResourcesRequest(input)
 	err := req.Send()
@@ -1520,6 +1541,7 @@ const opDescribeEnvironments = "DescribeEnvironments"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironments
 func (c *ElasticBeanstalk) DescribeEnvironmentsRequest(input *DescribeEnvironmentsInput) (req *request.Request, output *EnvironmentDescriptionsMessage) {
 	op := &request.Operation{
 		Name:       opDescribeEnvironments,
@@ -1531,9 +1553,8 @@ func (c *ElasticBeanstalk) DescribeEnvironmentsRequest(input *DescribeEnvironmen
 		input = &DescribeEnvironmentsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnvironmentDescriptionsMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1547,6 +1568,7 @@ func (c *ElasticBeanstalk) DescribeEnvironmentsRequest(input *DescribeEnvironmen
 //
 // See the AWS API reference guide for AWS Elastic Beanstalk's
 // API operation DescribeEnvironments for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironments
 func (c *ElasticBeanstalk) DescribeEnvironments(input *DescribeEnvironmentsInput) (*EnvironmentDescriptionsMessage, error) {
 	req, out := c.DescribeEnvironmentsRequest(input)
 	err := req.Send()
@@ -1579,6 +1601,7 @@ const opDescribeEvents = "DescribeEvents"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEvents
 func (c *ElasticBeanstalk) DescribeEventsRequest(input *DescribeEventsInput) (req *request.Request, output *DescribeEventsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEvents,
@@ -1596,9 +1619,8 @@ func (c *ElasticBeanstalk) DescribeEventsRequest(input *DescribeEventsInput) (re
 		input = &DescribeEventsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEventsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1614,6 +1636,7 @@ func (c *ElasticBeanstalk) DescribeEventsRequest(input *DescribeEventsInput) (re
 //
 // See the AWS API reference guide for AWS Elastic Beanstalk's
 // API operation DescribeEvents for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEvents
 func (c *ElasticBeanstalk) DescribeEvents(input *DescribeEventsInput) (*DescribeEventsOutput, error) {
 	req, out := c.DescribeEventsRequest(input)
 	err := req.Send()
@@ -1671,6 +1694,7 @@ const opDescribeInstancesHealth = "DescribeInstancesHealth"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeInstancesHealth
 func (c *ElasticBeanstalk) DescribeInstancesHealthRequest(input *DescribeInstancesHealthInput) (req *request.Request, output *DescribeInstancesHealthOutput) {
 	op := &request.Operation{
 		Name:       opDescribeInstancesHealth,
@@ -1682,9 +1706,8 @@ func (c *ElasticBeanstalk) DescribeInstancesHealthRequest(input *DescribeInstanc
 		input = &DescribeInstancesHealthInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstancesHealthOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1701,13 +1724,14 @@ func (c *ElasticBeanstalk) DescribeInstancesHealthRequest(input *DescribeInstanc
 // API operation DescribeInstancesHealth for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   One or more input parameters is not valid. Please correct the input parameters
 //   and try the operation again.
 //
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A generic service exception has occurred.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeInstancesHealth
 func (c *ElasticBeanstalk) DescribeInstancesHealth(input *DescribeInstancesHealthInput) (*DescribeInstancesHealthOutput, error) {
 	req, out := c.DescribeInstancesHealthRequest(input)
 	err := req.Send()
@@ -1740,6 +1764,7 @@ const opListAvailableSolutionStacks = "ListAvailableSolutionStacks"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ListAvailableSolutionStacks
 func (c *ElasticBeanstalk) ListAvailableSolutionStacksRequest(input *ListAvailableSolutionStacksInput) (req *request.Request, output *ListAvailableSolutionStacksOutput) {
 	op := &request.Operation{
 		Name:       opListAvailableSolutionStacks,
@@ -1751,9 +1776,8 @@ func (c *ElasticBeanstalk) ListAvailableSolutionStacksRequest(input *ListAvailab
 		input = &ListAvailableSolutionStacksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListAvailableSolutionStacksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1767,6 +1791,7 @@ func (c *ElasticBeanstalk) ListAvailableSolutionStacksRequest(input *ListAvailab
 //
 // See the AWS API reference guide for AWS Elastic Beanstalk's
 // API operation ListAvailableSolutionStacks for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ListAvailableSolutionStacks
 func (c *ElasticBeanstalk) ListAvailableSolutionStacks(input *ListAvailableSolutionStacksInput) (*ListAvailableSolutionStacksOutput, error) {
 	req, out := c.ListAvailableSolutionStacksRequest(input)
 	err := req.Send()
@@ -1799,6 +1824,7 @@ const opRebuildEnvironment = "RebuildEnvironment"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RebuildEnvironment
 func (c *ElasticBeanstalk) RebuildEnvironmentRequest(input *RebuildEnvironmentInput) (req *request.Request, output *RebuildEnvironmentOutput) {
 	op := &request.Operation{
 		Name:       opRebuildEnvironment,
@@ -1810,11 +1836,10 @@ func (c *ElasticBeanstalk) RebuildEnvironmentRequest(input *RebuildEnvironmentIn
 		input = &RebuildEnvironmentInput{}
 	}
 
+	output = &RebuildEnvironmentOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RebuildEnvironmentOutput{}
-	req.Data = output
 	return
 }
 
@@ -1831,10 +1856,11 @@ func (c *ElasticBeanstalk) RebuildEnvironmentRequest(input *RebuildEnvironmentIn
 // API operation RebuildEnvironment for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RebuildEnvironment
 func (c *ElasticBeanstalk) RebuildEnvironment(input *RebuildEnvironmentInput) (*RebuildEnvironmentOutput, error) {
 	req, out := c.RebuildEnvironmentRequest(input)
 	err := req.Send()
@@ -1867,6 +1893,7 @@ const opRequestEnvironmentInfo = "RequestEnvironmentInfo"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RequestEnvironmentInfo
 func (c *ElasticBeanstalk) RequestEnvironmentInfoRequest(input *RequestEnvironmentInfoInput) (req *request.Request, output *RequestEnvironmentInfoOutput) {
 	op := &request.Operation{
 		Name:       opRequestEnvironmentInfo,
@@ -1878,11 +1905,10 @@ func (c *ElasticBeanstalk) RequestEnvironmentInfoRequest(input *RequestEnvironme
 		input = &RequestEnvironmentInfoInput{}
 	}
 
+	output = &RequestEnvironmentInfoOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RequestEnvironmentInfoOutput{}
-	req.Data = output
 	return
 }
 
@@ -1910,6 +1936,7 @@ func (c *ElasticBeanstalk) RequestEnvironmentInfoRequest(input *RequestEnvironme
 //
 // See the AWS API reference guide for AWS Elastic Beanstalk's
 // API operation RequestEnvironmentInfo for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RequestEnvironmentInfo
 func (c *ElasticBeanstalk) RequestEnvironmentInfo(input *RequestEnvironmentInfoInput) (*RequestEnvironmentInfoOutput, error) {
 	req, out := c.RequestEnvironmentInfoRequest(input)
 	err := req.Send()
@@ -1942,6 +1969,7 @@ const opRestartAppServer = "RestartAppServer"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RestartAppServer
 func (c *ElasticBeanstalk) RestartAppServerRequest(input *RestartAppServerInput) (req *request.Request, output *RestartAppServerOutput) {
 	op := &request.Operation{
 		Name:       opRestartAppServer,
@@ -1953,11 +1981,10 @@ func (c *ElasticBeanstalk) RestartAppServerRequest(input *RestartAppServerInput)
 		input = &RestartAppServerInput{}
 	}
 
+	output = &RestartAppServerOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RestartAppServerOutput{}
-	req.Data = output
 	return
 }
 
@@ -1972,6 +1999,7 @@ func (c *ElasticBeanstalk) RestartAppServerRequest(input *RestartAppServerInput)
 //
 // See the AWS API reference guide for AWS Elastic Beanstalk's
 // API operation RestartAppServer for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RestartAppServer
 func (c *ElasticBeanstalk) RestartAppServer(input *RestartAppServerInput) (*RestartAppServerOutput, error) {
 	req, out := c.RestartAppServerRequest(input)
 	err := req.Send()
@@ -2004,6 +2032,7 @@ const opRetrieveEnvironmentInfo = "RetrieveEnvironmentInfo"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RetrieveEnvironmentInfo
 func (c *ElasticBeanstalk) RetrieveEnvironmentInfoRequest(input *RetrieveEnvironmentInfoInput) (req *request.Request, output *RetrieveEnvironmentInfoOutput) {
 	op := &request.Operation{
 		Name:       opRetrieveEnvironmentInfo,
@@ -2015,9 +2044,8 @@ func (c *ElasticBeanstalk) RetrieveEnvironmentInfoRequest(input *RetrieveEnviron
 		input = &RetrieveEnvironmentInfoInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RetrieveEnvironmentInfoOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2035,6 +2063,7 @@ func (c *ElasticBeanstalk) RetrieveEnvironmentInfoRequest(input *RetrieveEnviron
 //
 // See the AWS API reference guide for AWS Elastic Beanstalk's
 // API operation RetrieveEnvironmentInfo for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RetrieveEnvironmentInfo
 func (c *ElasticBeanstalk) RetrieveEnvironmentInfo(input *RetrieveEnvironmentInfoInput) (*RetrieveEnvironmentInfoOutput, error) {
 	req, out := c.RetrieveEnvironmentInfoRequest(input)
 	err := req.Send()
@@ -2067,6 +2096,7 @@ const opSwapEnvironmentCNAMEs = "SwapEnvironmentCNAMEs"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/SwapEnvironmentCNAMEs
 func (c *ElasticBeanstalk) SwapEnvironmentCNAMEsRequest(input *SwapEnvironmentCNAMEsInput) (req *request.Request, output *SwapEnvironmentCNAMEsOutput) {
 	op := &request.Operation{
 		Name:       opSwapEnvironmentCNAMEs,
@@ -2078,11 +2108,10 @@ func (c *ElasticBeanstalk) SwapEnvironmentCNAMEsRequest(input *SwapEnvironmentCN
 		input = &SwapEnvironmentCNAMEsInput{}
 	}
 
+	output = &SwapEnvironmentCNAMEsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SwapEnvironmentCNAMEsOutput{}
-	req.Data = output
 	return
 }
 
@@ -2096,6 +2125,7 @@ func (c *ElasticBeanstalk) SwapEnvironmentCNAMEsRequest(input *SwapEnvironmentCN
 //
 // See the AWS API reference guide for AWS Elastic Beanstalk's
 // API operation SwapEnvironmentCNAMEs for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/SwapEnvironmentCNAMEs
 func (c *ElasticBeanstalk) SwapEnvironmentCNAMEs(input *SwapEnvironmentCNAMEsInput) (*SwapEnvironmentCNAMEsOutput, error) {
 	req, out := c.SwapEnvironmentCNAMEsRequest(input)
 	err := req.Send()
@@ -2128,6 +2158,7 @@ const opTerminateEnvironment = "TerminateEnvironment"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/TerminateEnvironment
 func (c *ElasticBeanstalk) TerminateEnvironmentRequest(input *TerminateEnvironmentInput) (req *request.Request, output *EnvironmentDescription) {
 	op := &request.Operation{
 		Name:       opTerminateEnvironment,
@@ -2139,9 +2170,8 @@ func (c *ElasticBeanstalk) TerminateEnvironmentRequest(input *TerminateEnvironme
 		input = &TerminateEnvironmentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnvironmentDescription{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2157,10 +2187,11 @@ func (c *ElasticBeanstalk) TerminateEnvironmentRequest(input *TerminateEnvironme
 // API operation TerminateEnvironment for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/TerminateEnvironment
 func (c *ElasticBeanstalk) TerminateEnvironment(input *TerminateEnvironmentInput) (*EnvironmentDescription, error) {
 	req, out := c.TerminateEnvironmentRequest(input)
 	err := req.Send()
@@ -2193,6 +2224,7 @@ const opUpdateApplication = "UpdateApplication"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateApplication
 func (c *ElasticBeanstalk) UpdateApplicationRequest(input *UpdateApplicationInput) (req *request.Request, output *ApplicationDescriptionMessage) {
 	op := &request.Operation{
 		Name:       opUpdateApplication,
@@ -2204,9 +2236,8 @@ func (c *ElasticBeanstalk) UpdateApplicationRequest(input *UpdateApplicationInpu
 		input = &UpdateApplicationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApplicationDescriptionMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2223,8 +2254,75 @@ func (c *ElasticBeanstalk) UpdateApplicationRequest(input *UpdateApplicationInpu
 //
 // See the AWS API reference guide for AWS Elastic Beanstalk's
 // API operation UpdateApplication for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateApplication
 func (c *ElasticBeanstalk) UpdateApplication(input *UpdateApplicationInput) (*ApplicationDescriptionMessage, error) {
 	req, out := c.UpdateApplicationRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opUpdateApplicationResourceLifecycle = "UpdateApplicationResourceLifecycle"
+
+// UpdateApplicationResourceLifecycleRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateApplicationResourceLifecycle operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateApplicationResourceLifecycle for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateApplicationResourceLifecycle method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateApplicationResourceLifecycleRequest method.
+//    req, resp := client.UpdateApplicationResourceLifecycleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateApplicationResourceLifecycle
+func (c *ElasticBeanstalk) UpdateApplicationResourceLifecycleRequest(input *UpdateApplicationResourceLifecycleInput) (req *request.Request, output *UpdateApplicationResourceLifecycleOutput) {
+	op := &request.Operation{
+		Name:       opUpdateApplicationResourceLifecycle,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateApplicationResourceLifecycleInput{}
+	}
+
+	output = &UpdateApplicationResourceLifecycleOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateApplicationResourceLifecycle API operation for AWS Elastic Beanstalk.
+//
+// Modifies lifecycle settings for an application.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Elastic Beanstalk's
+// API operation UpdateApplicationResourceLifecycle for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
+//   The specified account does not have sufficient privileges for one of more
+//   AWS services.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateApplicationResourceLifecycle
+func (c *ElasticBeanstalk) UpdateApplicationResourceLifecycle(input *UpdateApplicationResourceLifecycleInput) (*UpdateApplicationResourceLifecycleOutput, error) {
+	req, out := c.UpdateApplicationResourceLifecycleRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -2255,6 +2353,7 @@ const opUpdateApplicationVersion = "UpdateApplicationVersion"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateApplicationVersion
 func (c *ElasticBeanstalk) UpdateApplicationVersionRequest(input *UpdateApplicationVersionInput) (req *request.Request, output *ApplicationVersionDescriptionMessage) {
 	op := &request.Operation{
 		Name:       opUpdateApplicationVersion,
@@ -2266,9 +2365,8 @@ func (c *ElasticBeanstalk) UpdateApplicationVersionRequest(input *UpdateApplicat
 		input = &UpdateApplicationVersionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ApplicationVersionDescriptionMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2285,6 +2383,7 @@ func (c *ElasticBeanstalk) UpdateApplicationVersionRequest(input *UpdateApplicat
 //
 // See the AWS API reference guide for AWS Elastic Beanstalk's
 // API operation UpdateApplicationVersion for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateApplicationVersion
 func (c *ElasticBeanstalk) UpdateApplicationVersion(input *UpdateApplicationVersionInput) (*ApplicationVersionDescriptionMessage, error) {
 	req, out := c.UpdateApplicationVersionRequest(input)
 	err := req.Send()
@@ -2317,6 +2416,7 @@ const opUpdateConfigurationTemplate = "UpdateConfigurationTemplate"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateConfigurationTemplate
 func (c *ElasticBeanstalk) UpdateConfigurationTemplateRequest(input *UpdateConfigurationTemplateInput) (req *request.Request, output *ConfigurationSettingsDescription) {
 	op := &request.Operation{
 		Name:       opUpdateConfigurationTemplate,
@@ -2328,9 +2428,8 @@ func (c *ElasticBeanstalk) UpdateConfigurationTemplateRequest(input *UpdateConfi
 		input = &UpdateConfigurationTemplateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ConfigurationSettingsDescription{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2354,13 +2453,14 @@ func (c *ElasticBeanstalk) UpdateConfigurationTemplateRequest(input *UpdateConfi
 // API operation UpdateConfigurationTemplate for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
-//   * TooManyBucketsException
+//   * ErrCodeTooManyBucketsException "TooManyBucketsException"
 //   The specified account has reached its limit of Amazon S3 buckets.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateConfigurationTemplate
 func (c *ElasticBeanstalk) UpdateConfigurationTemplate(input *UpdateConfigurationTemplateInput) (*ConfigurationSettingsDescription, error) {
 	req, out := c.UpdateConfigurationTemplateRequest(input)
 	err := req.Send()
@@ -2393,6 +2493,7 @@ const opUpdateEnvironment = "UpdateEnvironment"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateEnvironment
 func (c *ElasticBeanstalk) UpdateEnvironmentRequest(input *UpdateEnvironmentInput) (req *request.Request, output *EnvironmentDescription) {
 	op := &request.Operation{
 		Name:       opUpdateEnvironment,
@@ -2404,9 +2505,8 @@ func (c *ElasticBeanstalk) UpdateEnvironmentRequest(input *UpdateEnvironmentInpu
 		input = &UpdateEnvironmentInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnvironmentDescription{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2432,13 +2532,14 @@ func (c *ElasticBeanstalk) UpdateEnvironmentRequest(input *UpdateEnvironmentInpu
 // API operation UpdateEnvironment for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
-//   * TooManyBucketsException
+//   * ErrCodeTooManyBucketsException "TooManyBucketsException"
 //   The specified account has reached its limit of Amazon S3 buckets.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateEnvironment
 func (c *ElasticBeanstalk) UpdateEnvironment(input *UpdateEnvironmentInput) (*EnvironmentDescription, error) {
 	req, out := c.UpdateEnvironmentRequest(input)
 	err := req.Send()
@@ -2471,6 +2572,7 @@ const opValidateConfigurationSettings = "ValidateConfigurationSettings"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ValidateConfigurationSettings
 func (c *ElasticBeanstalk) ValidateConfigurationSettingsRequest(input *ValidateConfigurationSettingsInput) (req *request.Request, output *ValidateConfigurationSettingsOutput) {
 	op := &request.Operation{
 		Name:       opValidateConfigurationSettings,
@@ -2482,9 +2584,8 @@ func (c *ElasticBeanstalk) ValidateConfigurationSettingsRequest(input *ValidateC
 		input = &ValidateConfigurationSettingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ValidateConfigurationSettingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2504,19 +2605,21 @@ func (c *ElasticBeanstalk) ValidateConfigurationSettingsRequest(input *ValidateC
 // API operation ValidateConfigurationSettings for usage and error information.
 //
 // Returned Error Codes:
-//   * InsufficientPrivilegesException
+//   * ErrCodeInsufficientPrivilegesException "InsufficientPrivilegesException"
 //   The specified account does not have sufficient privileges for one of more
 //   AWS services.
 //
-//   * TooManyBucketsException
+//   * ErrCodeTooManyBucketsException "TooManyBucketsException"
 //   The specified account has reached its limit of Amazon S3 buckets.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ValidateConfigurationSettings
 func (c *ElasticBeanstalk) ValidateConfigurationSettings(input *ValidateConfigurationSettingsInput) (*ValidateConfigurationSettingsOutput, error) {
 	req, out := c.ValidateConfigurationSettingsRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/AbortEnvironmentUpdateMessage
 type AbortEnvironmentUpdateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2564,6 +2667,7 @@ func (s *AbortEnvironmentUpdateInput) SetEnvironmentName(v string) *AbortEnviron
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/AbortEnvironmentUpdateOutput
 type AbortEnvironmentUpdateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2579,6 +2683,7 @@ func (s AbortEnvironmentUpdateOutput) GoString() string {
 }
 
 // Describes the properties of an application.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplicationDescription
 type ApplicationDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -2596,6 +2701,9 @@ type ApplicationDescription struct {
 
 	// User-defined description of the application.
 	Description *string `type:"string"`
+
+	// The lifecycle settings for the application.
+	ResourceLifecycleConfig *ApplicationResourceLifecycleConfig `type:"structure"`
 
 	// The names of the versions for this application.
 	Versions []*string `type:"list"`
@@ -2641,6 +2749,12 @@ func (s *ApplicationDescription) SetDescription(v string) *ApplicationDescriptio
 	return s
 }
 
+// SetResourceLifecycleConfig sets the ResourceLifecycleConfig field's value.
+func (s *ApplicationDescription) SetResourceLifecycleConfig(v *ApplicationResourceLifecycleConfig) *ApplicationDescription {
+	s.ResourceLifecycleConfig = v
+	return s
+}
+
 // SetVersions sets the Versions field's value.
 func (s *ApplicationDescription) SetVersions(v []*string) *ApplicationDescription {
 	s.Versions = v
@@ -2648,6 +2762,7 @@ func (s *ApplicationDescription) SetVersions(v []*string) *ApplicationDescriptio
 }
 
 // Result message containing a single description of an application.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplicationDescriptionMessage
 type ApplicationDescriptionMessage struct {
 	_ struct{} `type:"structure"`
 
@@ -2672,6 +2787,7 @@ func (s *ApplicationDescriptionMessage) SetApplication(v *ApplicationDescription
 }
 
 // Application request metrics for an AWS Elastic Beanstalk environment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplicationMetrics
 type ApplicationMetrics struct {
 	_ struct{} `type:"structure"`
 
@@ -2727,7 +2843,61 @@ func (s *ApplicationMetrics) SetStatusCodes(v *StatusCodes) *ApplicationMetrics 
 	return s
 }
 
+// The resource lifecycle configuration for an application. Defines lifecycle
+// settings for resources that belong to the application, and the service role
+// that Elastic Beanstalk assumes in order to apply lifecycle settings. The
+// version lifecycle configuration defines lifecycle settings for application
+// versions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplicationResourceLifecycleConfig
+type ApplicationResourceLifecycleConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of an IAM service role that Elastic Beanstalk has permission to assume.
+	ServiceRole *string `type:"string"`
+
+	// The application version lifecycle configuration.
+	VersionLifecycleConfig *ApplicationVersionLifecycleConfig `type:"structure"`
+}
+
+// String returns the string representation
+func (s ApplicationResourceLifecycleConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ApplicationResourceLifecycleConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ApplicationResourceLifecycleConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ApplicationResourceLifecycleConfig"}
+	if s.VersionLifecycleConfig != nil {
+		if err := s.VersionLifecycleConfig.Validate(); err != nil {
+			invalidParams.AddNested("VersionLifecycleConfig", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetServiceRole sets the ServiceRole field's value.
+func (s *ApplicationResourceLifecycleConfig) SetServiceRole(v string) *ApplicationResourceLifecycleConfig {
+	s.ServiceRole = &v
+	return s
+}
+
+// SetVersionLifecycleConfig sets the VersionLifecycleConfig field's value.
+func (s *ApplicationResourceLifecycleConfig) SetVersionLifecycleConfig(v *ApplicationVersionLifecycleConfig) *ApplicationResourceLifecycleConfig {
+	s.VersionLifecycleConfig = v
+	return s
+}
+
 // Describes the properties of an application version.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplicationVersionDescription
 type ApplicationVersionDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -2826,6 +2996,7 @@ func (s *ApplicationVersionDescription) SetVersionLabel(v string) *ApplicationVe
 }
 
 // Result message wrapping a single description of an application version.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplicationVersionDescriptionMessage
 type ApplicationVersionDescriptionMessage struct {
 	_ struct{} `type:"structure"`
 
@@ -2849,7 +3020,70 @@ func (s *ApplicationVersionDescriptionMessage) SetApplicationVersion(v *Applicat
 	return s
 }
 
+// The application version lifecycle settings for an application. Defines the
+// rules that Elastic Beanstalk applies to an application's versions in order
+// to avoid hitting the per-region limit for application versions.
+//
+// When Elastic Beanstalk deletes an application version from its database,
+// you can no longer deploy that version to an environment. The source bundle
+// remains in S3 unless you configure the rule to delete it.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplicationVersionLifecycleConfig
+type ApplicationVersionLifecycleConfig struct {
+	_ struct{} `type:"structure"`
+
+	// Specify a max age rule to restrict the length of time that application versions
+	// are retained for an application.
+	MaxAgeRule *MaxAgeRule `type:"structure"`
+
+	// Specify a max count rule to restrict the number of application versions that
+	// are retained for an application.
+	MaxCountRule *MaxCountRule `type:"structure"`
+}
+
+// String returns the string representation
+func (s ApplicationVersionLifecycleConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ApplicationVersionLifecycleConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ApplicationVersionLifecycleConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ApplicationVersionLifecycleConfig"}
+	if s.MaxAgeRule != nil {
+		if err := s.MaxAgeRule.Validate(); err != nil {
+			invalidParams.AddNested("MaxAgeRule", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.MaxCountRule != nil {
+		if err := s.MaxCountRule.Validate(); err != nil {
+			invalidParams.AddNested("MaxCountRule", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxAgeRule sets the MaxAgeRule field's value.
+func (s *ApplicationVersionLifecycleConfig) SetMaxAgeRule(v *MaxAgeRule) *ApplicationVersionLifecycleConfig {
+	s.MaxAgeRule = v
+	return s
+}
+
+// SetMaxCountRule sets the MaxCountRule field's value.
+func (s *ApplicationVersionLifecycleConfig) SetMaxCountRule(v *MaxCountRule) *ApplicationVersionLifecycleConfig {
+	s.MaxCountRule = v
+	return s
+}
+
 // Request to execute a scheduled managed action immediately.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplyEnvironmentManagedActionRequest
 type ApplyEnvironmentManagedActionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2907,6 +3141,7 @@ func (s *ApplyEnvironmentManagedActionInput) SetEnvironmentName(v string) *Apply
 }
 
 // The result message containing information about the managed action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplyEnvironmentManagedActionResult
 type ApplyEnvironmentManagedActionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2958,6 +3193,7 @@ func (s *ApplyEnvironmentManagedActionOutput) SetStatus(v string) *ApplyEnvironm
 }
 
 // Describes an Auto Scaling launch configuration.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/AutoScalingGroup
 type AutoScalingGroup struct {
 	_ struct{} `type:"structure"`
 
@@ -2982,6 +3218,7 @@ func (s *AutoScalingGroup) SetName(v string) *AutoScalingGroup {
 }
 
 // Settings for an AWS CodeBuild build.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/BuildConfiguration
 type BuildConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -3075,6 +3312,7 @@ func (s *BuildConfiguration) SetTimeoutInMinutes(v int64) *BuildConfiguration {
 }
 
 // CPU utilization metrics for an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CPUUtilization
 type CPUUtilization struct {
 	_ struct{} `type:"structure"`
 
@@ -3160,6 +3398,7 @@ func (s *CPUUtilization) SetUser(v float64) *CPUUtilization {
 }
 
 // Results message indicating whether a CNAME is available.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CheckDNSAvailabilityMessage
 type CheckDNSAvailabilityInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3202,6 +3441,7 @@ func (s *CheckDNSAvailabilityInput) SetCNAMEPrefix(v string) *CheckDNSAvailabili
 }
 
 // Indicates if the specified CNAME is available.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CheckDNSAvailabilityResultMessage
 type CheckDNSAvailabilityOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3240,6 +3480,7 @@ func (s *CheckDNSAvailabilityOutput) SetFullyQualifiedCNAME(v string) *CheckDNSA
 }
 
 // Request to create or update a group of environments.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ComposeEnvironmentsMessage
 type ComposeEnvironmentsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3306,6 +3547,7 @@ func (s *ComposeEnvironmentsInput) SetVersionLabels(v []*string) *ComposeEnviron
 }
 
 // Describes the possible values for a configuration option.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ConfigurationOptionDescription
 type ConfigurationOptionDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -3462,6 +3704,7 @@ func (s *ConfigurationOptionDescription) SetValueType(v string) *ConfigurationOp
 // its current value. For a list of possible option values, go to Option Values
 // (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/command-options.html)
 // in the AWS Elastic Beanstalk Developer Guide.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ConfigurationOptionSetting
 type ConfigurationOptionSetting struct {
 	_ struct{} `type:"structure"`
 
@@ -3526,6 +3769,7 @@ func (s *ConfigurationOptionSetting) SetValue(v string) *ConfigurationOptionSett
 }
 
 // Describes the settings for a configuration set.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ConfigurationSettingsDescription
 type ConfigurationSettingsDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -3635,6 +3879,7 @@ func (s *ConfigurationSettingsDescription) SetTemplateName(v string) *Configurat
 }
 
 // Request to create an application.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateApplicationMessage
 type CreateApplicationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3648,6 +3893,10 @@ type CreateApplicationInput struct {
 
 	// Describes the application.
 	Description *string `type:"string"`
+
+	// Specify an application resource lifecycle configuration to prevent your application
+	// from accumulating too many versions.
+	ResourceLifecycleConfig *ApplicationResourceLifecycleConfig `type:"structure"`
 }
 
 // String returns the string representation
@@ -3669,6 +3918,11 @@ func (s *CreateApplicationInput) Validate() error {
 	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
 	}
+	if s.ResourceLifecycleConfig != nil {
+		if err := s.ResourceLifecycleConfig.Validate(); err != nil {
+			invalidParams.AddNested("ResourceLifecycleConfig", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -3688,6 +3942,13 @@ func (s *CreateApplicationInput) SetDescription(v string) *CreateApplicationInpu
 	return s
 }
 
+// SetResourceLifecycleConfig sets the ResourceLifecycleConfig field's value.
+func (s *CreateApplicationInput) SetResourceLifecycleConfig(v *ApplicationResourceLifecycleConfig) *CreateApplicationInput {
+	s.ResourceLifecycleConfig = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateApplicationVersionMessage
 type CreateApplicationVersionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3827,6 +4088,7 @@ func (s *CreateApplicationVersionInput) SetVersionLabel(v string) *CreateApplica
 }
 
 // Request to create a configuration template.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateConfigurationTemplateMessage
 type CreateConfigurationTemplateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3977,6 +4239,7 @@ func (s *CreateConfigurationTemplateInput) SetTemplateName(v string) *CreateConf
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateEnvironmentMessage
 type CreateEnvironmentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4203,6 +4466,7 @@ func (s *CreateEnvironmentInput) SetVersionLabel(v string) *CreateEnvironmentInp
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateStorageLocationInput
 type CreateStorageLocationInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4218,6 +4482,7 @@ func (s CreateStorageLocationInput) GoString() string {
 }
 
 // Results of a CreateStorageLocationResult call.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/CreateStorageLocationResultMessage
 type CreateStorageLocationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4242,6 +4507,7 @@ func (s *CreateStorageLocationOutput) SetS3Bucket(v string) *CreateStorageLocati
 }
 
 // Request to delete an application.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteApplicationMessage
 type DeleteApplicationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4293,6 +4559,7 @@ func (s *DeleteApplicationInput) SetTerminateEnvByForce(v bool) *DeleteApplicati
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteApplicationOutput
 type DeleteApplicationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4308,6 +4575,7 @@ func (s DeleteApplicationOutput) GoString() string {
 }
 
 // Request to delete an application version.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteApplicationVersionMessage
 type DeleteApplicationVersionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4377,6 +4645,7 @@ func (s *DeleteApplicationVersionInput) SetVersionLabel(v string) *DeleteApplica
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteApplicationVersionOutput
 type DeleteApplicationVersionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4392,6 +4661,7 @@ func (s DeleteApplicationVersionOutput) GoString() string {
 }
 
 // Request to delete a configuration template.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteConfigurationTemplateMessage
 type DeleteConfigurationTemplateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4450,6 +4720,7 @@ func (s *DeleteConfigurationTemplateInput) SetTemplateName(v string) *DeleteConf
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteConfigurationTemplateOutput
 type DeleteConfigurationTemplateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4465,6 +4736,7 @@ func (s DeleteConfigurationTemplateOutput) GoString() string {
 }
 
 // Request to delete a draft environment configuration.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteEnvironmentConfigurationMessage
 type DeleteEnvironmentConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4523,6 +4795,7 @@ func (s *DeleteEnvironmentConfigurationInput) SetEnvironmentName(v string) *Dele
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DeleteEnvironmentConfigurationOutput
 type DeleteEnvironmentConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4538,6 +4811,7 @@ func (s DeleteEnvironmentConfigurationOutput) GoString() string {
 }
 
 // Information about an application version deployment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/Deployment
 type Deployment struct {
 	_ struct{} `type:"structure"`
 
@@ -4598,6 +4872,7 @@ func (s *Deployment) SetVersionLabel(v string) *Deployment {
 }
 
 // Request to describe application versions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeApplicationVersionsMessage
 type DescribeApplicationVersionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4665,6 +4940,7 @@ func (s *DescribeApplicationVersionsInput) SetVersionLabels(v []*string) *Descri
 }
 
 // Result message wrapping a list of application version descriptions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplicationVersionDescriptionsMessage
 type DescribeApplicationVersionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4699,6 +4975,7 @@ func (s *DescribeApplicationVersionsOutput) SetNextToken(v string) *DescribeAppl
 }
 
 // Request to describe one or more applications.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeApplicationsMessage
 type DescribeApplicationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4724,6 +5001,7 @@ func (s *DescribeApplicationsInput) SetApplicationNames(v []*string) *DescribeAp
 }
 
 // Result message containing a list of application descriptions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplicationDescriptionsMessage
 type DescribeApplicationsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4748,6 +5026,7 @@ func (s *DescribeApplicationsOutput) SetApplications(v []*ApplicationDescription
 }
 
 // Result message containig a list of application version descriptions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeConfigurationOptionsMessage
 type DescribeConfigurationOptionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4840,6 +5119,7 @@ func (s *DescribeConfigurationOptionsInput) SetTemplateName(v string) *DescribeC
 }
 
 // Describes the settings for a specified configuration set.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ConfigurationOptionsDescription
 type DescribeConfigurationOptionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4874,6 +5154,7 @@ func (s *DescribeConfigurationOptionsOutput) SetSolutionStackName(v string) *Des
 
 // Result message containing all of the configuration settings for a specified
 // solution stack or configuration template.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeConfigurationSettingsMessage
 type DescribeConfigurationSettingsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4950,6 +5231,7 @@ func (s *DescribeConfigurationSettingsInput) SetTemplateName(v string) *Describe
 }
 
 // The results from a request to change the configuration settings of an environment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ConfigurationSettingsDescriptions
 type DescribeConfigurationSettingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4974,6 +5256,7 @@ func (s *DescribeConfigurationSettingsOutput) SetConfigurationSettings(v []*Conf
 }
 
 // See the example below to learn how to create a request body.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentHealthRequest
 type DescribeEnvironmentHealthInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5034,6 +5317,7 @@ func (s *DescribeEnvironmentHealthInput) SetEnvironmentName(v string) *DescribeE
 }
 
 // Health details for an AWS Elastic Beanstalk environment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentHealthResult
 type DescribeEnvironmentHealthOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5125,6 +5409,7 @@ func (s *DescribeEnvironmentHealthOutput) SetStatus(v string) *DescribeEnvironme
 }
 
 // Request to list completed and failed managed actions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentManagedActionHistoryRequest
 type DescribeEnvironmentManagedActionHistoryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5189,6 +5474,7 @@ func (s *DescribeEnvironmentManagedActionHistoryInput) SetNextToken(v string) *D
 }
 
 // A result message containing a list of completed and failed managed actions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentManagedActionHistoryResult
 type DescribeEnvironmentManagedActionHistoryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5223,6 +5509,7 @@ func (s *DescribeEnvironmentManagedActionHistoryOutput) SetNextToken(v string) *
 }
 
 // Request to list an environment's upcoming and in-progress managed actions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentManagedActionsRequest
 type DescribeEnvironmentManagedActionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5265,6 +5552,7 @@ func (s *DescribeEnvironmentManagedActionsInput) SetStatus(v string) *DescribeEn
 }
 
 // The result message containing a list of managed actions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentManagedActionsResult
 type DescribeEnvironmentManagedActionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5289,6 +5577,7 @@ func (s *DescribeEnvironmentManagedActionsOutput) SetManagedActions(v []*Managed
 }
 
 // Request to describe the resources in an environment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentResourcesMessage
 type DescribeEnvironmentResourcesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5343,6 +5632,7 @@ func (s *DescribeEnvironmentResourcesInput) SetEnvironmentName(v string) *Descri
 }
 
 // Result message containing a list of environment resource descriptions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/EnvironmentResourceDescriptionsMessage
 type DescribeEnvironmentResourcesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5367,6 +5657,7 @@ func (s *DescribeEnvironmentResourcesOutput) SetEnvironmentResources(v *Environm
 }
 
 // Request to describe one or more environments.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEnvironmentsMessage
 type DescribeEnvironmentsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5462,6 +5753,7 @@ func (s *DescribeEnvironmentsInput) SetVersionLabel(v string) *DescribeEnvironme
 }
 
 // Request to retrieve a list of events for an environment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeEventsMessage
 type DescribeEventsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5611,6 +5903,7 @@ func (s *DescribeEventsInput) SetVersionLabel(v string) *DescribeEventsInput {
 }
 
 // Result message wrapping a list of event descriptions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/EventDescriptionsMessage
 type DescribeEventsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5645,6 +5938,7 @@ func (s *DescribeEventsOutput) SetNextToken(v string) *DescribeEventsOutput {
 }
 
 // Parameters for a call to DescribeInstancesHealth.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeInstancesHealthRequest
 type DescribeInstancesHealthInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5714,6 +6008,7 @@ func (s *DescribeInstancesHealthInput) SetNextToken(v string) *DescribeInstances
 
 // Detailed health information about the Amazon EC2 instances in an AWS Elastic
 // Beanstalk environment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/DescribeInstancesHealthResult
 type DescribeInstancesHealthOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5756,6 +6051,7 @@ func (s *DescribeInstancesHealthOutput) SetRefreshedAt(v time.Time) *DescribeIns
 }
 
 // Describes the properties of an environment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/EnvironmentDescription
 type EnvironmentDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -5967,6 +6263,7 @@ func (s *EnvironmentDescription) SetVersionLabel(v string) *EnvironmentDescripti
 }
 
 // Result message containing a list of environment descriptions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/EnvironmentDescriptionsMessage
 type EnvironmentDescriptionsMessage struct {
 	_ struct{} `type:"structure"`
 
@@ -5991,6 +6288,7 @@ func (s *EnvironmentDescriptionsMessage) SetEnvironments(v []*EnvironmentDescrip
 }
 
 // The information retrieved from the Amazon EC2 instances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/EnvironmentInfoDescription
 type EnvironmentInfoDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -6046,6 +6344,7 @@ func (s *EnvironmentInfoDescription) SetSampleTimestamp(v time.Time) *Environmen
 // to another environment in the same group. See Environment Manifest (env.yaml)
 // (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/environment-cfg-manifest.html)
 // for details.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/EnvironmentLink
 type EnvironmentLink struct {
 	_ struct{} `type:"structure"`
 
@@ -6079,6 +6378,7 @@ func (s *EnvironmentLink) SetLinkName(v string) *EnvironmentLink {
 }
 
 // Describes the AWS resources in use by this environment. This data is live.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/EnvironmentResourceDescription
 type EnvironmentResourceDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -6158,6 +6458,7 @@ func (s *EnvironmentResourceDescription) SetTriggers(v []*Trigger) *EnvironmentR
 
 // Describes the AWS resources in use by this environment. This data is not
 // live data.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/EnvironmentResourcesDescription
 type EnvironmentResourcesDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -6182,6 +6483,7 @@ func (s *EnvironmentResourcesDescription) SetLoadBalancer(v *LoadBalancerDescrip
 }
 
 // Describes the properties of an environment tier
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/EnvironmentTier
 type EnvironmentTier struct {
 	_ struct{} `type:"structure"`
 
@@ -6224,6 +6526,7 @@ func (s *EnvironmentTier) SetVersion(v string) *EnvironmentTier {
 }
 
 // Describes an event.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/EventDescription
 type EventDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -6311,6 +6614,7 @@ func (s *EventDescription) SetVersionLabel(v string) *EventDescription {
 }
 
 // The description of an Amazon EC2 instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/Instance
 type Instance struct {
 	_ struct{} `type:"structure"`
 
@@ -6336,6 +6640,7 @@ func (s *Instance) SetId(v string) *Instance {
 
 // Represents summary information about the health of an instance. For more
 // information, see Health Colors and Statuses (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-status.html).
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/InstanceHealthSummary
 type InstanceHealthSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -6430,6 +6735,7 @@ func (s *InstanceHealthSummary) SetWarning(v int64) *InstanceHealthSummary {
 
 // Represents the average latency for the slowest X percent of requests over
 // the last 10 seconds.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/Latency
 type Latency struct {
 	_ struct{} `type:"structure"`
 
@@ -6525,6 +6831,7 @@ func (s *Latency) SetP999(v float64) *Latency {
 }
 
 // Describes an Auto Scaling launch configuration.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/LaunchConfiguration
 type LaunchConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -6548,6 +6855,7 @@ func (s *LaunchConfiguration) SetName(v string) *LaunchConfiguration {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ListAvailableSolutionStacksInput
 type ListAvailableSolutionStacksInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -6563,6 +6871,7 @@ func (s ListAvailableSolutionStacksInput) GoString() string {
 }
 
 // A list of available AWS Elastic Beanstalk solution stacks.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ListAvailableSolutionStacksResultMessage
 type ListAvailableSolutionStacksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6596,6 +6905,7 @@ func (s *ListAvailableSolutionStacksOutput) SetSolutionStacks(v []*string) *List
 }
 
 // Describes the properties of a Listener for the LoadBalancer.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/Listener
 type Listener struct {
 	_ struct{} `type:"structure"`
 
@@ -6629,6 +6939,7 @@ func (s *Listener) SetProtocol(v string) *Listener {
 }
 
 // Describes a LoadBalancer.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/LoadBalancer
 type LoadBalancer struct {
 	_ struct{} `type:"structure"`
 
@@ -6653,6 +6964,7 @@ func (s *LoadBalancer) SetName(v string) *LoadBalancer {
 }
 
 // Describes the details of a LoadBalancer.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/LoadBalancerDescription
 type LoadBalancerDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -6695,6 +7007,7 @@ func (s *LoadBalancerDescription) SetLoadBalancerName(v string) *LoadBalancerDes
 }
 
 // The record of an upcoming or in-progress managed action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ManagedAction
 type ManagedAction struct {
 	_ struct{} `type:"structure"`
 
@@ -6757,6 +7070,7 @@ func (s *ManagedAction) SetWindowStartTime(v time.Time) *ManagedAction {
 }
 
 // The record of a completed or failed managed action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ManagedActionHistoryItem
 type ManagedActionHistoryItem struct {
 	_ struct{} `type:"structure"`
 
@@ -6843,8 +7157,129 @@ func (s *ManagedActionHistoryItem) SetStatus(v string) *ManagedActionHistoryItem
 	return s
 }
 
+// A lifecycle rule that deletes application versions after the specified number
+// of days.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/MaxAgeRule
+type MaxAgeRule struct {
+	_ struct{} `type:"structure"`
+
+	// Set to true to delete a version's source bundle from Amazon S3 when Elastic
+	// Beanstalk deletes the application version.
+	DeleteSourceFromS3 *bool `type:"boolean"`
+
+	// Specify true to apply the rule, or false to disable it.
+	//
+	// Enabled is a required field
+	Enabled *bool `type:"boolean" required:"true"`
+
+	// Specify the number of days to retain an application versions.
+	MaxAgeInDays *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s MaxAgeRule) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MaxAgeRule) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *MaxAgeRule) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "MaxAgeRule"}
+	if s.Enabled == nil {
+		invalidParams.Add(request.NewErrParamRequired("Enabled"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDeleteSourceFromS3 sets the DeleteSourceFromS3 field's value.
+func (s *MaxAgeRule) SetDeleteSourceFromS3(v bool) *MaxAgeRule {
+	s.DeleteSourceFromS3 = &v
+	return s
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *MaxAgeRule) SetEnabled(v bool) *MaxAgeRule {
+	s.Enabled = &v
+	return s
+}
+
+// SetMaxAgeInDays sets the MaxAgeInDays field's value.
+func (s *MaxAgeRule) SetMaxAgeInDays(v int64) *MaxAgeRule {
+	s.MaxAgeInDays = &v
+	return s
+}
+
+// A lifecycle rule that deletes the oldest application version when the maximum
+// count is exceeded.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/MaxCountRule
+type MaxCountRule struct {
+	_ struct{} `type:"structure"`
+
+	// Set to true to delete a version's source bundle from Amazon S3 when Elastic
+	// Beanstalk deletes the application version.
+	DeleteSourceFromS3 *bool `type:"boolean"`
+
+	// Specify true to apply the rule, or false to disable it.
+	//
+	// Enabled is a required field
+	Enabled *bool `type:"boolean" required:"true"`
+
+	// Specify the maximum number of application versions to retain.
+	MaxCount *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s MaxCountRule) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s MaxCountRule) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *MaxCountRule) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "MaxCountRule"}
+	if s.Enabled == nil {
+		invalidParams.Add(request.NewErrParamRequired("Enabled"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDeleteSourceFromS3 sets the DeleteSourceFromS3 field's value.
+func (s *MaxCountRule) SetDeleteSourceFromS3(v bool) *MaxCountRule {
+	s.DeleteSourceFromS3 = &v
+	return s
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *MaxCountRule) SetEnabled(v bool) *MaxCountRule {
+	s.Enabled = &v
+	return s
+}
+
+// SetMaxCount sets the MaxCount field's value.
+func (s *MaxCountRule) SetMaxCount(v int64) *MaxCountRule {
+	s.MaxCount = &v
+	return s
+}
+
 // A regular expression representing a restriction on a string configuration
 // option value.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/OptionRestrictionRegex
 type OptionRestrictionRegex struct {
 	_ struct{} `type:"structure"`
 
@@ -6879,6 +7314,7 @@ func (s *OptionRestrictionRegex) SetPattern(v string) *OptionRestrictionRegex {
 }
 
 // A specification identifying an individual configuration option.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/OptionSpecification
 type OptionSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -6934,6 +7370,7 @@ func (s *OptionSpecification) SetResourceName(v string) *OptionSpecification {
 }
 
 // Describes a queue.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/Queue
 type Queue struct {
 	_ struct{} `type:"structure"`
 
@@ -6966,6 +7403,7 @@ func (s *Queue) SetURL(v string) *Queue {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RebuildEnvironmentMessage
 type RebuildEnvironmentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7019,6 +7457,7 @@ func (s *RebuildEnvironmentInput) SetEnvironmentName(v string) *RebuildEnvironme
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RebuildEnvironmentOutput
 type RebuildEnvironmentOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7035,6 +7474,7 @@ func (s RebuildEnvironmentOutput) GoString() string {
 
 // Request to retrieve logs from an environment and store them in your Elastic
 // Beanstalk storage bucket.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RequestEnvironmentInfoMessage
 type RequestEnvironmentInfoInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7108,6 +7548,7 @@ func (s *RequestEnvironmentInfoInput) SetInfoType(v string) *RequestEnvironmentI
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RequestEnvironmentInfoOutput
 type RequestEnvironmentInfoOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7122,6 +7563,7 @@ func (s RequestEnvironmentInfoOutput) GoString() string {
 	return s.String()
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RestartAppServerMessage
 type RestartAppServerInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7175,6 +7617,7 @@ func (s *RestartAppServerInput) SetEnvironmentName(v string) *RestartAppServerIn
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RestartAppServerOutput
 type RestartAppServerOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7190,6 +7633,7 @@ func (s RestartAppServerOutput) GoString() string {
 }
 
 // Request to download logs retrieved with RequestEnvironmentInfo.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RetrieveEnvironmentInfoMessage
 type RetrieveEnvironmentInfoInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7262,6 +7706,7 @@ func (s *RetrieveEnvironmentInfoInput) SetInfoType(v string) *RetrieveEnvironmen
 }
 
 // Result message containing a description of the requested environment info.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/RetrieveEnvironmentInfoResultMessage
 type RetrieveEnvironmentInfoOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7286,6 +7731,7 @@ func (s *RetrieveEnvironmentInfoOutput) SetEnvironmentInfo(v []*EnvironmentInfoD
 }
 
 // The bucket and key of an item stored in Amazon S3.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/S3Location
 type S3Location struct {
 	_ struct{} `type:"structure"`
 
@@ -7320,6 +7766,7 @@ func (s *S3Location) SetS3Key(v string) *S3Location {
 
 // Detailed health information about an Amazon EC2 instance in your Elastic
 // Beanstalk environment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/SingleInstanceHealth
 type SingleInstanceHealth struct {
 	_ struct{} `type:"structure"`
 
@@ -7429,6 +7876,7 @@ func (s *SingleInstanceHealth) SetSystem(v *SystemStatus) *SingleInstanceHealth 
 }
 
 // Describes the solution stack.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/SolutionStackDescription
 type SolutionStackDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -7462,6 +7910,7 @@ func (s *SolutionStackDescription) SetSolutionStackName(v string) *SolutionStack
 }
 
 // Location of the source code for an application version.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/SourceBuildInformation
 type SourceBuildInformation struct {
 	_ struct{} `type:"structure"`
 
@@ -7547,6 +7996,7 @@ func (s *SourceBuildInformation) SetSourceType(v string) *SourceBuildInformation
 }
 
 // A specification for an environment configuration
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/SourceConfiguration
 type SourceConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -7598,6 +8048,7 @@ func (s *SourceConfiguration) SetTemplateName(v string) *SourceConfiguration {
 // Represents the percentage of requests over the last 10 seconds that resulted
 // in each type of status code response. For more information, see Status Code
 // Definitions (http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html).
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/StatusCodes
 type StatusCodes struct {
 	_ struct{} `type:"structure"`
 
@@ -7653,6 +8104,7 @@ func (s *StatusCodes) SetStatus5xx(v int64) *StatusCodes {
 }
 
 // Swaps the CNAMEs of two environments.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/SwapEnvironmentCNAMEsMessage
 type SwapEnvironmentCNAMEsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7735,6 +8187,7 @@ func (s *SwapEnvironmentCNAMEsInput) SetSourceEnvironmentName(v string) *SwapEnv
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/SwapEnvironmentCNAMEsOutput
 type SwapEnvironmentCNAMEsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7750,6 +8203,7 @@ func (s SwapEnvironmentCNAMEsOutput) GoString() string {
 }
 
 // CPU utilization and load average metrics for an Amazon EC2 instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/SystemStatus
 type SystemStatus struct {
 	_ struct{} `type:"structure"`
 
@@ -7784,6 +8238,7 @@ func (s *SystemStatus) SetLoadAverage(v []*float64) *SystemStatus {
 }
 
 // Describes a tag applied to a resource in an environment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/Tag
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -7833,6 +8288,7 @@ func (s *Tag) SetValue(v string) *Tag {
 }
 
 // Request to terminate an environment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/TerminateEnvironmentMessage
 type TerminateEnvironmentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7919,6 +8375,7 @@ func (s *TerminateEnvironmentInput) SetTerminateResources(v bool) *TerminateEnvi
 }
 
 // Describes a trigger.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/Trigger
 type Trigger struct {
 	_ struct{} `type:"structure"`
 
@@ -7943,6 +8400,7 @@ func (s *Trigger) SetName(v string) *Trigger {
 }
 
 // Request to update an application.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateApplicationMessage
 type UpdateApplicationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7996,6 +8454,101 @@ func (s *UpdateApplicationInput) SetDescription(v string) *UpdateApplicationInpu
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateApplicationResourceLifecycleMessage
+type UpdateApplicationResourceLifecycleInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the application.
+	//
+	// ApplicationName is a required field
+	ApplicationName *string `min:"1" type:"string" required:"true"`
+
+	// The lifecycle configuration.
+	//
+	// ResourceLifecycleConfig is a required field
+	ResourceLifecycleConfig *ApplicationResourceLifecycleConfig `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateApplicationResourceLifecycleInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateApplicationResourceLifecycleInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateApplicationResourceLifecycleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateApplicationResourceLifecycleInput"}
+	if s.ApplicationName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApplicationName"))
+	}
+	if s.ApplicationName != nil && len(*s.ApplicationName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ApplicationName", 1))
+	}
+	if s.ResourceLifecycleConfig == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceLifecycleConfig"))
+	}
+	if s.ResourceLifecycleConfig != nil {
+		if err := s.ResourceLifecycleConfig.Validate(); err != nil {
+			invalidParams.AddNested("ResourceLifecycleConfig", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApplicationName sets the ApplicationName field's value.
+func (s *UpdateApplicationResourceLifecycleInput) SetApplicationName(v string) *UpdateApplicationResourceLifecycleInput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetResourceLifecycleConfig sets the ResourceLifecycleConfig field's value.
+func (s *UpdateApplicationResourceLifecycleInput) SetResourceLifecycleConfig(v *ApplicationResourceLifecycleConfig) *UpdateApplicationResourceLifecycleInput {
+	s.ResourceLifecycleConfig = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ApplicationResourceLifecycleDescriptionMessage
+type UpdateApplicationResourceLifecycleOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the application.
+	ApplicationName *string `min:"1" type:"string"`
+
+	// The lifecycle configuration.
+	ResourceLifecycleConfig *ApplicationResourceLifecycleConfig `type:"structure"`
+}
+
+// String returns the string representation
+func (s UpdateApplicationResourceLifecycleOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateApplicationResourceLifecycleOutput) GoString() string {
+	return s.String()
+}
+
+// SetApplicationName sets the ApplicationName field's value.
+func (s *UpdateApplicationResourceLifecycleOutput) SetApplicationName(v string) *UpdateApplicationResourceLifecycleOutput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetResourceLifecycleConfig sets the ResourceLifecycleConfig field's value.
+func (s *UpdateApplicationResourceLifecycleOutput) SetResourceLifecycleConfig(v *ApplicationResourceLifecycleConfig) *UpdateApplicationResourceLifecycleOutput {
+	s.ResourceLifecycleConfig = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateApplicationVersionMessage
 type UpdateApplicationVersionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8070,6 +8623,7 @@ func (s *UpdateApplicationVersionInput) SetVersionLabel(v string) *UpdateApplica
 }
 
 // The result message containing the options for the specified solution stack.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateConfigurationTemplateMessage
 type UpdateConfigurationTemplateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8186,6 +8740,7 @@ func (s *UpdateConfigurationTemplateInput) SetTemplateName(v string) *UpdateConf
 }
 
 // Request to update an environment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/UpdateEnvironmentMessage
 type UpdateEnvironmentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8373,6 +8928,7 @@ func (s *UpdateEnvironmentInput) SetVersionLabel(v string) *UpdateEnvironmentInp
 }
 
 // A list of validation messages for a specified configuration template.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ValidateConfigurationSettingsMessage
 type ValidateConfigurationSettingsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8468,6 +9024,7 @@ func (s *ValidateConfigurationSettingsInput) SetTemplateName(v string) *Validate
 }
 
 // Provides a list of validation messages.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ConfigurationSettingsValidationMessages
 type ValidateConfigurationSettingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8492,6 +9049,7 @@ func (s *ValidateConfigurationSettingsOutput) SetMessages(v []*ValidationMessage
 }
 
 // An error or warning for a desired configuration option value.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01/ValidationMessage
 type ValidationMessage struct {
 	_ struct{} `type:"structure"`
 

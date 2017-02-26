@@ -63,9 +63,10 @@ func resourceAwsDbInstance() *schema.Resource {
 			},
 
 			"engine_version": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				DiffSuppressFunc: suppressAwsDbEngineVersionDiffs,
 			},
 
 			"character_set_name": {
@@ -120,9 +121,10 @@ func resourceAwsDbInstance() *schema.Resource {
 			},
 
 			"backup_window": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateOnceADayWindowFormat,
 			},
 
 			"iops": {
@@ -147,6 +149,7 @@ func resourceAwsDbInstance() *schema.Resource {
 					}
 					return ""
 				},
+				ValidateFunc: validateOnceAWeekWindowFormat,
 			},
 
 			"multi_az": {
@@ -309,6 +312,13 @@ func resourceAwsDbInstance() *schema.Resource {
 				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateArn,
+			},
+
+			"timezone": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
 			},
 
 			"tags": tagsSchema(),
@@ -527,6 +537,10 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			opts.CharacterSetName = aws.String(attr.(string))
 		}
 
+		if attr, ok := d.GetOk("timezone"); ok {
+			opts.Timezone = aws.String(attr.(string))
+		}
+
 		if attr, ok := d.GetOk("maintenance_window"); ok {
 			opts.PreferredMaintenanceWindow = aws.String(attr.(string))
 		}
@@ -676,6 +690,8 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	if v.CharacterSetName != nil {
 		d.Set("character_set_name", v.CharacterSetName)
 	}
+
+	d.Set("timezone", v.Timezone)
 
 	if len(v.DBParameterGroups) > 0 {
 		d.Set("parameter_group_name", v.DBParameterGroups[0].DBParameterGroupName)
@@ -941,7 +957,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		req.DBPortNumber = aws.Int64(int64(d.Get("port").(int)))
 		requestUpdate = true
 	}
-	if d.HasChange("db_subnet_group_name") {
+	if d.HasChange("db_subnet_group_name") && !d.IsNewResource() {
 		d.SetPartial("db_subnet_group_name")
 		req.DBSubnetGroupName = aws.String(d.Get("db_subnet_group_name").(string))
 		requestUpdate = true

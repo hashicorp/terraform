@@ -1392,6 +1392,66 @@ func TestInstanceState_MergeDiff(t *testing.T) {
 	}
 }
 
+// Make sure we don't leave empty maps or arrays in the flatmapped Attributes,
+// since those may affect the counts of a parent structure.
+func TestInstanceState_MergeDiffRemoveCounts(t *testing.T) {
+	is := InstanceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"all.#":        "3",
+			"all.1111":     "x",
+			"all.1234.#":   "1",
+			"all.1234.0":   "a",
+			"all.5678.%":   "1",
+			"all.5678.key": "val",
+
+			// nested empty lists need to be removed cleanly
+			"all.nested.#":         "0",
+			"all.nested.0.empty.#": "0",
+			"all.nested.1.empty.#": "0",
+
+			// the value has a prefix that matches another key
+			// and ntohing should happen to this.
+			"all.nested_value": "y",
+		},
+	}
+
+	diff := &InstanceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"all.#": &ResourceAttrDiff{
+				Old: "3",
+				New: "1",
+			},
+			"all.1234.0": &ResourceAttrDiff{
+				NewRemoved: true,
+			},
+			"all.1234.#": &ResourceAttrDiff{
+				Old: "1",
+				New: "0",
+			},
+			"all.5678.key": &ResourceAttrDiff{
+				NewRemoved: true,
+			},
+			"all.5678.%": &ResourceAttrDiff{
+				Old: "1",
+				New: "0",
+			},
+		},
+	}
+
+	is2 := is.MergeDiff(diff)
+
+	expected := map[string]string{
+		"all.#":            "1",
+		"all.1111":         "x",
+		"all.nested_value": "y",
+	}
+
+	if !reflect.DeepEqual(expected, is2.Attributes) {
+		t.Fatalf("bad: %#v", is2.Attributes)
+	}
+}
+
 func TestInstanceState_MergeDiff_nil(t *testing.T) {
 	var is *InstanceState
 

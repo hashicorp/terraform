@@ -18,8 +18,9 @@ import (
 // who need detailed information about the AWS WAF API actions, data types,
 // and errors. For detailed information about AWS WAF features and an overview
 // of how to use the AWS WAF API, see the AWS WAF Developer Guide (http://docs.aws.amazon.com/waf/latest/developerguide/).
-//The service client's operations are safe to be used concurrently.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/waf-2015-08-24
 type WAF struct {
 	*client.Client
 }
@@ -30,8 +31,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "waf"
+// Service information constants
+const (
+	ServiceName = "waf"       // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the WAF client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -44,7 +48,7 @@ const ServiceName = "waf"
 //     // Create a WAF client with additional configuration
 //     svc := waf.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *WAF {
-	c := p.ClientConfig(ServiceName, cfgs...)
+	c := p.ClientConfig(EndpointsID, cfgs...)
 	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 

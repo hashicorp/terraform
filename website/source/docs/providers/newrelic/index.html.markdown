@@ -49,12 +49,12 @@ resource "newrelic_alert_condition" "foo" {
 # Add a notification channel
 resource "newrelic_alert_channel" "email" {
   name = "email"
-	type = "email"
-	
-	configuration = {
-		recipients = "paul@example.com"
-		include_json_attachment = "1"
-	}
+  type = "email"
+
+  configuration = {
+    recipients = "paul@example.com"
+    include_json_attachment = "1"
+  }
 }
 
 # Link the channel to the policy

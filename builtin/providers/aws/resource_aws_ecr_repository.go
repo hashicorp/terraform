@@ -100,7 +100,7 @@ func resourceAwsEcrRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func buildRepositoryUrl(repo *ecr.Repository, region string) string {
-	return fmt.Sprintf("https://%s.dkr.ecr.%s.amazonaws.com/%s", *repo.RegistryId, region, *repo.RepositoryName)
+	return fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s", *repo.RegistryId, region, *repo.RepositoryName)
 }
 
 func resourceAwsEcrRepositoryDelete(d *schema.ResourceData, meta interface{}) error {

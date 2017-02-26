@@ -42,7 +42,7 @@ Route Table whose data will be exported as attributes.
 
 * `filter` - (Optional) Custom filter block as described below.
 
-* `id` - (Optional) The id of the specific Route Table to retrieve.
+* `route_table_id` - (Optional) The id of the specific Route Table to retrieve.
 
 * `tags` - (Optional) A mapping of tags, each pair of which must exactly match
   a pair on the desired Route Table.
@@ -55,7 +55,7 @@ More complex filters can be expressed using one or more `filter` sub-blocks,
 which take the following arguments:
 
 * `name` - (Required) The name of the field to filter by, as defined by
-  [the underlying AWS API](http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSecurityGroups.html).
+  [the underlying AWS API](http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeRouteTables.html).
 
 * `values` - (Required) Set of values that are accepted for the given field.
   A Route Table will be selected if any one of the given values matches.

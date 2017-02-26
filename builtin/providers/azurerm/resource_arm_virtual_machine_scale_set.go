@@ -2,6 +2,7 @@ package azurerm
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
@@ -62,6 +63,11 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 			"upgrade_policy_mode": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+			},
+
+			"overprovision": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 
 			"os_profile": &schema.Schema{
@@ -250,7 +256,6 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 									"load_balancer_backend_address_pool_ids": &schema.Schema{
 										Type:     schema.TypeSet,
 										Optional: true,
-										Computed: true,
 										Elem:     &schema.Schema{Type: schema.TypeString},
 										Set:      schema.HashString,
 									},
@@ -276,12 +281,11 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						"image": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							Computed: true,
 						},
 
 						"vhd_containers": &schema.Schema{
 							Type:     schema.TypeSet,
-							Required: true,
+							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
@@ -294,7 +298,6 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						"os_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							Computed: true,
 						},
 
 						"create_option": &schema.Schema{
@@ -378,6 +381,7 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 	}
 
 	updatePolicy := d.Get("upgrade_policy_mode").(string)
+	overprovision := d.Get("overprovision").(bool)
 	scaleSetProps := compute.VirtualMachineScaleSetProperties{
 		UpgradePolicy: &compute.UpgradePolicy{
 			Mode: compute.UpgradeMode(updatePolicy),
@@ -387,6 +391,7 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 			StorageProfile: &storageProfile,
 			OsProfile:      osProfile,
 		},
+		Overprovision: &overprovision,
 	}
 
 	scaleSetParams := compute.VirtualMachineScaleSet{
@@ -444,6 +449,7 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 	properties := resp.VirtualMachineScaleSetProperties
 
 	d.Set("upgrade_policy_mode", properties.UpgradePolicy.Mode)
+	d.Set("overprovision", properties.Overprovision)
 
 	if err := d.Set("os_profile", flattenAzureRMVirtualMachineScaleSetOsProfile(properties.VirtualMachineProfile.OsProfile)); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set OS Profile error: %#v", err)
@@ -619,12 +625,14 @@ func flattenAzureRmVirtualMachineScaleSetNetworkProfile(profile *compute.Virtual
 				}
 
 				if properties.LoadBalancerBackendAddressPools != nil {
-					addressPools := make([]string, 0, len(*properties.LoadBalancerBackendAddressPools))
+					addressPools := make([]interface{}, 0, len(*properties.LoadBalancerBackendAddressPools))
 					for _, pool := range *properties.LoadBalancerBackendAddressPools {
 						addressPools = append(addressPools, *pool.ID)
 					}
-					config["load_balancer_backend_address_pool_ids"] = addressPools
+					config["load_balancer_backend_address_pool_ids"] = schema.NewSet(schema.HashString, addressPools)
 				}
+
+				ipConfigs = append(ipConfigs, config)
 			}
 
 			s["ip_configuration"] = ipConfigs
@@ -643,7 +651,14 @@ func flattenAzureRMVirtualMachineScaleSetOsProfile(profile *compute.VirtualMachi
 	result["admin_username"] = *profile.AdminUsername
 
 	if profile.CustomData != nil {
-		result["custom_data"] = *profile.CustomData
+		var data string
+		if isBase64Encoded(*profile.CustomData) {
+			decodedData, _ := base64.StdEncoding.DecodeString(*profile.CustomData)
+			data = string(decodedData)
+		} else {
+			data = *profile.CustomData
+		}
+		result["custom_data"] = data
 	}
 
 	return []interface{}{result}
@@ -656,14 +671,17 @@ func flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(profile *compute.V
 		result["image"] = *profile.Image.URI
 	}
 
-	containers := make([]interface{}, 0, len(*profile.VhdContainers))
-	for _, container := range *profile.VhdContainers {
-		containers = append(containers, container)
+	if profile.VhdContainers != nil {
+		containers := make([]interface{}, 0, len(*profile.VhdContainers))
+		for _, container := range *profile.VhdContainers {
+			containers = append(containers, container)
+		}
+		result["vhd_containers"] = schema.NewSet(schema.HashString, containers)
 	}
-	result["vhd_containers"] = schema.NewSet(schema.HashString, containers)
 
 	result["caching"] = profile.Caching
 	result["create_option"] = profile.CreateOption
+	result["os_type"] = profile.OsType
 
 	return []interface{}{result}
 }
@@ -720,9 +738,6 @@ func resourceArmVirtualMachineScaleSetStorageProfileOsDiskHash(v interface{}) in
 
 	if m["image"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", m["image"].(string)))
-	}
-	if m["os_type"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["os_type"].(string)))
 	}
 
 	return hashcode.String(buf.String())
@@ -813,10 +828,18 @@ func expandAzureRmVirtualMachineScaleSetNetworkProfile(d *schema.ResourceData) *
 					},
 				},
 			}
-			//TODO: Add the support for the load balancers when it drops
-			//if v := ipconfig["load_balancer_backend_address_pool_ids"]; v != nil {
-			//
-			//}
+
+			if v := ipconfig["load_balancer_backend_address_pool_ids"]; v != nil {
+				pools := v.(*schema.Set).List()
+				resources := make([]compute.SubResource, 0, len(pools))
+				for _, p := range pools {
+					id := p.(string)
+					resources = append(resources, compute.SubResource{
+						ID: &id,
+					})
+				}
+				ipConfiguration.LoadBalancerBackendAddressPools = &resources
+			}
 
 			ipConfigurations = append(ipConfigurations, ipConfiguration)
 		}
@@ -835,6 +858,15 @@ func expandAzureRmVirtualMachineScaleSetNetworkProfile(d *schema.ResourceData) *
 	return &compute.VirtualMachineScaleSetNetworkProfile{
 		NetworkInterfaceConfigurations: &networkProfileConfig,
 	}
+}
+
+func base64Encode(data string) string {
+	return base64.StdEncoding.EncodeToString([]byte(data))
+}
+
+func isBase64Encoded(data string) bool {
+	_, err := base64.StdEncoding.DecodeString(data)
+	return err == nil
 }
 
 func expandAzureRMVirtualMachineScaleSetsOsProfile(d *schema.ResourceData) (*compute.VirtualMachineScaleSetOSProfile, error) {
@@ -856,6 +888,11 @@ func expandAzureRMVirtualMachineScaleSetsOsProfile(d *schema.ResourceData) (*com
 	}
 
 	if customData != "" {
+		if isBase64Encoded(customData) {
+			log.Printf("[WARN] Future Versions of Terraform will automatically base64encode custom_data")
+		} else {
+			customData = base64Encode(customData)
+		}
 		osProfile.CustomData = &customData
 	}
 
@@ -897,25 +934,25 @@ func expandAzureRMVirtualMachineScaleSetsStorageProfileOsDisk(d *schema.Resource
 	osType := osDiskConfig["os_type"].(string)
 	createOption := osDiskConfig["create_option"].(string)
 
-	var vhdContainers []string
-	containers := osDiskConfig["vhd_containers"].(*schema.Set).List()
-	for _, v := range containers {
-		str := v.(string)
-		vhdContainers = append(vhdContainers, str)
-	}
-
 	osDisk := &compute.VirtualMachineScaleSetOSDisk{
-		Name:          &name,
-		Caching:       compute.CachingTypes(caching),
-		OsType:        compute.OperatingSystemTypes(osType),
-		CreateOption:  compute.DiskCreateOptionTypes(createOption),
-		VhdContainers: &vhdContainers,
+		Name:         &name,
+		Caching:      compute.CachingTypes(caching),
+		OsType:       compute.OperatingSystemTypes(osType),
+		CreateOption: compute.DiskCreateOptionTypes(createOption),
 	}
 
 	if image != "" {
 		osDisk.Image = &compute.VirtualHardDisk{
 			URI: &image,
 		}
+	} else {
+		var vhdContainers []string
+		containers := osDiskConfig["vhd_containers"].(*schema.Set).List()
+		for _, v := range containers {
+			str := v.(string)
+			vhdContainers = append(vhdContainers, str)
+		}
+		osDisk.VhdContainers = &vhdContainers
 	}
 
 	return osDisk, nil

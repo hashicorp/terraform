@@ -2,6 +2,7 @@ package azurerm
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
@@ -195,6 +196,12 @@ func resourceArmVirtualMachine() *schema.Resource {
 						"create_option": {
 							Type:     schema.TypeString,
 							Required: true,
+						},
+
+						"caching": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
 						},
 
 						"disk_size_gb": {
@@ -864,6 +871,7 @@ func flattenAzureRmVirtualMachineDataDisk(disks *[]compute.DataDisk) interface{}
 		l["name"] = *disk.Name
 		l["vhd_uri"] = *disk.Vhd.URI
 		l["create_option"] = disk.CreateOption
+		l["caching"] = string(disk.Caching)
 		if disk.DiskSizeGB != nil {
 			l["disk_size_gb"] = *disk.DiskSizeGB
 		}
@@ -879,7 +887,14 @@ func flattenAzureRmVirtualMachineOsProfile(osProfile *compute.OSProfile) []inter
 	result["computer_name"] = *osProfile.ComputerName
 	result["admin_username"] = *osProfile.AdminUsername
 	if osProfile.CustomData != nil {
-		result["custom_data"] = *osProfile.CustomData
+		var data string
+		if isBase64Encoded(*osProfile.CustomData) {
+			decodedData, _ := base64.StdEncoding.DecodeString(*osProfile.CustomData)
+			data = string(decodedData)
+		} else {
+			data = *osProfile.CustomData
+		}
+		result["custom_data"] = data
 	}
 
 	return []interface{}{result}
@@ -1032,6 +1047,12 @@ func expandAzureRmVirtualMachineOsProfile(d *schema.ResourceData) (*compute.OSPr
 	}
 
 	if v := osProfile["custom_data"].(string); v != "" {
+		if isBase64Encoded(v) {
+			log.Printf("[WARN] Future Versions of Terraform will automatically base64encode custom_data")
+		} else {
+			v = base64Encode(v)
+		}
+
 		profile.CustomData = &v
 	}
 
@@ -1106,8 +1127,10 @@ func expandAzureRmVirtualMachineOsProfileLinuxConfig(d *schema.ResourceData) (*c
 		sshPublicKeys = append(sshPublicKeys, sshPublicKey)
 	}
 
-	config.SSH = &compute.SSHConfiguration{
-		PublicKeys: &sshPublicKeys,
+	if len(sshPublicKeys) > 0 {
+		config.SSH = &compute.SSHConfiguration{
+			PublicKeys: &sshPublicKeys,
+		}
 	}
 
 	return config, nil
@@ -1195,6 +1218,10 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 			},
 			Lun:          &lun,
 			CreateOption: compute.DiskCreateOptionTypes(createOption),
+		}
+
+		if v := config["caching"].(string); v != "" {
+			data_disk.Caching = compute.CachingTypes(v)
 		}
 
 		if v := config["disk_size_gb"]; v != nil {

@@ -39,6 +39,7 @@ const opAcceptReservedInstancesExchangeQuote = "AcceptReservedInstancesExchangeQ
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AcceptReservedInstancesExchangeQuote
 func (c *EC2) AcceptReservedInstancesExchangeQuoteRequest(input *AcceptReservedInstancesExchangeQuoteInput) (req *request.Request, output *AcceptReservedInstancesExchangeQuoteOutput) {
 	op := &request.Operation{
 		Name:       opAcceptReservedInstancesExchangeQuote,
@@ -50,9 +51,8 @@ func (c *EC2) AcceptReservedInstancesExchangeQuoteRequest(input *AcceptReservedI
 		input = &AcceptReservedInstancesExchangeQuoteInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AcceptReservedInstancesExchangeQuoteOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -67,6 +67,7 @@ func (c *EC2) AcceptReservedInstancesExchangeQuoteRequest(input *AcceptReservedI
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AcceptReservedInstancesExchangeQuote for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AcceptReservedInstancesExchangeQuote
 func (c *EC2) AcceptReservedInstancesExchangeQuote(input *AcceptReservedInstancesExchangeQuoteInput) (*AcceptReservedInstancesExchangeQuoteOutput, error) {
 	req, out := c.AcceptReservedInstancesExchangeQuoteRequest(input)
 	err := req.Send()
@@ -99,6 +100,7 @@ const opAcceptVpcPeeringConnection = "AcceptVpcPeeringConnection"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AcceptVpcPeeringConnection
 func (c *EC2) AcceptVpcPeeringConnectionRequest(input *AcceptVpcPeeringConnectionInput) (req *request.Request, output *AcceptVpcPeeringConnectionOutput) {
 	op := &request.Operation{
 		Name:       opAcceptVpcPeeringConnection,
@@ -110,9 +112,8 @@ func (c *EC2) AcceptVpcPeeringConnectionRequest(input *AcceptVpcPeeringConnectio
 		input = &AcceptVpcPeeringConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AcceptVpcPeeringConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -129,6 +130,7 @@ func (c *EC2) AcceptVpcPeeringConnectionRequest(input *AcceptVpcPeeringConnectio
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AcceptVpcPeeringConnection for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AcceptVpcPeeringConnection
 func (c *EC2) AcceptVpcPeeringConnection(input *AcceptVpcPeeringConnectionInput) (*AcceptVpcPeeringConnectionOutput, error) {
 	req, out := c.AcceptVpcPeeringConnectionRequest(input)
 	err := req.Send()
@@ -161,6 +163,7 @@ const opAllocateAddress = "AllocateAddress"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AllocateAddress
 func (c *EC2) AllocateAddressRequest(input *AllocateAddressInput) (req *request.Request, output *AllocateAddressOutput) {
 	op := &request.Operation{
 		Name:       opAllocateAddress,
@@ -172,9 +175,8 @@ func (c *EC2) AllocateAddressRequest(input *AllocateAddressInput) (req *request.
 		input = &AllocateAddressInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AllocateAddressOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -192,6 +194,7 @@ func (c *EC2) AllocateAddressRequest(input *AllocateAddressInput) (req *request.
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AllocateAddress for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AllocateAddress
 func (c *EC2) AllocateAddress(input *AllocateAddressInput) (*AllocateAddressOutput, error) {
 	req, out := c.AllocateAddressRequest(input)
 	err := req.Send()
@@ -224,6 +227,7 @@ const opAllocateHosts = "AllocateHosts"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AllocateHosts
 func (c *EC2) AllocateHostsRequest(input *AllocateHostsInput) (req *request.Request, output *AllocateHostsOutput) {
 	op := &request.Operation{
 		Name:       opAllocateHosts,
@@ -235,9 +239,8 @@ func (c *EC2) AllocateHostsRequest(input *AllocateHostsInput) (req *request.Requ
 		input = &AllocateHostsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AllocateHostsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -253,6 +256,7 @@ func (c *EC2) AllocateHostsRequest(input *AllocateHostsInput) (req *request.Requ
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AllocateHosts for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AllocateHosts
 func (c *EC2) AllocateHosts(input *AllocateHostsInput) (*AllocateHostsOutput, error) {
 	req, out := c.AllocateHostsRequest(input)
 	err := req.Send()
@@ -285,6 +289,7 @@ const opAssignIpv6Addresses = "AssignIpv6Addresses"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssignIpv6Addresses
 func (c *EC2) AssignIpv6AddressesRequest(input *AssignIpv6AddressesInput) (req *request.Request, output *AssignIpv6AddressesOutput) {
 	op := &request.Operation{
 		Name:       opAssignIpv6Addresses,
@@ -296,9 +301,8 @@ func (c *EC2) AssignIpv6AddressesRequest(input *AssignIpv6AddressesInput) (req *
 		input = &AssignIpv6AddressesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssignIpv6AddressesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -319,6 +323,7 @@ func (c *EC2) AssignIpv6AddressesRequest(input *AssignIpv6AddressesInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AssignIpv6Addresses for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssignIpv6Addresses
 func (c *EC2) AssignIpv6Addresses(input *AssignIpv6AddressesInput) (*AssignIpv6AddressesOutput, error) {
 	req, out := c.AssignIpv6AddressesRequest(input)
 	err := req.Send()
@@ -351,6 +356,7 @@ const opAssignPrivateIpAddresses = "AssignPrivateIpAddresses"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssignPrivateIpAddresses
 func (c *EC2) AssignPrivateIpAddressesRequest(input *AssignPrivateIpAddressesInput) (req *request.Request, output *AssignPrivateIpAddressesOutput) {
 	op := &request.Operation{
 		Name:       opAssignPrivateIpAddresses,
@@ -362,11 +368,10 @@ func (c *EC2) AssignPrivateIpAddressesRequest(input *AssignPrivateIpAddressesInp
 		input = &AssignPrivateIpAddressesInput{}
 	}
 
+	output = &AssignPrivateIpAddressesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AssignPrivateIpAddressesOutput{}
-	req.Data = output
 	return
 }
 
@@ -390,6 +395,7 @@ func (c *EC2) AssignPrivateIpAddressesRequest(input *AssignPrivateIpAddressesInp
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AssignPrivateIpAddresses for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssignPrivateIpAddresses
 func (c *EC2) AssignPrivateIpAddresses(input *AssignPrivateIpAddressesInput) (*AssignPrivateIpAddressesOutput, error) {
 	req, out := c.AssignPrivateIpAddressesRequest(input)
 	err := req.Send()
@@ -422,6 +428,7 @@ const opAssociateAddress = "AssociateAddress"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateAddress
 func (c *EC2) AssociateAddressRequest(input *AssociateAddressInput) (req *request.Request, output *AssociateAddressOutput) {
 	op := &request.Operation{
 		Name:       opAssociateAddress,
@@ -433,9 +440,8 @@ func (c *EC2) AssociateAddressRequest(input *AssociateAddressInput) (req *reques
 		input = &AssociateAddressInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssociateAddressOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -467,6 +473,7 @@ func (c *EC2) AssociateAddressRequest(input *AssociateAddressInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AssociateAddress for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateAddress
 func (c *EC2) AssociateAddress(input *AssociateAddressInput) (*AssociateAddressOutput, error) {
 	req, out := c.AssociateAddressRequest(input)
 	err := req.Send()
@@ -499,6 +506,7 @@ const opAssociateDhcpOptions = "AssociateDhcpOptions"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateDhcpOptions
 func (c *EC2) AssociateDhcpOptionsRequest(input *AssociateDhcpOptionsInput) (req *request.Request, output *AssociateDhcpOptionsOutput) {
 	op := &request.Operation{
 		Name:       opAssociateDhcpOptions,
@@ -510,11 +518,10 @@ func (c *EC2) AssociateDhcpOptionsRequest(input *AssociateDhcpOptionsInput) (req
 		input = &AssociateDhcpOptionsInput{}
 	}
 
+	output = &AssociateDhcpOptionsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AssociateDhcpOptionsOutput{}
-	req.Data = output
 	return
 }
 
@@ -539,8 +546,70 @@ func (c *EC2) AssociateDhcpOptionsRequest(input *AssociateDhcpOptionsInput) (req
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AssociateDhcpOptions for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateDhcpOptions
 func (c *EC2) AssociateDhcpOptions(input *AssociateDhcpOptionsInput) (*AssociateDhcpOptionsOutput, error) {
 	req, out := c.AssociateDhcpOptionsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opAssociateIamInstanceProfile = "AssociateIamInstanceProfile"
+
+// AssociateIamInstanceProfileRequest generates a "aws/request.Request" representing the
+// client's request for the AssociateIamInstanceProfile operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See AssociateIamInstanceProfile for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssociateIamInstanceProfile method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssociateIamInstanceProfileRequest method.
+//    req, resp := client.AssociateIamInstanceProfileRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfile
+func (c *EC2) AssociateIamInstanceProfileRequest(input *AssociateIamInstanceProfileInput) (req *request.Request, output *AssociateIamInstanceProfileOutput) {
+	op := &request.Operation{
+		Name:       opAssociateIamInstanceProfile,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AssociateIamInstanceProfileInput{}
+	}
+
+	output = &AssociateIamInstanceProfileOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// AssociateIamInstanceProfile API operation for Amazon Elastic Compute Cloud.
+//
+// Associates an IAM instance profile with a running or stopped instance. You
+// cannot associate more than one IAM instance profile with an instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AssociateIamInstanceProfile for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfile
+func (c *EC2) AssociateIamInstanceProfile(input *AssociateIamInstanceProfileInput) (*AssociateIamInstanceProfileOutput, error) {
+	req, out := c.AssociateIamInstanceProfileRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -571,6 +640,7 @@ const opAssociateRouteTable = "AssociateRouteTable"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateRouteTable
 func (c *EC2) AssociateRouteTableRequest(input *AssociateRouteTableInput) (req *request.Request, output *AssociateRouteTableOutput) {
 	op := &request.Operation{
 		Name:       opAssociateRouteTable,
@@ -582,9 +652,8 @@ func (c *EC2) AssociateRouteTableRequest(input *AssociateRouteTableInput) (req *
 		input = &AssociateRouteTableInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssociateRouteTableOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -605,6 +674,7 @@ func (c *EC2) AssociateRouteTableRequest(input *AssociateRouteTableInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AssociateRouteTable for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateRouteTable
 func (c *EC2) AssociateRouteTable(input *AssociateRouteTableInput) (*AssociateRouteTableOutput, error) {
 	req, out := c.AssociateRouteTableRequest(input)
 	err := req.Send()
@@ -637,6 +707,7 @@ const opAssociateSubnetCidrBlock = "AssociateSubnetCidrBlock"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateSubnetCidrBlock
 func (c *EC2) AssociateSubnetCidrBlockRequest(input *AssociateSubnetCidrBlockInput) (req *request.Request, output *AssociateSubnetCidrBlockOutput) {
 	op := &request.Operation{
 		Name:       opAssociateSubnetCidrBlock,
@@ -648,9 +719,8 @@ func (c *EC2) AssociateSubnetCidrBlockRequest(input *AssociateSubnetCidrBlockInp
 		input = &AssociateSubnetCidrBlockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssociateSubnetCidrBlockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -666,6 +736,7 @@ func (c *EC2) AssociateSubnetCidrBlockRequest(input *AssociateSubnetCidrBlockInp
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AssociateSubnetCidrBlock for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateSubnetCidrBlock
 func (c *EC2) AssociateSubnetCidrBlock(input *AssociateSubnetCidrBlockInput) (*AssociateSubnetCidrBlockOutput, error) {
 	req, out := c.AssociateSubnetCidrBlockRequest(input)
 	err := req.Send()
@@ -698,6 +769,7 @@ const opAssociateVpcCidrBlock = "AssociateVpcCidrBlock"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateVpcCidrBlock
 func (c *EC2) AssociateVpcCidrBlockRequest(input *AssociateVpcCidrBlockInput) (req *request.Request, output *AssociateVpcCidrBlockOutput) {
 	op := &request.Operation{
 		Name:       opAssociateVpcCidrBlock,
@@ -709,9 +781,8 @@ func (c *EC2) AssociateVpcCidrBlockRequest(input *AssociateVpcCidrBlockInput) (r
 		input = &AssociateVpcCidrBlockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssociateVpcCidrBlockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -726,6 +797,7 @@ func (c *EC2) AssociateVpcCidrBlockRequest(input *AssociateVpcCidrBlockInput) (r
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AssociateVpcCidrBlock for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateVpcCidrBlock
 func (c *EC2) AssociateVpcCidrBlock(input *AssociateVpcCidrBlockInput) (*AssociateVpcCidrBlockOutput, error) {
 	req, out := c.AssociateVpcCidrBlockRequest(input)
 	err := req.Send()
@@ -758,6 +830,7 @@ const opAttachClassicLinkVpc = "AttachClassicLinkVpc"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachClassicLinkVpc
 func (c *EC2) AttachClassicLinkVpcRequest(input *AttachClassicLinkVpcInput) (req *request.Request, output *AttachClassicLinkVpcOutput) {
 	op := &request.Operation{
 		Name:       opAttachClassicLinkVpc,
@@ -769,9 +842,8 @@ func (c *EC2) AttachClassicLinkVpcRequest(input *AttachClassicLinkVpcInput) (req
 		input = &AttachClassicLinkVpcInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AttachClassicLinkVpcOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -796,6 +868,7 @@ func (c *EC2) AttachClassicLinkVpcRequest(input *AttachClassicLinkVpcInput) (req
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AttachClassicLinkVpc for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachClassicLinkVpc
 func (c *EC2) AttachClassicLinkVpc(input *AttachClassicLinkVpcInput) (*AttachClassicLinkVpcOutput, error) {
 	req, out := c.AttachClassicLinkVpcRequest(input)
 	err := req.Send()
@@ -828,6 +901,7 @@ const opAttachInternetGateway = "AttachInternetGateway"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachInternetGateway
 func (c *EC2) AttachInternetGatewayRequest(input *AttachInternetGatewayInput) (req *request.Request, output *AttachInternetGatewayOutput) {
 	op := &request.Operation{
 		Name:       opAttachInternetGateway,
@@ -839,11 +913,10 @@ func (c *EC2) AttachInternetGatewayRequest(input *AttachInternetGatewayInput) (r
 		input = &AttachInternetGatewayInput{}
 	}
 
+	output = &AttachInternetGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AttachInternetGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -859,6 +932,7 @@ func (c *EC2) AttachInternetGatewayRequest(input *AttachInternetGatewayInput) (r
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AttachInternetGateway for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachInternetGateway
 func (c *EC2) AttachInternetGateway(input *AttachInternetGatewayInput) (*AttachInternetGatewayOutput, error) {
 	req, out := c.AttachInternetGatewayRequest(input)
 	err := req.Send()
@@ -891,6 +965,7 @@ const opAttachNetworkInterface = "AttachNetworkInterface"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachNetworkInterface
 func (c *EC2) AttachNetworkInterfaceRequest(input *AttachNetworkInterfaceInput) (req *request.Request, output *AttachNetworkInterfaceOutput) {
 	op := &request.Operation{
 		Name:       opAttachNetworkInterface,
@@ -902,9 +977,8 @@ func (c *EC2) AttachNetworkInterfaceRequest(input *AttachNetworkInterfaceInput) 
 		input = &AttachNetworkInterfaceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AttachNetworkInterfaceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -918,6 +992,7 @@ func (c *EC2) AttachNetworkInterfaceRequest(input *AttachNetworkInterfaceInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AttachNetworkInterface for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachNetworkInterface
 func (c *EC2) AttachNetworkInterface(input *AttachNetworkInterfaceInput) (*AttachNetworkInterfaceOutput, error) {
 	req, out := c.AttachNetworkInterfaceRequest(input)
 	err := req.Send()
@@ -950,6 +1025,7 @@ const opAttachVolume = "AttachVolume"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachVolume
 func (c *EC2) AttachVolumeRequest(input *AttachVolumeInput) (req *request.Request, output *VolumeAttachment) {
 	op := &request.Operation{
 		Name:       opAttachVolume,
@@ -961,9 +1037,8 @@ func (c *EC2) AttachVolumeRequest(input *AttachVolumeInput) (req *request.Reques
 		input = &AttachVolumeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &VolumeAttachment{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1006,6 +1081,7 @@ func (c *EC2) AttachVolumeRequest(input *AttachVolumeInput) (req *request.Reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AttachVolume for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachVolume
 func (c *EC2) AttachVolume(input *AttachVolumeInput) (*VolumeAttachment, error) {
 	req, out := c.AttachVolumeRequest(input)
 	err := req.Send()
@@ -1038,6 +1114,7 @@ const opAttachVpnGateway = "AttachVpnGateway"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachVpnGateway
 func (c *EC2) AttachVpnGatewayRequest(input *AttachVpnGatewayInput) (req *request.Request, output *AttachVpnGatewayOutput) {
 	op := &request.Operation{
 		Name:       opAttachVpnGateway,
@@ -1049,9 +1126,8 @@ func (c *EC2) AttachVpnGatewayRequest(input *AttachVpnGatewayInput) (req *reques
 		input = &AttachVpnGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AttachVpnGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1067,6 +1143,7 @@ func (c *EC2) AttachVpnGatewayRequest(input *AttachVpnGatewayInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AttachVpnGateway for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachVpnGateway
 func (c *EC2) AttachVpnGateway(input *AttachVpnGatewayInput) (*AttachVpnGatewayOutput, error) {
 	req, out := c.AttachVpnGatewayRequest(input)
 	err := req.Send()
@@ -1099,6 +1176,7 @@ const opAuthorizeSecurityGroupEgress = "AuthorizeSecurityGroupEgress"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AuthorizeSecurityGroupEgress
 func (c *EC2) AuthorizeSecurityGroupEgressRequest(input *AuthorizeSecurityGroupEgressInput) (req *request.Request, output *AuthorizeSecurityGroupEgressOutput) {
 	op := &request.Operation{
 		Name:       opAuthorizeSecurityGroupEgress,
@@ -1110,11 +1188,10 @@ func (c *EC2) AuthorizeSecurityGroupEgressRequest(input *AuthorizeSecurityGroupE
 		input = &AuthorizeSecurityGroupEgressInput{}
 	}
 
+	output = &AuthorizeSecurityGroupEgressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AuthorizeSecurityGroupEgressOutput{}
-	req.Data = output
 	return
 }
 
@@ -1144,6 +1221,7 @@ func (c *EC2) AuthorizeSecurityGroupEgressRequest(input *AuthorizeSecurityGroupE
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AuthorizeSecurityGroupEgress for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AuthorizeSecurityGroupEgress
 func (c *EC2) AuthorizeSecurityGroupEgress(input *AuthorizeSecurityGroupEgressInput) (*AuthorizeSecurityGroupEgressOutput, error) {
 	req, out := c.AuthorizeSecurityGroupEgressRequest(input)
 	err := req.Send()
@@ -1176,6 +1254,7 @@ const opAuthorizeSecurityGroupIngress = "AuthorizeSecurityGroupIngress"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AuthorizeSecurityGroupIngress
 func (c *EC2) AuthorizeSecurityGroupIngressRequest(input *AuthorizeSecurityGroupIngressInput) (req *request.Request, output *AuthorizeSecurityGroupIngressOutput) {
 	op := &request.Operation{
 		Name:       opAuthorizeSecurityGroupIngress,
@@ -1187,11 +1266,10 @@ func (c *EC2) AuthorizeSecurityGroupIngressRequest(input *AuthorizeSecurityGroup
 		input = &AuthorizeSecurityGroupIngressInput{}
 	}
 
+	output = &AuthorizeSecurityGroupIngressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AuthorizeSecurityGroupIngressOutput{}
-	req.Data = output
 	return
 }
 
@@ -1221,6 +1299,7 @@ func (c *EC2) AuthorizeSecurityGroupIngressRequest(input *AuthorizeSecurityGroup
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation AuthorizeSecurityGroupIngress for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AuthorizeSecurityGroupIngress
 func (c *EC2) AuthorizeSecurityGroupIngress(input *AuthorizeSecurityGroupIngressInput) (*AuthorizeSecurityGroupIngressOutput, error) {
 	req, out := c.AuthorizeSecurityGroupIngressRequest(input)
 	err := req.Send()
@@ -1253,6 +1332,7 @@ const opBundleInstance = "BundleInstance"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/BundleInstance
 func (c *EC2) BundleInstanceRequest(input *BundleInstanceInput) (req *request.Request, output *BundleInstanceOutput) {
 	op := &request.Operation{
 		Name:       opBundleInstance,
@@ -1264,9 +1344,8 @@ func (c *EC2) BundleInstanceRequest(input *BundleInstanceInput) (req *request.Re
 		input = &BundleInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BundleInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1288,6 +1367,7 @@ func (c *EC2) BundleInstanceRequest(input *BundleInstanceInput) (req *request.Re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation BundleInstance for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/BundleInstance
 func (c *EC2) BundleInstance(input *BundleInstanceInput) (*BundleInstanceOutput, error) {
 	req, out := c.BundleInstanceRequest(input)
 	err := req.Send()
@@ -1320,6 +1400,7 @@ const opCancelBundleTask = "CancelBundleTask"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelBundleTask
 func (c *EC2) CancelBundleTaskRequest(input *CancelBundleTaskInput) (req *request.Request, output *CancelBundleTaskOutput) {
 	op := &request.Operation{
 		Name:       opCancelBundleTask,
@@ -1331,9 +1412,8 @@ func (c *EC2) CancelBundleTaskRequest(input *CancelBundleTaskInput) (req *reques
 		input = &CancelBundleTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelBundleTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1347,6 +1427,7 @@ func (c *EC2) CancelBundleTaskRequest(input *CancelBundleTaskInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CancelBundleTask for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelBundleTask
 func (c *EC2) CancelBundleTask(input *CancelBundleTaskInput) (*CancelBundleTaskOutput, error) {
 	req, out := c.CancelBundleTaskRequest(input)
 	err := req.Send()
@@ -1379,6 +1460,7 @@ const opCancelConversionTask = "CancelConversionTask"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelConversionTask
 func (c *EC2) CancelConversionTaskRequest(input *CancelConversionTaskInput) (req *request.Request, output *CancelConversionTaskOutput) {
 	op := &request.Operation{
 		Name:       opCancelConversionTask,
@@ -1390,11 +1472,10 @@ func (c *EC2) CancelConversionTaskRequest(input *CancelConversionTaskInput) (req
 		input = &CancelConversionTaskInput{}
 	}
 
+	output = &CancelConversionTaskOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CancelConversionTaskOutput{}
-	req.Data = output
 	return
 }
 
@@ -1415,6 +1496,7 @@ func (c *EC2) CancelConversionTaskRequest(input *CancelConversionTaskInput) (req
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CancelConversionTask for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelConversionTask
 func (c *EC2) CancelConversionTask(input *CancelConversionTaskInput) (*CancelConversionTaskOutput, error) {
 	req, out := c.CancelConversionTaskRequest(input)
 	err := req.Send()
@@ -1447,6 +1529,7 @@ const opCancelExportTask = "CancelExportTask"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelExportTask
 func (c *EC2) CancelExportTaskRequest(input *CancelExportTaskInput) (req *request.Request, output *CancelExportTaskOutput) {
 	op := &request.Operation{
 		Name:       opCancelExportTask,
@@ -1458,11 +1541,10 @@ func (c *EC2) CancelExportTaskRequest(input *CancelExportTaskInput) (req *reques
 		input = &CancelExportTaskInput{}
 	}
 
+	output = &CancelExportTaskOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CancelExportTaskOutput{}
-	req.Data = output
 	return
 }
 
@@ -1479,6 +1561,7 @@ func (c *EC2) CancelExportTaskRequest(input *CancelExportTaskInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CancelExportTask for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelExportTask
 func (c *EC2) CancelExportTask(input *CancelExportTaskInput) (*CancelExportTaskOutput, error) {
 	req, out := c.CancelExportTaskRequest(input)
 	err := req.Send()
@@ -1511,6 +1594,7 @@ const opCancelImportTask = "CancelImportTask"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelImportTask
 func (c *EC2) CancelImportTaskRequest(input *CancelImportTaskInput) (req *request.Request, output *CancelImportTaskOutput) {
 	op := &request.Operation{
 		Name:       opCancelImportTask,
@@ -1522,9 +1606,8 @@ func (c *EC2) CancelImportTaskRequest(input *CancelImportTaskInput) (req *reques
 		input = &CancelImportTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelImportTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1538,6 +1621,7 @@ func (c *EC2) CancelImportTaskRequest(input *CancelImportTaskInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CancelImportTask for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelImportTask
 func (c *EC2) CancelImportTask(input *CancelImportTaskInput) (*CancelImportTaskOutput, error) {
 	req, out := c.CancelImportTaskRequest(input)
 	err := req.Send()
@@ -1570,6 +1654,7 @@ const opCancelReservedInstancesListing = "CancelReservedInstancesListing"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelReservedInstancesListing
 func (c *EC2) CancelReservedInstancesListingRequest(input *CancelReservedInstancesListingInput) (req *request.Request, output *CancelReservedInstancesListingOutput) {
 	op := &request.Operation{
 		Name:       opCancelReservedInstancesListing,
@@ -1581,9 +1666,8 @@ func (c *EC2) CancelReservedInstancesListingRequest(input *CancelReservedInstanc
 		input = &CancelReservedInstancesListingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelReservedInstancesListingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1601,6 +1685,7 @@ func (c *EC2) CancelReservedInstancesListingRequest(input *CancelReservedInstanc
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CancelReservedInstancesListing for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelReservedInstancesListing
 func (c *EC2) CancelReservedInstancesListing(input *CancelReservedInstancesListingInput) (*CancelReservedInstancesListingOutput, error) {
 	req, out := c.CancelReservedInstancesListingRequest(input)
 	err := req.Send()
@@ -1633,6 +1718,7 @@ const opCancelSpotFleetRequests = "CancelSpotFleetRequests"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelSpotFleetRequests
 func (c *EC2) CancelSpotFleetRequestsRequest(input *CancelSpotFleetRequestsInput) (req *request.Request, output *CancelSpotFleetRequestsOutput) {
 	op := &request.Operation{
 		Name:       opCancelSpotFleetRequests,
@@ -1644,9 +1730,8 @@ func (c *EC2) CancelSpotFleetRequestsRequest(input *CancelSpotFleetRequestsInput
 		input = &CancelSpotFleetRequestsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelSpotFleetRequestsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1667,6 +1752,7 @@ func (c *EC2) CancelSpotFleetRequestsRequest(input *CancelSpotFleetRequestsInput
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CancelSpotFleetRequests for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelSpotFleetRequests
 func (c *EC2) CancelSpotFleetRequests(input *CancelSpotFleetRequestsInput) (*CancelSpotFleetRequestsOutput, error) {
 	req, out := c.CancelSpotFleetRequestsRequest(input)
 	err := req.Send()
@@ -1699,6 +1785,7 @@ const opCancelSpotInstanceRequests = "CancelSpotInstanceRequests"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelSpotInstanceRequests
 func (c *EC2) CancelSpotInstanceRequestsRequest(input *CancelSpotInstanceRequestsInput) (req *request.Request, output *CancelSpotInstanceRequestsOutput) {
 	op := &request.Operation{
 		Name:       opCancelSpotInstanceRequests,
@@ -1710,9 +1797,8 @@ func (c *EC2) CancelSpotInstanceRequestsRequest(input *CancelSpotInstanceRequest
 		input = &CancelSpotInstanceRequestsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelSpotInstanceRequestsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1734,6 +1820,7 @@ func (c *EC2) CancelSpotInstanceRequestsRequest(input *CancelSpotInstanceRequest
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CancelSpotInstanceRequests for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelSpotInstanceRequests
 func (c *EC2) CancelSpotInstanceRequests(input *CancelSpotInstanceRequestsInput) (*CancelSpotInstanceRequestsOutput, error) {
 	req, out := c.CancelSpotInstanceRequestsRequest(input)
 	err := req.Send()
@@ -1766,6 +1853,7 @@ const opConfirmProductInstance = "ConfirmProductInstance"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ConfirmProductInstance
 func (c *EC2) ConfirmProductInstanceRequest(input *ConfirmProductInstanceInput) (req *request.Request, output *ConfirmProductInstanceOutput) {
 	op := &request.Operation{
 		Name:       opConfirmProductInstance,
@@ -1777,9 +1865,8 @@ func (c *EC2) ConfirmProductInstanceRequest(input *ConfirmProductInstanceInput) 
 		input = &ConfirmProductInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ConfirmProductInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1796,6 +1883,7 @@ func (c *EC2) ConfirmProductInstanceRequest(input *ConfirmProductInstanceInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ConfirmProductInstance for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ConfirmProductInstance
 func (c *EC2) ConfirmProductInstance(input *ConfirmProductInstanceInput) (*ConfirmProductInstanceOutput, error) {
 	req, out := c.ConfirmProductInstanceRequest(input)
 	err := req.Send()
@@ -1828,6 +1916,7 @@ const opCopyImage = "CopyImage"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CopyImage
 func (c *EC2) CopyImageRequest(input *CopyImageInput) (req *request.Request, output *CopyImageOutput) {
 	op := &request.Operation{
 		Name:       opCopyImage,
@@ -1839,9 +1928,8 @@ func (c *EC2) CopyImageRequest(input *CopyImageInput) (req *request.Request, out
 		input = &CopyImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CopyImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1860,6 +1948,7 @@ func (c *EC2) CopyImageRequest(input *CopyImageInput) (req *request.Request, out
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CopyImage for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CopyImage
 func (c *EC2) CopyImage(input *CopyImageInput) (*CopyImageOutput, error) {
 	req, out := c.CopyImageRequest(input)
 	err := req.Send()
@@ -1892,6 +1981,7 @@ const opCopySnapshot = "CopySnapshot"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CopySnapshot
 func (c *EC2) CopySnapshotRequest(input *CopySnapshotInput) (req *request.Request, output *CopySnapshotOutput) {
 	op := &request.Operation{
 		Name:       opCopySnapshot,
@@ -1903,9 +1993,8 @@ func (c *EC2) CopySnapshotRequest(input *CopySnapshotInput) (req *request.Reques
 		input = &CopySnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CopySnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1938,6 +2027,7 @@ func (c *EC2) CopySnapshotRequest(input *CopySnapshotInput) (req *request.Reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CopySnapshot for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CopySnapshot
 func (c *EC2) CopySnapshot(input *CopySnapshotInput) (*CopySnapshotOutput, error) {
 	req, out := c.CopySnapshotRequest(input)
 	err := req.Send()
@@ -1970,6 +2060,7 @@ const opCreateCustomerGateway = "CreateCustomerGateway"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateCustomerGateway
 func (c *EC2) CreateCustomerGatewayRequest(input *CreateCustomerGatewayInput) (req *request.Request, output *CreateCustomerGatewayOutput) {
 	op := &request.Operation{
 		Name:       opCreateCustomerGateway,
@@ -1981,9 +2072,8 @@ func (c *EC2) CreateCustomerGatewayRequest(input *CreateCustomerGatewayInput) (r
 		input = &CreateCustomerGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateCustomerGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2021,6 +2111,7 @@ func (c *EC2) CreateCustomerGatewayRequest(input *CreateCustomerGatewayInput) (r
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateCustomerGateway for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateCustomerGateway
 func (c *EC2) CreateCustomerGateway(input *CreateCustomerGatewayInput) (*CreateCustomerGatewayOutput, error) {
 	req, out := c.CreateCustomerGatewayRequest(input)
 	err := req.Send()
@@ -2053,6 +2144,7 @@ const opCreateDhcpOptions = "CreateDhcpOptions"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateDhcpOptions
 func (c *EC2) CreateDhcpOptionsRequest(input *CreateDhcpOptionsInput) (req *request.Request, output *CreateDhcpOptionsOutput) {
 	op := &request.Operation{
 		Name:       opCreateDhcpOptions,
@@ -2064,9 +2156,8 @@ func (c *EC2) CreateDhcpOptionsRequest(input *CreateDhcpOptionsInput) (req *requ
 		input = &CreateDhcpOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDhcpOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2119,6 +2210,7 @@ func (c *EC2) CreateDhcpOptionsRequest(input *CreateDhcpOptionsInput) (req *requ
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateDhcpOptions for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateDhcpOptions
 func (c *EC2) CreateDhcpOptions(input *CreateDhcpOptionsInput) (*CreateDhcpOptionsOutput, error) {
 	req, out := c.CreateDhcpOptionsRequest(input)
 	err := req.Send()
@@ -2151,6 +2243,7 @@ const opCreateEgressOnlyInternetGateway = "CreateEgressOnlyInternetGateway"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateEgressOnlyInternetGateway
 func (c *EC2) CreateEgressOnlyInternetGatewayRequest(input *CreateEgressOnlyInternetGatewayInput) (req *request.Request, output *CreateEgressOnlyInternetGatewayOutput) {
 	op := &request.Operation{
 		Name:       opCreateEgressOnlyInternetGateway,
@@ -2162,9 +2255,8 @@ func (c *EC2) CreateEgressOnlyInternetGatewayRequest(input *CreateEgressOnlyInte
 		input = &CreateEgressOnlyInternetGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateEgressOnlyInternetGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2181,6 +2273,7 @@ func (c *EC2) CreateEgressOnlyInternetGatewayRequest(input *CreateEgressOnlyInte
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateEgressOnlyInternetGateway for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateEgressOnlyInternetGateway
 func (c *EC2) CreateEgressOnlyInternetGateway(input *CreateEgressOnlyInternetGatewayInput) (*CreateEgressOnlyInternetGatewayOutput, error) {
 	req, out := c.CreateEgressOnlyInternetGatewayRequest(input)
 	err := req.Send()
@@ -2213,6 +2306,7 @@ const opCreateFlowLogs = "CreateFlowLogs"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateFlowLogs
 func (c *EC2) CreateFlowLogsRequest(input *CreateFlowLogsInput) (req *request.Request, output *CreateFlowLogsOutput) {
 	op := &request.Operation{
 		Name:       opCreateFlowLogs,
@@ -2224,9 +2318,8 @@ func (c *EC2) CreateFlowLogsRequest(input *CreateFlowLogsInput) (req *request.Re
 		input = &CreateFlowLogsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateFlowLogsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2249,6 +2342,7 @@ func (c *EC2) CreateFlowLogsRequest(input *CreateFlowLogsInput) (req *request.Re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateFlowLogs for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateFlowLogs
 func (c *EC2) CreateFlowLogs(input *CreateFlowLogsInput) (*CreateFlowLogsOutput, error) {
 	req, out := c.CreateFlowLogsRequest(input)
 	err := req.Send()
@@ -2281,6 +2375,7 @@ const opCreateImage = "CreateImage"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateImage
 func (c *EC2) CreateImageRequest(input *CreateImageInput) (req *request.Request, output *CreateImageOutput) {
 	op := &request.Operation{
 		Name:       opCreateImage,
@@ -2292,9 +2387,8 @@ func (c *EC2) CreateImageRequest(input *CreateImageInput) (req *request.Request,
 		input = &CreateImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2317,6 +2411,7 @@ func (c *EC2) CreateImageRequest(input *CreateImageInput) (req *request.Request,
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateImage for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateImage
 func (c *EC2) CreateImage(input *CreateImageInput) (*CreateImageOutput, error) {
 	req, out := c.CreateImageRequest(input)
 	err := req.Send()
@@ -2349,6 +2444,7 @@ const opCreateInstanceExportTask = "CreateInstanceExportTask"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateInstanceExportTask
 func (c *EC2) CreateInstanceExportTaskRequest(input *CreateInstanceExportTaskInput) (req *request.Request, output *CreateInstanceExportTaskOutput) {
 	op := &request.Operation{
 		Name:       opCreateInstanceExportTask,
@@ -2360,9 +2456,8 @@ func (c *EC2) CreateInstanceExportTaskRequest(input *CreateInstanceExportTaskInp
 		input = &CreateInstanceExportTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateInstanceExportTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2381,6 +2476,7 @@ func (c *EC2) CreateInstanceExportTaskRequest(input *CreateInstanceExportTaskInp
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateInstanceExportTask for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateInstanceExportTask
 func (c *EC2) CreateInstanceExportTask(input *CreateInstanceExportTaskInput) (*CreateInstanceExportTaskOutput, error) {
 	req, out := c.CreateInstanceExportTaskRequest(input)
 	err := req.Send()
@@ -2413,6 +2509,7 @@ const opCreateInternetGateway = "CreateInternetGateway"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateInternetGateway
 func (c *EC2) CreateInternetGatewayRequest(input *CreateInternetGatewayInput) (req *request.Request, output *CreateInternetGatewayOutput) {
 	op := &request.Operation{
 		Name:       opCreateInternetGateway,
@@ -2424,9 +2521,8 @@ func (c *EC2) CreateInternetGatewayRequest(input *CreateInternetGatewayInput) (r
 		input = &CreateInternetGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateInternetGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2444,6 +2540,7 @@ func (c *EC2) CreateInternetGatewayRequest(input *CreateInternetGatewayInput) (r
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateInternetGateway for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateInternetGateway
 func (c *EC2) CreateInternetGateway(input *CreateInternetGatewayInput) (*CreateInternetGatewayOutput, error) {
 	req, out := c.CreateInternetGatewayRequest(input)
 	err := req.Send()
@@ -2476,6 +2573,7 @@ const opCreateKeyPair = "CreateKeyPair"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateKeyPair
 func (c *EC2) CreateKeyPairRequest(input *CreateKeyPairInput) (req *request.Request, output *CreateKeyPairOutput) {
 	op := &request.Operation{
 		Name:       opCreateKeyPair,
@@ -2487,9 +2585,8 @@ func (c *EC2) CreateKeyPairRequest(input *CreateKeyPairInput) (req *request.Requ
 		input = &CreateKeyPairInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateKeyPairOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2514,6 +2611,7 @@ func (c *EC2) CreateKeyPairRequest(input *CreateKeyPairInput) (req *request.Requ
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateKeyPair for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateKeyPair
 func (c *EC2) CreateKeyPair(input *CreateKeyPairInput) (*CreateKeyPairOutput, error) {
 	req, out := c.CreateKeyPairRequest(input)
 	err := req.Send()
@@ -2546,6 +2644,7 @@ const opCreateNatGateway = "CreateNatGateway"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNatGateway
 func (c *EC2) CreateNatGatewayRequest(input *CreateNatGatewayInput) (req *request.Request, output *CreateNatGatewayOutput) {
 	op := &request.Operation{
 		Name:       opCreateNatGateway,
@@ -2557,9 +2656,8 @@ func (c *EC2) CreateNatGatewayRequest(input *CreateNatGatewayInput) (req *reques
 		input = &CreateNatGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateNatGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2578,6 +2676,7 @@ func (c *EC2) CreateNatGatewayRequest(input *CreateNatGatewayInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateNatGateway for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNatGateway
 func (c *EC2) CreateNatGateway(input *CreateNatGatewayInput) (*CreateNatGatewayOutput, error) {
 	req, out := c.CreateNatGatewayRequest(input)
 	err := req.Send()
@@ -2610,6 +2709,7 @@ const opCreateNetworkAcl = "CreateNetworkAcl"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNetworkAcl
 func (c *EC2) CreateNetworkAclRequest(input *CreateNetworkAclInput) (req *request.Request, output *CreateNetworkAclOutput) {
 	op := &request.Operation{
 		Name:       opCreateNetworkAcl,
@@ -2621,9 +2721,8 @@ func (c *EC2) CreateNetworkAclRequest(input *CreateNetworkAclInput) (req *reques
 		input = &CreateNetworkAclInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateNetworkAclOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2641,6 +2740,7 @@ func (c *EC2) CreateNetworkAclRequest(input *CreateNetworkAclInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateNetworkAcl for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNetworkAcl
 func (c *EC2) CreateNetworkAcl(input *CreateNetworkAclInput) (*CreateNetworkAclOutput, error) {
 	req, out := c.CreateNetworkAclRequest(input)
 	err := req.Send()
@@ -2673,6 +2773,7 @@ const opCreateNetworkAclEntry = "CreateNetworkAclEntry"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNetworkAclEntry
 func (c *EC2) CreateNetworkAclEntryRequest(input *CreateNetworkAclEntryInput) (req *request.Request, output *CreateNetworkAclEntryOutput) {
 	op := &request.Operation{
 		Name:       opCreateNetworkAclEntry,
@@ -2684,11 +2785,10 @@ func (c *EC2) CreateNetworkAclEntryRequest(input *CreateNetworkAclEntryInput) (r
 		input = &CreateNetworkAclEntryInput{}
 	}
 
+	output = &CreateNetworkAclEntryOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateNetworkAclEntryOutput{}
-	req.Data = output
 	return
 }
 
@@ -2718,6 +2818,7 @@ func (c *EC2) CreateNetworkAclEntryRequest(input *CreateNetworkAclEntryInput) (r
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateNetworkAclEntry for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNetworkAclEntry
 func (c *EC2) CreateNetworkAclEntry(input *CreateNetworkAclEntryInput) (*CreateNetworkAclEntryOutput, error) {
 	req, out := c.CreateNetworkAclEntryRequest(input)
 	err := req.Send()
@@ -2750,6 +2851,7 @@ const opCreateNetworkInterface = "CreateNetworkInterface"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNetworkInterface
 func (c *EC2) CreateNetworkInterfaceRequest(input *CreateNetworkInterfaceInput) (req *request.Request, output *CreateNetworkInterfaceOutput) {
 	op := &request.Operation{
 		Name:       opCreateNetworkInterface,
@@ -2761,9 +2863,8 @@ func (c *EC2) CreateNetworkInterfaceRequest(input *CreateNetworkInterfaceInput) 
 		input = &CreateNetworkInterfaceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateNetworkInterfaceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2781,6 +2882,7 @@ func (c *EC2) CreateNetworkInterfaceRequest(input *CreateNetworkInterfaceInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateNetworkInterface for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNetworkInterface
 func (c *EC2) CreateNetworkInterface(input *CreateNetworkInterfaceInput) (*CreateNetworkInterfaceOutput, error) {
 	req, out := c.CreateNetworkInterfaceRequest(input)
 	err := req.Send()
@@ -2813,6 +2915,7 @@ const opCreatePlacementGroup = "CreatePlacementGroup"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreatePlacementGroup
 func (c *EC2) CreatePlacementGroupRequest(input *CreatePlacementGroupInput) (req *request.Request, output *CreatePlacementGroupOutput) {
 	op := &request.Operation{
 		Name:       opCreatePlacementGroup,
@@ -2824,11 +2927,10 @@ func (c *EC2) CreatePlacementGroupRequest(input *CreatePlacementGroupInput) (req
 		input = &CreatePlacementGroupInput{}
 	}
 
+	output = &CreatePlacementGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreatePlacementGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -2847,6 +2949,7 @@ func (c *EC2) CreatePlacementGroupRequest(input *CreatePlacementGroupInput) (req
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreatePlacementGroup for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreatePlacementGroup
 func (c *EC2) CreatePlacementGroup(input *CreatePlacementGroupInput) (*CreatePlacementGroupOutput, error) {
 	req, out := c.CreatePlacementGroupRequest(input)
 	err := req.Send()
@@ -2879,6 +2982,7 @@ const opCreateReservedInstancesListing = "CreateReservedInstancesListing"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateReservedInstancesListing
 func (c *EC2) CreateReservedInstancesListingRequest(input *CreateReservedInstancesListingInput) (req *request.Request, output *CreateReservedInstancesListingOutput) {
 	op := &request.Operation{
 		Name:       opCreateReservedInstancesListing,
@@ -2890,9 +2994,8 @@ func (c *EC2) CreateReservedInstancesListingRequest(input *CreateReservedInstanc
 		input = &CreateReservedInstancesListingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateReservedInstancesListingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2902,6 +3005,10 @@ func (c *EC2) CreateReservedInstancesListingRequest(input *CreateReservedInstanc
 // the Reserved Instance Marketplace. You can submit one Standard Reserved Instance
 // listing at a time. To get a list of your Standard Reserved Instances, you
 // can use the DescribeReservedInstances operation.
+//
+// Only Standard Reserved Instances with a capacity reservation can be sold
+// in the Reserved Instance Marketplace. Convertible Reserved Instances and
+// Standard Reserved Instances with a regional benefit cannot be sold.
 //
 // The Reserved Instance Marketplace matches sellers who want to resell Standard
 // Reserved Instance capacity that they no longer need with buyers who want
@@ -2925,6 +3032,7 @@ func (c *EC2) CreateReservedInstancesListingRequest(input *CreateReservedInstanc
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateReservedInstancesListing for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateReservedInstancesListing
 func (c *EC2) CreateReservedInstancesListing(input *CreateReservedInstancesListingInput) (*CreateReservedInstancesListingOutput, error) {
 	req, out := c.CreateReservedInstancesListingRequest(input)
 	err := req.Send()
@@ -2957,6 +3065,7 @@ const opCreateRoute = "CreateRoute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateRoute
 func (c *EC2) CreateRouteRequest(input *CreateRouteInput) (req *request.Request, output *CreateRouteOutput) {
 	op := &request.Operation{
 		Name:       opCreateRoute,
@@ -2968,9 +3077,8 @@ func (c *EC2) CreateRouteRequest(input *CreateRouteInput) (req *request.Request,
 		input = &CreateRouteInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateRouteOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3003,6 +3111,7 @@ func (c *EC2) CreateRouteRequest(input *CreateRouteInput) (req *request.Request,
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateRoute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateRoute
 func (c *EC2) CreateRoute(input *CreateRouteInput) (*CreateRouteOutput, error) {
 	req, out := c.CreateRouteRequest(input)
 	err := req.Send()
@@ -3035,6 +3144,7 @@ const opCreateRouteTable = "CreateRouteTable"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateRouteTable
 func (c *EC2) CreateRouteTableRequest(input *CreateRouteTableInput) (req *request.Request, output *CreateRouteTableOutput) {
 	op := &request.Operation{
 		Name:       opCreateRouteTable,
@@ -3046,9 +3156,8 @@ func (c *EC2) CreateRouteTableRequest(input *CreateRouteTableInput) (req *reques
 		input = &CreateRouteTableInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateRouteTableOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3066,6 +3175,7 @@ func (c *EC2) CreateRouteTableRequest(input *CreateRouteTableInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateRouteTable for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateRouteTable
 func (c *EC2) CreateRouteTable(input *CreateRouteTableInput) (*CreateRouteTableOutput, error) {
 	req, out := c.CreateRouteTableRequest(input)
 	err := req.Send()
@@ -3098,6 +3208,7 @@ const opCreateSecurityGroup = "CreateSecurityGroup"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSecurityGroup
 func (c *EC2) CreateSecurityGroupRequest(input *CreateSecurityGroupInput) (req *request.Request, output *CreateSecurityGroupOutput) {
 	op := &request.Operation{
 		Name:       opCreateSecurityGroup,
@@ -3109,9 +3220,8 @@ func (c *EC2) CreateSecurityGroupRequest(input *CreateSecurityGroupInput) (req *
 		input = &CreateSecurityGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSecurityGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3151,6 +3261,7 @@ func (c *EC2) CreateSecurityGroupRequest(input *CreateSecurityGroupInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateSecurityGroup for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSecurityGroup
 func (c *EC2) CreateSecurityGroup(input *CreateSecurityGroupInput) (*CreateSecurityGroupOutput, error) {
 	req, out := c.CreateSecurityGroupRequest(input)
 	err := req.Send()
@@ -3183,6 +3294,7 @@ const opCreateSnapshot = "CreateSnapshot"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSnapshot
 func (c *EC2) CreateSnapshotRequest(input *CreateSnapshotInput) (req *request.Request, output *Snapshot) {
 	op := &request.Operation{
 		Name:       opCreateSnapshot,
@@ -3194,9 +3306,8 @@ func (c *EC2) CreateSnapshotRequest(input *CreateSnapshotInput) (req *request.Re
 		input = &CreateSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Snapshot{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3237,6 +3348,7 @@ func (c *EC2) CreateSnapshotRequest(input *CreateSnapshotInput) (req *request.Re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateSnapshot for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSnapshot
 func (c *EC2) CreateSnapshot(input *CreateSnapshotInput) (*Snapshot, error) {
 	req, out := c.CreateSnapshotRequest(input)
 	err := req.Send()
@@ -3269,6 +3381,7 @@ const opCreateSpotDatafeedSubscription = "CreateSpotDatafeedSubscription"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSpotDatafeedSubscription
 func (c *EC2) CreateSpotDatafeedSubscriptionRequest(input *CreateSpotDatafeedSubscriptionInput) (req *request.Request, output *CreateSpotDatafeedSubscriptionOutput) {
 	op := &request.Operation{
 		Name:       opCreateSpotDatafeedSubscription,
@@ -3280,9 +3393,8 @@ func (c *EC2) CreateSpotDatafeedSubscriptionRequest(input *CreateSpotDatafeedSub
 		input = &CreateSpotDatafeedSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSpotDatafeedSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3299,6 +3411,7 @@ func (c *EC2) CreateSpotDatafeedSubscriptionRequest(input *CreateSpotDatafeedSub
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateSpotDatafeedSubscription for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSpotDatafeedSubscription
 func (c *EC2) CreateSpotDatafeedSubscription(input *CreateSpotDatafeedSubscriptionInput) (*CreateSpotDatafeedSubscriptionOutput, error) {
 	req, out := c.CreateSpotDatafeedSubscriptionRequest(input)
 	err := req.Send()
@@ -3331,6 +3444,7 @@ const opCreateSubnet = "CreateSubnet"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSubnet
 func (c *EC2) CreateSubnetRequest(input *CreateSubnetInput) (req *request.Request, output *CreateSubnetOutput) {
 	op := &request.Operation{
 		Name:       opCreateSubnet,
@@ -3342,9 +3456,8 @@ func (c *EC2) CreateSubnetRequest(input *CreateSubnetInput) (req *request.Reques
 		input = &CreateSubnetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSubnetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3385,6 +3498,7 @@ func (c *EC2) CreateSubnetRequest(input *CreateSubnetInput) (req *request.Reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateSubnet for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSubnet
 func (c *EC2) CreateSubnet(input *CreateSubnetInput) (*CreateSubnetOutput, error) {
 	req, out := c.CreateSubnetRequest(input)
 	err := req.Send()
@@ -3417,6 +3531,7 @@ const opCreateTags = "CreateTags"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateTags
 func (c *EC2) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, output *CreateTagsOutput) {
 	op := &request.Operation{
 		Name:       opCreateTags,
@@ -3428,11 +3543,10 @@ func (c *EC2) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, o
 		input = &CreateTagsInput{}
 	}
 
+	output = &CreateTagsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateTagsOutput{}
-	req.Data = output
 	return
 }
 
@@ -3454,6 +3568,7 @@ func (c *EC2) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, o
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateTags for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateTags
 func (c *EC2) CreateTags(input *CreateTagsInput) (*CreateTagsOutput, error) {
 	req, out := c.CreateTagsRequest(input)
 	err := req.Send()
@@ -3486,6 +3601,7 @@ const opCreateVolume = "CreateVolume"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVolume
 func (c *EC2) CreateVolumeRequest(input *CreateVolumeInput) (req *request.Request, output *Volume) {
 	op := &request.Operation{
 		Name:       opCreateVolume,
@@ -3497,9 +3613,8 @@ func (c *EC2) CreateVolumeRequest(input *CreateVolumeInput) (req *request.Reques
 		input = &CreateVolumeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Volume{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3528,6 +3643,7 @@ func (c *EC2) CreateVolumeRequest(input *CreateVolumeInput) (req *request.Reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateVolume for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVolume
 func (c *EC2) CreateVolume(input *CreateVolumeInput) (*Volume, error) {
 	req, out := c.CreateVolumeRequest(input)
 	err := req.Send()
@@ -3560,6 +3676,7 @@ const opCreateVpc = "CreateVpc"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpc
 func (c *EC2) CreateVpcRequest(input *CreateVpcInput) (req *request.Request, output *CreateVpcOutput) {
 	op := &request.Operation{
 		Name:       opCreateVpc,
@@ -3571,9 +3688,8 @@ func (c *EC2) CreateVpcRequest(input *CreateVpcInput) (req *request.Request, out
 		input = &CreateVpcInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpcOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3596,8 +3712,8 @@ func (c *EC2) CreateVpcRequest(input *CreateVpcInput) (req *request.Request, out
 //
 // You can specify the instance tenancy value for the VPC when you create it.
 // You can't change this value for the VPC after you create it. For more information,
-// see Dedicated Instances (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/dedicated-instance.html.html)
-// in the Amazon Virtual Private Cloud User Guide.
+// see Dedicated Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/dedicated-instance.html)
+// in the Amazon Elastic Compute Cloud User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3605,6 +3721,7 @@ func (c *EC2) CreateVpcRequest(input *CreateVpcInput) (req *request.Request, out
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateVpc for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpc
 func (c *EC2) CreateVpc(input *CreateVpcInput) (*CreateVpcOutput, error) {
 	req, out := c.CreateVpcRequest(input)
 	err := req.Send()
@@ -3637,6 +3754,7 @@ const opCreateVpcEndpoint = "CreateVpcEndpoint"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpcEndpoint
 func (c *EC2) CreateVpcEndpointRequest(input *CreateVpcEndpointInput) (req *request.Request, output *CreateVpcEndpointOutput) {
 	op := &request.Operation{
 		Name:       opCreateVpcEndpoint,
@@ -3648,9 +3766,8 @@ func (c *EC2) CreateVpcEndpointRequest(input *CreateVpcEndpointInput) (req *requ
 		input = &CreateVpcEndpointInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpcEndpointOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3662,7 +3779,7 @@ func (c *EC2) CreateVpcEndpointRequest(input *CreateVpcEndpointInput) (req *requ
 // that will control access to the service from your VPC. You can also specify
 // the VPC route tables that use the endpoint.
 //
-// Currently, only endpoints to Amazon S3 are supported.
+// Use DescribeVpcEndpointServices to get a list of supported AWS services.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3670,6 +3787,7 @@ func (c *EC2) CreateVpcEndpointRequest(input *CreateVpcEndpointInput) (req *requ
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateVpcEndpoint for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpcEndpoint
 func (c *EC2) CreateVpcEndpoint(input *CreateVpcEndpointInput) (*CreateVpcEndpointOutput, error) {
 	req, out := c.CreateVpcEndpointRequest(input)
 	err := req.Send()
@@ -3702,6 +3820,7 @@ const opCreateVpcPeeringConnection = "CreateVpcPeeringConnection"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpcPeeringConnection
 func (c *EC2) CreateVpcPeeringConnectionRequest(input *CreateVpcPeeringConnectionInput) (req *request.Request, output *CreateVpcPeeringConnectionOutput) {
 	op := &request.Operation{
 		Name:       opCreateVpcPeeringConnection,
@@ -3713,9 +3832,8 @@ func (c *EC2) CreateVpcPeeringConnectionRequest(input *CreateVpcPeeringConnectio
 		input = &CreateVpcPeeringConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpcPeeringConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3739,6 +3857,7 @@ func (c *EC2) CreateVpcPeeringConnectionRequest(input *CreateVpcPeeringConnectio
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateVpcPeeringConnection for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpcPeeringConnection
 func (c *EC2) CreateVpcPeeringConnection(input *CreateVpcPeeringConnectionInput) (*CreateVpcPeeringConnectionOutput, error) {
 	req, out := c.CreateVpcPeeringConnectionRequest(input)
 	err := req.Send()
@@ -3771,6 +3890,7 @@ const opCreateVpnConnection = "CreateVpnConnection"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpnConnection
 func (c *EC2) CreateVpnConnectionRequest(input *CreateVpnConnectionInput) (req *request.Request, output *CreateVpnConnectionOutput) {
 	op := &request.Operation{
 		Name:       opCreateVpnConnection,
@@ -3782,9 +3902,8 @@ func (c *EC2) CreateVpnConnectionRequest(input *CreateVpnConnectionInput) (req *
 		input = &CreateVpnConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpnConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3817,6 +3936,7 @@ func (c *EC2) CreateVpnConnectionRequest(input *CreateVpnConnectionInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateVpnConnection for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpnConnection
 func (c *EC2) CreateVpnConnection(input *CreateVpnConnectionInput) (*CreateVpnConnectionOutput, error) {
 	req, out := c.CreateVpnConnectionRequest(input)
 	err := req.Send()
@@ -3849,6 +3969,7 @@ const opCreateVpnConnectionRoute = "CreateVpnConnectionRoute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpnConnectionRoute
 func (c *EC2) CreateVpnConnectionRouteRequest(input *CreateVpnConnectionRouteInput) (req *request.Request, output *CreateVpnConnectionRouteOutput) {
 	op := &request.Operation{
 		Name:       opCreateVpnConnectionRoute,
@@ -3860,11 +3981,10 @@ func (c *EC2) CreateVpnConnectionRouteRequest(input *CreateVpnConnectionRouteInp
 		input = &CreateVpnConnectionRouteInput{}
 	}
 
+	output = &CreateVpnConnectionRouteOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateVpnConnectionRouteOutput{}
-	req.Data = output
 	return
 }
 
@@ -3885,6 +4005,7 @@ func (c *EC2) CreateVpnConnectionRouteRequest(input *CreateVpnConnectionRouteInp
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateVpnConnectionRoute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpnConnectionRoute
 func (c *EC2) CreateVpnConnectionRoute(input *CreateVpnConnectionRouteInput) (*CreateVpnConnectionRouteOutput, error) {
 	req, out := c.CreateVpnConnectionRouteRequest(input)
 	err := req.Send()
@@ -3917,6 +4038,7 @@ const opCreateVpnGateway = "CreateVpnGateway"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpnGateway
 func (c *EC2) CreateVpnGatewayRequest(input *CreateVpnGatewayInput) (req *request.Request, output *CreateVpnGatewayOutput) {
 	op := &request.Operation{
 		Name:       opCreateVpnGateway,
@@ -3928,9 +4050,8 @@ func (c *EC2) CreateVpnGatewayRequest(input *CreateVpnGatewayInput) (req *reques
 		input = &CreateVpnGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpnGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3950,6 +4071,7 @@ func (c *EC2) CreateVpnGatewayRequest(input *CreateVpnGatewayInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation CreateVpnGateway for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpnGateway
 func (c *EC2) CreateVpnGateway(input *CreateVpnGatewayInput) (*CreateVpnGatewayOutput, error) {
 	req, out := c.CreateVpnGatewayRequest(input)
 	err := req.Send()
@@ -3982,6 +4104,7 @@ const opDeleteCustomerGateway = "DeleteCustomerGateway"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteCustomerGateway
 func (c *EC2) DeleteCustomerGatewayRequest(input *DeleteCustomerGatewayInput) (req *request.Request, output *DeleteCustomerGatewayOutput) {
 	op := &request.Operation{
 		Name:       opDeleteCustomerGateway,
@@ -3993,11 +4116,10 @@ func (c *EC2) DeleteCustomerGatewayRequest(input *DeleteCustomerGatewayInput) (r
 		input = &DeleteCustomerGatewayInput{}
 	}
 
+	output = &DeleteCustomerGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteCustomerGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -4012,6 +4134,7 @@ func (c *EC2) DeleteCustomerGatewayRequest(input *DeleteCustomerGatewayInput) (r
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteCustomerGateway for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteCustomerGateway
 func (c *EC2) DeleteCustomerGateway(input *DeleteCustomerGatewayInput) (*DeleteCustomerGatewayOutput, error) {
 	req, out := c.DeleteCustomerGatewayRequest(input)
 	err := req.Send()
@@ -4044,6 +4167,7 @@ const opDeleteDhcpOptions = "DeleteDhcpOptions"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteDhcpOptions
 func (c *EC2) DeleteDhcpOptionsRequest(input *DeleteDhcpOptionsInput) (req *request.Request, output *DeleteDhcpOptionsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDhcpOptions,
@@ -4055,11 +4179,10 @@ func (c *EC2) DeleteDhcpOptionsRequest(input *DeleteDhcpOptionsInput) (req *requ
 		input = &DeleteDhcpOptionsInput{}
 	}
 
+	output = &DeleteDhcpOptionsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDhcpOptionsOutput{}
-	req.Data = output
 	return
 }
 
@@ -4076,6 +4199,7 @@ func (c *EC2) DeleteDhcpOptionsRequest(input *DeleteDhcpOptionsInput) (req *requ
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteDhcpOptions for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteDhcpOptions
 func (c *EC2) DeleteDhcpOptions(input *DeleteDhcpOptionsInput) (*DeleteDhcpOptionsOutput, error) {
 	req, out := c.DeleteDhcpOptionsRequest(input)
 	err := req.Send()
@@ -4108,6 +4232,7 @@ const opDeleteEgressOnlyInternetGateway = "DeleteEgressOnlyInternetGateway"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteEgressOnlyInternetGateway
 func (c *EC2) DeleteEgressOnlyInternetGatewayRequest(input *DeleteEgressOnlyInternetGatewayInput) (req *request.Request, output *DeleteEgressOnlyInternetGatewayOutput) {
 	op := &request.Operation{
 		Name:       opDeleteEgressOnlyInternetGateway,
@@ -4119,9 +4244,8 @@ func (c *EC2) DeleteEgressOnlyInternetGatewayRequest(input *DeleteEgressOnlyInte
 		input = &DeleteEgressOnlyInternetGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteEgressOnlyInternetGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4135,6 +4259,7 @@ func (c *EC2) DeleteEgressOnlyInternetGatewayRequest(input *DeleteEgressOnlyInte
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteEgressOnlyInternetGateway for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteEgressOnlyInternetGateway
 func (c *EC2) DeleteEgressOnlyInternetGateway(input *DeleteEgressOnlyInternetGatewayInput) (*DeleteEgressOnlyInternetGatewayOutput, error) {
 	req, out := c.DeleteEgressOnlyInternetGatewayRequest(input)
 	err := req.Send()
@@ -4167,6 +4292,7 @@ const opDeleteFlowLogs = "DeleteFlowLogs"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteFlowLogs
 func (c *EC2) DeleteFlowLogsRequest(input *DeleteFlowLogsInput) (req *request.Request, output *DeleteFlowLogsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteFlowLogs,
@@ -4178,9 +4304,8 @@ func (c *EC2) DeleteFlowLogsRequest(input *DeleteFlowLogsInput) (req *request.Re
 		input = &DeleteFlowLogsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteFlowLogsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4194,6 +4319,7 @@ func (c *EC2) DeleteFlowLogsRequest(input *DeleteFlowLogsInput) (req *request.Re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteFlowLogs for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteFlowLogs
 func (c *EC2) DeleteFlowLogs(input *DeleteFlowLogsInput) (*DeleteFlowLogsOutput, error) {
 	req, out := c.DeleteFlowLogsRequest(input)
 	err := req.Send()
@@ -4226,6 +4352,7 @@ const opDeleteInternetGateway = "DeleteInternetGateway"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteInternetGateway
 func (c *EC2) DeleteInternetGatewayRequest(input *DeleteInternetGatewayInput) (req *request.Request, output *DeleteInternetGatewayOutput) {
 	op := &request.Operation{
 		Name:       opDeleteInternetGateway,
@@ -4237,11 +4364,10 @@ func (c *EC2) DeleteInternetGatewayRequest(input *DeleteInternetGatewayInput) (r
 		input = &DeleteInternetGatewayInput{}
 	}
 
+	output = &DeleteInternetGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteInternetGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -4256,6 +4382,7 @@ func (c *EC2) DeleteInternetGatewayRequest(input *DeleteInternetGatewayInput) (r
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteInternetGateway for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteInternetGateway
 func (c *EC2) DeleteInternetGateway(input *DeleteInternetGatewayInput) (*DeleteInternetGatewayOutput, error) {
 	req, out := c.DeleteInternetGatewayRequest(input)
 	err := req.Send()
@@ -4288,6 +4415,7 @@ const opDeleteKeyPair = "DeleteKeyPair"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteKeyPair
 func (c *EC2) DeleteKeyPairRequest(input *DeleteKeyPairInput) (req *request.Request, output *DeleteKeyPairOutput) {
 	op := &request.Operation{
 		Name:       opDeleteKeyPair,
@@ -4299,11 +4427,10 @@ func (c *EC2) DeleteKeyPairRequest(input *DeleteKeyPairInput) (req *request.Requ
 		input = &DeleteKeyPairInput{}
 	}
 
+	output = &DeleteKeyPairOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteKeyPairOutput{}
-	req.Data = output
 	return
 }
 
@@ -4317,6 +4444,7 @@ func (c *EC2) DeleteKeyPairRequest(input *DeleteKeyPairInput) (req *request.Requ
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteKeyPair for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteKeyPair
 func (c *EC2) DeleteKeyPair(input *DeleteKeyPairInput) (*DeleteKeyPairOutput, error) {
 	req, out := c.DeleteKeyPairRequest(input)
 	err := req.Send()
@@ -4349,6 +4477,7 @@ const opDeleteNatGateway = "DeleteNatGateway"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNatGateway
 func (c *EC2) DeleteNatGatewayRequest(input *DeleteNatGatewayInput) (req *request.Request, output *DeleteNatGatewayOutput) {
 	op := &request.Operation{
 		Name:       opDeleteNatGateway,
@@ -4360,9 +4489,8 @@ func (c *EC2) DeleteNatGatewayRequest(input *DeleteNatGatewayInput) (req *reques
 		input = &DeleteNatGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteNatGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4378,6 +4506,7 @@ func (c *EC2) DeleteNatGatewayRequest(input *DeleteNatGatewayInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteNatGateway for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNatGateway
 func (c *EC2) DeleteNatGateway(input *DeleteNatGatewayInput) (*DeleteNatGatewayOutput, error) {
 	req, out := c.DeleteNatGatewayRequest(input)
 	err := req.Send()
@@ -4410,6 +4539,7 @@ const opDeleteNetworkAcl = "DeleteNetworkAcl"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNetworkAcl
 func (c *EC2) DeleteNetworkAclRequest(input *DeleteNetworkAclInput) (req *request.Request, output *DeleteNetworkAclOutput) {
 	op := &request.Operation{
 		Name:       opDeleteNetworkAcl,
@@ -4421,11 +4551,10 @@ func (c *EC2) DeleteNetworkAclRequest(input *DeleteNetworkAclInput) (req *reques
 		input = &DeleteNetworkAclInput{}
 	}
 
+	output = &DeleteNetworkAclOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteNetworkAclOutput{}
-	req.Data = output
 	return
 }
 
@@ -4440,6 +4569,7 @@ func (c *EC2) DeleteNetworkAclRequest(input *DeleteNetworkAclInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteNetworkAcl for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNetworkAcl
 func (c *EC2) DeleteNetworkAcl(input *DeleteNetworkAclInput) (*DeleteNetworkAclOutput, error) {
 	req, out := c.DeleteNetworkAclRequest(input)
 	err := req.Send()
@@ -4472,6 +4602,7 @@ const opDeleteNetworkAclEntry = "DeleteNetworkAclEntry"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNetworkAclEntry
 func (c *EC2) DeleteNetworkAclEntryRequest(input *DeleteNetworkAclEntryInput) (req *request.Request, output *DeleteNetworkAclEntryOutput) {
 	op := &request.Operation{
 		Name:       opDeleteNetworkAclEntry,
@@ -4483,11 +4614,10 @@ func (c *EC2) DeleteNetworkAclEntryRequest(input *DeleteNetworkAclEntryInput) (r
 		input = &DeleteNetworkAclEntryInput{}
 	}
 
+	output = &DeleteNetworkAclEntryOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteNetworkAclEntryOutput{}
-	req.Data = output
 	return
 }
 
@@ -4502,6 +4632,7 @@ func (c *EC2) DeleteNetworkAclEntryRequest(input *DeleteNetworkAclEntryInput) (r
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteNetworkAclEntry for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNetworkAclEntry
 func (c *EC2) DeleteNetworkAclEntry(input *DeleteNetworkAclEntryInput) (*DeleteNetworkAclEntryOutput, error) {
 	req, out := c.DeleteNetworkAclEntryRequest(input)
 	err := req.Send()
@@ -4534,6 +4665,7 @@ const opDeleteNetworkInterface = "DeleteNetworkInterface"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNetworkInterface
 func (c *EC2) DeleteNetworkInterfaceRequest(input *DeleteNetworkInterfaceInput) (req *request.Request, output *DeleteNetworkInterfaceOutput) {
 	op := &request.Operation{
 		Name:       opDeleteNetworkInterface,
@@ -4545,11 +4677,10 @@ func (c *EC2) DeleteNetworkInterfaceRequest(input *DeleteNetworkInterfaceInput) 
 		input = &DeleteNetworkInterfaceInput{}
 	}
 
+	output = &DeleteNetworkInterfaceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteNetworkInterfaceOutput{}
-	req.Data = output
 	return
 }
 
@@ -4564,6 +4695,7 @@ func (c *EC2) DeleteNetworkInterfaceRequest(input *DeleteNetworkInterfaceInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteNetworkInterface for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNetworkInterface
 func (c *EC2) DeleteNetworkInterface(input *DeleteNetworkInterfaceInput) (*DeleteNetworkInterfaceOutput, error) {
 	req, out := c.DeleteNetworkInterfaceRequest(input)
 	err := req.Send()
@@ -4596,6 +4728,7 @@ const opDeletePlacementGroup = "DeletePlacementGroup"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeletePlacementGroup
 func (c *EC2) DeletePlacementGroupRequest(input *DeletePlacementGroupInput) (req *request.Request, output *DeletePlacementGroupOutput) {
 	op := &request.Operation{
 		Name:       opDeletePlacementGroup,
@@ -4607,11 +4740,10 @@ func (c *EC2) DeletePlacementGroupRequest(input *DeletePlacementGroupInput) (req
 		input = &DeletePlacementGroupInput{}
 	}
 
+	output = &DeletePlacementGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeletePlacementGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -4628,6 +4760,7 @@ func (c *EC2) DeletePlacementGroupRequest(input *DeletePlacementGroupInput) (req
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeletePlacementGroup for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeletePlacementGroup
 func (c *EC2) DeletePlacementGroup(input *DeletePlacementGroupInput) (*DeletePlacementGroupOutput, error) {
 	req, out := c.DeletePlacementGroupRequest(input)
 	err := req.Send()
@@ -4660,6 +4793,7 @@ const opDeleteRoute = "DeleteRoute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteRoute
 func (c *EC2) DeleteRouteRequest(input *DeleteRouteInput) (req *request.Request, output *DeleteRouteOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRoute,
@@ -4671,11 +4805,10 @@ func (c *EC2) DeleteRouteRequest(input *DeleteRouteInput) (req *request.Request,
 		input = &DeleteRouteInput{}
 	}
 
+	output = &DeleteRouteOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteRouteOutput{}
-	req.Data = output
 	return
 }
 
@@ -4689,6 +4822,7 @@ func (c *EC2) DeleteRouteRequest(input *DeleteRouteInput) (req *request.Request,
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteRoute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteRoute
 func (c *EC2) DeleteRoute(input *DeleteRouteInput) (*DeleteRouteOutput, error) {
 	req, out := c.DeleteRouteRequest(input)
 	err := req.Send()
@@ -4721,6 +4855,7 @@ const opDeleteRouteTable = "DeleteRouteTable"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteRouteTable
 func (c *EC2) DeleteRouteTableRequest(input *DeleteRouteTableInput) (req *request.Request, output *DeleteRouteTableOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRouteTable,
@@ -4732,11 +4867,10 @@ func (c *EC2) DeleteRouteTableRequest(input *DeleteRouteTableInput) (req *reques
 		input = &DeleteRouteTableInput{}
 	}
 
+	output = &DeleteRouteTableOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteRouteTableOutput{}
-	req.Data = output
 	return
 }
 
@@ -4752,6 +4886,7 @@ func (c *EC2) DeleteRouteTableRequest(input *DeleteRouteTableInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteRouteTable for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteRouteTable
 func (c *EC2) DeleteRouteTable(input *DeleteRouteTableInput) (*DeleteRouteTableOutput, error) {
 	req, out := c.DeleteRouteTableRequest(input)
 	err := req.Send()
@@ -4784,6 +4919,7 @@ const opDeleteSecurityGroup = "DeleteSecurityGroup"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSecurityGroup
 func (c *EC2) DeleteSecurityGroupRequest(input *DeleteSecurityGroupInput) (req *request.Request, output *DeleteSecurityGroupOutput) {
 	op := &request.Operation{
 		Name:       opDeleteSecurityGroup,
@@ -4795,11 +4931,10 @@ func (c *EC2) DeleteSecurityGroupRequest(input *DeleteSecurityGroupInput) (req *
 		input = &DeleteSecurityGroupInput{}
 	}
 
+	output = &DeleteSecurityGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSecurityGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -4817,6 +4952,7 @@ func (c *EC2) DeleteSecurityGroupRequest(input *DeleteSecurityGroupInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteSecurityGroup for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSecurityGroup
 func (c *EC2) DeleteSecurityGroup(input *DeleteSecurityGroupInput) (*DeleteSecurityGroupOutput, error) {
 	req, out := c.DeleteSecurityGroupRequest(input)
 	err := req.Send()
@@ -4849,6 +4985,7 @@ const opDeleteSnapshot = "DeleteSnapshot"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSnapshot
 func (c *EC2) DeleteSnapshotRequest(input *DeleteSnapshotInput) (req *request.Request, output *DeleteSnapshotOutput) {
 	op := &request.Operation{
 		Name:       opDeleteSnapshot,
@@ -4860,11 +4997,10 @@ func (c *EC2) DeleteSnapshotRequest(input *DeleteSnapshotInput) (req *request.Re
 		input = &DeleteSnapshotInput{}
 	}
 
+	output = &DeleteSnapshotOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSnapshotOutput{}
-	req.Data = output
 	return
 }
 
@@ -4892,6 +5028,7 @@ func (c *EC2) DeleteSnapshotRequest(input *DeleteSnapshotInput) (req *request.Re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteSnapshot for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSnapshot
 func (c *EC2) DeleteSnapshot(input *DeleteSnapshotInput) (*DeleteSnapshotOutput, error) {
 	req, out := c.DeleteSnapshotRequest(input)
 	err := req.Send()
@@ -4924,6 +5061,7 @@ const opDeleteSpotDatafeedSubscription = "DeleteSpotDatafeedSubscription"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSpotDatafeedSubscription
 func (c *EC2) DeleteSpotDatafeedSubscriptionRequest(input *DeleteSpotDatafeedSubscriptionInput) (req *request.Request, output *DeleteSpotDatafeedSubscriptionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteSpotDatafeedSubscription,
@@ -4935,11 +5073,10 @@ func (c *EC2) DeleteSpotDatafeedSubscriptionRequest(input *DeleteSpotDatafeedSub
 		input = &DeleteSpotDatafeedSubscriptionInput{}
 	}
 
+	output = &DeleteSpotDatafeedSubscriptionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSpotDatafeedSubscriptionOutput{}
-	req.Data = output
 	return
 }
 
@@ -4953,6 +5090,7 @@ func (c *EC2) DeleteSpotDatafeedSubscriptionRequest(input *DeleteSpotDatafeedSub
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteSpotDatafeedSubscription for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSpotDatafeedSubscription
 func (c *EC2) DeleteSpotDatafeedSubscription(input *DeleteSpotDatafeedSubscriptionInput) (*DeleteSpotDatafeedSubscriptionOutput, error) {
 	req, out := c.DeleteSpotDatafeedSubscriptionRequest(input)
 	err := req.Send()
@@ -4985,6 +5123,7 @@ const opDeleteSubnet = "DeleteSubnet"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSubnet
 func (c *EC2) DeleteSubnetRequest(input *DeleteSubnetInput) (req *request.Request, output *DeleteSubnetOutput) {
 	op := &request.Operation{
 		Name:       opDeleteSubnet,
@@ -4996,11 +5135,10 @@ func (c *EC2) DeleteSubnetRequest(input *DeleteSubnetInput) (req *request.Reques
 		input = &DeleteSubnetInput{}
 	}
 
+	output = &DeleteSubnetOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSubnetOutput{}
-	req.Data = output
 	return
 }
 
@@ -5015,6 +5153,7 @@ func (c *EC2) DeleteSubnetRequest(input *DeleteSubnetInput) (req *request.Reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteSubnet for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSubnet
 func (c *EC2) DeleteSubnet(input *DeleteSubnetInput) (*DeleteSubnetOutput, error) {
 	req, out := c.DeleteSubnetRequest(input)
 	err := req.Send()
@@ -5047,6 +5186,7 @@ const opDeleteTags = "DeleteTags"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteTags
 func (c *EC2) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, output *DeleteTagsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteTags,
@@ -5058,11 +5198,10 @@ func (c *EC2) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, o
 		input = &DeleteTagsInput{}
 	}
 
+	output = &DeleteTagsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteTagsOutput{}
-	req.Data = output
 	return
 }
 
@@ -5080,6 +5219,7 @@ func (c *EC2) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, o
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteTags for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteTags
 func (c *EC2) DeleteTags(input *DeleteTagsInput) (*DeleteTagsOutput, error) {
 	req, out := c.DeleteTagsRequest(input)
 	err := req.Send()
@@ -5112,6 +5252,7 @@ const opDeleteVolume = "DeleteVolume"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVolume
 func (c *EC2) DeleteVolumeRequest(input *DeleteVolumeInput) (req *request.Request, output *DeleteVolumeOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVolume,
@@ -5123,11 +5264,10 @@ func (c *EC2) DeleteVolumeRequest(input *DeleteVolumeInput) (req *request.Reques
 		input = &DeleteVolumeInput{}
 	}
 
+	output = &DeleteVolumeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVolumeOutput{}
-	req.Data = output
 	return
 }
 
@@ -5147,6 +5287,7 @@ func (c *EC2) DeleteVolumeRequest(input *DeleteVolumeInput) (req *request.Reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteVolume for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVolume
 func (c *EC2) DeleteVolume(input *DeleteVolumeInput) (*DeleteVolumeOutput, error) {
 	req, out := c.DeleteVolumeRequest(input)
 	err := req.Send()
@@ -5179,6 +5320,7 @@ const opDeleteVpc = "DeleteVpc"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpc
 func (c *EC2) DeleteVpcRequest(input *DeleteVpcInput) (req *request.Request, output *DeleteVpcOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVpc,
@@ -5190,11 +5332,10 @@ func (c *EC2) DeleteVpcRequest(input *DeleteVpcInput) (req *request.Request, out
 		input = &DeleteVpcInput{}
 	}
 
+	output = &DeleteVpcOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVpcOutput{}
-	req.Data = output
 	return
 }
 
@@ -5212,6 +5353,7 @@ func (c *EC2) DeleteVpcRequest(input *DeleteVpcInput) (req *request.Request, out
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteVpc for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpc
 func (c *EC2) DeleteVpc(input *DeleteVpcInput) (*DeleteVpcOutput, error) {
 	req, out := c.DeleteVpcRequest(input)
 	err := req.Send()
@@ -5244,6 +5386,7 @@ const opDeleteVpcEndpoints = "DeleteVpcEndpoints"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpcEndpoints
 func (c *EC2) DeleteVpcEndpointsRequest(input *DeleteVpcEndpointsInput) (req *request.Request, output *DeleteVpcEndpointsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVpcEndpoints,
@@ -5255,9 +5398,8 @@ func (c *EC2) DeleteVpcEndpointsRequest(input *DeleteVpcEndpointsInput) (req *re
 		input = &DeleteVpcEndpointsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteVpcEndpointsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5272,6 +5414,7 @@ func (c *EC2) DeleteVpcEndpointsRequest(input *DeleteVpcEndpointsInput) (req *re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteVpcEndpoints for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpcEndpoints
 func (c *EC2) DeleteVpcEndpoints(input *DeleteVpcEndpointsInput) (*DeleteVpcEndpointsOutput, error) {
 	req, out := c.DeleteVpcEndpointsRequest(input)
 	err := req.Send()
@@ -5304,6 +5447,7 @@ const opDeleteVpcPeeringConnection = "DeleteVpcPeeringConnection"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpcPeeringConnection
 func (c *EC2) DeleteVpcPeeringConnectionRequest(input *DeleteVpcPeeringConnectionInput) (req *request.Request, output *DeleteVpcPeeringConnectionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVpcPeeringConnection,
@@ -5315,9 +5459,8 @@ func (c *EC2) DeleteVpcPeeringConnectionRequest(input *DeleteVpcPeeringConnectio
 		input = &DeleteVpcPeeringConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteVpcPeeringConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5334,6 +5477,7 @@ func (c *EC2) DeleteVpcPeeringConnectionRequest(input *DeleteVpcPeeringConnectio
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteVpcPeeringConnection for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpcPeeringConnection
 func (c *EC2) DeleteVpcPeeringConnection(input *DeleteVpcPeeringConnectionInput) (*DeleteVpcPeeringConnectionOutput, error) {
 	req, out := c.DeleteVpcPeeringConnectionRequest(input)
 	err := req.Send()
@@ -5366,6 +5510,7 @@ const opDeleteVpnConnection = "DeleteVpnConnection"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpnConnection
 func (c *EC2) DeleteVpnConnectionRequest(input *DeleteVpnConnectionInput) (req *request.Request, output *DeleteVpnConnectionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVpnConnection,
@@ -5377,11 +5522,10 @@ func (c *EC2) DeleteVpnConnectionRequest(input *DeleteVpnConnectionInput) (req *
 		input = &DeleteVpnConnectionInput{}
 	}
 
+	output = &DeleteVpnConnectionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVpnConnectionOutput{}
-	req.Data = output
 	return
 }
 
@@ -5404,6 +5548,7 @@ func (c *EC2) DeleteVpnConnectionRequest(input *DeleteVpnConnectionInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteVpnConnection for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpnConnection
 func (c *EC2) DeleteVpnConnection(input *DeleteVpnConnectionInput) (*DeleteVpnConnectionOutput, error) {
 	req, out := c.DeleteVpnConnectionRequest(input)
 	err := req.Send()
@@ -5436,6 +5581,7 @@ const opDeleteVpnConnectionRoute = "DeleteVpnConnectionRoute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpnConnectionRoute
 func (c *EC2) DeleteVpnConnectionRouteRequest(input *DeleteVpnConnectionRouteInput) (req *request.Request, output *DeleteVpnConnectionRouteOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVpnConnectionRoute,
@@ -5447,11 +5593,10 @@ func (c *EC2) DeleteVpnConnectionRouteRequest(input *DeleteVpnConnectionRouteInp
 		input = &DeleteVpnConnectionRouteInput{}
 	}
 
+	output = &DeleteVpnConnectionRouteOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVpnConnectionRouteOutput{}
-	req.Data = output
 	return
 }
 
@@ -5468,6 +5613,7 @@ func (c *EC2) DeleteVpnConnectionRouteRequest(input *DeleteVpnConnectionRouteInp
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteVpnConnectionRoute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpnConnectionRoute
 func (c *EC2) DeleteVpnConnectionRoute(input *DeleteVpnConnectionRouteInput) (*DeleteVpnConnectionRouteOutput, error) {
 	req, out := c.DeleteVpnConnectionRouteRequest(input)
 	err := req.Send()
@@ -5500,6 +5646,7 @@ const opDeleteVpnGateway = "DeleteVpnGateway"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpnGateway
 func (c *EC2) DeleteVpnGatewayRequest(input *DeleteVpnGatewayInput) (req *request.Request, output *DeleteVpnGatewayOutput) {
 	op := &request.Operation{
 		Name:       opDeleteVpnGateway,
@@ -5511,11 +5658,10 @@ func (c *EC2) DeleteVpnGatewayRequest(input *DeleteVpnGatewayInput) (req *reques
 		input = &DeleteVpnGatewayInput{}
 	}
 
+	output = &DeleteVpnGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVpnGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -5533,6 +5679,7 @@ func (c *EC2) DeleteVpnGatewayRequest(input *DeleteVpnGatewayInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeleteVpnGateway for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpnGateway
 func (c *EC2) DeleteVpnGateway(input *DeleteVpnGatewayInput) (*DeleteVpnGatewayOutput, error) {
 	req, out := c.DeleteVpnGatewayRequest(input)
 	err := req.Send()
@@ -5565,6 +5712,7 @@ const opDeregisterImage = "DeregisterImage"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeregisterImage
 func (c *EC2) DeregisterImageRequest(input *DeregisterImageInput) (req *request.Request, output *DeregisterImageOutput) {
 	op := &request.Operation{
 		Name:       opDeregisterImage,
@@ -5576,11 +5724,10 @@ func (c *EC2) DeregisterImageRequest(input *DeregisterImageInput) (req *request.
 		input = &DeregisterImageInput{}
 	}
 
+	output = &DeregisterImageOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeregisterImageOutput{}
-	req.Data = output
 	return
 }
 
@@ -5597,6 +5744,7 @@ func (c *EC2) DeregisterImageRequest(input *DeregisterImageInput) (req *request.
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DeregisterImage for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeregisterImage
 func (c *EC2) DeregisterImage(input *DeregisterImageInput) (*DeregisterImageOutput, error) {
 	req, out := c.DeregisterImageRequest(input)
 	err := req.Send()
@@ -5629,6 +5777,7 @@ const opDescribeAccountAttributes = "DescribeAccountAttributes"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeAccountAttributes
 func (c *EC2) DescribeAccountAttributesRequest(input *DescribeAccountAttributesInput) (req *request.Request, output *DescribeAccountAttributesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAccountAttributes,
@@ -5640,9 +5789,8 @@ func (c *EC2) DescribeAccountAttributesRequest(input *DescribeAccountAttributesI
 		input = &DescribeAccountAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAccountAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5674,6 +5822,7 @@ func (c *EC2) DescribeAccountAttributesRequest(input *DescribeAccountAttributesI
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeAccountAttributes for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeAccountAttributes
 func (c *EC2) DescribeAccountAttributes(input *DescribeAccountAttributesInput) (*DescribeAccountAttributesOutput, error) {
 	req, out := c.DescribeAccountAttributesRequest(input)
 	err := req.Send()
@@ -5706,6 +5855,7 @@ const opDescribeAddresses = "DescribeAddresses"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeAddresses
 func (c *EC2) DescribeAddressesRequest(input *DescribeAddressesInput) (req *request.Request, output *DescribeAddressesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAddresses,
@@ -5717,9 +5867,8 @@ func (c *EC2) DescribeAddressesRequest(input *DescribeAddressesInput) (req *requ
 		input = &DescribeAddressesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAddressesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5737,6 +5886,7 @@ func (c *EC2) DescribeAddressesRequest(input *DescribeAddressesInput) (req *requ
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeAddresses for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeAddresses
 func (c *EC2) DescribeAddresses(input *DescribeAddressesInput) (*DescribeAddressesOutput, error) {
 	req, out := c.DescribeAddressesRequest(input)
 	err := req.Send()
@@ -5769,6 +5919,7 @@ const opDescribeAvailabilityZones = "DescribeAvailabilityZones"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeAvailabilityZones
 func (c *EC2) DescribeAvailabilityZonesRequest(input *DescribeAvailabilityZonesInput) (req *request.Request, output *DescribeAvailabilityZonesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAvailabilityZones,
@@ -5780,9 +5931,8 @@ func (c *EC2) DescribeAvailabilityZonesRequest(input *DescribeAvailabilityZonesI
 		input = &DescribeAvailabilityZonesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAvailabilityZonesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5802,6 +5952,7 @@ func (c *EC2) DescribeAvailabilityZonesRequest(input *DescribeAvailabilityZonesI
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeAvailabilityZones for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeAvailabilityZones
 func (c *EC2) DescribeAvailabilityZones(input *DescribeAvailabilityZonesInput) (*DescribeAvailabilityZonesOutput, error) {
 	req, out := c.DescribeAvailabilityZonesRequest(input)
 	err := req.Send()
@@ -5834,6 +5985,7 @@ const opDescribeBundleTasks = "DescribeBundleTasks"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeBundleTasks
 func (c *EC2) DescribeBundleTasksRequest(input *DescribeBundleTasksInput) (req *request.Request, output *DescribeBundleTasksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeBundleTasks,
@@ -5845,9 +5997,8 @@ func (c *EC2) DescribeBundleTasksRequest(input *DescribeBundleTasksInput) (req *
 		input = &DescribeBundleTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeBundleTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5866,6 +6017,7 @@ func (c *EC2) DescribeBundleTasksRequest(input *DescribeBundleTasksInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeBundleTasks for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeBundleTasks
 func (c *EC2) DescribeBundleTasks(input *DescribeBundleTasksInput) (*DescribeBundleTasksOutput, error) {
 	req, out := c.DescribeBundleTasksRequest(input)
 	err := req.Send()
@@ -5898,6 +6050,7 @@ const opDescribeClassicLinkInstances = "DescribeClassicLinkInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeClassicLinkInstances
 func (c *EC2) DescribeClassicLinkInstancesRequest(input *DescribeClassicLinkInstancesInput) (req *request.Request, output *DescribeClassicLinkInstancesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeClassicLinkInstances,
@@ -5909,9 +6062,8 @@ func (c *EC2) DescribeClassicLinkInstancesRequest(input *DescribeClassicLinkInst
 		input = &DescribeClassicLinkInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClassicLinkInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5928,6 +6080,7 @@ func (c *EC2) DescribeClassicLinkInstancesRequest(input *DescribeClassicLinkInst
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeClassicLinkInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeClassicLinkInstances
 func (c *EC2) DescribeClassicLinkInstances(input *DescribeClassicLinkInstancesInput) (*DescribeClassicLinkInstancesOutput, error) {
 	req, out := c.DescribeClassicLinkInstancesRequest(input)
 	err := req.Send()
@@ -5960,6 +6113,7 @@ const opDescribeConversionTasks = "DescribeConversionTasks"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeConversionTasks
 func (c *EC2) DescribeConversionTasksRequest(input *DescribeConversionTasksInput) (req *request.Request, output *DescribeConversionTasksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeConversionTasks,
@@ -5971,9 +6125,8 @@ func (c *EC2) DescribeConversionTasksRequest(input *DescribeConversionTasksInput
 		input = &DescribeConversionTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeConversionTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5991,6 +6144,7 @@ func (c *EC2) DescribeConversionTasksRequest(input *DescribeConversionTasksInput
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeConversionTasks for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeConversionTasks
 func (c *EC2) DescribeConversionTasks(input *DescribeConversionTasksInput) (*DescribeConversionTasksOutput, error) {
 	req, out := c.DescribeConversionTasksRequest(input)
 	err := req.Send()
@@ -6023,6 +6177,7 @@ const opDescribeCustomerGateways = "DescribeCustomerGateways"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeCustomerGateways
 func (c *EC2) DescribeCustomerGatewaysRequest(input *DescribeCustomerGatewaysInput) (req *request.Request, output *DescribeCustomerGatewaysOutput) {
 	op := &request.Operation{
 		Name:       opDescribeCustomerGateways,
@@ -6034,9 +6189,8 @@ func (c *EC2) DescribeCustomerGatewaysRequest(input *DescribeCustomerGatewaysInp
 		input = &DescribeCustomerGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeCustomerGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6054,6 +6208,7 @@ func (c *EC2) DescribeCustomerGatewaysRequest(input *DescribeCustomerGatewaysInp
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeCustomerGateways for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeCustomerGateways
 func (c *EC2) DescribeCustomerGateways(input *DescribeCustomerGatewaysInput) (*DescribeCustomerGatewaysOutput, error) {
 	req, out := c.DescribeCustomerGatewaysRequest(input)
 	err := req.Send()
@@ -6086,6 +6241,7 @@ const opDescribeDhcpOptions = "DescribeDhcpOptions"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeDhcpOptions
 func (c *EC2) DescribeDhcpOptionsRequest(input *DescribeDhcpOptionsInput) (req *request.Request, output *DescribeDhcpOptionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeDhcpOptions,
@@ -6097,9 +6253,8 @@ func (c *EC2) DescribeDhcpOptionsRequest(input *DescribeDhcpOptionsInput) (req *
 		input = &DescribeDhcpOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDhcpOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6116,6 +6271,7 @@ func (c *EC2) DescribeDhcpOptionsRequest(input *DescribeDhcpOptionsInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeDhcpOptions for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeDhcpOptions
 func (c *EC2) DescribeDhcpOptions(input *DescribeDhcpOptionsInput) (*DescribeDhcpOptionsOutput, error) {
 	req, out := c.DescribeDhcpOptionsRequest(input)
 	err := req.Send()
@@ -6148,6 +6304,7 @@ const opDescribeEgressOnlyInternetGateways = "DescribeEgressOnlyInternetGateways
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeEgressOnlyInternetGateways
 func (c *EC2) DescribeEgressOnlyInternetGatewaysRequest(input *DescribeEgressOnlyInternetGatewaysInput) (req *request.Request, output *DescribeEgressOnlyInternetGatewaysOutput) {
 	op := &request.Operation{
 		Name:       opDescribeEgressOnlyInternetGateways,
@@ -6159,9 +6316,8 @@ func (c *EC2) DescribeEgressOnlyInternetGatewaysRequest(input *DescribeEgressOnl
 		input = &DescribeEgressOnlyInternetGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEgressOnlyInternetGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6175,6 +6331,7 @@ func (c *EC2) DescribeEgressOnlyInternetGatewaysRequest(input *DescribeEgressOnl
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeEgressOnlyInternetGateways for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeEgressOnlyInternetGateways
 func (c *EC2) DescribeEgressOnlyInternetGateways(input *DescribeEgressOnlyInternetGatewaysInput) (*DescribeEgressOnlyInternetGatewaysOutput, error) {
 	req, out := c.DescribeEgressOnlyInternetGatewaysRequest(input)
 	err := req.Send()
@@ -6207,6 +6364,7 @@ const opDescribeExportTasks = "DescribeExportTasks"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeExportTasks
 func (c *EC2) DescribeExportTasksRequest(input *DescribeExportTasksInput) (req *request.Request, output *DescribeExportTasksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeExportTasks,
@@ -6218,9 +6376,8 @@ func (c *EC2) DescribeExportTasksRequest(input *DescribeExportTasksInput) (req *
 		input = &DescribeExportTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeExportTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6234,6 +6391,7 @@ func (c *EC2) DescribeExportTasksRequest(input *DescribeExportTasksInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeExportTasks for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeExportTasks
 func (c *EC2) DescribeExportTasks(input *DescribeExportTasksInput) (*DescribeExportTasksOutput, error) {
 	req, out := c.DescribeExportTasksRequest(input)
 	err := req.Send()
@@ -6266,6 +6424,7 @@ const opDescribeFlowLogs = "DescribeFlowLogs"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeFlowLogs
 func (c *EC2) DescribeFlowLogsRequest(input *DescribeFlowLogsInput) (req *request.Request, output *DescribeFlowLogsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeFlowLogs,
@@ -6277,9 +6436,8 @@ func (c *EC2) DescribeFlowLogsRequest(input *DescribeFlowLogsInput) (req *reques
 		input = &DescribeFlowLogsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeFlowLogsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6295,6 +6453,7 @@ func (c *EC2) DescribeFlowLogsRequest(input *DescribeFlowLogsInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeFlowLogs for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeFlowLogs
 func (c *EC2) DescribeFlowLogs(input *DescribeFlowLogsInput) (*DescribeFlowLogsOutput, error) {
 	req, out := c.DescribeFlowLogsRequest(input)
 	err := req.Send()
@@ -6327,6 +6486,7 @@ const opDescribeHostReservationOfferings = "DescribeHostReservationOfferings"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeHostReservationOfferings
 func (c *EC2) DescribeHostReservationOfferingsRequest(input *DescribeHostReservationOfferingsInput) (req *request.Request, output *DescribeHostReservationOfferingsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeHostReservationOfferings,
@@ -6338,9 +6498,8 @@ func (c *EC2) DescribeHostReservationOfferingsRequest(input *DescribeHostReserva
 		input = &DescribeHostReservationOfferingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeHostReservationOfferingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6362,6 +6521,7 @@ func (c *EC2) DescribeHostReservationOfferingsRequest(input *DescribeHostReserva
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeHostReservationOfferings for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeHostReservationOfferings
 func (c *EC2) DescribeHostReservationOfferings(input *DescribeHostReservationOfferingsInput) (*DescribeHostReservationOfferingsOutput, error) {
 	req, out := c.DescribeHostReservationOfferingsRequest(input)
 	err := req.Send()
@@ -6394,6 +6554,7 @@ const opDescribeHostReservations = "DescribeHostReservations"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeHostReservations
 func (c *EC2) DescribeHostReservationsRequest(input *DescribeHostReservationsInput) (req *request.Request, output *DescribeHostReservationsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeHostReservations,
@@ -6405,9 +6566,8 @@ func (c *EC2) DescribeHostReservationsRequest(input *DescribeHostReservationsInp
 		input = &DescribeHostReservationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeHostReservationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6422,6 +6582,7 @@ func (c *EC2) DescribeHostReservationsRequest(input *DescribeHostReservationsInp
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeHostReservations for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeHostReservations
 func (c *EC2) DescribeHostReservations(input *DescribeHostReservationsInput) (*DescribeHostReservationsOutput, error) {
 	req, out := c.DescribeHostReservationsRequest(input)
 	err := req.Send()
@@ -6454,6 +6615,7 @@ const opDescribeHosts = "DescribeHosts"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeHosts
 func (c *EC2) DescribeHostsRequest(input *DescribeHostsInput) (req *request.Request, output *DescribeHostsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeHosts,
@@ -6465,9 +6627,8 @@ func (c *EC2) DescribeHostsRequest(input *DescribeHostsInput) (req *request.Requ
 		input = &DescribeHostsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeHostsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6485,8 +6646,69 @@ func (c *EC2) DescribeHostsRequest(input *DescribeHostsInput) (req *request.Requ
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeHosts for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeHosts
 func (c *EC2) DescribeHosts(input *DescribeHostsInput) (*DescribeHostsOutput, error) {
 	req, out := c.DescribeHostsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDescribeIamInstanceProfileAssociations = "DescribeIamInstanceProfileAssociations"
+
+// DescribeIamInstanceProfileAssociationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeIamInstanceProfileAssociations operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeIamInstanceProfileAssociations for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeIamInstanceProfileAssociations method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeIamInstanceProfileAssociationsRequest method.
+//    req, resp := client.DescribeIamInstanceProfileAssociationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociations
+func (c *EC2) DescribeIamInstanceProfileAssociationsRequest(input *DescribeIamInstanceProfileAssociationsInput) (req *request.Request, output *DescribeIamInstanceProfileAssociationsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeIamInstanceProfileAssociations,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeIamInstanceProfileAssociationsInput{}
+	}
+
+	output = &DescribeIamInstanceProfileAssociationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeIamInstanceProfileAssociations API operation for Amazon Elastic Compute Cloud.
+//
+// Describes your IAM instance profile associations.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeIamInstanceProfileAssociations for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociations
+func (c *EC2) DescribeIamInstanceProfileAssociations(input *DescribeIamInstanceProfileAssociationsInput) (*DescribeIamInstanceProfileAssociationsOutput, error) {
+	req, out := c.DescribeIamInstanceProfileAssociationsRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -6517,6 +6739,7 @@ const opDescribeIdFormat = "DescribeIdFormat"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIdFormat
 func (c *EC2) DescribeIdFormatRequest(input *DescribeIdFormatInput) (req *request.Request, output *DescribeIdFormatOutput) {
 	op := &request.Operation{
 		Name:       opDescribeIdFormat,
@@ -6528,9 +6751,8 @@ func (c *EC2) DescribeIdFormatRequest(input *DescribeIdFormatInput) (req *reques
 		input = &DescribeIdFormatInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeIdFormatOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6557,6 +6779,7 @@ func (c *EC2) DescribeIdFormatRequest(input *DescribeIdFormatInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeIdFormat for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIdFormat
 func (c *EC2) DescribeIdFormat(input *DescribeIdFormatInput) (*DescribeIdFormatOutput, error) {
 	req, out := c.DescribeIdFormatRequest(input)
 	err := req.Send()
@@ -6589,6 +6812,7 @@ const opDescribeIdentityIdFormat = "DescribeIdentityIdFormat"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIdentityIdFormat
 func (c *EC2) DescribeIdentityIdFormatRequest(input *DescribeIdentityIdFormatInput) (req *request.Request, output *DescribeIdentityIdFormatOutput) {
 	op := &request.Operation{
 		Name:       opDescribeIdentityIdFormat,
@@ -6600,9 +6824,8 @@ func (c *EC2) DescribeIdentityIdFormatRequest(input *DescribeIdentityIdFormatInp
 		input = &DescribeIdentityIdFormatInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeIdentityIdFormatOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6627,6 +6850,7 @@ func (c *EC2) DescribeIdentityIdFormatRequest(input *DescribeIdentityIdFormatInp
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeIdentityIdFormat for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIdentityIdFormat
 func (c *EC2) DescribeIdentityIdFormat(input *DescribeIdentityIdFormatInput) (*DescribeIdentityIdFormatOutput, error) {
 	req, out := c.DescribeIdentityIdFormatRequest(input)
 	err := req.Send()
@@ -6659,6 +6883,7 @@ const opDescribeImageAttribute = "DescribeImageAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImageAttribute
 func (c *EC2) DescribeImageAttributeRequest(input *DescribeImageAttributeInput) (req *request.Request, output *DescribeImageAttributeOutput) {
 	op := &request.Operation{
 		Name:       opDescribeImageAttribute,
@@ -6670,9 +6895,8 @@ func (c *EC2) DescribeImageAttributeRequest(input *DescribeImageAttributeInput) 
 		input = &DescribeImageAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeImageAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6687,6 +6911,7 @@ func (c *EC2) DescribeImageAttributeRequest(input *DescribeImageAttributeInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeImageAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImageAttribute
 func (c *EC2) DescribeImageAttribute(input *DescribeImageAttributeInput) (*DescribeImageAttributeOutput, error) {
 	req, out := c.DescribeImageAttributeRequest(input)
 	err := req.Send()
@@ -6719,6 +6944,7 @@ const opDescribeImages = "DescribeImages"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImages
 func (c *EC2) DescribeImagesRequest(input *DescribeImagesInput) (req *request.Request, output *DescribeImagesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeImages,
@@ -6730,9 +6956,8 @@ func (c *EC2) DescribeImagesRequest(input *DescribeImagesInput) (req *request.Re
 		input = &DescribeImagesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeImagesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6752,6 +6977,7 @@ func (c *EC2) DescribeImagesRequest(input *DescribeImagesInput) (req *request.Re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeImages for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImages
 func (c *EC2) DescribeImages(input *DescribeImagesInput) (*DescribeImagesOutput, error) {
 	req, out := c.DescribeImagesRequest(input)
 	err := req.Send()
@@ -6784,6 +7010,7 @@ const opDescribeImportImageTasks = "DescribeImportImageTasks"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImportImageTasks
 func (c *EC2) DescribeImportImageTasksRequest(input *DescribeImportImageTasksInput) (req *request.Request, output *DescribeImportImageTasksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeImportImageTasks,
@@ -6795,9 +7022,8 @@ func (c *EC2) DescribeImportImageTasksRequest(input *DescribeImportImageTasksInp
 		input = &DescribeImportImageTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeImportImageTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6812,6 +7038,7 @@ func (c *EC2) DescribeImportImageTasksRequest(input *DescribeImportImageTasksInp
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeImportImageTasks for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImportImageTasks
 func (c *EC2) DescribeImportImageTasks(input *DescribeImportImageTasksInput) (*DescribeImportImageTasksOutput, error) {
 	req, out := c.DescribeImportImageTasksRequest(input)
 	err := req.Send()
@@ -6844,6 +7071,7 @@ const opDescribeImportSnapshotTasks = "DescribeImportSnapshotTasks"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImportSnapshotTasks
 func (c *EC2) DescribeImportSnapshotTasksRequest(input *DescribeImportSnapshotTasksInput) (req *request.Request, output *DescribeImportSnapshotTasksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeImportSnapshotTasks,
@@ -6855,9 +7083,8 @@ func (c *EC2) DescribeImportSnapshotTasksRequest(input *DescribeImportSnapshotTa
 		input = &DescribeImportSnapshotTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeImportSnapshotTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6871,6 +7098,7 @@ func (c *EC2) DescribeImportSnapshotTasksRequest(input *DescribeImportSnapshotTa
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeImportSnapshotTasks for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImportSnapshotTasks
 func (c *EC2) DescribeImportSnapshotTasks(input *DescribeImportSnapshotTasksInput) (*DescribeImportSnapshotTasksOutput, error) {
 	req, out := c.DescribeImportSnapshotTasksRequest(input)
 	err := req.Send()
@@ -6903,6 +7131,7 @@ const opDescribeInstanceAttribute = "DescribeInstanceAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInstanceAttribute
 func (c *EC2) DescribeInstanceAttributeRequest(input *DescribeInstanceAttributeInput) (req *request.Request, output *DescribeInstanceAttributeOutput) {
 	op := &request.Operation{
 		Name:       opDescribeInstanceAttribute,
@@ -6914,9 +7143,8 @@ func (c *EC2) DescribeInstanceAttributeRequest(input *DescribeInstanceAttributeI
 		input = &DescribeInstanceAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstanceAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6934,6 +7162,7 @@ func (c *EC2) DescribeInstanceAttributeRequest(input *DescribeInstanceAttributeI
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeInstanceAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInstanceAttribute
 func (c *EC2) DescribeInstanceAttribute(input *DescribeInstanceAttributeInput) (*DescribeInstanceAttributeOutput, error) {
 	req, out := c.DescribeInstanceAttributeRequest(input)
 	err := req.Send()
@@ -6966,6 +7195,7 @@ const opDescribeInstanceStatus = "DescribeInstanceStatus"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInstanceStatus
 func (c *EC2) DescribeInstanceStatusRequest(input *DescribeInstanceStatusInput) (req *request.Request, output *DescribeInstanceStatusOutput) {
 	op := &request.Operation{
 		Name:       opDescribeInstanceStatus,
@@ -6983,9 +7213,8 @@ func (c *EC2) DescribeInstanceStatusRequest(input *DescribeInstanceStatusInput) 
 		input = &DescribeInstanceStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstanceStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7019,6 +7248,7 @@ func (c *EC2) DescribeInstanceStatusRequest(input *DescribeInstanceStatusInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeInstanceStatus for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInstanceStatus
 func (c *EC2) DescribeInstanceStatus(input *DescribeInstanceStatusInput) (*DescribeInstanceStatusOutput, error) {
 	req, out := c.DescribeInstanceStatusRequest(input)
 	err := req.Send()
@@ -7076,6 +7306,7 @@ const opDescribeInstances = "DescribeInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInstances
 func (c *EC2) DescribeInstancesRequest(input *DescribeInstancesInput) (req *request.Request, output *DescribeInstancesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeInstances,
@@ -7093,9 +7324,8 @@ func (c *EC2) DescribeInstancesRequest(input *DescribeInstancesInput) (req *requ
 		input = &DescribeInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7124,6 +7354,7 @@ func (c *EC2) DescribeInstancesRequest(input *DescribeInstancesInput) (req *requ
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInstances
 func (c *EC2) DescribeInstances(input *DescribeInstancesInput) (*DescribeInstancesOutput, error) {
 	req, out := c.DescribeInstancesRequest(input)
 	err := req.Send()
@@ -7181,6 +7412,7 @@ const opDescribeInternetGateways = "DescribeInternetGateways"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInternetGateways
 func (c *EC2) DescribeInternetGatewaysRequest(input *DescribeInternetGatewaysInput) (req *request.Request, output *DescribeInternetGatewaysOutput) {
 	op := &request.Operation{
 		Name:       opDescribeInternetGateways,
@@ -7192,9 +7424,8 @@ func (c *EC2) DescribeInternetGatewaysRequest(input *DescribeInternetGatewaysInp
 		input = &DescribeInternetGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInternetGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7208,6 +7439,7 @@ func (c *EC2) DescribeInternetGatewaysRequest(input *DescribeInternetGatewaysInp
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeInternetGateways for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInternetGateways
 func (c *EC2) DescribeInternetGateways(input *DescribeInternetGatewaysInput) (*DescribeInternetGatewaysOutput, error) {
 	req, out := c.DescribeInternetGatewaysRequest(input)
 	err := req.Send()
@@ -7240,6 +7472,7 @@ const opDescribeKeyPairs = "DescribeKeyPairs"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeKeyPairs
 func (c *EC2) DescribeKeyPairsRequest(input *DescribeKeyPairsInput) (req *request.Request, output *DescribeKeyPairsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeKeyPairs,
@@ -7251,9 +7484,8 @@ func (c *EC2) DescribeKeyPairsRequest(input *DescribeKeyPairsInput) (req *reques
 		input = &DescribeKeyPairsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeKeyPairsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7270,6 +7502,7 @@ func (c *EC2) DescribeKeyPairsRequest(input *DescribeKeyPairsInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeKeyPairs for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeKeyPairs
 func (c *EC2) DescribeKeyPairs(input *DescribeKeyPairsInput) (*DescribeKeyPairsOutput, error) {
 	req, out := c.DescribeKeyPairsRequest(input)
 	err := req.Send()
@@ -7302,6 +7535,7 @@ const opDescribeMovingAddresses = "DescribeMovingAddresses"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeMovingAddresses
 func (c *EC2) DescribeMovingAddressesRequest(input *DescribeMovingAddressesInput) (req *request.Request, output *DescribeMovingAddressesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeMovingAddresses,
@@ -7313,9 +7547,8 @@ func (c *EC2) DescribeMovingAddressesRequest(input *DescribeMovingAddressesInput
 		input = &DescribeMovingAddressesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeMovingAddressesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7331,6 +7564,7 @@ func (c *EC2) DescribeMovingAddressesRequest(input *DescribeMovingAddressesInput
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeMovingAddresses for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeMovingAddresses
 func (c *EC2) DescribeMovingAddresses(input *DescribeMovingAddressesInput) (*DescribeMovingAddressesOutput, error) {
 	req, out := c.DescribeMovingAddressesRequest(input)
 	err := req.Send()
@@ -7363,20 +7597,26 @@ const opDescribeNatGateways = "DescribeNatGateways"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNatGateways
 func (c *EC2) DescribeNatGatewaysRequest(input *DescribeNatGatewaysInput) (req *request.Request, output *DescribeNatGatewaysOutput) {
 	op := &request.Operation{
 		Name:       opDescribeNatGateways,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
 		input = &DescribeNatGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeNatGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7390,10 +7630,36 @@ func (c *EC2) DescribeNatGatewaysRequest(input *DescribeNatGatewaysInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeNatGateways for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNatGateways
 func (c *EC2) DescribeNatGateways(input *DescribeNatGatewaysInput) (*DescribeNatGatewaysOutput, error) {
 	req, out := c.DescribeNatGatewaysRequest(input)
 	err := req.Send()
 	return out, err
+}
+
+// DescribeNatGatewaysPages iterates over the pages of a DescribeNatGateways operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeNatGateways method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeNatGateways operation.
+//    pageNum := 0
+//    err := client.DescribeNatGatewaysPages(params,
+//        func(page *DescribeNatGatewaysOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *EC2) DescribeNatGatewaysPages(input *DescribeNatGatewaysInput, fn func(p *DescribeNatGatewaysOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.DescribeNatGatewaysRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*DescribeNatGatewaysOutput), lastPage)
+	})
 }
 
 const opDescribeNetworkAcls = "DescribeNetworkAcls"
@@ -7422,6 +7688,7 @@ const opDescribeNetworkAcls = "DescribeNetworkAcls"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNetworkAcls
 func (c *EC2) DescribeNetworkAclsRequest(input *DescribeNetworkAclsInput) (req *request.Request, output *DescribeNetworkAclsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeNetworkAcls,
@@ -7433,9 +7700,8 @@ func (c *EC2) DescribeNetworkAclsRequest(input *DescribeNetworkAclsInput) (req *
 		input = &DescribeNetworkAclsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeNetworkAclsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7452,6 +7718,7 @@ func (c *EC2) DescribeNetworkAclsRequest(input *DescribeNetworkAclsInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeNetworkAcls for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNetworkAcls
 func (c *EC2) DescribeNetworkAcls(input *DescribeNetworkAclsInput) (*DescribeNetworkAclsOutput, error) {
 	req, out := c.DescribeNetworkAclsRequest(input)
 	err := req.Send()
@@ -7484,6 +7751,7 @@ const opDescribeNetworkInterfaceAttribute = "DescribeNetworkInterfaceAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNetworkInterfaceAttribute
 func (c *EC2) DescribeNetworkInterfaceAttributeRequest(input *DescribeNetworkInterfaceAttributeInput) (req *request.Request, output *DescribeNetworkInterfaceAttributeOutput) {
 	op := &request.Operation{
 		Name:       opDescribeNetworkInterfaceAttribute,
@@ -7495,9 +7763,8 @@ func (c *EC2) DescribeNetworkInterfaceAttributeRequest(input *DescribeNetworkInt
 		input = &DescribeNetworkInterfaceAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeNetworkInterfaceAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7512,6 +7779,7 @@ func (c *EC2) DescribeNetworkInterfaceAttributeRequest(input *DescribeNetworkInt
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeNetworkInterfaceAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNetworkInterfaceAttribute
 func (c *EC2) DescribeNetworkInterfaceAttribute(input *DescribeNetworkInterfaceAttributeInput) (*DescribeNetworkInterfaceAttributeOutput, error) {
 	req, out := c.DescribeNetworkInterfaceAttributeRequest(input)
 	err := req.Send()
@@ -7544,6 +7812,7 @@ const opDescribeNetworkInterfaces = "DescribeNetworkInterfaces"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNetworkInterfaces
 func (c *EC2) DescribeNetworkInterfacesRequest(input *DescribeNetworkInterfacesInput) (req *request.Request, output *DescribeNetworkInterfacesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeNetworkInterfaces,
@@ -7555,9 +7824,8 @@ func (c *EC2) DescribeNetworkInterfacesRequest(input *DescribeNetworkInterfacesI
 		input = &DescribeNetworkInterfacesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeNetworkInterfacesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7571,6 +7839,7 @@ func (c *EC2) DescribeNetworkInterfacesRequest(input *DescribeNetworkInterfacesI
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeNetworkInterfaces for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNetworkInterfaces
 func (c *EC2) DescribeNetworkInterfaces(input *DescribeNetworkInterfacesInput) (*DescribeNetworkInterfacesOutput, error) {
 	req, out := c.DescribeNetworkInterfacesRequest(input)
 	err := req.Send()
@@ -7603,6 +7872,7 @@ const opDescribePlacementGroups = "DescribePlacementGroups"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribePlacementGroups
 func (c *EC2) DescribePlacementGroupsRequest(input *DescribePlacementGroupsInput) (req *request.Request, output *DescribePlacementGroupsOutput) {
 	op := &request.Operation{
 		Name:       opDescribePlacementGroups,
@@ -7614,9 +7884,8 @@ func (c *EC2) DescribePlacementGroupsRequest(input *DescribePlacementGroupsInput
 		input = &DescribePlacementGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribePlacementGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7632,6 +7901,7 @@ func (c *EC2) DescribePlacementGroupsRequest(input *DescribePlacementGroupsInput
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribePlacementGroups for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribePlacementGroups
 func (c *EC2) DescribePlacementGroups(input *DescribePlacementGroupsInput) (*DescribePlacementGroupsOutput, error) {
 	req, out := c.DescribePlacementGroupsRequest(input)
 	err := req.Send()
@@ -7664,6 +7934,7 @@ const opDescribePrefixLists = "DescribePrefixLists"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribePrefixLists
 func (c *EC2) DescribePrefixListsRequest(input *DescribePrefixListsInput) (req *request.Request, output *DescribePrefixListsOutput) {
 	op := &request.Operation{
 		Name:       opDescribePrefixLists,
@@ -7675,9 +7946,8 @@ func (c *EC2) DescribePrefixListsRequest(input *DescribePrefixListsInput) (req *
 		input = &DescribePrefixListsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribePrefixListsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7695,6 +7965,7 @@ func (c *EC2) DescribePrefixListsRequest(input *DescribePrefixListsInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribePrefixLists for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribePrefixLists
 func (c *EC2) DescribePrefixLists(input *DescribePrefixListsInput) (*DescribePrefixListsOutput, error) {
 	req, out := c.DescribePrefixListsRequest(input)
 	err := req.Send()
@@ -7727,6 +7998,7 @@ const opDescribeRegions = "DescribeRegions"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeRegions
 func (c *EC2) DescribeRegionsRequest(input *DescribeRegionsInput) (req *request.Request, output *DescribeRegionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeRegions,
@@ -7738,9 +8010,8 @@ func (c *EC2) DescribeRegionsRequest(input *DescribeRegionsInput) (req *request.
 		input = &DescribeRegionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeRegionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7757,6 +8028,7 @@ func (c *EC2) DescribeRegionsRequest(input *DescribeRegionsInput) (req *request.
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeRegions for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeRegions
 func (c *EC2) DescribeRegions(input *DescribeRegionsInput) (*DescribeRegionsOutput, error) {
 	req, out := c.DescribeRegionsRequest(input)
 	err := req.Send()
@@ -7789,6 +8061,7 @@ const opDescribeReservedInstances = "DescribeReservedInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstances
 func (c *EC2) DescribeReservedInstancesRequest(input *DescribeReservedInstancesInput) (req *request.Request, output *DescribeReservedInstancesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeReservedInstances,
@@ -7800,9 +8073,8 @@ func (c *EC2) DescribeReservedInstancesRequest(input *DescribeReservedInstancesI
 		input = &DescribeReservedInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7819,6 +8091,7 @@ func (c *EC2) DescribeReservedInstancesRequest(input *DescribeReservedInstancesI
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeReservedInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstances
 func (c *EC2) DescribeReservedInstances(input *DescribeReservedInstancesInput) (*DescribeReservedInstancesOutput, error) {
 	req, out := c.DescribeReservedInstancesRequest(input)
 	err := req.Send()
@@ -7851,6 +8124,7 @@ const opDescribeReservedInstancesListings = "DescribeReservedInstancesListings"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstancesListings
 func (c *EC2) DescribeReservedInstancesListingsRequest(input *DescribeReservedInstancesListingsInput) (req *request.Request, output *DescribeReservedInstancesListingsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeReservedInstancesListings,
@@ -7862,9 +8136,8 @@ func (c *EC2) DescribeReservedInstancesListingsRequest(input *DescribeReservedIn
 		input = &DescribeReservedInstancesListingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedInstancesListingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7899,6 +8172,7 @@ func (c *EC2) DescribeReservedInstancesListingsRequest(input *DescribeReservedIn
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeReservedInstancesListings for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstancesListings
 func (c *EC2) DescribeReservedInstancesListings(input *DescribeReservedInstancesListingsInput) (*DescribeReservedInstancesListingsOutput, error) {
 	req, out := c.DescribeReservedInstancesListingsRequest(input)
 	err := req.Send()
@@ -7931,6 +8205,7 @@ const opDescribeReservedInstancesModifications = "DescribeReservedInstancesModif
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstancesModifications
 func (c *EC2) DescribeReservedInstancesModificationsRequest(input *DescribeReservedInstancesModificationsInput) (req *request.Request, output *DescribeReservedInstancesModificationsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeReservedInstancesModifications,
@@ -7948,9 +8223,8 @@ func (c *EC2) DescribeReservedInstancesModificationsRequest(input *DescribeReser
 		input = &DescribeReservedInstancesModificationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedInstancesModificationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7970,6 +8244,7 @@ func (c *EC2) DescribeReservedInstancesModificationsRequest(input *DescribeReser
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeReservedInstancesModifications for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstancesModifications
 func (c *EC2) DescribeReservedInstancesModifications(input *DescribeReservedInstancesModificationsInput) (*DescribeReservedInstancesModificationsOutput, error) {
 	req, out := c.DescribeReservedInstancesModificationsRequest(input)
 	err := req.Send()
@@ -8027,6 +8302,7 @@ const opDescribeReservedInstancesOfferings = "DescribeReservedInstancesOfferings
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstancesOfferings
 func (c *EC2) DescribeReservedInstancesOfferingsRequest(input *DescribeReservedInstancesOfferingsInput) (req *request.Request, output *DescribeReservedInstancesOfferingsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeReservedInstancesOfferings,
@@ -8044,9 +8320,8 @@ func (c *EC2) DescribeReservedInstancesOfferingsRequest(input *DescribeReservedI
 		input = &DescribeReservedInstancesOfferingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedInstancesOfferingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8071,6 +8346,7 @@ func (c *EC2) DescribeReservedInstancesOfferingsRequest(input *DescribeReservedI
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeReservedInstancesOfferings for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstancesOfferings
 func (c *EC2) DescribeReservedInstancesOfferings(input *DescribeReservedInstancesOfferingsInput) (*DescribeReservedInstancesOfferingsOutput, error) {
 	req, out := c.DescribeReservedInstancesOfferingsRequest(input)
 	err := req.Send()
@@ -8128,6 +8404,7 @@ const opDescribeRouteTables = "DescribeRouteTables"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeRouteTables
 func (c *EC2) DescribeRouteTablesRequest(input *DescribeRouteTablesInput) (req *request.Request, output *DescribeRouteTablesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeRouteTables,
@@ -8139,9 +8416,8 @@ func (c *EC2) DescribeRouteTablesRequest(input *DescribeRouteTablesInput) (req *
 		input = &DescribeRouteTablesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeRouteTablesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8163,6 +8439,7 @@ func (c *EC2) DescribeRouteTablesRequest(input *DescribeRouteTablesInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeRouteTables for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeRouteTables
 func (c *EC2) DescribeRouteTables(input *DescribeRouteTablesInput) (*DescribeRouteTablesOutput, error) {
 	req, out := c.DescribeRouteTablesRequest(input)
 	err := req.Send()
@@ -8195,6 +8472,7 @@ const opDescribeScheduledInstanceAvailability = "DescribeScheduledInstanceAvaila
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeScheduledInstanceAvailability
 func (c *EC2) DescribeScheduledInstanceAvailabilityRequest(input *DescribeScheduledInstanceAvailabilityInput) (req *request.Request, output *DescribeScheduledInstanceAvailabilityOutput) {
 	op := &request.Operation{
 		Name:       opDescribeScheduledInstanceAvailability,
@@ -8206,9 +8484,8 @@ func (c *EC2) DescribeScheduledInstanceAvailabilityRequest(input *DescribeSchedu
 		input = &DescribeScheduledInstanceAvailabilityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeScheduledInstanceAvailabilityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8230,6 +8507,7 @@ func (c *EC2) DescribeScheduledInstanceAvailabilityRequest(input *DescribeSchedu
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeScheduledInstanceAvailability for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeScheduledInstanceAvailability
 func (c *EC2) DescribeScheduledInstanceAvailability(input *DescribeScheduledInstanceAvailabilityInput) (*DescribeScheduledInstanceAvailabilityOutput, error) {
 	req, out := c.DescribeScheduledInstanceAvailabilityRequest(input)
 	err := req.Send()
@@ -8262,6 +8540,7 @@ const opDescribeScheduledInstances = "DescribeScheduledInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeScheduledInstances
 func (c *EC2) DescribeScheduledInstancesRequest(input *DescribeScheduledInstancesInput) (req *request.Request, output *DescribeScheduledInstancesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeScheduledInstances,
@@ -8273,9 +8552,8 @@ func (c *EC2) DescribeScheduledInstancesRequest(input *DescribeScheduledInstance
 		input = &DescribeScheduledInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeScheduledInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8289,6 +8567,7 @@ func (c *EC2) DescribeScheduledInstancesRequest(input *DescribeScheduledInstance
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeScheduledInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeScheduledInstances
 func (c *EC2) DescribeScheduledInstances(input *DescribeScheduledInstancesInput) (*DescribeScheduledInstancesOutput, error) {
 	req, out := c.DescribeScheduledInstancesRequest(input)
 	err := req.Send()
@@ -8321,6 +8600,7 @@ const opDescribeSecurityGroupReferences = "DescribeSecurityGroupReferences"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSecurityGroupReferences
 func (c *EC2) DescribeSecurityGroupReferencesRequest(input *DescribeSecurityGroupReferencesInput) (req *request.Request, output *DescribeSecurityGroupReferencesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSecurityGroupReferences,
@@ -8332,9 +8612,8 @@ func (c *EC2) DescribeSecurityGroupReferencesRequest(input *DescribeSecurityGrou
 		input = &DescribeSecurityGroupReferencesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSecurityGroupReferencesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8349,6 +8628,7 @@ func (c *EC2) DescribeSecurityGroupReferencesRequest(input *DescribeSecurityGrou
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeSecurityGroupReferences for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSecurityGroupReferences
 func (c *EC2) DescribeSecurityGroupReferences(input *DescribeSecurityGroupReferencesInput) (*DescribeSecurityGroupReferencesOutput, error) {
 	req, out := c.DescribeSecurityGroupReferencesRequest(input)
 	err := req.Send()
@@ -8381,6 +8661,7 @@ const opDescribeSecurityGroups = "DescribeSecurityGroups"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSecurityGroups
 func (c *EC2) DescribeSecurityGroupsRequest(input *DescribeSecurityGroupsInput) (req *request.Request, output *DescribeSecurityGroupsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSecurityGroups,
@@ -8392,9 +8673,8 @@ func (c *EC2) DescribeSecurityGroupsRequest(input *DescribeSecurityGroupsInput) 
 		input = &DescribeSecurityGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSecurityGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8415,6 +8695,7 @@ func (c *EC2) DescribeSecurityGroupsRequest(input *DescribeSecurityGroupsInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeSecurityGroups for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSecurityGroups
 func (c *EC2) DescribeSecurityGroups(input *DescribeSecurityGroupsInput) (*DescribeSecurityGroupsOutput, error) {
 	req, out := c.DescribeSecurityGroupsRequest(input)
 	err := req.Send()
@@ -8447,6 +8728,7 @@ const opDescribeSnapshotAttribute = "DescribeSnapshotAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSnapshotAttribute
 func (c *EC2) DescribeSnapshotAttributeRequest(input *DescribeSnapshotAttributeInput) (req *request.Request, output *DescribeSnapshotAttributeOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSnapshotAttribute,
@@ -8458,9 +8740,8 @@ func (c *EC2) DescribeSnapshotAttributeRequest(input *DescribeSnapshotAttributeI
 		input = &DescribeSnapshotAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSnapshotAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8478,6 +8759,7 @@ func (c *EC2) DescribeSnapshotAttributeRequest(input *DescribeSnapshotAttributeI
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeSnapshotAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSnapshotAttribute
 func (c *EC2) DescribeSnapshotAttribute(input *DescribeSnapshotAttributeInput) (*DescribeSnapshotAttributeOutput, error) {
 	req, out := c.DescribeSnapshotAttributeRequest(input)
 	err := req.Send()
@@ -8510,6 +8792,7 @@ const opDescribeSnapshots = "DescribeSnapshots"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSnapshots
 func (c *EC2) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (req *request.Request, output *DescribeSnapshotsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSnapshots,
@@ -8527,9 +8810,8 @@ func (c *EC2) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (req *requ
 		input = &DescribeSnapshotsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSnapshotsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8588,6 +8870,7 @@ func (c *EC2) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (req *requ
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeSnapshots for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSnapshots
 func (c *EC2) DescribeSnapshots(input *DescribeSnapshotsInput) (*DescribeSnapshotsOutput, error) {
 	req, out := c.DescribeSnapshotsRequest(input)
 	err := req.Send()
@@ -8645,6 +8928,7 @@ const opDescribeSpotDatafeedSubscription = "DescribeSpotDatafeedSubscription"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotDatafeedSubscription
 func (c *EC2) DescribeSpotDatafeedSubscriptionRequest(input *DescribeSpotDatafeedSubscriptionInput) (req *request.Request, output *DescribeSpotDatafeedSubscriptionOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSpotDatafeedSubscription,
@@ -8656,9 +8940,8 @@ func (c *EC2) DescribeSpotDatafeedSubscriptionRequest(input *DescribeSpotDatafee
 		input = &DescribeSpotDatafeedSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotDatafeedSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8674,6 +8957,7 @@ func (c *EC2) DescribeSpotDatafeedSubscriptionRequest(input *DescribeSpotDatafee
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeSpotDatafeedSubscription for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotDatafeedSubscription
 func (c *EC2) DescribeSpotDatafeedSubscription(input *DescribeSpotDatafeedSubscriptionInput) (*DescribeSpotDatafeedSubscriptionOutput, error) {
 	req, out := c.DescribeSpotDatafeedSubscriptionRequest(input)
 	err := req.Send()
@@ -8706,6 +8990,7 @@ const opDescribeSpotFleetInstances = "DescribeSpotFleetInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotFleetInstances
 func (c *EC2) DescribeSpotFleetInstancesRequest(input *DescribeSpotFleetInstancesInput) (req *request.Request, output *DescribeSpotFleetInstancesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSpotFleetInstances,
@@ -8717,9 +9002,8 @@ func (c *EC2) DescribeSpotFleetInstancesRequest(input *DescribeSpotFleetInstance
 		input = &DescribeSpotFleetInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotFleetInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8733,6 +9017,7 @@ func (c *EC2) DescribeSpotFleetInstancesRequest(input *DescribeSpotFleetInstance
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeSpotFleetInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotFleetInstances
 func (c *EC2) DescribeSpotFleetInstances(input *DescribeSpotFleetInstancesInput) (*DescribeSpotFleetInstancesOutput, error) {
 	req, out := c.DescribeSpotFleetInstancesRequest(input)
 	err := req.Send()
@@ -8765,6 +9050,7 @@ const opDescribeSpotFleetRequestHistory = "DescribeSpotFleetRequestHistory"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotFleetRequestHistory
 func (c *EC2) DescribeSpotFleetRequestHistoryRequest(input *DescribeSpotFleetRequestHistoryInput) (req *request.Request, output *DescribeSpotFleetRequestHistoryOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSpotFleetRequestHistory,
@@ -8776,9 +9062,8 @@ func (c *EC2) DescribeSpotFleetRequestHistoryRequest(input *DescribeSpotFleetReq
 		input = &DescribeSpotFleetRequestHistoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotFleetRequestHistoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8797,6 +9082,7 @@ func (c *EC2) DescribeSpotFleetRequestHistoryRequest(input *DescribeSpotFleetReq
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeSpotFleetRequestHistory for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotFleetRequestHistory
 func (c *EC2) DescribeSpotFleetRequestHistory(input *DescribeSpotFleetRequestHistoryInput) (*DescribeSpotFleetRequestHistoryOutput, error) {
 	req, out := c.DescribeSpotFleetRequestHistoryRequest(input)
 	err := req.Send()
@@ -8829,6 +9115,7 @@ const opDescribeSpotFleetRequests = "DescribeSpotFleetRequests"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotFleetRequests
 func (c *EC2) DescribeSpotFleetRequestsRequest(input *DescribeSpotFleetRequestsInput) (req *request.Request, output *DescribeSpotFleetRequestsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSpotFleetRequests,
@@ -8846,9 +9133,8 @@ func (c *EC2) DescribeSpotFleetRequestsRequest(input *DescribeSpotFleetRequestsI
 		input = &DescribeSpotFleetRequestsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotFleetRequestsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8865,6 +9151,7 @@ func (c *EC2) DescribeSpotFleetRequestsRequest(input *DescribeSpotFleetRequestsI
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeSpotFleetRequests for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotFleetRequests
 func (c *EC2) DescribeSpotFleetRequests(input *DescribeSpotFleetRequestsInput) (*DescribeSpotFleetRequestsOutput, error) {
 	req, out := c.DescribeSpotFleetRequestsRequest(input)
 	err := req.Send()
@@ -8922,6 +9209,7 @@ const opDescribeSpotInstanceRequests = "DescribeSpotInstanceRequests"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotInstanceRequests
 func (c *EC2) DescribeSpotInstanceRequestsRequest(input *DescribeSpotInstanceRequestsInput) (req *request.Request, output *DescribeSpotInstanceRequestsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSpotInstanceRequests,
@@ -8933,9 +9221,8 @@ func (c *EC2) DescribeSpotInstanceRequestsRequest(input *DescribeSpotInstanceReq
 		input = &DescribeSpotInstanceRequestsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotInstanceRequestsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8963,6 +9250,7 @@ func (c *EC2) DescribeSpotInstanceRequestsRequest(input *DescribeSpotInstanceReq
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeSpotInstanceRequests for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotInstanceRequests
 func (c *EC2) DescribeSpotInstanceRequests(input *DescribeSpotInstanceRequestsInput) (*DescribeSpotInstanceRequestsOutput, error) {
 	req, out := c.DescribeSpotInstanceRequestsRequest(input)
 	err := req.Send()
@@ -8995,6 +9283,7 @@ const opDescribeSpotPriceHistory = "DescribeSpotPriceHistory"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotPriceHistory
 func (c *EC2) DescribeSpotPriceHistoryRequest(input *DescribeSpotPriceHistoryInput) (req *request.Request, output *DescribeSpotPriceHistoryOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSpotPriceHistory,
@@ -9012,9 +9301,8 @@ func (c *EC2) DescribeSpotPriceHistoryRequest(input *DescribeSpotPriceHistoryInp
 		input = &DescribeSpotPriceHistoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotPriceHistoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9035,6 +9323,7 @@ func (c *EC2) DescribeSpotPriceHistoryRequest(input *DescribeSpotPriceHistoryInp
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeSpotPriceHistory for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotPriceHistory
 func (c *EC2) DescribeSpotPriceHistory(input *DescribeSpotPriceHistoryInput) (*DescribeSpotPriceHistoryOutput, error) {
 	req, out := c.DescribeSpotPriceHistoryRequest(input)
 	err := req.Send()
@@ -9092,6 +9381,7 @@ const opDescribeStaleSecurityGroups = "DescribeStaleSecurityGroups"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeStaleSecurityGroups
 func (c *EC2) DescribeStaleSecurityGroupsRequest(input *DescribeStaleSecurityGroupsInput) (req *request.Request, output *DescribeStaleSecurityGroupsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeStaleSecurityGroups,
@@ -9103,9 +9393,8 @@ func (c *EC2) DescribeStaleSecurityGroupsRequest(input *DescribeStaleSecurityGro
 		input = &DescribeStaleSecurityGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeStaleSecurityGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9122,6 +9411,7 @@ func (c *EC2) DescribeStaleSecurityGroupsRequest(input *DescribeStaleSecurityGro
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeStaleSecurityGroups for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeStaleSecurityGroups
 func (c *EC2) DescribeStaleSecurityGroups(input *DescribeStaleSecurityGroupsInput) (*DescribeStaleSecurityGroupsOutput, error) {
 	req, out := c.DescribeStaleSecurityGroupsRequest(input)
 	err := req.Send()
@@ -9154,6 +9444,7 @@ const opDescribeSubnets = "DescribeSubnets"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSubnets
 func (c *EC2) DescribeSubnetsRequest(input *DescribeSubnetsInput) (req *request.Request, output *DescribeSubnetsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSubnets,
@@ -9165,9 +9456,8 @@ func (c *EC2) DescribeSubnetsRequest(input *DescribeSubnetsInput) (req *request.
 		input = &DescribeSubnetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSubnetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9184,6 +9474,7 @@ func (c *EC2) DescribeSubnetsRequest(input *DescribeSubnetsInput) (req *request.
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeSubnets for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSubnets
 func (c *EC2) DescribeSubnets(input *DescribeSubnetsInput) (*DescribeSubnetsOutput, error) {
 	req, out := c.DescribeSubnetsRequest(input)
 	err := req.Send()
@@ -9216,6 +9507,7 @@ const opDescribeTags = "DescribeTags"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeTags
 func (c *EC2) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Request, output *DescribeTagsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTags,
@@ -9233,9 +9525,8 @@ func (c *EC2) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Reques
 		input = &DescribeTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9252,6 +9543,7 @@ func (c *EC2) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeTags for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeTags
 func (c *EC2) DescribeTags(input *DescribeTagsInput) (*DescribeTagsOutput, error) {
 	req, out := c.DescribeTagsRequest(input)
 	err := req.Send()
@@ -9309,6 +9601,7 @@ const opDescribeVolumeAttribute = "DescribeVolumeAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumeAttribute
 func (c *EC2) DescribeVolumeAttributeRequest(input *DescribeVolumeAttributeInput) (req *request.Request, output *DescribeVolumeAttributeOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVolumeAttribute,
@@ -9320,9 +9613,8 @@ func (c *EC2) DescribeVolumeAttributeRequest(input *DescribeVolumeAttributeInput
 		input = &DescribeVolumeAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVolumeAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9340,6 +9632,7 @@ func (c *EC2) DescribeVolumeAttributeRequest(input *DescribeVolumeAttributeInput
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeVolumeAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumeAttribute
 func (c *EC2) DescribeVolumeAttribute(input *DescribeVolumeAttributeInput) (*DescribeVolumeAttributeOutput, error) {
 	req, out := c.DescribeVolumeAttributeRequest(input)
 	err := req.Send()
@@ -9372,6 +9665,7 @@ const opDescribeVolumeStatus = "DescribeVolumeStatus"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumeStatus
 func (c *EC2) DescribeVolumeStatusRequest(input *DescribeVolumeStatusInput) (req *request.Request, output *DescribeVolumeStatusOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVolumeStatus,
@@ -9389,9 +9683,8 @@ func (c *EC2) DescribeVolumeStatusRequest(input *DescribeVolumeStatusInput) (req
 		input = &DescribeVolumeStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVolumeStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9439,6 +9732,7 @@ func (c *EC2) DescribeVolumeStatusRequest(input *DescribeVolumeStatusInput) (req
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeVolumeStatus for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumeStatus
 func (c *EC2) DescribeVolumeStatus(input *DescribeVolumeStatusInput) (*DescribeVolumeStatusOutput, error) {
 	req, out := c.DescribeVolumeStatusRequest(input)
 	err := req.Send()
@@ -9496,6 +9790,7 @@ const opDescribeVolumes = "DescribeVolumes"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumes
 func (c *EC2) DescribeVolumesRequest(input *DescribeVolumesInput) (req *request.Request, output *DescribeVolumesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVolumes,
@@ -9513,9 +9808,8 @@ func (c *EC2) DescribeVolumesRequest(input *DescribeVolumesInput) (req *request.
 		input = &DescribeVolumesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVolumesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9539,6 +9833,7 @@ func (c *EC2) DescribeVolumesRequest(input *DescribeVolumesInput) (req *request.
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeVolumes for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumes
 func (c *EC2) DescribeVolumes(input *DescribeVolumesInput) (*DescribeVolumesOutput, error) {
 	req, out := c.DescribeVolumesRequest(input)
 	err := req.Send()
@@ -9570,6 +9865,78 @@ func (c *EC2) DescribeVolumesPages(input *DescribeVolumesInput, fn func(p *Descr
 	})
 }
 
+const opDescribeVolumesModifications = "DescribeVolumesModifications"
+
+// DescribeVolumesModificationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVolumesModifications operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeVolumesModifications for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVolumesModifications method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVolumesModificationsRequest method.
+//    req, resp := client.DescribeVolumesModificationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumesModifications
+func (c *EC2) DescribeVolumesModificationsRequest(input *DescribeVolumesModificationsInput) (req *request.Request, output *DescribeVolumesModificationsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeVolumesModifications,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeVolumesModificationsInput{}
+	}
+
+	output = &DescribeVolumesModificationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeVolumesModifications API operation for Amazon Elastic Compute Cloud.
+//
+// Reports the current modification status of EBS volumes.
+//
+// Current-generation EBS volumes support modification of attributes including
+// type, size, and (for io1 volumes) IOPS provisioning while either attached
+// to or detached from an instance. Following an action from the API or the
+// console to modify a volume, the status of the modification may be modifying,
+// optimizing, completed, or failed. If a volume has never been modified, then
+// certain elements of the returned VolumeModification objects are null.
+//
+// You can also use CloudWatch Events to check the status of a modification
+// to an EBS volume. For information about CloudWatch Events, see the Amazon
+// CloudWatch Events User Guide (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/AmazonCloudWatch/latest/events/WhatIsCloudWatchEvents.html).
+// For more information, see Monitoring Volume Modifications" (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html#monitoring_mods).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVolumesModifications for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumesModifications
+func (c *EC2) DescribeVolumesModifications(input *DescribeVolumesModificationsInput) (*DescribeVolumesModificationsOutput, error) {
+	req, out := c.DescribeVolumesModificationsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeVpcAttribute = "DescribeVpcAttribute"
 
 // DescribeVpcAttributeRequest generates a "aws/request.Request" representing the
@@ -9596,6 +9963,7 @@ const opDescribeVpcAttribute = "DescribeVpcAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcAttribute
 func (c *EC2) DescribeVpcAttributeRequest(input *DescribeVpcAttributeInput) (req *request.Request, output *DescribeVpcAttributeOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpcAttribute,
@@ -9607,9 +9975,8 @@ func (c *EC2) DescribeVpcAttributeRequest(input *DescribeVpcAttributeInput) (req
 		input = &DescribeVpcAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9624,6 +9991,7 @@ func (c *EC2) DescribeVpcAttributeRequest(input *DescribeVpcAttributeInput) (req
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeVpcAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcAttribute
 func (c *EC2) DescribeVpcAttribute(input *DescribeVpcAttributeInput) (*DescribeVpcAttributeOutput, error) {
 	req, out := c.DescribeVpcAttributeRequest(input)
 	err := req.Send()
@@ -9656,6 +10024,7 @@ const opDescribeVpcClassicLink = "DescribeVpcClassicLink"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcClassicLink
 func (c *EC2) DescribeVpcClassicLinkRequest(input *DescribeVpcClassicLinkInput) (req *request.Request, output *DescribeVpcClassicLinkOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpcClassicLink,
@@ -9667,9 +10036,8 @@ func (c *EC2) DescribeVpcClassicLinkRequest(input *DescribeVpcClassicLinkInput) 
 		input = &DescribeVpcClassicLinkInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcClassicLinkOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9683,6 +10051,7 @@ func (c *EC2) DescribeVpcClassicLinkRequest(input *DescribeVpcClassicLinkInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeVpcClassicLink for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcClassicLink
 func (c *EC2) DescribeVpcClassicLink(input *DescribeVpcClassicLinkInput) (*DescribeVpcClassicLinkOutput, error) {
 	req, out := c.DescribeVpcClassicLinkRequest(input)
 	err := req.Send()
@@ -9715,6 +10084,7 @@ const opDescribeVpcClassicLinkDnsSupport = "DescribeVpcClassicLinkDnsSupport"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcClassicLinkDnsSupport
 func (c *EC2) DescribeVpcClassicLinkDnsSupportRequest(input *DescribeVpcClassicLinkDnsSupportInput) (req *request.Request, output *DescribeVpcClassicLinkDnsSupportOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpcClassicLinkDnsSupport,
@@ -9726,9 +10096,8 @@ func (c *EC2) DescribeVpcClassicLinkDnsSupportRequest(input *DescribeVpcClassicL
 		input = &DescribeVpcClassicLinkDnsSupportInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcClassicLinkDnsSupportOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9748,6 +10117,7 @@ func (c *EC2) DescribeVpcClassicLinkDnsSupportRequest(input *DescribeVpcClassicL
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeVpcClassicLinkDnsSupport for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcClassicLinkDnsSupport
 func (c *EC2) DescribeVpcClassicLinkDnsSupport(input *DescribeVpcClassicLinkDnsSupportInput) (*DescribeVpcClassicLinkDnsSupportOutput, error) {
 	req, out := c.DescribeVpcClassicLinkDnsSupportRequest(input)
 	err := req.Send()
@@ -9780,6 +10150,7 @@ const opDescribeVpcEndpointServices = "DescribeVpcEndpointServices"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcEndpointServices
 func (c *EC2) DescribeVpcEndpointServicesRequest(input *DescribeVpcEndpointServicesInput) (req *request.Request, output *DescribeVpcEndpointServicesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpcEndpointServices,
@@ -9791,9 +10162,8 @@ func (c *EC2) DescribeVpcEndpointServicesRequest(input *DescribeVpcEndpointServi
 		input = &DescribeVpcEndpointServicesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcEndpointServicesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9808,6 +10178,7 @@ func (c *EC2) DescribeVpcEndpointServicesRequest(input *DescribeVpcEndpointServi
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeVpcEndpointServices for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcEndpointServices
 func (c *EC2) DescribeVpcEndpointServices(input *DescribeVpcEndpointServicesInput) (*DescribeVpcEndpointServicesOutput, error) {
 	req, out := c.DescribeVpcEndpointServicesRequest(input)
 	err := req.Send()
@@ -9840,6 +10211,7 @@ const opDescribeVpcEndpoints = "DescribeVpcEndpoints"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcEndpoints
 func (c *EC2) DescribeVpcEndpointsRequest(input *DescribeVpcEndpointsInput) (req *request.Request, output *DescribeVpcEndpointsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpcEndpoints,
@@ -9851,9 +10223,8 @@ func (c *EC2) DescribeVpcEndpointsRequest(input *DescribeVpcEndpointsInput) (req
 		input = &DescribeVpcEndpointsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcEndpointsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9867,6 +10238,7 @@ func (c *EC2) DescribeVpcEndpointsRequest(input *DescribeVpcEndpointsInput) (req
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeVpcEndpoints for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcEndpoints
 func (c *EC2) DescribeVpcEndpoints(input *DescribeVpcEndpointsInput) (*DescribeVpcEndpointsOutput, error) {
 	req, out := c.DescribeVpcEndpointsRequest(input)
 	err := req.Send()
@@ -9899,6 +10271,7 @@ const opDescribeVpcPeeringConnections = "DescribeVpcPeeringConnections"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcPeeringConnections
 func (c *EC2) DescribeVpcPeeringConnectionsRequest(input *DescribeVpcPeeringConnectionsInput) (req *request.Request, output *DescribeVpcPeeringConnectionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpcPeeringConnections,
@@ -9910,9 +10283,8 @@ func (c *EC2) DescribeVpcPeeringConnectionsRequest(input *DescribeVpcPeeringConn
 		input = &DescribeVpcPeeringConnectionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcPeeringConnectionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9926,6 +10298,7 @@ func (c *EC2) DescribeVpcPeeringConnectionsRequest(input *DescribeVpcPeeringConn
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeVpcPeeringConnections for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcPeeringConnections
 func (c *EC2) DescribeVpcPeeringConnections(input *DescribeVpcPeeringConnectionsInput) (*DescribeVpcPeeringConnectionsOutput, error) {
 	req, out := c.DescribeVpcPeeringConnectionsRequest(input)
 	err := req.Send()
@@ -9958,6 +10331,7 @@ const opDescribeVpcs = "DescribeVpcs"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcs
 func (c *EC2) DescribeVpcsRequest(input *DescribeVpcsInput) (req *request.Request, output *DescribeVpcsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpcs,
@@ -9969,9 +10343,8 @@ func (c *EC2) DescribeVpcsRequest(input *DescribeVpcsInput) (req *request.Reques
 		input = &DescribeVpcsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9985,6 +10358,7 @@ func (c *EC2) DescribeVpcsRequest(input *DescribeVpcsInput) (req *request.Reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeVpcs for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcs
 func (c *EC2) DescribeVpcs(input *DescribeVpcsInput) (*DescribeVpcsOutput, error) {
 	req, out := c.DescribeVpcsRequest(input)
 	err := req.Send()
@@ -10017,6 +10391,7 @@ const opDescribeVpnConnections = "DescribeVpnConnections"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpnConnections
 func (c *EC2) DescribeVpnConnectionsRequest(input *DescribeVpnConnectionsInput) (req *request.Request, output *DescribeVpnConnectionsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpnConnections,
@@ -10028,9 +10403,8 @@ func (c *EC2) DescribeVpnConnectionsRequest(input *DescribeVpnConnectionsInput) 
 		input = &DescribeVpnConnectionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpnConnectionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10048,6 +10422,7 @@ func (c *EC2) DescribeVpnConnectionsRequest(input *DescribeVpnConnectionsInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeVpnConnections for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpnConnections
 func (c *EC2) DescribeVpnConnections(input *DescribeVpnConnectionsInput) (*DescribeVpnConnectionsOutput, error) {
 	req, out := c.DescribeVpnConnectionsRequest(input)
 	err := req.Send()
@@ -10080,6 +10455,7 @@ const opDescribeVpnGateways = "DescribeVpnGateways"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpnGateways
 func (c *EC2) DescribeVpnGatewaysRequest(input *DescribeVpnGatewaysInput) (req *request.Request, output *DescribeVpnGatewaysOutput) {
 	op := &request.Operation{
 		Name:       opDescribeVpnGateways,
@@ -10091,9 +10467,8 @@ func (c *EC2) DescribeVpnGatewaysRequest(input *DescribeVpnGatewaysInput) (req *
 		input = &DescribeVpnGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpnGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10111,6 +10486,7 @@ func (c *EC2) DescribeVpnGatewaysRequest(input *DescribeVpnGatewaysInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DescribeVpnGateways for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpnGateways
 func (c *EC2) DescribeVpnGateways(input *DescribeVpnGatewaysInput) (*DescribeVpnGatewaysOutput, error) {
 	req, out := c.DescribeVpnGatewaysRequest(input)
 	err := req.Send()
@@ -10143,6 +10519,7 @@ const opDetachClassicLinkVpc = "DetachClassicLinkVpc"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachClassicLinkVpc
 func (c *EC2) DetachClassicLinkVpcRequest(input *DetachClassicLinkVpcInput) (req *request.Request, output *DetachClassicLinkVpcOutput) {
 	op := &request.Operation{
 		Name:       opDetachClassicLinkVpc,
@@ -10154,9 +10531,8 @@ func (c *EC2) DetachClassicLinkVpcRequest(input *DetachClassicLinkVpcInput) (req
 		input = &DetachClassicLinkVpcInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DetachClassicLinkVpcOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10172,6 +10548,7 @@ func (c *EC2) DetachClassicLinkVpcRequest(input *DetachClassicLinkVpcInput) (req
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DetachClassicLinkVpc for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachClassicLinkVpc
 func (c *EC2) DetachClassicLinkVpc(input *DetachClassicLinkVpcInput) (*DetachClassicLinkVpcOutput, error) {
 	req, out := c.DetachClassicLinkVpcRequest(input)
 	err := req.Send()
@@ -10204,6 +10581,7 @@ const opDetachInternetGateway = "DetachInternetGateway"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachInternetGateway
 func (c *EC2) DetachInternetGatewayRequest(input *DetachInternetGatewayInput) (req *request.Request, output *DetachInternetGatewayOutput) {
 	op := &request.Operation{
 		Name:       opDetachInternetGateway,
@@ -10215,11 +10593,10 @@ func (c *EC2) DetachInternetGatewayRequest(input *DetachInternetGatewayInput) (r
 		input = &DetachInternetGatewayInput{}
 	}
 
+	output = &DetachInternetGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DetachInternetGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -10235,6 +10612,7 @@ func (c *EC2) DetachInternetGatewayRequest(input *DetachInternetGatewayInput) (r
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DetachInternetGateway for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachInternetGateway
 func (c *EC2) DetachInternetGateway(input *DetachInternetGatewayInput) (*DetachInternetGatewayOutput, error) {
 	req, out := c.DetachInternetGatewayRequest(input)
 	err := req.Send()
@@ -10267,6 +10645,7 @@ const opDetachNetworkInterface = "DetachNetworkInterface"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachNetworkInterface
 func (c *EC2) DetachNetworkInterfaceRequest(input *DetachNetworkInterfaceInput) (req *request.Request, output *DetachNetworkInterfaceOutput) {
 	op := &request.Operation{
 		Name:       opDetachNetworkInterface,
@@ -10278,11 +10657,10 @@ func (c *EC2) DetachNetworkInterfaceRequest(input *DetachNetworkInterfaceInput) 
 		input = &DetachNetworkInterfaceInput{}
 	}
 
+	output = &DetachNetworkInterfaceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DetachNetworkInterfaceOutput{}
-	req.Data = output
 	return
 }
 
@@ -10296,6 +10674,7 @@ func (c *EC2) DetachNetworkInterfaceRequest(input *DetachNetworkInterfaceInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DetachNetworkInterface for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachNetworkInterface
 func (c *EC2) DetachNetworkInterface(input *DetachNetworkInterfaceInput) (*DetachNetworkInterfaceOutput, error) {
 	req, out := c.DetachNetworkInterfaceRequest(input)
 	err := req.Send()
@@ -10328,6 +10707,7 @@ const opDetachVolume = "DetachVolume"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachVolume
 func (c *EC2) DetachVolumeRequest(input *DetachVolumeInput) (req *request.Request, output *VolumeAttachment) {
 	op := &request.Operation{
 		Name:       opDetachVolume,
@@ -10339,9 +10719,8 @@ func (c *EC2) DetachVolumeRequest(input *DetachVolumeInput) (req *request.Reques
 		input = &DetachVolumeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &VolumeAttachment{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10368,6 +10747,7 @@ func (c *EC2) DetachVolumeRequest(input *DetachVolumeInput) (req *request.Reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DetachVolume for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachVolume
 func (c *EC2) DetachVolume(input *DetachVolumeInput) (*VolumeAttachment, error) {
 	req, out := c.DetachVolumeRequest(input)
 	err := req.Send()
@@ -10400,6 +10780,7 @@ const opDetachVpnGateway = "DetachVpnGateway"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachVpnGateway
 func (c *EC2) DetachVpnGatewayRequest(input *DetachVpnGatewayInput) (req *request.Request, output *DetachVpnGatewayOutput) {
 	op := &request.Operation{
 		Name:       opDetachVpnGateway,
@@ -10411,11 +10792,10 @@ func (c *EC2) DetachVpnGatewayRequest(input *DetachVpnGatewayInput) (req *reques
 		input = &DetachVpnGatewayInput{}
 	}
 
+	output = &DetachVpnGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DetachVpnGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -10436,6 +10816,7 @@ func (c *EC2) DetachVpnGatewayRequest(input *DetachVpnGatewayInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DetachVpnGateway for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachVpnGateway
 func (c *EC2) DetachVpnGateway(input *DetachVpnGatewayInput) (*DetachVpnGatewayOutput, error) {
 	req, out := c.DetachVpnGatewayRequest(input)
 	err := req.Send()
@@ -10468,6 +10849,7 @@ const opDisableVgwRoutePropagation = "DisableVgwRoutePropagation"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisableVgwRoutePropagation
 func (c *EC2) DisableVgwRoutePropagationRequest(input *DisableVgwRoutePropagationInput) (req *request.Request, output *DisableVgwRoutePropagationOutput) {
 	op := &request.Operation{
 		Name:       opDisableVgwRoutePropagation,
@@ -10479,11 +10861,10 @@ func (c *EC2) DisableVgwRoutePropagationRequest(input *DisableVgwRoutePropagatio
 		input = &DisableVgwRoutePropagationInput{}
 	}
 
+	output = &DisableVgwRoutePropagationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DisableVgwRoutePropagationOutput{}
-	req.Data = output
 	return
 }
 
@@ -10498,6 +10879,7 @@ func (c *EC2) DisableVgwRoutePropagationRequest(input *DisableVgwRoutePropagatio
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DisableVgwRoutePropagation for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisableVgwRoutePropagation
 func (c *EC2) DisableVgwRoutePropagation(input *DisableVgwRoutePropagationInput) (*DisableVgwRoutePropagationOutput, error) {
 	req, out := c.DisableVgwRoutePropagationRequest(input)
 	err := req.Send()
@@ -10530,6 +10912,7 @@ const opDisableVpcClassicLink = "DisableVpcClassicLink"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisableVpcClassicLink
 func (c *EC2) DisableVpcClassicLinkRequest(input *DisableVpcClassicLinkInput) (req *request.Request, output *DisableVpcClassicLinkOutput) {
 	op := &request.Operation{
 		Name:       opDisableVpcClassicLink,
@@ -10541,9 +10924,8 @@ func (c *EC2) DisableVpcClassicLinkRequest(input *DisableVpcClassicLinkInput) (r
 		input = &DisableVpcClassicLinkInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisableVpcClassicLinkOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10558,6 +10940,7 @@ func (c *EC2) DisableVpcClassicLinkRequest(input *DisableVpcClassicLinkInput) (r
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DisableVpcClassicLink for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisableVpcClassicLink
 func (c *EC2) DisableVpcClassicLink(input *DisableVpcClassicLinkInput) (*DisableVpcClassicLinkOutput, error) {
 	req, out := c.DisableVpcClassicLinkRequest(input)
 	err := req.Send()
@@ -10590,6 +10973,7 @@ const opDisableVpcClassicLinkDnsSupport = "DisableVpcClassicLinkDnsSupport"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisableVpcClassicLinkDnsSupport
 func (c *EC2) DisableVpcClassicLinkDnsSupportRequest(input *DisableVpcClassicLinkDnsSupportInput) (req *request.Request, output *DisableVpcClassicLinkDnsSupportOutput) {
 	op := &request.Operation{
 		Name:       opDisableVpcClassicLinkDnsSupport,
@@ -10601,9 +10985,8 @@ func (c *EC2) DisableVpcClassicLinkDnsSupportRequest(input *DisableVpcClassicLin
 		input = &DisableVpcClassicLinkDnsSupportInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisableVpcClassicLinkDnsSupportOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10621,6 +11004,7 @@ func (c *EC2) DisableVpcClassicLinkDnsSupportRequest(input *DisableVpcClassicLin
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DisableVpcClassicLinkDnsSupport for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisableVpcClassicLinkDnsSupport
 func (c *EC2) DisableVpcClassicLinkDnsSupport(input *DisableVpcClassicLinkDnsSupportInput) (*DisableVpcClassicLinkDnsSupportOutput, error) {
 	req, out := c.DisableVpcClassicLinkDnsSupportRequest(input)
 	err := req.Send()
@@ -10653,6 +11037,7 @@ const opDisassociateAddress = "DisassociateAddress"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateAddress
 func (c *EC2) DisassociateAddressRequest(input *DisassociateAddressInput) (req *request.Request, output *DisassociateAddressOutput) {
 	op := &request.Operation{
 		Name:       opDisassociateAddress,
@@ -10664,11 +11049,10 @@ func (c *EC2) DisassociateAddressRequest(input *DisassociateAddressInput) (req *
 		input = &DisassociateAddressInput{}
 	}
 
+	output = &DisassociateAddressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DisassociateAddressOutput{}
-	req.Data = output
 	return
 }
 
@@ -10690,8 +11074,71 @@ func (c *EC2) DisassociateAddressRequest(input *DisassociateAddressInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DisassociateAddress for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateAddress
 func (c *EC2) DisassociateAddress(input *DisassociateAddressInput) (*DisassociateAddressOutput, error) {
 	req, out := c.DisassociateAddressRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDisassociateIamInstanceProfile = "DisassociateIamInstanceProfile"
+
+// DisassociateIamInstanceProfileRequest generates a "aws/request.Request" representing the
+// client's request for the DisassociateIamInstanceProfile operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DisassociateIamInstanceProfile for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisassociateIamInstanceProfile method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisassociateIamInstanceProfileRequest method.
+//    req, resp := client.DisassociateIamInstanceProfileRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfile
+func (c *EC2) DisassociateIamInstanceProfileRequest(input *DisassociateIamInstanceProfileInput) (req *request.Request, output *DisassociateIamInstanceProfileOutput) {
+	op := &request.Operation{
+		Name:       opDisassociateIamInstanceProfile,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DisassociateIamInstanceProfileInput{}
+	}
+
+	output = &DisassociateIamInstanceProfileOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DisassociateIamInstanceProfile API operation for Amazon Elastic Compute Cloud.
+//
+// Disassociates an IAM instance profile from a running or stopped instance.
+//
+// Use DescribeIamInstanceProfileAssociations to get the association ID.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DisassociateIamInstanceProfile for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfile
+func (c *EC2) DisassociateIamInstanceProfile(input *DisassociateIamInstanceProfileInput) (*DisassociateIamInstanceProfileOutput, error) {
+	req, out := c.DisassociateIamInstanceProfileRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -10722,6 +11169,7 @@ const opDisassociateRouteTable = "DisassociateRouteTable"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateRouteTable
 func (c *EC2) DisassociateRouteTableRequest(input *DisassociateRouteTableInput) (req *request.Request, output *DisassociateRouteTableOutput) {
 	op := &request.Operation{
 		Name:       opDisassociateRouteTable,
@@ -10733,11 +11181,10 @@ func (c *EC2) DisassociateRouteTableRequest(input *DisassociateRouteTableInput) 
 		input = &DisassociateRouteTableInput{}
 	}
 
+	output = &DisassociateRouteTableOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DisassociateRouteTableOutput{}
-	req.Data = output
 	return
 }
 
@@ -10756,6 +11203,7 @@ func (c *EC2) DisassociateRouteTableRequest(input *DisassociateRouteTableInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DisassociateRouteTable for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateRouteTable
 func (c *EC2) DisassociateRouteTable(input *DisassociateRouteTableInput) (*DisassociateRouteTableOutput, error) {
 	req, out := c.DisassociateRouteTableRequest(input)
 	err := req.Send()
@@ -10788,6 +11236,7 @@ const opDisassociateSubnetCidrBlock = "DisassociateSubnetCidrBlock"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateSubnetCidrBlock
 func (c *EC2) DisassociateSubnetCidrBlockRequest(input *DisassociateSubnetCidrBlockInput) (req *request.Request, output *DisassociateSubnetCidrBlockOutput) {
 	op := &request.Operation{
 		Name:       opDisassociateSubnetCidrBlock,
@@ -10799,9 +11248,8 @@ func (c *EC2) DisassociateSubnetCidrBlockRequest(input *DisassociateSubnetCidrBl
 		input = &DisassociateSubnetCidrBlockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisassociateSubnetCidrBlockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10817,6 +11265,7 @@ func (c *EC2) DisassociateSubnetCidrBlockRequest(input *DisassociateSubnetCidrBl
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DisassociateSubnetCidrBlock for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateSubnetCidrBlock
 func (c *EC2) DisassociateSubnetCidrBlock(input *DisassociateSubnetCidrBlockInput) (*DisassociateSubnetCidrBlockOutput, error) {
 	req, out := c.DisassociateSubnetCidrBlockRequest(input)
 	err := req.Send()
@@ -10849,6 +11298,7 @@ const opDisassociateVpcCidrBlock = "DisassociateVpcCidrBlock"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateVpcCidrBlock
 func (c *EC2) DisassociateVpcCidrBlockRequest(input *DisassociateVpcCidrBlockInput) (req *request.Request, output *DisassociateVpcCidrBlockOutput) {
 	op := &request.Operation{
 		Name:       opDisassociateVpcCidrBlock,
@@ -10860,9 +11310,8 @@ func (c *EC2) DisassociateVpcCidrBlockRequest(input *DisassociateVpcCidrBlockInp
 		input = &DisassociateVpcCidrBlockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisassociateVpcCidrBlockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10878,6 +11327,7 @@ func (c *EC2) DisassociateVpcCidrBlockRequest(input *DisassociateVpcCidrBlockInp
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation DisassociateVpcCidrBlock for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateVpcCidrBlock
 func (c *EC2) DisassociateVpcCidrBlock(input *DisassociateVpcCidrBlockInput) (*DisassociateVpcCidrBlockOutput, error) {
 	req, out := c.DisassociateVpcCidrBlockRequest(input)
 	err := req.Send()
@@ -10910,6 +11360,7 @@ const opEnableVgwRoutePropagation = "EnableVgwRoutePropagation"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVgwRoutePropagation
 func (c *EC2) EnableVgwRoutePropagationRequest(input *EnableVgwRoutePropagationInput) (req *request.Request, output *EnableVgwRoutePropagationOutput) {
 	op := &request.Operation{
 		Name:       opEnableVgwRoutePropagation,
@@ -10921,11 +11372,10 @@ func (c *EC2) EnableVgwRoutePropagationRequest(input *EnableVgwRoutePropagationI
 		input = &EnableVgwRoutePropagationInput{}
 	}
 
+	output = &EnableVgwRoutePropagationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &EnableVgwRoutePropagationOutput{}
-	req.Data = output
 	return
 }
 
@@ -10940,6 +11390,7 @@ func (c *EC2) EnableVgwRoutePropagationRequest(input *EnableVgwRoutePropagationI
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation EnableVgwRoutePropagation for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVgwRoutePropagation
 func (c *EC2) EnableVgwRoutePropagation(input *EnableVgwRoutePropagationInput) (*EnableVgwRoutePropagationOutput, error) {
 	req, out := c.EnableVgwRoutePropagationRequest(input)
 	err := req.Send()
@@ -10972,6 +11423,7 @@ const opEnableVolumeIO = "EnableVolumeIO"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVolumeIO
 func (c *EC2) EnableVolumeIORequest(input *EnableVolumeIOInput) (req *request.Request, output *EnableVolumeIOOutput) {
 	op := &request.Operation{
 		Name:       opEnableVolumeIO,
@@ -10983,11 +11435,10 @@ func (c *EC2) EnableVolumeIORequest(input *EnableVolumeIOInput) (req *request.Re
 		input = &EnableVolumeIOInput{}
 	}
 
+	output = &EnableVolumeIOOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &EnableVolumeIOOutput{}
-	req.Data = output
 	return
 }
 
@@ -11002,6 +11453,7 @@ func (c *EC2) EnableVolumeIORequest(input *EnableVolumeIOInput) (req *request.Re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation EnableVolumeIO for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVolumeIO
 func (c *EC2) EnableVolumeIO(input *EnableVolumeIOInput) (*EnableVolumeIOOutput, error) {
 	req, out := c.EnableVolumeIORequest(input)
 	err := req.Send()
@@ -11034,6 +11486,7 @@ const opEnableVpcClassicLink = "EnableVpcClassicLink"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVpcClassicLink
 func (c *EC2) EnableVpcClassicLinkRequest(input *EnableVpcClassicLinkInput) (req *request.Request, output *EnableVpcClassicLinkOutput) {
 	op := &request.Operation{
 		Name:       opEnableVpcClassicLink,
@@ -11045,9 +11498,8 @@ func (c *EC2) EnableVpcClassicLinkRequest(input *EnableVpcClassicLinkInput) (req
 		input = &EnableVpcClassicLinkInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnableVpcClassicLinkOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11067,6 +11519,7 @@ func (c *EC2) EnableVpcClassicLinkRequest(input *EnableVpcClassicLinkInput) (req
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation EnableVpcClassicLink for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVpcClassicLink
 func (c *EC2) EnableVpcClassicLink(input *EnableVpcClassicLinkInput) (*EnableVpcClassicLinkOutput, error) {
 	req, out := c.EnableVpcClassicLinkRequest(input)
 	err := req.Send()
@@ -11099,6 +11552,7 @@ const opEnableVpcClassicLinkDnsSupport = "EnableVpcClassicLinkDnsSupport"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVpcClassicLinkDnsSupport
 func (c *EC2) EnableVpcClassicLinkDnsSupportRequest(input *EnableVpcClassicLinkDnsSupportInput) (req *request.Request, output *EnableVpcClassicLinkDnsSupportOutput) {
 	op := &request.Operation{
 		Name:       opEnableVpcClassicLinkDnsSupport,
@@ -11110,9 +11564,8 @@ func (c *EC2) EnableVpcClassicLinkDnsSupportRequest(input *EnableVpcClassicLinkD
 		input = &EnableVpcClassicLinkDnsSupportInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnableVpcClassicLinkDnsSupportOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11132,6 +11585,7 @@ func (c *EC2) EnableVpcClassicLinkDnsSupportRequest(input *EnableVpcClassicLinkD
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation EnableVpcClassicLinkDnsSupport for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVpcClassicLinkDnsSupport
 func (c *EC2) EnableVpcClassicLinkDnsSupport(input *EnableVpcClassicLinkDnsSupportInput) (*EnableVpcClassicLinkDnsSupportOutput, error) {
 	req, out := c.EnableVpcClassicLinkDnsSupportRequest(input)
 	err := req.Send()
@@ -11164,6 +11618,7 @@ const opGetConsoleOutput = "GetConsoleOutput"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetConsoleOutput
 func (c *EC2) GetConsoleOutputRequest(input *GetConsoleOutputInput) (req *request.Request, output *GetConsoleOutputOutput) {
 	op := &request.Operation{
 		Name:       opGetConsoleOutput,
@@ -11175,9 +11630,8 @@ func (c *EC2) GetConsoleOutputRequest(input *GetConsoleOutputInput) (req *reques
 		input = &GetConsoleOutputInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetConsoleOutputOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11208,6 +11662,7 @@ func (c *EC2) GetConsoleOutputRequest(input *GetConsoleOutputInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation GetConsoleOutput for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetConsoleOutput
 func (c *EC2) GetConsoleOutput(input *GetConsoleOutputInput) (*GetConsoleOutputOutput, error) {
 	req, out := c.GetConsoleOutputRequest(input)
 	err := req.Send()
@@ -11240,6 +11695,7 @@ const opGetConsoleScreenshot = "GetConsoleScreenshot"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetConsoleScreenshot
 func (c *EC2) GetConsoleScreenshotRequest(input *GetConsoleScreenshotInput) (req *request.Request, output *GetConsoleScreenshotOutput) {
 	op := &request.Operation{
 		Name:       opGetConsoleScreenshot,
@@ -11251,9 +11707,8 @@ func (c *EC2) GetConsoleScreenshotRequest(input *GetConsoleScreenshotInput) (req
 		input = &GetConsoleScreenshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetConsoleScreenshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11269,6 +11724,7 @@ func (c *EC2) GetConsoleScreenshotRequest(input *GetConsoleScreenshotInput) (req
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation GetConsoleScreenshot for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetConsoleScreenshot
 func (c *EC2) GetConsoleScreenshot(input *GetConsoleScreenshotInput) (*GetConsoleScreenshotOutput, error) {
 	req, out := c.GetConsoleScreenshotRequest(input)
 	err := req.Send()
@@ -11301,6 +11757,7 @@ const opGetHostReservationPurchasePreview = "GetHostReservationPurchasePreview"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetHostReservationPurchasePreview
 func (c *EC2) GetHostReservationPurchasePreviewRequest(input *GetHostReservationPurchasePreviewInput) (req *request.Request, output *GetHostReservationPurchasePreviewOutput) {
 	op := &request.Operation{
 		Name:       opGetHostReservationPurchasePreview,
@@ -11312,9 +11769,8 @@ func (c *EC2) GetHostReservationPurchasePreviewRequest(input *GetHostReservation
 		input = &GetHostReservationPurchasePreviewInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetHostReservationPurchasePreviewOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11333,6 +11789,7 @@ func (c *EC2) GetHostReservationPurchasePreviewRequest(input *GetHostReservation
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation GetHostReservationPurchasePreview for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetHostReservationPurchasePreview
 func (c *EC2) GetHostReservationPurchasePreview(input *GetHostReservationPurchasePreviewInput) (*GetHostReservationPurchasePreviewOutput, error) {
 	req, out := c.GetHostReservationPurchasePreviewRequest(input)
 	err := req.Send()
@@ -11365,6 +11822,7 @@ const opGetPasswordData = "GetPasswordData"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetPasswordData
 func (c *EC2) GetPasswordDataRequest(input *GetPasswordDataInput) (req *request.Request, output *GetPasswordDataOutput) {
 	op := &request.Operation{
 		Name:       opGetPasswordData,
@@ -11376,9 +11834,8 @@ func (c *EC2) GetPasswordDataRequest(input *GetPasswordDataInput) (req *request.
 		input = &GetPasswordDataInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetPasswordDataOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11405,6 +11862,7 @@ func (c *EC2) GetPasswordDataRequest(input *GetPasswordDataInput) (req *request.
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation GetPasswordData for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetPasswordData
 func (c *EC2) GetPasswordData(input *GetPasswordDataInput) (*GetPasswordDataOutput, error) {
 	req, out := c.GetPasswordDataRequest(input)
 	err := req.Send()
@@ -11437,6 +11895,7 @@ const opGetReservedInstancesExchangeQuote = "GetReservedInstancesExchangeQuote"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetReservedInstancesExchangeQuote
 func (c *EC2) GetReservedInstancesExchangeQuoteRequest(input *GetReservedInstancesExchangeQuoteInput) (req *request.Request, output *GetReservedInstancesExchangeQuoteOutput) {
 	op := &request.Operation{
 		Name:       opGetReservedInstancesExchangeQuote,
@@ -11448,9 +11907,8 @@ func (c *EC2) GetReservedInstancesExchangeQuoteRequest(input *GetReservedInstanc
 		input = &GetReservedInstancesExchangeQuoteInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetReservedInstancesExchangeQuoteOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11466,6 +11924,7 @@ func (c *EC2) GetReservedInstancesExchangeQuoteRequest(input *GetReservedInstanc
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation GetReservedInstancesExchangeQuote for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetReservedInstancesExchangeQuote
 func (c *EC2) GetReservedInstancesExchangeQuote(input *GetReservedInstancesExchangeQuoteInput) (*GetReservedInstancesExchangeQuoteOutput, error) {
 	req, out := c.GetReservedInstancesExchangeQuoteRequest(input)
 	err := req.Send()
@@ -11498,6 +11957,7 @@ const opImportImage = "ImportImage"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportImage
 func (c *EC2) ImportImageRequest(input *ImportImageInput) (req *request.Request, output *ImportImageOutput) {
 	op := &request.Operation{
 		Name:       opImportImage,
@@ -11509,9 +11969,8 @@ func (c *EC2) ImportImageRequest(input *ImportImageInput) (req *request.Request,
 		input = &ImportImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11528,6 +11987,7 @@ func (c *EC2) ImportImageRequest(input *ImportImageInput) (req *request.Request,
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ImportImage for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportImage
 func (c *EC2) ImportImage(input *ImportImageInput) (*ImportImageOutput, error) {
 	req, out := c.ImportImageRequest(input)
 	err := req.Send()
@@ -11560,6 +12020,7 @@ const opImportInstance = "ImportInstance"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportInstance
 func (c *EC2) ImportInstanceRequest(input *ImportInstanceInput) (req *request.Request, output *ImportInstanceOutput) {
 	op := &request.Operation{
 		Name:       opImportInstance,
@@ -11571,9 +12032,8 @@ func (c *EC2) ImportInstanceRequest(input *ImportInstanceInput) (req *request.Re
 		input = &ImportInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11593,6 +12053,7 @@ func (c *EC2) ImportInstanceRequest(input *ImportInstanceInput) (req *request.Re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ImportInstance for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportInstance
 func (c *EC2) ImportInstance(input *ImportInstanceInput) (*ImportInstanceOutput, error) {
 	req, out := c.ImportInstanceRequest(input)
 	err := req.Send()
@@ -11625,6 +12086,7 @@ const opImportKeyPair = "ImportKeyPair"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportKeyPair
 func (c *EC2) ImportKeyPairRequest(input *ImportKeyPairInput) (req *request.Request, output *ImportKeyPairOutput) {
 	op := &request.Operation{
 		Name:       opImportKeyPair,
@@ -11636,9 +12098,8 @@ func (c *EC2) ImportKeyPairRequest(input *ImportKeyPairInput) (req *request.Requ
 		input = &ImportKeyPairInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportKeyPairOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11659,6 +12120,7 @@ func (c *EC2) ImportKeyPairRequest(input *ImportKeyPairInput) (req *request.Requ
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ImportKeyPair for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportKeyPair
 func (c *EC2) ImportKeyPair(input *ImportKeyPairInput) (*ImportKeyPairOutput, error) {
 	req, out := c.ImportKeyPairRequest(input)
 	err := req.Send()
@@ -11691,6 +12153,7 @@ const opImportSnapshot = "ImportSnapshot"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportSnapshot
 func (c *EC2) ImportSnapshotRequest(input *ImportSnapshotInput) (req *request.Request, output *ImportSnapshotOutput) {
 	op := &request.Operation{
 		Name:       opImportSnapshot,
@@ -11702,9 +12165,8 @@ func (c *EC2) ImportSnapshotRequest(input *ImportSnapshotInput) (req *request.Re
 		input = &ImportSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11718,6 +12180,7 @@ func (c *EC2) ImportSnapshotRequest(input *ImportSnapshotInput) (req *request.Re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ImportSnapshot for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportSnapshot
 func (c *EC2) ImportSnapshot(input *ImportSnapshotInput) (*ImportSnapshotOutput, error) {
 	req, out := c.ImportSnapshotRequest(input)
 	err := req.Send()
@@ -11750,6 +12213,7 @@ const opImportVolume = "ImportVolume"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportVolume
 func (c *EC2) ImportVolumeRequest(input *ImportVolumeInput) (req *request.Request, output *ImportVolumeOutput) {
 	op := &request.Operation{
 		Name:       opImportVolume,
@@ -11761,9 +12225,8 @@ func (c *EC2) ImportVolumeRequest(input *ImportVolumeInput) (req *request.Reques
 		input = &ImportVolumeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportVolumeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11781,6 +12244,7 @@ func (c *EC2) ImportVolumeRequest(input *ImportVolumeInput) (req *request.Reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ImportVolume for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportVolume
 func (c *EC2) ImportVolume(input *ImportVolumeInput) (*ImportVolumeOutput, error) {
 	req, out := c.ImportVolumeRequest(input)
 	err := req.Send()
@@ -11813,6 +12277,7 @@ const opModifyHosts = "ModifyHosts"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyHosts
 func (c *EC2) ModifyHostsRequest(input *ModifyHostsInput) (req *request.Request, output *ModifyHostsOutput) {
 	op := &request.Operation{
 		Name:       opModifyHosts,
@@ -11824,9 +12289,8 @@ func (c *EC2) ModifyHostsRequest(input *ModifyHostsInput) (req *request.Request,
 		input = &ModifyHostsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyHostsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11846,6 +12310,7 @@ func (c *EC2) ModifyHostsRequest(input *ModifyHostsInput) (req *request.Request,
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifyHosts for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyHosts
 func (c *EC2) ModifyHosts(input *ModifyHostsInput) (*ModifyHostsOutput, error) {
 	req, out := c.ModifyHostsRequest(input)
 	err := req.Send()
@@ -11878,6 +12343,7 @@ const opModifyIdFormat = "ModifyIdFormat"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyIdFormat
 func (c *EC2) ModifyIdFormatRequest(input *ModifyIdFormatInput) (req *request.Request, output *ModifyIdFormatOutput) {
 	op := &request.Operation{
 		Name:       opModifyIdFormat,
@@ -11889,11 +12355,10 @@ func (c *EC2) ModifyIdFormatRequest(input *ModifyIdFormatInput) (req *request.Re
 		input = &ModifyIdFormatInput{}
 	}
 
+	output = &ModifyIdFormatOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyIdFormatOutput{}
-	req.Data = output
 	return
 }
 
@@ -11921,6 +12386,7 @@ func (c *EC2) ModifyIdFormatRequest(input *ModifyIdFormatInput) (req *request.Re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifyIdFormat for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyIdFormat
 func (c *EC2) ModifyIdFormat(input *ModifyIdFormatInput) (*ModifyIdFormatOutput, error) {
 	req, out := c.ModifyIdFormatRequest(input)
 	err := req.Send()
@@ -11953,6 +12419,7 @@ const opModifyIdentityIdFormat = "ModifyIdentityIdFormat"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyIdentityIdFormat
 func (c *EC2) ModifyIdentityIdFormatRequest(input *ModifyIdentityIdFormatInput) (req *request.Request, output *ModifyIdentityIdFormatOutput) {
 	op := &request.Operation{
 		Name:       opModifyIdentityIdFormat,
@@ -11964,11 +12431,10 @@ func (c *EC2) ModifyIdentityIdFormatRequest(input *ModifyIdentityIdFormatInput) 
 		input = &ModifyIdentityIdFormatInput{}
 	}
 
+	output = &ModifyIdentityIdFormatOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyIdentityIdFormatOutput{}
-	req.Data = output
 	return
 }
 
@@ -11996,6 +12462,7 @@ func (c *EC2) ModifyIdentityIdFormatRequest(input *ModifyIdentityIdFormatInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifyIdentityIdFormat for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyIdentityIdFormat
 func (c *EC2) ModifyIdentityIdFormat(input *ModifyIdentityIdFormatInput) (*ModifyIdentityIdFormatOutput, error) {
 	req, out := c.ModifyIdentityIdFormatRequest(input)
 	err := req.Send()
@@ -12028,6 +12495,7 @@ const opModifyImageAttribute = "ModifyImageAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyImageAttribute
 func (c *EC2) ModifyImageAttributeRequest(input *ModifyImageAttributeInput) (req *request.Request, output *ModifyImageAttributeOutput) {
 	op := &request.Operation{
 		Name:       opModifyImageAttribute,
@@ -12039,11 +12507,10 @@ func (c *EC2) ModifyImageAttributeRequest(input *ModifyImageAttributeInput) (req
 		input = &ModifyImageAttributeInput{}
 	}
 
+	output = &ModifyImageAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyImageAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12066,6 +12533,7 @@ func (c *EC2) ModifyImageAttributeRequest(input *ModifyImageAttributeInput) (req
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifyImageAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyImageAttribute
 func (c *EC2) ModifyImageAttribute(input *ModifyImageAttributeInput) (*ModifyImageAttributeOutput, error) {
 	req, out := c.ModifyImageAttributeRequest(input)
 	err := req.Send()
@@ -12098,6 +12566,7 @@ const opModifyInstanceAttribute = "ModifyInstanceAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyInstanceAttribute
 func (c *EC2) ModifyInstanceAttributeRequest(input *ModifyInstanceAttributeInput) (req *request.Request, output *ModifyInstanceAttributeOutput) {
 	op := &request.Operation{
 		Name:       opModifyInstanceAttribute,
@@ -12109,11 +12578,10 @@ func (c *EC2) ModifyInstanceAttributeRequest(input *ModifyInstanceAttributeInput
 		input = &ModifyInstanceAttributeInput{}
 	}
 
+	output = &ModifyInstanceAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyInstanceAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12132,6 +12600,7 @@ func (c *EC2) ModifyInstanceAttributeRequest(input *ModifyInstanceAttributeInput
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifyInstanceAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyInstanceAttribute
 func (c *EC2) ModifyInstanceAttribute(input *ModifyInstanceAttributeInput) (*ModifyInstanceAttributeOutput, error) {
 	req, out := c.ModifyInstanceAttributeRequest(input)
 	err := req.Send()
@@ -12164,6 +12633,7 @@ const opModifyInstancePlacement = "ModifyInstancePlacement"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyInstancePlacement
 func (c *EC2) ModifyInstancePlacementRequest(input *ModifyInstancePlacementInput) (req *request.Request, output *ModifyInstancePlacementOutput) {
 	op := &request.Operation{
 		Name:       opModifyInstancePlacement,
@@ -12175,9 +12645,8 @@ func (c *EC2) ModifyInstancePlacementRequest(input *ModifyInstancePlacementInput
 		input = &ModifyInstancePlacementInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyInstancePlacementOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12209,6 +12678,7 @@ func (c *EC2) ModifyInstancePlacementRequest(input *ModifyInstancePlacementInput
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifyInstancePlacement for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyInstancePlacement
 func (c *EC2) ModifyInstancePlacement(input *ModifyInstancePlacementInput) (*ModifyInstancePlacementOutput, error) {
 	req, out := c.ModifyInstancePlacementRequest(input)
 	err := req.Send()
@@ -12241,6 +12711,7 @@ const opModifyNetworkInterfaceAttribute = "ModifyNetworkInterfaceAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyNetworkInterfaceAttribute
 func (c *EC2) ModifyNetworkInterfaceAttributeRequest(input *ModifyNetworkInterfaceAttributeInput) (req *request.Request, output *ModifyNetworkInterfaceAttributeOutput) {
 	op := &request.Operation{
 		Name:       opModifyNetworkInterfaceAttribute,
@@ -12252,11 +12723,10 @@ func (c *EC2) ModifyNetworkInterfaceAttributeRequest(input *ModifyNetworkInterfa
 		input = &ModifyNetworkInterfaceAttributeInput{}
 	}
 
+	output = &ModifyNetworkInterfaceAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyNetworkInterfaceAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12271,6 +12741,7 @@ func (c *EC2) ModifyNetworkInterfaceAttributeRequest(input *ModifyNetworkInterfa
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifyNetworkInterfaceAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyNetworkInterfaceAttribute
 func (c *EC2) ModifyNetworkInterfaceAttribute(input *ModifyNetworkInterfaceAttributeInput) (*ModifyNetworkInterfaceAttributeOutput, error) {
 	req, out := c.ModifyNetworkInterfaceAttributeRequest(input)
 	err := req.Send()
@@ -12303,6 +12774,7 @@ const opModifyReservedInstances = "ModifyReservedInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyReservedInstances
 func (c *EC2) ModifyReservedInstancesRequest(input *ModifyReservedInstancesInput) (req *request.Request, output *ModifyReservedInstancesOutput) {
 	op := &request.Operation{
 		Name:       opModifyReservedInstances,
@@ -12314,9 +12786,8 @@ func (c *EC2) ModifyReservedInstancesRequest(input *ModifyReservedInstancesInput
 		input = &ModifyReservedInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyReservedInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12336,6 +12807,7 @@ func (c *EC2) ModifyReservedInstancesRequest(input *ModifyReservedInstancesInput
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifyReservedInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyReservedInstances
 func (c *EC2) ModifyReservedInstances(input *ModifyReservedInstancesInput) (*ModifyReservedInstancesOutput, error) {
 	req, out := c.ModifyReservedInstancesRequest(input)
 	err := req.Send()
@@ -12368,6 +12840,7 @@ const opModifySnapshotAttribute = "ModifySnapshotAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifySnapshotAttribute
 func (c *EC2) ModifySnapshotAttributeRequest(input *ModifySnapshotAttributeInput) (req *request.Request, output *ModifySnapshotAttributeOutput) {
 	op := &request.Operation{
 		Name:       opModifySnapshotAttribute,
@@ -12379,11 +12852,10 @@ func (c *EC2) ModifySnapshotAttributeRequest(input *ModifySnapshotAttributeInput
 		input = &ModifySnapshotAttributeInput{}
 	}
 
+	output = &ModifySnapshotAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifySnapshotAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12409,6 +12881,7 @@ func (c *EC2) ModifySnapshotAttributeRequest(input *ModifySnapshotAttributeInput
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifySnapshotAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifySnapshotAttribute
 func (c *EC2) ModifySnapshotAttribute(input *ModifySnapshotAttributeInput) (*ModifySnapshotAttributeOutput, error) {
 	req, out := c.ModifySnapshotAttributeRequest(input)
 	err := req.Send()
@@ -12441,6 +12914,7 @@ const opModifySpotFleetRequest = "ModifySpotFleetRequest"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifySpotFleetRequest
 func (c *EC2) ModifySpotFleetRequestRequest(input *ModifySpotFleetRequestInput) (req *request.Request, output *ModifySpotFleetRequestOutput) {
 	op := &request.Operation{
 		Name:       opModifySpotFleetRequest,
@@ -12452,9 +12926,8 @@ func (c *EC2) ModifySpotFleetRequestRequest(input *ModifySpotFleetRequestInput) 
 		input = &ModifySpotFleetRequestInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifySpotFleetRequestOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12487,6 +12960,7 @@ func (c *EC2) ModifySpotFleetRequestRequest(input *ModifySpotFleetRequestInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifySpotFleetRequest for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifySpotFleetRequest
 func (c *EC2) ModifySpotFleetRequest(input *ModifySpotFleetRequestInput) (*ModifySpotFleetRequestOutput, error) {
 	req, out := c.ModifySpotFleetRequestRequest(input)
 	err := req.Send()
@@ -12519,6 +12993,7 @@ const opModifySubnetAttribute = "ModifySubnetAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifySubnetAttribute
 func (c *EC2) ModifySubnetAttributeRequest(input *ModifySubnetAttributeInput) (req *request.Request, output *ModifySubnetAttributeOutput) {
 	op := &request.Operation{
 		Name:       opModifySubnetAttribute,
@@ -12530,11 +13005,10 @@ func (c *EC2) ModifySubnetAttributeRequest(input *ModifySubnetAttributeInput) (r
 		input = &ModifySubnetAttributeInput{}
 	}
 
+	output = &ModifySubnetAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifySubnetAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12548,8 +13022,102 @@ func (c *EC2) ModifySubnetAttributeRequest(input *ModifySubnetAttributeInput) (r
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifySubnetAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifySubnetAttribute
 func (c *EC2) ModifySubnetAttribute(input *ModifySubnetAttributeInput) (*ModifySubnetAttributeOutput, error) {
 	req, out := c.ModifySubnetAttributeRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opModifyVolume = "ModifyVolume"
+
+// ModifyVolumeRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyVolume operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ModifyVolume for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyVolume method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyVolumeRequest method.
+//    req, resp := client.ModifyVolumeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolume
+func (c *EC2) ModifyVolumeRequest(input *ModifyVolumeInput) (req *request.Request, output *ModifyVolumeOutput) {
+	op := &request.Operation{
+		Name:       opModifyVolume,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ModifyVolumeInput{}
+	}
+
+	output = &ModifyVolumeOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ModifyVolume API operation for Amazon Elastic Compute Cloud.
+//
+// You can modify several parameters of an existing EBS volume, including volume
+// size, volume type, and IOPS capacity. If your EBS volume is attached to a
+// current-generation EC2 instance type, you may be able to apply these changes
+// without stopping the instance or detaching the volume from it. For more information
+// about modifying an EBS volume running Linux, see Modifying the Size, IOPS,
+// or Type of an EBS Volume on Linux (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html).
+// For more information about modifying an EBS volume running Windows, see Expanding
+// the Storage Space of an EBS Volume on Windows (http://docs.aws.amazon.com/docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html).
+//
+// When you complete a resize operation on your volume, you need to extend the
+// volume's file-system size to take advantage of the new storage capacity.
+// For information about extending a Linux file system, see Extending a Linux
+// File System (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html#recognize-expanded-volume-linux).
+// For information about extending a Windows file system, see Extending a Windows
+// File System (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html#recognize-expanded-volume-windows).
+//
+// You can use CloudWatch Events to check the status of a modification to an
+// EBS volume. For information about CloudWatch Events, see the Amazon CloudWatch
+// Events User Guide (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/AmazonCloudWatch/latest/events/WhatIsCloudWatchEvents.html).
+// You can also track the status of a modification using the DescribeVolumesModifications
+// (http://docs.aws.amazon.com/http:/docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeVolumesModifications.html)
+// API. For information about tracking status changes using either method, see
+// Monitoring Volume Modifications" (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html#monitoring_mods).
+//
+// With previous-generation volumes and instance types, resizing an EBS volume
+// may require detaching and reattaching the volume or stopping and restarting
+// the instance. For more information about modifying an EBS volume running
+// Linux, see Modifying the Size, IOPS, or Type of an EBS Volume on Linux (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html).
+// For more information about modifying an EBS volume running Windows, see Modifying
+// the Size, IOPS, or Type of an EBS Volume on Windows (http://docs.aws.amazon.com/docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html).
+//
+// If you reach the maximum volume modification rate per volume limit, you will
+// need to wait at least six hours before applying further modifications to
+// the affected EBS volume.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyVolume for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolume
+func (c *EC2) ModifyVolume(input *ModifyVolumeInput) (*ModifyVolumeOutput, error) {
+	req, out := c.ModifyVolumeRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -12580,6 +13148,7 @@ const opModifyVolumeAttribute = "ModifyVolumeAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolumeAttribute
 func (c *EC2) ModifyVolumeAttributeRequest(input *ModifyVolumeAttributeInput) (req *request.Request, output *ModifyVolumeAttributeOutput) {
 	op := &request.Operation{
 		Name:       opModifyVolumeAttribute,
@@ -12591,11 +13160,10 @@ func (c *EC2) ModifyVolumeAttributeRequest(input *ModifyVolumeAttributeInput) (r
 		input = &ModifyVolumeAttributeInput{}
 	}
 
+	output = &ModifyVolumeAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyVolumeAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12618,6 +13186,7 @@ func (c *EC2) ModifyVolumeAttributeRequest(input *ModifyVolumeAttributeInput) (r
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifyVolumeAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolumeAttribute
 func (c *EC2) ModifyVolumeAttribute(input *ModifyVolumeAttributeInput) (*ModifyVolumeAttributeOutput, error) {
 	req, out := c.ModifyVolumeAttributeRequest(input)
 	err := req.Send()
@@ -12650,6 +13219,7 @@ const opModifyVpcAttribute = "ModifyVpcAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVpcAttribute
 func (c *EC2) ModifyVpcAttributeRequest(input *ModifyVpcAttributeInput) (req *request.Request, output *ModifyVpcAttributeOutput) {
 	op := &request.Operation{
 		Name:       opModifyVpcAttribute,
@@ -12661,11 +13231,10 @@ func (c *EC2) ModifyVpcAttributeRequest(input *ModifyVpcAttributeInput) (req *re
 		input = &ModifyVpcAttributeInput{}
 	}
 
+	output = &ModifyVpcAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyVpcAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12679,6 +13248,7 @@ func (c *EC2) ModifyVpcAttributeRequest(input *ModifyVpcAttributeInput) (req *re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifyVpcAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVpcAttribute
 func (c *EC2) ModifyVpcAttribute(input *ModifyVpcAttributeInput) (*ModifyVpcAttributeOutput, error) {
 	req, out := c.ModifyVpcAttributeRequest(input)
 	err := req.Send()
@@ -12711,6 +13281,7 @@ const opModifyVpcEndpoint = "ModifyVpcEndpoint"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVpcEndpoint
 func (c *EC2) ModifyVpcEndpointRequest(input *ModifyVpcEndpointInput) (req *request.Request, output *ModifyVpcEndpointOutput) {
 	op := &request.Operation{
 		Name:       opModifyVpcEndpoint,
@@ -12722,9 +13293,8 @@ func (c *EC2) ModifyVpcEndpointRequest(input *ModifyVpcEndpointInput) (req *requ
 		input = &ModifyVpcEndpointInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyVpcEndpointOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12740,6 +13310,7 @@ func (c *EC2) ModifyVpcEndpointRequest(input *ModifyVpcEndpointInput) (req *requ
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifyVpcEndpoint for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVpcEndpoint
 func (c *EC2) ModifyVpcEndpoint(input *ModifyVpcEndpointInput) (*ModifyVpcEndpointOutput, error) {
 	req, out := c.ModifyVpcEndpointRequest(input)
 	err := req.Send()
@@ -12772,6 +13343,7 @@ const opModifyVpcPeeringConnectionOptions = "ModifyVpcPeeringConnectionOptions"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVpcPeeringConnectionOptions
 func (c *EC2) ModifyVpcPeeringConnectionOptionsRequest(input *ModifyVpcPeeringConnectionOptionsInput) (req *request.Request, output *ModifyVpcPeeringConnectionOptionsOutput) {
 	op := &request.Operation{
 		Name:       opModifyVpcPeeringConnectionOptions,
@@ -12783,9 +13355,8 @@ func (c *EC2) ModifyVpcPeeringConnectionOptionsRequest(input *ModifyVpcPeeringCo
 		input = &ModifyVpcPeeringConnectionOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyVpcPeeringConnectionOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12818,6 +13389,7 @@ func (c *EC2) ModifyVpcPeeringConnectionOptionsRequest(input *ModifyVpcPeeringCo
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ModifyVpcPeeringConnectionOptions for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVpcPeeringConnectionOptions
 func (c *EC2) ModifyVpcPeeringConnectionOptions(input *ModifyVpcPeeringConnectionOptionsInput) (*ModifyVpcPeeringConnectionOptionsOutput, error) {
 	req, out := c.ModifyVpcPeeringConnectionOptionsRequest(input)
 	err := req.Send()
@@ -12850,6 +13422,7 @@ const opMonitorInstances = "MonitorInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/MonitorInstances
 func (c *EC2) MonitorInstancesRequest(input *MonitorInstancesInput) (req *request.Request, output *MonitorInstancesOutput) {
 	op := &request.Operation{
 		Name:       opMonitorInstances,
@@ -12861,9 +13434,8 @@ func (c *EC2) MonitorInstancesRequest(input *MonitorInstancesInput) (req *reques
 		input = &MonitorInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &MonitorInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12882,6 +13454,7 @@ func (c *EC2) MonitorInstancesRequest(input *MonitorInstancesInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation MonitorInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/MonitorInstances
 func (c *EC2) MonitorInstances(input *MonitorInstancesInput) (*MonitorInstancesOutput, error) {
 	req, out := c.MonitorInstancesRequest(input)
 	err := req.Send()
@@ -12914,6 +13487,7 @@ const opMoveAddressToVpc = "MoveAddressToVpc"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/MoveAddressToVpc
 func (c *EC2) MoveAddressToVpcRequest(input *MoveAddressToVpcInput) (req *request.Request, output *MoveAddressToVpcOutput) {
 	op := &request.Operation{
 		Name:       opMoveAddressToVpc,
@@ -12925,9 +13499,8 @@ func (c *EC2) MoveAddressToVpcRequest(input *MoveAddressToVpcInput) (req *reques
 		input = &MoveAddressToVpcInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &MoveAddressToVpcOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12947,6 +13520,7 @@ func (c *EC2) MoveAddressToVpcRequest(input *MoveAddressToVpcInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation MoveAddressToVpc for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/MoveAddressToVpc
 func (c *EC2) MoveAddressToVpc(input *MoveAddressToVpcInput) (*MoveAddressToVpcOutput, error) {
 	req, out := c.MoveAddressToVpcRequest(input)
 	err := req.Send()
@@ -12979,6 +13553,7 @@ const opPurchaseHostReservation = "PurchaseHostReservation"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PurchaseHostReservation
 func (c *EC2) PurchaseHostReservationRequest(input *PurchaseHostReservationInput) (req *request.Request, output *PurchaseHostReservationOutput) {
 	op := &request.Operation{
 		Name:       opPurchaseHostReservation,
@@ -12990,9 +13565,8 @@ func (c *EC2) PurchaseHostReservationRequest(input *PurchaseHostReservationInput
 		input = &PurchaseHostReservationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseHostReservationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13009,6 +13583,7 @@ func (c *EC2) PurchaseHostReservationRequest(input *PurchaseHostReservationInput
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation PurchaseHostReservation for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PurchaseHostReservation
 func (c *EC2) PurchaseHostReservation(input *PurchaseHostReservationInput) (*PurchaseHostReservationOutput, error) {
 	req, out := c.PurchaseHostReservationRequest(input)
 	err := req.Send()
@@ -13041,6 +13616,7 @@ const opPurchaseReservedInstancesOffering = "PurchaseReservedInstancesOffering"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PurchaseReservedInstancesOffering
 func (c *EC2) PurchaseReservedInstancesOfferingRequest(input *PurchaseReservedInstancesOfferingInput) (req *request.Request, output *PurchaseReservedInstancesOfferingOutput) {
 	op := &request.Operation{
 		Name:       opPurchaseReservedInstancesOffering,
@@ -13052,9 +13628,8 @@ func (c *EC2) PurchaseReservedInstancesOfferingRequest(input *PurchaseReservedIn
 		input = &PurchaseReservedInstancesOfferingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseReservedInstancesOfferingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13077,6 +13652,7 @@ func (c *EC2) PurchaseReservedInstancesOfferingRequest(input *PurchaseReservedIn
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation PurchaseReservedInstancesOffering for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PurchaseReservedInstancesOffering
 func (c *EC2) PurchaseReservedInstancesOffering(input *PurchaseReservedInstancesOfferingInput) (*PurchaseReservedInstancesOfferingOutput, error) {
 	req, out := c.PurchaseReservedInstancesOfferingRequest(input)
 	err := req.Send()
@@ -13109,6 +13685,7 @@ const opPurchaseScheduledInstances = "PurchaseScheduledInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PurchaseScheduledInstances
 func (c *EC2) PurchaseScheduledInstancesRequest(input *PurchaseScheduledInstancesInput) (req *request.Request, output *PurchaseScheduledInstancesOutput) {
 	op := &request.Operation{
 		Name:       opPurchaseScheduledInstances,
@@ -13120,9 +13697,8 @@ func (c *EC2) PurchaseScheduledInstancesRequest(input *PurchaseScheduledInstance
 		input = &PurchaseScheduledInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseScheduledInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13145,6 +13721,7 @@ func (c *EC2) PurchaseScheduledInstancesRequest(input *PurchaseScheduledInstance
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation PurchaseScheduledInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PurchaseScheduledInstances
 func (c *EC2) PurchaseScheduledInstances(input *PurchaseScheduledInstancesInput) (*PurchaseScheduledInstancesOutput, error) {
 	req, out := c.PurchaseScheduledInstancesRequest(input)
 	err := req.Send()
@@ -13177,6 +13754,7 @@ const opRebootInstances = "RebootInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RebootInstances
 func (c *EC2) RebootInstancesRequest(input *RebootInstancesInput) (req *request.Request, output *RebootInstancesOutput) {
 	op := &request.Operation{
 		Name:       opRebootInstances,
@@ -13188,11 +13766,10 @@ func (c *EC2) RebootInstancesRequest(input *RebootInstancesInput) (req *request.
 		input = &RebootInstancesInput{}
 	}
 
+	output = &RebootInstancesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RebootInstancesOutput{}
-	req.Data = output
 	return
 }
 
@@ -13216,6 +13793,7 @@ func (c *EC2) RebootInstancesRequest(input *RebootInstancesInput) (req *request.
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation RebootInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RebootInstances
 func (c *EC2) RebootInstances(input *RebootInstancesInput) (*RebootInstancesOutput, error) {
 	req, out := c.RebootInstancesRequest(input)
 	err := req.Send()
@@ -13248,6 +13826,7 @@ const opRegisterImage = "RegisterImage"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RegisterImage
 func (c *EC2) RegisterImageRequest(input *RegisterImageInput) (req *request.Request, output *RegisterImageOutput) {
 	op := &request.Operation{
 		Name:       opRegisterImage,
@@ -13259,9 +13838,8 @@ func (c *EC2) RegisterImageRequest(input *RegisterImageInput) (req *request.Requ
 		input = &RegisterImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RegisterImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13307,6 +13885,7 @@ func (c *EC2) RegisterImageRequest(input *RegisterImageInput) (req *request.Requ
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation RegisterImage for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RegisterImage
 func (c *EC2) RegisterImage(input *RegisterImageInput) (*RegisterImageOutput, error) {
 	req, out := c.RegisterImageRequest(input)
 	err := req.Send()
@@ -13339,6 +13918,7 @@ const opRejectVpcPeeringConnection = "RejectVpcPeeringConnection"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RejectVpcPeeringConnection
 func (c *EC2) RejectVpcPeeringConnectionRequest(input *RejectVpcPeeringConnectionInput) (req *request.Request, output *RejectVpcPeeringConnectionOutput) {
 	op := &request.Operation{
 		Name:       opRejectVpcPeeringConnection,
@@ -13350,9 +13930,8 @@ func (c *EC2) RejectVpcPeeringConnectionRequest(input *RejectVpcPeeringConnectio
 		input = &RejectVpcPeeringConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RejectVpcPeeringConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13370,6 +13949,7 @@ func (c *EC2) RejectVpcPeeringConnectionRequest(input *RejectVpcPeeringConnectio
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation RejectVpcPeeringConnection for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RejectVpcPeeringConnection
 func (c *EC2) RejectVpcPeeringConnection(input *RejectVpcPeeringConnectionInput) (*RejectVpcPeeringConnectionOutput, error) {
 	req, out := c.RejectVpcPeeringConnectionRequest(input)
 	err := req.Send()
@@ -13402,6 +13982,7 @@ const opReleaseAddress = "ReleaseAddress"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReleaseAddress
 func (c *EC2) ReleaseAddressRequest(input *ReleaseAddressInput) (req *request.Request, output *ReleaseAddressOutput) {
 	op := &request.Operation{
 		Name:       opReleaseAddress,
@@ -13413,11 +13994,10 @@ func (c *EC2) ReleaseAddressRequest(input *ReleaseAddressInput) (req *request.Re
 		input = &ReleaseAddressInput{}
 	}
 
+	output = &ReleaseAddressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ReleaseAddressOutput{}
-	req.Data = output
 	return
 }
 
@@ -13445,6 +14025,7 @@ func (c *EC2) ReleaseAddressRequest(input *ReleaseAddressInput) (req *request.Re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ReleaseAddress for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReleaseAddress
 func (c *EC2) ReleaseAddress(input *ReleaseAddressInput) (*ReleaseAddressOutput, error) {
 	req, out := c.ReleaseAddressRequest(input)
 	err := req.Send()
@@ -13477,6 +14058,7 @@ const opReleaseHosts = "ReleaseHosts"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReleaseHosts
 func (c *EC2) ReleaseHostsRequest(input *ReleaseHostsInput) (req *request.Request, output *ReleaseHostsOutput) {
 	op := &request.Operation{
 		Name:       opReleaseHosts,
@@ -13488,9 +14070,8 @@ func (c *EC2) ReleaseHostsRequest(input *ReleaseHostsInput) (req *request.Reques
 		input = &ReleaseHostsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReleaseHostsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13515,8 +14096,74 @@ func (c *EC2) ReleaseHostsRequest(input *ReleaseHostsInput) (req *request.Reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ReleaseHosts for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReleaseHosts
 func (c *EC2) ReleaseHosts(input *ReleaseHostsInput) (*ReleaseHostsOutput, error) {
 	req, out := c.ReleaseHostsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opReplaceIamInstanceProfileAssociation = "ReplaceIamInstanceProfileAssociation"
+
+// ReplaceIamInstanceProfileAssociationRequest generates a "aws/request.Request" representing the
+// client's request for the ReplaceIamInstanceProfileAssociation operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ReplaceIamInstanceProfileAssociation for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ReplaceIamInstanceProfileAssociation method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ReplaceIamInstanceProfileAssociationRequest method.
+//    req, resp := client.ReplaceIamInstanceProfileAssociationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociation
+func (c *EC2) ReplaceIamInstanceProfileAssociationRequest(input *ReplaceIamInstanceProfileAssociationInput) (req *request.Request, output *ReplaceIamInstanceProfileAssociationOutput) {
+	op := &request.Operation{
+		Name:       opReplaceIamInstanceProfileAssociation,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ReplaceIamInstanceProfileAssociationInput{}
+	}
+
+	output = &ReplaceIamInstanceProfileAssociationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ReplaceIamInstanceProfileAssociation API operation for Amazon Elastic Compute Cloud.
+//
+// Replaces an IAM instance profile for the specified running instance. You
+// can use this action to change the IAM instance profile that's associated
+// with an instance without having to disassociate the existing IAM instance
+// profile first.
+//
+// Use DescribeIamInstanceProfileAssociations to get the association ID.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ReplaceIamInstanceProfileAssociation for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociation
+func (c *EC2) ReplaceIamInstanceProfileAssociation(input *ReplaceIamInstanceProfileAssociationInput) (*ReplaceIamInstanceProfileAssociationOutput, error) {
+	req, out := c.ReplaceIamInstanceProfileAssociationRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -13547,6 +14194,7 @@ const opReplaceNetworkAclAssociation = "ReplaceNetworkAclAssociation"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceNetworkAclAssociation
 func (c *EC2) ReplaceNetworkAclAssociationRequest(input *ReplaceNetworkAclAssociationInput) (req *request.Request, output *ReplaceNetworkAclAssociationOutput) {
 	op := &request.Operation{
 		Name:       opReplaceNetworkAclAssociation,
@@ -13558,9 +14206,8 @@ func (c *EC2) ReplaceNetworkAclAssociationRequest(input *ReplaceNetworkAclAssoci
 		input = &ReplaceNetworkAclAssociationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReplaceNetworkAclAssociationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13577,6 +14224,7 @@ func (c *EC2) ReplaceNetworkAclAssociationRequest(input *ReplaceNetworkAclAssoci
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ReplaceNetworkAclAssociation for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceNetworkAclAssociation
 func (c *EC2) ReplaceNetworkAclAssociation(input *ReplaceNetworkAclAssociationInput) (*ReplaceNetworkAclAssociationOutput, error) {
 	req, out := c.ReplaceNetworkAclAssociationRequest(input)
 	err := req.Send()
@@ -13609,6 +14257,7 @@ const opReplaceNetworkAclEntry = "ReplaceNetworkAclEntry"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceNetworkAclEntry
 func (c *EC2) ReplaceNetworkAclEntryRequest(input *ReplaceNetworkAclEntryInput) (req *request.Request, output *ReplaceNetworkAclEntryOutput) {
 	op := &request.Operation{
 		Name:       opReplaceNetworkAclEntry,
@@ -13620,11 +14269,10 @@ func (c *EC2) ReplaceNetworkAclEntryRequest(input *ReplaceNetworkAclEntryInput) 
 		input = &ReplaceNetworkAclEntryInput{}
 	}
 
+	output = &ReplaceNetworkAclEntryOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ReplaceNetworkAclEntryOutput{}
-	req.Data = output
 	return
 }
 
@@ -13640,6 +14288,7 @@ func (c *EC2) ReplaceNetworkAclEntryRequest(input *ReplaceNetworkAclEntryInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ReplaceNetworkAclEntry for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceNetworkAclEntry
 func (c *EC2) ReplaceNetworkAclEntry(input *ReplaceNetworkAclEntryInput) (*ReplaceNetworkAclEntryOutput, error) {
 	req, out := c.ReplaceNetworkAclEntryRequest(input)
 	err := req.Send()
@@ -13672,6 +14321,7 @@ const opReplaceRoute = "ReplaceRoute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceRoute
 func (c *EC2) ReplaceRouteRequest(input *ReplaceRouteInput) (req *request.Request, output *ReplaceRouteOutput) {
 	op := &request.Operation{
 		Name:       opReplaceRoute,
@@ -13683,11 +14333,10 @@ func (c *EC2) ReplaceRouteRequest(input *ReplaceRouteInput) (req *request.Reques
 		input = &ReplaceRouteInput{}
 	}
 
+	output = &ReplaceRouteOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ReplaceRouteOutput{}
-	req.Data = output
 	return
 }
 
@@ -13707,6 +14356,7 @@ func (c *EC2) ReplaceRouteRequest(input *ReplaceRouteInput) (req *request.Reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ReplaceRoute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceRoute
 func (c *EC2) ReplaceRoute(input *ReplaceRouteInput) (*ReplaceRouteOutput, error) {
 	req, out := c.ReplaceRouteRequest(input)
 	err := req.Send()
@@ -13739,6 +14389,7 @@ const opReplaceRouteTableAssociation = "ReplaceRouteTableAssociation"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceRouteTableAssociation
 func (c *EC2) ReplaceRouteTableAssociationRequest(input *ReplaceRouteTableAssociationInput) (req *request.Request, output *ReplaceRouteTableAssociationOutput) {
 	op := &request.Operation{
 		Name:       opReplaceRouteTableAssociation,
@@ -13750,9 +14401,8 @@ func (c *EC2) ReplaceRouteTableAssociationRequest(input *ReplaceRouteTableAssoci
 		input = &ReplaceRouteTableAssociationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReplaceRouteTableAssociationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13774,6 +14424,7 @@ func (c *EC2) ReplaceRouteTableAssociationRequest(input *ReplaceRouteTableAssoci
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ReplaceRouteTableAssociation for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceRouteTableAssociation
 func (c *EC2) ReplaceRouteTableAssociation(input *ReplaceRouteTableAssociationInput) (*ReplaceRouteTableAssociationOutput, error) {
 	req, out := c.ReplaceRouteTableAssociationRequest(input)
 	err := req.Send()
@@ -13806,6 +14457,7 @@ const opReportInstanceStatus = "ReportInstanceStatus"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReportInstanceStatus
 func (c *EC2) ReportInstanceStatusRequest(input *ReportInstanceStatusInput) (req *request.Request, output *ReportInstanceStatusOutput) {
 	op := &request.Operation{
 		Name:       opReportInstanceStatus,
@@ -13817,11 +14469,10 @@ func (c *EC2) ReportInstanceStatusRequest(input *ReportInstanceStatusInput) (req
 		input = &ReportInstanceStatusInput{}
 	}
 
+	output = &ReportInstanceStatusOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ReportInstanceStatusOutput{}
-	req.Data = output
 	return
 }
 
@@ -13841,6 +14492,7 @@ func (c *EC2) ReportInstanceStatusRequest(input *ReportInstanceStatusInput) (req
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ReportInstanceStatus for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReportInstanceStatus
 func (c *EC2) ReportInstanceStatus(input *ReportInstanceStatusInput) (*ReportInstanceStatusOutput, error) {
 	req, out := c.ReportInstanceStatusRequest(input)
 	err := req.Send()
@@ -13873,6 +14525,7 @@ const opRequestSpotFleet = "RequestSpotFleet"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RequestSpotFleet
 func (c *EC2) RequestSpotFleetRequest(input *RequestSpotFleetInput) (req *request.Request, output *RequestSpotFleetOutput) {
 	op := &request.Operation{
 		Name:       opRequestSpotFleet,
@@ -13884,9 +14537,8 @@ func (c *EC2) RequestSpotFleetRequest(input *RequestSpotFleetInput) (req *reques
 		input = &RequestSpotFleetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RequestSpotFleetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13916,6 +14568,7 @@ func (c *EC2) RequestSpotFleetRequest(input *RequestSpotFleetInput) (req *reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation RequestSpotFleet for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RequestSpotFleet
 func (c *EC2) RequestSpotFleet(input *RequestSpotFleetInput) (*RequestSpotFleetOutput, error) {
 	req, out := c.RequestSpotFleetRequest(input)
 	err := req.Send()
@@ -13948,6 +14601,7 @@ const opRequestSpotInstances = "RequestSpotInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RequestSpotInstances
 func (c *EC2) RequestSpotInstancesRequest(input *RequestSpotInstancesInput) (req *request.Request, output *RequestSpotInstancesOutput) {
 	op := &request.Operation{
 		Name:       opRequestSpotInstances,
@@ -13959,9 +14613,8 @@ func (c *EC2) RequestSpotInstancesRequest(input *RequestSpotInstancesInput) (req
 		input = &RequestSpotInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RequestSpotInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13980,6 +14633,7 @@ func (c *EC2) RequestSpotInstancesRequest(input *RequestSpotInstancesInput) (req
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation RequestSpotInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RequestSpotInstances
 func (c *EC2) RequestSpotInstances(input *RequestSpotInstancesInput) (*RequestSpotInstancesOutput, error) {
 	req, out := c.RequestSpotInstancesRequest(input)
 	err := req.Send()
@@ -14012,6 +14666,7 @@ const opResetImageAttribute = "ResetImageAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetImageAttribute
 func (c *EC2) ResetImageAttributeRequest(input *ResetImageAttributeInput) (req *request.Request, output *ResetImageAttributeOutput) {
 	op := &request.Operation{
 		Name:       opResetImageAttribute,
@@ -14023,11 +14678,10 @@ func (c *EC2) ResetImageAttributeRequest(input *ResetImageAttributeInput) (req *
 		input = &ResetImageAttributeInput{}
 	}
 
+	output = &ResetImageAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ResetImageAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -14043,6 +14697,7 @@ func (c *EC2) ResetImageAttributeRequest(input *ResetImageAttributeInput) (req *
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ResetImageAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetImageAttribute
 func (c *EC2) ResetImageAttribute(input *ResetImageAttributeInput) (*ResetImageAttributeOutput, error) {
 	req, out := c.ResetImageAttributeRequest(input)
 	err := req.Send()
@@ -14075,6 +14730,7 @@ const opResetInstanceAttribute = "ResetInstanceAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetInstanceAttribute
 func (c *EC2) ResetInstanceAttributeRequest(input *ResetInstanceAttributeInput) (req *request.Request, output *ResetInstanceAttributeOutput) {
 	op := &request.Operation{
 		Name:       opResetInstanceAttribute,
@@ -14086,11 +14742,10 @@ func (c *EC2) ResetInstanceAttributeRequest(input *ResetInstanceAttributeInput) 
 		input = &ResetInstanceAttributeInput{}
 	}
 
+	output = &ResetInstanceAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ResetInstanceAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -14112,6 +14767,7 @@ func (c *EC2) ResetInstanceAttributeRequest(input *ResetInstanceAttributeInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ResetInstanceAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetInstanceAttribute
 func (c *EC2) ResetInstanceAttribute(input *ResetInstanceAttributeInput) (*ResetInstanceAttributeOutput, error) {
 	req, out := c.ResetInstanceAttributeRequest(input)
 	err := req.Send()
@@ -14144,6 +14800,7 @@ const opResetNetworkInterfaceAttribute = "ResetNetworkInterfaceAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetNetworkInterfaceAttribute
 func (c *EC2) ResetNetworkInterfaceAttributeRequest(input *ResetNetworkInterfaceAttributeInput) (req *request.Request, output *ResetNetworkInterfaceAttributeOutput) {
 	op := &request.Operation{
 		Name:       opResetNetworkInterfaceAttribute,
@@ -14155,11 +14812,10 @@ func (c *EC2) ResetNetworkInterfaceAttributeRequest(input *ResetNetworkInterface
 		input = &ResetNetworkInterfaceAttributeInput{}
 	}
 
+	output = &ResetNetworkInterfaceAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ResetNetworkInterfaceAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -14174,6 +14830,7 @@ func (c *EC2) ResetNetworkInterfaceAttributeRequest(input *ResetNetworkInterface
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ResetNetworkInterfaceAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetNetworkInterfaceAttribute
 func (c *EC2) ResetNetworkInterfaceAttribute(input *ResetNetworkInterfaceAttributeInput) (*ResetNetworkInterfaceAttributeOutput, error) {
 	req, out := c.ResetNetworkInterfaceAttributeRequest(input)
 	err := req.Send()
@@ -14206,6 +14863,7 @@ const opResetSnapshotAttribute = "ResetSnapshotAttribute"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetSnapshotAttribute
 func (c *EC2) ResetSnapshotAttributeRequest(input *ResetSnapshotAttributeInput) (req *request.Request, output *ResetSnapshotAttributeOutput) {
 	op := &request.Operation{
 		Name:       opResetSnapshotAttribute,
@@ -14217,11 +14875,10 @@ func (c *EC2) ResetSnapshotAttributeRequest(input *ResetSnapshotAttributeInput) 
 		input = &ResetSnapshotAttributeInput{}
 	}
 
+	output = &ResetSnapshotAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ResetSnapshotAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -14239,6 +14896,7 @@ func (c *EC2) ResetSnapshotAttributeRequest(input *ResetSnapshotAttributeInput) 
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation ResetSnapshotAttribute for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetSnapshotAttribute
 func (c *EC2) ResetSnapshotAttribute(input *ResetSnapshotAttributeInput) (*ResetSnapshotAttributeOutput, error) {
 	req, out := c.ResetSnapshotAttributeRequest(input)
 	err := req.Send()
@@ -14271,6 +14929,7 @@ const opRestoreAddressToClassic = "RestoreAddressToClassic"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RestoreAddressToClassic
 func (c *EC2) RestoreAddressToClassicRequest(input *RestoreAddressToClassicInput) (req *request.Request, output *RestoreAddressToClassicOutput) {
 	op := &request.Operation{
 		Name:       opRestoreAddressToClassic,
@@ -14282,9 +14941,8 @@ func (c *EC2) RestoreAddressToClassicRequest(input *RestoreAddressToClassicInput
 		input = &RestoreAddressToClassicInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestoreAddressToClassicOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14301,6 +14959,7 @@ func (c *EC2) RestoreAddressToClassicRequest(input *RestoreAddressToClassicInput
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation RestoreAddressToClassic for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RestoreAddressToClassic
 func (c *EC2) RestoreAddressToClassic(input *RestoreAddressToClassicInput) (*RestoreAddressToClassicOutput, error) {
 	req, out := c.RestoreAddressToClassicRequest(input)
 	err := req.Send()
@@ -14333,6 +14992,7 @@ const opRevokeSecurityGroupEgress = "RevokeSecurityGroupEgress"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RevokeSecurityGroupEgress
 func (c *EC2) RevokeSecurityGroupEgressRequest(input *RevokeSecurityGroupEgressInput) (req *request.Request, output *RevokeSecurityGroupEgressOutput) {
 	op := &request.Operation{
 		Name:       opRevokeSecurityGroupEgress,
@@ -14344,11 +15004,10 @@ func (c *EC2) RevokeSecurityGroupEgressRequest(input *RevokeSecurityGroupEgressI
 		input = &RevokeSecurityGroupEgressInput{}
 	}
 
+	output = &RevokeSecurityGroupEgressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RevokeSecurityGroupEgressOutput{}
-	req.Data = output
 	return
 }
 
@@ -14373,6 +15032,7 @@ func (c *EC2) RevokeSecurityGroupEgressRequest(input *RevokeSecurityGroupEgressI
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation RevokeSecurityGroupEgress for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RevokeSecurityGroupEgress
 func (c *EC2) RevokeSecurityGroupEgress(input *RevokeSecurityGroupEgressInput) (*RevokeSecurityGroupEgressOutput, error) {
 	req, out := c.RevokeSecurityGroupEgressRequest(input)
 	err := req.Send()
@@ -14405,6 +15065,7 @@ const opRevokeSecurityGroupIngress = "RevokeSecurityGroupIngress"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RevokeSecurityGroupIngress
 func (c *EC2) RevokeSecurityGroupIngressRequest(input *RevokeSecurityGroupIngressInput) (req *request.Request, output *RevokeSecurityGroupIngressOutput) {
 	op := &request.Operation{
 		Name:       opRevokeSecurityGroupIngress,
@@ -14416,11 +15077,10 @@ func (c *EC2) RevokeSecurityGroupIngressRequest(input *RevokeSecurityGroupIngres
 		input = &RevokeSecurityGroupIngressInput{}
 	}
 
+	output = &RevokeSecurityGroupIngressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RevokeSecurityGroupIngressOutput{}
-	req.Data = output
 	return
 }
 
@@ -14444,6 +15104,7 @@ func (c *EC2) RevokeSecurityGroupIngressRequest(input *RevokeSecurityGroupIngres
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation RevokeSecurityGroupIngress for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RevokeSecurityGroupIngress
 func (c *EC2) RevokeSecurityGroupIngress(input *RevokeSecurityGroupIngressInput) (*RevokeSecurityGroupIngressOutput, error) {
 	req, out := c.RevokeSecurityGroupIngressRequest(input)
 	err := req.Send()
@@ -14476,6 +15137,7 @@ const opRunInstances = "RunInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RunInstances
 func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Request, output *Reservation) {
 	op := &request.Operation{
 		Name:       opRunInstances,
@@ -14487,9 +15149,8 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 		input = &RunInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Reservation{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14517,7 +15178,7 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 //    IPv4 range of your subnet.
 //
 //    * Not all instance types support IPv6 addresses. For more information,
-//    see Amazon EC2 Instance Types (http://aws.amazon.com/ec2/instance-types/).
+//    see Instance Types (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html).
 //
 //    * If you don't specify a security group ID, we use the default security
 //    group. For more information, see Security Groups (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html).
@@ -14551,6 +15212,7 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation RunInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RunInstances
 func (c *EC2) RunInstances(input *RunInstancesInput) (*Reservation, error) {
 	req, out := c.RunInstancesRequest(input)
 	err := req.Send()
@@ -14583,6 +15245,7 @@ const opRunScheduledInstances = "RunScheduledInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RunScheduledInstances
 func (c *EC2) RunScheduledInstancesRequest(input *RunScheduledInstancesInput) (req *request.Request, output *RunScheduledInstancesOutput) {
 	op := &request.Operation{
 		Name:       opRunScheduledInstances,
@@ -14594,9 +15257,8 @@ func (c *EC2) RunScheduledInstancesRequest(input *RunScheduledInstancesInput) (r
 		input = &RunScheduledInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RunScheduledInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14620,6 +15282,7 @@ func (c *EC2) RunScheduledInstancesRequest(input *RunScheduledInstancesInput) (r
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation RunScheduledInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RunScheduledInstances
 func (c *EC2) RunScheduledInstances(input *RunScheduledInstancesInput) (*RunScheduledInstancesOutput, error) {
 	req, out := c.RunScheduledInstancesRequest(input)
 	err := req.Send()
@@ -14652,6 +15315,7 @@ const opStartInstances = "StartInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/StartInstances
 func (c *EC2) StartInstancesRequest(input *StartInstancesInput) (req *request.Request, output *StartInstancesOutput) {
 	op := &request.Operation{
 		Name:       opStartInstances,
@@ -14663,9 +15327,8 @@ func (c *EC2) StartInstancesRequest(input *StartInstancesInput) (req *request.Re
 		input = &StartInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StartInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14697,6 +15360,7 @@ func (c *EC2) StartInstancesRequest(input *StartInstancesInput) (req *request.Re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation StartInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/StartInstances
 func (c *EC2) StartInstances(input *StartInstancesInput) (*StartInstancesOutput, error) {
 	req, out := c.StartInstancesRequest(input)
 	err := req.Send()
@@ -14729,6 +15393,7 @@ const opStopInstances = "StopInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/StopInstances
 func (c *EC2) StopInstancesRequest(input *StopInstancesInput) (req *request.Request, output *StopInstancesOutput) {
 	op := &request.Operation{
 		Name:       opStopInstances,
@@ -14740,9 +15405,8 @@ func (c *EC2) StopInstancesRequest(input *StopInstancesInput) (req *request.Requ
 		input = &StopInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StopInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14785,6 +15449,7 @@ func (c *EC2) StopInstancesRequest(input *StopInstancesInput) (req *request.Requ
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation StopInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/StopInstances
 func (c *EC2) StopInstances(input *StopInstancesInput) (*StopInstancesOutput, error) {
 	req, out := c.StopInstancesRequest(input)
 	err := req.Send()
@@ -14817,6 +15482,7 @@ const opTerminateInstances = "TerminateInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/TerminateInstances
 func (c *EC2) TerminateInstancesRequest(input *TerminateInstancesInput) (req *request.Request, output *TerminateInstancesOutput) {
 	op := &request.Operation{
 		Name:       opTerminateInstances,
@@ -14828,9 +15494,8 @@ func (c *EC2) TerminateInstancesRequest(input *TerminateInstancesInput) (req *re
 		input = &TerminateInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &TerminateInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14868,6 +15533,7 @@ func (c *EC2) TerminateInstancesRequest(input *TerminateInstancesInput) (req *re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation TerminateInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/TerminateInstances
 func (c *EC2) TerminateInstances(input *TerminateInstancesInput) (*TerminateInstancesOutput, error) {
 	req, out := c.TerminateInstancesRequest(input)
 	err := req.Send()
@@ -14900,6 +15566,7 @@ const opUnassignIpv6Addresses = "UnassignIpv6Addresses"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UnassignIpv6Addresses
 func (c *EC2) UnassignIpv6AddressesRequest(input *UnassignIpv6AddressesInput) (req *request.Request, output *UnassignIpv6AddressesOutput) {
 	op := &request.Operation{
 		Name:       opUnassignIpv6Addresses,
@@ -14911,9 +15578,8 @@ func (c *EC2) UnassignIpv6AddressesRequest(input *UnassignIpv6AddressesInput) (r
 		input = &UnassignIpv6AddressesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UnassignIpv6AddressesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14927,6 +15593,7 @@ func (c *EC2) UnassignIpv6AddressesRequest(input *UnassignIpv6AddressesInput) (r
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation UnassignIpv6Addresses for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UnassignIpv6Addresses
 func (c *EC2) UnassignIpv6Addresses(input *UnassignIpv6AddressesInput) (*UnassignIpv6AddressesOutput, error) {
 	req, out := c.UnassignIpv6AddressesRequest(input)
 	err := req.Send()
@@ -14959,6 +15626,7 @@ const opUnassignPrivateIpAddresses = "UnassignPrivateIpAddresses"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UnassignPrivateIpAddresses
 func (c *EC2) UnassignPrivateIpAddressesRequest(input *UnassignPrivateIpAddressesInput) (req *request.Request, output *UnassignPrivateIpAddressesOutput) {
 	op := &request.Operation{
 		Name:       opUnassignPrivateIpAddresses,
@@ -14970,11 +15638,10 @@ func (c *EC2) UnassignPrivateIpAddressesRequest(input *UnassignPrivateIpAddresse
 		input = &UnassignPrivateIpAddressesInput{}
 	}
 
+	output = &UnassignPrivateIpAddressesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UnassignPrivateIpAddressesOutput{}
-	req.Data = output
 	return
 }
 
@@ -14988,6 +15655,7 @@ func (c *EC2) UnassignPrivateIpAddressesRequest(input *UnassignPrivateIpAddresse
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation UnassignPrivateIpAddresses for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UnassignPrivateIpAddresses
 func (c *EC2) UnassignPrivateIpAddresses(input *UnassignPrivateIpAddressesInput) (*UnassignPrivateIpAddressesOutput, error) {
 	req, out := c.UnassignPrivateIpAddressesRequest(input)
 	err := req.Send()
@@ -15020,6 +15688,7 @@ const opUnmonitorInstances = "UnmonitorInstances"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UnmonitorInstances
 func (c *EC2) UnmonitorInstancesRequest(input *UnmonitorInstancesInput) (req *request.Request, output *UnmonitorInstancesOutput) {
 	op := &request.Operation{
 		Name:       opUnmonitorInstances,
@@ -15031,9 +15700,8 @@ func (c *EC2) UnmonitorInstancesRequest(input *UnmonitorInstancesInput) (req *re
 		input = &UnmonitorInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UnmonitorInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -15049,6 +15717,7 @@ func (c *EC2) UnmonitorInstancesRequest(input *UnmonitorInstancesInput) (req *re
 //
 // See the AWS API reference guide for Amazon Elastic Compute Cloud's
 // API operation UnmonitorInstances for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UnmonitorInstances
 func (c *EC2) UnmonitorInstances(input *UnmonitorInstancesInput) (*UnmonitorInstancesOutput, error) {
 	req, out := c.UnmonitorInstancesRequest(input)
 	err := req.Send()
@@ -15056,6 +15725,7 @@ func (c *EC2) UnmonitorInstances(input *UnmonitorInstancesInput) (*UnmonitorInst
 }
 
 // Contains the parameters for accepting the quote.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AcceptReservedInstancesExchangeQuoteRequest
 type AcceptReservedInstancesExchangeQuoteInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15128,6 +15798,7 @@ func (s *AcceptReservedInstancesExchangeQuoteInput) SetTargetConfigurations(v []
 }
 
 // The result of the exchange and whether it was successful.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AcceptReservedInstancesExchangeQuoteResult
 type AcceptReservedInstancesExchangeQuoteOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15152,6 +15823,7 @@ func (s *AcceptReservedInstancesExchangeQuoteOutput) SetExchangeId(v string) *Ac
 }
 
 // Contains the parameters for AcceptVpcPeeringConnection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AcceptVpcPeeringConnectionRequest
 type AcceptVpcPeeringConnectionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15188,6 +15860,7 @@ func (s *AcceptVpcPeeringConnectionInput) SetVpcPeeringConnectionId(v string) *A
 }
 
 // Contains the output of AcceptVpcPeeringConnection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AcceptVpcPeeringConnectionResult
 type AcceptVpcPeeringConnectionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15212,6 +15885,7 @@ func (s *AcceptVpcPeeringConnectionOutput) SetVpcPeeringConnection(v *VpcPeering
 }
 
 // Describes an account attribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AccountAttribute
 type AccountAttribute struct {
 	_ struct{} `type:"structure"`
 
@@ -15245,6 +15919,7 @@ func (s *AccountAttribute) SetAttributeValues(v []*AccountAttributeValue) *Accou
 }
 
 // Describes a value of an account attribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AccountAttributeValue
 type AccountAttributeValue struct {
 	_ struct{} `type:"structure"`
 
@@ -15269,8 +15944,14 @@ func (s *AccountAttributeValue) SetAttributeValue(v string) *AccountAttributeVal
 }
 
 // Describes a running instance in a Spot fleet.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ActiveInstance
 type ActiveInstance struct {
 	_ struct{} `type:"structure"`
+
+	// The health status of the instance. If the status of both the instance status
+	// check and the system status check is impaired, the health status of the instance
+	// is unhealthy. Otherwise, the health status is healthy.
+	InstanceHealth *string `locationName:"instanceHealth" type:"string" enum:"InstanceHealthStatus"`
 
 	// The ID of the instance.
 	InstanceId *string `locationName:"instanceId" type:"string"`
@@ -15292,6 +15973,12 @@ func (s ActiveInstance) GoString() string {
 	return s.String()
 }
 
+// SetInstanceHealth sets the InstanceHealth field's value.
+func (s *ActiveInstance) SetInstanceHealth(v string) *ActiveInstance {
+	s.InstanceHealth = &v
+	return s
+}
+
 // SetInstanceId sets the InstanceId field's value.
 func (s *ActiveInstance) SetInstanceId(v string) *ActiveInstance {
 	s.InstanceId = &v
@@ -15311,6 +15998,7 @@ func (s *ActiveInstance) SetSpotInstanceRequestId(v string) *ActiveInstance {
 }
 
 // Describes an Elastic IP address.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Address
 type Address struct {
 	_ struct{} `type:"structure"`
 
@@ -15400,6 +16088,7 @@ func (s *Address) SetPublicIp(v string) *Address {
 }
 
 // Contains the parameters for AllocateAddress.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AllocateAddressRequest
 type AllocateAddressInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15438,6 +16127,7 @@ func (s *AllocateAddressInput) SetDryRun(v bool) *AllocateAddressInput {
 }
 
 // Contains the output of AllocateAddress.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AllocateAddressResult
 type AllocateAddressOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15482,6 +16172,7 @@ func (s *AllocateAddressOutput) SetPublicIp(v string) *AllocateAddressOutput {
 }
 
 // Contains the parameters for AllocateHosts.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AllocateHostsRequest
 type AllocateHostsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15576,6 +16267,7 @@ func (s *AllocateHostsInput) SetQuantity(v int64) *AllocateHostsInput {
 }
 
 // Contains the output of AllocateHosts.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AllocateHostsResult
 type AllocateHostsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15600,6 +16292,7 @@ func (s *AllocateHostsOutput) SetHostIds(v []*string) *AllocateHostsOutput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssignIpv6AddressesRequest
 type AssignIpv6AddressesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15659,6 +16352,7 @@ func (s *AssignIpv6AddressesInput) SetNetworkInterfaceId(v string) *AssignIpv6Ad
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssignIpv6AddressesResult
 type AssignIpv6AddressesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15692,6 +16386,7 @@ func (s *AssignIpv6AddressesOutput) SetNetworkInterfaceId(v string) *AssignIpv6A
 }
 
 // Contains the parameters for AssignPrivateIpAddresses.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssignPrivateIpAddressesRequest
 type AssignPrivateIpAddressesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15764,6 +16459,7 @@ func (s *AssignPrivateIpAddressesInput) SetSecondaryPrivateIpAddressCount(v int6
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssignPrivateIpAddressesOutput
 type AssignPrivateIpAddressesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -15779,6 +16475,7 @@ func (s AssignPrivateIpAddressesOutput) GoString() string {
 }
 
 // Contains the parameters for AssociateAddress.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateAddressRequest
 type AssociateAddressInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15871,6 +16568,7 @@ func (s *AssociateAddressInput) SetPublicIp(v string) *AssociateAddressInput {
 }
 
 // Contains the output of AssociateAddress.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateAddressResult
 type AssociateAddressOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -15896,6 +16594,7 @@ func (s *AssociateAddressOutput) SetAssociationId(v string) *AssociateAddressOut
 }
 
 // Contains the parameters for AssociateDhcpOptions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateDhcpOptionsRequest
 type AssociateDhcpOptionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -15961,6 +16660,7 @@ func (s *AssociateDhcpOptionsInput) SetVpcId(v string) *AssociateDhcpOptionsInpu
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateDhcpOptionsOutput
 type AssociateDhcpOptionsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -15975,7 +16675,85 @@ func (s AssociateDhcpOptionsOutput) GoString() string {
 	return s.String()
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfileRequest
+type AssociateIamInstanceProfileInput struct {
+	_ struct{} `type:"structure"`
+
+	// The IAM instance profile.
+	//
+	// IamInstanceProfile is a required field
+	IamInstanceProfile *IamInstanceProfileSpecification `type:"structure" required:"true"`
+
+	// The ID of the instance.
+	//
+	// InstanceId is a required field
+	InstanceId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AssociateIamInstanceProfileInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateIamInstanceProfileInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateIamInstanceProfileInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateIamInstanceProfileInput"}
+	if s.IamInstanceProfile == nil {
+		invalidParams.Add(request.NewErrParamRequired("IamInstanceProfile"))
+	}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetIamInstanceProfile sets the IamInstanceProfile field's value.
+func (s *AssociateIamInstanceProfileInput) SetIamInstanceProfile(v *IamInstanceProfileSpecification) *AssociateIamInstanceProfileInput {
+	s.IamInstanceProfile = v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *AssociateIamInstanceProfileInput) SetInstanceId(v string) *AssociateIamInstanceProfileInput {
+	s.InstanceId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfileResult
+type AssociateIamInstanceProfileOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IAM instance profile association.
+	IamInstanceProfileAssociation *IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociation" type:"structure"`
+}
+
+// String returns the string representation
+func (s AssociateIamInstanceProfileOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateIamInstanceProfileOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociation sets the IamInstanceProfileAssociation field's value.
+func (s *AssociateIamInstanceProfileOutput) SetIamInstanceProfileAssociation(v *IamInstanceProfileAssociation) *AssociateIamInstanceProfileOutput {
+	s.IamInstanceProfileAssociation = v
+	return s
+}
+
 // Contains the parameters for AssociateRouteTable.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateRouteTableRequest
 type AssociateRouteTableInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16041,6 +16819,7 @@ func (s *AssociateRouteTableInput) SetSubnetId(v string) *AssociateRouteTableInp
 }
 
 // Contains the output of AssociateRouteTable.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateRouteTableResult
 type AssociateRouteTableOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16064,6 +16843,7 @@ func (s *AssociateRouteTableOutput) SetAssociationId(v string) *AssociateRouteTa
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateSubnetCidrBlockRequest
 type AssociateSubnetCidrBlockInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16116,6 +16896,7 @@ func (s *AssociateSubnetCidrBlockInput) SetSubnetId(v string) *AssociateSubnetCi
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateSubnetCidrBlockResult
 type AssociateSubnetCidrBlockOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16148,6 +16929,7 @@ func (s *AssociateSubnetCidrBlockOutput) SetSubnetId(v string) *AssociateSubnetC
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateVpcCidrBlockRequest
 type AssociateVpcCidrBlockInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16197,6 +16979,7 @@ func (s *AssociateVpcCidrBlockInput) SetVpcId(v string) *AssociateVpcCidrBlockIn
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateVpcCidrBlockResult
 type AssociateVpcCidrBlockOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16230,6 +17013,7 @@ func (s *AssociateVpcCidrBlockOutput) SetVpcId(v string) *AssociateVpcCidrBlockO
 }
 
 // Contains the parameters for AttachClassicLinkVpc.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachClassicLinkVpcRequest
 type AttachClassicLinkVpcInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16310,6 +17094,7 @@ func (s *AttachClassicLinkVpcInput) SetVpcId(v string) *AttachClassicLinkVpcInpu
 }
 
 // Contains the output of AttachClassicLinkVpc.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachClassicLinkVpcResult
 type AttachClassicLinkVpcOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16334,6 +17119,7 @@ func (s *AttachClassicLinkVpcOutput) SetReturn(v bool) *AttachClassicLinkVpcOutp
 }
 
 // Contains the parameters for AttachInternetGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachInternetGatewayRequest
 type AttachInternetGatewayInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16398,6 +17184,7 @@ func (s *AttachInternetGatewayInput) SetVpcId(v string) *AttachInternetGatewayIn
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachInternetGatewayOutput
 type AttachInternetGatewayOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16413,6 +17200,7 @@ func (s AttachInternetGatewayOutput) GoString() string {
 }
 
 // Contains the parameters for AttachNetworkInterface.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachNetworkInterfaceRequest
 type AttachNetworkInterfaceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16492,6 +17280,7 @@ func (s *AttachNetworkInterfaceInput) SetNetworkInterfaceId(v string) *AttachNet
 }
 
 // Contains the output of AttachNetworkInterface.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachNetworkInterfaceResult
 type AttachNetworkInterfaceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16516,6 +17305,7 @@ func (s *AttachNetworkInterfaceOutput) SetAttachmentId(v string) *AttachNetworkI
 }
 
 // Contains the parameters for AttachVolume.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachVolumeRequest
 type AttachVolumeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16596,6 +17386,7 @@ func (s *AttachVolumeInput) SetVolumeId(v string) *AttachVolumeInput {
 }
 
 // Contains the parameters for AttachVpnGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachVpnGatewayRequest
 type AttachVpnGatewayInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16661,6 +17452,7 @@ func (s *AttachVpnGatewayInput) SetVpnGatewayId(v string) *AttachVpnGatewayInput
 }
 
 // Contains the output of AttachVpnGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttachVpnGatewayResult
 type AttachVpnGatewayOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -16685,6 +17477,7 @@ func (s *AttachVpnGatewayOutput) SetVpcAttachment(v *VpcAttachment) *AttachVpnGa
 }
 
 // Describes a value for a resource attribute that is a Boolean value.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttributeBooleanValue
 type AttributeBooleanValue struct {
 	_ struct{} `type:"structure"`
 
@@ -16709,6 +17502,7 @@ func (s *AttributeBooleanValue) SetValue(v bool) *AttributeBooleanValue {
 }
 
 // Describes a value for a resource attribute that is a String.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AttributeValue
 type AttributeValue struct {
 	_ struct{} `type:"structure"`
 
@@ -16733,6 +17527,7 @@ func (s *AttributeValue) SetValue(v string) *AttributeValue {
 }
 
 // Contains the parameters for AuthorizeSecurityGroupEgress.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AuthorizeSecurityGroupEgressRequest
 type AuthorizeSecurityGroupEgressInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16855,6 +17650,7 @@ func (s *AuthorizeSecurityGroupEgressInput) SetToPort(v int64) *AuthorizeSecurit
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AuthorizeSecurityGroupEgressOutput
 type AuthorizeSecurityGroupEgressOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -16870,6 +17666,7 @@ func (s AuthorizeSecurityGroupEgressOutput) GoString() string {
 }
 
 // Contains the parameters for AuthorizeSecurityGroupIngress.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AuthorizeSecurityGroupIngressRequest
 type AuthorizeSecurityGroupIngressInput struct {
 	_ struct{} `type:"structure"`
 
@@ -16997,6 +17794,7 @@ func (s *AuthorizeSecurityGroupIngressInput) SetToPort(v int64) *AuthorizeSecuri
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AuthorizeSecurityGroupIngressOutput
 type AuthorizeSecurityGroupIngressOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -17012,6 +17810,7 @@ func (s AuthorizeSecurityGroupIngressOutput) GoString() string {
 }
 
 // Describes an Availability Zone.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AvailabilityZone
 type AvailabilityZone struct {
 	_ struct{} `type:"structure"`
 
@@ -17063,6 +17862,7 @@ func (s *AvailabilityZone) SetZoneName(v string) *AvailabilityZone {
 }
 
 // Describes a message about an Availability Zone.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AvailabilityZoneMessage
 type AvailabilityZoneMessage struct {
 	_ struct{} `type:"structure"`
 
@@ -17087,6 +17887,7 @@ func (s *AvailabilityZoneMessage) SetMessage(v string) *AvailabilityZoneMessage 
 }
 
 // The capacity information for instances launched onto the Dedicated Host.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AvailableCapacity
 type AvailableCapacity struct {
 	_ struct{} `type:"structure"`
 
@@ -17119,6 +17920,7 @@ func (s *AvailableCapacity) SetAvailableVCpus(v int64) *AvailableCapacity {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/BlobAttributeValue
 type BlobAttributeValue struct {
 	_ struct{} `type:"structure"`
 
@@ -17143,6 +17945,7 @@ func (s *BlobAttributeValue) SetValue(v []byte) *BlobAttributeValue {
 }
 
 // Describes a block device mapping.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/BlockDeviceMapping
 type BlockDeviceMapping struct {
 	_ struct{} `type:"structure"`
 
@@ -17205,6 +18008,7 @@ func (s *BlockDeviceMapping) SetVirtualName(v string) *BlockDeviceMapping {
 }
 
 // Contains the parameters for BundleInstance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/BundleInstanceRequest
 type BundleInstanceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17278,6 +18082,7 @@ func (s *BundleInstanceInput) SetStorage(v *Storage) *BundleInstanceInput {
 }
 
 // Contains the output of BundleInstance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/BundleInstanceResult
 type BundleInstanceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17302,6 +18107,7 @@ func (s *BundleInstanceOutput) SetBundleTask(v *BundleTask) *BundleInstanceOutpu
 }
 
 // Describes a bundle task.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/BundleTask
 type BundleTask struct {
 	_ struct{} `type:"structure"`
 
@@ -17389,6 +18195,7 @@ func (s *BundleTask) SetUpdateTime(v time.Time) *BundleTask {
 }
 
 // Describes an error for BundleInstance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/BundleTaskError
 type BundleTaskError struct {
 	_ struct{} `type:"structure"`
 
@@ -17422,6 +18229,7 @@ func (s *BundleTaskError) SetMessage(v string) *BundleTaskError {
 }
 
 // Contains the parameters for CancelBundleTask.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelBundleTaskRequest
 type CancelBundleTaskInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17473,6 +18281,7 @@ func (s *CancelBundleTaskInput) SetDryRun(v bool) *CancelBundleTaskInput {
 }
 
 // Contains the output of CancelBundleTask.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelBundleTaskResult
 type CancelBundleTaskOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17497,6 +18306,7 @@ func (s *CancelBundleTaskOutput) SetBundleTask(v *BundleTask) *CancelBundleTaskO
 }
 
 // Contains the parameters for CancelConversionTask.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelConversionRequest
 type CancelConversionTaskInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17556,6 +18366,7 @@ func (s *CancelConversionTaskInput) SetReasonMessage(v string) *CancelConversion
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelConversionTaskOutput
 type CancelConversionTaskOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -17571,6 +18382,7 @@ func (s CancelConversionTaskOutput) GoString() string {
 }
 
 // Contains the parameters for CancelExportTask.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelExportTaskRequest
 type CancelExportTaskInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17609,6 +18421,7 @@ func (s *CancelExportTaskInput) SetExportTaskId(v string) *CancelExportTaskInput
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelExportTaskOutput
 type CancelExportTaskOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -17624,6 +18437,7 @@ func (s CancelExportTaskOutput) GoString() string {
 }
 
 // Contains the parameters for CancelImportTask.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelImportTaskRequest
 type CancelImportTaskInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17669,6 +18483,7 @@ func (s *CancelImportTaskInput) SetImportTaskId(v string) *CancelImportTaskInput
 }
 
 // Contains the output for CancelImportTask.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelImportTaskResult
 type CancelImportTaskOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17711,6 +18526,7 @@ func (s *CancelImportTaskOutput) SetState(v string) *CancelImportTaskOutput {
 }
 
 // Contains the parameters for CancelReservedInstancesListing.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelReservedInstancesListingRequest
 type CancelReservedInstancesListingInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17750,6 +18566,7 @@ func (s *CancelReservedInstancesListingInput) SetReservedInstancesListingId(v st
 }
 
 // Contains the output of CancelReservedInstancesListing.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelReservedInstancesListingResult
 type CancelReservedInstancesListingOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17774,6 +18591,7 @@ func (s *CancelReservedInstancesListingOutput) SetReservedInstancesListings(v []
 }
 
 // Describes a Spot fleet error.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelSpotFleetRequestsError
 type CancelSpotFleetRequestsError struct {
 	_ struct{} `type:"structure"`
 
@@ -17811,6 +18629,7 @@ func (s *CancelSpotFleetRequestsError) SetMessage(v string) *CancelSpotFleetRequ
 }
 
 // Describes a Spot fleet request that was not successfully canceled.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelSpotFleetRequestsErrorItem
 type CancelSpotFleetRequestsErrorItem struct {
 	_ struct{} `type:"structure"`
 
@@ -17848,6 +18667,7 @@ func (s *CancelSpotFleetRequestsErrorItem) SetSpotFleetRequestId(v string) *Canc
 }
 
 // Contains the parameters for CancelSpotFleetRequests.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelSpotFleetRequestsRequest
 type CancelSpotFleetRequestsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17914,6 +18734,7 @@ func (s *CancelSpotFleetRequestsInput) SetTerminateInstances(v bool) *CancelSpot
 }
 
 // Contains the output of CancelSpotFleetRequests.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelSpotFleetRequestsResponse
 type CancelSpotFleetRequestsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -17947,6 +18768,7 @@ func (s *CancelSpotFleetRequestsOutput) SetUnsuccessfulFleetRequests(v []*Cancel
 }
 
 // Describes a Spot fleet request that was successfully canceled.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelSpotFleetRequestsSuccessItem
 type CancelSpotFleetRequestsSuccessItem struct {
 	_ struct{} `type:"structure"`
 
@@ -17995,6 +18817,7 @@ func (s *CancelSpotFleetRequestsSuccessItem) SetSpotFleetRequestId(v string) *Ca
 }
 
 // Contains the parameters for CancelSpotInstanceRequests.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelSpotInstanceRequestsRequest
 type CancelSpotInstanceRequestsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18046,6 +18869,7 @@ func (s *CancelSpotInstanceRequestsInput) SetSpotInstanceRequestIds(v []*string)
 }
 
 // Contains the output of CancelSpotInstanceRequests.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelSpotInstanceRequestsResult
 type CancelSpotInstanceRequestsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18070,6 +18894,7 @@ func (s *CancelSpotInstanceRequestsOutput) SetCancelledSpotInstanceRequests(v []
 }
 
 // Describes a request to cancel a Spot instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CancelledSpotInstanceRequest
 type CancelledSpotInstanceRequest struct {
 	_ struct{} `type:"structure"`
 
@@ -18103,6 +18928,7 @@ func (s *CancelledSpotInstanceRequest) SetState(v string) *CancelledSpotInstance
 }
 
 // Describes the ClassicLink DNS support status of a VPC.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ClassicLinkDnsSupport
 type ClassicLinkDnsSupport struct {
 	_ struct{} `type:"structure"`
 
@@ -18136,6 +18962,7 @@ func (s *ClassicLinkDnsSupport) SetVpcId(v string) *ClassicLinkDnsSupport {
 }
 
 // Describes a linked EC2-Classic instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ClassicLinkInstance
 type ClassicLinkInstance struct {
 	_ struct{} `type:"structure"`
 
@@ -18187,6 +19014,7 @@ func (s *ClassicLinkInstance) SetVpcId(v string) *ClassicLinkInstance {
 }
 
 // Describes the client-specific data.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ClientData
 type ClientData struct {
 	_ struct{} `type:"structure"`
 
@@ -18238,6 +19066,7 @@ func (s *ClientData) SetUploadStart(v time.Time) *ClientData {
 }
 
 // Contains the parameters for ConfirmProductInstance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ConfirmProductInstanceRequest
 type ConfirmProductInstanceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18303,6 +19132,7 @@ func (s *ConfirmProductInstanceInput) SetProductCode(v string) *ConfirmProductIn
 }
 
 // Contains the output of ConfirmProductInstance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ConfirmProductInstanceResult
 type ConfirmProductInstanceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18338,6 +19168,7 @@ func (s *ConfirmProductInstanceOutput) SetReturn(v bool) *ConfirmProductInstance
 }
 
 // Describes a conversion task.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ConversionTask
 type ConversionTask struct {
 	_ struct{} `type:"structure"`
 
@@ -18423,6 +19254,7 @@ func (s *ConversionTask) SetTags(v []*Tag) *ConversionTask {
 }
 
 // Contains the parameters for CopyImage.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CopyImageRequest
 type CopyImageInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18551,6 +19383,7 @@ func (s *CopyImageInput) SetSourceRegion(v string) *CopyImageInput {
 }
 
 // Contains the output of CopyImage.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CopyImageResult
 type CopyImageOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18575,6 +19408,7 @@ func (s *CopyImageOutput) SetImageId(v string) *CopyImageOutput {
 }
 
 // Contains the parameters for CopySnapshot.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CopySnapshotRequest
 type CopySnapshotInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18716,6 +19550,7 @@ func (s *CopySnapshotInput) SetSourceSnapshotId(v string) *CopySnapshotInput {
 }
 
 // Contains the output of CopySnapshot.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CopySnapshotResult
 type CopySnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18740,6 +19575,7 @@ func (s *CopySnapshotOutput) SetSnapshotId(v string) *CopySnapshotOutput {
 }
 
 // Contains the parameters for CreateCustomerGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateCustomerGatewayRequest
 type CreateCustomerGatewayInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18822,6 +19658,7 @@ func (s *CreateCustomerGatewayInput) SetType(v string) *CreateCustomerGatewayInp
 }
 
 // Contains the output of CreateCustomerGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateCustomerGatewayResult
 type CreateCustomerGatewayOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18846,6 +19683,7 @@ func (s *CreateCustomerGatewayOutput) SetCustomerGateway(v *CustomerGateway) *Cr
 }
 
 // Contains the parameters for CreateDhcpOptions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateDhcpOptionsRequest
 type CreateDhcpOptionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18897,6 +19735,7 @@ func (s *CreateDhcpOptionsInput) SetDryRun(v bool) *CreateDhcpOptionsInput {
 }
 
 // Contains the output of CreateDhcpOptions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateDhcpOptionsResult
 type CreateDhcpOptionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -18920,6 +19759,7 @@ func (s *CreateDhcpOptionsOutput) SetDhcpOptions(v *DhcpOptions) *CreateDhcpOpti
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateEgressOnlyInternetGatewayRequest
 type CreateEgressOnlyInternetGatewayInput struct {
 	_ struct{} `type:"structure"`
 
@@ -18980,6 +19820,7 @@ func (s *CreateEgressOnlyInternetGatewayInput) SetVpcId(v string) *CreateEgressO
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateEgressOnlyInternetGatewayResult
 type CreateEgressOnlyInternetGatewayOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -19014,6 +19855,7 @@ func (s *CreateEgressOnlyInternetGatewayOutput) SetEgressOnlyInternetGateway(v *
 }
 
 // Contains the parameters for CreateFlowLogs.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateFlowLogsRequest
 type CreateFlowLogsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19122,6 +19964,7 @@ func (s *CreateFlowLogsInput) SetTrafficType(v string) *CreateFlowLogsInput {
 }
 
 // Contains the output of CreateFlowLogs.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateFlowLogsResult
 type CreateFlowLogsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -19165,6 +20008,7 @@ func (s *CreateFlowLogsOutput) SetUnsuccessful(v []*UnsuccessfulItem) *CreateFlo
 }
 
 // Contains the parameters for CreateImage.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateImageRequest
 type CreateImageInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19264,6 +20108,7 @@ func (s *CreateImageInput) SetNoReboot(v bool) *CreateImageInput {
 }
 
 // Contains the output of CreateImage.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateImageResult
 type CreateImageOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -19288,6 +20133,7 @@ func (s *CreateImageOutput) SetImageId(v string) *CreateImageOutput {
 }
 
 // Contains the parameters for CreateInstanceExportTask.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateInstanceExportTaskRequest
 type CreateInstanceExportTaskInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19355,6 +20201,7 @@ func (s *CreateInstanceExportTaskInput) SetTargetEnvironment(v string) *CreateIn
 }
 
 // Contains the output for CreateInstanceExportTask.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateInstanceExportTaskResult
 type CreateInstanceExportTaskOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -19379,6 +20226,7 @@ func (s *CreateInstanceExportTaskOutput) SetExportTask(v *ExportTask) *CreateIns
 }
 
 // Contains the parameters for CreateInternetGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateInternetGatewayRequest
 type CreateInternetGatewayInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19406,6 +20254,7 @@ func (s *CreateInternetGatewayInput) SetDryRun(v bool) *CreateInternetGatewayInp
 }
 
 // Contains the output of CreateInternetGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateInternetGatewayResult
 type CreateInternetGatewayOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -19430,6 +20279,7 @@ func (s *CreateInternetGatewayOutput) SetInternetGateway(v *InternetGateway) *Cr
 }
 
 // Contains the parameters for CreateKeyPair.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateKeyPairRequest
 type CreateKeyPairInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19483,6 +20333,7 @@ func (s *CreateKeyPairInput) SetKeyName(v string) *CreateKeyPairInput {
 }
 
 // Describes a key pair.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/KeyPair
 type CreateKeyPairOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -19525,6 +20376,7 @@ func (s *CreateKeyPairOutput) SetKeyName(v string) *CreateKeyPairOutput {
 }
 
 // Contains the parameters for CreateNatGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNatGatewayRequest
 type CreateNatGatewayInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19592,6 +20444,7 @@ func (s *CreateNatGatewayInput) SetSubnetId(v string) *CreateNatGatewayInput {
 }
 
 // Contains the output of CreateNatGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNatGatewayResult
 type CreateNatGatewayOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -19626,6 +20479,7 @@ func (s *CreateNatGatewayOutput) SetNatGateway(v *NatGateway) *CreateNatGatewayO
 }
 
 // Contains the parameters for CreateNetworkAclEntry.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNetworkAclEntryRequest
 type CreateNetworkAclEntryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19780,6 +20634,7 @@ func (s *CreateNetworkAclEntryInput) SetRuleNumber(v int64) *CreateNetworkAclEnt
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNetworkAclEntryOutput
 type CreateNetworkAclEntryOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -19795,6 +20650,7 @@ func (s CreateNetworkAclEntryOutput) GoString() string {
 }
 
 // Contains the parameters for CreateNetworkAcl.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNetworkAclRequest
 type CreateNetworkAclInput struct {
 	_ struct{} `type:"structure"`
 
@@ -19846,6 +20702,7 @@ func (s *CreateNetworkAclInput) SetVpcId(v string) *CreateNetworkAclInput {
 }
 
 // Contains the output of CreateNetworkAcl.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNetworkAclResult
 type CreateNetworkAclOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -19870,6 +20727,7 @@ func (s *CreateNetworkAclOutput) SetNetworkAcl(v *NetworkAcl) *CreateNetworkAclO
 }
 
 // Contains the parameters for CreateNetworkInterface.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNetworkInterfaceRequest
 type CreateNetworkInterfaceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20011,6 +20869,7 @@ func (s *CreateNetworkInterfaceInput) SetSubnetId(v string) *CreateNetworkInterf
 }
 
 // Contains the output of CreateNetworkInterface.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateNetworkInterfaceResult
 type CreateNetworkInterfaceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -20035,6 +20894,7 @@ func (s *CreateNetworkInterfaceOutput) SetNetworkInterface(v *NetworkInterface) 
 }
 
 // Contains the parameters for CreatePlacementGroup.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreatePlacementGroupRequest
 type CreatePlacementGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20101,6 +20961,7 @@ func (s *CreatePlacementGroupInput) SetStrategy(v string) *CreatePlacementGroupI
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreatePlacementGroupOutput
 type CreatePlacementGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -20116,6 +20977,7 @@ func (s CreatePlacementGroupOutput) GoString() string {
 }
 
 // Contains the parameters for CreateReservedInstancesListing.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateReservedInstancesListingRequest
 type CreateReservedInstancesListingInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20203,6 +21065,7 @@ func (s *CreateReservedInstancesListingInput) SetReservedInstancesId(v string) *
 }
 
 // Contains the output of CreateReservedInstancesListing.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateReservedInstancesListingResult
 type CreateReservedInstancesListingOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -20227,6 +21090,7 @@ func (s *CreateReservedInstancesListingOutput) SetReservedInstancesListings(v []
 }
 
 // Contains the parameters for CreateRoute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateRouteRequest
 type CreateRouteInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20354,6 +21218,7 @@ func (s *CreateRouteInput) SetVpcPeeringConnectionId(v string) *CreateRouteInput
 }
 
 // Contains the output of CreateRoute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateRouteResult
 type CreateRouteOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -20378,6 +21243,7 @@ func (s *CreateRouteOutput) SetReturn(v bool) *CreateRouteOutput {
 }
 
 // Contains the parameters for CreateRouteTable.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateRouteTableRequest
 type CreateRouteTableInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20429,6 +21295,7 @@ func (s *CreateRouteTableInput) SetVpcId(v string) *CreateRouteTableInput {
 }
 
 // Contains the output of CreateRouteTable.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateRouteTableResult
 type CreateRouteTableOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -20453,6 +21320,7 @@ func (s *CreateRouteTableOutput) SetRouteTable(v *RouteTable) *CreateRouteTableO
 }
 
 // Contains the parameters for CreateSecurityGroup.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSecurityGroupRequest
 type CreateSecurityGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20539,6 +21407,7 @@ func (s *CreateSecurityGroupInput) SetVpcId(v string) *CreateSecurityGroupInput 
 }
 
 // Contains the output of CreateSecurityGroup.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSecurityGroupResult
 type CreateSecurityGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -20563,6 +21432,7 @@ func (s *CreateSecurityGroupOutput) SetGroupId(v string) *CreateSecurityGroupOut
 }
 
 // Contains the parameters for CreateSnapshot.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSnapshotRequest
 type CreateSnapshotInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20623,6 +21493,7 @@ func (s *CreateSnapshotInput) SetVolumeId(v string) *CreateSnapshotInput {
 }
 
 // Contains the parameters for CreateSpotDatafeedSubscription.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSpotDatafeedSubscriptionRequest
 type CreateSpotDatafeedSubscriptionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20683,6 +21554,7 @@ func (s *CreateSpotDatafeedSubscriptionInput) SetPrefix(v string) *CreateSpotDat
 }
 
 // Contains the output of CreateSpotDatafeedSubscription.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSpotDatafeedSubscriptionResult
 type CreateSpotDatafeedSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -20707,6 +21579,7 @@ func (s *CreateSpotDatafeedSubscriptionOutput) SetSpotDatafeedSubscription(v *Sp
 }
 
 // Contains the parameters for CreateSubnet.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSubnetRequest
 type CreateSubnetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20794,6 +21667,7 @@ func (s *CreateSubnetInput) SetVpcId(v string) *CreateSubnetInput {
 }
 
 // Contains the output of CreateSubnet.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateSubnetResult
 type CreateSubnetOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -20818,6 +21692,7 @@ func (s *CreateSubnetOutput) SetSubnet(v *Subnet) *CreateSubnetOutput {
 }
 
 // Contains the parameters for CreateTags.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateTagsRequest
 type CreateTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -20884,6 +21759,7 @@ func (s *CreateTagsInput) SetTags(v []*Tag) *CreateTagsInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateTagsOutput
 type CreateTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -20899,6 +21775,7 @@ func (s CreateTagsOutput) GoString() string {
 }
 
 // Contains the parameters for CreateVolume.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVolumeRequest
 type CreateVolumeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21033,6 +21910,7 @@ func (s *CreateVolumeInput) SetVolumeType(v string) *CreateVolumeInput {
 
 // Describes the user or group to be added or removed from the permissions for
 // a volume.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVolumePermission
 type CreateVolumePermission struct {
 	_ struct{} `type:"structure"`
 
@@ -21068,6 +21946,7 @@ func (s *CreateVolumePermission) SetUserId(v string) *CreateVolumePermission {
 }
 
 // Describes modifications to the permissions for a volume.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVolumePermissionModifications
 type CreateVolumePermissionModifications struct {
 	_ struct{} `type:"structure"`
 
@@ -21103,6 +21982,7 @@ func (s *CreateVolumePermissionModifications) SetRemove(v []*CreateVolumePermiss
 }
 
 // Contains the parameters for CreateVpcEndpoint.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpcEndpointRequest
 type CreateVpcEndpointInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21199,6 +22079,7 @@ func (s *CreateVpcEndpointInput) SetVpcId(v string) *CreateVpcEndpointInput {
 }
 
 // Contains the output of CreateVpcEndpoint.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpcEndpointResult
 type CreateVpcEndpointOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -21233,6 +22114,7 @@ func (s *CreateVpcEndpointOutput) SetVpcEndpoint(v *VpcEndpoint) *CreateVpcEndpo
 }
 
 // Contains the parameters for CreateVpc.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpcRequest
 type CreateVpcInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21313,6 +22195,7 @@ func (s *CreateVpcInput) SetInstanceTenancy(v string) *CreateVpcInput {
 }
 
 // Contains the output of CreateVpc.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpcResult
 type CreateVpcOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -21337,6 +22220,7 @@ func (s *CreateVpcOutput) SetVpc(v *Vpc) *CreateVpcOutput {
 }
 
 // Contains the parameters for CreateVpcPeeringConnection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpcPeeringConnectionRequest
 type CreateVpcPeeringConnectionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21393,6 +22277,7 @@ func (s *CreateVpcPeeringConnectionInput) SetVpcId(v string) *CreateVpcPeeringCo
 }
 
 // Contains the output of CreateVpcPeeringConnection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpcPeeringConnectionResult
 type CreateVpcPeeringConnectionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -21417,6 +22302,7 @@ func (s *CreateVpcPeeringConnectionOutput) SetVpcPeeringConnection(v *VpcPeering
 }
 
 // Contains the parameters for CreateVpnConnection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpnConnectionRequest
 type CreateVpnConnectionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21509,6 +22395,7 @@ func (s *CreateVpnConnectionInput) SetVpnGatewayId(v string) *CreateVpnConnectio
 }
 
 // Contains the output of CreateVpnConnection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpnConnectionResult
 type CreateVpnConnectionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -21533,6 +22420,7 @@ func (s *CreateVpnConnectionOutput) SetVpnConnection(v *VpnConnection) *CreateVp
 }
 
 // Contains the parameters for CreateVpnConnectionRoute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpnConnectionRouteRequest
 type CreateVpnConnectionRouteInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21585,6 +22473,7 @@ func (s *CreateVpnConnectionRouteInput) SetVpnConnectionId(v string) *CreateVpnC
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpnConnectionRouteOutput
 type CreateVpnConnectionRouteOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -21600,6 +22489,7 @@ func (s CreateVpnConnectionRouteOutput) GoString() string {
 }
 
 // Contains the parameters for CreateVpnGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpnGatewayRequest
 type CreateVpnGatewayInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21660,6 +22550,7 @@ func (s *CreateVpnGatewayInput) SetType(v string) *CreateVpnGatewayInput {
 }
 
 // Contains the output of CreateVpnGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CreateVpnGatewayResult
 type CreateVpnGatewayOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -21684,6 +22575,7 @@ func (s *CreateVpnGatewayOutput) SetVpnGateway(v *VpnGateway) *CreateVpnGatewayO
 }
 
 // Describes a customer gateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/CustomerGateway
 type CustomerGateway struct {
 	_ struct{} `type:"structure"`
 
@@ -21755,6 +22647,7 @@ func (s *CustomerGateway) SetType(v string) *CustomerGateway {
 }
 
 // Contains the parameters for DeleteCustomerGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteCustomerGatewayRequest
 type DeleteCustomerGatewayInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21805,6 +22698,7 @@ func (s *DeleteCustomerGatewayInput) SetDryRun(v bool) *DeleteCustomerGatewayInp
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteCustomerGatewayOutput
 type DeleteCustomerGatewayOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -21820,6 +22714,7 @@ func (s DeleteCustomerGatewayOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteDhcpOptions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteDhcpOptionsRequest
 type DeleteDhcpOptionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21870,6 +22765,7 @@ func (s *DeleteDhcpOptionsInput) SetDryRun(v bool) *DeleteDhcpOptionsInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteDhcpOptionsOutput
 type DeleteDhcpOptionsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -21884,6 +22780,7 @@ func (s DeleteDhcpOptionsOutput) GoString() string {
 	return s.String()
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteEgressOnlyInternetGatewayRequest
 type DeleteEgressOnlyInternetGatewayInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21934,6 +22831,7 @@ func (s *DeleteEgressOnlyInternetGatewayInput) SetEgressOnlyInternetGatewayId(v 
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteEgressOnlyInternetGatewayResult
 type DeleteEgressOnlyInternetGatewayOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -21958,6 +22856,7 @@ func (s *DeleteEgressOnlyInternetGatewayOutput) SetReturnCode(v bool) *DeleteEgr
 }
 
 // Contains the parameters for DeleteFlowLogs.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteFlowLogsRequest
 type DeleteFlowLogsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -21997,6 +22896,7 @@ func (s *DeleteFlowLogsInput) SetFlowLogIds(v []*string) *DeleteFlowLogsInput {
 }
 
 // Contains the output of DeleteFlowLogs.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteFlowLogsResult
 type DeleteFlowLogsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -22021,6 +22921,7 @@ func (s *DeleteFlowLogsOutput) SetUnsuccessful(v []*UnsuccessfulItem) *DeleteFlo
 }
 
 // Contains the parameters for DeleteInternetGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteInternetGatewayRequest
 type DeleteInternetGatewayInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22071,6 +22972,7 @@ func (s *DeleteInternetGatewayInput) SetInternetGatewayId(v string) *DeleteInter
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteInternetGatewayOutput
 type DeleteInternetGatewayOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -22086,6 +22988,7 @@ func (s DeleteInternetGatewayOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteKeyPair.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteKeyPairRequest
 type DeleteKeyPairInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22136,6 +23039,7 @@ func (s *DeleteKeyPairInput) SetKeyName(v string) *DeleteKeyPairInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteKeyPairOutput
 type DeleteKeyPairOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -22151,6 +23055,7 @@ func (s DeleteKeyPairOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteNatGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNatGatewayRequest
 type DeleteNatGatewayInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22190,6 +23095,7 @@ func (s *DeleteNatGatewayInput) SetNatGatewayId(v string) *DeleteNatGatewayInput
 }
 
 // Contains the output of DeleteNatGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNatGatewayResult
 type DeleteNatGatewayOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -22214,6 +23120,7 @@ func (s *DeleteNatGatewayOutput) SetNatGatewayId(v string) *DeleteNatGatewayOutp
 }
 
 // Contains the parameters for DeleteNetworkAclEntry.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNetworkAclEntryRequest
 type DeleteNetworkAclEntryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22292,6 +23199,7 @@ func (s *DeleteNetworkAclEntryInput) SetRuleNumber(v int64) *DeleteNetworkAclEnt
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNetworkAclEntryOutput
 type DeleteNetworkAclEntryOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -22307,6 +23215,7 @@ func (s DeleteNetworkAclEntryOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteNetworkAcl.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNetworkAclRequest
 type DeleteNetworkAclInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22357,6 +23266,7 @@ func (s *DeleteNetworkAclInput) SetNetworkAclId(v string) *DeleteNetworkAclInput
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNetworkAclOutput
 type DeleteNetworkAclOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -22372,6 +23282,7 @@ func (s DeleteNetworkAclOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteNetworkInterface.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNetworkInterfaceRequest
 type DeleteNetworkInterfaceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22422,6 +23333,7 @@ func (s *DeleteNetworkInterfaceInput) SetNetworkInterfaceId(v string) *DeleteNet
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteNetworkInterfaceOutput
 type DeleteNetworkInterfaceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -22437,6 +23349,7 @@ func (s DeleteNetworkInterfaceOutput) GoString() string {
 }
 
 // Contains the parameters for DeletePlacementGroup.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeletePlacementGroupRequest
 type DeletePlacementGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22487,6 +23400,7 @@ func (s *DeletePlacementGroupInput) SetGroupName(v string) *DeletePlacementGroup
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeletePlacementGroupOutput
 type DeletePlacementGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -22502,6 +23416,7 @@ func (s DeletePlacementGroupOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteRoute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteRouteRequest
 type DeleteRouteInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22572,6 +23487,7 @@ func (s *DeleteRouteInput) SetRouteTableId(v string) *DeleteRouteInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteRouteOutput
 type DeleteRouteOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -22587,6 +23503,7 @@ func (s DeleteRouteOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteRouteTable.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteRouteTableRequest
 type DeleteRouteTableInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22637,6 +23554,7 @@ func (s *DeleteRouteTableInput) SetRouteTableId(v string) *DeleteRouteTableInput
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteRouteTableOutput
 type DeleteRouteTableOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -22652,6 +23570,7 @@ func (s DeleteRouteTableOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteSecurityGroup.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSecurityGroupRequest
 type DeleteSecurityGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22697,6 +23616,7 @@ func (s *DeleteSecurityGroupInput) SetGroupName(v string) *DeleteSecurityGroupIn
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSecurityGroupOutput
 type DeleteSecurityGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -22712,6 +23632,7 @@ func (s DeleteSecurityGroupOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteSnapshot.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSnapshotRequest
 type DeleteSnapshotInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22762,6 +23683,7 @@ func (s *DeleteSnapshotInput) SetSnapshotId(v string) *DeleteSnapshotInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSnapshotOutput
 type DeleteSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -22777,6 +23699,7 @@ func (s DeleteSnapshotOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteSpotDatafeedSubscription.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSpotDatafeedSubscriptionRequest
 type DeleteSpotDatafeedSubscriptionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22803,6 +23726,7 @@ func (s *DeleteSpotDatafeedSubscriptionInput) SetDryRun(v bool) *DeleteSpotDataf
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSpotDatafeedSubscriptionOutput
 type DeleteSpotDatafeedSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -22818,6 +23742,7 @@ func (s DeleteSpotDatafeedSubscriptionOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteSubnet.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSubnetRequest
 type DeleteSubnetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22868,6 +23793,7 @@ func (s *DeleteSubnetInput) SetSubnetId(v string) *DeleteSubnetInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteSubnetOutput
 type DeleteSubnetOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -22883,6 +23809,7 @@ func (s DeleteSubnetOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteTags.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteTagsRequest
 type DeleteTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -22945,6 +23872,7 @@ func (s *DeleteTagsInput) SetTags(v []*Tag) *DeleteTagsInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteTagsOutput
 type DeleteTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -22960,6 +23888,7 @@ func (s DeleteTagsOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteVolume.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVolumeRequest
 type DeleteVolumeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23010,6 +23939,7 @@ func (s *DeleteVolumeInput) SetVolumeId(v string) *DeleteVolumeInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVolumeOutput
 type DeleteVolumeOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -23025,6 +23955,7 @@ func (s DeleteVolumeOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteVpcEndpoints.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpcEndpointsRequest
 type DeleteVpcEndpointsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23076,6 +24007,7 @@ func (s *DeleteVpcEndpointsInput) SetVpcEndpointIds(v []*string) *DeleteVpcEndpo
 }
 
 // Contains the output of DeleteVpcEndpoints.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpcEndpointsResult
 type DeleteVpcEndpointsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -23100,6 +24032,7 @@ func (s *DeleteVpcEndpointsOutput) SetUnsuccessful(v []*UnsuccessfulItem) *Delet
 }
 
 // Contains the parameters for DeleteVpc.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpcRequest
 type DeleteVpcInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23150,6 +24083,7 @@ func (s *DeleteVpcInput) SetVpcId(v string) *DeleteVpcInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpcOutput
 type DeleteVpcOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -23165,6 +24099,7 @@ func (s DeleteVpcOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteVpcPeeringConnection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpcPeeringConnectionRequest
 type DeleteVpcPeeringConnectionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23216,6 +24151,7 @@ func (s *DeleteVpcPeeringConnectionInput) SetVpcPeeringConnectionId(v string) *D
 }
 
 // Contains the output of DeleteVpcPeeringConnection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpcPeeringConnectionResult
 type DeleteVpcPeeringConnectionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -23240,6 +24176,7 @@ func (s *DeleteVpcPeeringConnectionOutput) SetReturn(v bool) *DeleteVpcPeeringCo
 }
 
 // Contains the parameters for DeleteVpnConnection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpnConnectionRequest
 type DeleteVpnConnectionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23290,6 +24227,7 @@ func (s *DeleteVpnConnectionInput) SetVpnConnectionId(v string) *DeleteVpnConnec
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpnConnectionOutput
 type DeleteVpnConnectionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -23305,6 +24243,7 @@ func (s DeleteVpnConnectionOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteVpnConnectionRoute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpnConnectionRouteRequest
 type DeleteVpnConnectionRouteInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23357,6 +24296,7 @@ func (s *DeleteVpnConnectionRouteInput) SetVpnConnectionId(v string) *DeleteVpnC
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpnConnectionRouteOutput
 type DeleteVpnConnectionRouteOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -23372,6 +24312,7 @@ func (s DeleteVpnConnectionRouteOutput) GoString() string {
 }
 
 // Contains the parameters for DeleteVpnGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpnGatewayRequest
 type DeleteVpnGatewayInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23422,6 +24363,7 @@ func (s *DeleteVpnGatewayInput) SetVpnGatewayId(v string) *DeleteVpnGatewayInput
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeleteVpnGatewayOutput
 type DeleteVpnGatewayOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -23437,6 +24379,7 @@ func (s DeleteVpnGatewayOutput) GoString() string {
 }
 
 // Contains the parameters for DeregisterImage.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeregisterImageRequest
 type DeregisterImageInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23487,6 +24430,7 @@ func (s *DeregisterImageInput) SetImageId(v string) *DeregisterImageInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DeregisterImageOutput
 type DeregisterImageOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -23502,6 +24446,7 @@ func (s DeregisterImageOutput) GoString() string {
 }
 
 // Contains the parameters for DescribeAccountAttributes.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeAccountAttributesRequest
 type DescribeAccountAttributesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23538,6 +24483,7 @@ func (s *DescribeAccountAttributesInput) SetDryRun(v bool) *DescribeAccountAttri
 }
 
 // Contains the output of DescribeAccountAttributes.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeAccountAttributesResult
 type DescribeAccountAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -23562,6 +24508,7 @@ func (s *DescribeAccountAttributesOutput) SetAccountAttributes(v []*AccountAttri
 }
 
 // Contains the parameters for DescribeAddresses.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeAddressesRequest
 type DescribeAddressesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23640,6 +24587,7 @@ func (s *DescribeAddressesInput) SetPublicIps(v []*string) *DescribeAddressesInp
 }
 
 // Contains the output of DescribeAddresses.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeAddressesResult
 type DescribeAddressesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -23664,6 +24612,7 @@ func (s *DescribeAddressesOutput) SetAddresses(v []*Address) *DescribeAddressesO
 }
 
 // Contains the parameters for DescribeAvailabilityZones.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeAvailabilityZonesRequest
 type DescribeAvailabilityZonesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23719,6 +24668,7 @@ func (s *DescribeAvailabilityZonesInput) SetZoneNames(v []*string) *DescribeAvai
 }
 
 // Contains the output of DescribeAvailabiltyZones.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeAvailabilityZonesResult
 type DescribeAvailabilityZonesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -23743,6 +24693,7 @@ func (s *DescribeAvailabilityZonesOutput) SetAvailabilityZones(v []*Availability
 }
 
 // Contains the parameters for DescribeBundleTasks.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeBundleTasksRequest
 type DescribeBundleTasksInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23812,6 +24763,7 @@ func (s *DescribeBundleTasksInput) SetFilters(v []*Filter) *DescribeBundleTasksI
 }
 
 // Contains the output of DescribeBundleTasks.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeBundleTasksResult
 type DescribeBundleTasksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -23836,6 +24788,7 @@ func (s *DescribeBundleTasksOutput) SetBundleTasks(v []*BundleTask) *DescribeBun
 }
 
 // Contains the parameters for DescribeClassicLinkInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeClassicLinkInstancesRequest
 type DescribeClassicLinkInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23926,6 +24879,7 @@ func (s *DescribeClassicLinkInstancesInput) SetNextToken(v string) *DescribeClas
 }
 
 // Contains the output of DescribeClassicLinkInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeClassicLinkInstancesResult
 type DescribeClassicLinkInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -23960,6 +24914,7 @@ func (s *DescribeClassicLinkInstancesOutput) SetNextToken(v string) *DescribeCla
 }
 
 // Contains the parameters for DescribeConversionTasks.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeConversionTasksRequest
 type DescribeConversionTasksInput struct {
 	_ struct{} `type:"structure"`
 
@@ -23996,6 +24951,7 @@ func (s *DescribeConversionTasksInput) SetDryRun(v bool) *DescribeConversionTask
 }
 
 // Contains the output for DescribeConversionTasks.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeConversionTasksResult
 type DescribeConversionTasksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -24020,6 +24976,7 @@ func (s *DescribeConversionTasksOutput) SetConversionTasks(v []*ConversionTask) 
 }
 
 // Contains the parameters for DescribeCustomerGateways.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeCustomerGatewaysRequest
 type DescribeCustomerGatewaysInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24051,6 +25008,9 @@ type DescribeCustomerGatewaysInput struct {
 	//    is ipsec.1.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -24094,6 +25054,7 @@ func (s *DescribeCustomerGatewaysInput) SetFilters(v []*Filter) *DescribeCustome
 }
 
 // Contains the output of DescribeCustomerGateways.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeCustomerGatewaysResult
 type DescribeCustomerGatewaysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -24118,6 +25079,7 @@ func (s *DescribeCustomerGatewaysOutput) SetCustomerGateways(v []*CustomerGatewa
 }
 
 // Contains the parameters for DescribeDhcpOptions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeDhcpOptionsRequest
 type DescribeDhcpOptionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24141,6 +25103,9 @@ type DescribeDhcpOptionsInput struct {
 	//    * value - The value for one of the options.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -24184,6 +25149,7 @@ func (s *DescribeDhcpOptionsInput) SetFilters(v []*Filter) *DescribeDhcpOptionsI
 }
 
 // Contains the output of DescribeDhcpOptions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeDhcpOptionsResult
 type DescribeDhcpOptionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -24207,6 +25173,7 @@ func (s *DescribeDhcpOptionsOutput) SetDhcpOptions(v []*DhcpOptions) *DescribeDh
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeEgressOnlyInternetGatewaysRequest
 type DescribeEgressOnlyInternetGatewaysInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24263,6 +25230,7 @@ func (s *DescribeEgressOnlyInternetGatewaysInput) SetNextToken(v string) *Descri
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeEgressOnlyInternetGatewaysResult
 type DescribeEgressOnlyInternetGatewaysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -24296,6 +25264,7 @@ func (s *DescribeEgressOnlyInternetGatewaysOutput) SetNextToken(v string) *Descr
 }
 
 // Contains the parameters for DescribeExportTasks.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeExportTasksRequest
 type DescribeExportTasksInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24320,6 +25289,7 @@ func (s *DescribeExportTasksInput) SetExportTaskIds(v []*string) *DescribeExport
 }
 
 // Contains the output for DescribeExportTasks.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeExportTasksResult
 type DescribeExportTasksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -24344,6 +25314,7 @@ func (s *DescribeExportTasksOutput) SetExportTasks(v []*ExportTask) *DescribeExp
 }
 
 // Contains the parameters for DescribeFlowLogs.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeFlowLogsRequest
 type DescribeFlowLogsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24409,6 +25380,7 @@ func (s *DescribeFlowLogsInput) SetNextToken(v string) *DescribeFlowLogsInput {
 }
 
 // Contains the output of DescribeFlowLogs.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeFlowLogsResult
 type DescribeFlowLogsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -24442,6 +25414,7 @@ func (s *DescribeFlowLogsOutput) SetNextToken(v string) *DescribeFlowLogsOutput 
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeHostReservationOfferingsRequest
 type DescribeHostReservationOfferingsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24449,8 +25422,7 @@ type DescribeHostReservationOfferingsInput struct {
 	//
 	//    * instance-family - The instance family of the offering (e.g., m4).
 	//
-	//    * payment-option - The payment option (No Upfront | Partial Upfront |
-	//    All Upfront).
+	//    * payment-option - The payment option (NoUpfront | PartialUpfront | AllUpfront).
 	Filter []*Filter `locationNameList:"Filter" type:"list"`
 
 	// This is the maximum duration of the reservation you'd like to purchase, specified
@@ -24526,6 +25498,7 @@ func (s *DescribeHostReservationOfferingsInput) SetOfferingId(v string) *Describ
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeHostReservationOfferingsResult
 type DescribeHostReservationOfferingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -24559,6 +25532,7 @@ func (s *DescribeHostReservationOfferingsOutput) SetOfferingSet(v []*HostOfferin
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeHostReservationsRequest
 type DescribeHostReservationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24566,8 +25540,7 @@ type DescribeHostReservationsInput struct {
 	//
 	//    * instance-family - The instance family (e.g., m4).
 	//
-	//    * payment-option - The payment option (No Upfront | Partial Upfront |
-	//    All Upfront).
+	//    * payment-option - The payment option (NoUpfront | PartialUpfront | AllUpfront).
 	//
 	//    * state - The state of the reservation (payment-pending | payment-failed
 	//    | active | retired).
@@ -24620,6 +25593,7 @@ func (s *DescribeHostReservationsInput) SetNextToken(v string) *DescribeHostRese
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeHostReservationsResult
 type DescribeHostReservationsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -24654,6 +25628,7 @@ func (s *DescribeHostReservationsOutput) SetNextToken(v string) *DescribeHostRes
 }
 
 // Contains the parameters for DescribeHosts.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeHostsRequest
 type DescribeHostsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24725,6 +25700,7 @@ func (s *DescribeHostsInput) SetNextToken(v string) *DescribeHostsInput {
 }
 
 // Contains the output of DescribeHosts.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeHostsResult
 type DescribeHostsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -24758,7 +25734,115 @@ func (s *DescribeHostsOutput) SetNextToken(v string) *DescribeHostsOutput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociationsRequest
+type DescribeIamInstanceProfileAssociationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// One or more IAM instance profile associations.
+	AssociationIds []*string `locationName:"AssociationId" locationNameList:"AssociationId" type:"list"`
+
+	// One or more filters.
+	//
+	//    * instance-id - The ID of the instance.
+	//
+	//    * state - The state of the association (associating | associated | disassociating
+	//    | disassociated).
+	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
+
+	// The maximum number of results to return in a single call. To retrieve the
+	// remaining results, make another call with the returned NextToken value.
+	MaxResults *int64 `min:"5" type:"integer"`
+
+	// The token to request the next page of results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeIamInstanceProfileAssociationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeIamInstanceProfileAssociationsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeIamInstanceProfileAssociationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeIamInstanceProfileAssociationsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 5 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 5))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationIds sets the AssociationIds field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetAssociationIds(v []*string) *DescribeIamInstanceProfileAssociationsInput {
+	s.AssociationIds = v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetFilters(v []*Filter) *DescribeIamInstanceProfileAssociationsInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetMaxResults(v int64) *DescribeIamInstanceProfileAssociationsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetNextToken(v string) *DescribeIamInstanceProfileAssociationsInput {
+	s.NextToken = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociationsResult
+type DescribeIamInstanceProfileAssociationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about one or more IAM instance profile associations.
+	IamInstanceProfileAssociations []*IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociationSet" locationNameList:"item" type:"list"`
+
+	// The token to use to retrieve the next page of results. This value is null
+	// when there are no more results to return.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeIamInstanceProfileAssociationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeIamInstanceProfileAssociationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociations sets the IamInstanceProfileAssociations field's value.
+func (s *DescribeIamInstanceProfileAssociationsOutput) SetIamInstanceProfileAssociations(v []*IamInstanceProfileAssociation) *DescribeIamInstanceProfileAssociationsOutput {
+	s.IamInstanceProfileAssociations = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeIamInstanceProfileAssociationsOutput) SetNextToken(v string) *DescribeIamInstanceProfileAssociationsOutput {
+	s.NextToken = &v
+	return s
+}
+
 // Contains the parameters for DescribeIdFormat.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIdFormatRequest
 type DescribeIdFormatInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24783,6 +25867,7 @@ func (s *DescribeIdFormatInput) SetResource(v string) *DescribeIdFormatInput {
 }
 
 // Contains the output of DescribeIdFormat.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIdFormatResult
 type DescribeIdFormatOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -24807,6 +25892,7 @@ func (s *DescribeIdFormatOutput) SetStatuses(v []*IdFormat) *DescribeIdFormatOut
 }
 
 // Contains the parameters for DescribeIdentityIdFormat.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIdentityIdFormatRequest
 type DescribeIdentityIdFormatInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24856,6 +25942,7 @@ func (s *DescribeIdentityIdFormatInput) SetResource(v string) *DescribeIdentityI
 }
 
 // Contains the output of DescribeIdentityIdFormat.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIdentityIdFormatResult
 type DescribeIdentityIdFormatOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -24880,6 +25967,7 @@ func (s *DescribeIdentityIdFormatOutput) SetStatuses(v []*IdFormat) *DescribeIde
 }
 
 // Contains the parameters for DescribeImageAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImageAttributeRequest
 type DescribeImageAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24949,6 +26037,7 @@ func (s *DescribeImageAttributeInput) SetImageId(v string) *DescribeImageAttribu
 }
 
 // Describes an image attribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImageAttribute
 type DescribeImageAttributeOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -25037,6 +26126,7 @@ func (s *DescribeImageAttributeOutput) SetSriovNetSupport(v *AttributeValue) *De
 }
 
 // Contains the parameters for DescribeImages.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImagesRequest
 type DescribeImagesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -25114,6 +26204,9 @@ type DescribeImagesInput struct {
 	//    * state-reason-message - The message for the state change.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -25182,6 +26275,7 @@ func (s *DescribeImagesInput) SetOwners(v []*string) *DescribeImagesInput {
 }
 
 // Contains the output of DescribeImages.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImagesResult
 type DescribeImagesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -25206,6 +26300,7 @@ func (s *DescribeImagesOutput) SetImages(v []*Image) *DescribeImagesOutput {
 }
 
 // Contains the parameters for DescribeImportImageTasks.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImportImageTasksRequest
 type DescribeImportImageTasksInput struct {
 	_ struct{} `type:"structure"`
 
@@ -25271,6 +26366,7 @@ func (s *DescribeImportImageTasksInput) SetNextToken(v string) *DescribeImportIm
 }
 
 // Contains the output for DescribeImportImageTasks.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImportImageTasksResult
 type DescribeImportImageTasksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -25306,6 +26402,7 @@ func (s *DescribeImportImageTasksOutput) SetNextToken(v string) *DescribeImportI
 }
 
 // Contains the parameters for DescribeImportSnapshotTasks.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImportSnapshotTasksRequest
 type DescribeImportSnapshotTasksInput struct {
 	_ struct{} `type:"structure"`
 
@@ -25370,6 +26467,7 @@ func (s *DescribeImportSnapshotTasksInput) SetNextToken(v string) *DescribeImpor
 }
 
 // Contains the output for DescribeImportSnapshotTasks.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeImportSnapshotTasksResult
 type DescribeImportSnapshotTasksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -25405,6 +26503,7 @@ func (s *DescribeImportSnapshotTasksOutput) SetNextToken(v string) *DescribeImpo
 }
 
 // Contains the parameters for DescribeInstanceAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInstanceAttributeRequest
 type DescribeInstanceAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -25472,6 +26571,7 @@ func (s *DescribeInstanceAttributeInput) SetInstanceId(v string) *DescribeInstan
 }
 
 // Describes an instance attribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceAttribute
 type DescribeInstanceAttributeOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -25627,6 +26727,7 @@ func (s *DescribeInstanceAttributeOutput) SetUserData(v *AttributeValue) *Descri
 }
 
 // Contains the parameters for DescribeInstanceStatus.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInstanceStatusRequest
 type DescribeInstanceStatusInput struct {
 	_ struct{} `type:"structure"`
 
@@ -25743,6 +26844,7 @@ func (s *DescribeInstanceStatusInput) SetNextToken(v string) *DescribeInstanceSt
 }
 
 // Contains the output of DescribeInstanceStatus.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInstanceStatusResult
 type DescribeInstanceStatusOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -25777,6 +26879,7 @@ func (s *DescribeInstanceStatusOutput) SetNextToken(v string) *DescribeInstanceS
 }
 
 // Contains the parameters for DescribeInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInstancesRequest
 type DescribeInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -26004,8 +27107,10 @@ type DescribeInstancesInput struct {
 	//
 	//    * subnet-id - The ID of the subnet for the instance.
 	//
-	//    * tag:key=value - The key/value combination of a tag assigned to the resource,
-	//    where tag:key is the tag's key.
+	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -26082,6 +27187,7 @@ func (s *DescribeInstancesInput) SetNextToken(v string) *DescribeInstancesInput 
 }
 
 // Contains the output of DescribeInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInstancesResult
 type DescribeInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -26116,6 +27222,7 @@ func (s *DescribeInstancesOutput) SetReservations(v []*Reservation) *DescribeIns
 }
 
 // Contains the parameters for DescribeInternetGateways.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInternetGatewaysRequest
 type DescribeInternetGatewaysInput struct {
 	_ struct{} `type:"structure"`
 
@@ -26135,6 +27242,9 @@ type DescribeInternetGatewaysInput struct {
 	//    * internet-gateway-id - The ID of the Internet gateway.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -26183,6 +27293,7 @@ func (s *DescribeInternetGatewaysInput) SetInternetGatewayIds(v []*string) *Desc
 }
 
 // Contains the output of DescribeInternetGateways.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeInternetGatewaysResult
 type DescribeInternetGatewaysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -26207,6 +27318,7 @@ func (s *DescribeInternetGatewaysOutput) SetInternetGateways(v []*InternetGatewa
 }
 
 // Contains the parameters for DescribeKeyPairs.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeKeyPairsRequest
 type DescribeKeyPairsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -26258,6 +27370,7 @@ func (s *DescribeKeyPairsInput) SetKeyNames(v []*string) *DescribeKeyPairsInput 
 }
 
 // Contains the output of DescribeKeyPairs.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeKeyPairsResult
 type DescribeKeyPairsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -26282,6 +27395,7 @@ func (s *DescribeKeyPairsOutput) SetKeyPairs(v []*KeyPairInfo) *DescribeKeyPairs
 }
 
 // Contains the parameters for DescribeMovingAddresses.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeMovingAddressesRequest
 type DescribeMovingAddressesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -26353,6 +27467,7 @@ func (s *DescribeMovingAddressesInput) SetPublicIps(v []*string) *DescribeMoving
 }
 
 // Contains the output of DescribeMovingAddresses.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeMovingAddressesResult
 type DescribeMovingAddressesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -26387,6 +27502,7 @@ func (s *DescribeMovingAddressesOutput) SetNextToken(v string) *DescribeMovingAd
 }
 
 // Contains the parameters for DescribeNatGateways.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNatGatewaysRequest
 type DescribeNatGatewaysInput struct {
 	_ struct{} `type:"structure"`
 
@@ -26452,6 +27568,7 @@ func (s *DescribeNatGatewaysInput) SetNextToken(v string) *DescribeNatGatewaysIn
 }
 
 // Contains the output of DescribeNatGateways.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNatGatewaysResult
 type DescribeNatGatewaysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -26486,6 +27603,7 @@ func (s *DescribeNatGatewaysOutput) SetNextToken(v string) *DescribeNatGatewaysO
 }
 
 // Contains the parameters for DescribeNetworkAcls.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNetworkAclsRequest
 type DescribeNetworkAclsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -26534,6 +27652,9 @@ type DescribeNetworkAclsInput struct {
 	//    * network-acl-id - The ID of the network ACL.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -26584,6 +27705,7 @@ func (s *DescribeNetworkAclsInput) SetNetworkAclIds(v []*string) *DescribeNetwor
 }
 
 // Contains the output of DescribeNetworkAcls.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNetworkAclsResult
 type DescribeNetworkAclsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -26608,6 +27730,7 @@ func (s *DescribeNetworkAclsOutput) SetNetworkAcls(v []*NetworkAcl) *DescribeNet
 }
 
 // Contains the parameters for DescribeNetworkInterfaceAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNetworkInterfaceAttributeRequest
 type DescribeNetworkInterfaceAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -26668,6 +27791,7 @@ func (s *DescribeNetworkInterfaceAttributeInput) SetNetworkInterfaceId(v string)
 }
 
 // Contains the output of DescribeNetworkInterfaceAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNetworkInterfaceAttributeResult
 type DescribeNetworkInterfaceAttributeOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -26728,6 +27852,7 @@ func (s *DescribeNetworkInterfaceAttributeOutput) SetSourceDestCheck(v *Attribut
 }
 
 // Contains the parameters for DescribeNetworkInterfaces.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNetworkInterfacesRequest
 type DescribeNetworkInterfacesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -26832,6 +27957,9 @@ type DescribeNetworkInterfacesInput struct {
 	//    * subnet-id - The ID of the subnet for the network interface.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -26882,6 +28010,7 @@ func (s *DescribeNetworkInterfacesInput) SetNetworkInterfaceIds(v []*string) *De
 }
 
 // Contains the output of DescribeNetworkInterfaces.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeNetworkInterfacesResult
 type DescribeNetworkInterfacesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -26906,6 +28035,7 @@ func (s *DescribeNetworkInterfacesOutput) SetNetworkInterfaces(v []*NetworkInter
 }
 
 // Contains the parameters for DescribePlacementGroups.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribePlacementGroupsRequest
 type DescribePlacementGroupsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -26960,6 +28090,7 @@ func (s *DescribePlacementGroupsInput) SetGroupNames(v []*string) *DescribePlace
 }
 
 // Contains the output of DescribePlacementGroups.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribePlacementGroupsResult
 type DescribePlacementGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -26984,6 +28115,7 @@ func (s *DescribePlacementGroupsOutput) SetPlacementGroups(v []*PlacementGroup) 
 }
 
 // Contains the parameters for DescribePrefixLists.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribePrefixListsRequest
 type DescribePrefixListsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -27057,6 +28189,7 @@ func (s *DescribePrefixListsInput) SetPrefixListIds(v []*string) *DescribePrefix
 }
 
 // Contains the output of DescribePrefixLists.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribePrefixListsResult
 type DescribePrefixListsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -27091,6 +28224,7 @@ func (s *DescribePrefixListsOutput) SetPrefixLists(v []*PrefixList) *DescribePre
 }
 
 // Contains the parameters for DescribeRegions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeRegionsRequest
 type DescribeRegionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -27140,6 +28274,7 @@ func (s *DescribeRegionsInput) SetRegionNames(v []*string) *DescribeRegionsInput
 }
 
 // Contains the output of DescribeRegions.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeRegionsResult
 type DescribeRegionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -27164,6 +28299,7 @@ func (s *DescribeRegionsOutput) SetRegions(v []*Region) *DescribeRegionsOutput {
 }
 
 // Contains the parameters for DescribeReservedInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstancesRequest
 type DescribeReservedInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -27209,6 +28345,9 @@ type DescribeReservedInstancesInput struct {
 	//    | payment-failed | retired).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -27280,6 +28419,7 @@ func (s *DescribeReservedInstancesInput) SetReservedInstancesIds(v []*string) *D
 }
 
 // Contains the parameters for DescribeReservedInstancesListings.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstancesListingsRequest
 type DescribeReservedInstancesListingsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -27331,6 +28471,7 @@ func (s *DescribeReservedInstancesListingsInput) SetReservedInstancesListingId(v
 }
 
 // Contains the output of DescribeReservedInstancesListings.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstancesListingsResult
 type DescribeReservedInstancesListingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -27355,6 +28496,7 @@ func (s *DescribeReservedInstancesListingsOutput) SetReservedInstancesListings(v
 }
 
 // Contains the parameters for DescribeReservedInstancesModifications.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstancesModificationsRequest
 type DescribeReservedInstancesModificationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -27430,6 +28572,7 @@ func (s *DescribeReservedInstancesModificationsInput) SetReservedInstancesModifi
 }
 
 // Contains the output of DescribeReservedInstancesModifications.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstancesModificationsResult
 type DescribeReservedInstancesModificationsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -27464,6 +28607,7 @@ func (s *DescribeReservedInstancesModificationsOutput) SetReservedInstancesModif
 }
 
 // Contains the parameters for DescribeReservedInstancesOfferings.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstancesOfferingsRequest
 type DescribeReservedInstancesOfferingsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -27670,6 +28814,7 @@ func (s *DescribeReservedInstancesOfferingsInput) SetReservedInstancesOfferingId
 }
 
 // Contains the output of DescribeReservedInstancesOfferings.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstancesOfferingsResult
 type DescribeReservedInstancesOfferingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -27704,6 +28849,7 @@ func (s *DescribeReservedInstancesOfferingsOutput) SetReservedInstancesOfferings
 }
 
 // Contains the output for DescribeReservedInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeReservedInstancesResult
 type DescribeReservedInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -27728,6 +28874,7 @@ func (s *DescribeReservedInstancesOutput) SetReservedInstances(v []*ReservedInst
 }
 
 // Contains the parameters for DescribeRouteTables.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeRouteTablesRequest
 type DescribeRouteTablesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -27786,6 +28933,9 @@ type DescribeRouteTablesInput struct {
 	//    specified in a route in the table.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -27836,6 +28986,7 @@ func (s *DescribeRouteTablesInput) SetRouteTableIds(v []*string) *DescribeRouteT
 }
 
 // Contains the output of DescribeRouteTables.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeRouteTablesResult
 type DescribeRouteTablesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -27860,6 +29011,7 @@ func (s *DescribeRouteTablesOutput) SetRouteTables(v []*RouteTable) *DescribeRou
 }
 
 // Contains the parameters for DescribeScheduledInstanceAvailability.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeScheduledInstanceAvailabilityRequest
 type DescribeScheduledInstanceAvailabilityInput struct {
 	_ struct{} `type:"structure"`
 
@@ -27989,6 +29141,7 @@ func (s *DescribeScheduledInstanceAvailabilityInput) SetRecurrence(v *ScheduledI
 }
 
 // Contains the output of DescribeScheduledInstanceAvailability.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeScheduledInstanceAvailabilityResult
 type DescribeScheduledInstanceAvailabilityOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -28023,6 +29176,7 @@ func (s *DescribeScheduledInstanceAvailabilityOutput) SetScheduledInstanceAvaila
 }
 
 // Contains the parameters for DescribeScheduledInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeScheduledInstancesRequest
 type DescribeScheduledInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -28105,6 +29259,7 @@ func (s *DescribeScheduledInstancesInput) SetSlotStartTimeRange(v *SlotStartTime
 }
 
 // Contains the output of DescribeScheduledInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeScheduledInstancesResult
 type DescribeScheduledInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -28138,6 +29293,7 @@ func (s *DescribeScheduledInstancesOutput) SetScheduledInstanceSet(v []*Schedule
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSecurityGroupReferencesRequest
 type DescribeSecurityGroupReferencesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -28188,6 +29344,7 @@ func (s *DescribeSecurityGroupReferencesInput) SetGroupId(v []*string) *Describe
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSecurityGroupReferencesResult
 type DescribeSecurityGroupReferencesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -28212,6 +29369,7 @@ func (s *DescribeSecurityGroupReferencesOutput) SetSecurityGroupReferenceSet(v [
 }
 
 // Contains the parameters for DescribeSecurityGroups.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSecurityGroupsRequest
 type DescribeSecurityGroupsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -28317,6 +29475,7 @@ func (s *DescribeSecurityGroupsInput) SetGroupNames(v []*string) *DescribeSecuri
 }
 
 // Contains the output of DescribeSecurityGroups.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSecurityGroupsResult
 type DescribeSecurityGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -28341,6 +29500,7 @@ func (s *DescribeSecurityGroupsOutput) SetSecurityGroups(v []*SecurityGroup) *De
 }
 
 // Contains the parameters for DescribeSnapshotAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSnapshotAttributeRequest
 type DescribeSnapshotAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -28406,6 +29566,7 @@ func (s *DescribeSnapshotAttributeInput) SetSnapshotId(v string) *DescribeSnapsh
 }
 
 // Contains the output of DescribeSnapshotAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSnapshotAttributeResult
 type DescribeSnapshotAttributeOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -28448,6 +29609,7 @@ func (s *DescribeSnapshotAttributeOutput) SetSnapshotId(v string) *DescribeSnaps
 }
 
 // Contains the parameters for DescribeSnapshots.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSnapshotsRequest
 type DescribeSnapshotsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -28477,6 +29639,9 @@ type DescribeSnapshotsInput struct {
 	//    * status - The status of the snapshot (pending | completed | error).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -28578,6 +29743,7 @@ func (s *DescribeSnapshotsInput) SetSnapshotIds(v []*string) *DescribeSnapshotsI
 }
 
 // Contains the output of DescribeSnapshots.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSnapshotsResult
 type DescribeSnapshotsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -28614,6 +29780,7 @@ func (s *DescribeSnapshotsOutput) SetSnapshots(v []*Snapshot) *DescribeSnapshots
 }
 
 // Contains the parameters for DescribeSpotDatafeedSubscription.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotDatafeedSubscriptionRequest
 type DescribeSpotDatafeedSubscriptionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -28641,6 +29808,7 @@ func (s *DescribeSpotDatafeedSubscriptionInput) SetDryRun(v bool) *DescribeSpotD
 }
 
 // Contains the output of DescribeSpotDatafeedSubscription.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotDatafeedSubscriptionResult
 type DescribeSpotDatafeedSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -28665,6 +29833,7 @@ func (s *DescribeSpotDatafeedSubscriptionOutput) SetSpotDatafeedSubscription(v *
 }
 
 // Contains the parameters for DescribeSpotFleetInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotFleetInstancesRequest
 type DescribeSpotFleetInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -28736,6 +29905,7 @@ func (s *DescribeSpotFleetInstancesInput) SetSpotFleetRequestId(v string) *Descr
 }
 
 // Contains the output of DescribeSpotFleetInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotFleetInstancesResponse
 type DescribeSpotFleetInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -28784,6 +29954,7 @@ func (s *DescribeSpotFleetInstancesOutput) SetSpotFleetRequestId(v string) *Desc
 }
 
 // Contains the parameters for DescribeSpotFleetRequestHistory.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotFleetRequestHistoryRequest
 type DescribeSpotFleetRequestHistoryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -28878,6 +30049,7 @@ func (s *DescribeSpotFleetRequestHistoryInput) SetStartTime(v time.Time) *Descri
 }
 
 // Contains the output of DescribeSpotFleetRequestHistory.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotFleetRequestHistoryResponse
 type DescribeSpotFleetRequestHistoryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -28950,6 +30122,7 @@ func (s *DescribeSpotFleetRequestHistoryOutput) SetStartTime(v time.Time) *Descr
 }
 
 // Contains the parameters for DescribeSpotFleetRequests.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotFleetRequestsRequest
 type DescribeSpotFleetRequestsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -29006,6 +30179,7 @@ func (s *DescribeSpotFleetRequestsInput) SetSpotFleetRequestIds(v []*string) *De
 }
 
 // Contains the output of DescribeSpotFleetRequests.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotFleetRequestsResponse
 type DescribeSpotFleetRequestsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -29042,6 +30216,7 @@ func (s *DescribeSpotFleetRequestsOutput) SetSpotFleetRequestConfigs(v []*SpotFl
 }
 
 // Contains the parameters for DescribeSpotInstanceRequests.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotInstanceRequestsRequest
 type DescribeSpotInstanceRequestsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -29141,6 +30316,9 @@ type DescribeSpotInstanceRequestsInput struct {
 	//    request.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -29196,6 +30374,7 @@ func (s *DescribeSpotInstanceRequestsInput) SetSpotInstanceRequestIds(v []*strin
 }
 
 // Contains the output of DescribeSpotInstanceRequests.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotInstanceRequestsResult
 type DescribeSpotInstanceRequestsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -29220,6 +30399,7 @@ func (s *DescribeSpotInstanceRequestsOutput) SetSpotInstanceRequests(v []*SpotIn
 }
 
 // Contains the parameters for DescribeSpotPriceHistory.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotPriceHistoryRequest
 type DescribeSpotPriceHistoryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -29340,6 +30520,7 @@ func (s *DescribeSpotPriceHistoryInput) SetStartTime(v time.Time) *DescribeSpotP
 }
 
 // Contains the output of DescribeSpotPriceHistory.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSpotPriceHistoryResult
 type DescribeSpotPriceHistoryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -29373,6 +30554,7 @@ func (s *DescribeSpotPriceHistoryOutput) SetSpotPriceHistory(v []*SpotPrice) *De
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeStaleSecurityGroupsRequest
 type DescribeStaleSecurityGroupsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -29450,6 +30632,7 @@ func (s *DescribeStaleSecurityGroupsInput) SetVpcId(v string) *DescribeStaleSecu
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeStaleSecurityGroupsResult
 type DescribeStaleSecurityGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -29484,6 +30667,7 @@ func (s *DescribeStaleSecurityGroupsOutput) SetStaleSecurityGroupSet(v []*StaleS
 }
 
 // Contains the parameters for DescribeSubnets.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSubnetsRequest
 type DescribeSubnetsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -29522,6 +30706,9 @@ type DescribeSubnetsInput struct {
 	//    * subnet-id - The ID of the subnet.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -29572,6 +30759,7 @@ func (s *DescribeSubnetsInput) SetSubnetIds(v []*string) *DescribeSubnetsInput {
 }
 
 // Contains the output of DescribeSubnets.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeSubnetsResult
 type DescribeSubnetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -29596,6 +30784,7 @@ func (s *DescribeSubnetsOutput) SetSubnets(v []*Subnet) *DescribeSubnetsOutput {
 }
 
 // Contains the parameters for DescribeTags.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeTagsRequest
 type DescribeTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -29663,6 +30852,7 @@ func (s *DescribeTagsInput) SetNextToken(v string) *DescribeTagsInput {
 }
 
 // Contains the output of DescribeTags.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeTagsResult
 type DescribeTagsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -29697,6 +30887,7 @@ func (s *DescribeTagsOutput) SetTags(v []*TagDescription) *DescribeTagsOutput {
 }
 
 // Contains the parameters for DescribeVolumeAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumeAttributeRequest
 type DescribeVolumeAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -29757,6 +30948,7 @@ func (s *DescribeVolumeAttributeInput) SetVolumeId(v string) *DescribeVolumeAttr
 }
 
 // Contains the output of DescribeVolumeAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumeAttributeResult
 type DescribeVolumeAttributeOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -29799,6 +30991,7 @@ func (s *DescribeVolumeAttributeOutput) SetVolumeId(v string) *DescribeVolumeAtt
 }
 
 // Contains the parameters for DescribeVolumeStatus.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumeStatusRequest
 type DescribeVolumeStatusInput struct {
 	_ struct{} `type:"structure"`
 
@@ -29904,6 +31097,7 @@ func (s *DescribeVolumeStatusInput) SetVolumeIds(v []*string) *DescribeVolumeSta
 }
 
 // Contains the output of DescribeVolumeStatus.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumeStatusResult
 type DescribeVolumeStatusOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -29938,6 +31132,7 @@ func (s *DescribeVolumeStatusOutput) SetVolumeStatuses(v []*VolumeStatusItem) *D
 }
 
 // Contains the parameters for DescribeVolumes.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumesRequest
 type DescribeVolumesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -29977,6 +31172,9 @@ type DescribeVolumesInput struct {
 	//    | deleted | error).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -30001,10 +31199,10 @@ type DescribeVolumesInput struct {
 	// results in a single page along with a NextToken response element. The remaining
 	// results of the initial request can be seen by sending another DescribeVolumes
 	// request with the returned NextToken value. This value can be between 5 and
-	// 1000; if MaxResults is given a value larger than 1000, only 1000 results
-	// are returned. If this parameter is not used, then DescribeVolumes returns
-	// all results. You cannot specify this parameter and the volume IDs parameter
-	// in the same request.
+	// 500; if MaxResults is given a value larger than 500, only 500 results are
+	// returned. If this parameter is not used, then DescribeVolumes returns all
+	// results. You cannot specify this parameter and the volume IDs parameter in
+	// the same request.
 	MaxResults *int64 `locationName:"maxResults" type:"integer"`
 
 	// The NextToken value returned from a previous paginated DescribeVolumes request
@@ -30057,7 +31255,107 @@ func (s *DescribeVolumesInput) SetVolumeIds(v []*string) *DescribeVolumesInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumesModificationsRequest
+type DescribeVolumesModificationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// One or more filters. Supported filters: volume-id, modification-state, target-size,
+	// target-iops, target-volume-type, original-size, original-iops, original-volume-type,
+	// start-time.
+	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
+
+	// The maximum number of results (up to a limit of 500) to be returned in a
+	// paginated request.
+	MaxResults *int64 `type:"integer"`
+
+	// The nextToken value returned by a previous paginated request.
+	NextToken *string `type:"string"`
+
+	// One or more volume IDs for which in-progress modifications will be described.
+	VolumeIds []*string `locationName:"VolumeId" locationNameList:"VolumeId" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeVolumesModificationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeVolumesModificationsInput) GoString() string {
+	return s.String()
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *DescribeVolumesModificationsInput) SetDryRun(v bool) *DescribeVolumesModificationsInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeVolumesModificationsInput) SetFilters(v []*Filter) *DescribeVolumesModificationsInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeVolumesModificationsInput) SetMaxResults(v int64) *DescribeVolumesModificationsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeVolumesModificationsInput) SetNextToken(v string) *DescribeVolumesModificationsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetVolumeIds sets the VolumeIds field's value.
+func (s *DescribeVolumesModificationsInput) SetVolumeIds(v []*string) *DescribeVolumesModificationsInput {
+	s.VolumeIds = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumesModificationsResult
+type DescribeVolumesModificationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Token for pagination, null if there are no more results
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// A list of returned VolumeModification objects.
+	VolumesModifications []*VolumeModification `locationName:"volumeModificationSet" locationNameList:"item" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeVolumesModificationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeVolumesModificationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeVolumesModificationsOutput) SetNextToken(v string) *DescribeVolumesModificationsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetVolumesModifications sets the VolumesModifications field's value.
+func (s *DescribeVolumesModificationsOutput) SetVolumesModifications(v []*VolumeModification) *DescribeVolumesModificationsOutput {
+	s.VolumesModifications = v
+	return s
+}
+
 // Contains the output of DescribeVolumes.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumesResult
 type DescribeVolumesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -30094,6 +31392,7 @@ func (s *DescribeVolumesOutput) SetVolumes(v []*Volume) *DescribeVolumesOutput {
 }
 
 // Contains the parameters for DescribeVpcAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcAttributeRequest
 type DescribeVpcAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -30159,6 +31458,7 @@ func (s *DescribeVpcAttributeInput) SetVpcId(v string) *DescribeVpcAttributeInpu
 }
 
 // Contains the output of DescribeVpcAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcAttributeResult
 type DescribeVpcAttributeOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -30205,6 +31505,7 @@ func (s *DescribeVpcAttributeOutput) SetVpcId(v string) *DescribeVpcAttributeOut
 }
 
 // Contains the parameters for DescribeVpcClassicLinkDnsSupport.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcClassicLinkDnsSupportRequest
 type DescribeVpcClassicLinkDnsSupportInput struct {
 	_ struct{} `type:"structure"`
 
@@ -30266,6 +31567,7 @@ func (s *DescribeVpcClassicLinkDnsSupportInput) SetVpcIds(v []*string) *Describe
 }
 
 // Contains the output of DescribeVpcClassicLinkDnsSupport.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcClassicLinkDnsSupportResult
 type DescribeVpcClassicLinkDnsSupportOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -30299,6 +31601,7 @@ func (s *DescribeVpcClassicLinkDnsSupportOutput) SetVpcs(v []*ClassicLinkDnsSupp
 }
 
 // Contains the parameters for DescribeVpcClassicLink.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcClassicLinkRequest
 type DescribeVpcClassicLinkInput struct {
 	_ struct{} `type:"structure"`
 
@@ -30314,6 +31617,9 @@ type DescribeVpcClassicLinkInput struct {
 	//    (true | false).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -30360,6 +31666,7 @@ func (s *DescribeVpcClassicLinkInput) SetVpcIds(v []*string) *DescribeVpcClassic
 }
 
 // Contains the output of DescribeVpcClassicLink.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcClassicLinkResult
 type DescribeVpcClassicLinkOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -30384,6 +31691,7 @@ func (s *DescribeVpcClassicLinkOutput) SetVpcs(v []*VpcClassicLink) *DescribeVpc
 }
 
 // Contains the parameters for DescribeVpcEndpointServices.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcEndpointServicesRequest
 type DescribeVpcEndpointServicesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -30434,6 +31742,7 @@ func (s *DescribeVpcEndpointServicesInput) SetNextToken(v string) *DescribeVpcEn
 }
 
 // Contains the output of DescribeVpcEndpointServices.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcEndpointServicesResult
 type DescribeVpcEndpointServicesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -30468,6 +31777,7 @@ func (s *DescribeVpcEndpointServicesOutput) SetServiceNames(v []*string) *Descri
 }
 
 // Contains the parameters for DescribeVpcEndpoints.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcEndpointsRequest
 type DescribeVpcEndpointsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -30545,6 +31855,7 @@ func (s *DescribeVpcEndpointsInput) SetVpcEndpointIds(v []*string) *DescribeVpcE
 }
 
 // Contains the output of DescribeVpcEndpoints.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcEndpointsResult
 type DescribeVpcEndpointsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -30579,6 +31890,7 @@ func (s *DescribeVpcEndpointsOutput) SetVpcEndpoints(v []*VpcEndpoint) *Describe
 }
 
 // Contains the parameters for DescribeVpcPeeringConnections.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcPeeringConnectionsRequest
 type DescribeVpcPeeringConnectionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -30614,6 +31926,9 @@ type DescribeVpcPeeringConnectionsInput struct {
 	//    status of the VPC peering connection, if applicable.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -30664,6 +31979,7 @@ func (s *DescribeVpcPeeringConnectionsInput) SetVpcPeeringConnectionIds(v []*str
 }
 
 // Contains the output of DescribeVpcPeeringConnections.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcPeeringConnectionsResult
 type DescribeVpcPeeringConnectionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -30688,6 +32004,7 @@ func (s *DescribeVpcPeeringConnectionsOutput) SetVpcPeeringConnections(v []*VpcP
 }
 
 // Contains the parameters for DescribeVpcs.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcsRequest
 type DescribeVpcsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -30720,6 +32037,9 @@ type DescribeVpcsInput struct {
 	//    * state - The state of the VPC (pending | available).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -30770,6 +32090,7 @@ func (s *DescribeVpcsInput) SetVpcIds(v []*string) *DescribeVpcsInput {
 }
 
 // Contains the output of DescribeVpcs.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpcsResult
 type DescribeVpcsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -30794,6 +32115,7 @@ func (s *DescribeVpcsOutput) SetVpcs(v []*Vpc) *DescribeVpcsOutput {
 }
 
 // Contains the parameters for DescribeVpnConnections.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpnConnectionsRequest
 type DescribeVpnConnectionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -30825,6 +32147,9 @@ type DescribeVpnConnectionsInput struct {
 	//    device.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -30881,6 +32206,7 @@ func (s *DescribeVpnConnectionsInput) SetVpnConnectionIds(v []*string) *Describe
 }
 
 // Contains the output of DescribeVpnConnections.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpnConnectionsResult
 type DescribeVpnConnectionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -30905,6 +32231,7 @@ func (s *DescribeVpnConnectionsOutput) SetVpnConnections(v []*VpnConnection) *De
 }
 
 // Contains the parameters for DescribeVpnGateways.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpnGatewaysRequest
 type DescribeVpnGatewaysInput struct {
 	_ struct{} `type:"structure"`
 
@@ -30928,6 +32255,9 @@ type DescribeVpnGatewaysInput struct {
 	//    | deleting | deleted).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -30981,6 +32311,7 @@ func (s *DescribeVpnGatewaysInput) SetVpnGatewayIds(v []*string) *DescribeVpnGat
 }
 
 // Contains the output of DescribeVpnGateways.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVpnGatewaysResult
 type DescribeVpnGatewaysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -31005,6 +32336,7 @@ func (s *DescribeVpnGatewaysOutput) SetVpnGateways(v []*VpnGateway) *DescribeVpn
 }
 
 // Contains the parameters for DetachClassicLinkVpc.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachClassicLinkVpcRequest
 type DetachClassicLinkVpcInput struct {
 	_ struct{} `type:"structure"`
 
@@ -31070,6 +32402,7 @@ func (s *DetachClassicLinkVpcInput) SetVpcId(v string) *DetachClassicLinkVpcInpu
 }
 
 // Contains the output of DetachClassicLinkVpc.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachClassicLinkVpcResult
 type DetachClassicLinkVpcOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -31094,6 +32427,7 @@ func (s *DetachClassicLinkVpcOutput) SetReturn(v bool) *DetachClassicLinkVpcOutp
 }
 
 // Contains the parameters for DetachInternetGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachInternetGatewayRequest
 type DetachInternetGatewayInput struct {
 	_ struct{} `type:"structure"`
 
@@ -31158,6 +32492,7 @@ func (s *DetachInternetGatewayInput) SetVpcId(v string) *DetachInternetGatewayIn
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachInternetGatewayOutput
 type DetachInternetGatewayOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -31173,6 +32508,7 @@ func (s DetachInternetGatewayOutput) GoString() string {
 }
 
 // Contains the parameters for DetachNetworkInterface.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachNetworkInterfaceRequest
 type DetachNetworkInterfaceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -31232,6 +32568,7 @@ func (s *DetachNetworkInterfaceInput) SetForce(v bool) *DetachNetworkInterfaceIn
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachNetworkInterfaceOutput
 type DetachNetworkInterfaceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -31247,6 +32584,7 @@ func (s DetachNetworkInterfaceOutput) GoString() string {
 }
 
 // Contains the parameters for DetachVolume.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachVolumeRequest
 type DetachVolumeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -31331,6 +32669,7 @@ func (s *DetachVolumeInput) SetVolumeId(v string) *DetachVolumeInput {
 }
 
 // Contains the parameters for DetachVpnGateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachVpnGatewayRequest
 type DetachVpnGatewayInput struct {
 	_ struct{} `type:"structure"`
 
@@ -31395,6 +32734,7 @@ func (s *DetachVpnGatewayInput) SetVpnGatewayId(v string) *DetachVpnGatewayInput
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DetachVpnGatewayOutput
 type DetachVpnGatewayOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -31410,6 +32750,7 @@ func (s DetachVpnGatewayOutput) GoString() string {
 }
 
 // Describes a DHCP configuration option.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DhcpConfiguration
 type DhcpConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -31443,6 +32784,7 @@ func (s *DhcpConfiguration) SetValues(v []*AttributeValue) *DhcpConfiguration {
 }
 
 // Describes a set of DHCP options.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DhcpOptions
 type DhcpOptions struct {
 	_ struct{} `type:"structure"`
 
@@ -31485,6 +32827,7 @@ func (s *DhcpOptions) SetTags(v []*Tag) *DhcpOptions {
 }
 
 // Contains the parameters for DisableVgwRoutePropagation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisableVgwRoutePropagationRequest
 type DisableVgwRoutePropagationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -31537,6 +32880,7 @@ func (s *DisableVgwRoutePropagationInput) SetRouteTableId(v string) *DisableVgwR
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisableVgwRoutePropagationOutput
 type DisableVgwRoutePropagationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -31552,6 +32896,7 @@ func (s DisableVgwRoutePropagationOutput) GoString() string {
 }
 
 // Contains the parameters for DisableVpcClassicLinkDnsSupport.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisableVpcClassicLinkDnsSupportRequest
 type DisableVpcClassicLinkDnsSupportInput struct {
 	_ struct{} `type:"structure"`
 
@@ -31576,6 +32921,7 @@ func (s *DisableVpcClassicLinkDnsSupportInput) SetVpcId(v string) *DisableVpcCla
 }
 
 // Contains the output of DisableVpcClassicLinkDnsSupport.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisableVpcClassicLinkDnsSupportResult
 type DisableVpcClassicLinkDnsSupportOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -31600,6 +32946,7 @@ func (s *DisableVpcClassicLinkDnsSupportOutput) SetReturn(v bool) *DisableVpcCla
 }
 
 // Contains the parameters for DisableVpcClassicLink.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisableVpcClassicLinkRequest
 type DisableVpcClassicLinkInput struct {
 	_ struct{} `type:"structure"`
 
@@ -31651,6 +32998,7 @@ func (s *DisableVpcClassicLinkInput) SetVpcId(v string) *DisableVpcClassicLinkIn
 }
 
 // Contains the output of DisableVpcClassicLink.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisableVpcClassicLinkResult
 type DisableVpcClassicLinkOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -31675,6 +33023,7 @@ func (s *DisableVpcClassicLinkOutput) SetReturn(v bool) *DisableVpcClassicLinkOu
 }
 
 // Contains the parameters for DisassociateAddress.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateAddressRequest
 type DisassociateAddressInput struct {
 	_ struct{} `type:"structure"`
 
@@ -31719,6 +33068,7 @@ func (s *DisassociateAddressInput) SetPublicIp(v string) *DisassociateAddressInp
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateAddressOutput
 type DisassociateAddressOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -31733,7 +33083,71 @@ func (s DisassociateAddressOutput) GoString() string {
 	return s.String()
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfileRequest
+type DisassociateIamInstanceProfileInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the IAM instance profile association.
+	//
+	// AssociationId is a required field
+	AssociationId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DisassociateIamInstanceProfileInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateIamInstanceProfileInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisassociateIamInstanceProfileInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisassociateIamInstanceProfileInput"}
+	if s.AssociationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *DisassociateIamInstanceProfileInput) SetAssociationId(v string) *DisassociateIamInstanceProfileInput {
+	s.AssociationId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfileResult
+type DisassociateIamInstanceProfileOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IAM instance profile association.
+	IamInstanceProfileAssociation *IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociation" type:"structure"`
+}
+
+// String returns the string representation
+func (s DisassociateIamInstanceProfileOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateIamInstanceProfileOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociation sets the IamInstanceProfileAssociation field's value.
+func (s *DisassociateIamInstanceProfileOutput) SetIamInstanceProfileAssociation(v *IamInstanceProfileAssociation) *DisassociateIamInstanceProfileOutput {
+	s.IamInstanceProfileAssociation = v
+	return s
+}
+
 // Contains the parameters for DisassociateRouteTable.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateRouteTableRequest
 type DisassociateRouteTableInput struct {
 	_ struct{} `type:"structure"`
 
@@ -31785,6 +33199,7 @@ func (s *DisassociateRouteTableInput) SetDryRun(v bool) *DisassociateRouteTableI
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateRouteTableOutput
 type DisassociateRouteTableOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -31799,6 +33214,7 @@ func (s DisassociateRouteTableOutput) GoString() string {
 	return s.String()
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateSubnetCidrBlockRequest
 type DisassociateSubnetCidrBlockInput struct {
 	_ struct{} `type:"structure"`
 
@@ -31837,6 +33253,7 @@ func (s *DisassociateSubnetCidrBlockInput) SetAssociationId(v string) *Disassoci
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateSubnetCidrBlockResult
 type DisassociateSubnetCidrBlockOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -31869,6 +33286,7 @@ func (s *DisassociateSubnetCidrBlockOutput) SetSubnetId(v string) *DisassociateS
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateVpcCidrBlockRequest
 type DisassociateVpcCidrBlockInput struct {
 	_ struct{} `type:"structure"`
 
@@ -31907,6 +33325,7 @@ func (s *DisassociateVpcCidrBlockInput) SetAssociationId(v string) *Disassociate
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateVpcCidrBlockResult
 type DisassociateVpcCidrBlockOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -31940,6 +33359,7 @@ func (s *DisassociateVpcCidrBlockOutput) SetVpcId(v string) *DisassociateVpcCidr
 }
 
 // Describes a disk image.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DiskImage
 type DiskImage struct {
 	_ struct{} `type:"structure"`
 
@@ -32002,6 +33422,7 @@ func (s *DiskImage) SetVolume(v *VolumeDetail) *DiskImage {
 }
 
 // Describes a disk image.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DiskImageDescription
 type DiskImageDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -32066,6 +33487,7 @@ func (s *DiskImageDescription) SetSize(v int64) *DiskImageDescription {
 }
 
 // Describes a disk image.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DiskImageDetail
 type DiskImageDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -32140,6 +33562,7 @@ func (s *DiskImageDetail) SetImportManifestUrl(v string) *DiskImageDetail {
 }
 
 // Describes a disk image volume.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DiskImageVolumeDescription
 type DiskImageVolumeDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -32175,6 +33598,7 @@ func (s *DiskImageVolumeDescription) SetSize(v int64) *DiskImageVolumeDescriptio
 }
 
 // Describes a block device for an EBS volume.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EbsBlockDevice
 type EbsBlockDevice struct {
 	_ struct{} `type:"structure"`
 
@@ -32268,6 +33692,7 @@ func (s *EbsBlockDevice) SetVolumeType(v string) *EbsBlockDevice {
 }
 
 // Describes a parameter used to set up an EBS volume in a block device mapping.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EbsInstanceBlockDevice
 type EbsInstanceBlockDevice struct {
 	_ struct{} `type:"structure"`
 
@@ -32320,6 +33745,7 @@ func (s *EbsInstanceBlockDevice) SetVolumeId(v string) *EbsInstanceBlockDevice {
 
 // Describes information used to set up an EBS volume specified in a block device
 // mapping.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EbsInstanceBlockDeviceSpecification
 type EbsInstanceBlockDeviceSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -32353,6 +33779,7 @@ func (s *EbsInstanceBlockDeviceSpecification) SetVolumeId(v string) *EbsInstance
 }
 
 // Describes an egress-only Internet gateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EgressOnlyInternetGateway
 type EgressOnlyInternetGateway struct {
 	_ struct{} `type:"structure"`
 
@@ -32386,6 +33813,7 @@ func (s *EgressOnlyInternetGateway) SetEgressOnlyInternetGatewayId(v string) *Eg
 }
 
 // Contains the parameters for EnableVgwRoutePropagation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVgwRoutePropagationRequest
 type EnableVgwRoutePropagationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -32438,6 +33866,7 @@ func (s *EnableVgwRoutePropagationInput) SetRouteTableId(v string) *EnableVgwRou
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVgwRoutePropagationOutput
 type EnableVgwRoutePropagationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -32453,6 +33882,7 @@ func (s EnableVgwRoutePropagationOutput) GoString() string {
 }
 
 // Contains the parameters for EnableVolumeIO.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVolumeIORequest
 type EnableVolumeIOInput struct {
 	_ struct{} `type:"structure"`
 
@@ -32503,6 +33933,7 @@ func (s *EnableVolumeIOInput) SetVolumeId(v string) *EnableVolumeIOInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVolumeIOOutput
 type EnableVolumeIOOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -32518,6 +33949,7 @@ func (s EnableVolumeIOOutput) GoString() string {
 }
 
 // Contains the parameters for EnableVpcClassicLinkDnsSupport.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVpcClassicLinkDnsSupportRequest
 type EnableVpcClassicLinkDnsSupportInput struct {
 	_ struct{} `type:"structure"`
 
@@ -32542,6 +33974,7 @@ func (s *EnableVpcClassicLinkDnsSupportInput) SetVpcId(v string) *EnableVpcClass
 }
 
 // Contains the output of EnableVpcClassicLinkDnsSupport.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVpcClassicLinkDnsSupportResult
 type EnableVpcClassicLinkDnsSupportOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -32566,6 +33999,7 @@ func (s *EnableVpcClassicLinkDnsSupportOutput) SetReturn(v bool) *EnableVpcClass
 }
 
 // Contains the parameters for EnableVpcClassicLink.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVpcClassicLinkRequest
 type EnableVpcClassicLinkInput struct {
 	_ struct{} `type:"structure"`
 
@@ -32617,6 +34051,7 @@ func (s *EnableVpcClassicLinkInput) SetVpcId(v string) *EnableVpcClassicLinkInpu
 }
 
 // Contains the output of EnableVpcClassicLink.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EnableVpcClassicLinkResult
 type EnableVpcClassicLinkOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -32641,6 +34076,7 @@ func (s *EnableVpcClassicLinkOutput) SetReturn(v bool) *EnableVpcClassicLinkOutp
 }
 
 // Describes a Spot fleet event.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EventInformation
 type EventInformation struct {
 	_ struct{} `type:"structure"`
 
@@ -32735,6 +34171,7 @@ func (s *EventInformation) SetInstanceId(v string) *EventInformation {
 }
 
 // Describes an instance export task.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ExportTask
 type ExportTask struct {
 	_ struct{} `type:"structure"`
 
@@ -32804,6 +34241,7 @@ func (s *ExportTask) SetStatusMessage(v string) *ExportTask {
 }
 
 // Describes the format and location for an instance export task.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ExportToS3Task
 type ExportToS3Task struct {
 	_ struct{} `type:"structure"`
 
@@ -32857,6 +34295,7 @@ func (s *ExportToS3Task) SetS3Key(v string) *ExportToS3Task {
 }
 
 // Describes an instance export task.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ExportToS3TaskSpecification
 type ExportToS3TaskSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -32913,6 +34352,7 @@ func (s *ExportToS3TaskSpecification) SetS3Prefix(v string) *ExportToS3TaskSpeci
 // A filter name and value pair that is used to return a more specific list
 // of results. Filters can be used to match a set of resources by various criteria,
 // such as tags, attributes, or IDs.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Filter
 type Filter struct {
 	_ struct{} `type:"structure"`
 
@@ -32946,6 +34386,7 @@ func (s *Filter) SetValues(v []*string) *Filter {
 }
 
 // Describes a flow log.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/FlowLog
 type FlowLog struct {
 	_ struct{} `type:"structure"`
 
@@ -33047,6 +34488,7 @@ func (s *FlowLog) SetTrafficType(v string) *FlowLog {
 }
 
 // Contains the parameters for GetConsoleOutput.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetConsoleOutputRequest
 type GetConsoleOutputInput struct {
 	_ struct{} `type:"structure"`
 
@@ -33098,6 +34540,7 @@ func (s *GetConsoleOutputInput) SetInstanceId(v string) *GetConsoleOutputInput {
 }
 
 // Contains the output of GetConsoleOutput.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetConsoleOutputResult
 type GetConsoleOutputOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -33141,6 +34584,7 @@ func (s *GetConsoleOutputOutput) SetTimestamp(v time.Time) *GetConsoleOutputOutp
 }
 
 // Contains the parameters for the request.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetConsoleScreenshotRequest
 type GetConsoleScreenshotInput struct {
 	_ struct{} `type:"structure"`
 
@@ -33202,6 +34646,7 @@ func (s *GetConsoleScreenshotInput) SetWakeUp(v bool) *GetConsoleScreenshotInput
 }
 
 // Contains the output of the request.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetConsoleScreenshotResult
 type GetConsoleScreenshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -33234,6 +34679,7 @@ func (s *GetConsoleScreenshotOutput) SetInstanceId(v string) *GetConsoleScreensh
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetHostReservationPurchasePreviewRequest
 type GetHostReservationPurchasePreviewInput struct {
 	_ struct{} `type:"structure"`
 
@@ -33287,6 +34733,7 @@ func (s *GetHostReservationPurchasePreviewInput) SetOfferingId(v string) *GetHos
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetHostReservationPurchasePreviewResult
 type GetHostReservationPurchasePreviewOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -33340,6 +34787,7 @@ func (s *GetHostReservationPurchasePreviewOutput) SetTotalUpfrontPrice(v string)
 }
 
 // Contains the parameters for GetPasswordData.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetPasswordDataRequest
 type GetPasswordDataInput struct {
 	_ struct{} `type:"structure"`
 
@@ -33391,6 +34839,7 @@ func (s *GetPasswordDataInput) SetInstanceId(v string) *GetPasswordDataInput {
 }
 
 // Contains the output of GetPasswordData.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetPasswordDataResult
 type GetPasswordDataOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -33433,6 +34882,7 @@ func (s *GetPasswordDataOutput) SetTimestamp(v time.Time) *GetPasswordDataOutput
 }
 
 // Contains the parameters for GetReservedInstanceExchangeQuote.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetReservedInstancesExchangeQuoteRequest
 type GetReservedInstancesExchangeQuoteInput struct {
 	_ struct{} `type:"structure"`
 
@@ -33504,6 +34954,7 @@ func (s *GetReservedInstancesExchangeQuoteInput) SetTargetConfigurations(v []*Ta
 }
 
 // Contains the output of GetReservedInstancesExchangeQuote.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GetReservedInstancesExchangeQuoteResult
 type GetReservedInstancesExchangeQuoteOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -33600,6 +35051,7 @@ func (s *GetReservedInstancesExchangeQuoteOutput) SetValidationFailureReason(v s
 }
 
 // Describes a security group.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/GroupIdentifier
 type GroupIdentifier struct {
 	_ struct{} `type:"structure"`
 
@@ -33633,6 +35085,7 @@ func (s *GroupIdentifier) SetGroupName(v string) *GroupIdentifier {
 }
 
 // Describes an event in the history of the Spot fleet request.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/HistoryRecord
 type HistoryRecord struct {
 	_ struct{} `type:"structure"`
 
@@ -33688,6 +35141,7 @@ func (s *HistoryRecord) SetTimestamp(v time.Time) *HistoryRecord {
 }
 
 // Describes the properties of the Dedicated Host.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Host
 type Host struct {
 	_ struct{} `type:"structure"`
 
@@ -33787,6 +35241,7 @@ func (s *Host) SetState(v string) *Host {
 }
 
 // Describes an instance running on a Dedicated Host.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/HostInstance
 type HostInstance struct {
 	_ struct{} `type:"structure"`
 
@@ -33820,6 +35275,7 @@ func (s *HostInstance) SetInstanceType(v string) *HostInstance {
 }
 
 // Details about the Dedicated Host Reservation offering.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/HostOffering
 type HostOffering struct {
 	_ struct{} `type:"structure"`
 
@@ -33898,6 +35354,7 @@ func (s *HostOffering) SetUpfrontPrice(v string) *HostOffering {
 }
 
 // Describes properties of a Dedicated Host.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/HostProperties
 type HostProperties struct {
 	_ struct{} `type:"structure"`
 
@@ -33949,6 +35406,7 @@ func (s *HostProperties) SetTotalVCpus(v int64) *HostProperties {
 }
 
 // Details about the Dedicated Host Reservation and associated Dedicated Hosts.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/HostReservation
 type HostReservation struct {
 	_ struct{} `type:"structure"`
 
@@ -34086,6 +35544,7 @@ func (s *HostReservation) SetUpfrontPrice(v string) *HostReservation {
 }
 
 // Describes an IAM instance profile.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/IamInstanceProfile
 type IamInstanceProfile struct {
 	_ struct{} `type:"structure"`
 
@@ -34118,7 +35577,69 @@ func (s *IamInstanceProfile) SetId(v string) *IamInstanceProfile {
 	return s
 }
 
+// Describes an association between an IAM instance profile and an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/IamInstanceProfileAssociation
+type IamInstanceProfileAssociation struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the association.
+	AssociationId *string `locationName:"associationId" type:"string"`
+
+	// The IAM instance profile.
+	IamInstanceProfile *IamInstanceProfile `locationName:"iamInstanceProfile" type:"structure"`
+
+	// The ID of the instance.
+	InstanceId *string `locationName:"instanceId" type:"string"`
+
+	// The state of the association.
+	State *string `locationName:"state" type:"string" enum:"IamInstanceProfileAssociationState"`
+
+	// The time the IAM instance profile was associated with the instance.
+	Timestamp *time.Time `locationName:"timestamp" type:"timestamp" timestampFormat:"iso8601"`
+}
+
+// String returns the string representation
+func (s IamInstanceProfileAssociation) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IamInstanceProfileAssociation) GoString() string {
+	return s.String()
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *IamInstanceProfileAssociation) SetAssociationId(v string) *IamInstanceProfileAssociation {
+	s.AssociationId = &v
+	return s
+}
+
+// SetIamInstanceProfile sets the IamInstanceProfile field's value.
+func (s *IamInstanceProfileAssociation) SetIamInstanceProfile(v *IamInstanceProfile) *IamInstanceProfileAssociation {
+	s.IamInstanceProfile = v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *IamInstanceProfileAssociation) SetInstanceId(v string) *IamInstanceProfileAssociation {
+	s.InstanceId = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *IamInstanceProfileAssociation) SetState(v string) *IamInstanceProfileAssociation {
+	s.State = &v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *IamInstanceProfileAssociation) SetTimestamp(v time.Time) *IamInstanceProfileAssociation {
+	s.Timestamp = &v
+	return s
+}
+
 // Describes an IAM instance profile.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/IamInstanceProfileSpecification
 type IamInstanceProfileSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -34152,6 +35673,7 @@ func (s *IamInstanceProfileSpecification) SetName(v string) *IamInstanceProfileS
 }
 
 // Describes the ICMP type and code.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/IcmpTypeCode
 type IcmpTypeCode struct {
 	_ struct{} `type:"structure"`
 
@@ -34185,6 +35707,7 @@ func (s *IcmpTypeCode) SetType(v int64) *IcmpTypeCode {
 }
 
 // Describes the ID format for a resource.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/IdFormat
 type IdFormat struct {
 	_ struct{} `type:"structure"`
 
@@ -34229,6 +35752,7 @@ func (s *IdFormat) SetUseLongIds(v bool) *IdFormat {
 }
 
 // Describes an image.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Image
 type Image struct {
 	_ struct{} `type:"structure"`
 
@@ -34468,6 +35992,7 @@ func (s *Image) SetVirtualizationType(v string) *Image {
 }
 
 // Describes the disk container object for an import image task.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImageDiskContainer
 type ImageDiskContainer struct {
 	_ struct{} `type:"structure"`
 
@@ -34540,6 +36065,7 @@ func (s *ImageDiskContainer) SetUserBucket(v *UserBucket) *ImageDiskContainer {
 }
 
 // Contains the parameters for ImportImage.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportImageRequest
 type ImportImageInput struct {
 	_ struct{} `type:"structure"`
 
@@ -34661,6 +36187,7 @@ func (s *ImportImageInput) SetRoleName(v string) *ImportImageInput {
 }
 
 // Contains the output for ImportImage.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportImageResult
 type ImportImageOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -34775,6 +36302,7 @@ func (s *ImportImageOutput) SetStatusMessage(v string) *ImportImageOutput {
 }
 
 // Describes an import image task.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportImageTask
 type ImportImageTask struct {
 	_ struct{} `type:"structure"`
 
@@ -34893,6 +36421,7 @@ func (s *ImportImageTask) SetStatusMessage(v string) *ImportImageTask {
 }
 
 // Contains the parameters for ImportInstance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportInstanceRequest
 type ImportInstanceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -34981,6 +36510,7 @@ func (s *ImportInstanceInput) SetPlatform(v string) *ImportInstanceInput {
 }
 
 // Describes the launch specification for VM import.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportInstanceLaunchSpecification
 type ImportInstanceLaunchSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -35100,6 +36630,7 @@ func (s *ImportInstanceLaunchSpecification) SetUserData(v *UserData) *ImportInst
 }
 
 // Contains the output for ImportInstance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportInstanceResult
 type ImportInstanceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -35124,6 +36655,7 @@ func (s *ImportInstanceOutput) SetConversionTask(v *ConversionTask) *ImportInsta
 }
 
 // Describes an import instance task.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportInstanceTaskDetails
 type ImportInstanceTaskDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -35177,6 +36709,7 @@ func (s *ImportInstanceTaskDetails) SetVolumes(v []*ImportInstanceVolumeDetailIt
 }
 
 // Describes an import volume task.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportInstanceVolumeDetailItem
 type ImportInstanceVolumeDetailItem struct {
 	_ struct{} `type:"structure"`
 
@@ -35265,6 +36798,7 @@ func (s *ImportInstanceVolumeDetailItem) SetVolume(v *DiskImageVolumeDescription
 }
 
 // Contains the parameters for ImportKeyPair.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportKeyPairRequest
 type ImportKeyPairInput struct {
 	_ struct{} `type:"structure"`
 
@@ -35333,6 +36867,7 @@ func (s *ImportKeyPairInput) SetPublicKeyMaterial(v []byte) *ImportKeyPairInput 
 }
 
 // Contains the output of ImportKeyPair.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportKeyPairResult
 type ImportKeyPairOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -35366,6 +36901,7 @@ func (s *ImportKeyPairOutput) SetKeyName(v string) *ImportKeyPairOutput {
 }
 
 // Contains the parameters for ImportSnapshot.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportSnapshotRequest
 type ImportSnapshotInput struct {
 	_ struct{} `type:"structure"`
 
@@ -35438,6 +36974,7 @@ func (s *ImportSnapshotInput) SetRoleName(v string) *ImportSnapshotInput {
 }
 
 // Contains the output for ImportSnapshot.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportSnapshotResult
 type ImportSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -35480,6 +37017,7 @@ func (s *ImportSnapshotOutput) SetSnapshotTaskDetail(v *SnapshotTaskDetail) *Imp
 }
 
 // Describes an import snapshot task.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportSnapshotTask
 type ImportSnapshotTask struct {
 	_ struct{} `type:"structure"`
 
@@ -35522,6 +37060,7 @@ func (s *ImportSnapshotTask) SetSnapshotTaskDetail(v *SnapshotTaskDetail) *Impor
 }
 
 // Contains the parameters for ImportVolume.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportVolumeRequest
 type ImportVolumeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -35620,6 +37159,7 @@ func (s *ImportVolumeInput) SetVolume(v *VolumeDetail) *ImportVolumeInput {
 }
 
 // Contains the output for ImportVolume.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportVolumeResult
 type ImportVolumeOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -35644,6 +37184,7 @@ func (s *ImportVolumeOutput) SetConversionTask(v *ConversionTask) *ImportVolumeO
 }
 
 // Describes an import volume task.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ImportVolumeTaskDetails
 type ImportVolumeTaskDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -35712,6 +37253,7 @@ func (s *ImportVolumeTaskDetails) SetVolume(v *DiskImageVolumeDescription) *Impo
 }
 
 // Describes an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Instance
 type Instance struct {
 	_ struct{} `type:"structure"`
 
@@ -36091,6 +37633,7 @@ func (s *Instance) SetVpcId(v string) *Instance {
 }
 
 // Describes a block device mapping.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceBlockDeviceMapping
 type InstanceBlockDeviceMapping struct {
 	_ struct{} `type:"structure"`
 
@@ -36125,6 +37668,7 @@ func (s *InstanceBlockDeviceMapping) SetEbs(v *EbsInstanceBlockDevice) *Instance
 }
 
 // Describes a block device mapping entry.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceBlockDeviceMappingSpecification
 type InstanceBlockDeviceMappingSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -36177,6 +37721,7 @@ func (s *InstanceBlockDeviceMappingSpecification) SetVirtualName(v string) *Inst
 }
 
 // Information about the instance type that the Dedicated Host supports.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceCapacity
 type InstanceCapacity struct {
 	_ struct{} `type:"structure"`
 
@@ -36219,6 +37764,7 @@ func (s *InstanceCapacity) SetTotalCapacity(v int64) *InstanceCapacity {
 }
 
 // Describes a Reserved Instance listing state.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceCount
 type InstanceCount struct {
 	_ struct{} `type:"structure"`
 
@@ -36252,6 +37798,7 @@ func (s *InstanceCount) SetState(v string) *InstanceCount {
 }
 
 // Describes an instance to export.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceExportDetails
 type InstanceExportDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -36285,6 +37832,7 @@ func (s *InstanceExportDetails) SetTargetEnvironment(v string) *InstanceExportDe
 }
 
 // Describes an IPv6 address.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceIpv6Address
 type InstanceIpv6Address struct {
 	_ struct{} `type:"structure"`
 
@@ -36309,6 +37857,7 @@ func (s *InstanceIpv6Address) SetIpv6Address(v string) *InstanceIpv6Address {
 }
 
 // Describes the monitoring of an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceMonitoring
 type InstanceMonitoring struct {
 	_ struct{} `type:"structure"`
 
@@ -36342,6 +37891,7 @@ func (s *InstanceMonitoring) SetMonitoring(v *Monitoring) *InstanceMonitoring {
 }
 
 // Describes a network interface.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceNetworkInterface
 type InstanceNetworkInterface struct {
 	_ struct{} `type:"structure"`
 
@@ -36493,6 +38043,7 @@ func (s *InstanceNetworkInterface) SetVpcId(v string) *InstanceNetworkInterface 
 }
 
 // Describes association information for an Elastic IP address (IPv4).
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceNetworkInterfaceAssociation
 type InstanceNetworkInterfaceAssociation struct {
 	_ struct{} `type:"structure"`
 
@@ -36535,6 +38086,7 @@ func (s *InstanceNetworkInterfaceAssociation) SetPublicIp(v string) *InstanceNet
 }
 
 // Describes a network interface attachment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceNetworkInterfaceAttachment
 type InstanceNetworkInterfaceAttachment struct {
 	_ struct{} `type:"structure"`
 
@@ -36595,6 +38147,7 @@ func (s *InstanceNetworkInterfaceAttachment) SetStatus(v string) *InstanceNetwor
 }
 
 // Describes a network interface.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceNetworkInterfaceSpecification
 type InstanceNetworkInterfaceSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -36764,6 +38317,7 @@ func (s *InstanceNetworkInterfaceSpecification) SetSubnetId(v string) *InstanceN
 }
 
 // Describes a private IPv4 address.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstancePrivateIpAddress
 type InstancePrivateIpAddress struct {
 	_ struct{} `type:"structure"`
 
@@ -36816,6 +38370,7 @@ func (s *InstancePrivateIpAddress) SetPrivateIpAddress(v string) *InstancePrivat
 }
 
 // Describes the current state of an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceState
 type InstanceState struct {
 	_ struct{} `type:"structure"`
 
@@ -36862,6 +38417,7 @@ func (s *InstanceState) SetName(v string) *InstanceState {
 }
 
 // Describes an instance state change.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceStateChange
 type InstanceStateChange struct {
 	_ struct{} `type:"structure"`
 
@@ -36904,6 +38460,7 @@ func (s *InstanceStateChange) SetPreviousState(v *InstanceState) *InstanceStateC
 }
 
 // Describes the status of an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceStatus
 type InstanceStatus struct {
 	_ struct{} `type:"structure"`
 
@@ -36977,6 +38534,7 @@ func (s *InstanceStatus) SetSystemStatus(v *InstanceStatusSummary) *InstanceStat
 }
 
 // Describes the instance status.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceStatusDetails
 type InstanceStatusDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -37020,6 +38578,7 @@ func (s *InstanceStatusDetails) SetStatus(v string) *InstanceStatusDetails {
 }
 
 // Describes a scheduled event for an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceStatusEvent
 type InstanceStatusEvent struct {
 	_ struct{} `type:"structure"`
 
@@ -37075,6 +38634,7 @@ func (s *InstanceStatusEvent) SetNotBefore(v time.Time) *InstanceStatusEvent {
 }
 
 // Describes the status of an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InstanceStatusSummary
 type InstanceStatusSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -37108,6 +38668,7 @@ func (s *InstanceStatusSummary) SetStatus(v string) *InstanceStatusSummary {
 }
 
 // Describes an Internet gateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InternetGateway
 type InternetGateway struct {
 	_ struct{} `type:"structure"`
 
@@ -37151,6 +38712,7 @@ func (s *InternetGateway) SetTags(v []*Tag) *InternetGateway {
 
 // Describes the attachment of a VPC to an Internet gateway or an egress-only
 // Internet gateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/InternetGatewayAttachment
 type InternetGatewayAttachment struct {
 	_ struct{} `type:"structure"`
 
@@ -37184,6 +38746,7 @@ func (s *InternetGatewayAttachment) SetVpcId(v string) *InternetGatewayAttachmen
 }
 
 // Describes a security group rule.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/IpPermission
 type IpPermission struct {
 	_ struct{} `type:"structure"`
 
@@ -37274,6 +38837,7 @@ func (s *IpPermission) SetUserIdGroupPairs(v []*UserIdGroupPair) *IpPermission {
 }
 
 // Describes an IPv4 range.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/IpRange
 type IpRange struct {
 	_ struct{} `type:"structure"`
 
@@ -37299,6 +38863,7 @@ func (s *IpRange) SetCidrIp(v string) *IpRange {
 }
 
 // Describes an IPv6 CIDR block.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Ipv6CidrBlock
 type Ipv6CidrBlock struct {
 	_ struct{} `type:"structure"`
 
@@ -37323,6 +38888,7 @@ func (s *Ipv6CidrBlock) SetIpv6CidrBlock(v string) *Ipv6CidrBlock {
 }
 
 // [EC2-VPC only] Describes an IPv6 range.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Ipv6Range
 type Ipv6Range struct {
 	_ struct{} `type:"structure"`
 
@@ -37348,6 +38914,7 @@ func (s *Ipv6Range) SetCidrIpv6(v string) *Ipv6Range {
 }
 
 // Describes a key pair.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/KeyPairInfo
 type KeyPairInfo struct {
 	_ struct{} `type:"structure"`
 
@@ -37384,6 +38951,7 @@ func (s *KeyPairInfo) SetKeyName(v string) *KeyPairInfo {
 }
 
 // Describes a launch permission.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/LaunchPermission
 type LaunchPermission struct {
 	_ struct{} `type:"structure"`
 
@@ -37417,6 +38985,7 @@ func (s *LaunchPermission) SetUserId(v string) *LaunchPermission {
 }
 
 // Describes a launch permission modification.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/LaunchPermissionModifications
 type LaunchPermissionModifications struct {
 	_ struct{} `type:"structure"`
 
@@ -37451,6 +39020,7 @@ func (s *LaunchPermissionModifications) SetRemove(v []*LaunchPermission) *Launch
 }
 
 // Describes the launch specification for an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/LaunchSpecification
 type LaunchSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -37615,6 +39185,7 @@ func (s *LaunchSpecification) SetUserData(v string) *LaunchSpecification {
 }
 
 // Contains the parameters for ModifyHosts.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyHostsRequest
 type ModifyHostsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -37668,6 +39239,7 @@ func (s *ModifyHostsInput) SetHostIds(v []*string) *ModifyHostsInput {
 }
 
 // Contains the output of ModifyHosts.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyHostsResult
 type ModifyHostsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -37702,6 +39274,7 @@ func (s *ModifyHostsOutput) SetUnsuccessful(v []*UnsuccessfulItem) *ModifyHostsO
 }
 
 // Contains the parameters of ModifyIdFormat.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyIdFormatRequest
 type ModifyIdFormatInput struct {
 	_ struct{} `type:"structure"`
 
@@ -37754,6 +39327,7 @@ func (s *ModifyIdFormatInput) SetUseLongIds(v bool) *ModifyIdFormatInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyIdFormatOutput
 type ModifyIdFormatOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -37769,6 +39343,7 @@ func (s ModifyIdFormatOutput) GoString() string {
 }
 
 // Contains the parameters of ModifyIdentityIdFormat.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyIdentityIdFormatRequest
 type ModifyIdentityIdFormatInput struct {
 	_ struct{} `type:"structure"`
 
@@ -37837,6 +39412,7 @@ func (s *ModifyIdentityIdFormatInput) SetUseLongIds(v bool) *ModifyIdentityIdFor
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyIdentityIdFormatOutput
 type ModifyIdentityIdFormatOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -37852,6 +39428,7 @@ func (s ModifyIdentityIdFormatOutput) GoString() string {
 }
 
 // Contains the parameters for ModifyImageAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyImageAttributeRequest
 type ModifyImageAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -37978,6 +39555,7 @@ func (s *ModifyImageAttributeInput) SetValue(v string) *ModifyImageAttributeInpu
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyImageAttributeOutput
 type ModifyImageAttributeOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -37993,6 +39571,7 @@ func (s ModifyImageAttributeOutput) GoString() string {
 }
 
 // Contains the parameters for ModifyInstanceAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyInstanceAttributeRequest
 type ModifyInstanceAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -38208,6 +39787,7 @@ func (s *ModifyInstanceAttributeInput) SetValue(v string) *ModifyInstanceAttribu
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyInstanceAttributeOutput
 type ModifyInstanceAttributeOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -38223,6 +39803,7 @@ func (s ModifyInstanceAttributeOutput) GoString() string {
 }
 
 // Contains the parameters for ModifyInstancePlacement.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyInstancePlacementRequest
 type ModifyInstancePlacementInput struct {
 	_ struct{} `type:"structure"`
 
@@ -38289,6 +39870,7 @@ func (s *ModifyInstancePlacementInput) SetTenancy(v string) *ModifyInstancePlace
 }
 
 // Contains the output of ModifyInstancePlacement.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyInstancePlacementResult
 type ModifyInstancePlacementOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -38313,6 +39895,7 @@ func (s *ModifyInstancePlacementOutput) SetReturn(v bool) *ModifyInstancePlaceme
 }
 
 // Contains the parameters for ModifyNetworkInterfaceAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyNetworkInterfaceAttributeRequest
 type ModifyNetworkInterfaceAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -38407,6 +39990,7 @@ func (s *ModifyNetworkInterfaceAttributeInput) SetSourceDestCheck(v *AttributeBo
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyNetworkInterfaceAttributeOutput
 type ModifyNetworkInterfaceAttributeOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -38422,6 +40006,7 @@ func (s ModifyNetworkInterfaceAttributeOutput) GoString() string {
 }
 
 // Contains the parameters for ModifyReservedInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyReservedInstancesRequest
 type ModifyReservedInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -38485,6 +40070,7 @@ func (s *ModifyReservedInstancesInput) SetTargetConfigurations(v []*ReservedInst
 }
 
 // Contains the output of ModifyReservedInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyReservedInstancesResult
 type ModifyReservedInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -38509,6 +40095,7 @@ func (s *ModifyReservedInstancesOutput) SetReservedInstancesModificationId(v str
 }
 
 // Contains the parameters for ModifySnapshotAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifySnapshotAttributeRequest
 type ModifySnapshotAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -38606,6 +40193,7 @@ func (s *ModifySnapshotAttributeInput) SetUserIds(v []*string) *ModifySnapshotAt
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifySnapshotAttributeOutput
 type ModifySnapshotAttributeOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -38621,6 +40209,7 @@ func (s ModifySnapshotAttributeOutput) GoString() string {
 }
 
 // Contains the parameters for ModifySpotFleetRequest.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifySpotFleetRequestRequest
 type ModifySpotFleetRequestInput struct {
 	_ struct{} `type:"structure"`
 
@@ -38680,6 +40269,7 @@ func (s *ModifySpotFleetRequestInput) SetTargetCapacity(v int64) *ModifySpotFlee
 }
 
 // Contains the output of ModifySpotFleetRequest.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifySpotFleetRequestResponse
 type ModifySpotFleetRequestOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -38704,6 +40294,7 @@ func (s *ModifySpotFleetRequestOutput) SetReturn(v bool) *ModifySpotFleetRequest
 }
 
 // Contains the parameters for ModifySubnetAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifySubnetAttributeRequest
 type ModifySubnetAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -38711,6 +40302,10 @@ type ModifySubnetAttributeInput struct {
 	// subnet should be assigned an IPv6 address. This includes a network interface
 	// that's created when launching an instance into the subnet (the instance therefore
 	// receives an IPv6 address).
+	//
+	// If you enable the IPv6 addressing feature for your subnet, your network interface
+	// or instance only receives an IPv6 address if it's created using version 2016-11-15
+	// or later of the Amazon EC2 API.
 	AssignIpv6AddressOnCreation *AttributeBooleanValue `type:"structure"`
 
 	// Specify true to indicate that network interfaces created in the specified
@@ -38766,6 +40361,7 @@ func (s *ModifySubnetAttributeInput) SetSubnetId(v string) *ModifySubnetAttribut
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifySubnetAttributeOutput
 type ModifySubnetAttributeOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -38781,6 +40377,7 @@ func (s ModifySubnetAttributeOutput) GoString() string {
 }
 
 // Contains the parameters for ModifyVolumeAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolumeAttributeRequest
 type ModifyVolumeAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -38840,6 +40437,7 @@ func (s *ModifyVolumeAttributeInput) SetVolumeId(v string) *ModifyVolumeAttribut
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolumeAttributeOutput
 type ModifyVolumeAttributeOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -38854,7 +40452,122 @@ func (s ModifyVolumeAttributeOutput) GoString() string {
 	return s.String()
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolumeRequest
+type ModifyVolumeInput struct {
+	_ struct{} `type:"structure"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// Target IOPS rate of the volume to be modified.
+	//
+	// Only valid for Provisioned IOPS SSD (io1) volumes. For more information about
+	// io1 IOPS configuration, see http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html#EBSVolumeTypes_piops
+	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html#EBSVolumeTypes_piops).
+	Iops *int64 `type:"integer"`
+
+	// Target size in GiB of the volume to be modified. Target volume size must
+	// be greater than or equal to than the existing size of the volume. For information
+	// about available EBS volume sizes, see http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html
+	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html).
+	//
+	// Default: If no size is specified, the existing size is retained.
+	Size *int64 `type:"integer"`
+
+	// VolumeId is a required field
+	VolumeId *string `type:"string" required:"true"`
+
+	// Target EBS volume type of the volume to be modified
+	//
+	// Valid values are io1 | gp2 | sc1 | st1
+	//
+	// The API does not support modifications for volume type standard. You also
+	// cannot change the type of a volume to standard.
+	VolumeType *string `type:"string" enum:"VolumeType"`
+}
+
+// String returns the string representation
+func (s ModifyVolumeInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyVolumeInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyVolumeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyVolumeInput"}
+	if s.VolumeId == nil {
+		invalidParams.Add(request.NewErrParamRequired("VolumeId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *ModifyVolumeInput) SetDryRun(v bool) *ModifyVolumeInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetIops sets the Iops field's value.
+func (s *ModifyVolumeInput) SetIops(v int64) *ModifyVolumeInput {
+	s.Iops = &v
+	return s
+}
+
+// SetSize sets the Size field's value.
+func (s *ModifyVolumeInput) SetSize(v int64) *ModifyVolumeInput {
+	s.Size = &v
+	return s
+}
+
+// SetVolumeId sets the VolumeId field's value.
+func (s *ModifyVolumeInput) SetVolumeId(v string) *ModifyVolumeInput {
+	s.VolumeId = &v
+	return s
+}
+
+// SetVolumeType sets the VolumeType field's value.
+func (s *ModifyVolumeInput) SetVolumeType(v string) *ModifyVolumeInput {
+	s.VolumeType = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolumeResult
+type ModifyVolumeOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A VolumeModification object.
+	VolumeModification *VolumeModification `locationName:"volumeModification" type:"structure"`
+}
+
+// String returns the string representation
+func (s ModifyVolumeOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyVolumeOutput) GoString() string {
+	return s.String()
+}
+
+// SetVolumeModification sets the VolumeModification field's value.
+func (s *ModifyVolumeOutput) SetVolumeModification(v *VolumeModification) *ModifyVolumeOutput {
+	s.VolumeModification = v
+	return s
+}
+
 // Contains the parameters for ModifyVpcAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVpcAttributeRequest
 type ModifyVpcAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -38923,6 +40636,7 @@ func (s *ModifyVpcAttributeInput) SetVpcId(v string) *ModifyVpcAttributeInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVpcAttributeOutput
 type ModifyVpcAttributeOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -38938,6 +40652,7 @@ func (s ModifyVpcAttributeOutput) GoString() string {
 }
 
 // Contains the parameters for ModifyVpcEndpoint.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVpcEndpointRequest
 type ModifyVpcEndpointInput struct {
 	_ struct{} `type:"structure"`
 
@@ -39027,6 +40742,7 @@ func (s *ModifyVpcEndpointInput) SetVpcEndpointId(v string) *ModifyVpcEndpointIn
 }
 
 // Contains the output of ModifyVpcEndpoint.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVpcEndpointResult
 type ModifyVpcEndpointOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -39050,6 +40766,7 @@ func (s *ModifyVpcEndpointOutput) SetReturn(v bool) *ModifyVpcEndpointOutput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVpcPeeringConnectionOptionsRequest
 type ModifyVpcPeeringConnectionOptionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -39118,6 +40835,7 @@ func (s *ModifyVpcPeeringConnectionOptionsInput) SetVpcPeeringConnectionId(v str
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVpcPeeringConnectionOptionsResult
 type ModifyVpcPeeringConnectionOptionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -39151,6 +40869,7 @@ func (s *ModifyVpcPeeringConnectionOptionsOutput) SetRequesterPeeringConnectionO
 }
 
 // Contains the parameters for MonitorInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/MonitorInstancesRequest
 type MonitorInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -39202,6 +40921,7 @@ func (s *MonitorInstancesInput) SetInstanceIds(v []*string) *MonitorInstancesInp
 }
 
 // Contains the output of MonitorInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/MonitorInstancesResult
 type MonitorInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -39226,6 +40946,7 @@ func (s *MonitorInstancesOutput) SetInstanceMonitorings(v []*InstanceMonitoring)
 }
 
 // Describes the monitoring of an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Monitoring
 type Monitoring struct {
 	_ struct{} `type:"structure"`
 
@@ -39251,6 +40972,7 @@ func (s *Monitoring) SetState(v string) *Monitoring {
 }
 
 // Contains the parameters for MoveAddressToVpc.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/MoveAddressToVpcRequest
 type MoveAddressToVpcInput struct {
 	_ struct{} `type:"structure"`
 
@@ -39302,6 +41024,7 @@ func (s *MoveAddressToVpcInput) SetPublicIp(v string) *MoveAddressToVpcInput {
 }
 
 // Contains the output of MoveAddressToVpc.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/MoveAddressToVpcResult
 type MoveAddressToVpcOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -39335,6 +41058,7 @@ func (s *MoveAddressToVpcOutput) SetStatus(v string) *MoveAddressToVpcOutput {
 }
 
 // Describes the status of a moving Elastic IP address.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/MovingAddressStatus
 type MovingAddressStatus struct {
 	_ struct{} `type:"structure"`
 
@@ -39369,6 +41093,7 @@ func (s *MovingAddressStatus) SetPublicIp(v string) *MovingAddressStatus {
 }
 
 // Describes a NAT gateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/NatGateway
 type NatGateway struct {
 	_ struct{} `type:"structure"`
 
@@ -39514,6 +41239,7 @@ func (s *NatGateway) SetVpcId(v string) *NatGateway {
 }
 
 // Describes the IP addresses and network interface associated with a NAT gateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/NatGatewayAddress
 type NatGatewayAddress struct {
 	_ struct{} `type:"structure"`
 
@@ -39566,6 +41292,7 @@ func (s *NatGatewayAddress) SetPublicIp(v string) *NatGatewayAddress {
 }
 
 // Describes a network ACL.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/NetworkAcl
 type NetworkAcl struct {
 	_ struct{} `type:"structure"`
 
@@ -39635,6 +41362,7 @@ func (s *NetworkAcl) SetVpcId(v string) *NetworkAcl {
 }
 
 // Describes an association between a network ACL and a subnet.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/NetworkAclAssociation
 type NetworkAclAssociation struct {
 	_ struct{} `type:"structure"`
 
@@ -39677,6 +41405,7 @@ func (s *NetworkAclAssociation) SetSubnetId(v string) *NetworkAclAssociation {
 }
 
 // Describes an entry in a network ACL.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/NetworkAclEntry
 type NetworkAclEntry struct {
 	_ struct{} `type:"structure"`
 
@@ -39766,6 +41495,7 @@ func (s *NetworkAclEntry) SetRuleNumber(v int64) *NetworkAclEntry {
 }
 
 // Describes a network interface.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/NetworkInterface
 type NetworkInterface struct {
 	_ struct{} `type:"structure"`
 
@@ -39963,6 +41693,7 @@ func (s *NetworkInterface) SetVpcId(v string) *NetworkInterface {
 }
 
 // Describes association information for an Elastic IP address (IPv4 only).
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/NetworkInterfaceAssociation
 type NetworkInterfaceAssociation struct {
 	_ struct{} `type:"structure"`
 
@@ -40023,6 +41754,7 @@ func (s *NetworkInterfaceAssociation) SetPublicIp(v string) *NetworkInterfaceAss
 }
 
 // Describes a network interface attachment.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/NetworkInterfaceAttachment
 type NetworkInterfaceAttachment struct {
 	_ struct{} `type:"structure"`
 
@@ -40101,6 +41833,7 @@ func (s *NetworkInterfaceAttachment) SetStatus(v string) *NetworkInterfaceAttach
 }
 
 // Describes an attachment change.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/NetworkInterfaceAttachmentChanges
 type NetworkInterfaceAttachmentChanges struct {
 	_ struct{} `type:"structure"`
 
@@ -40134,6 +41867,7 @@ func (s *NetworkInterfaceAttachmentChanges) SetDeleteOnTermination(v bool) *Netw
 }
 
 // Describes an IPv6 address associated with a network interface.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/NetworkInterfaceIpv6Address
 type NetworkInterfaceIpv6Address struct {
 	_ struct{} `type:"structure"`
 
@@ -40158,6 +41892,7 @@ func (s *NetworkInterfaceIpv6Address) SetIpv6Address(v string) *NetworkInterface
 }
 
 // Describes the private IPv4 address of a network interface.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/NetworkInterfacePrivateIpAddress
 type NetworkInterfacePrivateIpAddress struct {
 	_ struct{} `type:"structure"`
 
@@ -40210,6 +41945,7 @@ func (s *NetworkInterfacePrivateIpAddress) SetPrivateIpAddress(v string) *Networ
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/NewDhcpConfiguration
 type NewDhcpConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -40241,6 +41977,7 @@ func (s *NewDhcpConfiguration) SetValues(v []*string) *NewDhcpConfiguration {
 }
 
 // Describes the VPC peering connection options.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PeeringConnectionOptions
 type PeeringConnectionOptions struct {
 	_ struct{} `type:"structure"`
 
@@ -40286,6 +42023,7 @@ func (s *PeeringConnectionOptions) SetAllowEgressFromLocalVpcToRemoteClassicLink
 }
 
 // The VPC peering connection options.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PeeringConnectionOptionsRequest
 type PeeringConnectionOptionsRequest struct {
 	_ struct{} `type:"structure"`
 
@@ -40331,6 +42069,7 @@ func (s *PeeringConnectionOptionsRequest) SetAllowEgressFromLocalVpcToRemoteClas
 }
 
 // Describes the placement of an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Placement
 type Placement struct {
 	_ struct{} `type:"structure"`
 
@@ -40344,8 +42083,8 @@ type Placement struct {
 	// The name of the placement group the instance is in (for cluster compute instances).
 	GroupName *string `locationName:"groupName" type:"string"`
 
-	// The ID of the Dedicted host on which the instance resides. This parameter
-	// is not support for the ImportInstance command.
+	// The ID of the Dedicated Host on which the instance resides. This parameter
+	// is not supported for the ImportInstance command.
 	HostId *string `locationName:"hostId" type:"string"`
 
 	// The tenancy of the instance (if the instance is running in a VPC). An instance
@@ -40395,6 +42134,7 @@ func (s *Placement) SetTenancy(v string) *Placement {
 }
 
 // Describes a placement group.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PlacementGroup
 type PlacementGroup struct {
 	_ struct{} `type:"structure"`
 
@@ -40437,6 +42177,7 @@ func (s *PlacementGroup) SetStrategy(v string) *PlacementGroup {
 }
 
 // Describes a range of ports.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PortRange
 type PortRange struct {
 	_ struct{} `type:"structure"`
 
@@ -40470,6 +42211,7 @@ func (s *PortRange) SetTo(v int64) *PortRange {
 }
 
 // Describes prefixes for AWS services.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PrefixList
 type PrefixList struct {
 	_ struct{} `type:"structure"`
 
@@ -40512,6 +42254,7 @@ func (s *PrefixList) SetPrefixListName(v string) *PrefixList {
 }
 
 // The ID of the prefix.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PrefixListId
 type PrefixListId struct {
 	_ struct{} `type:"structure"`
 
@@ -40536,6 +42279,7 @@ func (s *PrefixListId) SetPrefixListId(v string) *PrefixListId {
 }
 
 // Describes the price for a Reserved Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PriceSchedule
 type PriceSchedule struct {
 	_ struct{} `type:"structure"`
 
@@ -40598,6 +42342,7 @@ func (s *PriceSchedule) SetTerm(v int64) *PriceSchedule {
 }
 
 // Describes the price for a Reserved Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PriceScheduleSpecification
 type PriceScheduleSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -40642,6 +42387,7 @@ func (s *PriceScheduleSpecification) SetTerm(v int64) *PriceScheduleSpecificatio
 }
 
 // Describes a Reserved Instance offering.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PricingDetail
 type PricingDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -40675,6 +42421,7 @@ func (s *PricingDetail) SetPrice(v float64) *PricingDetail {
 }
 
 // Describes a secondary private IPv4 address for a network interface.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PrivateIpAddressSpecification
 type PrivateIpAddressSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -40724,6 +42471,7 @@ func (s *PrivateIpAddressSpecification) SetPrivateIpAddress(v string) *PrivateIp
 }
 
 // Describes a product code.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ProductCode
 type ProductCode struct {
 	_ struct{} `type:"structure"`
 
@@ -40757,6 +42505,7 @@ func (s *ProductCode) SetProductCodeType(v string) *ProductCode {
 }
 
 // Describes a virtual private gateway propagating route.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PropagatingVgw
 type PropagatingVgw struct {
 	_ struct{} `type:"structure"`
 
@@ -40783,6 +42532,7 @@ func (s *PropagatingVgw) SetGatewayId(v string) *PropagatingVgw {
 // Reserved. If you need to sustain traffic greater than the documented limits
 // (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/vpc-nat-gateway.html),
 // contact us through the Support Center (https://console.aws.amazon.com/support/home?).
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ProvisionedBandwidth
 type ProvisionedBandwidth struct {
 	_ struct{} `type:"structure"`
 
@@ -40853,6 +42603,7 @@ func (s *ProvisionedBandwidth) SetStatus(v string) *ProvisionedBandwidth {
 }
 
 // Describes the result of the purchase.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Purchase
 type Purchase struct {
 	_ struct{} `type:"structure"`
 
@@ -40941,6 +42692,7 @@ func (s *Purchase) SetUpfrontPrice(v string) *Purchase {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PurchaseHostReservationRequest
 type PurchaseHostReservationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -41030,6 +42782,7 @@ func (s *PurchaseHostReservationInput) SetOfferingId(v string) *PurchaseHostRese
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PurchaseHostReservationResult
 type PurchaseHostReservationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -41094,6 +42847,7 @@ func (s *PurchaseHostReservationOutput) SetTotalUpfrontPrice(v string) *Purchase
 }
 
 // Describes a request to purchase Scheduled Instances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PurchaseRequest
 type PurchaseRequest struct {
 	_ struct{} `type:"structure"`
 
@@ -41147,6 +42901,7 @@ func (s *PurchaseRequest) SetPurchaseToken(v string) *PurchaseRequest {
 }
 
 // Contains the parameters for PurchaseReservedInstancesOffering.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PurchaseReservedInstancesOfferingRequest
 type PurchaseReservedInstancesOfferingInput struct {
 	_ struct{} `type:"structure"`
 
@@ -41223,6 +42978,7 @@ func (s *PurchaseReservedInstancesOfferingInput) SetReservedInstancesOfferingId(
 }
 
 // Contains the output of PurchaseReservedInstancesOffering.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PurchaseReservedInstancesOfferingResult
 type PurchaseReservedInstancesOfferingOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -41247,6 +43003,7 @@ func (s *PurchaseReservedInstancesOfferingOutput) SetReservedInstancesId(v strin
 }
 
 // Contains the parameters for PurchaseScheduledInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PurchaseScheduledInstancesRequest
 type PurchaseScheduledInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -41321,6 +43078,7 @@ func (s *PurchaseScheduledInstancesInput) SetPurchaseRequests(v []*PurchaseReque
 }
 
 // Contains the output of PurchaseScheduledInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/PurchaseScheduledInstancesResult
 type PurchaseScheduledInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -41345,6 +43103,7 @@ func (s *PurchaseScheduledInstancesOutput) SetScheduledInstanceSet(v []*Schedule
 }
 
 // Contains the parameters for RebootInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RebootInstancesRequest
 type RebootInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -41395,6 +43154,7 @@ func (s *RebootInstancesInput) SetInstanceIds(v []*string) *RebootInstancesInput
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RebootInstancesOutput
 type RebootInstancesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -41410,6 +43170,7 @@ func (s RebootInstancesOutput) GoString() string {
 }
 
 // Describes a recurring charge.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RecurringCharge
 type RecurringCharge struct {
 	_ struct{} `type:"structure"`
 
@@ -41443,6 +43204,7 @@ func (s *RecurringCharge) SetFrequency(v string) *RecurringCharge {
 }
 
 // Describes a region.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Region
 type Region struct {
 	_ struct{} `type:"structure"`
 
@@ -41476,6 +43238,7 @@ func (s *Region) SetRegionName(v string) *Region {
 }
 
 // Contains the parameters for RegisterImage.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RegisterImageRequest
 type RegisterImageInput struct {
 	_ struct{} `type:"structure"`
 
@@ -41637,6 +43400,7 @@ func (s *RegisterImageInput) SetVirtualizationType(v string) *RegisterImageInput
 }
 
 // Contains the output of RegisterImage.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RegisterImageResult
 type RegisterImageOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -41661,6 +43425,7 @@ func (s *RegisterImageOutput) SetImageId(v string) *RegisterImageOutput {
 }
 
 // Contains the parameters for RejectVpcPeeringConnection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RejectVpcPeeringConnectionRequest
 type RejectVpcPeeringConnectionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -41712,6 +43477,7 @@ func (s *RejectVpcPeeringConnectionInput) SetVpcPeeringConnectionId(v string) *R
 }
 
 // Contains the output of RejectVpcPeeringConnection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RejectVpcPeeringConnectionResult
 type RejectVpcPeeringConnectionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -41736,6 +43502,7 @@ func (s *RejectVpcPeeringConnectionOutput) SetReturn(v bool) *RejectVpcPeeringCo
 }
 
 // Contains the parameters for ReleaseAddress.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReleaseAddressRequest
 type ReleaseAddressInput struct {
 	_ struct{} `type:"structure"`
 
@@ -41780,6 +43547,7 @@ func (s *ReleaseAddressInput) SetPublicIp(v string) *ReleaseAddressInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReleaseAddressOutput
 type ReleaseAddressOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -41795,6 +43563,7 @@ func (s ReleaseAddressOutput) GoString() string {
 }
 
 // Contains the parameters for ReleaseHosts.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReleaseHostsRequest
 type ReleaseHostsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -41834,6 +43603,7 @@ func (s *ReleaseHostsInput) SetHostIds(v []*string) *ReleaseHostsInput {
 }
 
 // Contains the output of ReleaseHosts.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReleaseHostsResult
 type ReleaseHostsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -41867,7 +43637,85 @@ func (s *ReleaseHostsOutput) SetUnsuccessful(v []*UnsuccessfulItem) *ReleaseHost
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociationRequest
+type ReplaceIamInstanceProfileAssociationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the existing IAM instance profile association.
+	//
+	// AssociationId is a required field
+	AssociationId *string `type:"string" required:"true"`
+
+	// The IAM instance profile.
+	//
+	// IamInstanceProfile is a required field
+	IamInstanceProfile *IamInstanceProfileSpecification `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s ReplaceIamInstanceProfileAssociationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReplaceIamInstanceProfileAssociationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ReplaceIamInstanceProfileAssociationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ReplaceIamInstanceProfileAssociationInput"}
+	if s.AssociationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
+	}
+	if s.IamInstanceProfile == nil {
+		invalidParams.Add(request.NewErrParamRequired("IamInstanceProfile"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *ReplaceIamInstanceProfileAssociationInput) SetAssociationId(v string) *ReplaceIamInstanceProfileAssociationInput {
+	s.AssociationId = &v
+	return s
+}
+
+// SetIamInstanceProfile sets the IamInstanceProfile field's value.
+func (s *ReplaceIamInstanceProfileAssociationInput) SetIamInstanceProfile(v *IamInstanceProfileSpecification) *ReplaceIamInstanceProfileAssociationInput {
+	s.IamInstanceProfile = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociationResult
+type ReplaceIamInstanceProfileAssociationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IAM instance profile association.
+	IamInstanceProfileAssociation *IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociation" type:"structure"`
+}
+
+// String returns the string representation
+func (s ReplaceIamInstanceProfileAssociationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReplaceIamInstanceProfileAssociationOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociation sets the IamInstanceProfileAssociation field's value.
+func (s *ReplaceIamInstanceProfileAssociationOutput) SetIamInstanceProfileAssociation(v *IamInstanceProfileAssociation) *ReplaceIamInstanceProfileAssociationOutput {
+	s.IamInstanceProfileAssociation = v
+	return s
+}
+
 // Contains the parameters for ReplaceNetworkAclAssociation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceNetworkAclAssociationRequest
 type ReplaceNetworkAclAssociationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -41934,6 +43782,7 @@ func (s *ReplaceNetworkAclAssociationInput) SetNetworkAclId(v string) *ReplaceNe
 }
 
 // Contains the output of ReplaceNetworkAclAssociation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceNetworkAclAssociationResult
 type ReplaceNetworkAclAssociationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -41958,6 +43807,7 @@ func (s *ReplaceNetworkAclAssociationOutput) SetNewAssociationId(v string) *Repl
 }
 
 // Contains the parameters for ReplaceNetworkAclEntry.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceNetworkAclEntryRequest
 type ReplaceNetworkAclEntryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -42110,6 +43960,7 @@ func (s *ReplaceNetworkAclEntryInput) SetRuleNumber(v int64) *ReplaceNetworkAclE
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceNetworkAclEntryOutput
 type ReplaceNetworkAclEntryOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -42125,6 +43976,7 @@ func (s ReplaceNetworkAclEntryOutput) GoString() string {
 }
 
 // Contains the parameters for ReplaceRoute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceRouteRequest
 type ReplaceRouteInput struct {
 	_ struct{} `type:"structure"`
 
@@ -42249,6 +44101,7 @@ func (s *ReplaceRouteInput) SetVpcPeeringConnectionId(v string) *ReplaceRouteInp
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceRouteOutput
 type ReplaceRouteOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -42264,6 +44117,7 @@ func (s ReplaceRouteOutput) GoString() string {
 }
 
 // Contains the parameters for ReplaceRouteTableAssociation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceRouteTableAssociationRequest
 type ReplaceRouteTableAssociationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -42329,6 +44183,7 @@ func (s *ReplaceRouteTableAssociationInput) SetRouteTableId(v string) *ReplaceRo
 }
 
 // Contains the output of ReplaceRouteTableAssociation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceRouteTableAssociationResult
 type ReplaceRouteTableAssociationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -42353,6 +44208,7 @@ func (s *ReplaceRouteTableAssociationOutput) SetNewAssociationId(v string) *Repl
 }
 
 // Contains the parameters for ReportInstanceStatus.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReportInstanceStatusRequest
 type ReportInstanceStatusInput struct {
 	_ struct{} `type:"structure"`
 
@@ -42479,6 +44335,7 @@ func (s *ReportInstanceStatusInput) SetStatus(v string) *ReportInstanceStatusInp
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReportInstanceStatusOutput
 type ReportInstanceStatusOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -42494,6 +44351,7 @@ func (s ReportInstanceStatusOutput) GoString() string {
 }
 
 // Contains the parameters for RequestSpotFleet.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RequestSpotFleetRequest
 type RequestSpotFleetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -42550,6 +44408,7 @@ func (s *RequestSpotFleetInput) SetSpotFleetRequestConfig(v *SpotFleetRequestCon
 }
 
 // Contains the output of RequestSpotFleet.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RequestSpotFleetResponse
 type RequestSpotFleetOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -42576,6 +44435,7 @@ func (s *RequestSpotFleetOutput) SetSpotFleetRequestId(v string) *RequestSpotFle
 }
 
 // Contains the parameters for RequestSpotInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RequestSpotInstancesRequest
 type RequestSpotInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -42762,6 +44622,7 @@ func (s *RequestSpotInstancesInput) SetValidUntil(v time.Time) *RequestSpotInsta
 }
 
 // Contains the output of RequestSpotInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RequestSpotInstancesResult
 type RequestSpotInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -42786,6 +44647,7 @@ func (s *RequestSpotInstancesOutput) SetSpotInstanceRequests(v []*SpotInstanceRe
 }
 
 // Describes the launch specification for an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RequestSpotLaunchSpecification
 type RequestSpotLaunchSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -42980,6 +44842,7 @@ func (s *RequestSpotLaunchSpecification) SetUserData(v string) *RequestSpotLaunc
 }
 
 // Describes a reservation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Reservation
 type Reservation struct {
 	_ struct{} `type:"structure"`
 
@@ -43041,6 +44904,7 @@ func (s *Reservation) SetReservationId(v string) *Reservation {
 }
 
 // The cost associated with the Reserved Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReservationValue
 type ReservationValue struct {
 	_ struct{} `type:"structure"`
 
@@ -43084,6 +44948,7 @@ func (s *ReservationValue) SetRemainingUpfrontValue(v string) *ReservationValue 
 }
 
 // Describes the limit price of a Reserved Instance offering.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReservedInstanceLimitPrice
 type ReservedInstanceLimitPrice struct {
 	_ struct{} `type:"structure"`
 
@@ -43119,6 +44984,7 @@ func (s *ReservedInstanceLimitPrice) SetCurrencyCode(v string) *ReservedInstance
 }
 
 // The total value of the Convertible Reserved Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReservedInstanceReservationValue
 type ReservedInstanceReservationValue struct {
 	_ struct{} `type:"structure"`
 
@@ -43152,6 +45018,7 @@ func (s *ReservedInstanceReservationValue) SetReservedInstanceId(v string) *Rese
 }
 
 // Describes a Reserved Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReservedInstances
 type ReservedInstances struct {
 	_ struct{} `type:"structure"`
 
@@ -43330,6 +45197,7 @@ func (s *ReservedInstances) SetUsagePrice(v float64) *ReservedInstances {
 }
 
 // Describes the configuration settings for the modified Reserved Instances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReservedInstancesConfiguration
 type ReservedInstancesConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -43392,6 +45260,7 @@ func (s *ReservedInstancesConfiguration) SetScope(v string) *ReservedInstancesCo
 }
 
 // Describes the ID of a Reserved Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReservedInstancesId
 type ReservedInstancesId struct {
 	_ struct{} `type:"structure"`
 
@@ -43416,6 +45285,7 @@ func (s *ReservedInstancesId) SetReservedInstancesId(v string) *ReservedInstance
 }
 
 // Describes a Reserved Instance listing.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReservedInstancesListing
 type ReservedInstancesListing struct {
 	_ struct{} `type:"structure"`
 
@@ -43523,6 +45393,7 @@ func (s *ReservedInstancesListing) SetUpdateDate(v time.Time) *ReservedInstances
 }
 
 // Describes a Reserved Instance modification.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReservedInstancesModification
 type ReservedInstancesModification struct {
 	_ struct{} `type:"structure"`
 
@@ -43621,6 +45492,7 @@ func (s *ReservedInstancesModification) SetUpdateDate(v time.Time) *ReservedInst
 }
 
 // Describes the modification request/s.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReservedInstancesModificationResult
 type ReservedInstancesModificationResult struct {
 	_ struct{} `type:"structure"`
 
@@ -43656,6 +45528,7 @@ func (s *ReservedInstancesModificationResult) SetTargetConfiguration(v *Reserved
 }
 
 // Describes a Reserved Instance offering.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReservedInstancesOffering
 type ReservedInstancesOffering struct {
 	_ struct{} `type:"structure"`
 
@@ -43814,6 +45687,7 @@ func (s *ReservedInstancesOffering) SetUsagePrice(v float64) *ReservedInstancesO
 }
 
 // Contains the parameters for ResetImageAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetImageAttributeRequest
 type ResetImageAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -43879,6 +45753,7 @@ func (s *ResetImageAttributeInput) SetImageId(v string) *ResetImageAttributeInpu
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetImageAttributeOutput
 type ResetImageAttributeOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -43894,6 +45769,7 @@ func (s ResetImageAttributeOutput) GoString() string {
 }
 
 // Contains the parameters for ResetInstanceAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetInstanceAttributeRequest
 type ResetInstanceAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -43961,6 +45837,7 @@ func (s *ResetInstanceAttributeInput) SetInstanceId(v string) *ResetInstanceAttr
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetInstanceAttributeOutput
 type ResetInstanceAttributeOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -43976,6 +45853,7 @@ func (s ResetInstanceAttributeOutput) GoString() string {
 }
 
 // Contains the parameters for ResetNetworkInterfaceAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetNetworkInterfaceAttributeRequest
 type ResetNetworkInterfaceAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -44035,6 +45913,7 @@ func (s *ResetNetworkInterfaceAttributeInput) SetSourceDestCheck(v string) *Rese
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetNetworkInterfaceAttributeOutput
 type ResetNetworkInterfaceAttributeOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -44050,6 +45929,7 @@ func (s ResetNetworkInterfaceAttributeOutput) GoString() string {
 }
 
 // Contains the parameters for ResetSnapshotAttribute.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetSnapshotAttributeRequest
 type ResetSnapshotAttributeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -44115,6 +45995,7 @@ func (s *ResetSnapshotAttributeInput) SetSnapshotId(v string) *ResetSnapshotAttr
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ResetSnapshotAttributeOutput
 type ResetSnapshotAttributeOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -44130,6 +46011,7 @@ func (s ResetSnapshotAttributeOutput) GoString() string {
 }
 
 // Contains the parameters for RestoreAddressToClassic.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RestoreAddressToClassicRequest
 type RestoreAddressToClassicInput struct {
 	_ struct{} `type:"structure"`
 
@@ -44181,6 +46063,7 @@ func (s *RestoreAddressToClassicInput) SetPublicIp(v string) *RestoreAddressToCl
 }
 
 // Contains the output of RestoreAddressToClassic.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RestoreAddressToClassicResult
 type RestoreAddressToClassicOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -44214,6 +46097,7 @@ func (s *RestoreAddressToClassicOutput) SetStatus(v string) *RestoreAddressToCla
 }
 
 // Contains the parameters for RevokeSecurityGroupEgress.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RevokeSecurityGroupEgressRequest
 type RevokeSecurityGroupEgressInput struct {
 	_ struct{} `type:"structure"`
 
@@ -44336,6 +46220,7 @@ func (s *RevokeSecurityGroupEgressInput) SetToPort(v int64) *RevokeSecurityGroup
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RevokeSecurityGroupEgressOutput
 type RevokeSecurityGroupEgressOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -44351,6 +46236,7 @@ func (s RevokeSecurityGroupEgressOutput) GoString() string {
 }
 
 // Contains the parameters for RevokeSecurityGroupIngress.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RevokeSecurityGroupIngressRequest
 type RevokeSecurityGroupIngressInput struct {
 	_ struct{} `type:"structure"`
 
@@ -44474,6 +46360,7 @@ func (s *RevokeSecurityGroupIngressInput) SetToPort(v int64) *RevokeSecurityGrou
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RevokeSecurityGroupIngressOutput
 type RevokeSecurityGroupIngressOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -44489,6 +46376,7 @@ func (s RevokeSecurityGroupIngressOutput) GoString() string {
 }
 
 // Describes a route in a route table.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Route
 type Route struct {
 	_ struct{} `type:"structure"`
 
@@ -44621,6 +46509,7 @@ func (s *Route) SetVpcPeeringConnectionId(v string) *Route {
 }
 
 // Describes a route table.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RouteTable
 type RouteTable struct {
 	_ struct{} `type:"structure"`
 
@@ -44690,6 +46579,7 @@ func (s *RouteTable) SetVpcId(v string) *RouteTable {
 }
 
 // Describes an association between a route table and a subnet.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RouteTableAssociation
 type RouteTableAssociation struct {
 	_ struct{} `type:"structure"`
 
@@ -44741,6 +46631,7 @@ func (s *RouteTableAssociation) SetSubnetId(v string) *RouteTableAssociation {
 }
 
 // Contains the parameters for RunInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RunInstancesRequest
 type RunInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -45101,6 +46992,7 @@ func (s *RunInstancesInput) SetUserData(v string) *RunInstancesInput {
 }
 
 // Describes the monitoring of an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RunInstancesMonitoringEnabled
 type RunInstancesMonitoringEnabled struct {
 	_ struct{} `type:"structure"`
 
@@ -45141,6 +47033,7 @@ func (s *RunInstancesMonitoringEnabled) SetEnabled(v bool) *RunInstancesMonitori
 }
 
 // Contains the parameters for RunScheduledInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RunScheduledInstancesRequest
 type RunScheduledInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -45233,6 +47126,7 @@ func (s *RunScheduledInstancesInput) SetScheduledInstanceId(v string) *RunSchedu
 }
 
 // Contains the output of RunScheduledInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/RunScheduledInstancesResult
 type RunScheduledInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -45258,6 +47152,7 @@ func (s *RunScheduledInstancesOutput) SetInstanceIdSet(v []*string) *RunSchedule
 
 // Describes the storage parameters for S3 and S3 buckets for an instance store-backed
 // AMI.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/S3Storage
 type S3Storage struct {
 	_ struct{} `type:"structure"`
 
@@ -45325,6 +47220,7 @@ func (s *S3Storage) SetUploadPolicySignature(v string) *S3Storage {
 }
 
 // Describes a Scheduled Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ScheduledInstance
 type ScheduledInstance struct {
 	_ struct{} `type:"structure"`
 
@@ -45475,6 +47371,7 @@ func (s *ScheduledInstance) SetTotalScheduledInstanceHours(v int64) *ScheduledIn
 }
 
 // Describes a schedule that is available for your Scheduled Instances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ScheduledInstanceAvailability
 type ScheduledInstanceAvailability struct {
 	_ struct{} `type:"structure"`
 
@@ -45608,6 +47505,7 @@ func (s *ScheduledInstanceAvailability) SetTotalScheduledInstanceHours(v int64) 
 }
 
 // Describes the recurring schedule for a Scheduled Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ScheduledInstanceRecurrence
 type ScheduledInstanceRecurrence struct {
 	_ struct{} `type:"structure"`
 
@@ -45672,6 +47570,7 @@ func (s *ScheduledInstanceRecurrence) SetOccurrenceUnit(v string) *ScheduledInst
 }
 
 // Describes the recurring schedule for a Scheduled Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ScheduledInstanceRecurrenceRequest
 type ScheduledInstanceRecurrenceRequest struct {
 	_ struct{} `type:"structure"`
 
@@ -45739,6 +47638,7 @@ func (s *ScheduledInstanceRecurrenceRequest) SetOccurrenceUnit(v string) *Schedu
 }
 
 // Describes a block device mapping for a Scheduled Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ScheduledInstancesBlockDeviceMapping
 type ScheduledInstancesBlockDeviceMapping struct {
 	_ struct{} `type:"structure"`
 
@@ -45801,6 +47701,7 @@ func (s *ScheduledInstancesBlockDeviceMapping) SetVirtualName(v string) *Schedul
 }
 
 // Describes an EBS volume for a Scheduled Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ScheduledInstancesEbs
 type ScheduledInstancesEbs struct {
 	_ struct{} `type:"structure"`
 
@@ -45889,6 +47790,7 @@ func (s *ScheduledInstancesEbs) SetVolumeType(v string) *ScheduledInstancesEbs {
 }
 
 // Describes an IAM instance profile for a Scheduled Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ScheduledInstancesIamInstanceProfile
 type ScheduledInstancesIamInstanceProfile struct {
 	_ struct{} `type:"structure"`
 
@@ -45922,6 +47824,7 @@ func (s *ScheduledInstancesIamInstanceProfile) SetName(v string) *ScheduledInsta
 }
 
 // Describes an IPv6 address.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ScheduledInstancesIpv6Address
 type ScheduledInstancesIpv6Address struct {
 	_ struct{} `type:"structure"`
 
@@ -45950,6 +47853,7 @@ func (s *ScheduledInstancesIpv6Address) SetIpv6Address(v string) *ScheduledInsta
 // If you are launching the Scheduled Instance in EC2-VPC, you must specify
 // the ID of the subnet. You can specify the subnet using either SubnetId or
 // NetworkInterface.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ScheduledInstancesLaunchSpecification
 type ScheduledInstancesLaunchSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -46112,6 +48016,7 @@ func (s *ScheduledInstancesLaunchSpecification) SetUserData(v string) *Scheduled
 }
 
 // Describes whether monitoring is enabled for a Scheduled Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ScheduledInstancesMonitoring
 type ScheduledInstancesMonitoring struct {
 	_ struct{} `type:"structure"`
 
@@ -46136,6 +48041,7 @@ func (s *ScheduledInstancesMonitoring) SetEnabled(v bool) *ScheduledInstancesMon
 }
 
 // Describes a network interface for a Scheduled Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ScheduledInstancesNetworkInterface
 type ScheduledInstancesNetworkInterface struct {
 	_ struct{} `type:"structure"`
 
@@ -46264,6 +48170,7 @@ func (s *ScheduledInstancesNetworkInterface) SetSubnetId(v string) *ScheduledIns
 }
 
 // Describes the placement for a Scheduled Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ScheduledInstancesPlacement
 type ScheduledInstancesPlacement struct {
 	_ struct{} `type:"structure"`
 
@@ -46297,6 +48204,7 @@ func (s *ScheduledInstancesPlacement) SetGroupName(v string) *ScheduledInstances
 }
 
 // Describes a private IPv4 address for a Scheduled Instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ScheduledInstancesPrivateIpAddressConfig
 type ScheduledInstancesPrivateIpAddressConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -46331,6 +48239,7 @@ func (s *ScheduledInstancesPrivateIpAddressConfig) SetPrivateIpAddress(v string)
 }
 
 // Describes a security group
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SecurityGroup
 type SecurityGroup struct {
 	_ struct{} `type:"structure"`
 
@@ -46418,6 +48327,7 @@ func (s *SecurityGroup) SetVpcId(v string) *SecurityGroup {
 }
 
 // Describes a VPC with a security group that references your security group.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SecurityGroupReference
 type SecurityGroupReference struct {
 	_ struct{} `type:"structure"`
 
@@ -46465,6 +48375,7 @@ func (s *SecurityGroupReference) SetVpcPeeringConnectionId(v string) *SecurityGr
 
 // Describes the time period for a Scheduled Instance to start its first schedule.
 // The time period must span less than one day.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SlotDateTimeRangeRequest
 type SlotDateTimeRangeRequest struct {
 	_ struct{} `type:"structure"`
 
@@ -46520,6 +48431,7 @@ func (s *SlotDateTimeRangeRequest) SetLatestTime(v time.Time) *SlotDateTimeRange
 }
 
 // Describes the time period for a Scheduled Instance to start its first schedule.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SlotStartTimeRangeRequest
 type SlotStartTimeRangeRequest struct {
 	_ struct{} `type:"structure"`
 
@@ -46553,6 +48465,7 @@ func (s *SlotStartTimeRangeRequest) SetLatestTime(v time.Time) *SlotStartTimeRan
 }
 
 // Describes a snapshot.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Snapshot
 type Snapshot struct {
 	_ struct{} `type:"structure"`
 
@@ -46710,6 +48623,7 @@ func (s *Snapshot) SetVolumeSize(v int64) *Snapshot {
 }
 
 // Describes the snapshot created from the imported disk.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SnapshotDetail
 type SnapshotDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -46815,6 +48729,7 @@ func (s *SnapshotDetail) SetUserBucket(v *UserBucketDetails) *SnapshotDetail {
 }
 
 // The disk container object for the import snapshot request.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SnapshotDiskContainer
 type SnapshotDiskContainer struct {
 	_ struct{} `type:"structure"`
 
@@ -46869,6 +48784,7 @@ func (s *SnapshotDiskContainer) SetUserBucket(v *UserBucket) *SnapshotDiskContai
 }
 
 // Details about the import snapshot task.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SnapshotTaskDetail
 type SnapshotTaskDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -46965,6 +48881,7 @@ func (s *SnapshotTaskDetail) SetUserBucket(v *UserBucketDetails) *SnapshotTaskDe
 }
 
 // Describes the data feed for a Spot instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SpotDatafeedSubscription
 type SpotDatafeedSubscription struct {
 	_ struct{} `type:"structure"`
 
@@ -47025,6 +48942,7 @@ func (s *SpotDatafeedSubscription) SetState(v string) *SpotDatafeedSubscription 
 }
 
 // Describes the launch specification for one or more Spot instances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SpotFleetLaunchSpecification
 type SpotFleetLaunchSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -47234,6 +49152,7 @@ func (s *SpotFleetLaunchSpecification) SetWeightedCapacity(v float64) *SpotFleet
 }
 
 // Describes whether monitoring is enabled.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SpotFleetMonitoring
 type SpotFleetMonitoring struct {
 	_ struct{} `type:"structure"`
 
@@ -47260,6 +49179,7 @@ func (s *SpotFleetMonitoring) SetEnabled(v bool) *SpotFleetMonitoring {
 }
 
 // Describes a Spot fleet request.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SpotFleetRequestConfig
 type SpotFleetRequestConfig struct {
 	_ struct{} `type:"structure"`
 
@@ -47332,6 +49252,7 @@ func (s *SpotFleetRequestConfig) SetSpotFleetRequestState(v string) *SpotFleetRe
 }
 
 // Describes the configuration of a Spot fleet request.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SpotFleetRequestConfigData
 type SpotFleetRequestConfigData struct {
 	_ struct{} `type:"structure"`
 
@@ -47364,6 +49285,9 @@ type SpotFleetRequestConfigData struct {
 	//
 	// LaunchSpecifications is a required field
 	LaunchSpecifications []*SpotFleetLaunchSpecification `locationName:"launchSpecifications" locationNameList:"item" min:"1" type:"list" required:"true"`
+
+	// Indicates whether Spot fleet should replace unhealthy instances.
+	ReplaceUnhealthyInstances *bool `locationName:"replaceUnhealthyInstances" type:"boolean"`
 
 	// The bid price per unit hour.
 	//
@@ -47482,6 +49406,12 @@ func (s *SpotFleetRequestConfigData) SetLaunchSpecifications(v []*SpotFleetLaunc
 	return s
 }
 
+// SetReplaceUnhealthyInstances sets the ReplaceUnhealthyInstances field's value.
+func (s *SpotFleetRequestConfigData) SetReplaceUnhealthyInstances(v bool) *SpotFleetRequestConfigData {
+	s.ReplaceUnhealthyInstances = &v
+	return s
+}
+
 // SetSpotPrice sets the SpotPrice field's value.
 func (s *SpotFleetRequestConfigData) SetSpotPrice(v string) *SpotFleetRequestConfigData {
 	s.SpotPrice = &v
@@ -47519,6 +49449,7 @@ func (s *SpotFleetRequestConfigData) SetValidUntil(v time.Time) *SpotFleetReques
 }
 
 // Describes a Spot instance request.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SpotInstanceRequest
 type SpotInstanceRequest struct {
 	_ struct{} `type:"structure"`
 
@@ -47710,6 +49641,7 @@ func (s *SpotInstanceRequest) SetValidUntil(v time.Time) *SpotInstanceRequest {
 }
 
 // Describes a Spot instance state change.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SpotInstanceStateFault
 type SpotInstanceStateFault struct {
 	_ struct{} `type:"structure"`
 
@@ -47743,6 +49675,7 @@ func (s *SpotInstanceStateFault) SetMessage(v string) *SpotInstanceStateFault {
 }
 
 // Describes the status of a Spot instance request.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SpotInstanceStatus
 type SpotInstanceStatus struct {
 	_ struct{} `type:"structure"`
 
@@ -47787,6 +49720,7 @@ func (s *SpotInstanceStatus) SetUpdateTime(v time.Time) *SpotInstanceStatus {
 }
 
 // Describes Spot instance placement.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SpotPlacement
 type SpotPlacement struct {
 	_ struct{} `type:"structure"`
 
@@ -47798,6 +49732,11 @@ type SpotPlacement struct {
 
 	// The name of the placement group (for cluster instances).
 	GroupName *string `locationName:"groupName" type:"string"`
+
+	// The tenancy of the instance (if the instance is running in a VPC). An instance
+	// with a tenancy of dedicated runs on single-tenant hardware. The host tenancy
+	// is not supported for Spot instances.
+	Tenancy *string `locationName:"tenancy" type:"string" enum:"Tenancy"`
 }
 
 // String returns the string representation
@@ -47822,8 +49761,15 @@ func (s *SpotPlacement) SetGroupName(v string) *SpotPlacement {
 	return s
 }
 
+// SetTenancy sets the Tenancy field's value.
+func (s *SpotPlacement) SetTenancy(v string) *SpotPlacement {
+	s.Tenancy = &v
+	return s
+}
+
 // Describes the maximum hourly price (bid) for any Spot instance launched to
 // fulfill the request.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SpotPrice
 type SpotPrice struct {
 	_ struct{} `type:"structure"`
 
@@ -47884,6 +49830,7 @@ func (s *SpotPrice) SetTimestamp(v time.Time) *SpotPrice {
 }
 
 // Describes a stale rule in a security group.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/StaleIpPermission
 type StaleIpPermission struct {
 	_ struct{} `type:"structure"`
 
@@ -47958,6 +49905,7 @@ func (s *StaleIpPermission) SetUserIdGroupPairs(v []*UserIdGroupPair) *StaleIpPe
 }
 
 // Describes a stale security group (a security group that contains stale rules).
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/StaleSecurityGroup
 type StaleSecurityGroup struct {
 	_ struct{} `type:"structure"`
 
@@ -48029,6 +49977,7 @@ func (s *StaleSecurityGroup) SetVpcId(v string) *StaleSecurityGroup {
 }
 
 // Contains the parameters for StartInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/StartInstancesRequest
 type StartInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -48089,6 +50038,7 @@ func (s *StartInstancesInput) SetInstanceIds(v []*string) *StartInstancesInput {
 }
 
 // Contains the output of StartInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/StartInstancesResult
 type StartInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -48113,6 +50063,7 @@ func (s *StartInstancesOutput) SetStartingInstances(v []*InstanceStateChange) *S
 }
 
 // Describes a state change.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/StateReason
 type StateReason struct {
 	_ struct{} `type:"structure"`
 
@@ -48121,14 +50072,16 @@ type StateReason struct {
 
 	// The message for the state change.
 	//
-	//    * Server.SpotInstanceTermination: A Spot instance was terminated due to
-	//    an increase in the market price.
+	//    * Server.InsufficientInstanceCapacity: There was insufficient instance
+	//    capacity to satisfy the launch request.
 	//
 	//    * Server.InternalError: An internal error occurred during instance launch,
 	//    resulting in termination.
 	//
-	//    * Server.InsufficientInstanceCapacity: There was insufficient instance
-	//    capacity to satisfy the launch request.
+	//    * Server.ScheduledStop: The instance was stopped due to a scheduled retirement.
+	//
+	//    * Server.SpotInstanceTermination: A Spot instance was terminated due to
+	//    an increase in the market price.
 	//
 	//    * Client.InternalError: A client error caused the instance to terminate
 	//    on launch.
@@ -48170,6 +50123,7 @@ func (s *StateReason) SetMessage(v string) *StateReason {
 }
 
 // Contains the parameters for StopInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/StopInstancesRequest
 type StopInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -48235,6 +50189,7 @@ func (s *StopInstancesInput) SetInstanceIds(v []*string) *StopInstancesInput {
 }
 
 // Contains the output of StopInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/StopInstancesResult
 type StopInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -48259,6 +50214,7 @@ func (s *StopInstancesOutput) SetStoppingInstances(v []*InstanceStateChange) *St
 }
 
 // Describes the storage location for an instance store-backed AMI.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Storage
 type Storage struct {
 	_ struct{} `type:"structure"`
 
@@ -48283,6 +50239,7 @@ func (s *Storage) SetS3(v *S3Storage) *Storage {
 }
 
 // Describes a subnet.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Subnet
 type Subnet struct {
 	_ struct{} `type:"structure"`
 
@@ -48400,6 +50357,7 @@ func (s *Subnet) SetVpcId(v string) *Subnet {
 }
 
 // Describes the state of a CIDR block.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SubnetCidrBlockState
 type SubnetCidrBlockState struct {
 	_ struct{} `type:"structure"`
 
@@ -48433,6 +50391,7 @@ func (s *SubnetCidrBlockState) SetStatusMessage(v string) *SubnetCidrBlockState 
 }
 
 // Describes an IPv6 CIDR block associated with a subnet.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/SubnetIpv6CidrBlockAssociation
 type SubnetIpv6CidrBlockAssociation struct {
 	_ struct{} `type:"structure"`
 
@@ -48475,6 +50434,7 @@ func (s *SubnetIpv6CidrBlockAssociation) SetIpv6CidrBlockState(v *SubnetCidrBloc
 }
 
 // Describes a tag.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Tag
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -48514,6 +50474,7 @@ func (s *Tag) SetValue(v string) *Tag {
 }
 
 // Describes a tag.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/TagDescription
 type TagDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -48565,6 +50526,7 @@ func (s *TagDescription) SetValue(v string) *TagDescription {
 }
 
 // Information about the Convertible Reserved Instance offering.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/TargetConfiguration
 type TargetConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -48599,6 +50561,7 @@ func (s *TargetConfiguration) SetOfferingId(v string) *TargetConfiguration {
 }
 
 // Details about the target configuration.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/TargetConfigurationRequest
 type TargetConfigurationRequest struct {
 	_ struct{} `type:"structure"`
 
@@ -48648,6 +50611,7 @@ func (s *TargetConfigurationRequest) SetOfferingId(v string) *TargetConfiguratio
 }
 
 // The total value of the new Convertible Reserved Instances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/TargetReservationValue
 type TargetReservationValue struct {
 	_ struct{} `type:"structure"`
 
@@ -48684,6 +50648,7 @@ func (s *TargetReservationValue) SetTargetConfiguration(v *TargetConfiguration) 
 }
 
 // Contains the parameters for TerminateInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/TerminateInstancesRequest
 type TerminateInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -48738,6 +50703,7 @@ func (s *TerminateInstancesInput) SetInstanceIds(v []*string) *TerminateInstance
 }
 
 // Contains the output of TerminateInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/TerminateInstancesResult
 type TerminateInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -48761,6 +50727,7 @@ func (s *TerminateInstancesOutput) SetTerminatingInstances(v []*InstanceStateCha
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UnassignIpv6AddressesRequest
 type UnassignIpv6AddressesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -48813,6 +50780,7 @@ func (s *UnassignIpv6AddressesInput) SetNetworkInterfaceId(v string) *UnassignIp
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UnassignIpv6AddressesResult
 type UnassignIpv6AddressesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -48846,6 +50814,7 @@ func (s *UnassignIpv6AddressesOutput) SetUnassignedIpv6Addresses(v []*string) *U
 }
 
 // Contains the parameters for UnassignPrivateIpAddresses.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UnassignPrivateIpAddressesRequest
 type UnassignPrivateIpAddressesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -48899,6 +50868,7 @@ func (s *UnassignPrivateIpAddressesInput) SetPrivateIpAddresses(v []*string) *Un
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UnassignPrivateIpAddressesOutput
 type UnassignPrivateIpAddressesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -48914,6 +50884,7 @@ func (s UnassignPrivateIpAddressesOutput) GoString() string {
 }
 
 // Contains the parameters for UnmonitorInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UnmonitorInstancesRequest
 type UnmonitorInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -48965,6 +50936,7 @@ func (s *UnmonitorInstancesInput) SetInstanceIds(v []*string) *UnmonitorInstance
 }
 
 // Contains the output of UnmonitorInstances.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UnmonitorInstancesResult
 type UnmonitorInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -48989,6 +50961,7 @@ func (s *UnmonitorInstancesOutput) SetInstanceMonitorings(v []*InstanceMonitorin
 }
 
 // Information about items that were not successfully processed in a batch call.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UnsuccessfulItem
 type UnsuccessfulItem struct {
 	_ struct{} `type:"structure"`
 
@@ -49025,6 +50998,7 @@ func (s *UnsuccessfulItem) SetResourceId(v string) *UnsuccessfulItem {
 
 // Information about the error that occurred. For more information about errors,
 // see Error Codes (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/errors-overview.html).
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UnsuccessfulItemError
 type UnsuccessfulItemError struct {
 	_ struct{} `type:"structure"`
 
@@ -49062,6 +51036,7 @@ func (s *UnsuccessfulItemError) SetMessage(v string) *UnsuccessfulItemError {
 }
 
 // Describes the S3 bucket for the disk image.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UserBucket
 type UserBucket struct {
 	_ struct{} `type:"structure"`
 
@@ -49095,6 +51070,7 @@ func (s *UserBucket) SetS3Key(v string) *UserBucket {
 }
 
 // Describes the S3 bucket for the disk image.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UserBucketDetails
 type UserBucketDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -49128,6 +51104,7 @@ func (s *UserBucketDetails) SetS3Key(v string) *UserBucketDetails {
 }
 
 // Describes the user data for an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UserData
 type UserData struct {
 	_ struct{} `type:"structure"`
 
@@ -49154,6 +51131,7 @@ func (s *UserData) SetData(v string) *UserData {
 }
 
 // Describes a security group and AWS account ID pair.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/UserIdGroupPair
 type UserIdGroupPair struct {
 	_ struct{} `type:"structure"`
 
@@ -49229,6 +51207,7 @@ func (s *UserIdGroupPair) SetVpcPeeringConnectionId(v string) *UserIdGroupPair {
 }
 
 // Describes telemetry for a VPN tunnel.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VgwTelemetry
 type VgwTelemetry struct {
 	_ struct{} `type:"structure"`
 
@@ -49290,6 +51269,7 @@ func (s *VgwTelemetry) SetStatusMessage(v string) *VgwTelemetry {
 }
 
 // Describes a volume.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Volume
 type Volume struct {
 	_ struct{} `type:"structure"`
 
@@ -49428,6 +51408,7 @@ func (s *Volume) SetVolumeType(v string) *Volume {
 }
 
 // Describes volume attachment details.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VolumeAttachment
 type VolumeAttachment struct {
 	_ struct{} `type:"structure"`
 
@@ -49497,6 +51478,7 @@ func (s *VolumeAttachment) SetVolumeId(v string) *VolumeAttachment {
 }
 
 // Describes an EBS volume.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VolumeDetail
 type VolumeDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -49535,7 +51517,135 @@ func (s *VolumeDetail) SetSize(v int64) *VolumeDetail {
 	return s
 }
 
+// Describes the modification status of an EBS volume.
+//
+// If the volume has never been modified, some element values will be null.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VolumeModification
+type VolumeModification struct {
+	_ struct{} `type:"structure"`
+
+	// Modification completion or failure time.
+	EndTime *time.Time `locationName:"endTime" type:"timestamp" timestampFormat:"iso8601"`
+
+	// Current state of modification. Possible values are modifying | optimizing
+	// | complete | failed. Modification state is null for unmodified volumes.
+	ModificationState *string `locationName:"modificationState" type:"string" enum:"VolumeModificationState"`
+
+	// Original IOPS rate of the volume being modified.
+	OriginalIops *int64 `locationName:"originalIops" type:"integer"`
+
+	// Original size of the volume being modified.
+	OriginalSize *int64 `locationName:"originalSize" type:"integer"`
+
+	// Original EBS volume type of the volume being modified.
+	OriginalVolumeType *string `locationName:"originalVolumeType" type:"string" enum:"VolumeType"`
+
+	// Modification progress from 0 to 100%.
+	Progress *int64 `locationName:"progress" type:"long"`
+
+	// Modification start time
+	StartTime *time.Time `locationName:"startTime" type:"timestamp" timestampFormat:"iso8601"`
+
+	// Generic status message on modification progress or failure.
+	StatusMessage *string `locationName:"statusMessage" type:"string"`
+
+	// Target IOPS rate of the volume being modified.
+	TargetIops *int64 `locationName:"targetIops" type:"integer"`
+
+	// Target size of the volume being modified.
+	TargetSize *int64 `locationName:"targetSize" type:"integer"`
+
+	// Target EBS volume type of the volume being modified.
+	TargetVolumeType *string `locationName:"targetVolumeType" type:"string" enum:"VolumeType"`
+
+	// ID of the volume being modified.
+	VolumeId *string `locationName:"volumeId" type:"string"`
+}
+
+// String returns the string representation
+func (s VolumeModification) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s VolumeModification) GoString() string {
+	return s.String()
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *VolumeModification) SetEndTime(v time.Time) *VolumeModification {
+	s.EndTime = &v
+	return s
+}
+
+// SetModificationState sets the ModificationState field's value.
+func (s *VolumeModification) SetModificationState(v string) *VolumeModification {
+	s.ModificationState = &v
+	return s
+}
+
+// SetOriginalIops sets the OriginalIops field's value.
+func (s *VolumeModification) SetOriginalIops(v int64) *VolumeModification {
+	s.OriginalIops = &v
+	return s
+}
+
+// SetOriginalSize sets the OriginalSize field's value.
+func (s *VolumeModification) SetOriginalSize(v int64) *VolumeModification {
+	s.OriginalSize = &v
+	return s
+}
+
+// SetOriginalVolumeType sets the OriginalVolumeType field's value.
+func (s *VolumeModification) SetOriginalVolumeType(v string) *VolumeModification {
+	s.OriginalVolumeType = &v
+	return s
+}
+
+// SetProgress sets the Progress field's value.
+func (s *VolumeModification) SetProgress(v int64) *VolumeModification {
+	s.Progress = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *VolumeModification) SetStartTime(v time.Time) *VolumeModification {
+	s.StartTime = &v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *VolumeModification) SetStatusMessage(v string) *VolumeModification {
+	s.StatusMessage = &v
+	return s
+}
+
+// SetTargetIops sets the TargetIops field's value.
+func (s *VolumeModification) SetTargetIops(v int64) *VolumeModification {
+	s.TargetIops = &v
+	return s
+}
+
+// SetTargetSize sets the TargetSize field's value.
+func (s *VolumeModification) SetTargetSize(v int64) *VolumeModification {
+	s.TargetSize = &v
+	return s
+}
+
+// SetTargetVolumeType sets the TargetVolumeType field's value.
+func (s *VolumeModification) SetTargetVolumeType(v string) *VolumeModification {
+	s.TargetVolumeType = &v
+	return s
+}
+
+// SetVolumeId sets the VolumeId field's value.
+func (s *VolumeModification) SetVolumeId(v string) *VolumeModification {
+	s.VolumeId = &v
+	return s
+}
+
 // Describes a volume status operation code.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VolumeStatusAction
 type VolumeStatusAction struct {
 	_ struct{} `type:"structure"`
 
@@ -49587,6 +51697,7 @@ func (s *VolumeStatusAction) SetEventType(v string) *VolumeStatusAction {
 }
 
 // Describes a volume status.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VolumeStatusDetails
 type VolumeStatusDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -49620,6 +51731,7 @@ func (s *VolumeStatusDetails) SetStatus(v string) *VolumeStatusDetails {
 }
 
 // Describes a volume status event.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VolumeStatusEvent
 type VolumeStatusEvent struct {
 	_ struct{} `type:"structure"`
 
@@ -49680,6 +51792,7 @@ func (s *VolumeStatusEvent) SetNotBefore(v time.Time) *VolumeStatusEvent {
 }
 
 // Describes the status of a volume.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VolumeStatusInfo
 type VolumeStatusInfo struct {
 	_ struct{} `type:"structure"`
 
@@ -49713,6 +51826,7 @@ func (s *VolumeStatusInfo) SetStatus(v string) *VolumeStatusInfo {
 }
 
 // Describes the volume status.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VolumeStatusItem
 type VolumeStatusItem struct {
 	_ struct{} `type:"structure"`
 
@@ -49773,6 +51887,7 @@ func (s *VolumeStatusItem) SetVolumeStatus(v *VolumeStatusInfo) *VolumeStatusIte
 }
 
 // Describes a VPC.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/Vpc
 type Vpc struct {
 	_ struct{} `type:"structure"`
 
@@ -49861,6 +51976,7 @@ func (s *Vpc) SetVpcId(v string) *Vpc {
 }
 
 // Describes an attachment between a virtual private gateway and a VPC.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VpcAttachment
 type VpcAttachment struct {
 	_ struct{} `type:"structure"`
 
@@ -49894,6 +52010,7 @@ func (s *VpcAttachment) SetVpcId(v string) *VpcAttachment {
 }
 
 // Describes the state of a CIDR block.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VpcCidrBlockState
 type VpcCidrBlockState struct {
 	_ struct{} `type:"structure"`
 
@@ -49927,6 +52044,7 @@ func (s *VpcCidrBlockState) SetStatusMessage(v string) *VpcCidrBlockState {
 }
 
 // Describes whether a VPC is enabled for ClassicLink.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VpcClassicLink
 type VpcClassicLink struct {
 	_ struct{} `type:"structure"`
 
@@ -49969,6 +52087,7 @@ func (s *VpcClassicLink) SetVpcId(v string) *VpcClassicLink {
 }
 
 // Describes a VPC endpoint.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VpcEndpoint
 type VpcEndpoint struct {
 	_ struct{} `type:"structure"`
 
@@ -50047,6 +52166,7 @@ func (s *VpcEndpoint) SetVpcId(v string) *VpcEndpoint {
 }
 
 // Describes an IPv6 CIDR block associated with a VPC.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VpcIpv6CidrBlockAssociation
 type VpcIpv6CidrBlockAssociation struct {
 	_ struct{} `type:"structure"`
 
@@ -50089,6 +52209,7 @@ func (s *VpcIpv6CidrBlockAssociation) SetIpv6CidrBlockState(v *VpcCidrBlockState
 }
 
 // Describes a VPC peering connection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VpcPeeringConnection
 type VpcPeeringConnection struct {
 	_ struct{} `type:"structure"`
 
@@ -50160,6 +52281,7 @@ func (s *VpcPeeringConnection) SetVpcPeeringConnectionId(v string) *VpcPeeringCo
 }
 
 // Describes the VPC peering connection options.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VpcPeeringConnectionOptionsDescription
 type VpcPeeringConnectionOptionsDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -50205,6 +52327,7 @@ func (s *VpcPeeringConnectionOptionsDescription) SetAllowEgressFromLocalVpcToRem
 }
 
 // Describes the status of a VPC peering connection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VpcPeeringConnectionStateReason
 type VpcPeeringConnectionStateReason struct {
 	_ struct{} `type:"structure"`
 
@@ -50238,6 +52361,7 @@ func (s *VpcPeeringConnectionStateReason) SetMessage(v string) *VpcPeeringConnec
 }
 
 // Describes a VPC in a VPC peering connection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VpcPeeringConnectionVpcInfo
 type VpcPeeringConnectionVpcInfo struct {
 	_ struct{} `type:"structure"`
 
@@ -50299,6 +52423,7 @@ func (s *VpcPeeringConnectionVpcInfo) SetVpcId(v string) *VpcPeeringConnectionVp
 }
 
 // Describes a VPN connection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VpnConnection
 type VpnConnection struct {
 	_ struct{} `type:"structure"`
 
@@ -50407,6 +52532,7 @@ func (s *VpnConnection) SetVpnGatewayId(v string) *VpnConnection {
 }
 
 // Describes VPN connection options.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VpnConnectionOptions
 type VpnConnectionOptions struct {
 	_ struct{} `type:"structure"`
 
@@ -50432,6 +52558,7 @@ func (s *VpnConnectionOptions) SetStaticRoutesOnly(v bool) *VpnConnectionOptions
 }
 
 // Describes VPN connection options.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VpnConnectionOptionsSpecification
 type VpnConnectionOptionsSpecification struct {
 	_ struct{} `type:"structure"`
 
@@ -50457,6 +52584,7 @@ func (s *VpnConnectionOptionsSpecification) SetStaticRoutesOnly(v bool) *VpnConn
 }
 
 // Describes a virtual private gateway.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VpnGateway
 type VpnGateway struct {
 	_ struct{} `type:"structure"`
 
@@ -50527,6 +52655,7 @@ func (s *VpnGateway) SetVpnGatewayId(v string) *VpnGateway {
 }
 
 // Describes a static route for a VPN connection.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VpnStaticRoute
 type VpnStaticRoute struct {
 	_ struct{} `type:"structure"`
 
@@ -50905,6 +53034,20 @@ const (
 )
 
 const (
+	// IamInstanceProfileAssociationStateAssociating is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateAssociating = "associating"
+
+	// IamInstanceProfileAssociationStateAssociated is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateAssociated = "associated"
+
+	// IamInstanceProfileAssociationStateDisassociating is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateDisassociating = "disassociating"
+
+	// IamInstanceProfileAssociationStateDisassociated is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateDisassociated = "disassociated"
+)
+
+const (
 	// ImageAttributeNameDescription is a ImageAttributeName enum value
 	ImageAttributeNameDescription = "description"
 
@@ -51003,6 +53146,14 @@ const (
 
 	// InstanceAttributeNameEnaSupport is a InstanceAttributeName enum value
 	InstanceAttributeNameEnaSupport = "enaSupport"
+)
+
+const (
+	// InstanceHealthStatusHealthy is a InstanceHealthStatus enum value
+	InstanceHealthStatusHealthy = "healthy"
+
+	// InstanceHealthStatusUnhealthy is a InstanceHealthStatus enum value
+	InstanceHealthStatusUnhealthy = "unhealthy"
 )
 
 const (
@@ -51803,6 +53954,20 @@ const (
 
 	// VolumeAttributeNameProductCodes is a VolumeAttributeName enum value
 	VolumeAttributeNameProductCodes = "productCodes"
+)
+
+const (
+	// VolumeModificationStateModifying is a VolumeModificationState enum value
+	VolumeModificationStateModifying = "modifying"
+
+	// VolumeModificationStateOptimizing is a VolumeModificationState enum value
+	VolumeModificationStateOptimizing = "optimizing"
+
+	// VolumeModificationStateCompleted is a VolumeModificationState enum value
+	VolumeModificationStateCompleted = "completed"
+
+	// VolumeModificationStateFailed is a VolumeModificationState enum value
+	VolumeModificationStateFailed = "failed"
 )
 
 const (

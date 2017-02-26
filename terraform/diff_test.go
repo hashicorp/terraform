@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -1085,18 +1086,65 @@ func TestInstanceDiffSame(t *testing.T) {
 			true,
 			"",
 		},
+
+		// When removing all collection items, the diff is allowed to contain
+		// nothing when re-creating the resource. This should be the "Same"
+		// since we said we were going from 1 to 0.
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.%": &ResourceAttrDiff{
+						Old:         "1",
+						New:         "0",
+						RequiresNew: true,
+					},
+					"foo.bar": &ResourceAttrDiff{
+						Old:         "baz",
+						New:         "",
+						NewRemoved:  true,
+						RequiresNew: true,
+					},
+				},
+			},
+			&InstanceDiff{},
+			true,
+			"",
+		},
+
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old:         "1",
+						New:         "0",
+						RequiresNew: true,
+					},
+					"foo.0": &ResourceAttrDiff{
+						Old:         "baz",
+						New:         "",
+						NewRemoved:  true,
+						RequiresNew: true,
+					},
+				},
+			},
+			&InstanceDiff{},
+			true,
+			"",
+		},
 	}
 
 	for i, tc := range cases {
-		same, reason := tc.One.Same(tc.Two)
-		if same != tc.Same {
-			t.Fatalf("%d: expected same: %t, got %t (%s)\n\n one: %#v\n\ntwo: %#v",
-				i, tc.Same, same, reason, tc.One, tc.Two)
-		}
-		if reason != tc.Reason {
-			t.Fatalf(
-				"%d: bad reason\n\nexpected: %#v\n\ngot: %#v", i, tc.Reason, reason)
-		}
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			same, reason := tc.One.Same(tc.Two)
+			if same != tc.Same {
+				t.Fatalf("%d: expected same: %t, got %t (%s)\n\n one: %#v\n\ntwo: %#v",
+					i, tc.Same, same, reason, tc.One, tc.Two)
+			}
+			if reason != tc.Reason {
+				t.Fatalf(
+					"%d: bad reason\n\nexpected: %#v\n\ngot: %#v", i, tc.Reason, reason)
+			}
+		})
 	}
 }
 
