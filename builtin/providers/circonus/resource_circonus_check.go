@@ -38,6 +38,7 @@ const (
 	_CheckICMPPingAttr    _SchemaAttr = "icmp_ping"
 	_CheckJSONAttr        _SchemaAttr = "json"
 	_CheckMetricLimitAttr _SchemaAttr = "metric_limit"
+	_CheckMySQLAttr       _SchemaAttr = "mysql"
 	_CheckNameAttr        _SchemaAttr = "name"
 	_CheckNotesAttr       _SchemaAttr = "notes"
 	_CheckPeriodAttr      _SchemaAttr = "period"
@@ -76,6 +77,7 @@ const (
 	_APICheckTypeHTTPTrapAttr   _APICheckType = "httptrap"
 	_APICheckTypeICMPPingAttr   _APICheckType = "ping_icmp"
 	_APICheckTypeJSONAttr       _APICheckType = "json"
+	_APICheckTypeMySQLAttr      _APICheckType = "mysql"
 	_APICheckTypePostgreSQLAttr _APICheckType = "postgres"
 	_APICheckTypeTCPAttr        _APICheckType = "tcp"
 )
@@ -90,6 +92,7 @@ var _CheckDescriptions = _AttrDescrs{
 	_CheckICMPPingAttr:    "ICMP ping check configuration",
 	_CheckJSONAttr:        "JSON check configuration",
 	_CheckMetricLimitAttr: `Setting a metric_limit will enable all (-1), disable (0), or allow up to the specified limit of metrics for this check ("N+", where N is a positive integer)`,
+	_CheckMySQLAttr:       "MySQL check configuration",
 	_CheckNameAttr:        "The name of the check bundle that will be displayed in the web interface",
 	_CheckNotesAttr:       "Notes about this check bundle",
 	_CheckPeriodAttr:      "The period between each time the check is made",
@@ -161,6 +164,7 @@ func _NewCheckResource() *schema.Resource {
 					_ValidateIntMin(_CheckMetricLimitAttr, -1),
 				),
 			},
+			_CheckMySQLAttr: _SchemaCheckMySQL,
 			_CheckNameAttr: &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -513,6 +517,7 @@ func _CheckConfigToAPI(c *_Check, ar _AttrReader) error {
 		_CheckHTTPTrapAttr:   _CheckConfigToAPIHTTPTrap,
 		_CheckICMPPingAttr:   _CheckConfigToAPIICMPPing,
 		_CheckJSONAttr:       _CheckConfigToAPIJSON,
+		_CheckMySQLAttr:      _CheckConfigToAPIMySQL,
 		_CheckPostgreSQLAttr: _CheckConfigToAPIPostgreSQL,
 		_CheckTCPAttr:        _CheckConfigToAPITCP,
 	}
@@ -538,6 +543,7 @@ func _ParseCheckTypeConfig(c *_Check, d *schema.ResourceData) error {
 		_APICheckTypeHTTPTrapAttr:   _CheckAPIToStateHTTPTrap,
 		_APICheckTypeICMPPingAttr:   _CheckAPIToStateICMPPing,
 		_APICheckTypeJSONAttr:       _CheckAPIToStateJSON,
+		_APICheckTypeMySQLAttr:      _CheckAPIToStateMySQL,
 		_APICheckTypePostgreSQLAttr: _CheckAPIToStatePostgreSQL,
 		_APICheckTypeTCPAttr:        _CheckAPIToStateTCP,
 	}
