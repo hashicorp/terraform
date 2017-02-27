@@ -207,11 +207,10 @@ func (t *ResourceTimeout) metaDecode(ids interface{}) error {
 			return nil
 		}
 	default:
-		return fmt.Errorf("[ERR] Unknown or unsupported type in metaDecode: %#v", ids)
+		return fmt.Errorf("Unknown or unsupported type in metaDecode: %#v", ids)
 	}
 
 	times := rawMeta.(map[string]interface{})
-	//TODO-cts - I don't think this is needed
 	if len(times) == 0 {
 		return nil
 	}

@@ -274,7 +274,6 @@ func (r *Resource) Refresh(
 	rt := ResourceTimeout{}
 	if _, ok := s.Meta[TimeoutKey]; ok {
 		if err := rt.StateDecode(s); err != nil {
-			//TODO-cts: verify what kind of error may be thrown here
 			log.Printf("[ERR] Error decoding ResourceTimeout: %s", err)
 		}
 	}
