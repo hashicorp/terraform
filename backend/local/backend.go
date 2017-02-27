@@ -53,8 +53,10 @@ type Local struct {
 	StateOutPath    string
 	StateBackupPath string
 
-	// we only want to create a single instance of the local state
-	state state.State
+	// We only want to create a single instance of a local state, so store them
+	// here as they're loaded.
+	states map[string]state.State
+
 	// Terraform context. Many of these will be overridden or merged by
 	// Operation. See Operation for more details.
 	ContextOpts *terraform.ContextOpts
@@ -78,10 +80,6 @@ type Local struct {
 	schema *schema.Backend
 	opLock sync.Mutex
 	once   sync.Once
-
-	// workingDir is where the State* paths should be relative to.
-	// This is currently only used for tests.
-	workingDir string
 }
 
 func (b *Local) Input(
@@ -118,54 +116,35 @@ func (b *Local) Configure(c *terraform.ResourceConfig) error {
 	return f(c)
 }
 
-func (b *Local) States() ([]string, string, error) {
+func (b *Local) States() ([]string, error) {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
-		if b, ok := b.Backend.(backend.MultiState); ok {
-			return b.States()
-		} else {
-			return nil, "", ErrEnvNotSupported
-		}
+		return b.Backend.States()
 	}
 
 	// the listing always start with "default"
 	envs := []string{backend.DefaultStateName}
 
-	current, err := b.currentStateName()
-	if err != nil {
-		return nil, "", err
-	}
-
-	entries, err := ioutil.ReadDir(filepath.Join(b.workingDir, DefaultEnvDir))
+	entries, err := ioutil.ReadDir(DefaultEnvDir)
 	// no error if there's no envs configured
 	if os.IsNotExist(err) {
-		return envs, backend.DefaultStateName, nil
+		return envs, nil
 	}
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
-	currentExists := false
 	var listed []string
 	for _, entry := range entries {
 		if entry.IsDir() {
-			name := filepath.Base(entry.Name())
-			if name == current {
-				currentExists = true
-			}
-			listed = append(listed, name)
+			listed = append(listed, filepath.Base(entry.Name()))
 		}
-	}
-
-	// current was out of sync for some reason, so return defualt
-	if !currentExists {
-		current = backend.DefaultStateName
 	}
 
 	sort.Strings(listed)
 	envs = append(envs, listed...)
 
-	return envs, current, nil
+	return envs, nil
 }
 
 // DeleteState removes a named state.
@@ -173,11 +152,7 @@ func (b *Local) States() ([]string, string, error) {
 func (b *Local) DeleteState(name string) error {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
-		if b, ok := b.Backend.(backend.MultiState); ok {
-			return b.DeleteState(name)
-		} else {
-			return ErrEnvNotSupported
-		}
+		return b.Backend.DeleteState(name)
 	}
 
 	if name == "" {
@@ -188,91 +163,25 @@ func (b *Local) DeleteState(name string) error {
 		return errors.New("cannot delete default state")
 	}
 
-	_, current, err := b.States()
-	if err != nil {
-		return err
-	}
-
-	// if we're deleting the current state, we change back to the default
-	if name == current {
-		if err := b.ChangeState(backend.DefaultStateName); err != nil {
-			return err
-		}
-	}
-
-	return os.RemoveAll(filepath.Join(b.workingDir, DefaultEnvDir, name))
+	delete(b.states, name)
+	return os.RemoveAll(filepath.Join(DefaultEnvDir, name))
 }
 
-// Change to the named state, creating it if it doesn't exist.
-func (b *Local) ChangeState(name string) error {
+func (b *Local) State(name string) (state.State, error) {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
-		if b, ok := b.Backend.(backend.MultiState); ok {
-			return b.ChangeState(name)
-		} else {
-			return ErrEnvNotSupported
-		}
+		return b.Backend.State(name)
 	}
 
-	name = strings.TrimSpace(name)
-	if name == "" {
-		return errors.New("state name cannot be empty")
+	if s, ok := b.states[name]; ok {
+		return s, nil
 	}
 
-	envs, current, err := b.States()
-	if err != nil {
-		return err
+	if err := b.createState(name); err != nil {
+		return nil, err
 	}
 
-	if name == current {
-		return nil
-	}
-
-	exists := false
-	for _, env := range envs {
-		if env == name {
-			exists = true
-			break
-		}
-	}
-
-	if !exists {
-		if err := b.createState(name); err != nil {
-			return err
-		}
-	}
-
-	err = os.MkdirAll(filepath.Join(b.workingDir, DefaultDataDir), 0755)
-	if err != nil {
-		return err
-	}
-
-	err = ioutil.WriteFile(
-		filepath.Join(b.workingDir, DefaultDataDir, DefaultEnvFile),
-		[]byte(name),
-		0644,
-	)
-	if err != nil {
-		return err
-	}
-
-	// remove the current state so it's reloaded on the next call to State
-	b.state = nil
-
-	return nil
-}
-
-func (b *Local) State() (state.State, error) {
-	// If we have a backend handling state, defer to that.
-	if b.Backend != nil {
-		return b.Backend.State()
-	}
-
-	if b.state != nil {
-		return b.state, nil
-	}
-
-	statePath, stateOutPath, backupPath, err := b.StatePaths()
+	statePath, stateOutPath, backupPath, err := b.StatePaths(name)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +200,10 @@ func (b *Local) State() (state.State, error) {
 		}
 	}
 
-	b.state = s
+	if b.states == nil {
+		b.states = map[string]state.State{}
+	}
+	b.states[name] = s
 	return s, nil
 }
 
@@ -385,20 +297,24 @@ func (b *Local) schemaConfigure(ctx context.Context) error {
 }
 
 // StatePaths returns the StatePath, StateOutPath, and StateBackupPath as
-// configured by the current environment. If backups are disabled,
-// StateBackupPath will be an empty string.
-func (b *Local) StatePaths() (string, string, string, error) {
+// configured from the CLI.
+func (b *Local) StatePaths(name string) (string, string, string, error) {
 	statePath := b.StatePath
 	stateOutPath := b.StateOutPath
 	backupPath := b.StateBackupPath
 
-	if statePath == "" {
-		path, err := b.statePath()
-		if err != nil {
-			return "", "", "", err
-		}
-		statePath = path
+	if name == "" {
+		name = backend.DefaultStateName
 	}
+
+	if name == backend.DefaultStateName {
+		if statePath == "" {
+			statePath = name
+		}
+	} else {
+		statePath = filepath.Join(DefaultEnvDir, name, DefaultStateFilename)
+	}
+
 	if stateOutPath == "" {
 		stateOutPath = statePath
 	}
@@ -413,33 +329,21 @@ func (b *Local) StatePaths() (string, string, string, error) {
 	return statePath, stateOutPath, backupPath, nil
 }
 
-func (b *Local) statePath() (string, error) {
-	_, current, err := b.States()
-	if err != nil {
-		return "", err
-	}
-	path := DefaultStateFilename
-
-	if current != backend.DefaultStateName && current != "" {
-		path = filepath.Join(b.workingDir, DefaultEnvDir, current, DefaultStateFilename)
-	}
-	return path, nil
-}
-
+// this only ensures that the named directory exists
 func (b *Local) createState(name string) error {
-	stateNames, _, err := b.States()
-	if err != nil {
-		return err
+	if name == backend.DefaultStateName {
+		return nil
 	}
 
-	for _, n := range stateNames {
-		if name == n {
-			// state exists, nothing to do
-			return nil
-		}
+	stateDir := filepath.Join(DefaultEnvDir, name)
+	s, err := os.Stat(stateDir)
+	if err == nil && s.IsDir() {
+		// no need to check for os.IsNotExist, since that is covered by os.MkdirAll
+		// which will catch the other possible errors as well.
+		return nil
 	}
 
-	err = os.MkdirAll(filepath.Join(b.workingDir, DefaultEnvDir, name), 0755)
+	err = os.MkdirAll(stateDir, 0755)
 	if err != nil {
 		return err
 	}
@@ -451,7 +355,7 @@ func (b *Local) createState(name string) error {
 // configuration files.
 // If there are no configured environments, currentStateName returns "default"
 func (b *Local) currentStateName() (string, error) {
-	contents, err := ioutil.ReadFile(filepath.Join(b.workingDir, DefaultDataDir, DefaultEnvFile))
+	contents, err := ioutil.ReadFile(filepath.Join(DefaultDataDir, DefaultEnvFile))
 	if os.IsNotExist(err) {
 		return backend.DefaultStateName, nil
 	}

@@ -123,6 +123,9 @@ type Operation struct {
 	// If LockState is true, the Operation must Lock any
 	// state.Lockers for its duration, and Unlock when complete.
 	LockState bool
+
+	// Environment is the named state that should be loaded from the Backend.
+	Environment string
 }
 
 // RunningOperation is the result of starting an operation.
