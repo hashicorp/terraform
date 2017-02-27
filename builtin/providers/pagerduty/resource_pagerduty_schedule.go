@@ -14,7 +14,7 @@ func resourcePagerDutySchedule() *schema.Resource {
 		Update: resourcePagerDutyScheduleUpdate,
 		Delete: resourcePagerDutyScheduleDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourcePagerDutyScheduleImport,
+			State: schema.ImportStatePassthrough,
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -195,11 +195,4 @@ func resourcePagerDutyScheduleDelete(d *schema.ResourceData, meta interface{}) e
 	d.SetId("")
 
 	return nil
-}
-
-func resourcePagerDutyScheduleImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	if err := resourcePagerDutyScheduleRead(d, meta); err != nil {
-		return nil, err
-	}
-	return []*schema.ResourceData{d}, nil
 }

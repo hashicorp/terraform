@@ -200,6 +200,10 @@ func resourceAwsCodeBuildProjectCreate(d *schema.ResourceData, meta interface{})
 		params.TimeoutInMinutes = aws.Int64(int64(v.(int)))
 	}
 
+	if v, ok := d.GetOk("tags"); ok {
+		params.Tags = tagsFromMapCodeBuild(v.(map[string]interface{}))
+	}
+
 	var resp *codebuild.CreateProjectOutput
 	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
 		var err error
@@ -416,9 +420,9 @@ func resourceAwsCodeBuildProjectUpdate(d *schema.ResourceData, meta interface{})
 		params.TimeoutInMinutes = aws.Int64(int64(d.Get("timeout").(int)))
 	}
 
-	if d.HasChange("tags") {
-		params.Tags = tagsFromMapCodeBuild(d.Get("tags").(map[string]interface{}))
-	}
+	// The documentation clearly says "The replacement set of tags for this build project."
+	// But its a slice of pointers so if not set for every update, they get removed.
+	params.Tags = tagsFromMapCodeBuild(d.Get("tags").(map[string]interface{}))
 
 	_, err := conn.UpdateProject(params)
 
@@ -503,12 +507,17 @@ func flattenAwsCodebuildProjectSource(source *codebuild.ProjectSource) *schema.S
 		F: resourceAwsCodeBuildProjectSourceHash,
 	}
 
+	authSet := schema.Set{
+		F: resourceAwsCodeBuildProjectSourceAuthHash,
+	}
+
 	sourceConfig := map[string]interface{}{}
 
 	sourceConfig["type"] = *source.Type
 
 	if source.Auth != nil {
-		sourceConfig["auth"] = sourceAuthToMap(source.Auth)
+		authSet.Add(sourceAuthToMap(source.Auth))
+		sourceConfig["auth"] = &authSet
 	}
 
 	if source.Buildspec != nil {
@@ -543,10 +552,16 @@ func resourceAwsCodeBuildProjectEnvironmentHash(v interface{}) int {
 	environmentType := m["type"].(string)
 	computeType := m["compute_type"].(string)
 	image := m["image"].(string)
-
+	environmentVariables := m["environment_variable"].([]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", environmentType))
 	buf.WriteString(fmt.Sprintf("%s-", computeType))
 	buf.WriteString(fmt.Sprintf("%s-", image))
+	for _, e := range environmentVariables {
+		if e != nil { // Old statefiles might have nil values in them
+			ev := e.(map[string]interface{})
+			buf.WriteString(fmt.Sprintf("%s:%s-", ev["name"].(string), ev["value"].(string)))
+		}
+	}
 
 	return hashcode.String(buf.String())
 }
@@ -566,14 +581,25 @@ func resourceAwsCodeBuildProjectSourceHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func environmentVariablesToMap(environmentVariables []*codebuild.EnvironmentVariable) []map[string]interface{} {
+func resourceAwsCodeBuildProjectSourceAuthHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
 
-	envVariables := make([]map[string]interface{}, len(environmentVariables))
+	authType := m["type"].(string)
+	authResource := m["resource"].(string)
 
+	buf.WriteString(fmt.Sprintf("%s-", authType))
+	buf.WriteString(fmt.Sprintf("%s-", authResource))
+
+	return hashcode.String(buf.String())
+}
+
+func environmentVariablesToMap(environmentVariables []*codebuild.EnvironmentVariable) []interface{} {
+
+	envVariables := []interface{}{}
 	if len(environmentVariables) > 0 {
-		for i := 0; i < len(environmentVariables); i++ {
-			env := environmentVariables[i]
-			item := make(map[string]interface{})
+		for _, env := range environmentVariables {
+			item := map[string]interface{}{}
 			item["name"] = *env.Name
 			item["value"] = *env.Value
 			envVariables = append(envVariables, item)

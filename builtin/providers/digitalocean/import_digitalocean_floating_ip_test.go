@@ -3,6 +3,7 @@ package digitalocean
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
@@ -29,6 +30,7 @@ func TestAccDigitalOceanFloatingIP_importBasicRegion(t *testing.T) {
 
 func TestAccDigitalOceanFloatingIP_importBasicDroplet(t *testing.T) {
 	resourceName := "digitalocean_floating_ip.foobar"
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -36,7 +38,7 @@ func TestAccDigitalOceanFloatingIP_importBasicDroplet(t *testing.T) {
 		CheckDestroy: testAccCheckDigitalOceanFloatingIPDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckDigitalOceanFloatingIPConfig_droplet,
+				Config: testAccCheckDigitalOceanFloatingIPConfig_droplet(rInt),
 			},
 
 			{

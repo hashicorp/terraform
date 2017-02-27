@@ -162,6 +162,29 @@ func TestAccGoogleSqlDatabaseInstance_diskspecs(t *testing.T) {
 	})
 }
 
+func TestAccGoogleSqlDatabaseInstance_maintenance(t *testing.T) {
+	var instance sqladmin.DatabaseInstance
+	masterID := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabaseInstance_maintenance, masterID),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleSqlDatabaseInstanceExists(
+						"google_sql_database_instance.instance", &instance),
+					testAccCheckGoogleSqlDatabaseInstanceEquals(
+						"google_sql_database_instance.instance", &instance),
+				),
+			},
+		},
+	})
+}
+
 func TestAccGoogleSqlDatabaseInstance_settings_upgrade(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
 	databaseID := acctest.RandInt()
@@ -356,6 +379,26 @@ func testAccCheckGoogleSqlDatabaseInstanceEquals(n string,
 			local = attributes["settings.0.location_preference.0.zone"]
 			if server != local && len(server) > 0 && len(local) > 0 {
 				return fmt.Errorf("Error settings.location_preference.zone mismatch, (%s, %s)", server, local)
+			}
+		}
+
+		if instance.Settings.MaintenanceWindow != nil {
+			server = strconv.FormatInt(instance.Settings.MaintenanceWindow.Day, 10)
+			local = attributes["settings.0.maintenance_window.0.day"]
+			if server != local && len(server) > 0 && len(local) > 0 {
+				return fmt.Errorf("Error settings.maintenance_window.day mismatch, (%s, %s)", server, local)
+			}
+
+			server = strconv.FormatInt(instance.Settings.MaintenanceWindow.Hour, 10)
+			local = attributes["settings.0.maintenance_window.0.hour"]
+			if server != local && len(server) > 0 && len(local) > 0 {
+				return fmt.Errorf("Error settings.maintenance_window.hour mismatch, (%s, %s)", server, local)
+			}
+
+			server = instance.Settings.MaintenanceWindow.UpdateTrack
+			local = attributes["settings.0.maintenance_window.0.update_track"]
+			if server != local && len(server) > 0 && len(local) > 0 {
+				return fmt.Errorf("Error settings.maintenance_window.update_track mismatch, (%s, %s)", server, local)
 			}
 		}
 
@@ -635,6 +678,23 @@ resource "google_sql_database_instance" "instance" {
 		disk_autoresize = true
 		disk_size = 15
 		disk_type = "PD_HDD"
+	}
+}
+`
+
+var testGoogleSqlDatabaseInstance_maintenance = `
+resource "google_sql_database_instance" "instance" {
+	name = "tf-lw-%d"
+	region = "us-central1"
+
+	settings {
+		tier = "db-f1-micro"
+
+		maintenance_window {
+		  day  = 7
+		  hour = 3
+			update_track = "canary"
+	  }
 	}
 }
 `

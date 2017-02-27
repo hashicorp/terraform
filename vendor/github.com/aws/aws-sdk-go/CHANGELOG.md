@@ -1,3 +1,45 @@
+Release v1.6.25 (2017-02-17)
+===
+
+Service Client Updates
+---
+* `service/directconnect`: Updates service API, documentation, and paginators
+  * This update will introduce the ability for Direct Connect customers to take advantage of Link Aggregation (LAG).     This allows you to bundle many individual physical interfaces into a single logical interface, referred to as a LAG.     This makes administration much simpler as the majority of configuration is done on the LAG while you are free     to add or remove physical interfaces from the bundle as bandwidth demand increases or decreases. A concrete example     of the simplification added by LAG is that customers need only a single BGP session as opposed to one session per     physical connection.
+
+Release v1.6.24 (2017-02-16)
+===
+
+Service Client Updates
+---
+* `service/cognitoidentity`: Updates service API, documentation, and paginators
+  * Allow createIdentityPool and updateIdentityPool API to set server side token check value on identity pool
+* `service/configservice`: Updates service API and documentation
+  * AWS Config now supports a new test mode for the PutEvaluations API. Set the TestMode parameter to true in your custom rule to verify whether your AWS Lambda function will deliver evaluation results to AWS Config. No updates occur to your existing evaluations, and evaluation results are not sent to AWS Config.
+
+Release v1.6.23 (2017-02-15)
+===
+
+Service Client Updates
+---
+* `service/kms`: Updates service API, documentation, paginators, and examples
+  * his release of AWS Key Management Service introduces the ability to tag keys. Tagging keys can help you organize your keys and track your KMS costs in the cost allocation report. This release also increases the maximum length of a key ID to accommodate ARNs that include a long key alias.
+
+Release v1.6.22 (2017-02-14)
+===
+
+Service Client Updates
+---
+* `service/ec2`: Updates service API, documentation, and paginators
+  * Adds support for the new Modify Volumes apis.
+
+Release v1.6.21 (2017-02-11)
+===
+
+Service Client Updates
+---
+* `service/storagegateway`: Updates service API, documentation, and paginators
+  * File gateway mode in AWS Storage gateway provides access to objects in S3 as files on a Network File System (NFS) mount point. This is done by creating Nfs file shares using existing APIs CreateNfsFileShare. Using the feature in this update, the customer can restrict the clients that have read/write access to the gateway by specifying the list of clients as a list of IP addresses or CIDR blocks. This list can be specified using the API CreateNfsFileShare while creating new file shares, or UpdateNfsFileShare while update existing file shares. To find out the list of clients that have access, the existing API DescribeNfsFileShare will now output the list of clients that have access.
+
 Release v1.6.20 (2017-02-09)
 ===
 

@@ -20,13 +20,13 @@ Environments are often things such as `development`, `integration`, or
 
 ```
 resource "aws_elastic_beanstalk_application" "tftest" {
-  name = "tf-test-name"
+  name        = "tf-test-name"
   description = "tf-test-desc"
 }
 
 resource "aws_elastic_beanstalk_environment" "tfenvtest" {
-  name = "tf-test-name"
-  application = "${aws_elastic_beanstalk_application.tftest.name}"
+  name                = "tf-test-name"
+  application         = "${aws_elastic_beanstalk_application.tftest.name}"
   solution_stack_name = "64bit Amazon Linux 2015.03 v2.0.3 running Go 1.4"
 }
 ```
@@ -59,6 +59,8 @@ off of. Example stacks can be found in the [Amazon API documentation][1]
 check if changes have been applied. Use this to adjust the rate of API calls
 for any `create` or `update` action. Minimum `10s`, maximum `180s`. Omit this to
 use the default behavior, which is an exponential backoff
+* `version_label` - (Optional) The name of the Elastic Beanstalk Application Version
+to use in deployment.
 * `tags` – (Optional) A set of tags to apply to the Environment. **Note:** at
 this time the Elastic Beanstalk API does not provide a programatic way of
 changing these tags after initial application
@@ -80,14 +82,15 @@ The `setting` and `all_settings` mappings support the following format:
 
 ```
 resource "aws_elastic_beanstalk_application" "tftest" {
-  name = "tf-test-name"
+  name        = "tf-test-name"
   description = "tf-test-desc"
 }
 
 resource "aws_elastic_beanstalk_environment" "tfenvtest" {
-  name = "tf-test-name"
-  application = "${aws_elastic_beanstalk_application.tftest.name}"
+  name                = "tf-test-name"
+  application         = "${aws_elastic_beanstalk_application.tftest.name}"
   solution_stack_name = "64bit Amazon Linux 2015.03 v2.0.3 running Go 1.4"
+
   setting {
     namespace = "aws:ec2:vpc"
     name      = "VPCId"
@@ -98,7 +101,7 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
     namespace = "aws:ec2:vpc"
     name      = "Subnets"
     value     = "subnet-xxxxxxxx"
-  }  
+  }
 }
 ```
 
@@ -129,7 +132,7 @@ The following attributes are exported:
 
 ## Import
 
-Elastic Beanstalk Environments can be imported using the `id`, e.g. 
+Elastic Beanstalk Environments can be imported using the `id`, e.g.
 
 ```
 $ terraform import aws_elastic_beanstalk_environment.prodenv e-rpqsewtp2j

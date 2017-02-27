@@ -14,12 +14,12 @@ Manages a v1 firewall rule resource within OpenStack.
 
 ```
 resource "openstack_fw_rule_v1" "rule_1" {
-  name = "my_rule"
-  description = "drop TELNET traffic"
-  action = "deny"
-  protocol = "tcp"
+  name             = "my_rule"
+  description      = "drop TELNET traffic"
+  action           = "deny"
+  protocol         = "tcp"
   destination_port = "23"
-  enabled = "true"
+  enabled          = "true"
 }
 ```
 

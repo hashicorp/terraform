@@ -104,4 +104,9 @@ errcheck:
 vendor-status:
 	@govendor status
 
+# disallow any parallelism (-j) for Make. This is necessary since some
+# commands during the build process create temporary files that collide
+# under parallel conditions.
+.NOTPARALLEL:
+
 .PHONY: bin core-dev core-test cover default dev errcheck fmt fmtcheck generate plugin-dev quickdev test-compile test testacc testrace tools vendor-status vet

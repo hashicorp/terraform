@@ -19,8 +19,9 @@ data bag itself, use the ``chef_data_bag`` resource.
 
 ```
 resource "chef_data_bag_item" "example" {
-    data_bag_name = "example-data-bag"
-    content_json = <<EOT
+  data_bag_name = "example-data-bag"
+
+  content_json = <<EOT
 {
     "id": "example-item",
     "any_arbitrary_data": true

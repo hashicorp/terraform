@@ -68,12 +68,12 @@ func TestAccStorageStorageClass(t *testing.T) {
 		CheckDestroy: testAccGoogleStorageDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "STANDARD"),
+				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "MULTI_REGIONAL"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStorageBucketExists(
 						"google_storage_bucket.bucket", bucketName),
 					resource.TestCheckResourceAttr(
-						"google_storage_bucket.bucket", "storage_class", "STANDARD"),
+						"google_storage_bucket.bucket", "storage_class", "MULTI_REGIONAL"),
 				),
 			},
 			{
@@ -86,12 +86,12 @@ func TestAccStorageStorageClass(t *testing.T) {
 				),
 			},
 			{
-				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "DURABLE_REDUCED_AVAILABILITY"),
+				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "REGIONAL"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStorageBucketExists(
 						"google_storage_bucket.bucket", bucketName),
 					resource.TestCheckResourceAttr(
-						"google_storage_bucket.bucket", "storage_class", "DURABLE_REDUCED_AVAILABILITY"),
+						"google_storage_bucket.bucket", "storage_class", "REGIONAL"),
 				),
 			},
 		},

@@ -25,12 +25,12 @@ For additional documentation, see the [CLC Developer Center](https://www.ctl.io/
 provider "clc" {
   username = "${var.clc_username}"
   password = "${var.clc_password}"
-  account  = "${var.clc_account}" # optional
+  account  = "${var.clc_account}"  # optional
 }
 
 # Create a server
 resource "clc_server" "node" {
-    ...
+  # ...
 }
 ```
 
@@ -51,9 +51,9 @@ The following arguments are supported:
 
 * `clc_username` - (Required) This is the CLC account username. It must be provided, but
   it can also be sourced from the `CLC_USERNAME` environment variable.
-  
+
 * `clc_password` - (Required) This is the CLC account password. It must be provided, but
   it can also be sourced from the `CLC_PASSWORD` environment variable.
-  
+
 * `clc_account` - (Optional) Override CLC account alias. Also taken from the `CLC_ACCOUNT`
   environment variable if provided.

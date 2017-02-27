@@ -68,6 +68,21 @@ func (n *NodeDestroyResource) ReferenceableName() []string {
 
 // GraphNodeReferencer, overriding NodeAbstractResource
 func (n *NodeDestroyResource) References() []string {
+	// If we have a config, then we need to include destroy-time dependencies
+	if c := n.Config; c != nil {
+		var result []string
+		for _, p := range c.Provisioners {
+			// We include conn info and config for destroy time provisioners
+			// as dependencies that we have.
+			if p.When == config.ProvisionerWhenDestroy {
+				result = append(result, ReferencesFromConfig(p.ConnInfo)...)
+				result = append(result, ReferencesFromConfig(p.RawConfig)...)
+			}
+		}
+
+		return result
+	}
+
 	return nil
 }
 

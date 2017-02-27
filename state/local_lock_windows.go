@@ -4,23 +4,14 @@ package state
 
 import (
 	"math"
-	"os"
-	"sync"
 	"syscall"
 	"unsafe"
 )
-
-type stateLock struct {
-	handle syscall.Handle
-}
 
 var (
 	modkernel32      = syscall.NewLazyDLL("kernel32.dll")
 	procLockFileEx   = modkernel32.NewProc("LockFileEx")
 	procCreateEventW = modkernel32.NewProc("CreateEventW")
-
-	lockedFilesMu sync.Mutex
-	lockedFiles   = map[*os.File]syscall.Handle{}
 )
 
 const (
@@ -31,31 +22,6 @@ const (
 )
 
 func (s *LocalState) lock() error {
-	lockedFilesMu.Lock()
-	defer lockedFilesMu.Unlock()
-
-	name, err := syscall.UTF16PtrFromString(s.PathOut)
-	if err != nil {
-		return err
-	}
-
-	handle, err := syscall.CreateFile(
-		name,
-		syscall.GENERIC_READ|syscall.GENERIC_WRITE,
-		// since this file is already open in out process, we need shared
-		// access here for this call.
-		syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE,
-		nil,
-		syscall.OPEN_EXISTING,
-		syscall.FILE_ATTRIBUTE_NORMAL,
-		0,
-	)
-	if err != nil {
-		return err
-	}
-
-	lockedFiles[s.stateFileOut] = handle
-
 	// even though we're failing immediately, an overlapped event structure is
 	// required
 	ol, err := newOverlapped()
@@ -65,7 +31,7 @@ func (s *LocalState) lock() error {
 	defer syscall.CloseHandle(ol.HEvent)
 
 	return lockFileEx(
-		handle,
+		syscall.Handle(s.stateFileOut.Fd()),
 		_LOCKFILE_EXCLUSIVE_LOCK|_LOCKFILE_FAIL_IMMEDIATELY,
 		0,              // reserved
 		0,              // bytes low
@@ -75,16 +41,8 @@ func (s *LocalState) lock() error {
 }
 
 func (s *LocalState) unlock() error {
-	lockedFilesMu.Lock()
-	defer lockedFilesMu.Unlock()
-
-	handle, ok := lockedFiles[s.stateFileOut]
-	if !ok {
-		// we allow multiple Unlock calls
-		return nil
-	}
-	delete(lockedFiles, s.stateFileOut)
-	return syscall.Close(handle)
+	// the file is closed in Unlock
+	return nil
 }
 
 func lockFileEx(h syscall.Handle, flags, reserved, locklow, lockhigh uint32, ol *syscall.Overlapped) (err error) {

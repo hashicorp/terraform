@@ -16,11 +16,11 @@ Provisioners are added directly to any resource:
 
 ```
 resource "aws_instance" "web" {
-    # ...
+  # ...
 
-    provisioner "local-exec" {
-        command = "echo ${self.private_ip_address} > file.txt"
-    }
+  provisioner "local-exec" {
+    command = "echo ${self.private_ip_address} > file.txt"
+  }
 }
 ```
 
@@ -69,15 +69,15 @@ Example of multiple provisioners:
 
 ```
 resource "aws_instance" "web" {
-    # ...
+  # ...
 
-    provisioner "local-exec" {
-        command = "echo first"
-    }
+  provisioner "local-exec" {
+    command = "echo first"
+  }
 
-    provisioner "local-exec" {
-        command = "echo second"
-    }
+  provisioner "local-exec" {
+    command = "echo second"
+  }
 }
 ```
 
@@ -96,11 +96,11 @@ Example:
 
 ```
 resource "aws_instance" "web" {
-    # ...
+  # ...
 
-    provisioner "local-exec" {
-        command = "echo ${self.private_ip_address} > file.txt"
-        on_failure = "continue"
-    }
+  provisioner "local-exec" {
+    command    = "echo ${self.private_ip_address} > file.txt"
+    on_failure = "continue"
+  }
 }
 ```

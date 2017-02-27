@@ -15,8 +15,10 @@ Provides a WAF XSS Match Set Resource
 ```
 resource "aws_waf_xss_match_set" "xss_match_set" {
   name = "xss_match_set"
+
   xss_match_tuples {
     text_transformation = "NONE"
+
     field_to_match {
       type = "URI"
     }
@@ -24,6 +26,7 @@ resource "aws_waf_xss_match_set" "xss_match_set" {
 
   xss_match_tuples {
     text_transformation = "NONE"
+
     field_to_match {
       type = "QUERY_STRING"
     }

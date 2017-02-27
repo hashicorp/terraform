@@ -28,12 +28,6 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, state.State,
 		return nil, nil, errwrap.Wrapf("Error loading state: {{err}}", err)
 	}
 
-	if s, ok := s.(state.Locker); op.LockState && ok {
-		if err := s.Lock(op.Type.String()); err != nil {
-			return nil, nil, errwrap.Wrapf("Error locking state: {{err}}", err)
-		}
-	}
-
 	if err := s.RefreshState(); err != nil {
 		return nil, nil, errwrap.Wrapf("Error loading state: {{err}}", err)
 	}

@@ -14,19 +14,20 @@ Allows you to manage an Azure Search Service
 
 ```
 resource "azurerm_resource_group" "test" {
-   name = "acceptanceTestResourceGroup1"
-   location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
-resource "azurerm_search_service" "test" {
-    name = "acceptanceTestSearchService1"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "West US"
-    sku = "standard"
 
-    tags {
-    	environment = "staging"
-    	database = "test"
-    }
+resource "azurerm_search_service" "test" {
+  name                = "acceptanceTestSearchService1"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "West US"
+  sku                 = "standard"
+
+  tags {
+    environment = "staging"
+    database    = "test"
+  }
 }
 ```
 ## Argument Reference
@@ -46,7 +47,7 @@ The following arguments are supported:
 
 * `partition_count` - (Optional) Default is 1. Valid values include 1, 2, 3, 4, 6, or 12. Valid only when `sku` is `standard`.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 

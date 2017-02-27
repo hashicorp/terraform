@@ -134,6 +134,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"openstack_images_image_v2": dataSourceImagesImageV2(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"openstack_blockstorage_volume_v1":         resourceBlockStorageVolumeV1(),
 			"openstack_blockstorage_volume_v2":         resourceBlockStorageVolumeV2(),
@@ -147,6 +151,7 @@ func Provider() terraform.ResourceProvider {
 			"openstack_fw_firewall_v1":                 resourceFWFirewallV1(),
 			"openstack_fw_policy_v1":                   resourceFWPolicyV1(),
 			"openstack_fw_rule_v1":                     resourceFWRuleV1(),
+			"openstack_images_image_v2":                resourceImagesImageV2(),
 			"openstack_lb_member_v1":                   resourceLBMemberV1(),
 			"openstack_lb_monitor_v1":                  resourceLBMonitorV1(),
 			"openstack_lb_pool_v1":                     resourceLBPoolV1(),

@@ -16,34 +16,33 @@ Create a LoadBalancer Probe Resource.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "LoadBalancerRG"
-    location = "West US"
+  name     = "LoadBalancerRG"
+  location = "West US"
 }
 
 resource "azurerm_public_ip" "test" {
-    name = "PublicIPForLB"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    public_ip_address_allocation = "static"
+  name                         = "PublicIPForLB"
+  location                     = "West US"
+  resource_group_name          = "${azurerm_resource_group.test.name}"
+  public_ip_address_allocation = "static"
 }
 
 resource "azurerm_lb" "test" {
-    name = "TestLoadBalancer"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "TestLoadBalancer"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 
-    frontend_ip_configuration {
-      name = "PublicIPAddress"
-      public_ip_address_id = "${azurerm_public_ip.test.id}"
-    }
+  frontend_ip_configuration {
+    name                 = "PublicIPAddress"
+    public_ip_address_id = "${azurerm_public_ip.test.id}"
+  }
 }
 
 resource "azurerm_lb_probe" "test" {
-  location = "West US"
   resource_group_name = "${azurerm_resource_group.test.name}"
-  loadbalancer_id = "${azurerm_lb.test.id}"
-  name = "SSH Running Probe"
-  port = 22
+  loadbalancer_id     = "${azurerm_lb.test.id}"
+  name                = "SSH Running Probe"
+  port                = 22
 }
 ```
 
@@ -53,7 +52,6 @@ The following arguments are supported:
 
 * `name` - (Required) Specifies the name of the Probe.
 * `resource_group_name` - (Required) The name of the resource group in which to create the resource.
-* `location` - (Required) Specifies the supported Azure location where the resource exists.
 * `loadbalancer_id` - (Required) The ID of the LoadBalancer in which to create the NAT Rule.
 * `protocol` - (Optional) Specifies the protocol of the end point. Possible values are `Http` or `Tcp`. If Tcp is specified, a received ACK is required for the probe to be successful. If Http is specified, a 200 OK response from the specified URI is required for the probe to be successful.
 * `port` - (Required) Port on which the Probe queries the backend endpoint. Possible values range from 1 to 65535, inclusive.
@@ -75,4 +73,3 @@ Load Balancer Probes can be imported using the `resource id`, e.g.
 ```
 terraform import azurerm_lb_probe.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.Network/loadBalancers/lb1/probes/probe1
 ```
-

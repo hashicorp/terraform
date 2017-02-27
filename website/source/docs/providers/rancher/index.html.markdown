@@ -18,7 +18,7 @@ access control is enabled on the server.
 ```hcl
 # Configure the Rancher provider
 provider "rancher" {
-  api_url = "http://rancher.my-domain.com:8080"
+  api_url    = "http://rancher.my-domain.com:8080"
   access_key = "${var.rancher_access_key}"
   secret_key = "${var.rancher_secret_key}"
 }

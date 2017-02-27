@@ -17,11 +17,12 @@ func TestAccFastlyServiceV1_papertrail_basic(t *testing.T) {
 	domainName1 := fmt.Sprintf("%s.notadomain.com", acctest.RandString(10))
 
 	log1 := gofastly.Papertrail{
-		Version: "1",
-		Name:    "papertrailtesting",
-		Address: "test1.papertrailapp.com",
-		Port:    uint(3600),
-		Format:  "%h %l %u %t %r %>s",
+		Version:           "1",
+		Name:              "papertrailtesting",
+		Address:           "test1.papertrailapp.com",
+		Port:              uint(3600),
+		Format:            "%h %l %u %t %r %>s",
+		ResponseCondition: "test_response_condition",
 	}
 
 	log2 := gofastly.Papertrail{
@@ -123,10 +124,18 @@ resource "fastly_service_v1" "foo" {
     name    = "amazon docs"
   }
 
+	condition {
+    name      = "test_response_condition"
+    type      = "RESPONSE"
+    priority  = 5
+    statement = "resp.status >= 400 && resp.status < 600"
+  }
+
   papertrail {
-    name    = "papertrailtesting"
-    address = "test1.papertrailapp.com"
-    port    = 3600
+    name               = "papertrailtesting"
+    address            = "test1.papertrailapp.com"
+    port               = 3600
+		response_condition = "test_response_condition"
   }
 
   force_destroy = true
@@ -148,16 +157,24 @@ resource "fastly_service_v1" "foo" {
     name    = "amazon docs"
   }
 
-	papertrail {
-    name    = "papertrailtesting"
-    address = "test1.papertrailapp.com"
-    port    = 3600
+	condition {
+    name      = "test_response_condition"
+    type      = "RESPONSE"
+    priority  = 5
+    statement = "resp.status >= 400 && resp.status < 600"
   }
 
 	papertrail {
-    name    = "papertrailtesting2"
-    address = "test2.papertrailapp.com"
-    port    = 8080
+    name               = "papertrailtesting"
+    address            = "test1.papertrailapp.com"
+    port               = 3600
+		response_condition = "test_response_condition"
+  }
+
+	papertrail {
+    name               = "papertrailtesting2"
+    address            = "test2.papertrailapp.com"
+    port               = 8080
   }
 
   force_destroy = true

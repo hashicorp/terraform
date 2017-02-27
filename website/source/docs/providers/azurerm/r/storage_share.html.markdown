@@ -14,24 +14,24 @@ Create an Azure Storage File Share.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
-    location = "westus"
+  name     = "acctestrg-%d"
+  location = "westus"
 }
 
 resource "azurerm_storage_account" "test" {
-    name = "acctestacc%s"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
-    account_type = "Standard_LRS"
+  name                = "acctestacc%s"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "westus"
+  account_type        = "Standard_LRS"
 }
 
 resource "azurerm_storage_share" "testshare" {
-    name = "sharename"
+  name = "sharename"
 
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    storage_account_name = "${azurerm_storage_account.test.name}"
+  resource_group_name  = "${azurerm_resource_group.test.name}"
+  storage_account_name = "${azurerm_storage_account.test.name}"
 
-    quota = 50
+  quota = 50
 }
 ```
 

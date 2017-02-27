@@ -15,28 +15,30 @@ Provides a Datadog monitor resource. This can be used to create and manage Datad
 ```
 # Create a new Datadog monitor
 resource "datadog_monitor" "foo" {
-  name = "Name for monitor foo"
-  type = "metric alert"
-  message = "Monitor triggered. Notify: @hipchat-channel"
+  name               = "Name for monitor foo"
+  type               = "metric alert"
+  message            = "Monitor triggered. Notify: @hipchat-channel"
   escalation_message = "Escalation message @pagerduty"
 
   query = "avg(last_1h):avg:aws.ec2.cpu{environment:foo,host:foo} by {host} > 2"
 
   thresholds {
-	ok = 0
-	warning = 1
-	critical = 2
+    ok       = 0
+    warning  = 1
+    critical = 2
   }
 
-  notify_no_data = false
+  notify_no_data    = false
   renotify_interval = 60
 
   notify_audit = false
-  timeout_h = 60
+  timeout_h    = 60
   include_tags = true
+
   silenced {
     "*" = 0
   }
+
   tags = ["foo:bar", "baz"]
 }
 ```
@@ -80,12 +82,15 @@ The following arguments are supported:
 
 * `notify_no_data` (Optional) A boolean indicating whether this monitor will notify when data stops reporting. Defaults
     to true.
+* `new_host_delay` (Optional) Time (in seconds) to allow a host to boot and
+    applications to fully start before starting the evaluation of monitor
+    results. Should be a non negative integer. Defaults to 300.
 * `no_data_timeframe` (Optional) The number of minutes before a monitor will notify when data stops reporting. Must be at
     least 2x the monitor timeframe for metric alerts or 2 minutes for service checks. Default: 2x timeframe for
     metric alerts, 2 minutes for service checks.
 * `renotify_interval` (Optional) The number of minutes after the last notification before a monitor will re-notify
     on the current status. It will only re-notify if it's not resolved.
-* `notify_audit` (Optional) A boolean indicating whether tagged users will be notified on changes to this monitor. 
+* `notify_audit` (Optional) A boolean indicating whether tagged users will be notified on changes to this monitor.
     Defaults to false.
 * `timeout_h` (Optional) The number of hours of the monitor not reporting data before it will automatically resolve
     from a triggered state. Defaults to false.
@@ -98,13 +103,13 @@ The following arguments are supported:
 * `tags` (Optional) A list of tags to associate with your monitor. This can help you categorize and filter monitors in the manage monitors page of the UI. Note: it's not currently possible to filter by these tags when querying via the API
 * `silenced` (Optional) Each scope will be muted until the given POSIX timestamp or forever if the value is 0.
     To mute the alert completely:
-    
+
         silenced {
           '*' =  0
         }
-          
+
     To mute role:db for a short time:
-    
+
         silenced {
           'role:db' = 1412798116
         }

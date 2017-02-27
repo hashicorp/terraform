@@ -20,22 +20,22 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Consul provider
 provider "consul" {
-    address = "demo.consul.io:80"
-    datacenter = "nyc1"
+  address    = "demo.consul.io:80"
+  datacenter = "nyc1"
 }
 
 # Access a key in Consul
 resource "consul_keys" "app" {
-    key {
-        name = "ami"
-        path = "service/app/launch_ami"
-        default = "ami-1234"
-    }
+  key {
+    name    = "ami"
+    path    = "service/app/launch_ami"
+    default = "ami-1234"
+  }
 }
 
 # Use our variable from Consul
 resource "aws_instance" "app" {
-    ami = "${consul_keys.app.var.ami}"
+  ami = "${consul_keys.app.var.ami}"
 }
 ```
 

@@ -3,7 +3,7 @@ layout: "google"
 page_title: "Google: google_service_account"
 sidebar_current: "docs-google-service-account"
 description: |-
- Allows management of a Google Cloud Platform service account. 
+ Allows management of a Google Cloud Platform service account.
 ---
 
 # google\_service\_account
@@ -17,18 +17,19 @@ permission in a project.
 
 ```js
 resource "google_service_account" "object_viewer" {
-    account_id = "object-viewer"
-    display_name = "Object viewer"
+  account_id   = "object-viewer"
+  display_name = "Object viewer"
 }
 
 resource "google_project" "my_project" {
-    id = "your-project-id"
-    policy_data = "${data.google_iam_policy.admin.policy_data}"
+  id          = "your-project-id"
+  policy_data = "${data.google_iam_policy.admin.policy_data}"
 }
 
 data "google_iam_policy" "admin" {
   binding {
     role = "roles/storage.objectViewer"
+
     members = [
       "serviceAccount:${google_service_account.object_viewer.email}",
     ]

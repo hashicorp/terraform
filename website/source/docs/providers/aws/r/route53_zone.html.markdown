@@ -14,7 +14,7 @@ Provides a Route53 Hosted Zone resource.
 
 ```
 resource "aws_route53_zone" "primary" {
-   name = "example.com"
+  name = "example.com"
 }
 ```
 
@@ -36,16 +36,17 @@ resource "aws_route53_zone" "dev" {
 }
 
 resource "aws_route53_record" "dev-ns" {
-    zone_id = "${aws_route53_zone.main.zone_id}"
-    name = "dev.example.com"
-    type = "NS"
-    ttl = "30"
-    records = [
-        "${aws_route53_zone.dev.name_servers.0}",
-        "${aws_route53_zone.dev.name_servers.1}",
-        "${aws_route53_zone.dev.name_servers.2}",
-        "${aws_route53_zone.dev.name_servers.3}"
-    ]
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name    = "dev.example.com"
+  type    = "NS"
+  ttl     = "30"
+
+  records = [
+    "${aws_route53_zone.dev.name_servers.0}",
+    "${aws_route53_zone.dev.name_servers.1}",
+    "${aws_route53_zone.dev.name_servers.2}",
+    "${aws_route53_zone.dev.name_servers.3}",
+  ]
 }
 ```
 
@@ -75,7 +76,7 @@ The following attributes are exported:
 
 ## Import
 
-Route53 Zones can be imported using the `zone id`, e.g. 
+Route53 Zones can be imported using the `zone id`, e.g.
 
 ```
 $ terraform import aws_route53_zone.myzone Z1D633PJN98FT9

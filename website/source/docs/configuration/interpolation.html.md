@@ -296,7 +296,10 @@ The supported built-in functions are:
       Example: `element(split(",", var.r53_failover_policy), signum(count.index))`
       where the 0th index points to `PRIMARY` and 1st to `FAILOVER`
 
-  * `sort(list)` - Returns a lexicographically sorted list of the strings contained in
+  * `slice(list, from, to)` - Returns the portion of `list` between `from` (inclusive) and `to` (exclusive).
+      Example: `slice(var.list_of_strings, 0, length(var.list_of_strings) - 1)`
+
+  * `sort(list)` - Returns a lexographically sorted list of the strings contained in
       the list passed as an argument. Sort may only be used with lists which contain only
       strings.
       Examples: `sort(aws_instance.foo.*.id)`, `sort(var.list_of_strings)`

@@ -23,7 +23,7 @@ Registering a job from a jobspec file:
 
 ```
 resource "nomad_job" "app" {
-    jobspec = "${file("${path.module}/job.hcl")}"
+  jobspec = "${file("${path.module}/job.hcl")}"
 }
 ```
 
@@ -35,7 +35,7 @@ resource to render parameterized jobspecs.
 
 ```
 resource "nomad_job" "app" {
-    jobspec = <<EOT
+  jobspec = <<EOT
 job "foo" {
     datacenters = ["dc1"]
     type = "service"

@@ -105,6 +105,7 @@ func TestParseResourceAddress(t *testing.T) {
 		Input    string
 		Expected *ResourceAddress
 		Output   string
+		Err      bool
 	}{
 		"implicit primary managed instance, no specific index": {
 			"aws_instance.foo",
@@ -116,6 +117,7 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:        -1,
 			},
 			"",
+			false,
 		},
 		"implicit primary data instance, no specific index": {
 			"data.aws_instance.foo",
@@ -127,6 +129,7 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:        -1,
 			},
 			"",
+			false,
 		},
 		"implicit primary, explicit index": {
 			"aws_instance.foo[2]",
@@ -138,6 +141,7 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:        2,
 			},
 			"",
+			false,
 		},
 		"implicit primary, explicit index over ten": {
 			"aws_instance.foo[12]",
@@ -149,6 +153,7 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:        12,
 			},
 			"",
+			false,
 		},
 		"explicit primary, explicit index": {
 			"aws_instance.foo.primary[2]",
@@ -161,6 +166,7 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:           2,
 			},
 			"",
+			false,
 		},
 		"tainted": {
 			"aws_instance.foo.tainted",
@@ -173,6 +179,7 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:           -1,
 			},
 			"",
+			false,
 		},
 		"deposed": {
 			"aws_instance.foo.deposed",
@@ -185,6 +192,7 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:           -1,
 			},
 			"",
+			false,
 		},
 		"with a hyphen": {
 			"aws_instance.foo-bar",
@@ -196,6 +204,7 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:        -1,
 			},
 			"",
+			false,
 		},
 		"managed in a module": {
 			"module.child.aws_instance.foo",
@@ -208,6 +217,7 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:        -1,
 			},
 			"",
+			false,
 		},
 		"data in a module": {
 			"module.child.data.aws_instance.foo",
@@ -220,6 +230,7 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:        -1,
 			},
 			"",
+			false,
 		},
 		"nested modules": {
 			"module.a.module.b.module.forever.aws_instance.foo",
@@ -232,6 +243,7 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:        -1,
 			},
 			"",
+			false,
 		},
 		"just a module": {
 			"module.a",
@@ -243,6 +255,7 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:        -1,
 			},
 			"",
+			false,
 		},
 		"just a nested module": {
 			"module.a.module.b",
@@ -254,26 +267,38 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:        -1,
 			},
 			"",
+			false,
+		},
+		"module missing resource type": {
+			"module.name.foo",
+			nil,
+			"",
+			true,
 		},
 	}
 
 	for tn, tc := range cases {
-		out, err := ParseResourceAddress(tc.Input)
-		if err != nil {
-			t.Fatalf("%s: unexpected err: %#v", tn, err)
-		}
+		t.Run(tn, func(t *testing.T) {
+			out, err := ParseResourceAddress(tc.Input)
+			if (err != nil) != tc.Err {
+				t.Fatalf("%s: unexpected err: %#v", tn, err)
+			}
+			if tc.Err {
+				return
+			}
 
-		if !reflect.DeepEqual(out, tc.Expected) {
-			t.Fatalf("bad: %q\n\nexpected:\n%#v\n\ngot:\n%#v", tn, tc.Expected, out)
-		}
+			if !reflect.DeepEqual(out, tc.Expected) {
+				t.Fatalf("bad: %q\n\nexpected:\n%#v\n\ngot:\n%#v", tn, tc.Expected, out)
+			}
 
-		expected := tc.Input
-		if tc.Output != "" {
-			expected = tc.Output
-		}
-		if out.String() != expected {
-			t.Fatalf("bad: %q\n\nexpected: %s\n\ngot: %s", tn, expected, out)
-		}
+			expected := tc.Input
+			if tc.Output != "" {
+				expected = tc.Output
+			}
+			if out.String() != expected {
+				t.Fatalf("bad: %q\n\nexpected: %s\n\ngot: %s", tn, expected, out)
+			}
+		})
 	}
 }
 

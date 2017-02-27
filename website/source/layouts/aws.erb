@@ -44,6 +44,9 @@
                         <li<%= sidebar_current("docs-aws-datasource-cloudformation-stack") %>>
                             <a href="/docs/providers/aws/d/cloudformation_stack.html">aws_cloudformation_stack</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-datasource-db-instance") %>>
+                            <a href="/docs/providers/aws/d/db_instance.html">aws_db_instance</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-ebs-snapshot") %>>
                           <a href="/docs/providers/aws/d/ebs_snapshot.html">aws_ebs_snapshot</a>
                         </li>
@@ -104,6 +107,9 @@
                         <li<%= sidebar_current("docs-aws-datasource-security-group") %>>
                          <a href="/docs/providers/aws/d/security_group.html">aws_security_group</a>
                         </li>
+                        <li<%= sidebar_current("docs-aws-datasource-sns-topic") %>>
+                         <a href="/docs/providers/aws/d/sns_topic.html">aws_sns_topic</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-datasource-subnet") %>>
                             <a href="/docs/providers/aws/d/subnet.html">aws_subnet</a>
                         </li>
@@ -118,6 +124,9 @@
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-vpc-peering-connection") %>>
                             <a href="/docs/providers/aws/d/vpc_peering_connection.html">aws_vpc_peering_connection</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-datasource-vpn-gateway") %>>
+                            <a href="/docs/providers/aws/d/vpn_gateway.html">aws_vpn_gateway</a>
                         </li>
                     </ul>
                 </li>
@@ -225,6 +234,14 @@
                             <a href="/docs/providers/aws/r/cloudwatch_event_target.html">aws_cloudwatch_event_target</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-aws-resource-cloudwatch-log-destination") %>>
+                            <a href="/docs/providers/aws/r/cloudwatch_log_destination.html">aws_cloudwatch_log_destination</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-cloudwatch-log-destination-policy") %>>
+                            <a href="/docs/providers/aws/r/cloudwatch_log_destination_policy.html">aws_cloudwatch_log_destination_policy</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-aws-resource-cloudwatch-log-group") %>>
                             <a href="/docs/providers/aws/r/cloudwatch_log_group.html">aws_cloudwatch_log_group</a>
                         </li>
@@ -289,6 +306,40 @@
 
                         <li<%= sidebar_current("docs-aws-resource-codedeploy-deployment-group") %>>
                             <a href="/docs/providers/aws/r/codedeploy_deployment_group.html">aws_codedeploy_deployment_group</a>
+                        </li>
+
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current(/^docs-aws-resource-codepipeline/) %>>
+                    <a href="#">CodePipeline Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-codepipeline") %>>
+                            <a href="/docs/providers/aws/r/codepipeline.html">aws_codepipeline</a>
+                        </li>
+
+                    </ul>
+                </li>
+
+                <li<%= sidebar_current(/^docs-aws-resource-config/) %>>
+                    <a href="#">Config Resources</a>
+                    <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-config-config-rule") %>>
+                            <a href="/docs/providers/aws/r/config_config_rule.html">aws_config_config_rule</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-config-configuration-recorder") %>>
+                            <a href="/docs/providers/aws/r/config_configuration_recorder.html">aws_config_configuration_recorder</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-config-configuration-recorder-status") %>>
+                            <a href="/docs/providers/aws/r/config_configuration_recorder_status.html">aws_config_configuration_recorder_status</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-config-delivery-channel") %>>
+                            <a href="/docs/providers/aws/r/config_delivery_channel.html">aws_config_delivery_channel</a>
                         </li>
 
                     </ul>
@@ -577,7 +628,9 @@
                         <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-application") %>>
                             <a href="/docs/providers/aws/r/elastic_beanstalk_application.html">aws_elastic_beanstalk_application</a>
                         </li>
-
+                        <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-application-version") %>>
+                            <a href="/docs/providers/aws/r/elastic_beanstalk_application_version.html">aws_elastic_beanstalk_application_version</a>
+                        </li>
                         <li<%= sidebar_current("docs-aws-resource-elastic-beanstalk-configuration-template") %>>
                             <a href="/docs/providers/aws/r/elastic_beanstalk_configuration_template.html">aws_elastic_beanstalk_configuration_template</a>
                         </li>
@@ -1124,6 +1177,14 @@
                 <li<%= sidebar_current(/^docs-aws-resource-ssm/) %>>
                     <a href="#">SSM Resources</a>
                     <ul class="nav nav-visible">
+
+                        <li<%= sidebar_current("docs-aws-resource-ssm-association") %>>
+                            <a href="/docs/providers/aws/r/ssm_association.html">aws_ssm_association</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-ssm-activation") %>>
+                            <a href="/docs/providers/aws/r/ssm_activation.html">aws_ssm_activation</a>
+                        </li>
 
                         <li<%= sidebar_current("docs-aws-resource-ssm-document") %>>
                             <a href="/docs/providers/aws/r/ssm_document.html">aws_ssm_document</a>

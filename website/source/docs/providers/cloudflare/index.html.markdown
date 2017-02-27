@@ -19,13 +19,13 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the CloudFlare provider
 provider "cloudflare" {
-    email = "${var.cloudflare_email}"
-    token = "${var.cloudflare_token}"
+  email = "${var.cloudflare_email}"
+  token = "${var.cloudflare_token}"
 }
 
 # Create a record
 resource "cloudflare_record" "www" {
-    ...
+  # ...
 }
 ```
 

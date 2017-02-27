@@ -15,13 +15,14 @@ Provides support for setting up default reviewers for your repository.
 ```
 # Manage your respository
 resource "bitbucket_default_reviewers" "infrastructure" {
-    owner = "myteam"
-    repository = "terraform-code"
-    reviewers = [
-        "gob",
-        "michael",
-        "michalejr"
-    ]
+  owner      = "myteam"
+  repository = "terraform-code"
+
+  reviewers = [
+    "gob",
+    "michael",
+    "michalejr",
+  ]
 }
 ```
 

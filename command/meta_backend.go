@@ -16,6 +16,8 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/terraform/backend"
+	backendinit "github.com/hashicorp/terraform/backend/init"
+	clistate "github.com/hashicorp/terraform/command/state"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -23,7 +25,6 @@ import (
 
 	backendlegacy "github.com/hashicorp/terraform/backend/legacy"
 	backendlocal "github.com/hashicorp/terraform/backend/local"
-	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
 )
 
 // BackendOpts are the options used to initialize a backend.Backend.
@@ -531,11 +532,15 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 		return nil, fmt.Errorf("Error reading state: %s", err)
 	}
 
-	unlock, err := lockState(realMgr, "backend from plan")
+	// Lock the state if we can
+	lockInfo := state.NewLockInfo()
+	lockInfo.Operation = "backend from plan"
+
+	lockID, err := clistate.Lock(realMgr, lockInfo, m.Ui, m.Colorize())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error locking state: %s", err)
 	}
-	defer unlock()
+	defer clistate.Unlock(realMgr, lockID, m.Ui, m.Colorize())
 
 	if err := realMgr.RefreshState(); err != nil {
 		return nil, fmt.Errorf("Error reading state: %s", err)
@@ -983,11 +988,15 @@ func (m *Meta) backend_C_r_s(
 		}
 	}
 
-	unlock, err := lockState(sMgr, "backend_C_r_s")
+	// Lock the state if we can
+	lockInfo := state.NewLockInfo()
+	lockInfo.Operation = "backend from config"
+
+	lockID, err := clistate.Lock(sMgr, lockInfo, m.Ui, m.Colorize())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error locking state: %s", err)
 	}
-	defer unlock()
+	defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
 
 	// Store the metadata in our saved state location
 	s := sMgr.State()
@@ -1087,11 +1096,15 @@ func (m *Meta) backend_C_r_S_changed(
 		}
 	}
 
-	unlock, err := lockState(sMgr, "backend_C_r_S_changed")
+	// Lock the state if we can
+	lockInfo := state.NewLockInfo()
+	lockInfo.Operation = "backend from config"
+
+	lockID, err := clistate.Lock(sMgr, lockInfo, m.Ui, m.Colorize())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error locking state: %s", err)
 	}
-	defer unlock()
+	defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
 
 	// Update the backend state
 	s = sMgr.State()
@@ -1135,8 +1148,8 @@ func (m *Meta) backend_C_r_S_unchanged(
 	config := terraform.NewResourceConfig(rawC)
 
 	// Get the backend
-	f, ok := Backends[s.Backend.Type]
-	if !ok {
+	f := backendinit.Backend(s.Backend.Type)
+	if f == nil {
 		return nil, fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Backend.Type)
 	}
 	b := f()
@@ -1244,11 +1257,15 @@ func (m *Meta) backend_C_R_S_unchanged(
 		}
 	}
 
-	unlock, err := lockState(sMgr, "backend_C_R_S_unchanged")
+	// Lock the state if we can
+	lockInfo := state.NewLockInfo()
+	lockInfo.Operation = "backend from config"
+
+	lockID, err := clistate.Lock(sMgr, lockInfo, m.Ui, m.Colorize())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error locking state: %s", err)
 	}
-	defer unlock()
+	defer clistate.Unlock(sMgr, lockID, m.Ui, m.Colorize())
 
 	// Unset the remote state
 	s = sMgr.State()
@@ -1282,8 +1299,8 @@ func (m *Meta) backendInitFromConfig(c *config.Backend) (backend.Backend, error)
 	config := terraform.NewResourceConfig(c.RawConfig)
 
 	// Get the backend
-	f, ok := Backends[c.Type]
-	if !ok {
+	f := backendinit.Backend(c.Type)
+	if f == nil {
 		return nil, fmt.Errorf(strings.TrimSpace(errBackendNewUnknown), c.Type)
 	}
 	b := f()
@@ -1356,8 +1373,8 @@ func (m *Meta) backendInitFromSaved(s *terraform.BackendState) (backend.Backend,
 	config := terraform.NewResourceConfig(rawC)
 
 	// Get the backend
-	f, ok := Backends[s.Type]
-	if !ok {
+	f := backendinit.Backend(s.Type)
+	if f == nil {
 		return nil, fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Type)
 	}
 	b := f()
@@ -1378,41 +1395,6 @@ func (m *Meta) backendInitRequired(reason string) {
 //-------------------------------------------------------------------
 // Output constants and initialization code
 //-------------------------------------------------------------------
-
-// Backends is the list of available backends. This is currently a hardcoded
-// list that can't be modified without recompiling Terraform. This is done
-// because the API for backends uses complex structures and supporting that
-// over the plugin system is currently prohibitively difficult. For those
-// wanting to implement a custom backend, recompilation should not be a
-// high barrier.
-var Backends map[string]func() backend.Backend
-
-func init() {
-	// Our hardcoded backends
-	Backends = map[string]func() backend.Backend{
-		"local":  func() backend.Backend { return &backendlocal.Local{} },
-		"consul": func() backend.Backend { return backendconsul.New() },
-	}
-
-	// Add the legacy remote backends that haven't yet been convertd to
-	// the new backend API.
-	backendlegacy.Init(Backends)
-}
-
-// simple wrapper to check for a state.Locker and always provide an unlock
-// function to defer.
-func lockState(s state.State, info string) (func() error, error) {
-	l, ok := s.(state.Locker)
-	if !ok {
-		return func() error { return nil }, nil
-	}
-
-	if err := l.Lock(info); err != nil {
-		return nil, err
-	}
-
-	return l.Unlock, nil
-}
 
 // errBackendInitRequired is the final error message shown when reinit
 // is required for some reason. The error message includes the reason.
@@ -1490,7 +1472,7 @@ const errBackendRemoteRead = `
 Error reading backend state: %s
 
 Terraform is trying to read the state from your configured backend to
-determien if there is any migration steps necessary. Terraform can't continue
+determine if there is any migration steps necessary. Terraform can't continue
 without this check because that would risk losing state. Please resolve the
 error above and try again.
 `

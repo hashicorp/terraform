@@ -14,12 +14,13 @@ Allows setting policy to an ElasticSearch domain while referencing domain attrib
 
 ```
 resource "aws_elasticsearch_domain" "example" {
-    domain_name = "tf-test"
-    elasticsearch_version = "2.3"
+  domain_name           = "tf-test"
+  elasticsearch_version = "2.3"
 }
 
 resource "aws_elasticsearch_domain_policy" "main" {
   domain_name = "${aws_elasticsearch_domain.example.domain_name}"
+
   access_policies = <<POLICIES
 {
     "Version": "2012-10-17",

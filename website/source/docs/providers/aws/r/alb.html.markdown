@@ -37,8 +37,8 @@ resource "aws_alb" "test" {
 
 The following arguments are supported:
 
-* `name` - (Optional) The name of the ALB. This name must be unique within your AWS account, can have a maximum of 32 characters, 
-must contain only alphanumeric characters or hyphens, and must not begin or end with a hyphen. If not specified, 
+* `name` - (Optional) The name of the ALB. This name must be unique within your AWS account, can have a maximum of 32 characters,
+must contain only alphanumeric characters or hyphens, and must not begin or end with a hyphen. If not specified,
 Terraform will autogenerate a name beginning with `tf-lb`.
 * `name_prefix` - (Optional) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
 * `internal` - (Optional) If true, the ALB will be internal.
