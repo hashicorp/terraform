@@ -29,13 +29,8 @@ func TestDatadogDowntime_import(t *testing.T) {
 const testAccCheckDatadogDowntimeConfigImported = `
 resource "datadog_downtime" "foo" {
   scope = ["host:X", "host:Y"]
-  start = 1483308000
-  end   = 1483365600
-
-  recurrence {
-    type   = "days"
-    period = 1
-  }
+  start = 1735707600
+  end   = 1735765200
 
   message = "Example Datadog downtime message."
 }
