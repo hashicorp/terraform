@@ -14,7 +14,7 @@ $hashicorp-header-breakpoint-md:        992px;
 $hashicorp-header-color-black:          black;
 $hashicorp-header-color-white:          white;
 
-$hashicorp-header-font-family:          'klavika-web', 'Lato', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+$hashicorp-header-font-family:          'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
 $hashicorp-header-font-size-base:       14px;
 $hashicorp-header-line-height-base:     20px;
@@ -51,39 +51,16 @@ $hashicorp-header-line-height-base:     20px;
     transition: opacity 0.25s ease;
     will-change: opacity;
   }
-
 }
 
 .header-dark {
   background-color: $hashicorp-header-color-black;
   color: $hashicorp-header-color-white;
-
-  a {
-    &:hover,
-    &:focus {
-      opacity: 0.75;
-    }
-  }
-
-  svg * { 
-    fill: $hashicorp-header-color-white;
-  }
 }
 
 .header-light {
   background-color: $hashicorp-header-color-white;
   color: $hashicorp-header-color-black;
-
-  a {
-    &:hover,
-    &:focus {
-      opacity: 0.65;
-    }
-  }
-
-  svg * { 
-    fill: $hashicorp-header-color-black;
-  }
 }
 
 .header-brand {
@@ -94,48 +71,20 @@ $hashicorp-header-line-height-base:     20px;
 .header-brand-logo {
   align-items: center;
   display: inline-flex;
+  opacity: 1;
 
-  svg {
-    height: hashicorp-header-em(30px);
+  &:hover,
+  &:focus {
+    opacity: 0.6;
+  }
+
+  img {
+    height: hashicorp-header-em(40px);
     width: auto;
   }
 
   @media (min-width: $hashicorp-header-breakpoint-xs) {
     height: hashicorp-header-em(40px);
-  }
-}
-
-.header-brand-logo-wordmark {
-  display: none;
-  font-size: hashicorp-header-em($hashicorp-header-font-size-base * 2);
-  margin-left: hashicorp-header-em($hashicorp-header-line-height-base / 2, $hashicorp-header-font-size-base * 2);
-
-  @media (min-width: $hashicorp-header-breakpoint-xs) {
-    display: inline-block;
-  }
-}
-
-.header-brand-tag {
-  align-items: center;
-  display: inline-flex;
-}
-
-.header-brand-tag-divider {
-  margin-left: hashicorp-header-em($hashicorp-header-line-height-base / 2);
-  margin-right: hashicorp-header-em($hashicorp-header-line-height-base / 2);
-}
-
-.header-brand-tag-logo {
-  align-items: center;
-  display: inline-flex;
-
-  svg {
-    height: hashicorp-header-em(18px);
-    width: auto;
-
-    + svg {
-      margin-left: hashicorp-header-em($hashicorp-header-line-height-base / 4);
-    }
   }
 }
 
@@ -155,7 +104,14 @@ $hashicorp-header-line-height-base:     20px;
   }
 
   .icon-bar {
-    background-color: $hashicorp-header-color-white;
+
+    .header-dark & {
+      background-color: $hashicorp-header-color-white;
+    }
+      
+    .header-light & {
+      background-color: $hashicorp-header-color-black;
+    }
   }
 }
 
@@ -175,9 +131,26 @@ $hashicorp-header-line-height-base:     20px;
     }
   }
 
+  a {
+    opacity: 0.75;
+
+    &:hover,
+    &:focus {
+      opacity: 1;
+    }
+  }
+
   svg {
     height: 1em;
     margin-right: hashicorp-header-em($hashicorp-header-line-height-base / 4);
     vertical-align: hashicorp-header-em(-2px);
+
+    .header-dark & * {
+      fill: $hashicorp-header-color-white;
+    }
+
+    .header-light & * {
+      fill: $hashicorp-header-color-black;
+    }
   }
 }
