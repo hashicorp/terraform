@@ -1,0 +1,28 @@
+<div class="footer <%= current_page.url == "/" ? "footer-light footer-lg" : "footer-dark" %>">
+  <div class="container">
+    <% if current_page.url != '/' %>
+      <div class="edit-page-link"><a href="<%= github_url :current_page %>">Edit this page</a></div>
+    <% end %>
+
+    <nav class="footer-nav" role="navigation">
+      <ul>
+        <li><a href="/intro/index.html">Intro</a></li>
+        <li><a href="/docs/index.html">Docs</a></li>
+        <li><a href="/community.html">Community</a></li>
+        <li><a href="/security.html">Security</a></li>
+      </ul>
+      <ul>
+        <li><a href="/downloads.html"><%= partial "layouts/svg/svg-download" %>Download</a></li>
+        <li><a href="https://github.com/hashicorp/terraform"><%= partial "layouts/svg/svg-github" %>GitHub</a></li>
+      </ul>
+    </nav>
+
+    <a class="footer-brand" href="https://www.hashicorp.com">
+      A
+      <%= partial "layouts/svg/svg-by-hashicorp" %>
+      Project
+      <%= partial "layouts/svg/svg-hashicorp-logo" %>
+    </a>
+
+  </div>
+</div>

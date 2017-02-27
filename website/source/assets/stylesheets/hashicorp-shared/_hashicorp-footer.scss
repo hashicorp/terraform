@@ -1,0 +1,178 @@
+//
+// Hashicorp footer
+// - Shared throughout projects
+// - Edits should not be made here
+// --------------------------------------------------
+
+$hashicorp-footer-height:               155px;
+
+$hashicorp-footer-breakpoint-xs:        570px;
+$hashicorp-footer-breakpoint-sm:        768px;
+$hashicorp-footer-breakpoint-md:        992px;
+
+$hashicorp-footer-color-black:          black;
+$hashicorp-footer-color-white:          white;
+$hashicorp-footer-color-primary:        $purple;
+
+$hashicorp-footer-font-family:          'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+$hashicorp-footer-font-size-base:       14px;
+$hashicorp-footer-line-height-base:     20px;
+
+
+@function hashicorp-footer-em($size, $base: $hashicorp-footer-font-size-base) {
+  @return $size / $base * 1em;
+}
+
+
+.footer {
+  font-family: $hashicorp-footer-font-family;
+  font-size: $hashicorp-footer-font-size-base;
+  min-height: hashicorp-footer-em($hashicorp-footer-height);
+  padding: hashicorp-header-em($hashicorp-header-line-height-base) 0;
+  position: relative;
+
+  &,
+  > .container {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+  }
+  
+  > .container {
+    @media (max-width: $hashicorp-footer-breakpoint-sm - 1px) {
+      flex-grow: 1;
+    }
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.3s ease,
+                opacity 0.3s ease;
+    will-change: opacity;
+  }
+}
+
+.footer-dark {
+  background-color: $hashicorp-footer-color-black;
+  color: $hashicorp-footer-color-white;
+}
+
+.footer-light {
+  background-color: $hashicorp-footer-color-white;
+  color: $hashicorp-footer-color-black;
+}
+
+.footer-lg {
+  padding: hashicorp-header-em(150px) 0 hashicorp-header-em(80px);
+}
+
+.footer-nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+
+  @media (min-width: $hashicorp-footer-breakpoint-md) {
+    width: auto;
+  }
+
+  > ul {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    list-style: none;
+    justify-content: center;
+    margin-left: hashicorp-header-em(-$hashicorp-footer-line-height-base);
+    padding-left: 0;
+    width: 100%;
+
+    @media (min-width: $hashicorp-footer-breakpoint-xs) {
+      margin-bottom: hashicorp-header-em($hashicorp-footer-line-height-base * 2);
+    }
+
+    @media (min-width: $hashicorp-footer-breakpoint-sm) {
+      width: auto;
+
+      + ul {
+        margin-left: 0;
+      }
+    }
+
+    @media (min-width: $hashicorp-footer-breakpoint-md) {
+      margin-bottom: 0;
+    }
+
+    > li {
+      margin-bottom: hashicorp-header-em($hashicorp-footer-line-height-base * 2);
+      padding-left: hashicorp-header-em($hashicorp-footer-line-height-base);
+      width: 100%;
+
+      @media (min-width: $hashicorp-footer-breakpoint-xs) {
+        margin-bottom: 0;
+        width: auto;
+      }
+    }
+  }
+
+  a {
+    display: inline-block;
+    opacity: 0.75;
+
+    &:hover,
+    &:focus {
+      color: $hashicorp-footer-color-primary;
+      opacity: 1;
+    }
+  }
+
+  svg {
+    fill: currentColor;
+    height: 1em;
+    margin-right: hashicorp-footer-em($hashicorp-footer-line-height-base / 4);
+    transition: fill 0.3s ease;
+    vertical-align: hashicorp-footer-em(-2px);
+  }
+}
+
+.footer-brand {
+  text-align: center;
+  white-space: nowrap;
+  width: 100%;
+
+  @media (min-width: $hashicorp-footer-breakpoint-md) {
+    margin-left: auto;
+    width: auto;
+  }
+
+  svg {
+    display: inline-block;
+    fill: currentColor;
+  }
+
+  .svg-by {
+    height: 16px;
+    margin-bottom: -4px;
+    margin-left: 1px;
+    width: 74px;
+  }
+
+  .svg-bg-line {
+    transition: fill 0.3s ease;
+  }
+
+  &:hover .svg-bg-line,
+  &:focus .svg-bg-line {
+    fill: #822ff7;
+  }
+
+  .svg-logo {
+    height: 30px;
+    margin-bottom: -10px;
+    margin-left: 3px;
+    width: 30px;
+  }
+}
