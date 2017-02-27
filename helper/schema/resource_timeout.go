@@ -19,7 +19,7 @@ const (
 	resourceTimeoutDefaultKey = "default"
 )
 
-func timeKeys() []string {
+func timeoutKeys() []string {
 	return []string{
 		resourceTimeoutCreateKey,
 		resourceTimeoutReadKey,
@@ -68,7 +68,7 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 			for timeKey, timeValue := range timeoutValues {
 				// validate that we're dealing with the normal CRUD actions
 				var found bool
-				for _, key := range timeKeys() {
+				for _, key := range timeoutKeys() {
 					if timeKey == key {
 						found = true
 						break
@@ -157,7 +157,7 @@ func (t *ResourceTimeout) metaEncode(ids interface{}) error {
 		m[resourceTimeoutDefaultKey] = t.Default.Nanoseconds()
 		// for any key above that is nil, if default is specified, we need to
 		// populate it with the default
-		for _, k := range timeKeys() {
+		for _, k := range timeoutKeys() {
 			if _, ok := m[k]; !ok {
 				m[k] = t.Default.Nanoseconds()
 			}

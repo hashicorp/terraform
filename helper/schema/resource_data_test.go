@@ -1123,7 +1123,7 @@ func TestResourceDataTimeout(t *testing.T) {
 		},
 	}
 
-	keys := timeKeys()
+	keys := timeoutKeys()
 	for i, c := range cases {
 		for _, k := range keys {
 			got := c.Rd.Timeout(k)

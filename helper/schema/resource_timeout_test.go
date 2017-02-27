@@ -276,7 +276,7 @@ func expectedForValues(create, read, update, del, def int) map[string]interface{
 		defNano := DefaultTimeout(time.Duration(def) * time.Minute).Nanoseconds()
 		ex["default"] = defNano
 
-		for _, k := range timeKeys() {
+		for _, k := range timeoutKeys() {
 			if _, ok := ex[k]; !ok {
 				ex[k] = defNano
 			}
