@@ -19,7 +19,7 @@ func TestRemoteClient(t *testing.T) {
 }
 
 func TestInmemLocks(t *testing.T) {
-	s, err := backend.TestBackendConfig(t, New(), nil).State()
+	s, err := backend.TestBackendConfig(t, New(), nil).State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
