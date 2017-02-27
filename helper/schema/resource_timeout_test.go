@@ -35,7 +35,7 @@ func TestResourceTimeout_ConfigDecode_badkey(t *testing.T) {
 			Expected:               timeoutForValues(2, 0, 7, 0, 0),
 			ShouldErr:              false,
 		},
-		// 1 - Config overrides create, default provided. Note that expected still
+		// 2 - Config overrides create, default provided. Note that expected still
 		// has zero values, even with a config. The default lookup is handled in
 		// ResourceData
 		{
@@ -43,6 +43,16 @@ func TestResourceTimeout_ConfigDecode_badkey(t *testing.T) {
 			Config:                 expectedConfigForValues(2, 0, 7, 0, 0),
 			Expected:               timeoutForValues(2, 0, 7, 0, 3),
 			ShouldErr:              false,
+		},
+		// 3 - use something besides "minutes"
+		{
+			ResourceDefaultTimeout: timeoutForValues(10, 0, 5, 0, 3),
+			Config: []map[string]interface{}{
+				map[string]interface{}{
+					"create": "2h",
+				}},
+			Expected:  timeoutForValues(120, 0, 5, 0, 3),
+			ShouldErr: false,
 		},
 	}
 
