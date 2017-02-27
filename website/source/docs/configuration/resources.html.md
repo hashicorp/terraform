@@ -104,7 +104,9 @@ wildcard (e.g. `"rout*"`) is **not** supported.
 
 Individual Resources may provide a `timeout` block to enable users to configure the
 amount of time a specific operation is allowed to take before being considered
-an error. For example, `aws_db_instance` provides configurable timeouts for the 
+an error. For example, the 
+[aws_db_instance](/docs/providers/aws/r/db_instance.html#timeouts) 
+resource provides configurable timeouts for the 
 `create`, `update`, and `delete` operations. Any Resource that provies Timeouts
 will document the default values for that operation, and users can overwrite
 them in their configuration. 
@@ -122,7 +124,7 @@ resource "aws_db_instance" "timeout_example" {
 
   timeout {
     create = "60m"
-    delete = "120m"
+    delete = "2h"
   }
 }
 ```
@@ -130,7 +132,7 @@ resource "aws_db_instance" "timeout_example" {
 Individual Resources must opt-in to providing configurable Timeouts, and
 attempting to configure the timeout for a Resource that does not support
 Timeouts, or overwriting a specific action that the Resource does not specify as
-an option, will result in an error.
+an option, will result in an error. Valid units of time are  `s`, `m`, `h`.
 
 <a id="explicit-dependencies"></a>
 
