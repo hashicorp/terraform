@@ -334,6 +334,8 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	d.SetId(c.CID)
+
 	// Global circonus_check attributes are saved first, followed by the check
 	// type specific attributes handled below in their respective checkRead*().
 
@@ -386,8 +388,6 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 	stateSet(d, checkOutLastModifiedAttr, c.LastModified)
 	stateSet(d, checkOutLastModifiedByAttr, c.LastModifedBy)
 	stateSet(d, checkOutReverseConnectURLsAttr, c.ReverseConnectURLs)
-
-	d.SetId(c.CID)
 
 	return nil
 }

@@ -332,6 +332,8 @@ func graphRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	d.SetId(g.CID)
+
 	streams := make([]interface{}, 0, len(g.Datapoints))
 	for _, datapoint := range g.Datapoints {
 		dataPointAttrs := make(map[string]interface{}, 13) // 13 == len(members in api.GraphDatapoint)
@@ -476,8 +478,6 @@ func graphRead(d *schema.ResourceData, meta interface{}) error {
 	stateSet(d, graphStreamGroupAttr, streamGroups)
 	stateSet(d, graphStyleAttr, g.Style)
 	stateSet(d, graphTagsAttr, tagsToState(apiToTags(g.Tags)))
-
-	d.SetId(g.CID)
 
 	return nil
 }

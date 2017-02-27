@@ -564,6 +564,8 @@ func contactGroupRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
+	d.SetId(cg.CID)
+
 	httpState, err := contactGroupHTTPToState(cg)
 	if err != nil {
 		return err
@@ -596,7 +598,6 @@ func contactGroupRead(d *schema.ResourceData, meta interface{}) error {
 	stateSet(d, contactSlackAttr, slackState)
 	stateSet(d, contactTagsAttr, cg.Tags)
 
-	d.SetId(cg.CID)
 	return nil
 }
 

@@ -226,6 +226,8 @@ func dataSourceCirconusAccountRead(d *schema.ResourceData, meta interface{}) err
 		})
 	}
 
+	d.SetId(a.CID)
+
 	stateSet(d, accountAddress1Attr, a.Address1)
 	stateSet(d, accountAddress2Attr, a.Address2)
 	stateSet(d, accountCCEmailAttr, a.CCEmail)
@@ -242,8 +244,6 @@ func dataSourceCirconusAccountRead(d *schema.ResourceData, meta interface{}) err
 	stateSet(d, accountUIBaseURLAttr, a.UIBaseURL)
 	stateSet(d, accountUsageAttr, usageList)
 	stateSet(d, accountUsersAttr, usersList)
-
-	d.SetId(a.CID)
 
 	return nil
 }

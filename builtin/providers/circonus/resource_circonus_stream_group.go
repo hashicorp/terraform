@@ -146,6 +146,8 @@ func streamGroupRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	d.SetId(sg.CID)
+
 	groups := schema.NewSet(streamGroupGroupChecksum, nil)
 	for _, g := range sg.Queries {
 		groupAttrs := map[string]interface{}{
@@ -160,8 +162,6 @@ func streamGroupRead(d *schema.ResourceData, meta interface{}) error {
 	stateSet(d, streamGroupNameAttr, sg.Name)
 	stateSet(d, streamGroupTagsAttr, tagsToState(apiToTags(sg.Tags)))
 	stateSet(d, streamGroupIDAttr, sg.CID)
-
-	d.SetId(sg.CID)
 
 	return nil
 }

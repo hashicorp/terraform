@@ -139,6 +139,8 @@ func dataSourceCirconusCollectorRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
+	d.SetId(collector.CID)
+
 	stateSet(d, collectorDetailsAttr, collectorDetailsToState(collector))
 	stateSet(d, collectorIDAttr, collector.CID)
 	stateSet(d, collectorLatitudeAttr, collector.Latitude)
@@ -146,8 +148,6 @@ func dataSourceCirconusCollectorRead(d *schema.ResourceData, meta interface{}) e
 	stateSet(d, collectorNameAttr, collector.Name)
 	stateSet(d, collectorTagsAttr, collector.Tags)
 	stateSet(d, collectorTypeAttr, collector.Type)
-
-	d.SetId(collector.CID)
 
 	return nil
 }

@@ -345,6 +345,8 @@ func triggerRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	d.SetId(t.CID)
+
 	ifRules := make([]interface{}, 0, defaultTriggerRuleLen)
 	for _, rule := range t.Rules {
 		ifAttrs := make(map[string]interface{}, 2)
@@ -412,8 +414,6 @@ func triggerRead(d *schema.ResourceData, meta interface{}) error {
 	stateSet(d, triggerNotesAttr, indirect(t.Notes))
 	stateSet(d, triggerParentAttr, indirect(t.Parent))
 	stateSet(d, triggerTagsAttr, tagsToState(apiToTags(t.Tags)))
-
-	d.SetId(t.CID)
 
 	return nil
 }
