@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/googleapi"
@@ -17,6 +18,17 @@ func resourceContainerNodePool() *schema.Resource {
 		Exists: resourceContainerNodePoolExists,
 
 		Schema: map[string]*schema.Schema{
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_PROJECT",
+					"GCLOUD_PROJECT",
+					"CLOUDSDK_CORE_PROJECT",
+				}, nil),
+			},
+
 			"name": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
@@ -125,7 +137,7 @@ func resourceContainerNodePoolRead(d *schema.ResourceData, meta interface{}) err
 			return nil
 		}
 
-		return err
+		return fmt.Errorf("Error reading NodePool: %s", err)
 	}
 
 	d.Set("name", nodePool.Name)
@@ -170,14 +182,14 @@ func resourceContainerNodePoolExists(d *schema.ResourceData, meta interface{}) (
 
 	project, err := getProject(d, config)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	zone := d.Get("zone").(string)
 	name := d.Get("name").(string)
 	cluster := d.Get("cluster").(string)
 
-	nodePool, err := config.clientContainer.Projects.Zones.Clusters.NodePools.Get(
+	_, err = config.clientContainer.Projects.Zones.Clusters.NodePools.Get(
 		project, zone, cluster, name).Do()
 	if err != nil {
 		return false, err
