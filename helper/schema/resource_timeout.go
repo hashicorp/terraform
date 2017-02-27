@@ -178,7 +178,7 @@ func (t *ResourceTimeout) metaEncode(ids interface{}) error {
 			}
 			instance.Meta[TimeoutKey] = m
 		default:
-			return fmt.Errorf("[ERR] Error matching type for Diff Encode")
+			return fmt.Errorf("Error matching type for Diff Encode")
 		}
 	}
 

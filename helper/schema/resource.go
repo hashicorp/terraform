@@ -140,7 +140,6 @@ func (r *Resource) Apply(
 	rt := ResourceTimeout{}
 	if _, ok := d.Meta[TimeoutKey]; ok {
 		if err := rt.DiffDecode(d); err != nil {
-			//TODO-cts: verify what kind of error may be thrown here
 			log.Printf("[ERR] Error decoding ResourceTimeout: %s", err)
 		}
 	} else {
@@ -216,7 +215,6 @@ func (r *Resource) Diff(
 
 	if instanceDiff != nil {
 		if err := t.DiffEncode(instanceDiff); err != nil {
-			// not sure DiffEncode will actually return an error
 			log.Printf("[ERR] Error encoding timeout to instance diff: %s", err)
 		}
 	} else {
