@@ -22,12 +22,6 @@ func resourceAwsVpc() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Timeouts: &schema.ResourceTimeout{
-			Create:  schema.DefaultTimeout(10 * time.Minute),
-			Update:  schema.DefaultTimeout(5 * time.Minute),
-			Default: schema.DefaultTimeout(5 * time.Minute),
-		},
-
 		Schema: map[string]*schema.Schema{
 			"cidr_block": {
 				Type:         schema.TypeString,
@@ -92,7 +86,6 @@ func resourceAwsVpc() *schema.Resource {
 }
 
 func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
-	d.Timeout("create")
 	conn := meta.(*AWSClient).ec2conn
 	instance_tenancy := "default"
 	if v, ok := d.GetOk("instance_tenancy"); ok {
@@ -139,7 +132,6 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
-	d.Timeout("read")
 	conn := meta.(*AWSClient).ec2conn
 
 	// Refresh the VPC state
@@ -245,7 +237,6 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
-	d.Timeout("update")
 
 	// Turn on partial mode
 	d.Partial(true)
@@ -329,7 +320,6 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
-	d.Timeout("delete")
 	conn := meta.(*AWSClient).ec2conn
 	vpcID := d.Id()
 	DeleteVpcOpts := &ec2.DeleteVpcInput{
