@@ -26,23 +26,21 @@ type Backend interface {
 	// not be loaded locally: the proper APIs should be called on state.State
 	// to load the state. If the state.State is a state.Locker, it's up to the
 	// caller to call Lock and Unlock as needed.
-	State() (state.State, error)
-}
+	//
+	// If the named state doesn't exist it will be created. The "default" state
+	// is always assumed to exist.
+	State(name string) (state.State, error)
 
-// MultiState is an interface that a backend can implement to allow changing
-// between named states depending on the configured environment.
-type MultiState interface {
-	// States returns a list of configured named states and the current state.
-	States() ([]string, string, error)
-
-	// ChangeState changes to the named state. If the named state doesn't exist
-	// it will be created.
-	ChangeState(name string) error
-
-	// DeleteState removes the named state if it exists. If the current state is
-	// deleted, the backend should change to the default state. It is an error
+	// DeleteState removes the named state if it exists. It is an error
 	// to delete the default state.
+	//
+	// DeleteState does not prevent deleting a state that is in use. It is the
+	// responsibility of the caller to hold a Lock on the state when calling
+	// this method.
 	DeleteState(name string) error
+
+	// States returns a list of configured named states.
+	States() ([]string, error)
 }
 
 // Enhanced implements additional behavior on top of a normal backend.

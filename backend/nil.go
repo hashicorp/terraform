@@ -25,16 +25,15 @@ func (Nil) Configure(*terraform.ResourceConfig) error {
 	return nil
 }
 
-func (Nil) State() (state.State, error) {
+func (Nil) State(string) (state.State, error) {
 	// We have to return a non-nil state to adhere to the interface
 	return &state.InmemState{}, nil
 }
 
-func (Nil) States() ([]string, string, error) {
-	// The default state always exists
-	return []string{DefaultStateName}, DefaultStateName, nil
+func (Nil) DeleteState(string) error {
+	return nil
 }
 
-func (Nil) ChangeState(string) error {
-	return nil
+func (Nil) States() ([]string, error) {
+	return []string{DefaultStateName}, nil
 }
