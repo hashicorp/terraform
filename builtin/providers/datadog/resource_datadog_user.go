@@ -87,6 +87,7 @@ func resourceDatadogUserCreate(d *schema.ResourceData, meta interface{}) error {
 		if !strings.Contains(err.Error(), "API error 409 Conflict") {
 			return fmt.Errorf("error creating user: %s", err.Error())
 		}
+		log.Printf("[INFO] Updating existing Datadog user %q", u.Handle)
 	}
 
 	if err := client.UpdateUser(u); err != nil {
@@ -138,9 +139,8 @@ func resourceDatadogUserUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceDatadogUserDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*datadog.Client)
 
-	// Datadog does not actually delete users. If user is already disabled,
-	// the Go API retries for awhile (1+ minute) then errors with a 400.
-	// Bypass DeleteUser if GetUser returns User.Disabled == true.
+	// Datadog does not actually delete users, but instead marks them as disabled.
+	// Bypass DeleteUser if GetUser returns User.Disabled == true, otherwise it will 400.
 	if u, err := client.GetUser(d.Id()); err == nil && u.GetDisabled() {
 		return nil
 	}

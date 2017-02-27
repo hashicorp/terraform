@@ -27,7 +27,7 @@ The following arguments are supported:
 
 * `disabled` - (Optional) Whether the user is disabled
 * `email` - (Required) Email address for user
-* `handle` - (Required) Datadog ID for user (generally same as email)
+* `handle` - (Required) The user handle, must be a valid email.
 * `is_admin` - (Optional) Whether the user is an administrator
 * `name` - (Required) Name for user
 * `role` - (Optional) Role description for user (NOTE: can only be applied on user creation)

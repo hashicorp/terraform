@@ -10,7 +10,7 @@ import (
 	"gopkg.in/zorkian/go-datadog-api.v2"
 )
 
-func TestAccDatadogUser_Required(t *testing.T) {
+func TestAccDatadogUser_Updated(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -28,109 +28,20 @@ func TestAccDatadogUser_Required(t *testing.T) {
 						"datadog_user.foo", "name", "Test User"),
 				),
 			},
-		},
-	})
-}
-
-func TestAccDatadogUser_Email(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDatadogUserDestroy,
-		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckDatadogUserConfigEmail,
+				Config: testAccCheckDatadogUserConfigUpdated,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDatadogUserExists("datadog_user.foo"),
 					resource.TestCheckResourceAttr(
-						"datadog_user.foo", "email", "email@example.com"),
+						"datadog_user.foo", "disabled", "true"),
+					resource.TestCheckResourceAttr(
+						"datadog_user.foo", "email", "updated@example.com"),
 					resource.TestCheckResourceAttr(
 						"datadog_user.foo", "handle", "test@example.com"),
-					resource.TestCheckResourceAttr(
-						"datadog_user.foo", "name", "Test User"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccDatadogUser_IsAdmin(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDatadogUserDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckDatadogUserConfigIsAdmin,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDatadogUserExists("datadog_user.foo"),
-					resource.TestCheckResourceAttr(
-						"datadog_user.foo", "email", "test@example.com"),
-					resource.TestCheckResourceAttr(
-						"datadog_user.foo", "handle", "test@example.com"),
-					resource.TestCheckResourceAttr(
-						"datadog_user.foo", "name", "Test User"),
 					resource.TestCheckResourceAttr(
 						"datadog_user.foo", "is_admin", "true"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccDatadogUser_NameUpdated(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDatadogUserDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckDatadogUserConfigRequired,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDatadogUserExists("datadog_user.foo"),
-					resource.TestCheckResourceAttr(
-						"datadog_user.foo", "email", "test@example.com"),
-					resource.TestCheckResourceAttr(
-						"datadog_user.foo", "handle", "test@example.com"),
-					resource.TestCheckResourceAttr(
-						"datadog_user.foo", "name", "Test User"),
-				),
-			},
-			resource.TestStep{
-				Config: testAccCheckDatadogUserConfigNameUpdated,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDatadogUserExists("datadog_user.foo"),
-					resource.TestCheckResourceAttr(
-						"datadog_user.foo", "email", "test@example.com"),
-					resource.TestCheckResourceAttr(
-						"datadog_user.foo", "handle", "test@example.com"),
 					resource.TestCheckResourceAttr(
 						"datadog_user.foo", "name", "Updated User"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccDatadogUser_Role(t *testing.T) {
-	t.Skip("Datadog API does not support updating User role.")
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDatadogUserDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckDatadogUserConfigRole,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDatadogUserExists("datadog_user.foo"),
-					resource.TestCheckResourceAttr(
-						"datadog_user.foo", "email", "test@example.com"),
-					resource.TestCheckResourceAttr(
-						"datadog_user.foo", "handle", "test@example.com"),
-					resource.TestCheckResourceAttr(
-						"datadog_user.foo", "name", "Test User"),
-					resource.TestCheckResourceAttr(
-						"datadog_user.foo", "role", "Test Role"),
 				),
 			},
 		},
@@ -164,37 +75,13 @@ resource "datadog_user" "foo" {
 }
 `
 
-const testAccCheckDatadogUserConfigEmail = `
+const testAccCheckDatadogUserConfigUpdated = `
 resource "datadog_user" "foo" {
-  email  = "email@example.com"
-  handle = "test@example.com"
-  name   = "Test User"
-}
-`
-
-const testAccCheckDatadogUserConfigIsAdmin = `
-resource "datadog_user" "foo" {
-  email    = "test@example.com"
+  disabled = true
+  email    = "updated@example.com"
   handle   = "test@example.com"
-  name     = "Test User"
   is_admin = true
-}
-`
-
-const testAccCheckDatadogUserConfigNameUpdated = `
-resource "datadog_user" "foo" {
-  email  = "test@example.com"
-  handle = "test@example.com"
-  name   = "Updated User"
-}
-`
-
-const testAccCheckDatadogUserConfigRole = `
-resource "datadog_user" "foo" {
-  email  = "test@example.com"
-  handle = "test@example.com"
-  name   = "Test User"
-  role   = "Test Role"
+  name     = "Updated User"
 }
 `
 

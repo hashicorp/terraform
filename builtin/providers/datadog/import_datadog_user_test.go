@@ -28,6 +28,7 @@ func TestDatadogUser_import(t *testing.T) {
 
 const testAccCheckDatadogUserConfigImported = `
 resource "datadog_user" "foo" {
+  email  = "test@example.com"
   handle = "test@example.com"
   name   = "Test User"
 }
