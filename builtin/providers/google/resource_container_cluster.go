@@ -231,6 +231,22 @@ func resourceContainerCluster() *schema.Resource {
 							},
 						},
 
+						"local_ssd_count": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(int)
+
+								if value < 0 {
+									errors = append(errors, fmt.Errorf(
+										"%q cannot be negative", k))
+								}
+								return
+							},
+						},
+
 						"oauth_scopes": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
@@ -388,6 +404,10 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 
 		if v, ok = nodeConfig["disk_size_gb"]; ok {
 			cluster.NodeConfig.DiskSizeGb = int64(v.(int))
+		}
+
+		if v, ok = nodeConfig["local_ssd_count"]; ok {
+			cluster.NodeConfig.LocalSsdCount = int64(v.(int))
 		}
 
 		if v, ok := nodeConfig["oauth_scopes"]; ok {
@@ -598,6 +618,7 @@ func flattenClusterNodeConfig(c *container.NodeConfig) []map[string]interface{} 
 		map[string]interface{}{
 			"machine_type":    c.MachineType,
 			"disk_size_gb":    c.DiskSizeGb,
+			"local_ssd_count": c.LocalSsdCount,
 			"service_account": c.ServiceAccount,
 			"metadata":        c.Metadata,
 			"image_type":      c.ImageType,
