@@ -56,8 +56,8 @@ func dataSourceCirconusAccount() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 				// ConflictsWith: []string{accountCurrentAttr},
-				ValidateFunc: _ValidateFuncs(
-					_ValidateRegexp(accountIDAttr, config.AccountCIDRegex),
+				ValidateFunc: validateFuncs(
+					validateRegexp(accountIDAttr, config.AccountCIDRegex),
 				),
 				Description: accountDescription[accountIDAttr],
 			},
@@ -180,7 +180,7 @@ func dataSourceCirconusAccount() *schema.Resource {
 }
 
 func dataSourceCirconusAccountRead(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*_ProviderContext)
+	c := meta.(*providerContext)
 
 	var cid string
 
@@ -226,22 +226,22 @@ func dataSourceCirconusAccountRead(d *schema.ResourceData, meta interface{}) err
 		})
 	}
 
-	_StateSet(d, accountAddress1Attr, a.Address1)
-	_StateSet(d, accountAddress2Attr, a.Address2)
-	_StateSet(d, accountCCEmailAttr, a.CCEmail)
-	_StateSet(d, accountIDAttr, a.CID)
-	_StateSet(d, accountCityAttr, a.City)
-	_StateSet(d, accountContactGroupsAttr, a.ContactGroups)
-	_StateSet(d, accountCountryAttr, a.Country)
-	_StateSet(d, accountDescriptionAttr, a.Description)
-	_StateSet(d, accountInvitesAttr, invitesList)
-	_StateSet(d, accountNameAttr, a.Name)
-	_StateSet(d, accountOwnerAttr, a.OwnerCID)
-	_StateSet(d, accountStateProvAttr, a.StateProv)
-	_StateSet(d, accountTimezoneAttr, a.Timezone)
-	_StateSet(d, accountUIBaseURLAttr, a.UIBaseURL)
-	_StateSet(d, accountUsageAttr, usageList)
-	_StateSet(d, accountUsersAttr, usersList)
+	stateSet(d, accountAddress1Attr, a.Address1)
+	stateSet(d, accountAddress2Attr, a.Address2)
+	stateSet(d, accountCCEmailAttr, a.CCEmail)
+	stateSet(d, accountIDAttr, a.CID)
+	stateSet(d, accountCityAttr, a.City)
+	stateSet(d, accountContactGroupsAttr, a.ContactGroups)
+	stateSet(d, accountCountryAttr, a.Country)
+	stateSet(d, accountDescriptionAttr, a.Description)
+	stateSet(d, accountInvitesAttr, invitesList)
+	stateSet(d, accountNameAttr, a.Name)
+	stateSet(d, accountOwnerAttr, a.OwnerCID)
+	stateSet(d, accountStateProvAttr, a.StateProv)
+	stateSet(d, accountTimezoneAttr, a.Timezone)
+	stateSet(d, accountUIBaseURLAttr, a.UIBaseURL)
+	stateSet(d, accountUsageAttr, usageList)
+	stateSet(d, accountUsersAttr, usersList)
 
 	d.SetId(a.CID)
 

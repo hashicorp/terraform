@@ -14,73 +14,73 @@ import (
 
 const (
 	// circonus_metric.* resource attribute names
-	_MetricActiveAttr _SchemaAttr = "active"
-	_MetricIDAttr     _SchemaAttr = "id"
-	_MetricNameAttr   _SchemaAttr = "name"
-	_MetricTypeAttr   _SchemaAttr = "type"
-	_MetricTagsAttr   _SchemaAttr = "tags"
-	_MetricUnitAttr   _SchemaAttr = "unit"
+	metricActiveAttr schemaAttr = "active"
+	metricIDAttr     schemaAttr = "id"
+	metricNameAttr   schemaAttr = "name"
+	metricTypeAttr   schemaAttr = "type"
+	metricTagsAttr   schemaAttr = "tags"
+	metricUnitAttr   schemaAttr = "unit"
 
 	// CheckBundle.Metric.Status can be one of these values
-	_MetricStatusActive    = "active"
-	_MetricStatusAvailable = "available"
+	metricStatusActive    = "active"
+	metricStatusAvailable = "available"
 )
 
-var _MetricDescriptions = _AttrDescrs{
-	_MetricActiveAttr: "Enables or disables the metric",
-	_MetricNameAttr:   "Name of the metric",
-	_MetricTypeAttr:   "Type of metric (e.g. numeric, histogram, text)",
-	_MetricTagsAttr:   "Tags assigned to the metric",
-	_MetricUnitAttr:   "The unit of measurement for a metric",
+var metricDescriptions = attrDescrs{
+	metricActiveAttr: "Enables or disables the metric",
+	metricNameAttr:   "Name of the metric",
+	metricTypeAttr:   "Type of metric (e.g. numeric, histogram, text)",
+	metricTagsAttr:   "Tags assigned to the metric",
+	metricUnitAttr:   "The unit of measurement for a metric",
 }
 
-func _NewMetricResource() *schema.Resource {
+func newMetricResource() *schema.Resource {
 	return &schema.Resource{
-		Create: _MetricCreate,
-		Read:   _MetricRead,
-		Update: _MetricUpdate,
-		Delete: _MetricDelete,
-		Exists: _MetricExists,
+		Create: metricCreate,
+		Read:   metricRead,
+		Update: metricUpdate,
+		Delete: metricDelete,
+		Exists: metricExists,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-			_MetricActiveAttr: &schema.Schema{
+		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+			metricActiveAttr: &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			_MetricNameAttr: &schema.Schema{
+			metricNameAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: _ValidateRegexp(_MetricNameAttr, `[\S]+`),
+				ValidateFunc: validateRegexp(metricNameAttr, `[\S]+`),
 			},
-			_MetricTypeAttr: &schema.Schema{
+			metricTypeAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: _ValidateStringIn(_MetricTypeAttr, _ValidMetricTypes),
+				ValidateFunc: validateStringIn(metricTypeAttr, validMetricTypes),
 			},
-			_MetricTagsAttr: _TagMakeConfigSchema(_MetricTagsAttr),
-			_MetricUnitAttr: &schema.Schema{
+			metricTagsAttr: tagMakeConfigSchema(metricTagsAttr),
+			metricUnitAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      _MetricUnit,
-				ValidateFunc: _ValidateRegexp(_MetricUnitAttr, _MetricUnitRegexp),
+				Default:      metricUnit,
+				ValidateFunc: validateRegexp(metricUnitAttr, metricUnitRegexp),
 			},
-		}, _MetricDescriptions),
+		}, metricDescriptions),
 	}
 }
 
-func _MetricCreate(d *schema.ResourceData, meta interface{}) error {
-	m := _NewMetric()
-	ctxt := meta.(*_ProviderContext)
-	cr := _NewConfigReader(ctxt, d)
+func metricCreate(d *schema.ResourceData, meta interface{}) error {
+	m := newMetric()
+	ctxt := meta.(*providerContext)
+	cr := newConfigReader(ctxt, d)
 
 	id := d.Id()
 	if id == "" {
 		var err error
-		id, err = _NewMetricID()
+		id, err = newMetricID()
 		if err != nil {
 			return errwrap.Wrapf("metric ID creation failed: {{err}}", err)
 		}
@@ -94,13 +94,13 @@ func _MetricCreate(d *schema.ResourceData, meta interface{}) error {
 		return errwrap.Wrapf("error creating metric: {{err}}", err)
 	}
 
-	return _MetricRead(d, meta)
+	return metricRead(d, meta)
 }
 
-func _MetricRead(d *schema.ResourceData, meta interface{}) error {
-	m := _NewMetric()
-	ctxt := meta.(*_ProviderContext)
-	cr := _NewConfigReader(ctxt, d)
+func metricRead(d *schema.ResourceData, meta interface{}) error {
+	m := newMetric()
+	ctxt := meta.(*providerContext)
+	cr := newConfigReader(ctxt, d)
 
 	if err := m.ParseConfig(d.Id(), cr); err != nil {
 		return errwrap.Wrapf("error parsing metric schema during read: {{err}}", err)
@@ -113,10 +113,10 @@ func _MetricRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func _MetricUpdate(d *schema.ResourceData, meta interface{}) error {
-	m := _NewMetric()
-	ctxt := meta.(*_ProviderContext)
-	cr := _NewConfigReader(ctxt, d)
+func metricUpdate(d *schema.ResourceData, meta interface{}) error {
+	m := newMetric()
+	ctxt := meta.(*providerContext)
+	cr := newConfigReader(ctxt, d)
 
 	if err := m.ParseConfig(d.Id(), cr); err != nil {
 		return errwrap.Wrapf("error parsing metric schema during update: {{err}}", err)
@@ -129,13 +129,13 @@ func _MetricUpdate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func _MetricDelete(d *schema.ResourceData, meta interface{}) error {
+func metricDelete(d *schema.ResourceData, meta interface{}) error {
 	d.SetId("")
 
 	return nil
 }
 
-func _MetricExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+func metricExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	if id := d.Id(); id != "" {
 		return true, nil
 	}

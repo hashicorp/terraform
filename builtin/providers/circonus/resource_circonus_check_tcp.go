@@ -13,85 +13,85 @@ import (
 
 const (
 	// circonus_check.tcp.* resource attribute names
-	_CheckTCPBannerRegexpAttr _SchemaAttr = "banner_regexp"
-	_CheckTCPCAChainAttr      _SchemaAttr = "ca_chain"
-	_CheckTCPCertFileAttr     _SchemaAttr = "certificate_file"
-	_CheckTCPCiphersAttr      _SchemaAttr = "ciphers"
-	_CheckTCPHostAttr         _SchemaAttr = "host"
-	_CheckTCPKeyFileAttr      _SchemaAttr = "key_file"
-	_CheckTCPPortAttr         _SchemaAttr = "port"
-	_CheckTCPTLSAttr          _SchemaAttr = "tls"
+	checkTCPBannerRegexpAttr schemaAttr = "banner_regexp"
+	checkTCPCAChainAttr      schemaAttr = "ca_chain"
+	checkTCPCertFileAttr     schemaAttr = "certificate_file"
+	checkTCPCiphersAttr      schemaAttr = "ciphers"
+	checkTCPHostAttr         schemaAttr = "host"
+	checkTCPKeyFileAttr      schemaAttr = "key_file"
+	checkTCPPortAttr         schemaAttr = "port"
+	checkTCPTLSAttr          schemaAttr = "tls"
 )
 
-var _CheckTCPDescriptions = _AttrDescrs{
-	_CheckTCPBannerRegexpAttr: `This regular expression is matched against the response banner. If a match is not found, the check will be marked as bad.`,
-	_CheckTCPCAChainAttr:      "A path to a file containing all the certificate authorities that should be loaded to validate the remote certificate (for TLS checks).",
-	_CheckTCPCertFileAttr:     "A path to a file containing the client certificate that will be presented to the remote server (for TLS checks).",
-	_CheckTCPCiphersAttr:      "A list of ciphers to be used when establishing a TLS connection",
-	_CheckTCPHostAttr:         "Specifies the host name or IP address to connect to for this TCP check",
-	_CheckTCPKeyFileAttr:      "A path to a file containing key to be used in conjunction with the cilent certificate (for TLS checks)",
-	_CheckTCPPortAttr:         "Specifies the port on which the management interface can be reached.",
-	_CheckTCPTLSAttr:          "Upgrade TCP connection to use TLS.",
+var checkTCPDescriptions = attrDescrs{
+	checkTCPBannerRegexpAttr: `This regular expression is matched against the response banner. If a match is not found, the check will be marked as bad.`,
+	checkTCPCAChainAttr:      "A path to a file containing all the certificate authorities that should be loaded to validate the remote certificate (for TLS checks).",
+	checkTCPCertFileAttr:     "A path to a file containing the client certificate that will be presented to the remote server (for TLS checks).",
+	checkTCPCiphersAttr:      "A list of ciphers to be used when establishing a TLS connection",
+	checkTCPHostAttr:         "Specifies the host name or IP address to connect to for this TCP check",
+	checkTCPKeyFileAttr:      "A path to a file containing key to be used in conjunction with the cilent certificate (for TLS checks)",
+	checkTCPPortAttr:         "Specifies the port on which the management interface can be reached.",
+	checkTCPTLSAttr:          "Upgrade TCP connection to use TLS.",
 }
 
-var _SchemaCheckTCP = &schema.Schema{
+var schemaCheckTCP = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
 	MaxItems: 1,
 	MinItems: 1,
 	Set:      hashCheckTCP,
 	Elem: &schema.Resource{
-		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-			_CheckTCPBannerRegexpAttr: &schema.Schema{
+		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+			checkTCPBannerRegexpAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckTCPBannerRegexpAttr, `.+`),
+				ValidateFunc: validateRegexp(checkTCPBannerRegexpAttr, `.+`),
 			},
-			_CheckTCPCAChainAttr: &schema.Schema{
+			checkTCPCAChainAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckTCPCAChainAttr, `.+`),
+				ValidateFunc: validateRegexp(checkTCPCAChainAttr, `.+`),
 			},
-			_CheckTCPCertFileAttr: &schema.Schema{
+			checkTCPCertFileAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckTCPCertFileAttr, `.+`),
+				ValidateFunc: validateRegexp(checkTCPCertFileAttr, `.+`),
 			},
-			_CheckTCPCiphersAttr: &schema.Schema{
+			checkTCPCiphersAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckTCPCiphersAttr, `.+`),
+				ValidateFunc: validateRegexp(checkTCPCiphersAttr, `.+`),
 			},
-			_CheckTCPHostAttr: &schema.Schema{
+			checkTCPHostAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: _ValidateRegexp(_CheckTCPHostAttr, `.+`),
+				ValidateFunc: validateRegexp(checkTCPHostAttr, `.+`),
 			},
-			_CheckTCPKeyFileAttr: &schema.Schema{
+			checkTCPKeyFileAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckTCPKeyFileAttr, `.+`),
+				ValidateFunc: validateRegexp(checkTCPKeyFileAttr, `.+`),
 			},
-			_CheckTCPPortAttr: &schema.Schema{
+			checkTCPPortAttr: &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
-				ValidateFunc: _ValidateFuncs(
-					_ValidateIntMin(_CheckTCPPortAttr, 0),
-					_ValidateIntMax(_CheckTCPPortAttr, 65535),
+				ValidateFunc: validateFuncs(
+					validateIntMin(checkTCPPortAttr, 0),
+					validateIntMax(checkTCPPortAttr, 65535),
 				),
 			},
-			_CheckTCPTLSAttr: &schema.Schema{
+			checkTCPTLSAttr: &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-		}, _CheckTCPDescriptions),
+		}, checkTCPDescriptions),
 	},
 }
 
-// _CheckAPIToStateTCP reads the Config data out of _Check.CheckBundle into the
+// checkAPIToStateTCP reads the Config data out of circonusCheck.CheckBundle into the
 // statefile.
-func _CheckAPIToStateTCP(c *_Check, d *schema.ResourceData) error {
+func checkAPIToStateTCP(c *circonusCheck, d *schema.ResourceData) error {
 	tcpConfig := make(map[string]interface{}, len(c.Config))
 
 	// swamp is a sanity check: it must be empty by the time this method returns
@@ -100,7 +100,7 @@ func _CheckAPIToStateTCP(c *_Check, d *schema.ResourceData) error {
 		swamp[k] = v
 	}
 
-	saveBoolConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
+	saveBoolConfigToState := func(apiKey config.Key, attrName schemaAttr) {
 		if s, ok := c.Config[apiKey]; ok {
 			switch strings.ToLower(s) {
 			case "1", "true", "t", "yes", "y":
@@ -115,7 +115,7 @@ func _CheckAPIToStateTCP(c *_Check, d *schema.ResourceData) error {
 		delete(swamp, apiKey)
 	}
 
-	saveIntConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
+	saveIntConfigToState := func(apiKey config.Key, attrName schemaAttr) {
 		if v, ok := c.Config[apiKey]; ok {
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
@@ -127,7 +127,7 @@ func _CheckAPIToStateTCP(c *_Check, d *schema.ResourceData) error {
 		delete(swamp, apiKey)
 	}
 
-	saveStringConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
+	saveStringConfigToState := func(apiKey config.Key, attrName schemaAttr) {
 		if v, ok := c.Config[apiKey]; ok {
 			tcpConfig[string(attrName)] = v
 		}
@@ -135,14 +135,14 @@ func _CheckAPIToStateTCP(c *_Check, d *schema.ResourceData) error {
 		delete(swamp, apiKey)
 	}
 
-	saveStringConfigToState(config.BannerMatch, _CheckTCPBannerRegexpAttr)
-	saveStringConfigToState(config.CAChain, _CheckTCPCAChainAttr)
-	saveStringConfigToState(config.CertFile, _CheckTCPCertFileAttr)
-	saveStringConfigToState(config.Ciphers, _CheckTCPCiphersAttr)
-	tcpConfig[string(_CheckTCPHostAttr)] = c.Target
-	saveStringConfigToState(config.KeyFile, _CheckTCPKeyFileAttr)
-	saveIntConfigToState(config.Port, _CheckTCPPortAttr)
-	saveBoolConfigToState(config.UseSSL, _CheckTCPTLSAttr)
+	saveStringConfigToState(config.BannerMatch, checkTCPBannerRegexpAttr)
+	saveStringConfigToState(config.CAChain, checkTCPCAChainAttr)
+	saveStringConfigToState(config.CertFile, checkTCPCertFileAttr)
+	saveStringConfigToState(config.Ciphers, checkTCPCiphersAttr)
+	tcpConfig[string(checkTCPHostAttr)] = c.Target
+	saveStringConfigToState(config.KeyFile, checkTCPKeyFileAttr)
+	saveIntConfigToState(config.Port, checkTCPPortAttr)
+	saveBoolConfigToState(config.UseSSL, checkTCPTLSAttr)
 
 	whitelistedConfigKeys := map[config.Key]struct{}{
 		config.ReverseSecretKey: struct{}{},
@@ -159,7 +159,7 @@ func _CheckAPIToStateTCP(c *_Check, d *schema.ResourceData) error {
 		}
 	}
 
-	_StateSet(d, _CheckTCPAttr, schema.NewSet(hashCheckTCP, []interface{}{tcpConfig}))
+	stateSet(d, checkTCPAttr, schema.NewSet(hashCheckTCP, []interface{}{tcpConfig}))
 
 	return nil
 }
@@ -170,19 +170,19 @@ func hashCheckTCP(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
-	writeBool := func(attrName _SchemaAttr) {
+	writeBool := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok {
 			fmt.Fprintf(b, "%t", v.(bool))
 		}
 	}
 
-	writeInt := func(attrName _SchemaAttr) {
+	writeInt := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok {
 			fmt.Fprintf(b, "%x", v.(int))
 		}
 	}
 
-	writeString := func(attrName _SchemaAttr) {
+	writeString := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok && v.(string) != "" {
 			fmt.Fprint(b, strings.TrimSpace(v.(string)))
 		}
@@ -190,57 +190,57 @@ func hashCheckTCP(v interface{}) int {
 
 	// Order writes to the buffer using lexically sorted list for easy visual
 	// reconciliation with other lists.
-	writeString(_CheckTCPBannerRegexpAttr)
-	writeString(_CheckTCPCAChainAttr)
-	writeString(_CheckTCPCertFileAttr)
-	writeString(_CheckTCPCiphersAttr)
-	writeString(_CheckTCPHostAttr)
-	writeString(_CheckTCPKeyFileAttr)
-	writeInt(_CheckTCPPortAttr)
-	writeBool(_CheckTCPTLSAttr)
+	writeString(checkTCPBannerRegexpAttr)
+	writeString(checkTCPCAChainAttr)
+	writeString(checkTCPCertFileAttr)
+	writeString(checkTCPCiphersAttr)
+	writeString(checkTCPHostAttr)
+	writeString(checkTCPKeyFileAttr)
+	writeInt(checkTCPPortAttr)
+	writeBool(checkTCPTLSAttr)
 
 	s := b.String()
 	return hashcode.String(s)
 }
 
-func _CheckConfigToAPITCP(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
-	c.Type = string(_APICheckTypeTCP)
+func checkConfigToAPITCP(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+	c.Type = string(apiCheckTypeTCP)
 
 	// Iterate over all `tcp` attributes, even though we have a max of 1 in the
 	// schema.
 	for _, mapRaw := range l {
-		tcpConfig := _NewInterfaceMap(mapRaw)
-		ar := _NewMapReader(ctxt, tcpConfig)
+		tcpConfig := newInterfaceMap(mapRaw)
+		ar := newMapReader(ctxt, tcpConfig)
 
-		if s, ok := ar.GetStringOK(_CheckTCPBannerRegexpAttr); ok {
+		if s, ok := ar.GetStringOK(checkTCPBannerRegexpAttr); ok {
 			c.Config[config.BannerMatch] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckTCPCAChainAttr); ok {
+		if s, ok := ar.GetStringOK(checkTCPCAChainAttr); ok {
 			c.Config[config.CAChain] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckTCPCertFileAttr); ok {
+		if s, ok := ar.GetStringOK(checkTCPCertFileAttr); ok {
 			c.Config[config.CertFile] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckTCPCiphersAttr); ok {
+		if s, ok := ar.GetStringOK(checkTCPCiphersAttr); ok {
 			c.Config[config.Ciphers] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckTCPHostAttr); ok {
+		if s, ok := ar.GetStringOK(checkTCPHostAttr); ok {
 			c.Target = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckTCPKeyFileAttr); ok {
+		if s, ok := ar.GetStringOK(checkTCPKeyFileAttr); ok {
 			c.Config[config.KeyFile] = s
 		}
 
-		if i, ok := ar.GetIntOK(_CheckTCPPortAttr); ok {
+		if i, ok := ar.GetIntOK(checkTCPPortAttr); ok {
 			c.Config[config.Port] = fmt.Sprintf("%d", i)
 		}
 
-		if b, ok := ar.GetBoolOK(_CheckTCPTLSAttr); ok {
+		if b, ok := ar.GetBoolOK(checkTCPTLSAttr); ok {
 			c.Config[config.UseSSL] = fmt.Sprintf("%t", b)
 		}
 	}

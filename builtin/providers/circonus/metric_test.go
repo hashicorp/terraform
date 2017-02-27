@@ -4,16 +4,16 @@ import "testing"
 
 func Test_MetricChecksum(t *testing.T) {
 	unit := "qty"
-	m := _InterfaceMap{
-		string(_MetricActiveAttr): true,
-		string(_MetricNameAttr):   "asdf",
-		string(_MetricTagsAttr):   tagsToState(apiToTags([]string{"foo", "bar"})),
-		string(_MetricTypeAttr):   "json",
-		string(_MetricUnitAttr):   &unit,
+	m := interfaceMap{
+		string(metricActiveAttr): true,
+		string(metricNameAttr):   "asdf",
+		string(metricTagsAttr):   tagsToState(apiToTags([]string{"foo", "bar"})),
+		string(metricTypeAttr):   "json",
+		string(metricUnitAttr):   &unit,
 	}
-	ar := _NewMapReader(nil, m)
+	ar := newMapReader(nil, m)
 
-	csum := _MetricChecksum(ar)
+	csum := metricChecksum(ar)
 	if csum != 4250221491 {
 		t.Fatalf("Checksum mismatch")
 	}

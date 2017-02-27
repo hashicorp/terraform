@@ -13,86 +13,86 @@ import (
 
 const (
 	// circonus_check.cloudwatch.* resource attribute names
-	_CheckCloudWatchAPIKeyAttr      _SchemaAttr = "api_key"
-	_CheckCloudWatchAPISecretAttr   _SchemaAttr = "api_secret"
-	_CheckCloudWatchDimmensionsAttr _SchemaAttr = "dimmensions"
-	_CheckCloudWatchMetricAttr      _SchemaAttr = "metric"
-	_CheckCloudWatchNamespaceAttr   _SchemaAttr = "namespace"
-	_CheckCloudWatchURLAttr         _SchemaAttr = "url"
-	_CheckCloudWatchVersionAttr     _SchemaAttr = "version"
+	checkCloudWatchAPIKeyAttr      schemaAttr = "api_key"
+	checkCloudWatchAPISecretAttr   schemaAttr = "api_secret"
+	checkCloudWatchDimmensionsAttr schemaAttr = "dimmensions"
+	checkCloudWatchMetricAttr      schemaAttr = "metric"
+	checkCloudWatchNamespaceAttr   schemaAttr = "namespace"
+	checkCloudWatchURLAttr         schemaAttr = "url"
+	checkCloudWatchVersionAttr     schemaAttr = "version"
 )
 
-var _CheckCloudWatchDescriptions = _AttrDescrs{
-	_CheckCloudWatchAPIKeyAttr:      "The AWS API Key",
-	_CheckCloudWatchAPISecretAttr:   "The AWS API Secret",
-	_CheckCloudWatchDimmensionsAttr: "The dimensions to query for the metric",
-	_CheckCloudWatchMetricAttr:      "One or more CloudWatch Metric attributes",
-	_CheckCloudWatchNamespaceAttr:   "The namespace to pull telemetry from",
-	_CheckCloudWatchURLAttr:         "The URL including schema and hostname for the Cloudwatch monitoring server. This value will be used to specify the region - for example, to pull from us-east-1, the URL would be https://monitoring.us-east-1.amazonaws.com.",
-	_CheckCloudWatchVersionAttr:     "The version of the Cloudwatch API to use.",
+var checkCloudWatchDescriptions = attrDescrs{
+	checkCloudWatchAPIKeyAttr:      "The AWS API Key",
+	checkCloudWatchAPISecretAttr:   "The AWS API Secret",
+	checkCloudWatchDimmensionsAttr: "The dimensions to query for the metric",
+	checkCloudWatchMetricAttr:      "One or more CloudWatch Metric attributes",
+	checkCloudWatchNamespaceAttr:   "The namespace to pull telemetry from",
+	checkCloudWatchURLAttr:         "The URL including schema and hostname for the Cloudwatch monitoring server. This value will be used to specify the region - for example, to pull from us-east-1, the URL would be https://monitoring.us-east-1.amazonaws.com.",
+	checkCloudWatchVersionAttr:     "The version of the Cloudwatch API to use.",
 }
 
-var _SchemaCheckCloudWatch = &schema.Schema{
+var schemaCheckCloudWatch = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
 	MaxItems: 1,
 	MinItems: 1,
 	Set:      hashCheckCloudWatch,
 	Elem: &schema.Resource{
-		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-			_CheckCloudWatchAPIKeyAttr: &schema.Schema{
+		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+			checkCloudWatchAPIKeyAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				Sensitive:    true,
-				ValidateFunc: _ValidateRegexp(_CheckCloudWatchAPIKeyAttr, `[\S]+`),
+				ValidateFunc: validateRegexp(checkCloudWatchAPIKeyAttr, `[\S]+`),
 				DefaultFunc:  schema.EnvDefaultFunc("AWS_ACCESS_KEY_ID", ""),
 			},
-			_CheckCloudWatchAPISecretAttr: &schema.Schema{
+			checkCloudWatchAPISecretAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				Sensitive:    true,
-				ValidateFunc: _ValidateRegexp(_CheckCloudWatchAPISecretAttr, `[\S]+`),
+				ValidateFunc: validateRegexp(checkCloudWatchAPISecretAttr, `[\S]+`),
 				DefaultFunc:  schema.EnvDefaultFunc("AWS_SECRET_ACCESS_KEY", ""),
 			},
-			_CheckCloudWatchDimmensionsAttr: &schema.Schema{
+			checkCloudWatchDimmensionsAttr: &schema.Schema{
 				Type:         schema.TypeMap,
 				Required:     true,
 				Elem:         schema.TypeString,
-				ValidateFunc: _ValidateCheckCloudWatchDimmensions,
+				ValidateFunc: validateCheckCloudWatchDimmensions,
 			},
-			_CheckCloudWatchMetricAttr: &schema.Schema{
+			checkCloudWatchMetricAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
 				MinItems: 1,
 				Set:      schema.HashString,
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
-					ValidateFunc: _ValidateRegexp(_CheckCloudWatchMetricAttr, `^([\S]+)$`),
+					ValidateFunc: validateRegexp(checkCloudWatchMetricAttr, `^([\S]+)$`),
 				},
 			},
-			_CheckCloudWatchNamespaceAttr: &schema.Schema{
+			checkCloudWatchNamespaceAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: _ValidateRegexp(_CheckCloudWatchNamespaceAttr, `.+`),
+				ValidateFunc: validateRegexp(checkCloudWatchNamespaceAttr, `.+`),
 			},
-			_CheckCloudWatchURLAttr: &schema.Schema{
+			checkCloudWatchURLAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: _ValidateHTTPURL(_CheckCloudWatchURLAttr, _URLIsAbs),
+				ValidateFunc: validateHTTPURL(checkCloudWatchURLAttr, urlIsAbs),
 			},
-			_CheckCloudWatchVersionAttr: &schema.Schema{
+			checkCloudWatchVersionAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      defaultCheckCloudWatchVersion,
-				ValidateFunc: _ValidateRegexp(_CheckCloudWatchVersionAttr, `^[\d]{4}-[\d]{2}-[\d]{2}$`),
+				ValidateFunc: validateRegexp(checkCloudWatchVersionAttr, `^[\d]{4}-[\d]{2}-[\d]{2}$`),
 			},
-		}, _CheckCloudWatchDescriptions),
+		}, checkCloudWatchDescriptions),
 	},
 }
 
-// _CheckAPIToStateCloudWatch reads the Config data out of _Check.CheckBundle into the
+// checkAPIToStateCloudWatch reads the Config data out of circonusCheck.CheckBundle into the
 // statefile.
-func _CheckAPIToStateCloudWatch(c *_Check, d *schema.ResourceData) error {
+func checkAPIToStateCloudWatch(c *circonusCheck, d *schema.ResourceData) error {
 	cloudwatchConfig := make(map[string]interface{}, len(c.Config))
 
 	// swamp is a sanity check: it must be empty by the time this method returns
@@ -101,7 +101,7 @@ func _CheckAPIToStateCloudWatch(c *_Check, d *schema.ResourceData) error {
 		swamp[k] = v
 	}
 
-	saveStringConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
+	saveStringConfigToState := func(apiKey config.Key, attrName schemaAttr) {
 		if v, ok := c.Config[apiKey]; ok {
 			cloudwatchConfig[string(attrName)] = v
 		}
@@ -109,8 +109,8 @@ func _CheckAPIToStateCloudWatch(c *_Check, d *schema.ResourceData) error {
 		delete(swamp, apiKey)
 	}
 
-	saveStringConfigToState(config.APIKey, _CheckCloudWatchAPIKeyAttr)
-	saveStringConfigToState(config.APISecret, _CheckCloudWatchAPISecretAttr)
+	saveStringConfigToState(config.APIKey, checkCloudWatchAPIKeyAttr)
+	saveStringConfigToState(config.APISecret, checkCloudWatchAPISecretAttr)
 
 	dimmensions := make(map[string]interface{}, len(c.Config))
 	dimmensionPrefixLen := len(config.DimPrefix)
@@ -125,18 +125,18 @@ func _CheckAPIToStateCloudWatch(c *_Check, d *schema.ResourceData) error {
 		}
 		delete(swamp, k)
 	}
-	cloudwatchConfig[string(_CheckCloudWatchDimmensionsAttr)] = dimmensions
+	cloudwatchConfig[string(checkCloudWatchDimmensionsAttr)] = dimmensions
 
 	metricSet := schema.NewSet(schema.HashString, nil)
 	metricList := strings.Split(c.Config[config.CloudwatchMetrics], ",")
 	for _, m := range metricList {
 		metricSet.Add(m)
 	}
-	cloudwatchConfig[string(_CheckCloudWatchMetricAttr)] = metricSet
+	cloudwatchConfig[string(checkCloudWatchMetricAttr)] = metricSet
 
-	saveStringConfigToState(config.Namespace, _CheckCloudWatchNamespaceAttr)
-	saveStringConfigToState(config.URL, _CheckCloudWatchURLAttr)
-	saveStringConfigToState(config.Version, _CheckCloudWatchVersionAttr)
+	saveStringConfigToState(config.Namespace, checkCloudWatchNamespaceAttr)
+	saveStringConfigToState(config.URL, checkCloudWatchURLAttr)
+	saveStringConfigToState(config.Version, checkCloudWatchVersionAttr)
 
 	whitelistedConfigKeys := map[config.Key]struct{}{
 		config.ReverseSecretKey: struct{}{},
@@ -153,7 +153,7 @@ func _CheckAPIToStateCloudWatch(c *_Check, d *schema.ResourceData) error {
 		}
 	}
 
-	_StateSet(d, _CheckCloudWatchAttr, schema.NewSet(hashCheckCloudWatch, []interface{}{cloudwatchConfig}))
+	stateSet(d, checkCloudWatchAttr, schema.NewSet(hashCheckCloudWatch, []interface{}{cloudwatchConfig}))
 
 	return nil
 }
@@ -164,7 +164,7 @@ func hashCheckCloudWatch(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
-	writeString := func(attrName _SchemaAttr) {
+	writeString := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok && v.(string) != "" {
 			fmt.Fprint(b, strings.TrimSpace(v.(string)))
 		}
@@ -172,10 +172,10 @@ func hashCheckCloudWatch(v interface{}) int {
 
 	// Order writes to the buffer using lexically sorted list for easy visual
 	// reconciliation with other lists.
-	writeString(_CheckCloudWatchAPIKeyAttr)
-	writeString(_CheckCloudWatchAPISecretAttr)
+	writeString(checkCloudWatchAPIKeyAttr)
+	writeString(checkCloudWatchAPISecretAttr)
 
-	if dimmensionsRaw, ok := m[string(_CheckCloudWatchDimmensionsAttr)]; ok {
+	if dimmensionsRaw, ok := m[string(checkCloudWatchDimmensionsAttr)]; ok {
 		dimmensionMap := dimmensionsRaw.(map[string]interface{})
 		dimmensions := make([]string, 0, len(dimmensionMap))
 		for k := range dimmensionMap {
@@ -188,7 +188,7 @@ func hashCheckCloudWatch(v interface{}) int {
 		}
 	}
 
-	if metricsRaw, ok := m[string(_CheckCloudWatchMetricAttr)]; ok {
+	if metricsRaw, ok := m[string(checkCloudWatchMetricAttr)]; ok {
 		metricListRaw := flattenSet(metricsRaw.(*schema.Set))
 		for i := range metricListRaw {
 			if metricListRaw[i] == nil {
@@ -198,53 +198,53 @@ func hashCheckCloudWatch(v interface{}) int {
 		}
 	}
 
-	writeString(_CheckCloudWatchNamespaceAttr)
-	writeString(_CheckCloudWatchURLAttr)
-	writeString(_CheckCloudWatchVersionAttr)
+	writeString(checkCloudWatchNamespaceAttr)
+	writeString(checkCloudWatchURLAttr)
+	writeString(checkCloudWatchVersionAttr)
 
 	s := b.String()
 	return hashcode.String(s)
 }
 
-func _CheckConfigToAPICloudWatch(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
-	c.Type = string(_APICheckTypeCloudWatchAttr)
+func checkConfigToAPICloudWatch(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+	c.Type = string(apiCheckTypeCloudWatchAttr)
 
 	// Iterate over all `cloudwatch` attributes, even though we have a max of 1 in the
 	// schema.
 	for _, mapRaw := range l {
-		cloudwatchConfig := _NewInterfaceMap(mapRaw)
-		ar := _NewMapReader(ctxt, cloudwatchConfig)
+		cloudwatchConfig := newInterfaceMap(mapRaw)
+		ar := newMapReader(ctxt, cloudwatchConfig)
 
-		if s, ok := ar.GetStringOK(_CheckCloudWatchAPIKeyAttr); ok {
+		if s, ok := ar.GetStringOK(checkCloudWatchAPIKeyAttr); ok {
 			c.Config[config.APIKey] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckCloudWatchAPISecretAttr); ok {
+		if s, ok := ar.GetStringOK(checkCloudWatchAPISecretAttr); ok {
 			c.Config[config.APISecret] = s
 		}
 
-		if dimmensions := cloudwatchConfig.CollectMap(_CheckCloudWatchDimmensionsAttr); dimmensions != nil {
+		if dimmensions := cloudwatchConfig.CollectMap(checkCloudWatchDimmensionsAttr); dimmensions != nil {
 			for k, v := range dimmensions {
 				dimKey := config.DimPrefix + config.Key(k)
 				c.Config[dimKey] = v
 			}
 		}
 
-		if metricsSet, ok := ar.GetSetAsListOK(_CheckCloudWatchMetricAttr); ok {
+		if metricsSet, ok := ar.GetSetAsListOK(checkCloudWatchMetricAttr); ok {
 			metrics := metricsSet.List()
 			sort.Strings(metrics)
 			c.Config[config.CloudwatchMetrics] = strings.Join(metrics, ",")
 		}
 
-		if s, ok := ar.GetStringOK(_CheckCloudWatchNamespaceAttr); ok {
+		if s, ok := ar.GetStringOK(checkCloudWatchNamespaceAttr); ok {
 			c.Config[config.Namespace] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckCloudWatchURLAttr); ok {
+		if s, ok := ar.GetStringOK(checkCloudWatchURLAttr); ok {
 			c.Config[config.URL] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckCloudWatchVersionAttr); ok {
+		if s, ok := ar.GetStringOK(checkCloudWatchVersionAttr); ok {
 			c.Config[config.Version] = s
 		}
 	}

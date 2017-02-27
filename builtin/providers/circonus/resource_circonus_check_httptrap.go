@@ -12,41 +12,41 @@ import (
 
 const (
 	// circonus_check.httptrap.* resource attribute names
-	_CheckHTTPTrapAsyncMetricsAttr _SchemaAttr = "async_metrics"
-	_CheckHTTPTrapSecretAttr       _SchemaAttr = "secret"
+	checkHTTPTrapAsyncMetricsAttr schemaAttr = "async_metrics"
+	checkHTTPTrapSecretAttr       schemaAttr = "secret"
 )
 
-var _CheckHTTPTrapDescriptions = _AttrDescrs{
-	_CheckHTTPTrapAsyncMetricsAttr: "",
-	_CheckHTTPTrapSecretAttr:       "",
+var checkHTTPTrapDescriptions = attrDescrs{
+	checkHTTPTrapAsyncMetricsAttr: "",
+	checkHTTPTrapSecretAttr:       "",
 }
 
-var _SchemaCheckHTTPTrap = &schema.Schema{
+var schemaCheckHTTPTrap = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
 	MaxItems: 1,
 	MinItems: 1,
 	Set:      hashCheckHTTPTrap,
 	Elem: &schema.Resource{
-		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-			_CheckHTTPTrapAsyncMetricsAttr: &schema.Schema{
+		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+			checkHTTPTrapAsyncMetricsAttr: &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  defaultCheckHTTPTrapAsync,
 			},
-			_CheckHTTPTrapSecretAttr: &schema.Schema{
+			checkHTTPTrapSecretAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Sensitive:    true,
-				ValidateFunc: _ValidateRegexp(_CheckHTTPTrapSecretAttr, `^[a-zA-Z0-9_]+$`),
+				ValidateFunc: validateRegexp(checkHTTPTrapSecretAttr, `^[a-zA-Z0-9_]+$`),
 			},
-		}, _CheckHTTPTrapDescriptions),
+		}, checkHTTPTrapDescriptions),
 	},
 }
 
-// _CheckAPIToStateHTTPTrap reads the Config data out of _Check.CheckBundle into
+// checkAPIToStateHTTPTrap reads the Config data out of circonusCheck.CheckBundle into
 // the statefile.
-func _CheckAPIToStateHTTPTrap(c *_Check, d *schema.ResourceData) error {
+func checkAPIToStateHTTPTrap(c *circonusCheck, d *schema.ResourceData) error {
 	httpTrapConfig := make(map[string]interface{}, len(c.Config))
 
 	// swamp is a sanity check: it must be empty by the time this method returns
@@ -55,7 +55,7 @@ func _CheckAPIToStateHTTPTrap(c *_Check, d *schema.ResourceData) error {
 		swamp[k] = v
 	}
 
-	saveBoolConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
+	saveBoolConfigToState := func(apiKey config.Key, attrName schemaAttr) {
 		if s, ok := c.Config[apiKey]; ok {
 			switch s {
 			case "true", "on":
@@ -70,7 +70,7 @@ func _CheckAPIToStateHTTPTrap(c *_Check, d *schema.ResourceData) error {
 		delete(swamp, apiKey)
 	}
 
-	saveStringConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
+	saveStringConfigToState := func(apiKey config.Key, attrName schemaAttr) {
 		if s, ok := c.Config[apiKey]; ok {
 			httpTrapConfig[string(attrName)] = s
 		}
@@ -78,8 +78,8 @@ func _CheckAPIToStateHTTPTrap(c *_Check, d *schema.ResourceData) error {
 		delete(swamp, apiKey)
 	}
 
-	saveBoolConfigToState(config.AsyncMetrics, _CheckHTTPTrapAsyncMetricsAttr)
-	saveStringConfigToState(config.Secret, _CheckHTTPTrapSecretAttr)
+	saveBoolConfigToState(config.AsyncMetrics, checkHTTPTrapAsyncMetricsAttr)
+	saveStringConfigToState(config.Secret, checkHTTPTrapSecretAttr)
 
 	whitelistedConfigKeys := map[config.Key]struct{}{
 		config.ReverseSecretKey: struct{}{},
@@ -96,7 +96,7 @@ func _CheckAPIToStateHTTPTrap(c *_Check, d *schema.ResourceData) error {
 		}
 	}
 
-	_StateSet(d, _CheckHTTPTrapAttr, schema.NewSet(hashCheckHTTPTrap, []interface{}{httpTrapConfig}))
+	stateSet(d, checkHTTPTrapAttr, schema.NewSet(hashCheckHTTPTrap, []interface{}{httpTrapConfig}))
 
 	return nil
 }
@@ -107,13 +107,13 @@ func hashCheckHTTPTrap(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
-	writeBool := func(attrName _SchemaAttr) {
+	writeBool := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok {
 			fmt.Fprintf(b, "%t", v.(bool))
 		}
 	}
 
-	writeString := func(attrName _SchemaAttr) {
+	writeString := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok && v.(string) != "" {
 			fmt.Fprint(b, strings.TrimSpace(v.(string)))
 		}
@@ -121,27 +121,27 @@ func hashCheckHTTPTrap(v interface{}) int {
 
 	// Order writes to the buffer using lexically sorted list for easy visual
 	// reconciliation with other lists.
-	writeBool(_CheckHTTPTrapAsyncMetricsAttr)
-	writeString(_CheckHTTPTrapSecretAttr)
+	writeBool(checkHTTPTrapAsyncMetricsAttr)
+	writeString(checkHTTPTrapSecretAttr)
 
 	s := b.String()
 	return hashcode.String(s)
 }
 
-func _CheckConfigToAPIHTTPTrap(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
-	c.Type = string(_APICheckTypeHTTPTrapAttr)
+func checkConfigToAPIHTTPTrap(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+	c.Type = string(apiCheckTypeHTTPTrapAttr)
 
 	// Iterate over all `httptrap` attributes, even though we have a max of 1 in the
 	// schema.
 	for _, mapRaw := range l {
-		httpTrapConfig := _NewInterfaceMap(mapRaw)
-		ar := _NewMapReader(ctxt, httpTrapConfig)
+		httpTrapConfig := newInterfaceMap(mapRaw)
+		ar := newMapReader(ctxt, httpTrapConfig)
 
-		if b, ok := ar.GetBoolOK(_CheckHTTPTrapAsyncMetricsAttr); ok {
+		if b, ok := ar.GetBoolOK(checkHTTPTrapAsyncMetricsAttr); ok {
 			c.Config[config.AsyncMetrics] = fmt.Sprintf("%t", b)
 		}
 
-		if s, ok := ar.GetStringOK(_CheckHTTPTrapSecretAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPTrapSecretAttr); ok {
 			c.Config[config.Secret] = s
 		}
 	}

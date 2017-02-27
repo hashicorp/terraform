@@ -12,99 +12,99 @@ import (
 
 const (
 	// circonus_check.postgresql.* resource attribute names
-	_CheckPostgreSQLDSNAttr _SchemaAttr = "dsn"
-	// _CheckPostgreSQLHostAttr     _SchemaAttr = "host"
-	// _CheckPostgreSQLNameAttr     _SchemaAttr = "name"
-	// _CheckPostgreSQLPasswordAttr _SchemaAttr = "password"
-	// _CheckPostgreSQLPortAttr     _SchemaAttr = "port"
-	_CheckPostgreSQLQueryAttr _SchemaAttr = "query"
-	// _CheckPostgreSQLSSLModeAttr  _SchemaAttr = "sslmode"
-	// _CheckPostgreSQLUserAttr     _SchemaAttr = "user"
+	checkPostgreSQLDSNAttr schemaAttr = "dsn"
+	// checkPostgreSQLHostAttr     schemaAttr = "host"
+	// checkPostgreSQLNameAttr     schemaAttr = "name"
+	// checkPostgreSQLPasswordAttr schemaAttr = "password"
+	// checkPostgreSQLPortAttr     schemaAttr = "port"
+	checkPostgreSQLQueryAttr schemaAttr = "query"
+	// checkPostgreSQLSSLModeAttr  schemaAttr = "sslmode"
+	// checkPostgreSQLUserAttr     schemaAttr = "user"
 )
 
-var _CheckPostgreSQLDescriptions = _AttrDescrs{
-	_CheckPostgreSQLDSNAttr: "The connect DSN for the PostgreSQL instance",
-	// _CheckPostgreSQLHostAttr:     "The Hostname to connect to",
-	// _CheckPostgreSQLNameAttr:     "The database name to connect to",
-	// _CheckPostgreSQLPasswordAttr: "The password to use",
-	// _CheckPostgreSQLPortAttr:     "The TCP port number to use to connect on",
-	_CheckPostgreSQLQueryAttr: "The SQL to use as the query",
-	// _CheckPostgreSQLSSLModeAttr:  "The SSL Mode to connect as",
-	// _CheckPostgreSQLUserAttr:     "The username to connect as",
+var checkPostgreSQLDescriptions = attrDescrs{
+	checkPostgreSQLDSNAttr: "The connect DSN for the PostgreSQL instance",
+	// checkPostgreSQLHostAttr:     "The Hostname to connect to",
+	// checkPostgreSQLNameAttr:     "The database name to connect to",
+	// checkPostgreSQLPasswordAttr: "The password to use",
+	// checkPostgreSQLPortAttr:     "The TCP port number to use to connect on",
+	checkPostgreSQLQueryAttr: "The SQL to use as the query",
+	// checkPostgreSQLSSLModeAttr:  "The SSL Mode to connect as",
+	// checkPostgreSQLUserAttr:     "The username to connect as",
 }
 
-var _SchemaCheckPostgreSQL = &schema.Schema{
+var schemaCheckPostgreSQL = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
 	MaxItems: 1,
 	MinItems: 1,
 	Set:      hashCheckPostgreSQL,
 	Elem: &schema.Resource{
-		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-			_CheckPostgreSQLDSNAttr: &schema.Schema{
+		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+			checkPostgreSQLDSNAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: _ValidateRegexp(_CheckPostgreSQLDSNAttr, `^.+$`),
+				ValidateFunc: validateRegexp(checkPostgreSQLDSNAttr, `^.+$`),
 			},
 			// TODO(sean@): Parse out the DSN into individual PostgreSQL connect
 			// options.
 			//
-			// _CheckPostgreSQLHostAttr: &schema.Schema{
+			// checkPostgreSQLHostAttr: &schema.Schema{
 			// 	Type:         schema.TypeString,
 			// 	Optional:     true,
 			// 	Default:      "/tmp",
-			// 	ValidateFunc: _ValidateRegexp(_CheckPostgreSQLHostAttr, `^(/.+|[\S]+)$`),
+			// 	ValidateFunc: validateRegexp(checkPostgreSQLHostAttr, `^(/.+|[\S]+)$`),
 			// },
-			// _CheckPostgreSQLNameAttr: &schema.Schema{
+			// checkPostgreSQLNameAttr: &schema.Schema{
 			// 	Type:         schema.TypeString,
 			// 	Required:     true,
-			// 	ValidateFunc: _ValidateRegexp(_CheckPostgreSQLNameAttr, `^[\S]+$`),
+			// 	ValidateFunc: validateRegexp(checkPostgreSQLNameAttr, `^[\S]+$`),
 			// },
-			// _CheckPostgreSQLPasswordAttr: &schema.Schema{
+			// checkPostgreSQLPasswordAttr: &schema.Schema{
 			// 	Type:      schema.TypeString,
 			// 	Optional:  true,
 			// 	Sensitive: true,
 			// },
-			// _CheckPostgreSQLPortAttr: &schema.Schema{
+			// checkPostgreSQLPortAttr: &schema.Schema{
 			// 	Type:     schema.TypeInt,
 			// 	Optional: true,
 			// 	Default:  5432,
 			// 	ValidateFunc: validateFuncs(
-			// 		validateIntMin(_CheckPostgreSQLPortAttr, 1),
-			// 		validateIntMax(_CheckPostgreSQLPortAttr, 65535),
+			// 		validateIntMin(checkPostgreSQLPortAttr, 1),
+			// 		validateIntMax(checkPostgreSQLPortAttr, 65535),
 			// 	),
 			// },
-			_CheckPostgreSQLQueryAttr: &schema.Schema{
+			checkPostgreSQLQueryAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				StateFunc:    suppressWhitespace,
-				ValidateFunc: _ValidateRegexp(_CheckPostgreSQLQueryAttr, `.+`),
+				ValidateFunc: validateRegexp(checkPostgreSQLQueryAttr, `.+`),
 			},
-			// _CheckPostgreSQLSSLModeAttr: &schema.Schema{
+			// checkPostgreSQLSSLModeAttr: &schema.Schema{
 			// 	Type:         schema.TypeString,
 			// 	Optional:     true,
 			// 	Default:      "require",
-			// 	ValidateFunc: _ValidateRegexp(_CheckPostgreSQLSSLModeAttr, `^(disable|require|verify-ca|verify-full)$`),
+			// 	ValidateFunc: validateRegexp(checkPostgreSQLSSLModeAttr, `^(disable|require|verify-ca|verify-full)$`),
 			// },
-			// _CheckPostgreSQLUserAttr: &schema.Schema{
+			// checkPostgreSQLUserAttr: &schema.Schema{
 			// 	Type:         schema.TypeString,
 			// 	Required:     true,
-			// 	ValidateFunc: _ValidateRegexp(_CheckPostgreSQLUserAttr, `.+`),
+			// 	ValidateFunc: validateRegexp(checkPostgreSQLUserAttr, `.+`),
 			// },
-		}, _CheckPostgreSQLDescriptions),
+		}, checkPostgreSQLDescriptions),
 	},
 }
 
-// _CheckAPIToStatePostgreSQL reads the Config data out of _Check.CheckBundle into the
+// checkAPIToStatePostgreSQL reads the Config data out of circonusCheck.CheckBundle into the
 // statefile.
-func _CheckAPIToStatePostgreSQL(c *_Check, d *schema.ResourceData) error {
+func checkAPIToStatePostgreSQL(c *circonusCheck, d *schema.ResourceData) error {
 	postgresqlConfig := make(map[string]interface{}, len(c.Config))
 
 	// TODO(sean@): Parse out the DSN into individual PostgreSQL connect options
-	postgresqlConfig[string(_CheckPostgreSQLDSNAttr)] = c.Config[config.DSN]
-	postgresqlConfig[string(_CheckPostgreSQLQueryAttr)] = c.Config[config.SQL]
+	postgresqlConfig[string(checkPostgreSQLDSNAttr)] = c.Config[config.DSN]
+	postgresqlConfig[string(checkPostgreSQLQueryAttr)] = c.Config[config.SQL]
 
-	_StateSet(d, _CheckPostgreSQLAttr, schema.NewSet(hashCheckPostgreSQL, []interface{}{postgresqlConfig}))
+	stateSet(d, checkPostgreSQLAttr, schema.NewSet(hashCheckPostgreSQL, []interface{}{postgresqlConfig}))
 
 	return nil
 }
@@ -115,13 +115,13 @@ func hashCheckPostgreSQL(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
-	// writeInt := func(attrName _SchemaAttr) {
+	// writeInt := func(attrName schemaAttr) {
 	// 	if v, ok := m[string(attrName)]; ok {
 	// 		fmt.Fprintf(b, "%x", v.(int))
 	// 	}
 	// }
 
-	writeString := func(attrName _SchemaAttr) {
+	writeString := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok && v.(string) != "" {
 			fmt.Fprint(b, strings.TrimSpace(v.(string)))
 		}
@@ -129,33 +129,33 @@ func hashCheckPostgreSQL(v interface{}) int {
 
 	// Order writes to the buffer using lexically sorted list for easy visual
 	// reconciliation with other lists.
-	writeString(_CheckPostgreSQLDSNAttr)
-	// writeString(_CheckPostgreSQLHostAttr)
-	// writeString(_CheckPostgreSQLNameAttr)
-	// writeString(_CheckPostgreSQLPasswordAttr)
-	// writeInt(_CheckPostgreSQLPortAttr)
-	// writeString(_CheckPostgreSQLSSLModeAttr)
-	writeString(_CheckPostgreSQLQueryAttr)
-	// writeString(_CheckPostgreSQLUserAttr)
+	writeString(checkPostgreSQLDSNAttr)
+	// writeString(checkPostgreSQLHostAttr)
+	// writeString(checkPostgreSQLNameAttr)
+	// writeString(checkPostgreSQLPasswordAttr)
+	// writeInt(checkPostgreSQLPortAttr)
+	// writeString(checkPostgreSQLSSLModeAttr)
+	writeString(checkPostgreSQLQueryAttr)
+	// writeString(checkPostgreSQLUserAttr)
 
 	s := b.String()
 	return hashcode.String(s)
 }
 
-func _CheckConfigToAPIPostgreSQL(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
-	c.Type = string(_APICheckTypePostgreSQL)
+func checkConfigToAPIPostgreSQL(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+	c.Type = string(apiCheckTypePostgreSQL)
 
 	// Iterate over all `postgres` attributes, even though we have a max of 1 in
 	// the schema.
 	for _, mapRaw := range l {
-		postgresConfig := _NewInterfaceMap(mapRaw)
-		ar := _NewMapReader(ctxt, postgresConfig)
+		postgresConfig := newInterfaceMap(mapRaw)
+		ar := newMapReader(ctxt, postgresConfig)
 
-		if s, ok := ar.GetStringOK(_CheckPostgreSQLDSNAttr); ok {
+		if s, ok := ar.GetStringOK(checkPostgreSQLDSNAttr); ok {
 			c.Config[config.DSN] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckPostgreSQLQueryAttr); ok {
+		if s, ok := ar.GetStringOK(checkPostgreSQLQueryAttr); ok {
 			c.Config[config.SQL] = s
 		}
 	}

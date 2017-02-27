@@ -35,7 +35,7 @@ func dataSourceCirconusCollector() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: _ValidateRegexp(collectorIDAttr, config.BrokerCIDRegex),
+				ValidateFunc: validateRegexp(collectorIDAttr, config.BrokerCIDRegex),
 				Description:  collectorDescription[collectorIDAttr],
 			},
 			collectorDetailsAttr: &schema.Schema{
@@ -115,7 +115,7 @@ func dataSourceCirconusCollector() *schema.Resource {
 				Computed:    true,
 				Description: collectorDescription[collectorNameAttr],
 			},
-			collectorTagsAttr: _TagMakeConfigSchema(collectorTagsAttr),
+			collectorTagsAttr: tagMakeConfigSchema(collectorTagsAttr),
 			collectorTypeAttr: &schema.Schema{
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -126,7 +126,7 @@ func dataSourceCirconusCollector() *schema.Resource {
 }
 
 func dataSourceCirconusCollectorRead(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*_ProviderContext)
+	ctxt := meta.(*providerContext)
 
 	var collector *api.Broker
 	var err error
@@ -139,13 +139,13 @@ func dataSourceCirconusCollectorRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	_StateSet(d, collectorDetailsAttr, collectorDetailsToState(collector))
-	_StateSet(d, collectorIDAttr, collector.CID)
-	_StateSet(d, collectorLatitudeAttr, collector.Latitude)
-	_StateSet(d, collectorLongitudeAttr, collector.Longitude)
-	_StateSet(d, collectorNameAttr, collector.Name)
-	_StateSet(d, collectorTagsAttr, collector.Tags)
-	_StateSet(d, collectorTypeAttr, collector.Type)
+	stateSet(d, collectorDetailsAttr, collectorDetailsToState(collector))
+	stateSet(d, collectorIDAttr, collector.CID)
+	stateSet(d, collectorLatitudeAttr, collector.Latitude)
+	stateSet(d, collectorLongitudeAttr, collector.Longitude)
+	stateSet(d, collectorNameAttr, collector.Name)
+	stateSet(d, collectorTagsAttr, collector.Tags)
+	stateSet(d, collectorTypeAttr, collector.Type)
 
 	d.SetId(collector.CID)
 

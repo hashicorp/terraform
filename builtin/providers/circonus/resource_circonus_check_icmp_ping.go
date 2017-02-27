@@ -14,59 +14,59 @@ import (
 
 const (
 	// circonus_check.icmp_ping.* resource attribute names
-	_CheckICMPPingAvailabilityAttr _SchemaAttr = "availability"
-	_CheckICMPPingCountAttr        _SchemaAttr = "count"
-	_CheckICMPPingIntervalAttr     _SchemaAttr = "interval"
+	checkICMPPingAvailabilityAttr schemaAttr = "availability"
+	checkICMPPingCountAttr        schemaAttr = "count"
+	checkICMPPingIntervalAttr     schemaAttr = "interval"
 )
 
-var _CheckICMPPingDescriptions = _AttrDescrs{
-	_CheckICMPPingAvailabilityAttr: `The percentage of ICMP available required for the check to be considered "good."`,
-	_CheckICMPPingCountAttr:        "The number of ICMP requests to send during a single check.",
-	_CheckICMPPingIntervalAttr:     "The number of milliseconds between ICMP requests.",
+var checkICMPPingDescriptions = attrDescrs{
+	checkICMPPingAvailabilityAttr: `The percentage of ICMP available required for the check to be considered "good."`,
+	checkICMPPingCountAttr:        "The number of ICMP requests to send during a single check.",
+	checkICMPPingIntervalAttr:     "The number of milliseconds between ICMP requests.",
 }
 
-var _SchemaCheckICMPPing = &schema.Schema{
+var schemaCheckICMPPing = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
 	MaxItems: 1,
 	MinItems: 1,
 	Set:      hashCheckICMPPing,
 	Elem: &schema.Resource{
-		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-			_CheckICMPPingAvailabilityAttr: &schema.Schema{
+		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+			checkICMPPingAvailabilityAttr: &schema.Schema{
 				Type:     schema.TypeFloat,
 				Optional: true,
 				Default:  defaultCheckICMPPingAvailability,
-				ValidateFunc: _ValidateFuncs(
-					_ValidateFloatMin(_CheckICMPPingAvailabilityAttr, 0.0),
-					_ValidateFloatMax(_CheckICMPPingAvailabilityAttr, 100.0),
+				ValidateFunc: validateFuncs(
+					validateFloatMin(checkICMPPingAvailabilityAttr, 0.0),
+					validateFloatMax(checkICMPPingAvailabilityAttr, 100.0),
 				),
 			},
-			_CheckICMPPingCountAttr: &schema.Schema{
+			checkICMPPingCountAttr: &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  defaultCheckICMPPingCount,
-				ValidateFunc: _ValidateFuncs(
-					_ValidateIntMin(_CheckICMPPingCountAttr, 0),
-					_ValidateIntMax(_CheckICMPPingCountAttr, 20),
+				ValidateFunc: validateFuncs(
+					validateIntMin(checkICMPPingCountAttr, 0),
+					validateIntMax(checkICMPPingCountAttr, 20),
 				),
 			},
-			_CheckICMPPingIntervalAttr: &schema.Schema{
+			checkICMPPingIntervalAttr: &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  defaultCheckICMPPingInterval,
-				ValidateFunc: _ValidateFuncs(
-					_ValidateDurationMin(_CheckICMPPingIntervalAttr, "100µs"),
-					_ValidateDurationMax(_CheckICMPPingIntervalAttr, "5m"),
+				ValidateFunc: validateFuncs(
+					validateDurationMin(checkICMPPingIntervalAttr, "100µs"),
+					validateDurationMax(checkICMPPingIntervalAttr, "5m"),
 				),
 			},
-		}, _CheckICMPPingDescriptions),
+		}, checkICMPPingDescriptions),
 	},
 }
 
-// _CheckAPIToStateICMPPing reads the Config data out of _Check.CheckBundle
+// checkAPIToStateICMPPing reads the Config data out of circonusCheck.CheckBundle
 // into the statefile.
-func _CheckAPIToStateICMPPing(c *_Check, d *schema.ResourceData) error {
+func checkAPIToStateICMPPing(c *circonusCheck, d *schema.ResourceData) error {
 	icmpPingConfig := make(map[string]interface{}, len(c.Config))
 
 	availNeeded, err := strconv.ParseFloat(c.Config[config.AvailNeeded], 64)
@@ -84,11 +84,11 @@ func _CheckAPIToStateICMPPing(c *_Check, d *schema.ResourceData) error {
 		return errwrap.Wrapf(fmt.Sprintf("unable to parse %s: {{err}}", config.Interval), err)
 	}
 
-	icmpPingConfig[string(_CheckICMPPingAvailabilityAttr)] = availNeeded
-	icmpPingConfig[string(_CheckICMPPingCountAttr)] = int(count)
-	icmpPingConfig[string(_CheckICMPPingIntervalAttr)] = interval.String()
+	icmpPingConfig[string(checkICMPPingAvailabilityAttr)] = availNeeded
+	icmpPingConfig[string(checkICMPPingCountAttr)] = int(count)
+	icmpPingConfig[string(checkICMPPingIntervalAttr)] = interval.String()
 
-	_StateSet(d, _CheckICMPPingAttr, schema.NewSet(hashCheckICMPPing, []interface{}{icmpPingConfig}))
+	stateSet(d, checkICMPPingAttr, schema.NewSet(hashCheckICMPPing, []interface{}{icmpPingConfig}))
 
 	return nil
 }
@@ -99,19 +99,19 @@ func hashCheckICMPPing(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
-	writeFloat64 := func(attrName _SchemaAttr) {
+	writeFloat64 := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok {
 			fmt.Fprintf(b, "%f", v.(float64))
 		}
 	}
 
-	writeInt := func(attrName _SchemaAttr) {
+	writeInt := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok {
 			fmt.Fprintf(b, "%x", v.(int))
 		}
 	}
 
-	writeDuration := func(attrName _SchemaAttr) {
+	writeDuration := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok && v.(string) != "" {
 			d, _ := time.ParseDuration(v.(string))
 			fmt.Fprint(b, d.String())
@@ -120,32 +120,32 @@ func hashCheckICMPPing(v interface{}) int {
 
 	// Order writes to the buffer using lexically sorted list for easy visual
 	// reconciliation with other lists.
-	writeFloat64(_CheckICMPPingAvailabilityAttr)
-	writeInt(_CheckICMPPingCountAttr)
-	writeDuration(_CheckICMPPingIntervalAttr)
+	writeFloat64(checkICMPPingAvailabilityAttr)
+	writeInt(checkICMPPingCountAttr)
+	writeDuration(checkICMPPingIntervalAttr)
 
 	s := b.String()
 	return hashcode.String(s)
 }
 
-func _CheckConfigToAPIICMPPing(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
-	c.Type = string(_APICheckTypeICMPPing)
+func checkConfigToAPIICMPPing(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+	c.Type = string(apiCheckTypeICMPPing)
 
 	// Iterate over all `icmp_ping` attributes, even though we have a max of 1 in
 	// the schema.
 	for _, mapRaw := range l {
-		icmpPingConfig := _NewInterfaceMap(mapRaw)
-		ar := _NewMapReader(ctxt, icmpPingConfig)
+		icmpPingConfig := newInterfaceMap(mapRaw)
+		ar := newMapReader(ctxt, icmpPingConfig)
 
-		if f, ok := ar.GetFloat64OK(_CheckICMPPingAvailabilityAttr); ok {
+		if f, ok := ar.GetFloat64OK(checkICMPPingAvailabilityAttr); ok {
 			c.Config[config.AvailNeeded] = fmt.Sprintf("%d", int(f))
 		}
 
-		if i, ok := ar.GetIntOK(_CheckICMPPingCountAttr); ok {
+		if i, ok := ar.GetIntOK(checkICMPPingCountAttr); ok {
 			c.Config[config.Count] = fmt.Sprintf("%d", i)
 		}
 
-		if s, ok := ar.GetStringOK(_CheckICMPPingIntervalAttr); ok {
+		if s, ok := ar.GetStringOK(checkICMPPingIntervalAttr); ok {
 			d, _ := time.ParseDuration(s)
 			c.Config[config.Interval] = fmt.Sprintf("%d", int64(d/time.Millisecond))
 		}

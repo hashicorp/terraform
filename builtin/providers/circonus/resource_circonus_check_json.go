@@ -15,136 +15,136 @@ import (
 
 const (
 	// circonus_check.json.* resource attribute names
-	_CheckJSONAuthMethodAttr   _SchemaAttr = "auth_method"
-	_CheckJSONAuthPasswordAttr _SchemaAttr = "auth_password"
-	_CheckJSONAuthUserAttr     _SchemaAttr = "auth_user"
-	_CheckJSONCAChainAttr      _SchemaAttr = "ca_chain"
-	_CheckJSONCertFileAttr     _SchemaAttr = "certificate_file"
-	_CheckJSONCiphersAttr      _SchemaAttr = "ciphers"
-	_CheckJSONHeadersAttr      _SchemaAttr = "headers"
-	_CheckJSONKeyFileAttr      _SchemaAttr = "key_file"
-	_CheckJSONMethodAttr       _SchemaAttr = "method"
-	_CheckJSONPayloadAttr      _SchemaAttr = "payload"
-	_CheckJSONPortAttr         _SchemaAttr = "port"
-	_CheckJSONReadLimitAttr    _SchemaAttr = "read_limit"
-	_CheckJSONURLAttr          _SchemaAttr = "url"
-	_CheckJSONVersionAttr      _SchemaAttr = "version"
+	checkJSONAuthMethodAttr   schemaAttr = "auth_method"
+	checkJSONAuthPasswordAttr schemaAttr = "auth_password"
+	checkJSONAuthUserAttr     schemaAttr = "auth_user"
+	checkJSONCAChainAttr      schemaAttr = "ca_chain"
+	checkJSONCertFileAttr     schemaAttr = "certificate_file"
+	checkJSONCiphersAttr      schemaAttr = "ciphers"
+	checkJSONHeadersAttr      schemaAttr = "headers"
+	checkJSONKeyFileAttr      schemaAttr = "key_file"
+	checkJSONMethodAttr       schemaAttr = "method"
+	checkJSONPayloadAttr      schemaAttr = "payload"
+	checkJSONPortAttr         schemaAttr = "port"
+	checkJSONReadLimitAttr    schemaAttr = "read_limit"
+	checkJSONURLAttr          schemaAttr = "url"
+	checkJSONVersionAttr      schemaAttr = "version"
 )
 
-var _CheckJSONDescriptions = _AttrDescrs{
-	_CheckJSONAuthMethodAttr:   "The HTTP Authentication method",
-	_CheckJSONAuthPasswordAttr: "The HTTP Authentication user password",
-	_CheckJSONAuthUserAttr:     "The HTTP Authentication user name",
-	_CheckJSONCAChainAttr:      "A path to a file containing all the certificate authorities that should be loaded to validate the remote certificate (for TLS checks)",
-	_CheckJSONCertFileAttr:     "A path to a file containing the client certificate that will be presented to the remote server (for TLS-enabled checks)",
-	_CheckJSONCiphersAttr:      "A list of ciphers to be used in the TLS protocol (for HTTPS checks)",
-	_CheckJSONHeadersAttr:      "Map of HTTP Headers to send along with HTTP Requests",
-	_CheckJSONKeyFileAttr:      "A path to a file containing key to be used in conjunction with the cilent certificate (for TLS checks)",
-	_CheckJSONMethodAttr:       "The HTTP method to use",
-	_CheckJSONPayloadAttr:      "The information transferred as the payload of an HTTP request",
-	_CheckJSONPortAttr:         "Specifies the port on which the management interface can be reached",
-	_CheckJSONReadLimitAttr:    "Sets an approximate limit on the data read (0 means no limit)",
-	_CheckJSONURLAttr:          "The URL to use as the target of the check",
-	_CheckJSONVersionAttr:      "Sets the HTTP version for the check to use",
+var checkJSONDescriptions = attrDescrs{
+	checkJSONAuthMethodAttr:   "The HTTP Authentication method",
+	checkJSONAuthPasswordAttr: "The HTTP Authentication user password",
+	checkJSONAuthUserAttr:     "The HTTP Authentication user name",
+	checkJSONCAChainAttr:      "A path to a file containing all the certificate authorities that should be loaded to validate the remote certificate (for TLS checks)",
+	checkJSONCertFileAttr:     "A path to a file containing the client certificate that will be presented to the remote server (for TLS-enabled checks)",
+	checkJSONCiphersAttr:      "A list of ciphers to be used in the TLS protocol (for HTTPS checks)",
+	checkJSONHeadersAttr:      "Map of HTTP Headers to send along with HTTP Requests",
+	checkJSONKeyFileAttr:      "A path to a file containing key to be used in conjunction with the cilent certificate (for TLS checks)",
+	checkJSONMethodAttr:       "The HTTP method to use",
+	checkJSONPayloadAttr:      "The information transferred as the payload of an HTTP request",
+	checkJSONPortAttr:         "Specifies the port on which the management interface can be reached",
+	checkJSONReadLimitAttr:    "Sets an approximate limit on the data read (0 means no limit)",
+	checkJSONURLAttr:          "The URL to use as the target of the check",
+	checkJSONVersionAttr:      "Sets the HTTP version for the check to use",
 }
 
-var _SchemaCheckJSON = &schema.Schema{
+var schemaCheckJSON = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
 	MaxItems: 1,
 	MinItems: 1,
-	Set:      _CheckJSONConfigChecksum,
+	Set:      checkJSONConfigChecksum,
 	Elem: &schema.Resource{
-		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-			_CheckJSONAuthMethodAttr: &schema.Schema{
+		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+			checkJSONAuthMethodAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckJSONAuthMethodAttr, `^(?:Basic|Digest|Auto)$`),
+				ValidateFunc: validateRegexp(checkJSONAuthMethodAttr, `^(?:Basic|Digest|Auto)$`),
 			},
-			_CheckJSONAuthPasswordAttr: &schema.Schema{
+			checkJSONAuthPasswordAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Sensitive:    true,
-				ValidateFunc: _ValidateRegexp(_CheckJSONAuthPasswordAttr, `^.*`),
+				ValidateFunc: validateRegexp(checkJSONAuthPasswordAttr, `^.*`),
 			},
-			_CheckJSONAuthUserAttr: &schema.Schema{
+			checkJSONAuthUserAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckJSONAuthUserAttr, `[^:]+`),
+				ValidateFunc: validateRegexp(checkJSONAuthUserAttr, `[^:]+`),
 			},
-			_CheckJSONCAChainAttr: &schema.Schema{
+			checkJSONCAChainAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckJSONCAChainAttr, `.+`),
+				ValidateFunc: validateRegexp(checkJSONCAChainAttr, `.+`),
 			},
-			_CheckJSONCertFileAttr: &schema.Schema{
+			checkJSONCertFileAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckJSONCertFileAttr, `.+`),
+				ValidateFunc: validateRegexp(checkJSONCertFileAttr, `.+`),
 			},
-			_CheckJSONCiphersAttr: &schema.Schema{
+			checkJSONCiphersAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckJSONCiphersAttr, `.+`),
+				ValidateFunc: validateRegexp(checkJSONCiphersAttr, `.+`),
 			},
-			_CheckJSONHeadersAttr: &schema.Schema{
+			checkJSONHeadersAttr: &schema.Schema{
 				Type:         schema.TypeMap,
 				Elem:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateHTTPHeaders,
+				ValidateFunc: validateHTTPHeaders,
 			},
-			_CheckJSONKeyFileAttr: &schema.Schema{
+			checkJSONKeyFileAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckJSONKeyFileAttr, `.+`),
+				ValidateFunc: validateRegexp(checkJSONKeyFileAttr, `.+`),
 			},
-			_CheckJSONMethodAttr: &schema.Schema{
+			checkJSONMethodAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      defaultCheckJSONMethod,
-				ValidateFunc: _ValidateRegexp(_CheckJSONMethodAttr, `\S+`),
+				ValidateFunc: validateRegexp(checkJSONMethodAttr, `\S+`),
 			},
-			_CheckJSONPayloadAttr: &schema.Schema{
+			checkJSONPayloadAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckJSONPayloadAttr, `\S+`),
+				ValidateFunc: validateRegexp(checkJSONPayloadAttr, `\S+`),
 			},
-			_CheckJSONPortAttr: &schema.Schema{
+			checkJSONPortAttr: &schema.Schema{
 				Type:     schema.TypeInt,
 				Default:  defaultCheckJSONPort,
 				Optional: true,
-				ValidateFunc: _ValidateFuncs(
-					_ValidateIntMin(_CheckJSONPortAttr, 0),
-					_ValidateIntMax(_CheckJSONPortAttr, 65535),
+				ValidateFunc: validateFuncs(
+					validateIntMin(checkJSONPortAttr, 0),
+					validateIntMax(checkJSONPortAttr, 65535),
 				),
 			},
-			_CheckJSONReadLimitAttr: &schema.Schema{
+			checkJSONReadLimitAttr: &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				ValidateFunc: _ValidateFuncs(
-					_ValidateIntMin(_CheckJSONReadLimitAttr, 0),
+				ValidateFunc: validateFuncs(
+					validateIntMin(checkJSONReadLimitAttr, 0),
 				),
 			},
-			_CheckJSONURLAttr: &schema.Schema{
+			checkJSONURLAttr: &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ValidateFunc: _ValidateFuncs(
-					_ValidateHTTPURL(_CheckJSONURLAttr, _URLIsAbs),
+				ValidateFunc: validateFuncs(
+					validateHTTPURL(checkJSONURLAttr, urlIsAbs),
 				),
 			},
-			_CheckJSONVersionAttr: &schema.Schema{
+			checkJSONVersionAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      defaultCheckJSONVersion,
-				ValidateFunc: _ValidateStringIn(_CheckJSONVersionAttr, _SupportedHTTPVersions),
+				ValidateFunc: validateStringIn(checkJSONVersionAttr, supportedHTTPVersions),
 			},
-		}, _CheckJSONDescriptions),
+		}, checkJSONDescriptions),
 	},
 }
 
-// _CheckAPIToStateJSON reads the Config data out of _Check.CheckBundle into
+// checkAPIToStateJSON reads the Config data out of circonusCheck.CheckBundle into
 // the statefile.
-func _CheckAPIToStateJSON(c *_Check, d *schema.ResourceData) error {
+func checkAPIToStateJSON(c *circonusCheck, d *schema.ResourceData) error {
 	jsonConfig := make(map[string]interface{}, len(c.Config))
 
 	// swamp is a sanity check: it must be empty by the time this method returns
@@ -153,7 +153,7 @@ func _CheckAPIToStateJSON(c *_Check, d *schema.ResourceData) error {
 		swamp[k] = s
 	}
 
-	saveStringConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
+	saveStringConfigToState := func(apiKey config.Key, attrName schemaAttr) {
 		if s, ok := c.Config[apiKey]; ok && s != "" {
 			jsonConfig[string(attrName)] = s
 		}
@@ -161,7 +161,7 @@ func _CheckAPIToStateJSON(c *_Check, d *schema.ResourceData) error {
 		delete(swamp, apiKey)
 	}
 
-	saveIntConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
+	saveIntConfigToState := func(apiKey config.Key, attrName schemaAttr) {
 		if s, ok := c.Config[apiKey]; ok && s != "0" {
 			i, err := strconv.ParseInt(s, 10, 64)
 			if err != nil {
@@ -173,12 +173,12 @@ func _CheckAPIToStateJSON(c *_Check, d *schema.ResourceData) error {
 		delete(swamp, apiKey)
 	}
 
-	saveStringConfigToState(config.AuthMethod, _CheckJSONAuthMethodAttr)
-	saveStringConfigToState(config.AuthPassword, _CheckJSONAuthPasswordAttr)
-	saveStringConfigToState(config.AuthUser, _CheckJSONAuthUserAttr)
-	saveStringConfigToState(config.CAChain, _CheckJSONCAChainAttr)
-	saveStringConfigToState(config.CertFile, _CheckJSONCertFileAttr)
-	saveStringConfigToState(config.Ciphers, _CheckJSONCiphersAttr)
+	saveStringConfigToState(config.AuthMethod, checkJSONAuthMethodAttr)
+	saveStringConfigToState(config.AuthPassword, checkJSONAuthPasswordAttr)
+	saveStringConfigToState(config.AuthUser, checkJSONAuthUserAttr)
+	saveStringConfigToState(config.CAChain, checkJSONCAChainAttr)
+	saveStringConfigToState(config.CertFile, checkJSONCertFileAttr)
+	saveStringConfigToState(config.Ciphers, checkJSONCiphersAttr)
 
 	headers := make(map[string]interface{}, len(c.Config))
 	headerPrefixLen := len(config.HeaderPrefix)
@@ -193,15 +193,15 @@ func _CheckAPIToStateJSON(c *_Check, d *schema.ResourceData) error {
 		}
 		delete(swamp, k)
 	}
-	jsonConfig[string(_CheckJSONHeadersAttr)] = headers
+	jsonConfig[string(checkJSONHeadersAttr)] = headers
 
-	saveStringConfigToState(config.KeyFile, _CheckJSONKeyFileAttr)
-	saveStringConfigToState(config.Method, _CheckJSONMethodAttr)
-	saveStringConfigToState(config.Payload, _CheckJSONPayloadAttr)
-	saveIntConfigToState(config.Port, _CheckJSONPortAttr)
-	saveIntConfigToState(config.ReadLimit, _CheckJSONReadLimitAttr)
-	saveStringConfigToState(config.URL, _CheckJSONURLAttr)
-	saveStringConfigToState(config.HTTPVersion, _CheckJSONVersionAttr)
+	saveStringConfigToState(config.KeyFile, checkJSONKeyFileAttr)
+	saveStringConfigToState(config.Method, checkJSONMethodAttr)
+	saveStringConfigToState(config.Payload, checkJSONPayloadAttr)
+	saveIntConfigToState(config.Port, checkJSONPortAttr)
+	saveIntConfigToState(config.ReadLimit, checkJSONReadLimitAttr)
+	saveStringConfigToState(config.URL, checkJSONURLAttr)
+	saveStringConfigToState(config.HTTPVersion, checkJSONVersionAttr)
 
 	whitelistedConfigKeys := map[config.Key]struct{}{
 		config.ReverseSecretKey: struct{}{},
@@ -218,25 +218,25 @@ func _CheckAPIToStateJSON(c *_Check, d *schema.ResourceData) error {
 		}
 	}
 
-	_StateSet(d, _CheckJSONAttr, schema.NewSet(_CheckJSONConfigChecksum, []interface{}{jsonConfig}))
+	stateSet(d, checkJSONAttr, schema.NewSet(checkJSONConfigChecksum, []interface{}{jsonConfig}))
 
 	return nil
 }
 
-// _CheckJSONConfigChecksum creates a stable hash of the normalized values found
+// checkJSONConfigChecksum creates a stable hash of the normalized values found
 // in a user's Terraform config.
-func _CheckJSONConfigChecksum(v interface{}) int {
+func checkJSONConfigChecksum(v interface{}) int {
 	m := v.(map[string]interface{})
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
-	writeInt := func(attrName _SchemaAttr) {
+	writeInt := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok && v.(int) != 0 {
 			fmt.Fprintf(b, "%x", v.(int))
 		}
 	}
 
-	writeString := func(attrName _SchemaAttr) {
+	writeString := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok && v.(string) != "" {
 			fmt.Fprint(b, strings.TrimSpace(v.(string)))
 		}
@@ -244,14 +244,14 @@ func _CheckJSONConfigChecksum(v interface{}) int {
 
 	// Order writes to the buffer using lexically sorted list for easy visual
 	// reconciliation with other lists.
-	writeString(_CheckJSONAuthMethodAttr)
-	writeString(_CheckJSONAuthPasswordAttr)
-	writeString(_CheckJSONAuthUserAttr)
-	writeString(_CheckJSONCAChainAttr)
-	writeString(_CheckJSONCertFileAttr)
-	writeString(_CheckJSONCiphersAttr)
+	writeString(checkJSONAuthMethodAttr)
+	writeString(checkJSONAuthPasswordAttr)
+	writeString(checkJSONAuthUserAttr)
+	writeString(checkJSONCAChainAttr)
+	writeString(checkJSONCertFileAttr)
+	writeString(checkJSONCiphersAttr)
 
-	if headersRaw, ok := m[string(_CheckJSONHeadersAttr)]; ok {
+	if headersRaw, ok := m[string(checkJSONHeadersAttr)]; ok {
 		headerMap := headersRaw.(map[string]interface{})
 		headers := make([]string, 0, len(headerMap))
 		for k := range headerMap {
@@ -265,79 +265,79 @@ func _CheckJSONConfigChecksum(v interface{}) int {
 		}
 	}
 
-	writeString(_CheckJSONKeyFileAttr)
-	writeString(_CheckJSONMethodAttr)
-	writeString(_CheckJSONPayloadAttr)
-	writeInt(_CheckJSONPortAttr)
-	writeInt(_CheckJSONReadLimitAttr)
-	writeString(_CheckJSONURLAttr)
-	writeString(_CheckJSONVersionAttr)
+	writeString(checkJSONKeyFileAttr)
+	writeString(checkJSONMethodAttr)
+	writeString(checkJSONPayloadAttr)
+	writeInt(checkJSONPortAttr)
+	writeInt(checkJSONReadLimitAttr)
+	writeString(checkJSONURLAttr)
+	writeString(checkJSONVersionAttr)
 
 	s := b.String()
 	return hashcode.String(s)
 }
 
-func _CheckConfigToAPIJSON(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
-	c.Type = string(_APICheckTypeJSON)
+func checkConfigToAPIJSON(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+	c.Type = string(apiCheckTypeJSON)
 
 	// Iterate over all `json` attributes, even though we have a max of 1 in the
 	// schema.
 	for _, mapRaw := range l {
-		jsonConfig := _NewInterfaceMap(mapRaw)
-		ar := _NewMapReader(ctxt, jsonConfig)
+		jsonConfig := newInterfaceMap(mapRaw)
+		ar := newMapReader(ctxt, jsonConfig)
 
-		if s, ok := ar.GetStringOK(_CheckJSONAuthMethodAttr); ok {
+		if s, ok := ar.GetStringOK(checkJSONAuthMethodAttr); ok {
 			c.Config[config.AuthMethod] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckJSONAuthPasswordAttr); ok {
+		if s, ok := ar.GetStringOK(checkJSONAuthPasswordAttr); ok {
 			c.Config[config.AuthPassword] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckJSONAuthUserAttr); ok {
+		if s, ok := ar.GetStringOK(checkJSONAuthUserAttr); ok {
 			c.Config[config.AuthUser] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckJSONCAChainAttr); ok {
+		if s, ok := ar.GetStringOK(checkJSONCAChainAttr); ok {
 			c.Config[config.CAChain] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckJSONCertFileAttr); ok {
+		if s, ok := ar.GetStringOK(checkJSONCertFileAttr); ok {
 			c.Config[config.CertFile] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckJSONCiphersAttr); ok {
+		if s, ok := ar.GetStringOK(checkJSONCiphersAttr); ok {
 			c.Config[config.Ciphers] = s
 		}
 
-		if headers := jsonConfig.CollectMap(_CheckJSONHeadersAttr); headers != nil {
+		if headers := jsonConfig.CollectMap(checkJSONHeadersAttr); headers != nil {
 			for k, v := range headers {
 				h := config.HeaderPrefix + config.Key(k)
 				c.Config[h] = v
 			}
 		}
 
-		if s, ok := ar.GetStringOK(_CheckJSONKeyFileAttr); ok {
+		if s, ok := ar.GetStringOK(checkJSONKeyFileAttr); ok {
 			c.Config[config.KeyFile] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckJSONMethodAttr); ok {
+		if s, ok := ar.GetStringOK(checkJSONMethodAttr); ok {
 			c.Config[config.Method] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckJSONPayloadAttr); ok {
+		if s, ok := ar.GetStringOK(checkJSONPayloadAttr); ok {
 			c.Config[config.Payload] = s
 		}
 
-		if i, ok := ar.GetIntOK(_CheckJSONPortAttr); ok && i != 0 {
+		if i, ok := ar.GetIntOK(checkJSONPortAttr); ok && i != 0 {
 			c.Config[config.Port] = fmt.Sprintf("%d", i)
 		}
 
-		if i, ok := ar.GetIntOK(_CheckJSONReadLimitAttr); ok && i != 0 {
+		if i, ok := ar.GetIntOK(checkJSONReadLimitAttr); ok && i != 0 {
 			c.Config[config.ReadLimit] = fmt.Sprintf("%d", i)
 		}
 
-		if s, ok := ar.GetStringOK(_CheckJSONURLAttr); ok {
+		if s, ok := ar.GetStringOK(checkJSONURLAttr); ok {
 			c.Config[config.URL] = s
 
 			u, _ := url.Parse(s)
@@ -347,7 +347,7 @@ func _CheckConfigToAPIJSON(c *_Check, ctxt *_ProviderContext, l _InterfaceList) 
 			}
 		}
 
-		if s, ok := ar.GetStringOK(_CheckJSONVersionAttr); ok {
+		if s, ok := ar.GetStringOK(checkJSONVersionAttr); ok {
 			c.Config[config.HTTPVersion] = s
 		}
 	}

@@ -2,21 +2,21 @@ package circonus
 
 import "time"
 
-type _AttrReader interface {
-	Context() *_ProviderContext
-	GetBool(_SchemaAttr) bool
-	GetBoolOK(_SchemaAttr) (b, ok bool)
-	GetDurationOK(_SchemaAttr) (time.Duration, bool)
-	GetFloat64OK(_SchemaAttr) (float64, bool)
-	GetIntOK(_SchemaAttr) (int, bool)
-	GetIntPtr(_SchemaAttr) *int
-	GetListOK(_SchemaAttr) (_InterfaceList, bool)
-	GetMap(_SchemaAttr) _InterfaceMap
-	GetSetAsListOK(_SchemaAttr) (_InterfaceList, bool)
-	GetString(_SchemaAttr) string
-	GetStringOK(_SchemaAttr) (string, bool)
-	GetStringPtr(_SchemaAttr) *string
-	GetStringSlice(attrName _SchemaAttr) []string
-	GetTags(_SchemaAttr) _Tags
+type attrReader interface {
+	Context() *providerContext
+	GetBool(schemaAttr) bool
+	GetBoolOK(schemaAttr) (b, ok bool)
+	GetDurationOK(schemaAttr) (time.Duration, bool)
+	GetFloat64OK(schemaAttr) (float64, bool)
+	GetIntOK(schemaAttr) (int, bool)
+	GetIntPtr(schemaAttr) *int
+	GetListOK(schemaAttr) (interfaceList, bool)
+	GetMap(schemaAttr) interfaceMap
+	GetSetAsListOK(schemaAttr) (interfaceList, bool)
+	GetString(schemaAttr) string
+	GetStringOK(schemaAttr) (string, bool)
+	GetStringPtr(schemaAttr) *string
+	GetStringSlice(attrName schemaAttr) []string
+	GetTags(schemaAttr) circonusTags
 	BackingType() string
 }

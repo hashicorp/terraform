@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func _CastSchemaToTF(in map[_SchemaAttr]*schema.Schema, descrs _AttrDescrs) map[string]*schema.Schema {
+func castSchemaToTF(in map[schemaAttr]*schema.Schema, descrs attrDescrs) map[string]*schema.Schema {
 	out := make(map[string]*schema.Schema, len(in))
 	for k, v := range in {
 		if descr, ok := descrs[k]; ok {
@@ -75,7 +75,7 @@ func flattenSet(s *schema.Set) []*string {
 }
 
 // listToSet returns a TypeSet from the given list.
-func stringListToSet(stringList []string, keyName _SchemaAttr) []interface{} {
+func stringListToSet(stringList []string, keyName schemaAttr) []interface{} {
 	m := make([]interface{}, 0, len(stringList))
 	for _, v := range stringList {
 		s := make(map[string]interface{}, 1)
@@ -100,14 +100,14 @@ func normalizeTimeDurationStringToSeconds(v interface{}) string {
 	}
 }
 
-// _ConfigGetBool returns the boolean value if found.
-func _ConfigGetBool(d *schema.ResourceData, attrName _SchemaAttr) bool {
+// configGetBool returns the boolean value if found.
+func configGetBool(d *schema.ResourceData, attrName schemaAttr) bool {
 	return d.Get(string(attrName)).(bool)
 }
 
-// _ConfigGetBoolOk returns the boolean value if found and true as the second
+// configGetBoolOk returns the boolean value if found and true as the second
 // argument, otherwise returns false if the value was not found.
-func _ConfigGetBoolOK(d *schema.ResourceData, attrName _SchemaAttr) (b, found bool) {
+func configGetBoolOK(d *schema.ResourceData, attrName schemaAttr) (b, found bool) {
 	if v, ok := d.GetOk(string(attrName)); ok {
 		return v.(bool), true
 	}
@@ -115,7 +115,7 @@ func _ConfigGetBoolOK(d *schema.ResourceData, attrName _SchemaAttr) (b, found bo
 	return false, false
 }
 
-func _ConfigGetDurationOK(d *schema.ResourceData, attrName _SchemaAttr) (time.Duration, bool) {
+func configGetDurationOK(d *schema.ResourceData, attrName schemaAttr) (time.Duration, bool) {
 	if v, ok := d.GetOk(string(attrName)); ok {
 		d, err := time.ParseDuration(v.(string))
 		if err != nil {
@@ -128,16 +128,16 @@ func _ConfigGetDurationOK(d *schema.ResourceData, attrName _SchemaAttr) (time.Du
 	return time.Duration(0), false
 }
 
-func schemaGetSetAsListOk(d *schema.ResourceData, attrName _SchemaAttr) (_InterfaceList, bool) {
+func schemaGetSetAsListOk(d *schema.ResourceData, attrName schemaAttr) (interfaceList, bool) {
 	if listRaw, ok := d.GetOk(string(attrName)); ok {
 		return listRaw.(*schema.Set).List(), true
 	}
 	return nil, false
 }
 
-// _ConfigGetString returns an attribute as a string.  If the attribute is not
+// configGetString returns an attribute as a string.  If the attribute is not
 // found, return an empty string.
-func _ConfigGetString(d *schema.ResourceData, attrName _SchemaAttr) string {
+func configGetString(d *schema.ResourceData, attrName schemaAttr) string {
 	if s, ok := schemaGetStringOK(d, attrName); ok {
 		return s
 	}
@@ -147,7 +147,7 @@ func _ConfigGetString(d *schema.ResourceData, attrName _SchemaAttr) string {
 
 // schemaGetStringOK returns an attribute as a string and true if the attribute
 // was found.  If the attribute is not found, return an empty string.
-func schemaGetStringOK(d *schema.ResourceData, attrName _SchemaAttr) (string, bool) {
+func schemaGetStringOK(d *schema.ResourceData, attrName schemaAttr) (string, bool) {
 	if v, ok := d.GetOk(string(attrName)); ok {
 		return v.(string), ok
 	}
@@ -155,9 +155,9 @@ func schemaGetStringOK(d *schema.ResourceData, attrName _SchemaAttr) (string, bo
 	return "", false
 }
 
-// _ConfigGetStringPtr returns an attribute as a *string.  If the attribute is
+// configGetStringPtr returns an attribute as a *string.  If the attribute is
 // not found, return a nil pointer.
-func _ConfigGetStringPtr(d *schema.ResourceData, attrName _SchemaAttr) *string {
+func configGetStringPtr(d *schema.ResourceData, attrName schemaAttr) *string {
 	if s, ok := schemaGetStringOK(d, attrName); ok {
 		return &s
 	}
@@ -165,7 +165,7 @@ func _ConfigGetStringPtr(d *schema.ResourceData, attrName _SchemaAttr) *string {
 	return nil
 }
 
-func _Indirect(v interface{}) interface{} {
+func indirect(v interface{}) interface{} {
 	switch v.(type) {
 	case string:
 		return v
@@ -180,10 +180,10 @@ func _Indirect(v interface{}) interface{} {
 	}
 }
 
-// _StateSet sets an attribute based on an attrName and panic()'s if the Set
+// stateSet sets an attribute based on an attrName and panic()'s if the Set
 // failed.
-func _StateSet(d *schema.ResourceData, attrName _SchemaAttr, v interface{}) {
-	if err := d.Set(string(attrName), _Indirect(v)); err != nil {
+func stateSet(d *schema.ResourceData, attrName schemaAttr, v interface{}) {
+	if err := d.Set(string(attrName), indirect(v)); err != nil {
 		panic(fmt.Sprintf("PROVIDER BUG: failed set schema attribute %s to value %#v: %v", attrName, v, err))
 	}
 }

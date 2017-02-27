@@ -64,7 +64,7 @@ func TestAccCirconusGraph_basic(t *testing.T) {
 }
 
 func testAccCheckDestroyCirconusGraph(s *terraform.State) error {
-	ctxt := testAccProvider.Meta().(*_ProviderContext)
+	ctxt := testAccProvider.Meta().(*providerContext)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "circonus_graph" {
@@ -97,7 +97,7 @@ func testAccGraphExists(n string, streamGroupID api.CIDType) resource.TestCheckF
 			return fmt.Errorf("No ID is set")
 		}
 
-		ctxt := testAccProvider.Meta().(*_ProviderContext)
+		ctxt := testAccProvider.Meta().(*providerContext)
 		cid := rs.Primary.ID
 		exists, err := checkGraphExists(ctxt, api.CIDType(&cid))
 		switch {
@@ -113,7 +113,7 @@ func testAccGraphExists(n string, streamGroupID api.CIDType) resource.TestCheckF
 	}
 }
 
-func checkGraphExists(c *_ProviderContext, graphID api.CIDType) (bool, error) {
+func checkGraphExists(c *providerContext, graphID api.CIDType) (bool, error) {
 	g, err := c.client.FetchGraph(graphID)
 	if err != nil {
 		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {

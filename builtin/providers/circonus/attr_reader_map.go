@@ -6,27 +6,27 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-type _MapReader struct {
-	ctxt *_ProviderContext
-	m    _InterfaceMap
+type mapReader struct {
+	ctxt *providerContext
+	m    interfaceMap
 }
 
-func _NewMapReader(ctxt *_ProviderContext, m _InterfaceMap) *_MapReader {
-	return &_MapReader{
+func newMapReader(ctxt *providerContext, m interfaceMap) *mapReader {
+	return &mapReader{
 		ctxt: ctxt,
 		m:    m,
 	}
 }
 
-func (r *_MapReader) BackingType() string {
+func (r *mapReader) BackingType() string {
 	return "interface_map"
 }
 
-func (r *_MapReader) Context() *_ProviderContext {
+func (r *mapReader) Context() *providerContext {
 	return r.ctxt
 }
 
-func (r *_MapReader) GetBool(attrName _SchemaAttr) bool {
+func (r *mapReader) GetBool(attrName schemaAttr) bool {
 	if b, ok := r.m.GetBoolOK(attrName); ok {
 		return b
 	}
@@ -34,11 +34,11 @@ func (r *_MapReader) GetBool(attrName _SchemaAttr) bool {
 	return false
 }
 
-func (r *_MapReader) GetBoolOK(attrName _SchemaAttr) (b, ok bool) {
+func (r *mapReader) GetBoolOK(attrName schemaAttr) (b, ok bool) {
 	return r.m.GetBoolOK(attrName)
 }
 
-func (r *_MapReader) GetDurationOK(attrName _SchemaAttr) (time.Duration, bool) {
+func (r *mapReader) GetDurationOK(attrName schemaAttr) (time.Duration, bool) {
 	if v, ok := r.m[string(attrName)]; ok {
 		d, err := time.ParseDuration(v.(string))
 		if err != nil {
@@ -50,7 +50,7 @@ func (r *_MapReader) GetDurationOK(attrName _SchemaAttr) (time.Duration, bool) {
 	return time.Duration(0), false
 }
 
-func (r *_MapReader) GetFloat64OK(attrName _SchemaAttr) (float64, bool) {
+func (r *mapReader) GetFloat64OK(attrName schemaAttr) (float64, bool) {
 	if f, ok := r.m.GetFloat64OK(attrName); ok {
 		return f, true
 	}
@@ -58,7 +58,7 @@ func (r *_MapReader) GetFloat64OK(attrName _SchemaAttr) (float64, bool) {
 	return 0.0, false
 }
 
-func (r *_MapReader) GetIntOK(attrName _SchemaAttr) (int, bool) {
+func (r *mapReader) GetIntOK(attrName schemaAttr) (int, bool) {
 	if i, ok := r.m.GetIntOK(attrName); ok {
 		return i, true
 	}
@@ -66,36 +66,36 @@ func (r *_MapReader) GetIntOK(attrName _SchemaAttr) (int, bool) {
 	return 0, false
 }
 
-func (r *_MapReader) GetIntPtr(attrName _SchemaAttr) *int {
+func (r *mapReader) GetIntPtr(attrName schemaAttr) *int {
 	return r.m.GetIntPtr(attrName)
 }
 
-func (r *_MapReader) GetListOK(attrName _SchemaAttr) (_InterfaceList, bool) {
+func (r *mapReader) GetListOK(attrName schemaAttr) (interfaceList, bool) {
 	if listRaw, ok := r.m[string(attrName)]; ok {
-		return _InterfaceList{listRaw.([]interface{})}, true
+		return interfaceList{listRaw.([]interface{})}, true
 	}
 	return nil, false
 }
 
-func (r *_MapReader) GetMap(attrName _SchemaAttr) _InterfaceMap {
+func (r *mapReader) GetMap(attrName schemaAttr) interfaceMap {
 	if listRaw, ok := r.m[string(attrName)]; ok {
 		m := make(map[string]interface{}, len(listRaw.(map[string]interface{})))
 		for k, v := range listRaw.(map[string]interface{}) {
 			m[k] = v
 		}
-		return _InterfaceMap(m)
+		return interfaceMap(m)
 	}
 	return nil
 }
 
-func (r *_MapReader) GetSetAsListOK(attrName _SchemaAttr) (_InterfaceList, bool) {
+func (r *mapReader) GetSetAsListOK(attrName schemaAttr) (interfaceList, bool) {
 	if listRaw, ok := r.m[string(attrName)]; ok {
 		return listRaw.(*schema.Set).List(), true
 	}
 	return nil, false
 }
 
-func (r *_MapReader) GetString(attrName _SchemaAttr) string {
+func (r *mapReader) GetString(attrName schemaAttr) string {
 	if s, ok := r.m.GetStringOK(attrName); ok {
 		return s
 	}
@@ -103,11 +103,11 @@ func (r *_MapReader) GetString(attrName _SchemaAttr) string {
 	return ""
 }
 
-func (r *_MapReader) GetStringPtr(attrName _SchemaAttr) *string {
+func (r *mapReader) GetStringPtr(attrName schemaAttr) *string {
 	return r.m.GetStringPtr(attrName)
 }
 
-func (r *_MapReader) GetStringOK(attrName _SchemaAttr) (string, bool) {
+func (r *mapReader) GetStringOK(attrName schemaAttr) (string, bool) {
 	if s, ok := r.m.GetStringOK(attrName); ok {
 		return s, true
 	}
@@ -115,18 +115,18 @@ func (r *_MapReader) GetStringOK(attrName _SchemaAttr) (string, bool) {
 	return "", false
 }
 
-func (r *_MapReader) GetStringSlice(attrName _SchemaAttr) []string {
+func (r *mapReader) GetStringSlice(attrName schemaAttr) []string {
 	if listRaw, ok := r.m[string(attrName)]; ok {
 		return listRaw.([]string)
 	}
 	return nil
 }
 
-func (r *_MapReader) GetTags(attrName _SchemaAttr) _Tags {
+func (r *mapReader) GetTags(attrName schemaAttr) circonusTags {
 	if tagsRaw, ok := r.m[string(attrName)]; ok {
 		tagPtrs := flattenSet(tagsRaw.(*schema.Set))
 		return injectTagPtr(r.ctxt, tagPtrs)
 	}
 
-	return injectTag(r.ctxt, _Tags{})
+	return injectTag(r.ctxt, circonusTags{})
 }

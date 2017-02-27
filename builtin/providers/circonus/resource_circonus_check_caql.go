@@ -12,38 +12,38 @@ import (
 
 const (
 	// circonus_check.caql.* resource attribute names
-	_CheckCAQLQueryAttr _SchemaAttr = "query"
+	checkCAQLQueryAttr schemaAttr = "query"
 )
 
-var _CheckCAQLDescriptions = _AttrDescrs{
-	_CheckCAQLQueryAttr: "The query definition",
+var checkCAQLDescriptions = attrDescrs{
+	checkCAQLQueryAttr: "The query definition",
 }
 
-var _SchemaCheckCAQL = &schema.Schema{
+var schemaCheckCAQL = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
 	MaxItems: 1,
 	MinItems: 1,
 	Set:      hashCheckCAQL,
 	Elem: &schema.Resource{
-		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-			_CheckCAQLQueryAttr: &schema.Schema{
+		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+			checkCAQLQueryAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: _ValidateRegexp(_CheckCAQLQueryAttr, `.+`),
+				ValidateFunc: validateRegexp(checkCAQLQueryAttr, `.+`),
 			},
-		}, _CheckCAQLDescriptions),
+		}, checkCAQLDescriptions),
 	},
 }
 
-// _CheckAPIToStateCAQL reads the Config data out of _Check.CheckBundle
+// checkAPIToStateCAQL reads the Config data out of circonusCheck.CheckBundle
 // into the statefile.
-func _CheckAPIToStateCAQL(c *_Check, d *schema.ResourceData) error {
+func checkAPIToStateCAQL(c *circonusCheck, d *schema.ResourceData) error {
 	caqlConfig := make(map[string]interface{}, len(c.Config))
 
-	caqlConfig[string(_CheckCAQLQueryAttr)] = c.Config[config.Query]
+	caqlConfig[string(checkCAQLQueryAttr)] = c.Config[config.Query]
 
-	_StateSet(d, _CheckCAQLAttr, schema.NewSet(hashCheckCAQL, []interface{}{caqlConfig}))
+	stateSet(d, checkCAQLAttr, schema.NewSet(hashCheckCAQL, []interface{}{caqlConfig}))
 
 	return nil
 }
@@ -54,7 +54,7 @@ func hashCheckCAQL(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
-	writeString := func(attrName _SchemaAttr) {
+	writeString := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok && v.(string) != "" {
 			fmt.Fprint(b, strings.TrimSpace(v.(string)))
 		}
@@ -62,23 +62,23 @@ func hashCheckCAQL(v interface{}) int {
 
 	// Order writes to the buffer using lexically sorted list for easy visual
 	// reconciliation with other lists.
-	writeString(_CheckCAQLQueryAttr)
+	writeString(checkCAQLQueryAttr)
 
 	s := b.String()
 	return hashcode.String(s)
 }
 
-func _CheckConfigToAPICAQL(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
-	c.Type = string(_APICheckTypeCAQL)
+func checkConfigToAPICAQL(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+	c.Type = string(apiCheckTypeCAQL)
 	c.Target = defaultCheckCAQLTarget
 
 	// Iterate over all `icmp_ping` attributes, even though we have a max of 1 in
 	// the schema.
 	for _, mapRaw := range l {
-		caqlConfig := _NewInterfaceMap(mapRaw)
-		ar := _NewMapReader(ctxt, caqlConfig)
+		caqlConfig := newInterfaceMap(mapRaw)
+		ar := newMapReader(ctxt, caqlConfig)
 
-		if s, ok := ar.GetStringOK(_CheckCAQLQueryAttr); ok {
+		if s, ok := ar.GetStringOK(checkCAQLQueryAttr); ok {
 			c.Config[config.Query] = s
 		}
 	}

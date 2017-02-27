@@ -77,7 +77,7 @@ func TestAccCirconusTrigger_basic(t *testing.T) {
 }
 
 func testAccCheckDestroyCirconusTrigger(s *terraform.State) error {
-	ctxt := testAccProvider.Meta().(*_ProviderContext)
+	ctxt := testAccProvider.Meta().(*providerContext)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "circonus_trigger" {
@@ -110,7 +110,7 @@ func testAccTriggerExists(n string, streamGroupID api.CIDType) resource.TestChec
 			return fmt.Errorf("No ID is set")
 		}
 
-		ctxt := testAccProvider.Meta().(*_ProviderContext)
+		ctxt := testAccProvider.Meta().(*providerContext)
 		cid := rs.Primary.ID
 		exists, err := checkTriggerExists(ctxt, api.CIDType(&cid))
 		switch {
@@ -126,7 +126,7 @@ func testAccTriggerExists(n string, streamGroupID api.CIDType) resource.TestChec
 	}
 }
 
-func checkTriggerExists(c *_ProviderContext, streamGroupID api.CIDType) (bool, error) {
+func checkTriggerExists(c *providerContext, streamGroupID api.CIDType) (bool, error) {
 	sg, err := c.client.FetchMetricCluster(streamGroupID, "")
 	if err != nil {
 		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {

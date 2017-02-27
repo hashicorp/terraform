@@ -33,7 +33,7 @@ func TestAccCirconusStreamGroup_basic(t *testing.T) {
 }
 
 func testAccCheckDestroyCirconusStreamGroup(s *terraform.State) error {
-	ctxt := testAccProvider.Meta().(*_ProviderContext)
+	ctxt := testAccProvider.Meta().(*providerContext)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "circonus_stream_group" {
@@ -66,7 +66,7 @@ func testAccStreamGroupExists(n string, streamGroupID api.CIDType) resource.Test
 			return fmt.Errorf("No ID is set")
 		}
 
-		ctxt := testAccProvider.Meta().(*_ProviderContext)
+		ctxt := testAccProvider.Meta().(*providerContext)
 		cid := rs.Primary.ID
 		exists, err := checkStreamGroupExists(ctxt, api.CIDType(&cid))
 		switch {
@@ -82,7 +82,7 @@ func testAccStreamGroupExists(n string, streamGroupID api.CIDType) resource.Test
 	}
 }
 
-func checkStreamGroupExists(c *_ProviderContext, streamGroupID api.CIDType) (bool, error) {
+func checkStreamGroupExists(c *providerContext, streamGroupID api.CIDType) (bool, error) {
 	sg, err := c.client.FetchMetricCluster(streamGroupID, "")
 	if err != nil {
 		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {

@@ -6,18 +6,18 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-type _InterfaceList []interface{}
-type _InterfaceMap map[string]interface{}
+type interfaceList []interface{}
+type interfaceMap map[string]interface{}
 
-// _NewInterfaceMap returns a helper type that has methods for common operations
+// newInterfaceMap returns a helper type that has methods for common operations
 // for accessing data.
-func _NewInterfaceMap(l interface{}) _InterfaceMap {
-	return _InterfaceMap(l.(map[string]interface{}))
+func newInterfaceMap(l interface{}) interfaceMap {
+	return interfaceMap(l.(map[string]interface{}))
 }
 
 // CollectList returns []string of values that matched the key attrName.
-// _InterfaceList most likely came from a schema.TypeSet.
-func (l _InterfaceList) CollectList(attrName _SchemaAttr) []string {
+// interfaceList most likely came from a schema.TypeSet.
+func (l interfaceList) CollectList(attrName schemaAttr) []string {
 	stringList := make([]string, 0, len(l))
 
 	for _, mapRaw := range l {
@@ -32,7 +32,7 @@ func (l _InterfaceList) CollectList(attrName _SchemaAttr) []string {
 }
 
 // List returns a list of values in a Set as a string slice
-func (l _InterfaceList) List() []string {
+func (l interfaceList) List() []string {
 	stringList := make([]string, 0, len(l))
 	for _, e := range l {
 		switch e.(type) {
@@ -50,8 +50,8 @@ func (l _InterfaceList) List() []string {
 }
 
 // CollectList returns []string of values that matched the key attrName.
-// _InterfaceMap most likely came from a schema.TypeSet.
-func (m _InterfaceMap) CollectList(attrName _SchemaAttr) []string {
+// interfaceMap most likely came from a schema.TypeSet.
+func (m interfaceMap) CollectList(attrName schemaAttr) []string {
 	stringList := make([]string, 0, len(m))
 
 	for _, mapRaw := range m {
@@ -66,8 +66,8 @@ func (m _InterfaceMap) CollectList(attrName _SchemaAttr) []string {
 }
 
 // CollectMap returns map[string]string of values that matched the key attrName.
-// _InterfaceMap most likely came from a schema.TypeSet.
-func (m _InterfaceMap) CollectMap(attrName _SchemaAttr) map[string]string {
+// interfaceMap most likely came from a schema.TypeSet.
+func (m interfaceMap) CollectMap(attrName schemaAttr) map[string]string {
 	var mergedMap map[string]string
 
 	if attrRaw, ok := m[string(attrName)]; ok {
@@ -85,7 +85,7 @@ func (m _InterfaceMap) CollectMap(attrName _SchemaAttr) map[string]string {
 	return mergedMap
 }
 
-func (m _InterfaceMap) GetBool(attrName _SchemaAttr) bool {
+func (m interfaceMap) GetBool(attrName schemaAttr) bool {
 	if v, ok := m[string(attrName)]; ok {
 		return v.(bool)
 	}
@@ -93,7 +93,7 @@ func (m _InterfaceMap) GetBool(attrName _SchemaAttr) bool {
 	panic("PROVIDER BUG: GetBool can only be used when a default is provided in schema")
 }
 
-func (m _InterfaceMap) GetBoolOK(attrName _SchemaAttr) (b, ok bool) {
+func (m interfaceMap) GetBoolOK(attrName schemaAttr) (b, ok bool) {
 	if v, ok := m[string(attrName)]; ok {
 		return v.(bool), true
 	}
@@ -101,7 +101,7 @@ func (m _InterfaceMap) GetBoolOK(attrName _SchemaAttr) (b, ok bool) {
 	return false, false
 }
 
-func (m _InterfaceMap) GetFloat64OK(attrName _SchemaAttr) (float64, bool) {
+func (m interfaceMap) GetFloat64OK(attrName schemaAttr) (float64, bool) {
 	if v, ok := m[string(attrName)]; ok {
 		return v.(float64), true
 	}
@@ -109,7 +109,7 @@ func (m _InterfaceMap) GetFloat64OK(attrName _SchemaAttr) (float64, bool) {
 	return 0.0, false
 }
 
-func (m _InterfaceMap) GetIntOK(attrName _SchemaAttr) (int, bool) {
+func (m interfaceMap) GetIntOK(attrName schemaAttr) (int, bool) {
 	if v, ok := m[string(attrName)]; ok {
 		return v.(int), true
 	}
@@ -117,7 +117,7 @@ func (m _InterfaceMap) GetIntOK(attrName _SchemaAttr) (int, bool) {
 	return 0, false
 }
 
-func (m _InterfaceMap) GetIntPtr(attrName _SchemaAttr) *int {
+func (m interfaceMap) GetIntPtr(attrName schemaAttr) *int {
 	if v, ok := m[string(attrName)]; ok {
 		i := v.(int)
 		return &i
@@ -126,7 +126,7 @@ func (m _InterfaceMap) GetIntPtr(attrName _SchemaAttr) *int {
 	return nil
 }
 
-func (m _InterfaceMap) GetString(attrName _SchemaAttr) string {
+func (m interfaceMap) GetString(attrName schemaAttr) string {
 	if v, ok := m[string(attrName)]; ok {
 		return v.(string)
 	}
@@ -134,7 +134,7 @@ func (m _InterfaceMap) GetString(attrName _SchemaAttr) string {
 	return ""
 }
 
-func (m _InterfaceMap) GetStringOK(attrName _SchemaAttr) (string, bool) {
+func (m interfaceMap) GetStringOK(attrName schemaAttr) (string, bool) {
 	if v, ok := m[string(attrName)]; ok {
 		return v.(string), true
 	}
@@ -142,7 +142,7 @@ func (m _InterfaceMap) GetStringOK(attrName _SchemaAttr) (string, bool) {
 	return "", false
 }
 
-func (m _InterfaceMap) GetStringPtr(attrName _SchemaAttr) *string {
+func (m interfaceMap) GetStringPtr(attrName schemaAttr) *string {
 	if v, ok := m[string(attrName)]; ok {
 		switch v.(type) {
 		case string:
@@ -156,19 +156,19 @@ func (m _InterfaceMap) GetStringPtr(attrName _SchemaAttr) *string {
 	return nil
 }
 
-func (m _InterfaceMap) GetTags(ctxt *_ProviderContext, attrName _SchemaAttr) _Tags {
+func (m interfaceMap) GetTags(ctxt *providerContext, attrName schemaAttr) circonusTags {
 	if tagsRaw, ok := m[string(attrName)]; ok {
 		tagList := flattenSet(tagsRaw.(*schema.Set))
-		tags := make(_Tags, 0, len(tagList))
+		tags := make(circonusTags, 0, len(tagList))
 		for i := range tagList {
 			if tagList[i] == nil || *tagList[i] == "" {
 				continue
 			}
 
-			tags = append(tags, _Tag(*tagList[i]))
+			tags = append(tags, circonusTag(*tagList[i]))
 		}
 		return injectTag(ctxt, tags)
 	}
 
-	return injectTag(ctxt, _Tags{})
+	return injectTag(ctxt, circonusTags{})
 }

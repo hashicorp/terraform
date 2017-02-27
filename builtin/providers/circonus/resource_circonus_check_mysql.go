@@ -12,47 +12,47 @@ import (
 
 const (
 	// circonus_check.mysql.* resource attribute names
-	_CheckMySQLDSNAttr   _SchemaAttr = "dsn"
-	_CheckMySQLQueryAttr _SchemaAttr = "query"
+	checkMySQLDSNAttr   schemaAttr = "dsn"
+	checkMySQLQueryAttr schemaAttr = "query"
 )
 
-var _CheckMySQLDescriptions = _AttrDescrs{
-	_CheckMySQLDSNAttr:   "The connect DSN for the MySQL instance",
-	_CheckMySQLQueryAttr: "The SQL to use as the query",
+var checkMySQLDescriptions = attrDescrs{
+	checkMySQLDSNAttr:   "The connect DSN for the MySQL instance",
+	checkMySQLQueryAttr: "The SQL to use as the query",
 }
 
-var _SchemaCheckMySQL = &schema.Schema{
+var schemaCheckMySQL = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
 	MaxItems: 1,
 	MinItems: 1,
 	Set:      hashCheckMySQL,
 	Elem: &schema.Resource{
-		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-			_CheckMySQLDSNAttr: &schema.Schema{
+		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+			checkMySQLDSNAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: _ValidateRegexp(_CheckMySQLDSNAttr, `^.+$`),
+				ValidateFunc: validateRegexp(checkMySQLDSNAttr, `^.+$`),
 			},
-			_CheckMySQLQueryAttr: &schema.Schema{
+			checkMySQLQueryAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				StateFunc:    func(v interface{}) string { return strings.TrimSpace(v.(string)) },
-				ValidateFunc: _ValidateRegexp(_CheckMySQLQueryAttr, `.+`),
+				ValidateFunc: validateRegexp(checkMySQLQueryAttr, `.+`),
 			},
-		}, _CheckMySQLDescriptions),
+		}, checkMySQLDescriptions),
 	},
 }
 
-// _CheckAPIToStateMySQL reads the Config data out of _Check.CheckBundle into the
+// checkAPIToStateMySQL reads the Config data out of circonusCheck.CheckBundle into the
 // statefile.
-func _CheckAPIToStateMySQL(c *_Check, d *schema.ResourceData) error {
+func checkAPIToStateMySQL(c *circonusCheck, d *schema.ResourceData) error {
 	MySQLConfig := make(map[string]interface{}, len(c.Config))
 
-	MySQLConfig[string(_CheckMySQLDSNAttr)] = c.Config[config.DSN]
-	MySQLConfig[string(_CheckMySQLQueryAttr)] = c.Config[config.SQL]
+	MySQLConfig[string(checkMySQLDSNAttr)] = c.Config[config.DSN]
+	MySQLConfig[string(checkMySQLQueryAttr)] = c.Config[config.SQL]
 
-	_StateSet(d, _CheckMySQLAttr, schema.NewSet(hashCheckMySQL, []interface{}{MySQLConfig}))
+	stateSet(d, checkMySQLAttr, schema.NewSet(hashCheckMySQL, []interface{}{MySQLConfig}))
 
 	return nil
 }
@@ -63,7 +63,7 @@ func hashCheckMySQL(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
-	writeString := func(attrName _SchemaAttr) {
+	writeString := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok && v.(string) != "" {
 			fmt.Fprint(b, strings.TrimSpace(v.(string)))
 		}
@@ -71,27 +71,27 @@ func hashCheckMySQL(v interface{}) int {
 
 	// Order writes to the buffer using lexically sorted list for easy visual
 	// reconciliation with other lists.
-	writeString(_CheckMySQLDSNAttr)
-	writeString(_CheckMySQLQueryAttr)
+	writeString(checkMySQLDSNAttr)
+	writeString(checkMySQLQueryAttr)
 
 	s := b.String()
 	return hashcode.String(s)
 }
 
-func _CheckConfigToAPIMySQL(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
-	c.Type = string(_APICheckTypeMySQL)
+func checkConfigToAPIMySQL(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+	c.Type = string(apiCheckTypeMySQL)
 
 	// Iterate over all `postgres` attributes, even though we have a max of 1 in
 	// the schema.
 	for _, mapRaw := range l {
-		mysqlConfig := _NewInterfaceMap(mapRaw)
-		ar := _NewMapReader(ctxt, mysqlConfig)
+		mysqlConfig := newInterfaceMap(mapRaw)
+		ar := newMapReader(ctxt, mysqlConfig)
 
-		if s, ok := ar.GetStringOK(_CheckMySQLDSNAttr); ok {
+		if s, ok := ar.GetStringOK(checkMySQLDSNAttr); ok {
 			c.Config[config.DSN] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckMySQLQueryAttr); ok {
+		if s, ok := ar.GetStringOK(checkMySQLQueryAttr); ok {
 			c.Config[config.SQL] = s
 		}
 	}

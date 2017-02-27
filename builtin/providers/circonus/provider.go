@@ -27,11 +27,11 @@ const (
 
 // Constants that want to be a constant but can't in Go
 var (
-	validContactHTTPFormats = _ValidStringValues{"json", "params"}
-	validContactHTTPMethods = _ValidStringValues{"GET", "POST"}
+	validContactHTTPFormats = validStringValues{"json", "params"}
+	validContactHTTPMethods = validStringValues{"GET", "POST"}
 )
 
-type _ContactMethods string
+type contactMethods string
 
 // globalAutoTag controls whether or not the provider should automatically add a
 // tag to each resource.
@@ -41,7 +41,7 @@ type _ContactMethods string
 // new values.
 var globalAutoTag bool
 
-type _ProviderContext struct {
+type providerContext struct {
 	// Circonus API client
 	client *api.API
 
@@ -49,7 +49,7 @@ type _ProviderContext struct {
 	autoTag bool
 
 	// defaultTag make up the tag to be used when autoTag tags a tag.
-	defaultTag _Tag
+	defaultTag circonusTag
 }
 
 // Provider returns a terraform.ResourceProvider.
@@ -83,12 +83,12 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"circonus_check":         _NewCheckResource(),
+			"circonus_check":         newCheckResource(),
 			"circonus_contact_group": resourceContactGroup(),
-			"circonus_graph":         _NewGraphResource(),
-			"circonus_metric":        _NewMetricResource(),
-			"circonus_stream_group":  _NewStreamGroupResource(),
-			"circonus_trigger":       _NewTriggerResource(),
+			"circonus_graph":         newGraphResource(),
+			"circonus_metric":        newMetricResource(),
+			"circonus_stream_group":  newStreamGroupResource(),
+			"circonus_trigger":       newTriggerResource(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -109,7 +109,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		return nil, errwrap.Wrapf("Error initializing Circonus: %s", err)
 	}
 
-	return &_ProviderContext{
+	return &providerContext{
 		client:     client,
 		autoTag:    d.Get(providerAutoTagAttr).(bool),
 		defaultTag: defaultCirconusTag,

@@ -8,53 +8,53 @@ import (
 	"github.com/hashicorp/errwrap"
 )
 
-// The _Check type is the backing store of the `circonus_check` resource.
+// The circonusCheck type is the backing store of the `circonus_check` resource.
 
-type _Check struct {
+type circonusCheck struct {
 	api.CheckBundle
 }
 
-type _CheckType string
+type circonusCheckType string
 
 const (
 	// CheckBundle.Status can be one of these values
-	_CheckStatusActive   = "active"
-	_CheckStatusDisabled = "disabled"
+	checkStatusActive   = "active"
+	checkStatusDisabled = "disabled"
 )
 
 const (
-	_APICheckTypeCAQL       _CheckType = "caql"
-	_APICheckTypeICMPPing   _CheckType = "ping_icmp"
-	_APICheckTypeHTTP       _CheckType = "http"
-	_APICheckTypeJSON       _CheckType = "json"
-	_APICheckTypeMySQL      _CheckType = "mysql"
-	_APICheckTypePostgreSQL _CheckType = "postgres"
-	_APICheckTypeTCP        _CheckType = "tcp"
+	apiCheckTypeCAQL       circonusCheckType = "caql"
+	apiCheckTypeICMPPing   circonusCheckType = "ping_icmp"
+	apiCheckTypeHTTP       circonusCheckType = "http"
+	apiCheckTypeJSON       circonusCheckType = "json"
+	apiCheckTypeMySQL      circonusCheckType = "mysql"
+	apiCheckTypePostgreSQL circonusCheckType = "postgres"
+	apiCheckTypeTCP        circonusCheckType = "tcp"
 )
 
-func _NewCheck() _Check {
-	return _Check{
+func newCheck() circonusCheck {
+	return circonusCheck{
 		CheckBundle: *api.NewCheckBundle(),
 	}
 }
 
-func _LoadCheck(ctxt *_ProviderContext, cid api.CIDType) (_Check, error) {
-	var c _Check
+func loadCheck(ctxt *providerContext, cid api.CIDType) (circonusCheck, error) {
+	var c circonusCheck
 	cb, err := ctxt.client.FetchCheckBundle(cid)
 	if err != nil {
-		return _Check{}, err
+		return circonusCheck{}, err
 	}
 	c.CheckBundle = *cb
 
 	return c, nil
 }
 
-func _CheckAPIStatusToBool(s string) bool {
+func checkAPIStatusToBool(s string) bool {
 	var active bool
 	switch s {
-	case _CheckStatusActive:
+	case checkStatusActive:
 		active = true
-	case _CheckStatusDisabled:
+	case checkStatusDisabled:
 		active = false
 	default:
 		panic(fmt.Sprintf("PROVIDER BUG: check status %q unsupported", s))
@@ -63,18 +63,18 @@ func _CheckAPIStatusToBool(s string) bool {
 	return active
 }
 
-func _CheckActiveToAPIStatus(active bool) string {
+func checkActiveToAPIStatus(active bool) string {
 	switch active {
 	case true:
-		return _CheckStatusActive
+		return checkStatusActive
 	case false:
-		return _CheckStatusDisabled
+		return checkStatusDisabled
 	}
 
 	panic("suppress Go error message")
 }
 
-func (c *_Check) Create(ctxt *_ProviderContext) error {
+func (c *circonusCheck) Create(ctxt *providerContext) error {
 	cb, err := ctxt.client.CreateCheckBundle(&c.CheckBundle)
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func (c *_Check) Create(ctxt *_ProviderContext) error {
 	return nil
 }
 
-func (c *_Check) Update(ctxt *_ProviderContext) error {
+func (c *circonusCheck) Update(ctxt *providerContext) error {
 	_, err := ctxt.client.UpdateCheckBundle(&c.CheckBundle)
 	if err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("Unable to update check bundle %s: {{err}}", c.CID), err)
@@ -94,9 +94,9 @@ func (c *_Check) Update(ctxt *_ProviderContext) error {
 	return nil
 }
 
-func (c *_Check) Fixup() error {
-	switch _APICheckType(c.Type) {
-	case _APICheckTypeCloudWatchAttr:
+func (c *circonusCheck) Fixup() error {
+	switch apiCheckType(c.Type) {
+	case apiCheckTypeCloudWatchAttr:
 		switch c.Period {
 		case 60:
 			c.Config[config.Granularity] = "1"
@@ -108,15 +108,15 @@ func (c *_Check) Fixup() error {
 	return nil
 }
 
-func (c *_Check) Validate() error {
+func (c *circonusCheck) Validate() error {
 	if c.Timeout > float32(c.Period) {
 		return fmt.Errorf("Timeout (%f) can not exceed period (%d)", c.Timeout, c.Period)
 	}
 
-	switch _APICheckType(c.Type) {
-	case _APICheckTypeCloudWatchAttr:
+	switch apiCheckType(c.Type) {
+	case apiCheckTypeCloudWatchAttr:
 		if !(c.Period == 60 || c.Period == 300) {
-			return fmt.Errorf("Period must be either 1m or 5m for a %s check", _APICheckTypeCloudWatchAttr)
+			return fmt.Errorf("Period must be either 1m or 5m for a %s check", apiCheckTypeCloudWatchAttr)
 		}
 	}
 

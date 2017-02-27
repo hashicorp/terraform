@@ -15,147 +15,147 @@ import (
 
 const (
 	// circonus_check.http.* resource attribute names
-	_CheckHTTPAuthMethodAttr   _SchemaAttr = "auth_method"
-	_CheckHTTPAuthPasswordAttr _SchemaAttr = "auth_password"
-	_CheckHTTPAuthUserAttr     _SchemaAttr = "auth_user"
-	_CheckHTTPBodyRegexpAttr   _SchemaAttr = "body_regexp"
-	_CheckHTTPCAChainAttr      _SchemaAttr = "ca_chain"
-	_CheckHTTPCertFileAttr     _SchemaAttr = "certificate_file"
-	_CheckHTTPCiphersAttr      _SchemaAttr = "ciphers"
-	_CheckHTTPCodeRegexpAttr   _SchemaAttr = "code"
-	_CheckHTTPExtractAttr      _SchemaAttr = "extract"
-	_CheckHTTPHeadersAttr      _SchemaAttr = "headers"
-	_CheckHTTPKeyFileAttr      _SchemaAttr = "key_file"
-	_CheckHTTPMethodAttr       _SchemaAttr = "method"
-	_CheckHTTPPayloadAttr      _SchemaAttr = "payload"
-	_CheckHTTPReadLimitAttr    _SchemaAttr = "read_limit"
-	_CheckHTTPURLAttr          _SchemaAttr = "url"
-	_CheckHTTPVersionAttr      _SchemaAttr = "version"
+	checkHTTPAuthMethodAttr   schemaAttr = "auth_method"
+	checkHTTPAuthPasswordAttr schemaAttr = "auth_password"
+	checkHTTPAuthUserAttr     schemaAttr = "auth_user"
+	checkHTTPBodyRegexpAttr   schemaAttr = "body_regexp"
+	checkHTTPCAChainAttr      schemaAttr = "ca_chain"
+	checkHTTPCertFileAttr     schemaAttr = "certificate_file"
+	checkHTTPCiphersAttr      schemaAttr = "ciphers"
+	checkHTTPCodeRegexpAttr   schemaAttr = "code"
+	checkHTTPExtractAttr      schemaAttr = "extract"
+	checkHTTPHeadersAttr      schemaAttr = "headers"
+	checkHTTPKeyFileAttr      schemaAttr = "key_file"
+	checkHTTPMethodAttr       schemaAttr = "method"
+	checkHTTPPayloadAttr      schemaAttr = "payload"
+	checkHTTPReadLimitAttr    schemaAttr = "read_limit"
+	checkHTTPURLAttr          schemaAttr = "url"
+	checkHTTPVersionAttr      schemaAttr = "version"
 )
 
-var _CheckHTTPDescriptions = _AttrDescrs{
-	_CheckHTTPAuthMethodAttr:   "The HTTP Authentication method",
-	_CheckHTTPAuthPasswordAttr: "The HTTP Authentication user password",
-	_CheckHTTPAuthUserAttr:     "The HTTP Authentication user name",
-	_CheckHTTPBodyRegexpAttr:   `This regular expression is matched against the body of the response. If a match is not found, the check will be marked as "bad.`,
-	_CheckHTTPCAChainAttr:      "A path to a file containing all the certificate authorities that should be loaded to validate the remote certificate (for TLS checks)",
-	_CheckHTTPCodeRegexpAttr:   `The HTTP code that is expected. If the code received does not match this regular expression, the check is marked as "bad."`,
-	_CheckHTTPCiphersAttr:      "A list of ciphers to be used in the TLS protocol (for HTTPS checks)",
-	_CheckHTTPCertFileAttr:     "A path to a file containing the client certificate that will be presented to the remote server (for TLS-enabled checks)",
-	_CheckHTTPExtractAttr:      "This regular expression is matched against the body of the response globally. The first capturing match is the key and the second capturing match is the value. Each key/value extracted is registered as a metric for the check.",
-	_CheckHTTPHeadersAttr:      "Map of HTTP Headers to send along with HTTP Requests",
-	_CheckHTTPKeyFileAttr:      "A path to a file containing key to be used in conjunction with the cilent certificate (for TLS checks)",
-	_CheckHTTPMethodAttr:       "The HTTP method to use",
-	_CheckHTTPPayloadAttr:      "The information transferred as the payload of an HTTP request",
-	_CheckHTTPReadLimitAttr:    "Sets an approximate limit on the data read (0 means no limit)",
-	_CheckHTTPURLAttr:          "The URL to use as the target of the check",
-	_CheckHTTPVersionAttr:      "Sets the HTTP version for the check to use",
+var checkHTTPDescriptions = attrDescrs{
+	checkHTTPAuthMethodAttr:   "The HTTP Authentication method",
+	checkHTTPAuthPasswordAttr: "The HTTP Authentication user password",
+	checkHTTPAuthUserAttr:     "The HTTP Authentication user name",
+	checkHTTPBodyRegexpAttr:   `This regular expression is matched against the body of the response. If a match is not found, the check will be marked as "bad.`,
+	checkHTTPCAChainAttr:      "A path to a file containing all the certificate authorities that should be loaded to validate the remote certificate (for TLS checks)",
+	checkHTTPCodeRegexpAttr:   `The HTTP code that is expected. If the code received does not match this regular expression, the check is marked as "bad."`,
+	checkHTTPCiphersAttr:      "A list of ciphers to be used in the TLS protocol (for HTTPS checks)",
+	checkHTTPCertFileAttr:     "A path to a file containing the client certificate that will be presented to the remote server (for TLS-enabled checks)",
+	checkHTTPExtractAttr:      "This regular expression is matched against the body of the response globally. The first capturing match is the key and the second capturing match is the value. Each key/value extracted is registered as a metric for the check.",
+	checkHTTPHeadersAttr:      "Map of HTTP Headers to send along with HTTP Requests",
+	checkHTTPKeyFileAttr:      "A path to a file containing key to be used in conjunction with the cilent certificate (for TLS checks)",
+	checkHTTPMethodAttr:       "The HTTP method to use",
+	checkHTTPPayloadAttr:      "The information transferred as the payload of an HTTP request",
+	checkHTTPReadLimitAttr:    "Sets an approximate limit on the data read (0 means no limit)",
+	checkHTTPURLAttr:          "The URL to use as the target of the check",
+	checkHTTPVersionAttr:      "Sets the HTTP version for the check to use",
 }
 
-var _SchemaCheckHTTP = &schema.Schema{
+var schemaCheckHTTP = &schema.Schema{
 	Type:     schema.TypeSet,
 	Optional: true,
 	MaxItems: 1,
 	MinItems: 1,
 	Set:      hashCheckHTTP,
 	Elem: &schema.Resource{
-		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-			_CheckHTTPAuthMethodAttr: &schema.Schema{
+		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+			checkHTTPAuthMethodAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckHTTPAuthMethodAttr, `^(?:Basic|Digest|Auto)$`),
+				ValidateFunc: validateRegexp(checkHTTPAuthMethodAttr, `^(?:Basic|Digest|Auto)$`),
 			},
-			_CheckHTTPAuthPasswordAttr: &schema.Schema{
+			checkHTTPAuthPasswordAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Sensitive:    true,
-				ValidateFunc: _ValidateRegexp(_CheckHTTPAuthPasswordAttr, `^.*`),
+				ValidateFunc: validateRegexp(checkHTTPAuthPasswordAttr, `^.*`),
 			},
-			_CheckHTTPAuthUserAttr: &schema.Schema{
+			checkHTTPAuthUserAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckHTTPAuthUserAttr, `[^:]+`),
+				ValidateFunc: validateRegexp(checkHTTPAuthUserAttr, `[^:]+`),
 			},
-			_CheckHTTPBodyRegexpAttr: &schema.Schema{
+			checkHTTPBodyRegexpAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckHTTPBodyRegexpAttr, `.+`),
+				ValidateFunc: validateRegexp(checkHTTPBodyRegexpAttr, `.+`),
 			},
-			_CheckHTTPCAChainAttr: &schema.Schema{
+			checkHTTPCAChainAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckHTTPCAChainAttr, `.+`),
+				ValidateFunc: validateRegexp(checkHTTPCAChainAttr, `.+`),
 			},
-			_CheckHTTPCertFileAttr: &schema.Schema{
+			checkHTTPCertFileAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckHTTPCertFileAttr, `.+`),
+				ValidateFunc: validateRegexp(checkHTTPCertFileAttr, `.+`),
 			},
-			_CheckHTTPCiphersAttr: &schema.Schema{
+			checkHTTPCiphersAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckHTTPCiphersAttr, `.+`),
+				ValidateFunc: validateRegexp(checkHTTPCiphersAttr, `.+`),
 			},
-			_CheckHTTPCodeRegexpAttr: &schema.Schema{
+			checkHTTPCodeRegexpAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      defaultCheckHTTPCodeRegexp,
-				ValidateFunc: _ValidateRegexp(_CheckHTTPCodeRegexpAttr, `.+`),
+				ValidateFunc: validateRegexp(checkHTTPCodeRegexpAttr, `.+`),
 			},
-			_CheckHTTPExtractAttr: &schema.Schema{
+			checkHTTPExtractAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckHTTPExtractAttr, `.+`),
+				ValidateFunc: validateRegexp(checkHTTPExtractAttr, `.+`),
 			},
-			_CheckHTTPHeadersAttr: &schema.Schema{
+			checkHTTPHeadersAttr: &schema.Schema{
 				Type:         schema.TypeMap,
 				Elem:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateHTTPHeaders,
+				ValidateFunc: validateHTTPHeaders,
 			},
-			_CheckHTTPKeyFileAttr: &schema.Schema{
+			checkHTTPKeyFileAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckHTTPKeyFileAttr, `.+`),
+				ValidateFunc: validateRegexp(checkHTTPKeyFileAttr, `.+`),
 			},
-			_CheckHTTPMethodAttr: &schema.Schema{
+			checkHTTPMethodAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      defaultCheckHTTPMethod,
-				ValidateFunc: _ValidateRegexp(_CheckHTTPMethodAttr, `\S+`),
+				ValidateFunc: validateRegexp(checkHTTPMethodAttr, `\S+`),
 			},
-			_CheckHTTPPayloadAttr: &schema.Schema{
+			checkHTTPPayloadAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				ValidateFunc: _ValidateRegexp(_CheckHTTPPayloadAttr, `\S+`),
+				ValidateFunc: validateRegexp(checkHTTPPayloadAttr, `\S+`),
 			},
-			_CheckHTTPReadLimitAttr: &schema.Schema{
+			checkHTTPReadLimitAttr: &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				ValidateFunc: _ValidateFuncs(
-					_ValidateIntMin(_CheckHTTPReadLimitAttr, 0),
+				ValidateFunc: validateFuncs(
+					validateIntMin(checkHTTPReadLimitAttr, 0),
 				),
 			},
-			_CheckHTTPURLAttr: &schema.Schema{
+			checkHTTPURLAttr: &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ValidateFunc: _ValidateFuncs(
-					_ValidateHTTPURL(_CheckHTTPURLAttr, _URLIsAbs),
+				ValidateFunc: validateFuncs(
+					validateHTTPURL(checkHTTPURLAttr, urlIsAbs),
 				),
 			},
-			_CheckHTTPVersionAttr: &schema.Schema{
+			checkHTTPVersionAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      defaultCheckHTTPVersion,
-				ValidateFunc: _ValidateStringIn(_CheckHTTPVersionAttr, _SupportedHTTPVersions),
+				ValidateFunc: validateStringIn(checkHTTPVersionAttr, supportedHTTPVersions),
 			},
-		}, _CheckHTTPDescriptions),
+		}, checkHTTPDescriptions),
 	},
 }
 
-// _CheckAPIToStateHTTP reads the Config data out of _Check.CheckBundle into the
+// checkAPIToStateHTTP reads the Config data out of circonusCheck.CheckBundle into the
 // statefile.
-func _CheckAPIToStateHTTP(c *_Check, d *schema.ResourceData) error {
+func checkAPIToStateHTTP(c *circonusCheck, d *schema.ResourceData) error {
 	httpConfig := make(map[string]interface{}, len(c.Config))
 
 	// swamp is a sanity check: it must be empty by the time this method returns
@@ -164,7 +164,7 @@ func _CheckAPIToStateHTTP(c *_Check, d *schema.ResourceData) error {
 		swamp[k] = v
 	}
 
-	saveStringConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
+	saveStringConfigToState := func(apiKey config.Key, attrName schemaAttr) {
 		if v, ok := c.Config[apiKey]; ok {
 			httpConfig[string(attrName)] = v
 		}
@@ -172,7 +172,7 @@ func _CheckAPIToStateHTTP(c *_Check, d *schema.ResourceData) error {
 		delete(swamp, apiKey)
 	}
 
-	saveIntConfigToState := func(apiKey config.Key, attrName _SchemaAttr) {
+	saveIntConfigToState := func(apiKey config.Key, attrName schemaAttr) {
 		if v, ok := c.Config[apiKey]; ok {
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
@@ -185,15 +185,15 @@ func _CheckAPIToStateHTTP(c *_Check, d *schema.ResourceData) error {
 		delete(swamp, apiKey)
 	}
 
-	saveStringConfigToState(config.AuthMethod, _CheckHTTPAuthMethodAttr)
-	saveStringConfigToState(config.AuthPassword, _CheckHTTPAuthPasswordAttr)
-	saveStringConfigToState(config.AuthUser, _CheckHTTPAuthUserAttr)
-	saveStringConfigToState(config.Body, _CheckHTTPBodyRegexpAttr)
-	saveStringConfigToState(config.CAChain, _CheckHTTPCAChainAttr)
-	saveStringConfigToState(config.CertFile, _CheckHTTPCertFileAttr)
-	saveStringConfigToState(config.Ciphers, _CheckHTTPCiphersAttr)
-	saveStringConfigToState(config.Code, _CheckHTTPCodeRegexpAttr)
-	saveStringConfigToState(config.Extract, _CheckHTTPExtractAttr)
+	saveStringConfigToState(config.AuthMethod, checkHTTPAuthMethodAttr)
+	saveStringConfigToState(config.AuthPassword, checkHTTPAuthPasswordAttr)
+	saveStringConfigToState(config.AuthUser, checkHTTPAuthUserAttr)
+	saveStringConfigToState(config.Body, checkHTTPBodyRegexpAttr)
+	saveStringConfigToState(config.CAChain, checkHTTPCAChainAttr)
+	saveStringConfigToState(config.CertFile, checkHTTPCertFileAttr)
+	saveStringConfigToState(config.Ciphers, checkHTTPCiphersAttr)
+	saveStringConfigToState(config.Code, checkHTTPCodeRegexpAttr)
+	saveStringConfigToState(config.Extract, checkHTTPExtractAttr)
 
 	headers := make(map[string]interface{}, len(c.Config))
 	headerPrefixLen := len(config.HeaderPrefix)
@@ -208,14 +208,14 @@ func _CheckAPIToStateHTTP(c *_Check, d *schema.ResourceData) error {
 		}
 		delete(swamp, k)
 	}
-	httpConfig[string(_CheckHTTPHeadersAttr)] = headers
+	httpConfig[string(checkHTTPHeadersAttr)] = headers
 
-	saveStringConfigToState(config.KeyFile, _CheckHTTPKeyFileAttr)
-	saveStringConfigToState(config.Method, _CheckHTTPMethodAttr)
-	saveStringConfigToState(config.Payload, _CheckHTTPPayloadAttr)
-	saveIntConfigToState(config.ReadLimit, _CheckHTTPReadLimitAttr)
-	saveStringConfigToState(config.URL, _CheckHTTPURLAttr)
-	saveStringConfigToState(config.HTTPVersion, _CheckHTTPVersionAttr)
+	saveStringConfigToState(config.KeyFile, checkHTTPKeyFileAttr)
+	saveStringConfigToState(config.Method, checkHTTPMethodAttr)
+	saveStringConfigToState(config.Payload, checkHTTPPayloadAttr)
+	saveIntConfigToState(config.ReadLimit, checkHTTPReadLimitAttr)
+	saveStringConfigToState(config.URL, checkHTTPURLAttr)
+	saveStringConfigToState(config.HTTPVersion, checkHTTPVersionAttr)
 
 	whitelistedConfigKeys := map[config.Key]struct{}{
 		config.ReverseSecretKey: struct{}{},
@@ -232,7 +232,7 @@ func _CheckAPIToStateHTTP(c *_Check, d *schema.ResourceData) error {
 		}
 	}
 
-	_StateSet(d, _CheckHTTPAttr, schema.NewSet(hashCheckHTTP, []interface{}{httpConfig}))
+	stateSet(d, checkHTTPAttr, schema.NewSet(hashCheckHTTP, []interface{}{httpConfig}))
 
 	return nil
 }
@@ -243,13 +243,13 @@ func hashCheckHTTP(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
-	writeInt := func(attrName _SchemaAttr) {
+	writeInt := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok {
 			fmt.Fprintf(b, "%x", v.(int))
 		}
 	}
 
-	writeString := func(attrName _SchemaAttr) {
+	writeString := func(attrName schemaAttr) {
 		if v, ok := m[string(attrName)]; ok && v.(string) != "" {
 			fmt.Fprint(b, strings.TrimSpace(v.(string)))
 		}
@@ -257,17 +257,17 @@ func hashCheckHTTP(v interface{}) int {
 
 	// Order writes to the buffer using lexically sorted list for easy visual
 	// reconciliation with other lists.
-	writeString(_CheckHTTPAuthMethodAttr)
-	writeString(_CheckHTTPAuthPasswordAttr)
-	writeString(_CheckHTTPAuthUserAttr)
-	writeString(_CheckHTTPBodyRegexpAttr)
-	writeString(_CheckHTTPCAChainAttr)
-	writeString(_CheckHTTPCertFileAttr)
-	writeString(_CheckHTTPCiphersAttr)
-	writeString(_CheckHTTPCodeRegexpAttr)
-	writeString(_CheckHTTPExtractAttr)
+	writeString(checkHTTPAuthMethodAttr)
+	writeString(checkHTTPAuthPasswordAttr)
+	writeString(checkHTTPAuthUserAttr)
+	writeString(checkHTTPBodyRegexpAttr)
+	writeString(checkHTTPCAChainAttr)
+	writeString(checkHTTPCertFileAttr)
+	writeString(checkHTTPCiphersAttr)
+	writeString(checkHTTPCodeRegexpAttr)
+	writeString(checkHTTPExtractAttr)
 
-	if headersRaw, ok := m[string(_CheckHTTPHeadersAttr)]; ok {
+	if headersRaw, ok := m[string(checkHTTPHeadersAttr)]; ok {
 		headerMap := headersRaw.(map[string]interface{})
 		headers := make([]string, 0, len(headerMap))
 		for k := range headerMap {
@@ -281,86 +281,86 @@ func hashCheckHTTP(v interface{}) int {
 		}
 	}
 
-	writeString(_CheckHTTPKeyFileAttr)
-	writeString(_CheckHTTPMethodAttr)
-	writeString(_CheckHTTPPayloadAttr)
-	writeInt(_CheckHTTPReadLimitAttr)
-	writeString(_CheckHTTPURLAttr)
-	writeString(_CheckHTTPVersionAttr)
+	writeString(checkHTTPKeyFileAttr)
+	writeString(checkHTTPMethodAttr)
+	writeString(checkHTTPPayloadAttr)
+	writeInt(checkHTTPReadLimitAttr)
+	writeString(checkHTTPURLAttr)
+	writeString(checkHTTPVersionAttr)
 
 	s := b.String()
 	return hashcode.String(s)
 }
 
-func _CheckConfigToAPIHTTP(c *_Check, ctxt *_ProviderContext, l _InterfaceList) error {
-	c.Type = string(_APICheckTypeHTTP)
+func checkConfigToAPIHTTP(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+	c.Type = string(apiCheckTypeHTTP)
 
 	// Iterate over all `http` attributes, even though we have a max of 1 in the
 	// schema.
 	for _, mapRaw := range l {
-		httpConfig := _NewInterfaceMap(mapRaw)
-		ar := _NewMapReader(ctxt, httpConfig)
+		httpConfig := newInterfaceMap(mapRaw)
+		ar := newMapReader(ctxt, httpConfig)
 
-		if s, ok := ar.GetStringOK(_CheckHTTPAuthMethodAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPAuthMethodAttr); ok {
 			c.Config[config.AuthMethod] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckHTTPAuthPasswordAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPAuthPasswordAttr); ok {
 			c.Config[config.AuthPassword] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckHTTPAuthUserAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPAuthUserAttr); ok {
 			c.Config[config.AuthUser] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckHTTPBodyRegexpAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPBodyRegexpAttr); ok {
 			c.Config[config.Body] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckHTTPCAChainAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPCAChainAttr); ok {
 			c.Config[config.CAChain] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckHTTPCertFileAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPCertFileAttr); ok {
 			c.Config[config.CertFile] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckHTTPCiphersAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPCiphersAttr); ok {
 			c.Config[config.Ciphers] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckHTTPCodeRegexpAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPCodeRegexpAttr); ok {
 			c.Config[config.Code] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckHTTPExtractAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPExtractAttr); ok {
 			c.Config[config.Extract] = s
 		}
 
-		if headers := httpConfig.CollectMap(_CheckHTTPHeadersAttr); headers != nil {
+		if headers := httpConfig.CollectMap(checkHTTPHeadersAttr); headers != nil {
 			for k, v := range headers {
 				h := config.HeaderPrefix + config.Key(k)
 				c.Config[h] = v
 			}
 		}
 
-		if s, ok := ar.GetStringOK(_CheckHTTPKeyFileAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPKeyFileAttr); ok {
 			c.Config[config.KeyFile] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckHTTPMethodAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPMethodAttr); ok {
 			c.Config[config.Method] = s
 		}
 
-		if s, ok := ar.GetStringOK(_CheckHTTPPayloadAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPPayloadAttr); ok {
 			c.Config[config.Payload] = s
 		}
 
-		if i, ok := ar.GetIntOK(_CheckHTTPReadLimitAttr); ok {
+		if i, ok := ar.GetIntOK(checkHTTPReadLimitAttr); ok {
 			c.Config[config.ReadLimit] = fmt.Sprintf("%d", i)
 		}
 
-		if s, ok := ar.GetStringOK(_CheckHTTPURLAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPURLAttr); ok {
 			c.Config[config.URL] = s
 
 			u, _ := url.Parse(s)
@@ -370,7 +370,7 @@ func _CheckConfigToAPIHTTP(c *_Check, ctxt *_ProviderContext, l _InterfaceList) 
 			}
 		}
 
-		if s, ok := ar.GetStringOK(_CheckHTTPVersionAttr); ok {
+		if s, ok := ar.GetStringOK(checkHTTPVersionAttr); ok {
 			c.Config[config.HTTPVersion] = s
 		}
 	}

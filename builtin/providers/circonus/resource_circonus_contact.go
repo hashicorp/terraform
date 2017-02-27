@@ -45,17 +45,17 @@ const (
 	//contactUserCIDAttr
 
 	// circonus_contact.http attributes
-	contactHTTPAddressAttr _SchemaAttr = "address"
-	contactHTTPFormatAttr              = "format"
-	contactHTTPMethodAttr              = "method"
+	contactHTTPAddressAttr schemaAttr = "address"
+	contactHTTPFormatAttr             = "format"
+	contactHTTPMethodAttr             = "method"
 
 	// circonus_contact.irc attributes
 	//contactUserCIDAttr
 
 	// circonus_contact.pager_duty attributes
 	//contactContactGroupFallbackAttr
-	contactPagerDutyIntegrationKeyAttr _SchemaAttr = "integration_key"
-	contactPagerDutyWebhookURLAttr     _SchemaAttr = "webook_url"
+	contactPagerDutyIntegrationKeyAttr schemaAttr = "integration_key"
+	contactPagerDutyWebhookURLAttr     schemaAttr = "webook_url"
 
 	// circonus_contact.slack attributes
 	//contactContactGroupFallbackAttr
@@ -130,7 +130,7 @@ type contactVictorOpsInfo struct {
 	Warning          int    `json:"warning,string"`
 }
 
-var _ContactGroupDescriptions = _AttrDescrs{
+var contactGroupDescriptions = attrDescrs{
 	contactAggregationWindowAttr:    "",
 	contactAlertOptionAttr:          "",
 	contactContactGroupFallbackAttr: "",
@@ -153,31 +153,31 @@ var _ContactGroupDescriptions = _AttrDescrs{
 	contactXMPPAttr:                 "",
 }
 
-var _ContactAlertDescriptions = _AttrDescrs{
+var contactAlertDescriptions = attrDescrs{
 	contactEscalateAfterAttr: "",
 	contactEscalateToAttr:    "",
 	contactReminderAttr:      "",
 	contactSeverityAttr:      "",
 }
 
-var _ContactEmailDescriptions = _AttrDescrs{
+var contactEmailDescriptions = attrDescrs{
 	contactEmailAddressAttr: "",
 	contactUserCIDAttr:      "",
 }
 
-var _ContactHTTPDescriptions = _AttrDescrs{
+var contactHTTPDescriptions = attrDescrs{
 	contactHTTPAddressAttr: "",
 	contactHTTPFormatAttr:  "",
 	contactHTTPMethodAttr:  "",
 }
 
-var _ContactPagerDutyDescriptions = _AttrDescrs{
+var contactPagerDutyDescriptions = attrDescrs{
 	contactContactGroupFallbackAttr:    "",
 	contactPagerDutyIntegrationKeyAttr: "",
 	contactPagerDutyWebhookURLAttr:     "",
 }
 
-var _ContactSlackDescriptions = _AttrDescrs{
+var contactSlackDescriptions = attrDescrs{
 	contactContactGroupFallbackAttr: "",
 	contactSlackButtonsAttr:         "",
 	contactSlackChannelAttr:         "",
@@ -185,12 +185,12 @@ var _ContactSlackDescriptions = _AttrDescrs{
 	contactSlackUsernameAttr:        "Username Slackbot uses in Slack to deliver a notification",
 }
 
-var _ContactSMSDescriptions = _AttrDescrs{
+var contactSMSDescriptions = attrDescrs{
 	contactSMSAddressAttr: "",
 	contactUserCIDAttr:    "",
 }
 
-var _ContactVictorOpsDescriptions = _AttrDescrs{
+var contactVictorOpsDescriptions = attrDescrs{
 	contactContactGroupFallbackAttr: "",
 	contactVictorOpsAPIKeyAttr:      "",
 	contactVictorOpsCriticalAttr:    "",
@@ -199,7 +199,7 @@ var _ContactVictorOpsDescriptions = _AttrDescrs{
 	contactVictorOpsWarningAttr:     "",
 }
 
-var _ContactXMPPDescriptions = _AttrDescrs{
+var contactXMPPDescriptions = attrDescrs{
 	contactUserCIDAttr:     "",
 	contactXMPPAddressAttr: "",
 }
@@ -215,62 +215,62 @@ func resourceContactGroup() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
+		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
 			contactAggregationWindowAttr: &schema.Schema{
 				Type:             schema.TypeString,
 				Optional:         true,
 				Default:          defaultCirconusAggregationWindow,
 				DiffSuppressFunc: suppressEquivalentTimeDurations,
 				StateFunc:        normalizeTimeDurationStringToSeconds,
-				ValidateFunc: _ValidateFuncs(
-					_ValidateDurationMin(contactAggregationWindowAttr, "0s"),
+				ValidateFunc: validateFuncs(
+					validateDurationMin(contactAggregationWindowAttr, "0s"),
 				),
 			},
 			contactAlertOptionAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Set:      _ContactGroupAlertOptionsChecksum,
+				Set:      contactGroupAlertOptionsChecksum,
 				Elem: &schema.Resource{
-					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
+					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
 						contactEscalateAfterAttr: &schema.Schema{
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressEquivalentTimeDurations,
 							StateFunc:        normalizeTimeDurationStringToSeconds,
-							ValidateFunc: _ValidateFuncs(
-								_ValidateDurationMin(contactEscalateAfterAttr, defaultCirconusAlertMinEscalateAfter),
+							ValidateFunc: validateFuncs(
+								validateDurationMin(contactEscalateAfterAttr, defaultCirconusAlertMinEscalateAfter),
 							),
 						},
 						contactEscalateToAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: _ValidateContactGroupCID(contactEscalateToAttr),
+							ValidateFunc: validateContactGroupCID(contactEscalateToAttr),
 						},
 						contactReminderAttr: &schema.Schema{
 							Type:             schema.TypeString,
 							Optional:         true,
 							DiffSuppressFunc: suppressEquivalentTimeDurations,
 							StateFunc:        normalizeTimeDurationStringToSeconds,
-							ValidateFunc: _ValidateFuncs(
-								_ValidateDurationMin(contactReminderAttr, "0s"),
+							ValidateFunc: validateFuncs(
+								validateDurationMin(contactReminderAttr, "0s"),
 							),
 						},
 						contactSeverityAttr: &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ValidateFunc: _ValidateFuncs(
-								_ValidateIntMin(contactSeverityAttr, minSeverity),
-								_ValidateIntMax(contactSeverityAttr, maxSeverity),
+							ValidateFunc: validateFuncs(
+								validateIntMin(contactSeverityAttr, minSeverity),
+								validateIntMax(contactSeverityAttr, maxSeverity),
 							),
 						},
-					}, _ContactAlertDescriptions),
+					}, contactAlertDescriptions),
 				},
 			},
 			contactEmailAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
+					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
 						contactEmailAddressAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
@@ -279,35 +279,35 @@ func resourceContactGroup() *schema.Resource {
 						contactUserCIDAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
-							ValidateFunc:  _ValidateUserCID(contactUserCIDAttr),
+							ValidateFunc:  validateUserCID(contactUserCIDAttr),
 							ConflictsWith: []string{contactEmailAttr + "." + contactEmailAddressAttr},
 						},
-					}, _ContactEmailDescriptions),
+					}, contactEmailDescriptions),
 				},
 			},
 			contactHTTPAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
+					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
 						contactHTTPAddressAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: _ValidateHTTPURL(contactHTTPAddressAttr, _URLBasicCheck),
+							ValidateFunc: validateHTTPURL(contactHTTPAddressAttr, urlBasicCheck),
 						},
 						contactHTTPFormatAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      defaultCirconusHTTPFormat,
-							ValidateFunc: _ValidateStringIn(contactHTTPFormatAttr, validContactHTTPFormats),
+							ValidateFunc: validateStringIn(contactHTTPFormatAttr, validContactHTTPFormats),
 						},
 						contactHTTPMethodAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      defaultCirconusHTTPMethod,
-							ValidateFunc: _ValidateStringIn(contactHTTPMethodAttr, validContactHTTPMethods),
+							ValidateFunc: validateStringIn(contactHTTPMethodAttr, validContactHTTPMethods),
 						},
-					}, _ContactHTTPDescriptions),
+					}, contactHTTPDescriptions),
 				},
 			},
 			contactIRCAttr: &schema.Schema{
@@ -318,7 +318,7 @@ func resourceContactGroup() *schema.Resource {
 						contactUserCIDAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: _ValidateUserCID(contactUserCIDAttr),
+							ValidateFunc: validateUserCID(contactUserCIDAttr),
 						},
 					},
 				},
@@ -346,24 +346,24 @@ func resourceContactGroup() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
+					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
 						contactContactGroupFallbackAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: _ValidateContactGroupCID(contactContactGroupFallbackAttr),
+							ValidateFunc: validateContactGroupCID(contactContactGroupFallbackAttr),
 						},
 						contactPagerDutyIntegrationKeyAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
 							Sensitive:    true,
-							ValidateFunc: _ValidateHTTPURL(contactPagerDutyIntegrationKeyAttr, _URLIsAbs),
+							ValidateFunc: validateHTTPURL(contactPagerDutyIntegrationKeyAttr, urlIsAbs),
 						},
 						contactPagerDutyWebhookURLAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: _ValidateHTTPURL(contactPagerDutyWebhookURLAttr, _URLIsAbs),
+							ValidateFunc: validateHTTPURL(contactPagerDutyWebhookURLAttr, urlIsAbs),
 						},
-					}, _ContactPagerDutyDescriptions),
+					}, contactPagerDutyDescriptions),
 				},
 			},
 			contactShortMessageAttr: &schema.Schema{
@@ -380,11 +380,11 @@ func resourceContactGroup() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
+					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
 						contactContactGroupFallbackAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: _ValidateContactGroupCID(contactContactGroupFallbackAttr),
+							ValidateFunc: validateContactGroupCID(contactContactGroupFallbackAttr),
 						},
 						contactSlackButtonsAttr: &schema.Schema{
 							Type:     schema.TypeBool,
@@ -394,8 +394,8 @@ func resourceContactGroup() *schema.Resource {
 						contactSlackChannelAttr: &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ValidateFunc: _ValidateFuncs(
-								_ValidateRegexp(contactSlackChannelAttr, `^#[\S]+$`),
+							ValidateFunc: validateFuncs(
+								validateRegexp(contactSlackChannelAttr, `^#[\S]+$`),
 							),
 						},
 						contactSlackTeamAttr: &schema.Schema{
@@ -406,18 +406,18 @@ func resourceContactGroup() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  defaultCirconusSlackUsername,
-							ValidateFunc: _ValidateFuncs(
-								_ValidateRegexp(contactSlackChannelAttr, `^[\S]+$`),
+							ValidateFunc: validateFuncs(
+								validateRegexp(contactSlackChannelAttr, `^[\S]+$`),
 							),
 						},
-					}, _ContactSlackDescriptions),
+					}, contactSlackDescriptions),
 				},
 			},
 			contactSMSAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
+					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
 						contactSMSAddressAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
@@ -426,22 +426,22 @@ func resourceContactGroup() *schema.Resource {
 						contactUserCIDAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
-							ValidateFunc:  _ValidateUserCID(contactUserCIDAttr),
+							ValidateFunc:  validateUserCID(contactUserCIDAttr),
 							ConflictsWith: []string{contactSMSAttr + "." + contactSMSAddressAttr},
 						},
-					}, _ContactSMSDescriptions),
+					}, contactSMSDescriptions),
 				},
 			},
-			contactTagsAttr: _TagMakeConfigSchema(contactTagsAttr),
+			contactTagsAttr: tagMakeConfigSchema(contactTagsAttr),
 			contactVictorOpsAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
+					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
 						contactContactGroupFallbackAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: _ValidateContactGroupCID(contactContactGroupFallbackAttr),
+							ValidateFunc: validateContactGroupCID(contactContactGroupFallbackAttr),
 						},
 						contactVictorOpsAPIKeyAttr: &schema.Schema{
 							Type:      schema.TypeString,
@@ -451,17 +451,17 @@ func resourceContactGroup() *schema.Resource {
 						contactVictorOpsCriticalAttr: &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ValidateFunc: _ValidateFuncs(
-								_ValidateIntMin(contactVictorOpsCriticalAttr, 1),
-								_ValidateIntMax(contactVictorOpsCriticalAttr, 5),
+							ValidateFunc: validateFuncs(
+								validateIntMin(contactVictorOpsCriticalAttr, 1),
+								validateIntMax(contactVictorOpsCriticalAttr, 5),
 							),
 						},
 						contactVictorOpsInfoAttr: &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ValidateFunc: _ValidateFuncs(
-								_ValidateIntMin(contactVictorOpsInfoAttr, 1),
-								_ValidateIntMax(contactVictorOpsInfoAttr, 5),
+							ValidateFunc: validateFuncs(
+								validateIntMin(contactVictorOpsInfoAttr, 1),
+								validateIntMax(contactVictorOpsInfoAttr, 5),
 							),
 						},
 						contactVictorOpsTeamAttr: &schema.Schema{
@@ -471,19 +471,19 @@ func resourceContactGroup() *schema.Resource {
 						contactVictorOpsWarningAttr: &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ValidateFunc: _ValidateFuncs(
-								_ValidateIntMin(contactVictorOpsWarningAttr, 1),
-								_ValidateIntMax(contactVictorOpsWarningAttr, 5),
+							ValidateFunc: validateFuncs(
+								validateIntMin(contactVictorOpsWarningAttr, 1),
+								validateIntMax(contactVictorOpsWarningAttr, 5),
 							),
 						},
-					}, _ContactVictorOpsDescriptions),
+					}, contactVictorOpsDescriptions),
 				},
 			},
 			contactXMPPAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
+					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
 						contactXMPPAddressAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
@@ -492,10 +492,10 @@ func resourceContactGroup() *schema.Resource {
 						contactUserCIDAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
-							ValidateFunc:  _ValidateUserCID(contactUserCIDAttr),
+							ValidateFunc:  validateUserCID(contactUserCIDAttr),
 							ConflictsWith: []string{contactXMPPAttr + "." + contactXMPPAddressAttr},
 						},
-					}, _ContactXMPPDescriptions),
+					}, contactXMPPDescriptions),
 				},
 			},
 
@@ -508,12 +508,12 @@ func resourceContactGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-		}, _ContactGroupDescriptions),
+		}, contactGroupDescriptions),
 	}
 }
 
 func contactGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*_ProviderContext)
+	ctxt := meta.(*providerContext)
 
 	in, err := getContactGroupInput(d, meta)
 	if err != nil {
@@ -531,7 +531,7 @@ func contactGroupCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func contactGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	c := meta.(*_ProviderContext)
+	c := meta.(*providerContext)
 
 	cid := d.Id()
 	cg, err := c.client.FetchContactGroup(api.CIDType(&cid))
@@ -551,7 +551,7 @@ func contactGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) 
 }
 
 func contactGroupRead(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*_ProviderContext)
+	c := meta.(*providerContext)
 
 	cid := d.Id()
 
@@ -579,29 +579,29 @@ func contactGroupRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	_StateSet(d, contactAggregationWindowAttr, fmt.Sprintf("%ds", cg.AggregationWindow))
-	_StateSet(d, contactAlertOptionAttr, contactGroupAlertOptionsToState(cg))
-	_StateSet(d, contactEmailAttr, contactGroupEmailToState(cg))
-	_StateSet(d, contactHTTPAttr, httpState)
-	_StateSet(d, contactIRCAttr, contactGroupIRCToState(cg))
-	_StateSet(d, contactLastModifiedAttr, cg.LastModified)
-	_StateSet(d, contactLastModifiedByAttr, cg.LastModifiedBy)
-	_StateSet(d, contactLongMessageAttr, cg.AlertFormats.LongMessage)
-	_StateSet(d, contactLongSubjectAttr, cg.AlertFormats.LongSubject)
-	_StateSet(d, contactLongSummaryAttr, cg.AlertFormats.LongSummary)
-	_StateSet(d, contactNameAttr, cg.Name)
-	_StateSet(d, contactPagerDutyAttr, pagerDutyState)
-	_StateSet(d, contactShortMessageAttr, cg.AlertFormats.ShortMessage)
-	_StateSet(d, contactShortSummaryAttr, cg.AlertFormats.ShortSummary)
-	_StateSet(d, contactSlackAttr, slackState)
-	_StateSet(d, contactTagsAttr, cg.Tags)
+	stateSet(d, contactAggregationWindowAttr, fmt.Sprintf("%ds", cg.AggregationWindow))
+	stateSet(d, contactAlertOptionAttr, contactGroupAlertOptionsToState(cg))
+	stateSet(d, contactEmailAttr, contactGroupEmailToState(cg))
+	stateSet(d, contactHTTPAttr, httpState)
+	stateSet(d, contactIRCAttr, contactGroupIRCToState(cg))
+	stateSet(d, contactLastModifiedAttr, cg.LastModified)
+	stateSet(d, contactLastModifiedByAttr, cg.LastModifiedBy)
+	stateSet(d, contactLongMessageAttr, cg.AlertFormats.LongMessage)
+	stateSet(d, contactLongSubjectAttr, cg.AlertFormats.LongSubject)
+	stateSet(d, contactLongSummaryAttr, cg.AlertFormats.LongSummary)
+	stateSet(d, contactNameAttr, cg.Name)
+	stateSet(d, contactPagerDutyAttr, pagerDutyState)
+	stateSet(d, contactShortMessageAttr, cg.AlertFormats.ShortMessage)
+	stateSet(d, contactShortSummaryAttr, cg.AlertFormats.ShortSummary)
+	stateSet(d, contactSlackAttr, slackState)
+	stateSet(d, contactTagsAttr, cg.Tags)
 
 	d.SetId(cg.CID)
 	return nil
 }
 
 func contactGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*_ProviderContext)
+	c := meta.(*providerContext)
 
 	in, err := getContactGroupInput(d, meta)
 	if err != nil {
@@ -618,7 +618,7 @@ func contactGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func contactGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	c := meta.(*_ProviderContext)
+	c := meta.(*providerContext)
 
 	cid := d.Id()
 	if _, err := c.client.DeleteContactGroupByCID(api.CIDType(&cid)); err != nil {
@@ -722,13 +722,13 @@ func contactGroupHTTPToState(cg *api.ContactGroup) ([]interface{}, error) {
 }
 
 func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.ContactGroup, error) {
-	ctxt := meta.(*_ProviderContext)
+	ctxt := meta.(*providerContext)
 
 	cg := api.NewContactGroup()
 	if v, ok := d.GetOk(contactAggregationWindowAttr); ok {
 		aggWindow, _ := time.ParseDuration(v.(string))
 		cg.AggregationWindow = uint(aggWindow.Seconds())
-		_StateSet(d, contactAggregationWindowAttr, fmt.Sprintf("%ds", cg.AggregationWindow))
+		stateSet(d, contactAggregationWindowAttr, fmt.Sprintf("%ds", cg.AggregationWindow))
 	}
 
 	if v, ok := d.GetOk(contactAlertOptionAttr); ok {
@@ -1067,10 +1067,10 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 		cg.AlertFormats.ShortMessage = &msg
 	}
 
-	contactTags := _ConfigGetTags(ctxt, d, _CheckTagsAttr)
+	contactTags := configGetTags(ctxt, d, checkTagsAttr)
 	cg.Tags = tagsToAPI(contactTags)
 
-	if err := _ValidateContactGroup(cg); err != nil {
+	if err := validateContactGroup(cg); err != nil {
 		return nil, err
 	}
 
@@ -1187,8 +1187,8 @@ func contactGroupVictorOpsToState(cg *api.ContactGroup) ([]interface{}, error) {
 	return victorOpsContacts, nil
 }
 
-// _ContactGroupAlertOptionsChecksum creates a stable hash of the normalized values
-func _ContactGroupAlertOptionsChecksum(v interface{}) int {
+// contactGroupAlertOptionsChecksum creates a stable hash of the normalized values
+func contactGroupAlertOptionsChecksum(v interface{}) int {
 	m := v.(map[string]interface{})
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)

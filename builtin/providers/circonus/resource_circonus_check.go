@@ -10,9 +10,9 @@ package circonus
  *
  * 1) Terraform Config file into API Objects.  *Attr named objects are Config or
  *    Schema attribute names.  In this file, all config constants should be
- *     named _Check*Attr.
+ *     named check*Attr.
  *
- * 2) API Objects into Statefile data.  _API*Attr named constants are parameters
+ * 2) API Objects into Statefile data.  api*Attr named constants are parameters
  *    that originate from the API and need to be mapped into the provider's
  *    vernacular.
  */
@@ -29,271 +29,271 @@ import (
 
 const (
 	// circonus_check.* global resource attribute names
-	_CheckActiveAttr      _SchemaAttr = "active"
-	_CheckCAQLAttr        _SchemaAttr = "caql"
-	_CheckCloudWatchAttr  _SchemaAttr = "cloudwatch"
-	_CheckCollectorAttr   _SchemaAttr = "collector"
-	_CheckHTTPAttr        _SchemaAttr = "http"
-	_CheckHTTPTrapAttr    _SchemaAttr = "httptrap"
-	_CheckICMPPingAttr    _SchemaAttr = "icmp_ping"
-	_CheckJSONAttr        _SchemaAttr = "json"
-	_CheckMetricLimitAttr _SchemaAttr = "metric_limit"
-	_CheckMySQLAttr       _SchemaAttr = "mysql"
-	_CheckNameAttr        _SchemaAttr = "name"
-	_CheckNotesAttr       _SchemaAttr = "notes"
-	_CheckPeriodAttr      _SchemaAttr = "period"
-	_CheckPostgreSQLAttr  _SchemaAttr = "postgresql"
-	_CheckStreamAttr      _SchemaAttr = "stream"
-	_CheckTagsAttr        _SchemaAttr = "tags"
-	_CheckTargetAttr      _SchemaAttr = "target"
-	_CheckTCPAttr         _SchemaAttr = "tcp"
-	_CheckTimeoutAttr     _SchemaAttr = "timeout"
-	_CheckTypeAttr        _SchemaAttr = "type"
+	checkActiveAttr      schemaAttr = "active"
+	checkCAQLAttr        schemaAttr = "caql"
+	checkCloudWatchAttr  schemaAttr = "cloudwatch"
+	checkCollectorAttr   schemaAttr = "collector"
+	checkHTTPAttr        schemaAttr = "http"
+	checkHTTPTrapAttr    schemaAttr = "httptrap"
+	checkICMPPingAttr    schemaAttr = "icmp_ping"
+	checkJSONAttr        schemaAttr = "json"
+	checkMetricLimitAttr schemaAttr = "metric_limit"
+	checkMySQLAttr       schemaAttr = "mysql"
+	checkNameAttr        schemaAttr = "name"
+	checkNotesAttr       schemaAttr = "notes"
+	checkPeriodAttr      schemaAttr = "period"
+	checkPostgreSQLAttr  schemaAttr = "postgresql"
+	checkStreamAttr      schemaAttr = "stream"
+	checkTagsAttr        schemaAttr = "tags"
+	checkTargetAttr      schemaAttr = "target"
+	checkTCPAttr         schemaAttr = "tcp"
+	checkTimeoutAttr     schemaAttr = "timeout"
+	checkTypeAttr        schemaAttr = "type"
 
 	// circonus_check.collector.* resource attribute names
-	_CheckCollectorIDAttr _SchemaAttr = "id"
+	checkCollectorIDAttr schemaAttr = "id"
 
 	// circonus_check.stream.* resource attribute names are aliased to
 	// circonus_metric.* resource attributes.
 
 	// circonus_check.streams.* resource attribute names
-	//_MetricIDAttr _SchemaAttr = "id"
+	// metricIDAttr schemaAttr = "id"
 
 	// Out parameters for circonus_check
-	_CheckOutByCollectorAttr        _SchemaAttr = "check_by_collector"
-	_CheckOutCheckUUIDsAttr         _SchemaAttr = "uuids"
-	_CheckOutChecksAttr             _SchemaAttr = "checks"
-	_CheckOutCreatedAttr            _SchemaAttr = "created"
-	_CheckOutLastModifiedAttr       _SchemaAttr = "last_modified"
-	_CheckOutLastModifiedByAttr     _SchemaAttr = "last_modified_by"
-	_CheckOutReverseConnectURLsAttr _SchemaAttr = "reverse_connect_urls"
+	checkOutByCollectorAttr        schemaAttr = "check_by_collector"
+	checkOutCheckUUIDsAttr         schemaAttr = "uuids"
+	checkOutChecksAttr             schemaAttr = "checks"
+	checkOutCreatedAttr            schemaAttr = "created"
+	checkOutLastModifiedAttr       schemaAttr = "last_modified"
+	checkOutLastModifiedByAttr     schemaAttr = "last_modified_by"
+	checkOutReverseConnectURLsAttr schemaAttr = "reverse_connect_urls"
 )
 
 const (
 	// Circonus API constants from their API endpoints
-	_APICheckTypeCAQLAttr       _APICheckType = "caql"
-	_APICheckTypeCloudWatchAttr _APICheckType = "cloudwatch"
-	_APICheckTypeHTTPAttr       _APICheckType = "http"
-	_APICheckTypeHTTPTrapAttr   _APICheckType = "httptrap"
-	_APICheckTypeICMPPingAttr   _APICheckType = "ping_icmp"
-	_APICheckTypeJSONAttr       _APICheckType = "json"
-	_APICheckTypeMySQLAttr      _APICheckType = "mysql"
-	_APICheckTypePostgreSQLAttr _APICheckType = "postgres"
-	_APICheckTypeTCPAttr        _APICheckType = "tcp"
+	apiCheckTypeCAQLAttr       apiCheckType = "caql"
+	apiCheckTypeCloudWatchAttr apiCheckType = "cloudwatch"
+	apiCheckTypeHTTPAttr       apiCheckType = "http"
+	apiCheckTypeHTTPTrapAttr   apiCheckType = "httptrap"
+	apiCheckTypeICMPPingAttr   apiCheckType = "ping_icmp"
+	apiCheckTypeJSONAttr       apiCheckType = "json"
+	apiCheckTypeMySQLAttr      apiCheckType = "mysql"
+	apiCheckTypePostgreSQLAttr apiCheckType = "postgres"
+	apiCheckTypeTCPAttr        apiCheckType = "tcp"
 )
 
-var _CheckDescriptions = _AttrDescrs{
-	_CheckActiveAttr:      "If the check is activate or disabled",
-	_CheckCAQLAttr:        "CAQL check configuration",
-	_CheckCloudWatchAttr:  "CloudWatch check configuration",
-	_CheckCollectorAttr:   "The collector(s) that are responsible for gathering the metrics",
-	_CheckHTTPAttr:        "HTTP check configuration",
-	_CheckHTTPTrapAttr:    "HTTP Trap check configuration",
-	_CheckICMPPingAttr:    "ICMP ping check configuration",
-	_CheckJSONAttr:        "JSON check configuration",
-	_CheckMetricLimitAttr: `Setting a metric_limit will enable all (-1), disable (0), or allow up to the specified limit of metrics for this check ("N+", where N is a positive integer)`,
-	_CheckMySQLAttr:       "MySQL check configuration",
-	_CheckNameAttr:        "The name of the check bundle that will be displayed in the web interface",
-	_CheckNotesAttr:       "Notes about this check bundle",
-	_CheckPeriodAttr:      "The period between each time the check is made",
-	_CheckPostgreSQLAttr:  "PostgreSQL check configuration",
-	_CheckStreamAttr:      "Configuration for a stream of metrics",
-	_CheckTagsAttr:        "A list of tags assigned to the check",
-	_CheckTargetAttr:      "The target of the check (e.g. hostname, URL, IP, etc)",
-	_CheckTCPAttr:         "TCP check configuration",
-	_CheckTimeoutAttr:     "The length of time in seconds (and fractions of a second) before the check will timeout if no response is returned to the collector",
-	_CheckTypeAttr:        "The check type",
+var checkDescriptions = attrDescrs{
+	checkActiveAttr:      "If the check is activate or disabled",
+	checkCAQLAttr:        "CAQL check configuration",
+	checkCloudWatchAttr:  "CloudWatch check configuration",
+	checkCollectorAttr:   "The collector(s) that are responsible for gathering the metrics",
+	checkHTTPAttr:        "HTTP check configuration",
+	checkHTTPTrapAttr:    "HTTP Trap check configuration",
+	checkICMPPingAttr:    "ICMP ping check configuration",
+	checkJSONAttr:        "JSON check configuration",
+	checkMetricLimitAttr: `Setting a metric_limit will enable all (-1), disable (0), or allow up to the specified limit of metrics for this check ("N+", where N is a positive integer)`,
+	checkMySQLAttr:       "MySQL check configuration",
+	checkNameAttr:        "The name of the check bundle that will be displayed in the web interface",
+	checkNotesAttr:       "Notes about this check bundle",
+	checkPeriodAttr:      "The period between each time the check is made",
+	checkPostgreSQLAttr:  "PostgreSQL check configuration",
+	checkStreamAttr:      "Configuration for a stream of metrics",
+	checkTagsAttr:        "A list of tags assigned to the check",
+	checkTargetAttr:      "The target of the check (e.g. hostname, URL, IP, etc)",
+	checkTCPAttr:         "TCP check configuration",
+	checkTimeoutAttr:     "The length of time in seconds (and fractions of a second) before the check will timeout if no response is returned to the collector",
+	checkTypeAttr:        "The check type",
 
-	_CheckOutChecksAttr:             "",
-	_CheckOutByCollectorAttr:        "",
-	_CheckOutCheckUUIDsAttr:         "",
-	_CheckOutCreatedAttr:            "",
-	_CheckOutLastModifiedAttr:       "",
-	_CheckOutLastModifiedByAttr:     "",
-	_CheckOutReverseConnectURLsAttr: "",
+	checkOutChecksAttr:             "",
+	checkOutByCollectorAttr:        "",
+	checkOutCheckUUIDsAttr:         "",
+	checkOutCreatedAttr:            "",
+	checkOutLastModifiedAttr:       "",
+	checkOutLastModifiedByAttr:     "",
+	checkOutReverseConnectURLsAttr: "",
 }
 
-var _CheckCollectorDescriptions = _AttrDescrs{
-	_CheckCollectorIDAttr: "The ID of the collector",
+var checkCollectorDescriptions = attrDescrs{
+	checkCollectorIDAttr: "The ID of the collector",
 }
 
-var _CheckStreamDescriptions = _MetricDescriptions
+var checkStreamDescriptions = metricDescriptions
 
-func _NewCheckResource() *schema.Resource {
+func newCheckResource() *schema.Resource {
 	return &schema.Resource{
-		Create: _CheckCreate,
-		Read:   _CheckRead,
-		Update: _CheckUpdate,
-		Delete: _CheckDelete,
-		Exists: _CheckExists,
+		Create: checkCreate,
+		Read:   checkRead,
+		Update: checkUpdate,
+		Delete: checkDelete,
+		Exists: checkExists,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-			_CheckActiveAttr: &schema.Schema{
+		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+			checkActiveAttr: &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			_CheckCAQLAttr:       _SchemaCheckCAQL,
-			_CheckCloudWatchAttr: _SchemaCheckCloudWatch,
-			_CheckCollectorAttr: &schema.Schema{
+			checkCAQLAttr:       schemaCheckCAQL,
+			checkCloudWatchAttr: schemaCheckCloudWatch,
+			checkCollectorAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				MinItems: 1,
 				Elem: &schema.Resource{
-					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-						_CheckCollectorIDAttr: &schema.Schema{
+					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+						checkCollectorIDAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: _ValidateRegexp(_CheckCollectorIDAttr, config.BrokerCIDRegex),
+							ValidateFunc: validateRegexp(checkCollectorIDAttr, config.BrokerCIDRegex),
 						},
-					}, _CheckCollectorDescriptions),
+					}, checkCollectorDescriptions),
 				},
 			},
-			_CheckHTTPAttr:     _SchemaCheckHTTP,
-			_CheckHTTPTrapAttr: _SchemaCheckHTTPTrap,
-			_CheckJSONAttr:     _SchemaCheckJSON,
-			_CheckICMPPingAttr: _SchemaCheckICMPPing,
-			_CheckMetricLimitAttr: &schema.Schema{
+			checkHTTPAttr:     schemaCheckHTTP,
+			checkHTTPTrapAttr: schemaCheckHTTPTrap,
+			checkJSONAttr:     schemaCheckJSON,
+			checkICMPPingAttr: schemaCheckICMPPing,
+			checkMetricLimitAttr: &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-				ValidateFunc: _ValidateFuncs(
-					_ValidateIntMin(_CheckMetricLimitAttr, -1),
+				ValidateFunc: validateFuncs(
+					validateIntMin(checkMetricLimitAttr, -1),
 				),
 			},
-			_CheckMySQLAttr: _SchemaCheckMySQL,
-			_CheckNameAttr: &schema.Schema{
+			checkMySQLAttr: schemaCheckMySQL,
+			checkNameAttr: &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			_CheckNotesAttr: &schema.Schema{
+			checkNotesAttr: &schema.Schema{
 				Type:      schema.TypeString,
 				Optional:  true,
 				Computed:  true,
 				StateFunc: suppressWhitespace,
 			},
-			_CheckPeriodAttr: &schema.Schema{
+			checkPeriodAttr: &schema.Schema{
 				Type:      schema.TypeString,
 				Optional:  true,
 				Computed:  true,
 				StateFunc: normalizeTimeDurationStringToSeconds,
-				ValidateFunc: _ValidateFuncs(
-					_ValidateDurationMin(_CheckPeriodAttr, defaultCirconusCheckPeriodMin),
-					_ValidateDurationMax(_CheckPeriodAttr, defaultCirconusCheckPeriodMax),
+				ValidateFunc: validateFuncs(
+					validateDurationMin(checkPeriodAttr, defaultCirconusCheckPeriodMin),
+					validateDurationMax(checkPeriodAttr, defaultCirconusCheckPeriodMax),
 				),
 			},
-			_CheckPostgreSQLAttr: _SchemaCheckPostgreSQL,
-			_CheckStreamAttr: &schema.Schema{
+			checkPostgreSQLAttr: schemaCheckPostgreSQL,
+			checkStreamAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Set:      _CheckStreamChecksum,
+				Set:      checkStreamChecksum,
 				MinItems: 1,
 				Elem: &schema.Resource{
-					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-						_MetricActiveAttr: &schema.Schema{
+					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+						metricActiveAttr: &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  true,
 						},
-						_MetricNameAttr: &schema.Schema{
+						metricNameAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: _ValidateRegexp(_MetricNameAttr, `[\S]+`),
+							ValidateFunc: validateRegexp(metricNameAttr, `[\S]+`),
 						},
-						_MetricTagsAttr: _TagMakeConfigSchema(_MetricTagsAttr),
-						_MetricTypeAttr: &schema.Schema{
+						metricTagsAttr: tagMakeConfigSchema(metricTagsAttr),
+						metricTypeAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: _ValidateMetricType,
+							ValidateFunc: validateMetricType,
 						},
-						_MetricUnitAttr: &schema.Schema{
+						metricUnitAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							Default:      _MetricUnit,
-							ValidateFunc: _ValidateRegexp(_MetricUnitAttr, _MetricUnitRegexp),
+							Default:      metricUnit,
+							ValidateFunc: validateRegexp(metricUnitAttr, metricUnitRegexp),
 						},
-					}, _CheckStreamDescriptions),
+					}, checkStreamDescriptions),
 				},
 			},
-			_CheckTagsAttr: _TagMakeConfigSchema(_CheckTagsAttr),
-			_CheckTargetAttr: &schema.Schema{
+			checkTagsAttr: tagMakeConfigSchema(checkTagsAttr),
+			checkTargetAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: _ValidateRegexp(_CheckTagsAttr, `.+`),
+				ValidateFunc: validateRegexp(checkTagsAttr, `.+`),
 			},
-			_CheckTCPAttr: _SchemaCheckTCP,
-			_CheckTimeoutAttr: &schema.Schema{
+			checkTCPAttr: schemaCheckTCP,
+			checkTimeoutAttr: &schema.Schema{
 				Type:      schema.TypeString,
 				Optional:  true,
 				Computed:  true,
 				StateFunc: normalizeTimeDurationStringToSeconds,
-				ValidateFunc: _ValidateFuncs(
-					_ValidateDurationMin(_CheckTimeoutAttr, defaultCirconusTimeoutMin),
-					_ValidateDurationMax(_CheckTimeoutAttr, defaultCirconusTimeoutMax),
+				ValidateFunc: validateFuncs(
+					validateDurationMin(checkTimeoutAttr, defaultCirconusTimeoutMin),
+					validateDurationMax(checkTimeoutAttr, defaultCirconusTimeoutMax),
 				),
 			},
-			_CheckTypeAttr: &schema.Schema{
+			checkTypeAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Computed:     true,
 				Optional:     true,
 				ForceNew:     true,
-				ValidateFunc: _ValidateCheckType,
+				ValidateFunc: validateCheckType,
 			},
 
 			// Out parameters
-			_CheckOutByCollectorAttr: &schema.Schema{
+			checkOutByCollectorAttr: &schema.Schema{
 				Type:     schema.TypeMap,
 				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			_CheckOutCheckUUIDsAttr: &schema.Schema{
+			checkOutCheckUUIDsAttr: &schema.Schema{
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			_CheckOutChecksAttr: &schema.Schema{
+			checkOutChecksAttr: &schema.Schema{
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			_CheckOutCreatedAttr: &schema.Schema{
+			checkOutCreatedAttr: &schema.Schema{
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			_CheckOutLastModifiedAttr: &schema.Schema{
+			checkOutLastModifiedAttr: &schema.Schema{
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			_CheckOutLastModifiedByAttr: &schema.Schema{
+			checkOutLastModifiedByAttr: &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			_CheckOutReverseConnectURLsAttr: &schema.Schema{
+			checkOutReverseConnectURLsAttr: &schema.Schema{
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-		}, _CheckDescriptions),
+		}, checkDescriptions),
 	}
 }
 
-func _CheckCreate(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*_ProviderContext)
-	c := _NewCheck()
-	cr := _NewConfigReader(ctxt, d)
+func checkCreate(d *schema.ResourceData, meta interface{}) error {
+	ctxt := meta.(*providerContext)
+	c := newCheck()
+	cr := newConfigReader(ctxt, d)
 	if err := c.ParseConfig(cr); err != nil {
 		return errwrap.Wrapf("error parsing check schema during create: {{err}}", err)
 	}
@@ -304,11 +304,11 @@ func _CheckCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(c.CID)
 
-	return _CheckRead(d, meta)
+	return checkRead(d, meta)
 }
 
-func _CheckExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	ctxt := meta.(*_ProviderContext)
+func checkExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	ctxt := meta.(*providerContext)
 
 	cid := d.Id()
 	cb, err := ctxt.client.FetchCheckBundle(api.CIDType(&cid))
@@ -323,33 +323,33 @@ func _CheckExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	return true, nil
 }
 
-// _CheckRead pulls data out of the CheckBundle object and stores it into the
+// checkRead pulls data out of the CheckBundle object and stores it into the
 // appropriate place in the statefile.
-func _CheckRead(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*_ProviderContext)
+func checkRead(d *schema.ResourceData, meta interface{}) error {
+	ctxt := meta.(*providerContext)
 
 	cid := d.Id()
-	c, err := _LoadCheck(ctxt, api.CIDType(&cid))
+	c, err := loadCheck(ctxt, api.CIDType(&cid))
 	if err != nil {
 		return err
 	}
 
 	// Global circonus_check attributes are saved first, followed by the check
-	// type specific attributes handled below in their respective _CheckRead*().
+	// type specific attributes handled below in their respective checkRead*().
 
 	checkIDsByCollector := make(map[string]interface{}, len(c.Checks))
 	for i, b := range c.Brokers {
 		checkIDsByCollector[b] = c.Checks[i]
 	}
 
-	streams := schema.NewSet(_CheckStreamChecksum, nil)
+	streams := schema.NewSet(checkStreamChecksum, nil)
 	for _, m := range c.Metrics {
 		streamAttrs := map[string]interface{}{
-			string(_MetricActiveAttr): _MetricAPIStatusToBool(m.Status),
-			string(_MetricNameAttr):   m.Name,
-			string(_MetricTagsAttr):   tagsToState(apiToTags(m.Tags)),
-			string(_MetricTypeAttr):   m.Type,
-			string(_MetricUnitAttr):   _Indirect(m.Units),
+			string(metricActiveAttr): metricAPIStatusToBool(m.Status),
+			string(metricNameAttr):   m.Name,
+			string(metricTagsAttr):   tagsToState(apiToTags(m.Tags)),
+			string(metricTypeAttr):   m.Type,
+			string(metricUnitAttr):   indirect(m.Units),
 		}
 
 		streams.Add(streamAttrs)
@@ -358,44 +358,44 @@ func _CheckRead(d *schema.ResourceData, meta interface{}) error {
 	// Write the global circonus_check parameters followed by the check
 	// type-specific parameters.
 
-	_StateSet(d, _CheckActiveAttr, _CheckAPIStatusToBool(c.Status))
-	_StateSet(d, _CheckCollectorAttr, stringListToSet(c.Brokers, _CheckCollectorIDAttr))
-	_StateSet(d, _CheckMetricLimitAttr, c.MetricLimit)
-	_StateSet(d, _CheckNameAttr, c.DisplayName)
-	_StateSet(d, _CheckNotesAttr, c.Notes)
-	_StateSet(d, _CheckPeriodAttr, fmt.Sprintf("%ds", c.Period))
-	_StateSet(d, _CheckStreamAttr, streams)
-	_StateSet(d, _CheckTagsAttr, c.Tags)
-	_StateSet(d, _CheckTargetAttr, c.Target)
+	stateSet(d, checkActiveAttr, checkAPIStatusToBool(c.Status))
+	stateSet(d, checkCollectorAttr, stringListToSet(c.Brokers, checkCollectorIDAttr))
+	stateSet(d, checkMetricLimitAttr, c.MetricLimit)
+	stateSet(d, checkNameAttr, c.DisplayName)
+	stateSet(d, checkNotesAttr, c.Notes)
+	stateSet(d, checkPeriodAttr, fmt.Sprintf("%ds", c.Period))
+	stateSet(d, checkStreamAttr, streams)
+	stateSet(d, checkTagsAttr, c.Tags)
+	stateSet(d, checkTargetAttr, c.Target)
 	{
 		t, _ := time.ParseDuration(fmt.Sprintf("%fs", c.Timeout))
-		_StateSet(d, _CheckTimeoutAttr, t.String())
+		stateSet(d, checkTimeoutAttr, t.String())
 	}
-	_StateSet(d, _CheckTypeAttr, c.Type)
+	stateSet(d, checkTypeAttr, c.Type)
 
 	// Last step: parse a check_bundle's config into the statefile.
-	if err := _ParseCheckTypeConfig(&c, d); err != nil {
+	if err := parseCheckTypeConfig(&c, d); err != nil {
 		return errwrap.Wrapf("Unable to parse check config: {{err}}", err)
 	}
 
 	// Out parameters
-	_StateSet(d, _CheckOutByCollectorAttr, checkIDsByCollector)
-	_StateSet(d, _CheckOutCheckUUIDsAttr, c.CheckUUIDs)
-	_StateSet(d, _CheckOutChecksAttr, c.Checks)
-	_StateSet(d, _CheckOutCreatedAttr, c.Created)
-	_StateSet(d, _CheckOutLastModifiedAttr, c.LastModified)
-	_StateSet(d, _CheckOutLastModifiedByAttr, c.LastModifedBy)
-	_StateSet(d, _CheckOutReverseConnectURLsAttr, c.ReverseConnectURLs)
+	stateSet(d, checkOutByCollectorAttr, checkIDsByCollector)
+	stateSet(d, checkOutCheckUUIDsAttr, c.CheckUUIDs)
+	stateSet(d, checkOutChecksAttr, c.Checks)
+	stateSet(d, checkOutCreatedAttr, c.Created)
+	stateSet(d, checkOutLastModifiedAttr, c.LastModified)
+	stateSet(d, checkOutLastModifiedByAttr, c.LastModifedBy)
+	stateSet(d, checkOutReverseConnectURLsAttr, c.ReverseConnectURLs)
 
 	d.SetId(c.CID)
 
 	return nil
 }
 
-func _CheckUpdate(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*_ProviderContext)
-	c := _NewCheck()
-	cr := _NewConfigReader(ctxt, d)
+func checkUpdate(d *schema.ResourceData, meta interface{}) error {
+	ctxt := meta.(*providerContext)
+	c := newCheck()
+	cr := newConfigReader(ctxt, d)
 	if err := c.ParseConfig(cr); err != nil {
 		return err
 	}
@@ -405,11 +405,11 @@ func _CheckUpdate(d *schema.ResourceData, meta interface{}) error {
 		return errwrap.Wrapf(fmt.Sprintf("unable to update check %q: {{err}}", d.Id()), err)
 	}
 
-	return _CheckRead(d, meta)
+	return checkRead(d, meta)
 }
 
-func _CheckDelete(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*_ProviderContext)
+func checkDelete(d *schema.ResourceData, meta interface{}) error {
+	ctxt := meta.(*providerContext)
 
 	if _, err := ctxt.client.Delete(d.Id()); err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("unable to delete check %q: {{err}}", d.Id()), err)
@@ -420,58 +420,58 @@ func _CheckDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func _CheckStreamChecksum(v interface{}) int {
+func checkStreamChecksum(v interface{}) int {
 	m := v.(map[string]interface{})
 
-	ar := _NewMapReader(nil, m)
-	csum := _MetricChecksum(ar)
+	ar := newMapReader(nil, m)
+	csum := metricChecksum(ar)
 	return csum
 }
 
 // ParseConfig reads Terraform config data and stores the information into a
 // Circonus CheckBundle object.
-func (c *_Check) ParseConfig(ar _AttrReader) error {
-	if status, ok := ar.GetBoolOK(_CheckActiveAttr); ok {
-		c.Status = _CheckActiveToAPIStatus(status)
+func (c *circonusCheck) ParseConfig(ar attrReader) error {
+	if status, ok := ar.GetBoolOK(checkActiveAttr); ok {
+		c.Status = checkActiveToAPIStatus(status)
 	}
 
-	if collectorsList, ok := ar.GetSetAsListOK(_CheckCollectorAttr); ok {
-		c.Brokers = collectorsList.CollectList(_CheckCollectorIDAttr)
+	if collectorsList, ok := ar.GetSetAsListOK(checkCollectorAttr); ok {
+		c.Brokers = collectorsList.CollectList(checkCollectorIDAttr)
 	}
 
-	if i, ok := ar.GetIntOK(_CheckMetricLimitAttr); ok {
+	if i, ok := ar.GetIntOK(checkMetricLimitAttr); ok {
 		c.MetricLimit = i
 	}
 
-	if name, ok := ar.GetStringOK(_CheckNameAttr); ok {
+	if name, ok := ar.GetStringOK(checkNameAttr); ok {
 		c.DisplayName = name
 	}
 
-	c.Notes = ar.GetStringPtr(_CheckNotesAttr)
+	c.Notes = ar.GetStringPtr(checkNotesAttr)
 
-	if d, ok := ar.GetDurationOK(_CheckPeriodAttr); ok {
+	if d, ok := ar.GetDurationOK(checkPeriodAttr); ok {
 		c.Period = uint(d.Seconds())
 	}
 
-	if streamList, ok := ar.GetSetAsListOK(_CheckStreamAttr); ok {
+	if streamList, ok := ar.GetSetAsListOK(checkStreamAttr); ok {
 		c.Metrics = make([]api.CheckBundleMetric, 0, len(streamList))
 
 		for _, metricListRaw := range streamList {
-			metricAttrs := _NewInterfaceMap(metricListRaw)
-			mr := _NewMapReader(ar.Context(), metricAttrs)
+			metricAttrs := newInterfaceMap(metricListRaw)
+			mr := newMapReader(ar.Context(), metricAttrs)
 
 			var id string
-			if v, ok := mr.GetStringOK(_MetricIDAttr); ok {
+			if v, ok := mr.GetStringOK(metricIDAttr); ok {
 				id = v
 			} else {
 				var err error
-				id, err = _NewMetricID()
+				id, err = newMetricID()
 				if err != nil {
 					return errwrap.Wrapf("unable to create a new metric ID: {{err}}", err)
 				}
 			}
 
-			m := _NewMetric()
+			m := newMetric()
 			if err := m.ParseConfig(id, mr); err != nil {
 				return errwrap.Wrapf("unable to parse config: {{err}}", err)
 			}
@@ -480,19 +480,19 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 		}
 	}
 
-	c.Tags = tagsToAPI(ar.GetTags(_CheckTagsAttr))
+	c.Tags = tagsToAPI(ar.GetTags(checkTagsAttr))
 
-	if s, ok := ar.GetStringOK(_CheckTargetAttr); ok {
+	if s, ok := ar.GetStringOK(checkTargetAttr); ok {
 		c.Target = s
 	}
 
-	if d, ok := ar.GetDurationOK(_CheckTimeoutAttr); ok {
+	if d, ok := ar.GetDurationOK(checkTimeoutAttr); ok {
 		t := float32(d.Seconds())
 		c.Timeout = t
 	}
 
 	// Last step: parse the individual check types
-	if err := _CheckConfigToAPI(c, ar); err != nil {
+	if err := checkConfigToAPI(c, ar); err != nil {
 		return errwrap.Wrapf("unable to parse check type: {{err}}", err)
 	}
 
@@ -507,19 +507,19 @@ func (c *_Check) ParseConfig(ar _AttrReader) error {
 	return nil
 }
 
-// _CheckConfigToAPI parses the Terraform config into the respective per-check
+// checkConfigToAPI parses the Terraform config into the respective per-check
 // type api.Config attributes.
-func _CheckConfigToAPI(c *_Check, ar _AttrReader) error {
-	checkTypeParseMap := map[_SchemaAttr]func(*_Check, *_ProviderContext, _InterfaceList) error{
-		_CheckCAQLAttr:       _CheckConfigToAPICAQL,
-		_CheckCloudWatchAttr: _CheckConfigToAPICloudWatch,
-		_CheckHTTPAttr:       _CheckConfigToAPIHTTP,
-		_CheckHTTPTrapAttr:   _CheckConfigToAPIHTTPTrap,
-		_CheckICMPPingAttr:   _CheckConfigToAPIICMPPing,
-		_CheckJSONAttr:       _CheckConfigToAPIJSON,
-		_CheckMySQLAttr:      _CheckConfigToAPIMySQL,
-		_CheckPostgreSQLAttr: _CheckConfigToAPIPostgreSQL,
-		_CheckTCPAttr:        _CheckConfigToAPITCP,
+func checkConfigToAPI(c *circonusCheck, ar attrReader) error {
+	checkTypeParseMap := map[schemaAttr]func(*circonusCheck, *providerContext, interfaceList) error{
+		checkCAQLAttr:       checkConfigToAPICAQL,
+		checkCloudWatchAttr: checkConfigToAPICloudWatch,
+		checkHTTPAttr:       checkConfigToAPIHTTP,
+		checkHTTPTrapAttr:   checkConfigToAPIHTTPTrap,
+		checkICMPPingAttr:   checkConfigToAPIICMPPing,
+		checkJSONAttr:       checkConfigToAPIJSON,
+		checkMySQLAttr:      checkConfigToAPIMySQL,
+		checkPostgreSQLAttr: checkConfigToAPIPostgreSQL,
+		checkTCPAttr:        checkConfigToAPITCP,
 	}
 
 	for checkType, fn := range checkTypeParseMap {
@@ -533,22 +533,22 @@ func _CheckConfigToAPI(c *_Check, ar _AttrReader) error {
 	return nil
 }
 
-// _ParseCheckTypeConfig parses an API Config object and stores the result in the
+// parseCheckTypeConfig parses an API Config object and stores the result in the
 // statefile.
-func _ParseCheckTypeConfig(c *_Check, d *schema.ResourceData) error {
-	checkTypeConfigHandlers := map[_APICheckType]func(*_Check, *schema.ResourceData) error{
-		_APICheckTypeCAQLAttr:       _CheckAPIToStateCAQL,
-		_APICheckTypeCloudWatchAttr: _CheckAPIToStateCloudWatch,
-		_APICheckTypeHTTPAttr:       _CheckAPIToStateHTTP,
-		_APICheckTypeHTTPTrapAttr:   _CheckAPIToStateHTTPTrap,
-		_APICheckTypeICMPPingAttr:   _CheckAPIToStateICMPPing,
-		_APICheckTypeJSONAttr:       _CheckAPIToStateJSON,
-		_APICheckTypeMySQLAttr:      _CheckAPIToStateMySQL,
-		_APICheckTypePostgreSQLAttr: _CheckAPIToStatePostgreSQL,
-		_APICheckTypeTCPAttr:        _CheckAPIToStateTCP,
+func parseCheckTypeConfig(c *circonusCheck, d *schema.ResourceData) error {
+	checkTypeConfigHandlers := map[apiCheckType]func(*circonusCheck, *schema.ResourceData) error{
+		apiCheckTypeCAQLAttr:       checkAPIToStateCAQL,
+		apiCheckTypeCloudWatchAttr: checkAPIToStateCloudWatch,
+		apiCheckTypeHTTPAttr:       checkAPIToStateHTTP,
+		apiCheckTypeHTTPTrapAttr:   checkAPIToStateHTTPTrap,
+		apiCheckTypeICMPPingAttr:   checkAPIToStateICMPPing,
+		apiCheckTypeJSONAttr:       checkAPIToStateJSON,
+		apiCheckTypeMySQLAttr:      checkAPIToStateMySQL,
+		apiCheckTypePostgreSQLAttr: checkAPIToStatePostgreSQL,
+		apiCheckTypeTCPAttr:        checkAPIToStateTCP,
 	}
 
-	var checkType _APICheckType = _APICheckType(c.Type)
+	var checkType apiCheckType = apiCheckType(c.Type)
 	fn, ok := checkTypeConfigHandlers[checkType]
 	if !ok {
 		return fmt.Errorf("check type %q not supported", c.Type)

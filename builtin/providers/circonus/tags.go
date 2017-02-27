@@ -7,23 +7,23 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-type _Tag string
-type _Tags []_Tag
+type circonusTag string
+type circonusTags []circonusTag
 
-// _TagMakeConfigSchema returns a schema pointer to the necessary tag structure.
-func _TagMakeConfigSchema(tagAttrName _SchemaAttr) *schema.Schema {
+// tagMakeConfigSchema returns a schema pointer to the necessary tag structure.
+func tagMakeConfigSchema(tagAttrName schemaAttr) *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeSet,
 		Optional: true,
 		Elem: &schema.Schema{
 			Type:             schema.TypeString,
 			DiffSuppressFunc: suppressAutoTag(tagAttrName),
-			ValidateFunc:     _ValidateTag,
+			ValidateFunc:     validateTag,
 		},
 	}
 }
 
-func (t _Tag) Category() string {
+func (t circonusTag) Category() string {
 	tagInfo := strings.SplitN(string(t), ":", 2)
 	switch len(tagInfo) {
 	case 1:
@@ -35,7 +35,7 @@ func (t _Tag) Category() string {
 	}
 }
 
-func (t _Tag) Value() string {
+func (t circonusTag) Value() string {
 	tagInfo := strings.SplitN(string(t), ":", 2)
 	switch len(tagInfo) {
 	case 1:
@@ -47,10 +47,10 @@ func (t _Tag) Value() string {
 	}
 }
 
-func injectTagPtr(ctxt *_ProviderContext, tagPtrs []*string) _Tags {
-	tags := make(_Tags, 0, len(tagPtrs))
+func injectTagPtr(ctxt *providerContext, tagPtrs []*string) circonusTags {
+	tags := make(circonusTags, 0, len(tagPtrs))
 	for i := range tagPtrs {
-		tag := _Tag(*tagPtrs[i])
+		tag := circonusTag(*tagPtrs[i])
 		tags = append(tags, tag)
 	}
 	if ctxt == nil {
@@ -61,15 +61,15 @@ func injectTagPtr(ctxt *_ProviderContext, tagPtrs []*string) _Tags {
 }
 
 // injectTag adds a default tag.  If enabled, add a missing preconfigured tag to
-// _Tags.
-func injectTag(ctxt *_ProviderContext, tags _Tags) _Tags {
+// circonusTags.
+func injectTag(ctxt *providerContext, tags circonusTags) circonusTags {
 	if !globalAutoTag || !ctxt.autoTag {
 		return tags
 	}
 
 	autoTag := ctxt.defaultTag
 	if len(tags) == 0 {
-		return _Tags{autoTag}
+		return circonusTags{autoTag}
 	}
 
 	for _, tag := range tags {
@@ -83,16 +83,16 @@ func injectTag(ctxt *_ProviderContext, tags _Tags) _Tags {
 	return tags
 }
 
-func _ConfigGetTags(ctxt *_ProviderContext, d *schema.ResourceData, attrName _SchemaAttr) _Tags {
+func configGetTags(ctxt *providerContext, d *schema.ResourceData, attrName schemaAttr) circonusTags {
 	if tagsRaw, ok := d.GetOk(string(attrName)); ok {
 		tagPtrs := flattenSet(tagsRaw.(*schema.Set))
 		return injectTagPtr(ctxt, tagPtrs)
 	}
 
-	return injectTag(ctxt, _Tags{})
+	return injectTag(ctxt, circonusTags{})
 }
 
-func suppressAutoTag(tagAttrName _SchemaAttr) func(k, old, new string, d *schema.ResourceData) bool {
+func suppressAutoTag(tagAttrName schemaAttr) func(k, old, new string, d *schema.ResourceData) bool {
 	return func(k, old, new string, d *schema.ResourceData) bool {
 		if !globalAutoTag {
 			return false
@@ -119,7 +119,7 @@ func suppressAutoTag(tagAttrName _SchemaAttr) func(k, old, new string, d *schema
 	}
 }
 
-func tagsToAPI(tags _Tags) []string {
+func tagsToAPI(tags circonusTags) []string {
 	apiTags := make([]string, 0, len(tags))
 	for _, tag := range tags {
 		apiTags = append(apiTags, string(tag))
@@ -127,7 +127,7 @@ func tagsToAPI(tags _Tags) []string {
 	return apiTags
 }
 
-func tagsToState(tags _Tags) *schema.Set {
+func tagsToState(tags circonusTags) *schema.Set {
 	tagSet := schema.NewSet(schema.HashString, nil)
 	for i := range tags {
 		tagSet.Add(string(tags[i]))
@@ -135,10 +135,10 @@ func tagsToState(tags _Tags) *schema.Set {
 	return tagSet
 }
 
-func apiToTags(apiTags []string) _Tags {
-	tags := make(_Tags, 0, len(apiTags))
+func apiToTags(apiTags []string) circonusTags {
+	tags := make(circonusTags, 0, len(apiTags))
 	for _, v := range apiTags {
-		tags = append(tags, _Tag(v))
+		tags = append(tags, circonusTag(v))
 	}
 	return tags
 }

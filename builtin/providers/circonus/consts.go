@@ -8,7 +8,7 @@ const (
 
 	// When auto_tag is enabled, the default tag category and value will be set to
 	// the following value unless overriden.
-	defaultCirconusTag _Tag = "author:terraform"
+	defaultCirconusTag circonusTag = "author:terraform"
 
 	// When hashing a Set, default to a buffer this size
 	defaultHashBufSize = 512
@@ -42,21 +42,21 @@ const (
 	defaultGraphStyle      = "line"
 	defaultGraphFunction   = "gauge"
 
-	_MetricUnit       = ""
-	_MetricUnitRegexp = `^.*$`
+	metricUnit       = ""
+	metricUnitRegexp = `^.*$`
 
 	defaultTriggerLast       = "300s"
 	defaultTriggerMetricType = "numeric"
 	defaultTriggerRuleLen    = 4
 	defaultTriggerSeverity   = 1
 	defaultTriggerWindowFunc = "average"
-	_TriggerAbsentMin        = "70s"
+	triggerAbsentMin         = "70s"
 )
 
 // Consts and their close relative, Go pseudo-consts.
 
-// _ValidMetricTypes: See `type`: https://login.circonus.com/resources/api/calls/check_bundle
-var _ValidMetricTypes = _ValidStringValues{
+// validMetricTypes: See `type`: https://login.circonus.com/resources/api/calls/check_bundle
+var validMetricTypes = validStringValues{
 	`caql`,
 	`composite`,
 	`histogram`,
@@ -64,8 +64,8 @@ var _ValidMetricTypes = _ValidStringValues{
 	`text`,
 }
 
-// _ValidAggregateFuncs: See `aggregate_function`: https://login.circonus.com/resources/api/calls/graph
-var _ValidAggregateFuncs = _ValidStringValues{
+// validAggregateFuncs: See `aggregate_function`: https://login.circonus.com/resources/api/calls/graph
+var validAggregateFuncs = validStringValues{
 	`none`,
 	`min`,
 	`max`,
@@ -74,33 +74,33 @@ var _ValidAggregateFuncs = _ValidStringValues{
 	`geometric_mean`,
 }
 
-// _ValidGraphLineStyles: See `line_style`: https://login.circonus.com/resources/api/calls/graph
-var _ValidGraphLineStyles = _ValidStringValues{
+// validGraphLineStyles: See `line_style`: https://login.circonus.com/resources/api/calls/graph
+var validGraphLineStyles = validStringValues{
 	`stepped`,
 	`interpolated`,
 }
 
-// _ValidGraphStyles: See `style`: https://login.circonus.com/resources/api/calls/graph
-var _ValidGraphStyles = _ValidStringValues{
+// validGraphStyles: See `style`: https://login.circonus.com/resources/api/calls/graph
+var validGraphStyles = validStringValues{
 	`area`,
 	`line`,
 }
 
-// _ValidAxisAttrs: See `line_style`: https://login.circonus.com/resources/api/calls/graph
-var _ValidAxisAttrs = _ValidStringValues{
+// validAxisAttrs: See `line_style`: https://login.circonus.com/resources/api/calls/graph
+var validAxisAttrs = validStringValues{
 	`left`,
 	`right`,
 }
 
-// _ValidGraphFunctionValues: See `derive`: https://login.circonus.com/resources/api/calls/graph
-var _ValidGraphFunctionValues = _ValidStringValues{
+// validGraphFunctionValues: See `derive`: https://login.circonus.com/resources/api/calls/graph
+var validGraphFunctionValues = validStringValues{
 	`counter`,
 	`derive`,
 	`gauge`,
 }
 
-// _ValidTriggerWindowFuncs: See `derive` or `windowing_func`: https://login.circonus.com/resources/api/calls/rule_set
-var _ValidTriggerWindowFuncs = _ValidStringValues{
+// validTriggerWindowFuncs: See `derive` or `windowing_func`: https://login.circonus.com/resources/api/calls/rule_set
+var validTriggerWindowFuncs = validStringValues{
 	`average`,
 	`stddev`,
 	`derive`,
@@ -116,12 +116,12 @@ var _ValidTriggerWindowFuncs = _ValidStringValues{
 const (
 	// Supported circonus_trigger.metric_types.  See `metric_type`:
 	// https://login.circonus.com/resources/api/calls/rule_set
-	_TriggerMetricTypeNumeric = "numeric"
-	_TriggerMetricTypeText    = "text"
+	triggerMetricTypeNumeric = "numeric"
+	triggerMetricTypeText    = "text"
 )
 
-// _ValidTriggerMetricTypes: See `metric_type`: https://login.circonus.com/resources/api/calls/rule_set
-var _ValidTriggerMetricTypes = _ValidStringValues{
-	_TriggerMetricTypeNumeric,
-	_TriggerMetricTypeText,
+// validTriggerMetricTypes: See `metric_type`: https://login.circonus.com/resources/api/calls/rule_set
+var validTriggerMetricTypes = validStringValues{
+	triggerMetricTypeNumeric,
+	triggerMetricTypeText,
 }

@@ -19,89 +19,89 @@ import (
 
 const (
 	// circonus_stream_group.* resource attribute names
-	_StreamGroupDescriptionAttr _SchemaAttr = "description"
-	_StreamGroupNameAttr        _SchemaAttr = "name"
-	_StreamGroupGroupAttr       _SchemaAttr = "group"
-	_StreamGroupTagsAttr        _SchemaAttr = "tags"
+	streamGroupDescriptionAttr schemaAttr = "description"
+	streamGroupNameAttr        schemaAttr = "name"
+	streamGroupGroupAttr       schemaAttr = "group"
+	streamGroupTagsAttr        schemaAttr = "tags"
 
 	// circonus_stream_group.* out parameters
-	_StreamGroupIDAttr _SchemaAttr = "id"
+	streamGroupIDAttr schemaAttr = "id"
 
 	// circonus_stream_group.group.* resource attribute names
-	_StreamGroupQueryAttr _SchemaAttr = "query"
-	_StreamGroupTypeAttr  _SchemaAttr = "type"
+	streamGroupQueryAttr schemaAttr = "query"
+	streamGroupTypeAttr  schemaAttr = "type"
 )
 
-var _StreamGroupDescriptions = _AttrDescrs{
-	_StreamGroupDescriptionAttr: "A description of the stream group",
-	_StreamGroupIDAttr:          "The ID of this stream group",
-	_StreamGroupNameAttr:        "The name of the stream group",
-	_StreamGroupGroupAttr:       "A stream group query definition",
-	_StreamGroupTagsAttr:        "A list of tags assigned to the stream group",
+var streamGroupDescriptions = attrDescrs{
+	streamGroupDescriptionAttr: "A description of the stream group",
+	streamGroupIDAttr:          "The ID of this stream group",
+	streamGroupNameAttr:        "The name of the stream group",
+	streamGroupGroupAttr:       "A stream group query definition",
+	streamGroupTagsAttr:        "A list of tags assigned to the stream group",
 }
 
-var _StreamGroupGroupDescriptions = _AttrDescrs{
-	_StreamGroupQueryAttr: "A query of metric streams",
-	_StreamGroupTypeAttr:  "The operation to perform on the matching stream group",
+var streamGroupGroupDescriptions = attrDescrs{
+	streamGroupQueryAttr: "A query of metric streams",
+	streamGroupTypeAttr:  "The operation to perform on the matching stream group",
 }
 
-func _NewStreamGroupResource() *schema.Resource {
+func newStreamGroupResource() *schema.Resource {
 	return &schema.Resource{
-		Create: _StreamGroupCreate,
-		Read:   _StreamGroupRead,
-		Update: _StreamGroupUpdate,
-		Delete: _StreamGroupDelete,
-		Exists: _StreamGroupExists,
+		Create: streamGroupCreate,
+		Read:   streamGroupRead,
+		Update: streamGroupUpdate,
+		Delete: streamGroupDelete,
+		Exists: streamGroupExists,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-			_StreamGroupDescriptionAttr: &schema.Schema{
+		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+			streamGroupDescriptionAttr: &schema.Schema{
 				Type:      schema.TypeString,
 				Optional:  true,
 				Computed:  true,
 				StateFunc: suppressWhitespace,
 			},
-			_StreamGroupNameAttr: &schema.Schema{
+			streamGroupNameAttr: &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			_StreamGroupGroupAttr: &schema.Schema{
+			streamGroupGroupAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				MinItems: 1,
 				Elem: &schema.Resource{
-					Schema: _CastSchemaToTF(map[_SchemaAttr]*schema.Schema{
-						_StreamGroupQueryAttr: &schema.Schema{
+					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+						streamGroupQueryAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: _ValidateRegexp(_StreamGroupQueryAttr, `.+`),
+							ValidateFunc: validateRegexp(streamGroupQueryAttr, `.+`),
 						},
-						_StreamGroupTypeAttr: &schema.Schema{
+						streamGroupTypeAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: _ValidateStringIn(_StreamGroupTypeAttr, _SupportedStreamGroupTypes),
+							ValidateFunc: validateStringIn(streamGroupTypeAttr, supportedStreamGroupTypes),
 						},
-					}, _StreamGroupGroupDescriptions),
+					}, streamGroupGroupDescriptions),
 				},
 			},
-			_StreamGroupTagsAttr: _TagMakeConfigSchema(_StreamGroupTagsAttr),
+			streamGroupTagsAttr: tagMakeConfigSchema(streamGroupTagsAttr),
 
 			// Out parameters
-			_StreamGroupIDAttr: &schema.Schema{
+			streamGroupIDAttr: &schema.Schema{
 				Computed:     true,
 				Type:         schema.TypeString,
-				ValidateFunc: _ValidateRegexp(_StreamGroupIDAttr, config.MetricClusterCIDRegex),
+				ValidateFunc: validateRegexp(streamGroupIDAttr, config.MetricClusterCIDRegex),
 			},
-		}, _StreamGroupDescriptions),
+		}, streamGroupDescriptions),
 	}
 }
 
-func _StreamGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*_ProviderContext)
-	sg := _NewStreamGroup()
-	cr := _NewConfigReader(ctxt, d)
+func streamGroupCreate(d *schema.ResourceData, meta interface{}) error {
+	ctxt := meta.(*providerContext)
+	sg := newStreamGroup()
+	cr := newConfigReader(ctxt, d)
 	if err := sg.ParseConfig(cr); err != nil {
 		return errwrap.Wrapf("error parsing stream group schema during create: {{err}}", err)
 	}
@@ -112,11 +112,11 @@ func _StreamGroupCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(sg.CID)
 
-	return _StreamGroupRead(d, meta)
+	return streamGroupRead(d, meta)
 }
 
-func _StreamGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	ctxt := meta.(*_ProviderContext)
+func streamGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	ctxt := meta.(*providerContext)
 
 	cid := d.Id()
 	sg, err := ctxt.client.FetchMetricCluster(api.CIDType(&cid), "")
@@ -135,41 +135,41 @@ func _StreamGroupExists(d *schema.ResourceData, meta interface{}) (bool, error) 
 	return true, nil
 }
 
-// _StreamGroupRead pulls data out of the MetricCluster object and stores it
+// streamGroupRead pulls data out of the MetricCluster object and stores it
 // into the appropriate place in the statefile.
-func _StreamGroupRead(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*_ProviderContext)
+func streamGroupRead(d *schema.ResourceData, meta interface{}) error {
+	ctxt := meta.(*providerContext)
 
 	cid := d.Id()
-	sg, err := _LoadStreamGroup(ctxt, api.CIDType(&cid))
+	sg, err := loadStreamGroup(ctxt, api.CIDType(&cid))
 	if err != nil {
 		return err
 	}
 
-	groups := schema.NewSet(_StreamGroupGroupChecksum, nil)
+	groups := schema.NewSet(streamGroupGroupChecksum, nil)
 	for _, g := range sg.Queries {
 		groupAttrs := map[string]interface{}{
-			string(_StreamGroupQueryAttr): g.Query,
-			string(_StreamGroupTypeAttr):  g.Type,
+			string(streamGroupQueryAttr): g.Query,
+			string(streamGroupTypeAttr):  g.Type,
 		}
 
 		groups.Add(groupAttrs)
 	}
 
-	_StateSet(d, _StreamGroupDescriptionAttr, sg.Description)
-	_StateSet(d, _StreamGroupNameAttr, sg.Name)
-	_StateSet(d, _StreamGroupTagsAttr, tagsToState(apiToTags(sg.Tags)))
-	_StateSet(d, _StreamGroupIDAttr, sg.CID)
+	stateSet(d, streamGroupDescriptionAttr, sg.Description)
+	stateSet(d, streamGroupNameAttr, sg.Name)
+	stateSet(d, streamGroupTagsAttr, tagsToState(apiToTags(sg.Tags)))
+	stateSet(d, streamGroupIDAttr, sg.CID)
 
 	d.SetId(sg.CID)
 
 	return nil
 }
 
-func _StreamGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*_ProviderContext)
-	sg := _NewStreamGroup()
-	cr := _NewConfigReader(ctxt, d)
+func streamGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+	ctxt := meta.(*providerContext)
+	sg := newStreamGroup()
+	cr := newConfigReader(ctxt, d)
 	if err := sg.ParseConfig(cr); err != nil {
 		return err
 	}
@@ -179,11 +179,11 @@ func _StreamGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 		return errwrap.Wrapf(fmt.Sprintf("unable to update stream group %q: {{err}}", d.Id()), err)
 	}
 
-	return _StreamGroupRead(d, meta)
+	return streamGroupRead(d, meta)
 }
 
-func _StreamGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	ctxt := meta.(*_ProviderContext)
+func streamGroupDelete(d *schema.ResourceData, meta interface{}) error {
+	ctxt := meta.(*providerContext)
 
 	cid := d.Id()
 	if _, err := ctxt.client.DeleteMetricClusterByCID(api.CIDType(&cid)); err != nil {
@@ -195,17 +195,17 @@ func _StreamGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func _StreamGroupGroupChecksum(v interface{}) int {
+func streamGroupGroupChecksum(v interface{}) int {
 	m := v.(map[string]interface{})
-	ar := _NewMapReader(nil, m)
+	ar := newMapReader(nil, m)
 
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
 	// Order writes to the buffer using lexically sorted list for easy visual
 	// reconciliation with other lists.
-	fmt.Fprint(b, ar.GetString(_StreamGroupQueryAttr))
-	fmt.Fprint(b, ar.GetString(_StreamGroupTypeAttr))
+	fmt.Fprint(b, ar.GetString(streamGroupQueryAttr))
+	fmt.Fprint(b, ar.GetString(streamGroupTypeAttr))
 
 	s := b.String()
 	return hashcode.String(s)
@@ -213,29 +213,29 @@ func _StreamGroupGroupChecksum(v interface{}) int {
 
 // ParseConfig reads Terraform config data and stores the information into a
 // Circonus MetricCluster object.
-func (sg *_StreamGroup) ParseConfig(ar _AttrReader) error {
-	if s, ok := ar.GetStringOK(_StreamGroupDescriptionAttr); ok {
+func (sg *circonusStreamGroup) ParseConfig(ar attrReader) error {
+	if s, ok := ar.GetStringOK(streamGroupDescriptionAttr); ok {
 		sg.Description = s
 	}
 
-	if s, ok := ar.GetStringOK(_StreamGroupNameAttr); ok {
+	if s, ok := ar.GetStringOK(streamGroupNameAttr); ok {
 		sg.Name = s
 	}
 
-	if groupList, ok := ar.GetSetAsListOK(_StreamGroupGroupAttr); ok {
+	if groupList, ok := ar.GetSetAsListOK(streamGroupGroupAttr); ok {
 		sg.Queries = make([]api.MetricQuery, 0, len(groupList))
 
 		for _, groupListRaw := range groupList {
-			groupAttrs := _NewInterfaceMap(groupListRaw)
-			gr := _NewMapReader(ar.Context(), groupAttrs)
+			groupAttrs := newInterfaceMap(groupListRaw)
+			gr := newMapReader(ar.Context(), groupAttrs)
 
 			var query string
-			if s, ok := gr.GetStringOK(_StreamGroupQueryAttr); ok {
+			if s, ok := gr.GetStringOK(streamGroupQueryAttr); ok {
 				query = s
 			}
 
 			var queryType string
-			if s, ok := gr.GetStringOK(_StreamGroupTypeAttr); ok {
+			if s, ok := gr.GetStringOK(streamGroupTypeAttr); ok {
 				queryType = s
 			}
 
@@ -246,7 +246,7 @@ func (sg *_StreamGroup) ParseConfig(ar _AttrReader) error {
 		}
 	}
 
-	sg.Tags = tagsToAPI(ar.GetTags(_StreamGroupTagsAttr))
+	sg.Tags = tagsToAPI(ar.GetTags(streamGroupTagsAttr))
 
 	if err := sg.Validate(); err != nil {
 		return err
