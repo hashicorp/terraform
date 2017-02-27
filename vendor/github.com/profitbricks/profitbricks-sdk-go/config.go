@@ -1,7 +1,7 @@
 package profitbricks
 
-// Endpoint is the base url for REST requests .
-var Endpoint = "https://api.profitbricks.com/rest/v2"
+// Endpoint is the base url for REST requests.
+var Endpoint = "https://api.profitbricks.com/cloudapi/v3"
 
 //  Username for authentication .
 var Username string
@@ -20,4 +20,8 @@ func SetEndpoint(newendpoint string) string {
 func SetAuth(u, p string) {
 	Username = u
 	Passwd = p
+}
+
+func SetUserAgent(userAgent string) {
+	AgentHeader = userAgent
 }

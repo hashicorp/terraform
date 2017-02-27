@@ -15,7 +15,7 @@ Manages a LANs on ProfitBricks
 ```
 resource "profitbricks_lan" "example" {
   datacenter_id = "${profitbricks_datacenter.example.id}"
-  public = true
+  public        = true
 }
 ```
 
