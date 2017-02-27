@@ -130,7 +130,7 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 
 	if v, ok := d.GetOk("snapshot"); ok {
 		snapshotName := v.(string)
-		match, _ := regexp.MatchString("^http", snapshotName) 
+		match, _ := regexp.MatchString("^https://www.googleapis.com/compute", snapshotName) 
 		if match {
 		  disk.SourceSnapshot = snapshotName
 		} else {
