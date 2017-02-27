@@ -185,6 +185,41 @@ func (s *State) moduleByPath(path []string) *ModuleState {
 	return nil
 }
 
+// GetResourceStateFromResourceAddress accept a ResourceAddress and
+// ResourceType and return the ResourceState that correspoding to the
+// ResourceAddress
+func (s *State) GetResourceStateFromResourceAddress(rsa *ResourceAddress, resourceType string) (*ResourceState, error) {
+
+	// Getting ModuleState from resource address path
+	mod := s.ModuleByPath(rsa.Path)
+	module := strings.Join(rsa.Path, ".")
+	if mod == nil {
+		return nil, fmt.Errorf(
+			"The module %s could not be found. There is nothing to taint.", module)
+	}
+
+	var name string
+	if rsa.Index != -1 {
+		name = strings.Join([]string{resourceType, rsa.Name, strconv.Itoa(rsa.Index)}, ".")
+	} else {
+		name = strings.Join([]string{resourceType, rsa.Name}, ".")
+	}
+
+	// If there are no resources in this module, it is an error
+	if len(mod.Resources) == 0 {
+		return nil, fmt.Errorf(
+			"The module %s has no resources. There is nothing to taint.", module)
+	}
+
+	rs, ok := mod.Resources[name]
+	if !ok {
+		return nil, fmt.Errorf(
+			"The resource %s couldn't be found in the module %s.", name, module)
+	}
+
+	return rs, nil
+}
+
 // ModuleOrphans returns all the module orphans in this state by
 // returning their full paths. These paths can be used with ModuleByPath
 // to return the actual state.
