@@ -172,14 +172,16 @@ variables must also be set:
 
 * `OS_EXTGW_ID` - The UUID of the external gateway.
 
-To make development easier, the `builtin/providers/openstack/devstack/deploy.sh`
-script will assist in installing and configuring a standardized
-[DevStack](http://docs.openstack.org/developer/devstack/) environment along with
-Golang, Terraform, and all development dependencies. It will also set the required
-environment variables in the `devstack/openrc` file.
+You should be able to use any OpenStack environment to develop on as long as the
+above environment variables are set.
 
-Do not run the `deploy.sh` script on your workstation or any type of production
-server. Instead, run the script within a disposable virtual machine.
-[Here's](https://github.com/berendt/terraform-configurations) an example of a
-Terraform configuration that will create an OpenStack instance and then install and
-configure DevStack inside.
+Most of Terraform's OpenStack support is done in a standardized Packstack
+all-in-one environment. You can find the scripts to build this environment
+[here](https://github.com/jtopjian/terraform-devstack/tree/master/packstack-standard).
+The included `main.tf` file will need to be modified for your specific
+environment. Once it's up and running, you will have access to a standard,
+up-to-date OpenStack environment with the latest OpenStack services.
+
+If you require access to deprecated services, such as Keystone v2 and
+LBaaS v1, you can use the "legacy" environment
+[here](https://github.com/jtopjian/terraform-devstack/tree/master/packstack-legacy).
