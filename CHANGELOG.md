@@ -24,6 +24,7 @@ BUG FIXES:
 
 0.9.0-beta1 FIXES:
 
+ * core: backends are validated to not contain interpolations [GH-12067]
  * core: fix local state locking on Windows [GH-12059]
  * core: destroy provisioners dependent on module variables work [GH-12063]
  * core: resource destruction happens after dependent resources' destroy provisioners [GH-12063]
