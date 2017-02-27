@@ -27,8 +27,6 @@ const (
 	DefaultBackupExtension = ".backup"
 )
 
-var ErrEnvNotSupported = errors.New("environments not supported")
-
 // Local is an implementation of EnhancedBackend that performs all operations
 // locally. This is the "default" backend and implements normal Terraform
 // behavior as it is well known.

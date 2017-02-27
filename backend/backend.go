@@ -6,6 +6,7 @@ package backend
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
@@ -13,6 +14,9 @@ import (
 )
 
 const DefaultStateName = "default"
+
+// Error value to return when a named state operation isn't supported
+var ErrNamedStatesNotSupported = errors.New("named states not supported")
 
 // Backend is the minimal interface that must be implemented to enable Terraform.
 type Backend interface {
