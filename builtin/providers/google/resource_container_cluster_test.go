@@ -188,9 +188,6 @@ func testAccCheckContainerCluster(n string) resource.TestCheckFunc {
 			{"instance_group_urls", cluster.InstanceGroupUrls},
 			{"logging_service", cluster.LoggingService},
 			{"monitoring_service", cluster.MonitoringService},
-			// TODO(danawillow): Add this back in. Currently this field is saved via the config instead of from the API response,
-			// and the config may contain the network name or self_link, whereas the API only returns the self_link.
-			// {"network", cluster.Network},
 			{"subnetwork", cluster.Subnetwork},
 			{"node_config.0.machine_type", cluster.NodeConfig.MachineType},
 			{"node_config.0.disk_size_gb", strconv.FormatInt(cluster.NodeConfig.DiskSizeGb, 10)},
@@ -223,6 +220,19 @@ func testAccCheckContainerCluster(n string) resource.TestCheckFunc {
 			}
 		}
 
+		// Network has to be done separately in order to normalize the two values
+		tf, err := getNetworkNameFromString(attributes["network"])
+		if err != nil {
+			return err
+		}
+		gcp, err := getNetworkNameFromString(cluster.Network)
+		if err != nil {
+			return err
+		}
+		if tf != gcp {
+			return fmt.Errorf(matchError("network", tf, gcp))
+		}
+
 		return nil
 	}
 }
@@ -246,7 +256,7 @@ func checkMatch(attributes map[string]string, attr string, gcp interface{}) stri
 	}
 	tf := attributes[attr]
 	if tf != gcp {
-		return fmt.Sprintf("Cluster has mismatched %s.\nTF State: %+v\nGCP State: %+v", attr, tf, gcp)
+		return matchError(attr, tf, gcp)
 	}
 	return ""
 }
@@ -254,7 +264,7 @@ func checkMatch(attributes map[string]string, attr string, gcp interface{}) stri
 func checkListMatch(attributes map[string]string, attr string, gcpList []string) string {
 	num, err := strconv.Atoi(attributes[attr+".#"])
 	if err != nil {
-		return fmt.Sprintf("error in number conversion for attribute %s", attr)
+		return fmt.Sprintf("Error in number conversion for attribute %s: %s", attr, err)
 	}
 	if num != len(gcpList) {
 		return fmt.Sprintf("Cluster has mismatched %s size.\nTF Size: %d\nGCP Size: %d", attr, num, len(gcpList))
@@ -262,11 +272,15 @@ func checkListMatch(attributes map[string]string, attr string, gcpList []string)
 
 	for i, gcp := range gcpList {
 		if tf := attributes[fmt.Sprintf("%s.%d", attr, i)]; tf != gcp {
-			return fmt.Sprintf("Cluster has mismatched %s[%d].\nTF State: %+v\nGCP State: %+v", attr, i, tf, gcp)
+			return matchError(fmt.Sprintf("%s[%d]", attr, i), tf, gcp)
 		}
 	}
 
 	return ""
+}
+
+func matchError(attr, tf string, gcp interface{}) string {
+	return fmt.Sprintf("Cluster has mismatched %s.\nTF State: %+v\nGCP State: %+v", attr, tf, gcp)
 }
 
 var testAccContainerCluster_basic = fmt.Sprintf(`
