@@ -46,7 +46,7 @@ func TestConsul_stateLock(t *testing.T) {
 	sA, err := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"address": addr,
 		"path":    path,
-	}).State()
+	}).State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestConsul_stateLock(t *testing.T) {
 	sB, err := backend.TestBackendConfig(t, New(), map[string]interface{}{
 		"address": addr,
 		"path":    path,
-	}).State()
+	}).State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatal(err)
 	}
