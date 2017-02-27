@@ -145,3 +145,11 @@ A `stage` block supports the following arguments:
 The following attributes are exported:
 
 * `id` - The codepipeline ID.
+
+## Import
+
+CodePipelines can be imported using the name, e.g.
+
+```
+$ terraform import aws_codepipeline.foo example
+```
