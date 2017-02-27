@@ -47,18 +47,22 @@ func (b *Backend) Configure(rc *terraform.ResourceConfig) error {
 	return b.Backend.Configure(rc)
 }
 
-func (b *Backend) States() ([]string, string, error) {
-	return []string{backend.DefaultStateName}, backend.DefaultStateName, nil
+func (b *Backend) States() ([]string, error) {
+	return nil, backend.ErrNamedStatesNotSupported
 }
 
-func (b *Backend) ChangeState(name string) error {
-	return nil
+func (b *Backend) DeleteState(name string) error {
+	return backend.ErrNamedStatesNotSupported
 }
 
-func (b *Backend) State() (state.State, error) {
+func (b *Backend) State(name string) (state.State, error) {
 	// This shouldn't happen
 	if b.client == nil {
 		panic("nil remote client")
+	}
+
+	if name != backend.DefaultStateName {
+		return nil, backend.ErrNamedStatesNotSupported
 	}
 
 	s := &remote.State{Client: b.client}
