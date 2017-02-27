@@ -38,7 +38,7 @@ func resourceAwsSubnet() *schema.Resource {
 			"ipv6_cidr_block": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
+				ForceNew: true,
 			},
 
 			"availability_zone": {
@@ -58,6 +58,11 @@ func resourceAwsSubnet() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+			},
+
+			"ipv6_cidr_block_association_id": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"tags": tagsSchema(),
@@ -138,6 +143,7 @@ func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("assign_ipv6_address_on_creation", subnet.AssignIpv6AddressOnCreation)
 	if subnet.Ipv6CidrBlockAssociationSet != nil {
 		d.Set("ipv6_cidr_block", subnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
+		d.Set("ipv6_cidr_block_association_id", subnet.Ipv6CidrBlockAssociationSet[0].AssociationId)
 	}
 	d.Set("tags", tagsToMap(subnet.Tags))
 
