@@ -3245,8 +3245,8 @@
 		{
 			"checksumSHA1": "lAMqZyc46cU5WaRuw4mVHFXpvps=",
 			"path": "google.golang.org/api/container/v1",
-			"revision": "bc20c61134e1d25265dd60049f5735381e79b631",
-			"revisionTime": "2017-02-10T21:56:36Z"
+			"revision": "64485db7e8c8be51e572801d06cdbcfadd3546c1",
+			"revisionTime": "2017-02-23T23:41:36Z"
 		},
 		{
 			"checksumSHA1": "JYl35km48fLrIx7YUtzcgd4J7Rk=",
