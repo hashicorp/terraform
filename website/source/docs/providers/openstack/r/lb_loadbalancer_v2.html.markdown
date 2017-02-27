@@ -50,8 +50,10 @@ The following arguments are supported:
 * `flavor` - (Optional) The UUID of a flavor. Changing this creates a new
     loadbalancer.
 
-* `loadbalancer_provider` - (Optional) The name of the provider. Changing this creates a new
-    loadbalancer.
+* `provider` - (Deprecated) Use `loadbalancer_provider` instead.
+
+* `loadbalancer_provider` - (Optional) The name of the provider. Changing this
+  creates a new loadbalancer.
 
 * `security_group_ids` - (Optional) A list of security group IDs to apply to the
     loadbalancer. The security groups must be specified by ID and not name (as

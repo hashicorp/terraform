@@ -75,6 +75,14 @@ func resourceLoadBalancerV2() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"provider": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				Computed:   true,
+				ForceNew:   true,
+				Deprecated: "Please use loadbalancer_provider",
+			},
+
 			"loadbalancer_provider": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -100,6 +108,11 @@ func resourceLoadBalancerV2Create(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
+	var lbProvider string
+	if v, ok := d.GetOk("loadbalancer_provider"); ok {
+		lbProvider = v.(string)
+	}
+
 	adminStateUp := d.Get("admin_state_up").(bool)
 	createOpts := loadbalancers.CreateOpts{
 		Name:         d.Get("name").(string),
@@ -109,7 +122,7 @@ func resourceLoadBalancerV2Create(d *schema.ResourceData, meta interface{}) erro
 		VipAddress:   d.Get("vip_address").(string),
 		AdminStateUp: &adminStateUp,
 		Flavor:       d.Get("flavor").(string),
-		Provider:     d.Get("loadbalancer_provider").(string),
+		Provider:     lbProvider,
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
