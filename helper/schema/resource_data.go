@@ -344,23 +344,20 @@ func (d *ResourceData) State() *terraform.InstanceState {
 func (d *ResourceData) Timeout(key string) time.Duration {
 	key = strings.ToLower(key)
 
+	var timeout *time.Duration
 	switch key {
 	case resourceTimeoutCreateKey:
-		if d.timeouts.Create != nil {
-			return *d.timeouts.Create
-		}
+		timeout = d.timeouts.Create
 	case resourceTimeoutReadKey:
-		if d.timeouts.Read != nil {
-			return *d.timeouts.Read
-		}
+		timeout = d.timeouts.Read
 	case resourceTimeoutUpdateKey:
-		if d.timeouts.Update != nil {
-			return *d.timeouts.Update
-		}
+		timeout = d.timeouts.Update
 	case resourceTimeoutDeleteKey:
-		if d.timeouts.Delete != nil {
-			return *d.timeouts.Delete
-		}
+		timeout = d.timeouts.Delete
+	}
+
+	if timeout != nil {
+		return *timeout
 	}
 
 	if d.timeouts.Default != nil {
