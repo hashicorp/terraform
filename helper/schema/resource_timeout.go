@@ -60,56 +60,52 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 		*t = *raw.(*ResourceTimeout)
 	}
 
-	if v, ok := c.Config["timeout"]; ok {
-		raw := v.([]map[string]interface{})
-		for _, tv := range raw {
-			for mk, mv := range tv {
+	if raw, ok := c.Config["timeout"]; ok {
+		configTimeouts := raw.([]map[string]interface{})
+		for _, timeoutValues := range configTimeouts {
+			// loop through each Timeout given in the configuration and validate they
+			// the Timeout defined in the resource
+			for timeKey, timeValue := range timeoutValues {
+				// validate that we're dealing with the normal CRUD actions
 				var found bool
 				for _, key := range timeKeys() {
-					if mk == key {
+					if timeKey == key {
 						found = true
 						break
 					}
 				}
 
 				if !found {
-					return fmt.Errorf("Unsupported timeout key found (%s)", mk)
+					return fmt.Errorf("Unsupported Timeout configuration key found (%s)", timeKey)
 				}
 
 				// Get timeout
-				rt, err := time.ParseDuration(mv.(string))
+				rt, err := time.ParseDuration(timeValue.(string))
 				if err != nil {
-					return fmt.Errorf("Error parsing Timeout for (%s): %s", mk, err)
+					return fmt.Errorf("Error parsing Timeout for (%s): %s", timeKey, err)
 				}
 
-				switch mk {
+				var timeout *time.Duration
+				switch timeKey {
 				case resourceTimeoutCreateKey:
-					if t.Create == nil {
-						return unsupportedTimeoutKeyError(mk)
-					}
-					t.Create = &rt
+					timeout = t.Create
 				case resourceTimeoutUpdateKey:
-					if t.Update == nil {
-						return unsupportedTimeoutKeyError(mk)
-					}
-					t.Update = &rt
+					timeout = t.Update
 				case resourceTimeoutReadKey:
-					if t.Read == nil {
-						return unsupportedTimeoutKeyError(mk)
-					}
-					t.Read = &rt
+					timeout = t.Read
 				case resourceTimeoutDeleteKey:
-					if t.Delete == nil {
-						return unsupportedTimeoutKeyError(mk)
-					}
-					t.Delete = &rt
+					timeout = t.Delete
 				case resourceTimeoutDefaultKey:
-					if t.Default == nil {
-						return unsupportedTimeoutKeyError(mk)
-					}
-					t.Default = &rt
+					timeout = t.Default
 				}
 
+				// If the resource has not delcared this in the definition, then error
+				// with an unsupported message
+				if timeout == nil {
+					return unsupportedTimeoutKeyError(timeKey)
+				}
+
+				*timeout = rt
 			}
 		}
 	}
