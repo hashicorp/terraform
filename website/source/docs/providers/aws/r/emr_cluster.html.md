@@ -71,7 +71,7 @@ The following arguments are supported:
 * `core_instance_count` - (Optional) Number of Amazon EC2 instances used to execute the job flow. EMR will use one node as the cluster's master node and use the remainder of the nodes (`core_instance_count`-1) as core nodes. Default `1`
 * `log_uri` - (Optional) S3 bucket to write the log files of the job flow. If a value
 	is not provided, logs are not created
-* `applications` - (Optional) A list of applications for the cluster. Valid values are: `Hadoop`, `Hive`, `Mahout`, `Pig`, and `Spark`. Case insensitive
+* `applications` - (Optional) A list of applications for the cluster. Valid values are: `Flink`, `Hadoop`, `Hive`, `Mahout`, `Pig`, and `Spark`. Case insensitive
 * `termination_protection` - (Optional) Switch on/off termination protection (default is off) 
 * `keep_job_flow_alive_when_no_steps` - (Optional) Switch on/off run cluster with no steps or when all steps are complete (default is on)
 * `ec2_attributes` - (Optional) Attributes for the EC2 instances running the job
