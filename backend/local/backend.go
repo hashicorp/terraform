@@ -207,6 +207,7 @@ func (b *Local) schemaConfigure(ctx context.Context) error {
 		}
 
 		b.StatePath = path
+		b.StateOutPath = path
 	}
 
 	return nil

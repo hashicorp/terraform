@@ -110,6 +110,28 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 		log.Printf("[INFO] command: backend initialized: %T", b)
 	}
 
+	// Setup the CLI opts we pass into backends that support it
+	cliOpts := &backend.CLIOpts{
+		CLI:             m.Ui,
+		CLIColor:        m.Colorize(),
+		StatePath:       statePath,
+		StateOutPath:    stateOutPath,
+		StateBackupPath: backupPath,
+		ContextOpts:     m.contextOpts(),
+		Input:           m.Input(),
+		Validation:      true,
+	}
+
+	// If the backend supports CLI initialization, do it.
+	if cli, ok := b.(backend.CLI); ok {
+		if err := cli.CLIInit(cliOpts); err != nil {
+			return nil, fmt.Errorf(
+				"Error initializing backend %T: %s\n\n"+
+					"This is a bug, please report it to the backend developer",
+				b, err)
+		}
+	}
+
 	// If the result of loading the backend is an enhanced backend,
 	// then return that as-is. This works even if b == nil (it will be !ok).
 	if enhanced, ok := b.(backend.Enhanced); ok {
@@ -125,17 +147,13 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 	}
 
 	// Build the local backend
-	return &backendlocal.Local{
-		CLI:             m.Ui,
-		CLIColor:        m.Colorize(),
-		StatePath:       statePath,
-		StateOutPath:    stateOutPath,
-		StateBackupPath: backupPath,
-		ContextOpts:     m.contextOpts(),
-		OpInput:         m.Input(),
-		OpValidation:    true,
-		Backend:         b,
-	}, nil
+	local := &backendlocal.Local{Backend: b}
+	if err := local.CLIInit(cliOpts); err != nil {
+		// Local backend isn't allowed to fail. It would be a bug.
+		panic(err)
+	}
+
+	return local, nil
 }
 
 // Operation initializes a new backend.Operation struct.
