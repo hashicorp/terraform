@@ -581,22 +581,74 @@ func contactGroupRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	stateSet(d, contactAggregationWindowAttr, fmt.Sprintf("%ds", cg.AggregationWindow))
-	stateSet(d, contactAlertOptionAttr, contactGroupAlertOptionsToState(cg))
-	stateSet(d, contactEmailAttr, contactGroupEmailToState(cg))
-	stateSet(d, contactHTTPAttr, httpState)
-	stateSet(d, contactIRCAttr, contactGroupIRCToState(cg))
-	stateSet(d, contactLastModifiedAttr, cg.LastModified)
-	stateSet(d, contactLastModifiedByAttr, cg.LastModifiedBy)
-	stateSet(d, contactLongMessageAttr, cg.AlertFormats.LongMessage)
-	stateSet(d, contactLongSubjectAttr, cg.AlertFormats.LongSubject)
-	stateSet(d, contactLongSummaryAttr, cg.AlertFormats.LongSummary)
-	stateSet(d, contactNameAttr, cg.Name)
-	stateSet(d, contactPagerDutyAttr, pagerDutyState)
-	stateSet(d, contactShortMessageAttr, cg.AlertFormats.ShortMessage)
-	stateSet(d, contactShortSummaryAttr, cg.AlertFormats.ShortSummary)
-	stateSet(d, contactSlackAttr, slackState)
-	stateSet(d, contactTagsAttr, cg.Tags)
+	smsState, err := contactGroupSMSToState(cg)
+	if err != nil {
+		return err
+	}
+
+	victorOpsState, err := contactGroupVictorOpsToState(cg)
+	if err != nil {
+		return err
+	}
+
+	xmppState, err := contactGroupXMPPToState(cg)
+	if err != nil {
+		return err
+	}
+
+	d.Set(contactAggregationWindowAttr, fmt.Sprintf("%ds", cg.AggregationWindow))
+
+	if err := d.Set(contactAlertOptionAttr, contactGroupAlertOptionsToState(cg)); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store contact %q attribute: {{err}}", contactAlertOptionAttr), err)
+	}
+
+	if err := d.Set(contactEmailAttr, contactGroupEmailToState(cg)); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store contact %q attribute: {{err}}", contactEmailAttr), err)
+	}
+
+	if err := d.Set(contactHTTPAttr, httpState); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store contact %q attribute: {{err}}", contactHTTPAttr), err)
+	}
+
+	if err := d.Set(contactIRCAttr, contactGroupIRCToState(cg)); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store contact %q attribute: {{err}}", contactIRCAttr), err)
+	}
+
+	d.Set(contactLongMessageAttr, cg.AlertFormats.LongMessage)
+	d.Set(contactLongSubjectAttr, cg.AlertFormats.LongSubject)
+	d.Set(contactLongSummaryAttr, cg.AlertFormats.LongSummary)
+	d.Set(contactNameAttr, cg.Name)
+
+	if err := d.Set(contactPagerDutyAttr, pagerDutyState); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store contact %q attribute: {{err}}", contactPagerDutyAttr), err)
+	}
+
+	d.Set(contactShortMessageAttr, cg.AlertFormats.ShortMessage)
+	d.Set(contactShortSummaryAttr, cg.AlertFormats.ShortSummary)
+
+	if err := d.Set(contactSlackAttr, slackState); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store contact %q attribute: {{err}}", contactSlackAttr), err)
+	}
+
+	if err := d.Set(contactSMSAttr, smsState); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store contact %q attribute: {{err}}", contactSMSAttr), err)
+	}
+
+	if err := d.Set(contactTagsAttr, cg.Tags); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store contact %q attribute: {{err}}", contactTagsAttr), err)
+	}
+
+	if err := d.Set(contactVictorOpsAttr, victorOpsState); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store contact %q attribute: {{err}}", contactVictorOpsAttr), err)
+	}
+
+	if err := d.Set(contactXMPPAttr, xmppState); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store contact %q attribute: {{err}}", contactXMPPAttr), err)
+	}
+
+	// Out parameters
+	d.Set(contactLastModifiedAttr, cg.LastModified)
+	d.Set(contactLastModifiedByAttr, cg.LastModifiedBy)
 
 	return nil
 }
@@ -1139,7 +1191,7 @@ func contactGroupSlackToState(cg *api.ContactGroup) ([]interface{}, error) {
 	return slackContacts, nil
 }
 
-func contactGroupSMSToState(cg *api.ContactGroup) []interface{} {
+func contactGroupSMSToState(cg *api.ContactGroup) ([]interface{}, error) {
 	smsContacts := make([]interface{}, 0, len(cg.Contacts.Users)+len(cg.Contacts.External))
 
 	for _, ext := range cg.Contacts.External {
@@ -1160,7 +1212,7 @@ func contactGroupSMSToState(cg *api.ContactGroup) []interface{} {
 		}
 	}
 
-	return smsContacts
+	return smsContacts, nil
 }
 
 func contactGroupVictorOpsToState(cg *api.ContactGroup) ([]interface{}, error) {
@@ -1186,6 +1238,30 @@ func contactGroupVictorOpsToState(cg *api.ContactGroup) ([]interface{}, error) {
 	}
 
 	return victorOpsContacts, nil
+}
+
+func contactGroupXMPPToState(cg *api.ContactGroup) ([]interface{}, error) {
+	xmppContacts := make([]interface{}, 0, len(cg.Contacts.Users)+len(cg.Contacts.External))
+
+	for _, ext := range cg.Contacts.External {
+		switch ext.Method {
+		case contactXMPPAttr:
+			xmppContacts = append(xmppContacts, map[string]interface{}{
+				contactXMPPAddressAttr: ext.Info,
+			})
+		}
+	}
+
+	for _, user := range cg.Contacts.Users {
+		switch user.Method {
+		case contactXMPPAttr:
+			xmppContacts = append(xmppContacts, map[string]interface{}{
+				contactUserCIDAttr: user.UserCID,
+			})
+		}
+	}
+
+	return xmppContacts, nil
 }
 
 // contactGroupAlertOptionsChecksum creates a stable hash of the normalized values
