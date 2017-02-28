@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -170,6 +171,13 @@ func resourceAwsASGScheduledActionRetrieve(d *schema.ResourceData, meta interfac
 	log.Printf("[INFO] Describing Autoscaling Scheduled Action: %+v", params)
 	actions, err := autoscalingconn.DescribeScheduledActions(params)
 	if err != nil {
+		//A ValidationError here can mean that either the Schedule is missing OR the Autoscaling Group is missing
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ValidationError" {
+			log.Printf("[WARNING] %s not found, removing from state", d.Id())
+			d.SetId("")
+
+			return nil, nil, false
+		}
 		return nil, fmt.Errorf("Error retrieving Autoscaling Scheduled Actions: %s", err), false
 	}
 
