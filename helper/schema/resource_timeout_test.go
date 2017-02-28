@@ -12,6 +12,7 @@ import (
 
 func TestResourceTimeout_ConfigDecode_badkey(t *testing.T) {
 	cases := []struct {
+		Name string
 		// what the resource has defined in source
 		ResourceDefaultTimeout *ResourceTimeout
 		// configuration provider by user in tf file
@@ -21,31 +22,29 @@ func TestResourceTimeout_ConfigDecode_badkey(t *testing.T) {
 		// Should we have an error (key not defined in source)
 		ShouldErr bool
 	}{
-		// 0 - Source does not define 'delete' key
 		{
+			Name: "Source does not define 'delete' key",
 			ResourceDefaultTimeout: timeoutForValues(10, 0, 5, 0, 0),
 			Config:                 expectedConfigForValues(2, 0, 0, 1, 0),
 			Expected:               timeoutForValues(10, 0, 5, 0, 0),
 			ShouldErr:              true,
 		},
-		// 1 - Config overrides create
 		{
+			Name: "Config overrides create",
 			ResourceDefaultTimeout: timeoutForValues(10, 0, 5, 0, 0),
 			Config:                 expectedConfigForValues(2, 0, 7, 0, 0),
 			Expected:               timeoutForValues(2, 0, 7, 0, 0),
 			ShouldErr:              false,
 		},
-		// 2 - Config overrides create, default provided. Note that expected still
-		// has zero values, even with a config. The default lookup is handled in
-		// ResourceData
 		{
+			Name: "Config overrides create, default provided. Should still have zero values",
 			ResourceDefaultTimeout: timeoutForValues(10, 0, 5, 0, 3),
 			Config:                 expectedConfigForValues(2, 0, 7, 0, 0),
 			Expected:               timeoutForValues(2, 0, 7, 0, 3),
 			ShouldErr:              false,
 		},
-		// 3 - use something besides "minutes"
 		{
+			Name: "Use something besides 'minutes'",
 			ResourceDefaultTimeout: timeoutForValues(10, 0, 5, 0, 3),
 			Config: []map[string]interface{}{
 				map[string]interface{}{
@@ -57,38 +56,40 @@ func TestResourceTimeout_ConfigDecode_badkey(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		r := &Resource{
-			Timeouts: c.ResourceDefaultTimeout,
-		}
-
-		raw, err := config.NewRawConfig(
-			map[string]interface{}{
-				"foo":     "bar",
-				"timeout": c.Config,
-			})
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		conf := terraform.NewResourceConfig(raw)
-
-		timeout := &ResourceTimeout{}
-		decodeErr := timeout.ConfigDecode(r, conf)
-		if c.ShouldErr {
-			if decodeErr == nil {
-				t.Fatalf("ConfigDecode case (%d): Expected bad timeout key: %s", i, decodeErr)
+		t.Run(fmt.Sprintf("%d-%s", i, c.Name), func(t *testing.T) {
+			r := &Resource{
+				Timeouts: c.ResourceDefaultTimeout,
 			}
-			// should error, err was not nil, continue
-			continue
-		} else {
-			if decodeErr != nil {
-				// should not error, error was not nil, fatal
-				t.Fatalf("decodeError was not nil: %s", decodeErr)
-			}
-		}
 
-		if !reflect.DeepEqual(c.Expected, timeout) {
-			t.Fatalf("ConfigDecode match error case (%d), expected:\n%#v\ngot:\n%#v", i, c.Expected, timeout)
-		}
+			raw, err := config.NewRawConfig(
+				map[string]interface{}{
+					"foo":     "bar",
+					"timeout": c.Config,
+				})
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			conf := terraform.NewResourceConfig(raw)
+
+			timeout := &ResourceTimeout{}
+			decodeErr := timeout.ConfigDecode(r, conf)
+			if c.ShouldErr {
+				if decodeErr == nil {
+					t.Fatalf("ConfigDecode case (%d): Expected bad timeout key: %s", i, decodeErr)
+				}
+				// should error, err was not nil, continue
+				return
+			} else {
+				if decodeErr != nil {
+					// should not error, error was not nil, fatal
+					t.Fatalf("decodeError was not nil: %s", decodeErr)
+				}
+			}
+
+			if !reflect.DeepEqual(c.Expected, timeout) {
+				t.Fatalf("ConfigDecode match error case (%d), expected:\n%#v\ngot:\n%#v", i, c.Expected, timeout)
+			}
+		})
 	}
 }
 
