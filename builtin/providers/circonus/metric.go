@@ -43,11 +43,11 @@ func (m *circonusMetric) ParseConfig(id string, ar attrReader) error {
 func (m *circonusMetric) SaveState(d *schema.ResourceData) error {
 	d.SetId(string(m.ID))
 
-	stateSet(d, metricActiveAttr, metricAPIStatusToBool(m.Status))
-	stateSet(d, metricNameAttr, m.Name)
-	stateSet(d, metricTagsAttr, tagsToState(apiToTags(m.Tags)))
-	stateSet(d, metricTypeAttr, m.Type)
-	stateSet(d, metricUnitAttr, indirect(m.Units))
+	d.Set(metricActiveAttr, metricAPIStatusToBool(m.Status))
+	d.Set(metricNameAttr, m.Name)
+	d.Set(metricTagsAttr, tagsToState(apiToTags(m.Tags)))
+	d.Set(metricTypeAttr, m.Type)
+	d.Set(metricUnitAttr, indirect(m.Units))
 
 	return nil
 }

@@ -14,12 +14,12 @@ import (
 
 const (
 	// circonus_metric.* resource attribute names
-	metricActiveAttr schemaAttr = "active"
-	metricIDAttr     schemaAttr = "id"
-	metricNameAttr   schemaAttr = "name"
-	metricTypeAttr   schemaAttr = "type"
-	metricTagsAttr   schemaAttr = "tags"
-	metricUnitAttr   schemaAttr = "unit"
+	metricActiveAttr = "active"
+	metricIDAttr     = "id"
+	metricNameAttr   = "name"
+	metricTypeAttr   = "type"
+	metricTagsAttr   = "tags"
+	metricUnitAttr   = "unit"
 
 	// CheckBundle.Metric.Status can be one of these values
 	metricStatusActive    = "active"
