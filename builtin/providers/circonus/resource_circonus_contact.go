@@ -781,7 +781,6 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 	if v, ok := d.GetOk(contactAggregationWindowAttr); ok {
 		aggWindow, _ := time.ParseDuration(v.(string))
 		cg.AggregationWindow = uint(aggWindow.Seconds())
-		stateSet(d, contactAggregationWindowAttr, fmt.Sprintf("%ds", cg.AggregationWindow))
 	}
 
 	if v, ok := d.GetOk(contactAlertOptionAttr); ok {
