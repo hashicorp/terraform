@@ -340,7 +340,7 @@ func (d *ResourceData) State() *terraform.InstanceState {
 }
 
 // Timeout returns the data for the given timeout key
-// Returns zero for any key not found, or not found and no default.
+// Returns a duration of 20 minutes for any key not found, or not found and no default.
 func (d *ResourceData) Timeout(key string) time.Duration {
 	key = strings.ToLower(key)
 
