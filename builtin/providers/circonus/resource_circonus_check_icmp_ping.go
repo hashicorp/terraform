@@ -88,7 +88,9 @@ func checkAPIToStateICMPPing(c *circonusCheck, d *schema.ResourceData) error {
 	icmpPingConfig[string(checkICMPPingCountAttr)] = int(count)
 	icmpPingConfig[string(checkICMPPingIntervalAttr)] = interval.String()
 
-	stateSet(d, checkICMPPingAttr, schema.NewSet(hashCheckICMPPing, []interface{}{icmpPingConfig}))
+	if err := d.Set(checkICMPPingAttr, schema.NewSet(hashCheckICMPPing, []interface{}{icmpPingConfig})); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkICMPPingAttr), err)
+	}
 
 	return nil
 }

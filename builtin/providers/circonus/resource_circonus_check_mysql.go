@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/circonus-labs/circonus-gometrics/api/config"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -52,7 +53,9 @@ func checkAPIToStateMySQL(c *circonusCheck, d *schema.ResourceData) error {
 	MySQLConfig[string(checkMySQLDSNAttr)] = c.Config[config.DSN]
 	MySQLConfig[string(checkMySQLQueryAttr)] = c.Config[config.SQL]
 
-	stateSet(d, checkMySQLAttr, schema.NewSet(hashCheckMySQL, []interface{}{MySQLConfig}))
+	if err := d.Set(checkMySQLAttr, schema.NewSet(hashCheckMySQL, []interface{}{MySQLConfig})); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkMySQLAttr), err)
+	}
 
 	return nil
 }

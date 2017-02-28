@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/circonus-labs/circonus-gometrics/api/config"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -104,7 +105,9 @@ func checkAPIToStatePostgreSQL(c *circonusCheck, d *schema.ResourceData) error {
 	postgresqlConfig[string(checkPostgreSQLDSNAttr)] = c.Config[config.DSN]
 	postgresqlConfig[string(checkPostgreSQLQueryAttr)] = c.Config[config.SQL]
 
-	stateSet(d, checkPostgreSQLAttr, schema.NewSet(hashCheckPostgreSQL, []interface{}{postgresqlConfig}))
+	if err := d.Set(checkPostgreSQLAttr, schema.NewSet(hashCheckPostgreSQL, []interface{}{postgresqlConfig})); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkPostgreSQLAttr), err)
+	}
 
 	return nil
 }

@@ -29,44 +29,44 @@ import (
 
 const (
 	// circonus_check.* global resource attribute names
-	checkActiveAttr      schemaAttr = "active"
-	checkCAQLAttr        schemaAttr = "caql"
-	checkCloudWatchAttr  schemaAttr = "cloudwatch"
-	checkCollectorAttr   schemaAttr = "collector"
-	checkHTTPAttr        schemaAttr = "http"
-	checkHTTPTrapAttr    schemaAttr = "httptrap"
-	checkICMPPingAttr    schemaAttr = "icmp_ping"
-	checkJSONAttr        schemaAttr = "json"
-	checkMetricLimitAttr schemaAttr = "metric_limit"
-	checkMySQLAttr       schemaAttr = "mysql"
-	checkNameAttr        schemaAttr = "name"
-	checkNotesAttr       schemaAttr = "notes"
-	checkPeriodAttr      schemaAttr = "period"
-	checkPostgreSQLAttr  schemaAttr = "postgresql"
-	checkStreamAttr      schemaAttr = "stream"
-	checkTagsAttr        schemaAttr = "tags"
-	checkTargetAttr      schemaAttr = "target"
-	checkTCPAttr         schemaAttr = "tcp"
-	checkTimeoutAttr     schemaAttr = "timeout"
-	checkTypeAttr        schemaAttr = "type"
+	checkActiveAttr      = "active"
+	checkCAQLAttr        = "caql"
+	checkCloudWatchAttr  = "cloudwatch"
+	checkCollectorAttr   = "collector"
+	checkHTTPAttr        = "http"
+	checkHTTPTrapAttr    = "httptrap"
+	checkICMPPingAttr    = "icmp_ping"
+	checkJSONAttr        = "json"
+	checkMetricLimitAttr = "metric_limit"
+	checkMySQLAttr       = "mysql"
+	checkNameAttr        = "name"
+	checkNotesAttr       = "notes"
+	checkPeriodAttr      = "period"
+	checkPostgreSQLAttr  = "postgresql"
+	checkStreamAttr      = "stream"
+	checkTagsAttr        = "tags"
+	checkTargetAttr      = "target"
+	checkTCPAttr         = "tcp"
+	checkTimeoutAttr     = "timeout"
+	checkTypeAttr        = "type"
 
 	// circonus_check.collector.* resource attribute names
-	checkCollectorIDAttr schemaAttr = "id"
+	checkCollectorIDAttr = "id"
 
 	// circonus_check.stream.* resource attribute names are aliased to
 	// circonus_metric.* resource attributes.
 
 	// circonus_check.streams.* resource attribute names
-	// metricIDAttr schemaAttr = "id"
+	// metricIDAttr  = "id"
 
 	// Out parameters for circonus_check
-	checkOutByCollectorAttr        schemaAttr = "check_by_collector"
-	checkOutCheckUUIDsAttr         schemaAttr = "uuids"
-	checkOutChecksAttr             schemaAttr = "checks"
-	checkOutCreatedAttr            schemaAttr = "created"
-	checkOutLastModifiedAttr       schemaAttr = "last_modified"
-	checkOutLastModifiedByAttr     schemaAttr = "last_modified_by"
-	checkOutReverseConnectURLsAttr schemaAttr = "reverse_connect_urls"
+	checkOutByCollectorAttr        = "check_by_collector"
+	checkOutCheckUUIDsAttr         = "uuids"
+	checkOutChecksAttr             = "checks"
+	checkOutCreatedAttr            = "created"
+	checkOutLastModifiedAttr       = "last_modified"
+	checkOutLastModifiedByAttr     = "last_modified_by"
+	checkOutReverseConnectURLsAttr = "reverse_connect_urls"
 )
 
 const (
@@ -360,20 +360,33 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 	// Write the global circonus_check parameters followed by the check
 	// type-specific parameters.
 
-	stateSet(d, checkActiveAttr, checkAPIStatusToBool(c.Status))
-	stateSet(d, checkCollectorAttr, stringListToSet(c.Brokers, checkCollectorIDAttr))
-	stateSet(d, checkMetricLimitAttr, c.MetricLimit)
-	stateSet(d, checkNameAttr, c.DisplayName)
-	stateSet(d, checkNotesAttr, c.Notes)
-	stateSet(d, checkPeriodAttr, fmt.Sprintf("%ds", c.Period))
-	stateSet(d, checkStreamAttr, streams)
-	stateSet(d, checkTagsAttr, c.Tags)
-	stateSet(d, checkTargetAttr, c.Target)
+	d.Set(checkActiveAttr, checkAPIStatusToBool(c.Status))
+
+	if err := d.Set(checkCollectorAttr, stringListToSet(c.Brokers, checkCollectorIDAttr)); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkCollectorAttr), err)
+	}
+
+	d.Set(checkMetricLimitAttr, c.MetricLimit)
+	d.Set(checkNameAttr, c.DisplayName)
+	d.Set(checkNotesAttr, c.Notes)
+	d.Set(checkPeriodAttr, fmt.Sprintf("%ds", c.Period))
+
+	if err := d.Set(checkStreamAttr, streams); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkStreamAttr), err)
+	}
+
+	if err := d.Set(checkTagsAttr, c.Tags); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkTagsAttr), err)
+	}
+
+	d.Set(checkTargetAttr, c.Target)
+
 	{
 		t, _ := time.ParseDuration(fmt.Sprintf("%fs", c.Timeout))
-		stateSet(d, checkTimeoutAttr, t.String())
+		d.Set(checkTimeoutAttr, t.String())
 	}
-	stateSet(d, checkTypeAttr, c.Type)
+
+	d.Set(checkTypeAttr, c.Type)
 
 	// Last step: parse a check_bundle's config into the statefile.
 	if err := parseCheckTypeConfig(&c, d); err != nil {
@@ -381,13 +394,25 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Out parameters
-	stateSet(d, checkOutByCollectorAttr, checkIDsByCollector)
-	stateSet(d, checkOutCheckUUIDsAttr, c.CheckUUIDs)
-	stateSet(d, checkOutChecksAttr, c.Checks)
-	stateSet(d, checkOutCreatedAttr, c.Created)
-	stateSet(d, checkOutLastModifiedAttr, c.LastModified)
-	stateSet(d, checkOutLastModifiedByAttr, c.LastModifedBy)
-	stateSet(d, checkOutReverseConnectURLsAttr, c.ReverseConnectURLs)
+	if err := d.Set(checkOutByCollectorAttr, checkIDsByCollector); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkOutByCollectorAttr), err)
+	}
+
+	if err := d.Set(checkOutCheckUUIDsAttr, c.CheckUUIDs); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkOutCheckUUIDsAttr), err)
+	}
+
+	if err := d.Set(checkOutChecksAttr, c.Checks); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkOutChecksAttr), err)
+	}
+
+	d.Set(checkOutCreatedAttr, c.Created)
+	d.Set(checkOutLastModifiedAttr, c.LastModified)
+	d.Set(checkOutLastModifiedByAttr, c.LastModifedBy)
+
+	if err := d.Set(checkOutReverseConnectURLsAttr, c.ReverseConnectURLs); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkOutReverseConnectURLsAttr), err)
+	}
 
 	return nil
 }

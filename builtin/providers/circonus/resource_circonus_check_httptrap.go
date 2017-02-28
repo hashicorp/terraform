@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/circonus-labs/circonus-gometrics/api/config"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -96,7 +97,9 @@ func checkAPIToStateHTTPTrap(c *circonusCheck, d *schema.ResourceData) error {
 		}
 	}
 
-	stateSet(d, checkHTTPTrapAttr, schema.NewSet(hashCheckHTTPTrap, []interface{}{httpTrapConfig}))
+	if err := d.Set(checkHTTPTrapAttr, schema.NewSet(hashCheckHTTPTrap, []interface{}{httpTrapConfig})); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkHTTPTrapAttr), err)
+	}
 
 	return nil
 }

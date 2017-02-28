@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/circonus-labs/circonus-gometrics/api/config"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -43,7 +44,9 @@ func checkAPIToStateCAQL(c *circonusCheck, d *schema.ResourceData) error {
 
 	caqlConfig[string(checkCAQLQueryAttr)] = c.Config[config.Query]
 
-	stateSet(d, checkCAQLAttr, schema.NewSet(hashCheckCAQL, []interface{}{caqlConfig}))
+	if err := d.Set(checkCAQLAttr, schema.NewSet(hashCheckCAQL, []interface{}{caqlConfig})); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkCAQLAttr), err)
+	}
 
 	return nil
 }
