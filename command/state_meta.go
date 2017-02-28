@@ -11,7 +11,9 @@ import (
 )
 
 // StateMeta is the meta struct that should be embedded in state subcommands.
-type StateMeta struct{}
+type StateMeta struct {
+	Meta
+}
 
 // State returns the state for this meta. This is different then Meta.State
 // in the way that backups are done. This configures backups to be timestamped
@@ -23,8 +25,9 @@ func (c *StateMeta) State(m *Meta) (state.State, error) {
 		return nil, err
 	}
 
+	env := c.Env()
 	// Get the state
-	s, err := b.State()
+	s, err := b.State(env)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +39,7 @@ func (c *StateMeta) State(m *Meta) (state.State, error) {
 		panic(err)
 	}
 	localB := localRaw.(*backendlocal.Local)
-	_, stateOutPath, _, err := localB.StatePaths()
+	_, stateOutPath, _, err := localB.StatePaths(env)
 	if err != nil {
 		return nil, err
 	}

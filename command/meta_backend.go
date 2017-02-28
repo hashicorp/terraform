@@ -148,6 +148,7 @@ func (m *Meta) Operation() *backend.Operation {
 		PlanOutBackend: m.backendState,
 		Targets:        m.targets,
 		UIIn:           m.UIInput(),
+		Environment:    m.Env(),
 	}
 }
 
@@ -526,8 +527,10 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 		return nil, err
 	}
 
+	env := m.Env()
+
 	// Get the state so we can determine the effect of using this plan
-	realMgr, err := b.State()
+	realMgr, err := b.State(env)
 	if err != nil {
 		return nil, fmt.Errorf("Error reading state: %s", err)
 	}
@@ -642,7 +645,10 @@ func (m *Meta) backend_c_r_S(
 		if err != nil {
 			return nil, fmt.Errorf(strings.TrimSpace(errBackendLocalRead), err)
 		}
-		localState, err := localB.State()
+
+		env := m.Env()
+
+		localState, err := localB.State(env)
 		if err != nil {
 			return nil, fmt.Errorf(strings.TrimSpace(errBackendLocalRead), err)
 		}
@@ -656,7 +662,7 @@ func (m *Meta) backend_c_r_S(
 			return nil, fmt.Errorf(
 				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
 		}
-		backendState, err := b.State()
+		backendState, err := b.State(env)
 		if err != nil {
 			return nil, fmt.Errorf(
 				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
@@ -751,7 +757,10 @@ func (m *Meta) backend_c_R_S(
 	if err != nil {
 		return nil, fmt.Errorf(errBackendLocalRead, err)
 	}
-	localState, err := localB.State()
+
+	env := m.Env()
+
+	localState, err := localB.State(env)
 	if err != nil {
 		return nil, fmt.Errorf(errBackendLocalRead, err)
 	}
@@ -782,7 +791,7 @@ func (m *Meta) backend_c_R_S(
 		if err != nil {
 			return nil, err
 		}
-		oldState, err := oldB.State()
+		oldState, err := oldB.State(env)
 		if err != nil {
 			return nil, fmt.Errorf(
 				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
@@ -884,7 +893,10 @@ func (m *Meta) backend_C_R_s(
 		if err != nil {
 			return nil, err
 		}
-		oldState, err := oldB.State()
+
+		env := m.Env()
+
+		oldState, err := oldB.State(env)
 		if err != nil {
 			return nil, fmt.Errorf(
 				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
@@ -895,7 +907,7 @@ func (m *Meta) backend_C_R_s(
 		}
 
 		// Get the new state
-		newState, err := b.State()
+		newState, err := b.State(env)
 		if err != nil {
 			return nil, fmt.Errorf(strings.TrimSpace(errBackendNewRead), err)
 		}
@@ -949,7 +961,10 @@ func (m *Meta) backend_C_r_s(
 	if err != nil {
 		return nil, fmt.Errorf(errBackendLocalRead, err)
 	}
-	localState, err := localB.State()
+
+	env := m.Env()
+
+	localState, err := localB.State(env)
 	if err != nil {
 		return nil, fmt.Errorf(errBackendLocalRead, err)
 	}
@@ -960,7 +975,7 @@ func (m *Meta) backend_C_r_s(
 	// If the local state is not empty, we need to potentially do a
 	// state migration to the new backend (with user permission).
 	if localS := localState.State(); !localS.Empty() {
-		backendState, err := b.State()
+		backendState, err := b.State(env)
 		if err != nil {
 			return nil, fmt.Errorf(errBackendRemoteRead, err)
 		}
@@ -1065,7 +1080,9 @@ func (m *Meta) backend_C_r_S_changed(
 				"Error loading previously configured backend: %s", err)
 		}
 
-		oldState, err := oldB.State()
+		env := m.Env()
+
+		oldState, err := oldB.State(env)
 		if err != nil {
 			return nil, fmt.Errorf(
 				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
@@ -1076,7 +1093,7 @@ func (m *Meta) backend_C_r_S_changed(
 		}
 
 		// Get the new state
-		newState, err := b.State()
+		newState, err := b.State(env)
 		if err != nil {
 			return nil, fmt.Errorf(strings.TrimSpace(errBackendNewRead), err)
 		}
@@ -1226,7 +1243,10 @@ func (m *Meta) backend_C_R_S_unchanged(
 		if err != nil {
 			return nil, err
 		}
-		oldState, err := oldB.State()
+
+		env := m.Env()
+
+		oldState, err := oldB.State(env)
 		if err != nil {
 			return nil, fmt.Errorf(
 				strings.TrimSpace(errBackendSavedUnsetConfig), s.Remote.Type, err)
@@ -1237,7 +1257,7 @@ func (m *Meta) backend_C_R_S_unchanged(
 		}
 
 		// Get the new state
-		newState, err := b.State()
+		newState, err := b.State(env)
 		if err != nil {
 			return nil, fmt.Errorf(strings.TrimSpace(errBackendNewRead), err)
 		}

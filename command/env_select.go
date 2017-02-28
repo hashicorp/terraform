@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/backend"
 	"github.com/mitchellh/cli"
 )
 
@@ -41,19 +40,14 @@ func (c *EnvSelectCommand) Run(args []string) int {
 
 	name := args[0]
 
-	multi, ok := b.(backend.MultiState)
-	if !ok {
-		c.Ui.Error(envNotSupported)
-		return 1
-	}
-
-	states, current, err := multi.States()
+	states, err := b.States()
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
 
-	if current == name {
+	if name == c.Env() {
+		// already using this env
 		return 0
 	}
 
@@ -70,7 +64,7 @@ func (c *EnvSelectCommand) Run(args []string) int {
 		return 1
 	}
 
-	err = multi.ChangeState(name)
+	err = c.SetEnv(name)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

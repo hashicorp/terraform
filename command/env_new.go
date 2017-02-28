@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -49,13 +48,7 @@ func (c *EnvNewCommand) Run(args []string) int {
 		return 1
 	}
 
-	multi, ok := b.(backend.MultiState)
-	if !ok {
-		c.Ui.Error(envNotSupported)
-		return 1
-	}
-
-	states, _, err := multi.States()
+	states, err := b.States()
 	for _, s := range states {
 		if newEnv == s {
 			c.Ui.Error(fmt.Sprintf(envExists, newEnv))
@@ -63,9 +56,15 @@ func (c *EnvNewCommand) Run(args []string) int {
 		}
 	}
 
-	err = multi.ChangeState(newEnv)
+	_, err = b.State(newEnv)
 	if err != nil {
 		c.Ui.Error(err.Error())
+		return 1
+	}
+
+	// now save the current env locally
+	if err := c.SetEnv(newEnv); err != nil {
+		c.Ui.Error(fmt.Sprintf("error saving new environment name: %s", err))
 		return 1
 	}
 
@@ -81,7 +80,7 @@ func (c *EnvNewCommand) Run(args []string) int {
 	}
 
 	// load the new Backend state
-	sMgr, err := b.State()
+	sMgr, err := b.State(newEnv)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

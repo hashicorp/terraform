@@ -46,9 +46,11 @@ func TestStateRm(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateRmCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(p),
+				Ui:          ui,
+			},
 		},
 	}
 
@@ -112,9 +114,11 @@ func TestStateRm_backupExplicit(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateRmCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(p),
+				Ui:          ui,
+			},
 		},
 	}
 

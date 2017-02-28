@@ -9,7 +9,7 @@ import (
 // StateCommand is a Command implementation that just shows help for
 // the subcommands nested below it.
 type StateCommand struct {
-	Meta
+	StateMeta
 }
 
 func (c *StateCommand) Run(args []string) int {

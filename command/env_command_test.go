@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"testing"
 
@@ -24,10 +23,7 @@ func TestEnv_createAndChange(t *testing.T) {
 
 	newCmd := &EnvNewCommand{}
 
-	current, err := currentEnv()
-	if err != nil {
-		t.Fatal(err)
-	}
+	current := newCmd.Env()
 	if current != backend.DefaultStateName {
 		t.Fatal("current env should be 'default'")
 	}
@@ -39,12 +35,9 @@ func TestEnv_createAndChange(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	current, err = currentEnv()
-	if err != nil {
-		t.Fatal(err)
-	}
+	current = newCmd.Env()
 	if current != "test" {
-		t.Fatal("current env should be 'test'")
+		t.Fatalf("current env should be 'test', got %q", current)
 	}
 
 	selCmd := &EnvSelectCommand{}
@@ -55,11 +48,7 @@ func TestEnv_createAndChange(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	current, err = currentEnv()
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	current = newCmd.Env()
 	if current != backend.DefaultStateName {
 		t.Fatal("current env should be 'default'")
 	}
@@ -173,29 +162,35 @@ func TestEnv_delete(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	current, err := currentEnv()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if current != "test" {
-		t.Fatal("wrong env:", current)
-	}
-
 	ui := new(cli.MockUi)
 	delCmd := &EnvDeleteCommand{
 		Meta: Meta{Ui: ui},
 	}
-	args := []string{"test"}
-	if code := delCmd.Run(args); code != 0 {
-		t.Fatalf("failure: %s", ui.ErrorWriter)
+
+	current := delCmd.Env()
+	if current != "test" {
+		t.Fatal("wrong env:", current)
 	}
 
-	current, err = currentEnv()
-	if err != nil {
+	// we can't delete out current environment
+	args := []string{"test"}
+	if code := delCmd.Run(args); code == 0 {
+		t.Fatal("expected error deleting current env")
+	}
+
+	// change back to default
+	if err := delCmd.SetEnv(backend.DefaultStateName); err != nil {
 		t.Fatal(err)
 	}
 
+	// try the delete again
+	ui = new(cli.MockUi)
+	delCmd.Meta.Ui = ui
+	if code := delCmd.Run(args); code != 0 {
+		t.Fatalf("error deleting env: %s", ui.ErrorWriter)
+	}
+
+	current = delCmd.Env()
 	if current != backend.DefaultStateName {
 		t.Fatalf("wrong env: %q", current)
 	}
@@ -254,59 +249,4 @@ func TestEnv_deleteWithState(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(local.DefaultEnvDir, "test")); !os.IsNotExist(err) {
 		t.Fatal("env 'test' still exists!")
 	}
-}
-
-func currentEnv() (string, error) {
-	contents, err := ioutil.ReadFile(filepath.Join(DefaultDataDir, local.DefaultEnvFile))
-	if os.IsNotExist(err) {
-		return backend.DefaultStateName, nil
-	}
-	if err != nil {
-		return "", err
-	}
-
-	current := strings.TrimSpace(string(contents))
-	if current == "" {
-		current = backend.DefaultStateName
-	}
-
-	return current, nil
-}
-
-func envStatePath() (string, error) {
-	currentEnv, err := currentEnv()
-	if err != nil {
-		return "", err
-	}
-
-	if currentEnv == backend.DefaultStateName {
-		return DefaultStateFilename, nil
-	}
-
-	return filepath.Join(local.DefaultEnvDir, currentEnv, DefaultStateFilename), nil
-}
-
-func listEnvs() ([]string, error) {
-	entries, err := ioutil.ReadDir(local.DefaultEnvDir)
-	// no error if there's no envs configured
-	if os.IsNotExist(err) {
-		return []string{backend.DefaultStateName}, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	var envs []string
-	for _, entry := range entries {
-		if entry.IsDir() {
-			envs = append(envs, filepath.Base(entry.Name()))
-		}
-	}
-
-	sort.Strings(envs)
-
-	// always start with "default"
-	envs = append([]string{backend.DefaultStateName}, envs...)
-
-	return envs, nil
 }

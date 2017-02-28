@@ -9,7 +9,6 @@ import (
 
 // StateRmCommand is a Command implementation that shows a single resource.
 type StateRmCommand struct {
-	Meta
 	StateMeta
 }
 

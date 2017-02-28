@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/mitchellh/cli"
 
@@ -46,13 +45,7 @@ func (c *EnvDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	multi, ok := b.(backend.MultiState)
-	if !ok {
-		c.Ui.Error(envNotSupported)
-		return 1
-	}
-
-	states, current, err := multi.States()
+	states, err := b.States()
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -71,24 +64,13 @@ func (c *EnvDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	// In order to check if the state being deleted is empty, we need to change
-	// to that state and load it.
-	if current != delEnv {
-		if err := multi.ChangeState(delEnv); err != nil {
-			c.Ui.Error(err.Error())
-			return 1
-		}
-
-		// always try to change back after
-		defer func() {
-			if err := multi.ChangeState(current); err != nil {
-				c.Ui.Error(err.Error())
-			}
-		}()
+	if delEnv == c.Env() {
+		c.Ui.Error(fmt.Sprintf(envDelCurrent, delEnv))
+		return 1
 	}
 
 	// we need the actual state to see if it's empty
-	sMgr, err := b.State()
+	sMgr, err := b.State(delEnv)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -116,7 +98,7 @@ func (c *EnvDeleteCommand) Run(args []string) int {
 	}
 	defer clistate.Unlock(sMgr, lockID, c.Ui, c.Colorize())
 
-	err = multi.DeleteState(delEnv)
+	err = b.DeleteState(delEnv)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
