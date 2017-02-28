@@ -19,17 +19,17 @@ import (
 
 const (
 	// circonus_stream_group.* resource attribute names
-	streamGroupDescriptionAttr schemaAttr = "description"
-	streamGroupNameAttr        schemaAttr = "name"
-	streamGroupGroupAttr       schemaAttr = "group"
-	streamGroupTagsAttr        schemaAttr = "tags"
+	streamGroupDescriptionAttr = "description"
+	streamGroupNameAttr        = "name"
+	streamGroupGroupAttr       = "group"
+	streamGroupTagsAttr        = "tags"
 
 	// circonus_stream_group.* out parameters
-	streamGroupIDAttr schemaAttr = "id"
+	streamGroupIDAttr = "id"
 
 	// circonus_stream_group.group.* resource attribute names
-	streamGroupQueryAttr schemaAttr = "query"
-	streamGroupTypeAttr  schemaAttr = "type"
+	streamGroupQueryAttr = "query"
+	streamGroupTypeAttr  = "type"
 )
 
 var streamGroupDescriptions = attrDescrs{
@@ -158,9 +158,13 @@ func streamGroupRead(d *schema.ResourceData, meta interface{}) error {
 		groups.Add(groupAttrs)
 	}
 
-	stateSet(d, streamGroupDescriptionAttr, sg.Description)
-	stateSet(d, streamGroupNameAttr, sg.Name)
-	stateSet(d, streamGroupTagsAttr, tagsToState(apiToTags(sg.Tags)))
+	d.Set(streamGroupDescriptionAttr, sg.Description)
+	d.Set(streamGroupNameAttr, sg.Name)
+
+	if err := d.Set(streamGroupTagsAttr, tagsToState(apiToTags(sg.Tags))); err != nil {
+		return errwrap.Wrapf("Unable to store stream group tags: {{err}}", err)
+	}
+
 	stateSet(d, streamGroupIDAttr, sg.CID)
 
 	return nil
