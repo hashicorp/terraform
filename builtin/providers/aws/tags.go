@@ -76,7 +76,7 @@ func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 		oraw, nraw := d.GetChange("tags")
 		o := oraw.(map[string]interface{})
 		n := nraw.(map[string]interface{})
-		create, remove := diffTags(tagsFromMap(o), tagsFromMap(n))
+		create, remove := diffTags(tagsFromMap(o, false), tagsFromMap(n, false))
 
 		// Set tags
 		if len(remove) > 0 {
@@ -143,19 +143,28 @@ func diffTags(oldTags, newTags []*ec2.Tag) ([]*ec2.Tag, []*ec2.Tag) {
 		}
 	}
 
-	return tagsFromMap(create), remove
+	return tagsFromMap(create, false), remove
 }
 
 // tagsFromMap returns the tags for the given map of data.
-func tagsFromMap(m map[string]interface{}) []*ec2.Tag {
+func tagsFromMap(m map[string]interface{}, allowInternalTags bool) []*ec2.Tag {
 	result := make([]*ec2.Tag, 0, len(m))
 	for k, v := range m {
 		t := &ec2.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
 		}
-		if !tagIgnored(t) {
+
+		// Allow the caller to opt-out of the internal AWS tag filtering. This
+		// is particularly useful for data sources that want to perform read-only
+		// operations on internal AWS tags.
+		if allowInternalTags {
+			log.Printf("[DEBUG] Allowing internal AWS tag %v with %v\n", *t.Key, *t.Value)
 			result = append(result, t)
+		} else {
+			if !tagIgnored(t) {
+				result = append(result, t)
+			}
 		}
 	}
 
@@ -163,11 +172,19 @@ func tagsFromMap(m map[string]interface{}) []*ec2.Tag {
 }
 
 // tagsToMap turns the list of tags into a map.
-func tagsToMap(ts []*ec2.Tag) map[string]string {
+func tagsToMap(ts []*ec2.Tag, allowInternalTags bool) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		if !tagIgnored(t) {
+		// Allow the caller to opt-out of the internal AWS tag filtering. This
+		// is particularly useful for data sources that want to perform read-only
+		// operations on internal AWS tags.
+		if allowInternalTags {
+			log.Printf("[DEBUG] Allowing internal AWS tag %v with %v\n", *t.Key, *t.Value)
 			result[*t.Key] = *t.Value
+		} else {
+			if !tagIgnored(t) {
+				result[*t.Key] = *t.Value
+			}
 		}
 	}
 

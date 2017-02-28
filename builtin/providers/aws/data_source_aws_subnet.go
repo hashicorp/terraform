@@ -86,7 +86,7 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 		},
 	)
 	req.Filters = append(req.Filters, buildEC2TagFilterList(
-		tagsFromMap(d.Get("tags").(map[string]interface{})),
+		tagsFromMap(d.Get("tags").(map[string]interface{}), true),
 	)...)
 	req.Filters = append(req.Filters, buildEC2CustomFilterList(
 		d.Get("filter").(*schema.Set),
@@ -117,7 +117,7 @@ func dataSourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("cidr_block", subnet.CidrBlock)
 	d.Set("default_for_az", subnet.DefaultForAz)
 	d.Set("state", subnet.State)
-	d.Set("tags", tagsToMap(subnet.Tags))
+	d.Set("tags", tagsToMap(subnet.Tags, true))
 
 	return nil
 }

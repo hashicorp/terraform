@@ -157,7 +157,7 @@ func resourceAwsCustomerGatewayRead(d *schema.ResourceData, meta interface{}) er
 	customerGateway := resp.CustomerGateways[0]
 	d.Set("ip_address", customerGateway.IpAddress)
 	d.Set("type", customerGateway.Type)
-	d.Set("tags", tagsToMap(customerGateway.Tags))
+	d.Set("tags", tagsToMap(customerGateway.Tags, false))
 
 	if *customerGateway.BgpAsn != "" {
 		val, err := strconv.ParseInt(*customerGateway.BgpAsn, 0, 0)

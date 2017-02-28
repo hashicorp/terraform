@@ -225,7 +225,7 @@ func dataSourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	if tagsOk {
 		params.Filters = append(params.Filters, buildEC2TagFilterList(
-			tagsFromMap(tags.(map[string]interface{})),
+			tagsFromMap(tags.(map[string]interface{}), true),
 		)...)
 	}
 

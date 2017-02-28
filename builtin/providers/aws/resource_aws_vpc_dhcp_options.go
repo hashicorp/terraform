@@ -155,7 +155,7 @@ func resourceAwsVpcDhcpOptionsRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	opts := resp.DhcpOptions[0]
-	d.Set("tags", tagsToMap(opts.Tags))
+	d.Set("tags", tagsToMap(opts.Tags, false))
 
 	for _, cfg := range opts.DhcpConfigurations {
 		tfKey := strings.Replace(*cfg.Key, "-", "_", -1)

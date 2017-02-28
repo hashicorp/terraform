@@ -152,7 +152,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("instance_tenancy", vpc.InstanceTenancy)
 
 	// Tags
-	d.Set("tags", tagsToMap(vpc.Tags))
+	d.Set("tags", tagsToMap(vpc.Tags, false))
 
 	// Attributes
 	attribute := "enableDnsSupport"

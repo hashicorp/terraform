@@ -205,7 +205,7 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("vpc_id", networkAcl.VpcId)
-	d.Set("tags", tagsToMap(networkAcl.Tags))
+	d.Set("tags", tagsToMap(networkAcl.Tags, false))
 
 	var s []string
 	for _, a := range networkAcl.Associations {

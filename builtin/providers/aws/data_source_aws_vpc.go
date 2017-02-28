@@ -84,7 +84,7 @@ func dataSourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 		},
 	)
 	req.Filters = append(req.Filters, buildEC2TagFilterList(
-		tagsFromMap(d.Get("tags").(map[string]interface{})),
+		tagsFromMap(d.Get("tags").(map[string]interface{}), true),
 	)...)
 	req.Filters = append(req.Filters, buildEC2CustomFilterList(
 		d.Get("filter").(*schema.Set),
@@ -115,7 +115,7 @@ func dataSourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("instance_tenancy", vpc.InstanceTenancy)
 	d.Set("default", vpc.IsDefault)
 	d.Set("state", vpc.State)
-	d.Set("tags", tagsToMap(vpc.Tags))
+	d.Set("tags", tagsToMap(vpc.Tags, true))
 
 	return nil
 }
