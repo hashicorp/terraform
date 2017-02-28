@@ -13,13 +13,9 @@ type apiCheckType string
 type attrDescr string
 type attrDescrs map[schemaAttr]attrDescr
 
-type metricType string
 type schemaAttr string
 
 type metricID string
-type metricName string
-
-type unit string
 
 type validString string
 type validStringValues []validString

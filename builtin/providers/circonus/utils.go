@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
@@ -100,71 +101,6 @@ func normalizeTimeDurationStringToSeconds(v interface{}) string {
 	}
 }
 
-// configGetBool returns the boolean value if found.
-func configGetBool(d *schema.ResourceData, attrName schemaAttr) bool {
-	return d.Get(string(attrName)).(bool)
-}
-
-// configGetBoolOk returns the boolean value if found and true as the second
-// argument, otherwise returns false if the value was not found.
-func configGetBoolOK(d *schema.ResourceData, attrName schemaAttr) (b, found bool) {
-	if v, ok := d.GetOk(string(attrName)); ok {
-		return v.(bool), true
-	}
-
-	return false, false
-}
-
-func configGetDurationOK(d *schema.ResourceData, attrName schemaAttr) (time.Duration, bool) {
-	if v, ok := d.GetOk(string(attrName)); ok {
-		d, err := time.ParseDuration(v.(string))
-		if err != nil {
-			return time.Duration(0), false
-		}
-
-		return d, true
-	}
-
-	return time.Duration(0), false
-}
-
-func schemaGetSetAsListOk(d *schema.ResourceData, attrName schemaAttr) (interfaceList, bool) {
-	if listRaw, ok := d.GetOk(string(attrName)); ok {
-		return listRaw.(*schema.Set).List(), true
-	}
-	return nil, false
-}
-
-// configGetString returns an attribute as a string.  If the attribute is not
-// found, return an empty string.
-func configGetString(d *schema.ResourceData, attrName schemaAttr) string {
-	if s, ok := schemaGetStringOK(d, attrName); ok {
-		return s
-	}
-
-	return ""
-}
-
-// schemaGetStringOK returns an attribute as a string and true if the attribute
-// was found.  If the attribute is not found, return an empty string.
-func schemaGetStringOK(d *schema.ResourceData, attrName schemaAttr) (string, bool) {
-	if v, ok := d.GetOk(string(attrName)); ok {
-		return v.(string), ok
-	}
-
-	return "", false
-}
-
-// configGetStringPtr returns an attribute as a *string.  If the attribute is
-// not found, return a nil pointer.
-func configGetStringPtr(d *schema.ResourceData, attrName schemaAttr) *string {
-	if s, ok := schemaGetStringOK(d, attrName); ok {
-		return &s
-	}
-
-	return nil
-}
-
 func indirect(v interface{}) interface{} {
 	switch v.(type) {
 	case string:
@@ -192,4 +128,8 @@ func suppressEquivalentTimeDurations(k, old, new string, d *schema.ResourceData)
 	}
 
 	return d1 == d2
+}
+
+func suppressWhitespace(v interface{}) string {
+	return strings.TrimSpace(v.(string))
 }

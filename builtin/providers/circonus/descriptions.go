@@ -1,10 +1,9 @@
 package circonus
 
 var (
-	accountDescription     map[string]string
-	checkMetricDescription map[string]string
-	collectorDescription   map[string]string
-	providerDescription    map[string]string
+	accountDescription   map[string]string
+	collectorDescription map[string]string
+	providerDescription  map[string]string
 )
 
 func init() {

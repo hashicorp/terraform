@@ -5,14 +5,11 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-	"text/scanner"
 	"time"
-	"unicode"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/circonus-labs/circonus-gometrics/api/config"
 	"github.com/hashicorp/errwrap"
-	uuid "github.com/hashicorp/go-uuid"
 )
 
 var knownCheckTypes map[circonusCheckType]struct{}
@@ -87,14 +84,6 @@ func validateCheckCloudWatchDimmensions(v interface{}, key string) (warnings []s
 		if !validDimmensionValue.MatchString(v) {
 			errors = append(errors, fmt.Errorf("Invalid value for CloudWatch Dimmension %q specified: %q", k, v))
 		}
-	}
-
-	return warnings, errors
-}
-
-func validateContactMethod(v interface{}, key string) (warnings []string, errors []error) {
-	if _, ok := knownContactMethods[contactMethods(v.(string))]; !ok {
-		warnings = append(warnings, fmt.Sprintf("Possibly unsupported contact method: %s", v.(string)))
 	}
 
 	return warnings, errors
@@ -302,49 +291,12 @@ func validateTag(v interface{}, key string) (warnings []string, errors []error) 
 	return warnings, errors
 }
 
-func validateTags(v interface{}, key string) (warnings []string, errors []error) {
-	for _, tagRaw := range v.([]interface{}) {
-		var s scanner.Scanner
-		s.Init(strings.NewReader(tagRaw.(string)))
-		s.Mode = scanner.ScanChars
-		var tok rune
-		permittedColons := 1
-	SCAN:
-		for tok != scanner.EOF {
-			switch tok = s.Scan(); {
-			case tok == ':':
-				if permittedColons > 0 {
-					permittedColons--
-				} else {
-					errors = append(errors, fmt.Errorf("tag %q contains more colon characters than permitted, extra colon at codepoint %s", tagRaw.(string), s.Pos()))
-					break SCAN
-				}
-			case unicode.IsSpace(tok) == true:
-				errors = append(errors, fmt.Errorf("tag %q contains a whitespace character at codepoint %s", tagRaw.(string), s.Pos()))
-				break SCAN
-			}
-		}
-	}
-	return warnings, errors
-}
-
 func validateUserCID(attrName string) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
 		valid := regexp.MustCompile(config.UserCIDRegex)
 
 		if !valid.MatchString(v.(string)) {
 			errors = append(errors, fmt.Errorf("Invalid %s specified (%q)", attrName, v.(string)))
-		}
-
-		return warnings, errors
-	}
-}
-
-func validateUUID(attrName schemaAttr) func(v interface{}, key string) (warnings []string, errors []error) {
-	return func(v interface{}, key string) (warnings []string, errors []error) {
-		_, err := uuid.ParseUUID(v.(string))
-		if err != nil {
-			errors = append(errors, errwrap.Wrapf(fmt.Sprintf("Invalid %s specified (%q): {{err}}", attrName, v.(string)), err))
 		}
 
 		return warnings, errors
