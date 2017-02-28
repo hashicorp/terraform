@@ -180,14 +180,6 @@ func indirect(v interface{}) interface{} {
 	}
 }
 
-// stateSet sets an attribute based on an attrName and panic()'s if the Set
-// failed.
-func stateSet(d *schema.ResourceData, attrName schemaAttr, v interface{}) {
-	if err := d.Set(string(attrName), indirect(v)); err != nil {
-		panic(fmt.Sprintf("PROVIDER BUG: failed set schema attribute %s to value %#v: %v", attrName, v, err))
-	}
-}
-
 func suppressEquivalentTimeDurations(k, old, new string, d *schema.ResourceData) bool {
 	d1, err := time.ParseDuration(old)
 	if err != nil {
