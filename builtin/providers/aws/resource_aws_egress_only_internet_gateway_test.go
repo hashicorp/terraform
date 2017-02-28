@@ -81,12 +81,9 @@ func testAccCheckAWSEgressOnlyInternetGatewayExists(n string, igw *ec2.EgressOnl
 }
 
 const testAccAWSEgressOnlyInternetGatewayConfig_basic = `
-provider "aws" {
-	region = "us-east-2"
-}
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
-	assign_amazon_ipv6_cidr_block = true
+	assign_generated_ipv6_cidr_block = true
 }
 
 resource "aws_egress_only_internet_gateway" "foo" {

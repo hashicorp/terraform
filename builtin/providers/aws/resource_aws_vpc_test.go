@@ -277,9 +277,6 @@ resource "aws_vpc" "foo" {
 `
 
 const testAccVpcConfigIpv6Enabled = `
-provider "aws" {
-	region = "us-east-2"
-}
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 	assign_generated_ipv6_cidr_block = true
