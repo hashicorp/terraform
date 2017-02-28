@@ -1,8 +1,11 @@
 package circonus
 
 import (
+	"fmt"
+
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/circonus-labs/circonus-gometrics/api/config"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -228,22 +231,32 @@ func dataSourceCirconusAccountRead(d *schema.ResourceData, meta interface{}) err
 
 	d.SetId(a.CID)
 
-	stateSet(d, accountAddress1Attr, a.Address1)
-	stateSet(d, accountAddress2Attr, a.Address2)
-	stateSet(d, accountCCEmailAttr, a.CCEmail)
-	stateSet(d, accountIDAttr, a.CID)
-	stateSet(d, accountCityAttr, a.City)
-	stateSet(d, accountContactGroupsAttr, a.ContactGroups)
-	stateSet(d, accountCountryAttr, a.Country)
-	stateSet(d, accountDescriptionAttr, a.Description)
-	stateSet(d, accountInvitesAttr, invitesList)
-	stateSet(d, accountNameAttr, a.Name)
-	stateSet(d, accountOwnerAttr, a.OwnerCID)
-	stateSet(d, accountStateProvAttr, a.StateProv)
-	stateSet(d, accountTimezoneAttr, a.Timezone)
-	stateSet(d, accountUIBaseURLAttr, a.UIBaseURL)
-	stateSet(d, accountUsageAttr, usageList)
-	stateSet(d, accountUsersAttr, usersList)
+	d.Set(accountAddress1Attr, a.Address1)
+	d.Set(accountAddress2Attr, a.Address2)
+	d.Set(accountCCEmailAttr, a.CCEmail)
+	d.Set(accountIDAttr, a.CID)
+	d.Set(accountCityAttr, a.City)
+	d.Set(accountContactGroupsAttr, a.ContactGroups)
+	d.Set(accountCountryAttr, a.Country)
+	d.Set(accountDescriptionAttr, a.Description)
+
+	if err := d.Set(accountInvitesAttr, invitesList); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store account %q attribute: {{err}}", accountInvitesAttr), err)
+	}
+
+	d.Set(accountNameAttr, a.Name)
+	d.Set(accountOwnerAttr, a.OwnerCID)
+	d.Set(accountStateProvAttr, a.StateProv)
+	d.Set(accountTimezoneAttr, a.Timezone)
+	d.Set(accountUIBaseURLAttr, a.UIBaseURL)
+
+	if err := d.Set(accountUsageAttr, usageList); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store account %q attribute: {{err}}", accountUsageAttr), err)
+	}
+
+	if err := d.Set(accountUsersAttr, usersList); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store account %q attribute: {{err}}", accountUsersAttr), err)
+	}
 
 	return nil
 }
