@@ -266,6 +266,38 @@ func timeoutForValues(create, read, update, del, def int) *ResourceTimeout {
 	return &rt
 }
 
+// Generates a ResourceTimeout struct that should reflect the
+// d.Timeout("key") results
+func expectedTimeoutForValues(create, read, update, del, def int) *ResourceTimeout {
+	rt := ResourceTimeout{}
+
+	defaultValues := []*int{&create, &read, &update, &del, &def}
+	for _, v := range defaultValues {
+		if *v == 0 {
+			*v = 20
+		}
+	}
+
+	if create != 0 {
+		rt.Create = DefaultTimeout(time.Duration(create) * time.Minute)
+	}
+	if read != 0 {
+		rt.Read = DefaultTimeout(time.Duration(read) * time.Minute)
+	}
+	if update != 0 {
+		rt.Update = DefaultTimeout(time.Duration(update) * time.Minute)
+	}
+	if del != 0 {
+		rt.Delete = DefaultTimeout(time.Duration(del) * time.Minute)
+	}
+
+	if def != 0 {
+		rt.Default = DefaultTimeout(time.Duration(def) * time.Minute)
+	}
+
+	return &rt
+}
+
 func expectedForValues(create, read, update, del, def int) map[string]interface{} {
 	ex := make(map[string]interface{})
 

@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"fmt"
 	"math"
 	"reflect"
 	"testing"
@@ -1083,78 +1084,73 @@ func TestResourceDataGetOk(t *testing.T) {
 
 func TestResourceDataTimeout(t *testing.T) {
 	cases := []struct {
+		Name     string
 		Rd       *ResourceData
 		Expected *ResourceTimeout
 	}{
-		// 0
 		{
-			Rd:       &ResourceData{timeouts: timeoutForValues(10, 0, 0, 0, 0)},
-			Expected: timeoutForValues(10, 0, 0, 0, 0),
-		},
-		// 1
-		{
-			Rd:       &ResourceData{timeouts: timeoutForValues(10, 0, 3, 0, 0)},
-			Expected: timeoutForValues(10, 0, 3, 0, 0),
-		},
-		// 2
-		{
-			Rd:       &ResourceData{timeouts: timeoutForValues(10, 0, 0, 0, 7)},
-			Expected: timeoutForValues(10, 7, 7, 7, 7),
-		},
-		// 3
-		{
-			Rd:       &ResourceData{timeouts: timeoutForValues(10, 0, 0, 15, 7)},
-			Expected: timeoutForValues(10, 7, 7, 15, 7),
-		},
-		// 4
-		{
+			Name:     "Basic example default",
 			Rd:       &ResourceData{timeouts: timeoutForValues(10, 3, 0, 15, 0)},
-			Expected: timeoutForValues(10, 3, 0, 15, 0),
+			Expected: expectedTimeoutForValues(10, 3, 0, 15, 0),
 		},
-		// 5
 		{
+			Name:     "Resource and config match update, create",
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 0, 3, 0, 0)},
+			Expected: expectedTimeoutForValues(10, 0, 3, 0, 0),
+		},
+		{
+			Name:     "Resource provides default",
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 0, 0, 0, 7)},
+			Expected: expectedTimeoutForValues(10, 7, 7, 7, 7),
+		},
+		{
+			Name:     "Resource provides default and delete",
+			Rd:       &ResourceData{timeouts: timeoutForValues(10, 0, 0, 15, 7)},
+			Expected: expectedTimeoutForValues(10, 7, 7, 15, 7),
+		},
+		{
+			Name:     "Resource provides default, config overwrites other values",
 			Rd:       &ResourceData{timeouts: timeoutForValues(10, 3, 0, 0, 13)},
-			Expected: timeoutForValues(10, 3, 13, 13, 13),
-		},
-		// 6
-		{
-			Rd:       &ResourceData{timeouts: timeoutForValues(10, 3, 5, 7, 13)},
-			Expected: timeoutForValues(10, 3, 5, 7, 13),
+			Expected: expectedTimeoutForValues(10, 3, 13, 13, 13),
 		},
 	}
 
 	keys := timeoutKeys()
 	for i, c := range cases {
-		for _, k := range keys {
-			got := c.Rd.Timeout(k)
-			var ex *time.Duration
-			switch k {
-			case resourceTimeoutCreateKey:
-				ex = c.Expected.Create
-			case resourceTimeoutReadKey:
-				ex = c.Expected.Read
-			case resourceTimeoutUpdateKey:
-				ex = c.Expected.Update
-			case resourceTimeoutDeleteKey:
-				ex = c.Expected.Delete
-			case resourceTimeoutDefaultKey:
-				ex = c.Expected.Default
-			}
+		t.Run(fmt.Sprintf("%d-%s", i, c.Name), func(t *testing.T) {
 
-			if got > 0 && ex == nil {
-				t.Fatalf("Unexpected value in (%s), case %d check 1:\n\texpected: %#v\n\tgot: %#v", k, i, ex, got)
-			}
-			if got == 0 && ex != nil {
-				t.Fatalf("Unexpected value in (%s), case %d check 2:\n\texpected: %#v\n\tgot: %#v", k, i, *ex, got)
-			}
+			for _, k := range keys {
+				got := c.Rd.Timeout(k)
+				var ex *time.Duration
+				switch k {
+				case resourceTimeoutCreateKey:
+					ex = c.Expected.Create
+				case resourceTimeoutReadKey:
+					ex = c.Expected.Read
+				case resourceTimeoutUpdateKey:
+					ex = c.Expected.Update
+				case resourceTimeoutDeleteKey:
+					ex = c.Expected.Delete
+				case resourceTimeoutDefaultKey:
+					ex = c.Expected.Default
+				}
 
-			// confirm values
-			if ex != nil {
-				if got != *ex {
-					t.Fatalf("Timeout %s case (%d) expected (%#v), got (%#v)", k, i, *ex, got)
+				if got > 0 && ex == nil {
+					t.Fatalf("Unexpected value in (%s), case %d check 1:\n\texpected: %#v\n\tgot: %#v", k, i, ex, got)
+				}
+				if got == 0 && ex != nil {
+					t.Fatalf("Unexpected value in (%s), case %d check 2:\n\texpected: %#v\n\tgot: %#v", k, i, *ex, got)
+				}
+
+				// confirm values
+				if ex != nil {
+					if got != *ex {
+						t.Fatalf("Timeout %s case (%d) expected (%#v), got (%#v)", k, i, *ex, got)
+					}
 				}
 			}
-		}
+
+		})
 	}
 }
 
