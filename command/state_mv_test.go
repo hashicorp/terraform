@@ -532,9 +532,11 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(p),
+				Ui:          ui,
+			},
 		},
 	}
 
@@ -613,9 +615,11 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(p),
+				Ui:          ui,
+			},
 		},
 	}
 

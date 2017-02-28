@@ -77,9 +77,11 @@ func TestStateList_noState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateListCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(p),
+				Ui:          ui,
+			},
 		},
 	}
 
