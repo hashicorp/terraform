@@ -346,13 +346,13 @@ func (d *ResourceData) Timeout(key string) time.Duration {
 
 	var timeout *time.Duration
 	switch key {
-	case resourceTimeoutCreateKey:
+	case TimeoutCreate:
 		timeout = d.timeouts.Create
-	case resourceTimeoutReadKey:
+	case TimeoutRead:
 		timeout = d.timeouts.Read
-	case resourceTimeoutUpdateKey:
+	case TimeoutUpdate:
 		timeout = d.timeouts.Update
-	case resourceTimeoutDeleteKey:
+	case TimeoutDelete:
 		timeout = d.timeouts.Delete
 	}
 

@@ -12,20 +12,20 @@ import (
 const TimeoutKey = "e2bfb730-ecaa-11e6-8f88-34363bc7c4c0"
 
 const (
-	resourceTimeoutCreateKey  = "create"
-	resourceTimeoutReadKey    = "read"
-	resourceTimeoutUpdateKey  = "update"
-	resourceTimeoutDeleteKey  = "delete"
-	resourceTimeoutDefaultKey = "default"
+	TimeoutCreate  = "create"
+	TimeoutRead    = "read"
+	TimeoutUpdate  = "update"
+	TimeoutDelete  = "delete"
+	TimeoutDefault = "default"
 )
 
 func timeoutKeys() []string {
 	return []string{
-		resourceTimeoutCreateKey,
-		resourceTimeoutReadKey,
-		resourceTimeoutUpdateKey,
-		resourceTimeoutDeleteKey,
-		resourceTimeoutDefaultKey,
+		TimeoutCreate,
+		TimeoutRead,
+		TimeoutUpdate,
+		TimeoutDelete,
+		TimeoutDefault,
 	}
 }
 
@@ -87,15 +87,15 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 
 				var timeout *time.Duration
 				switch timeKey {
-				case resourceTimeoutCreateKey:
+				case TimeoutCreate:
 					timeout = t.Create
-				case resourceTimeoutUpdateKey:
+				case TimeoutUpdate:
 					timeout = t.Update
-				case resourceTimeoutReadKey:
+				case TimeoutRead:
 					timeout = t.Read
-				case resourceTimeoutDeleteKey:
+				case TimeoutDelete:
 					timeout = t.Delete
-				case resourceTimeoutDefaultKey:
+				case TimeoutDefault:
 					timeout = t.Default
 				}
 
@@ -140,19 +140,19 @@ func (t *ResourceTimeout) metaEncode(ids interface{}) error {
 	m := make(map[string]interface{})
 
 	if t.Create != nil {
-		m[resourceTimeoutCreateKey] = t.Create.Nanoseconds()
+		m[TimeoutCreate] = t.Create.Nanoseconds()
 	}
 	if t.Read != nil {
-		m[resourceTimeoutReadKey] = t.Read.Nanoseconds()
+		m[TimeoutRead] = t.Read.Nanoseconds()
 	}
 	if t.Update != nil {
-		m[resourceTimeoutUpdateKey] = t.Update.Nanoseconds()
+		m[TimeoutUpdate] = t.Update.Nanoseconds()
 	}
 	if t.Delete != nil {
-		m[resourceTimeoutDeleteKey] = t.Delete.Nanoseconds()
+		m[TimeoutDelete] = t.Delete.Nanoseconds()
 	}
 	if t.Default != nil {
-		m[resourceTimeoutDefaultKey] = t.Default.Nanoseconds()
+		m[TimeoutDefault] = t.Default.Nanoseconds()
 		// for any key above that is nil, if default is specified, we need to
 		// populate it with the default
 		for _, k := range timeoutKeys() {
@@ -213,19 +213,19 @@ func (t *ResourceTimeout) metaDecode(ids interface{}) error {
 		return nil
 	}
 
-	if v, ok := times[resourceTimeoutCreateKey]; ok {
+	if v, ok := times[TimeoutCreate]; ok {
 		t.Create = DefaultTimeout(v)
 	}
-	if v, ok := times[resourceTimeoutReadKey]; ok {
+	if v, ok := times[TimeoutRead]; ok {
 		t.Read = DefaultTimeout(v)
 	}
-	if v, ok := times[resourceTimeoutUpdateKey]; ok {
+	if v, ok := times[TimeoutUpdate]; ok {
 		t.Update = DefaultTimeout(v)
 	}
-	if v, ok := times[resourceTimeoutDeleteKey]; ok {
+	if v, ok := times[TimeoutDelete]; ok {
 		t.Delete = DefaultTimeout(v)
 	}
-	if v, ok := times[resourceTimeoutDefaultKey]; ok {
+	if v, ok := times[TimeoutDefault]; ok {
 		t.Default = DefaultTimeout(v)
 	}
 
