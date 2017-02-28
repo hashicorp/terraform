@@ -65,4 +65,9 @@ The resources managed by the deleted environment may still exist,
 but are no longer manageable by Terraform since the state has
 been deleted.
 `
+
+	envDelCurrent = `Environment %[1]q is your active environment!
+You cannot delete the currently active environment. Please switch
+to another environment and try again.
+`
 )

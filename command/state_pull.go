@@ -11,7 +11,6 @@ import (
 
 // StatePullCommand is a Command implementation that shows a single resource.
 type StatePullCommand struct {
-	Meta
 	StateMeta
 }
 
@@ -32,7 +31,8 @@ func (c *StatePullCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	state, err := b.State()
+	env := c.Env()
+	state, err := b.State(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1

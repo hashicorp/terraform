@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
-
-	"github.com/hashicorp/terraform/backend"
 )
 
 type EnvListCommand struct {
@@ -34,21 +32,17 @@ func (c *EnvListCommand) Run(args []string) int {
 		return 1
 	}
 
-	multi, ok := b.(backend.MultiState)
-	if !ok {
-		c.Ui.Error(envNotSupported)
-		return 1
-	}
-
-	states, current, err := multi.States()
+	states, err := b.States()
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
 
+	env := c.Env()
+
 	var out bytes.Buffer
 	for _, s := range states {
-		if s == current {
+		if s == env {
 			out.WriteString("* ")
 		} else {
 			out.WriteString("  ")

@@ -307,7 +307,7 @@ func (b *Local) StatePaths(name string) (string, string, string, error) {
 
 	if name == backend.DefaultStateName {
 		if statePath == "" {
-			statePath = name
+			statePath = DefaultStateFilename
 		}
 	} else {
 		statePath = filepath.Join(DefaultEnvDir, name, DefaultStateFilename)

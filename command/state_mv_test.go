@@ -46,9 +46,11 @@ func TestStateMv(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(p),
+				Ui:          ui,
+			},
 		},
 	}
 
@@ -113,9 +115,11 @@ func TestStateMv_backupExplicit(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(p),
+				Ui:          ui,
+			},
 		},
 	}
 
@@ -168,9 +172,11 @@ func TestStateMv_stateOutNew(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(p),
+				Ui:          ui,
+			},
 		},
 	}
 
@@ -240,9 +246,11 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(p),
+				Ui:          ui,
+			},
 		},
 	}
 
@@ -281,9 +289,11 @@ func TestStateMv_noState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(p),
+				Ui:          ui,
+			},
 		},
 	}
 
@@ -342,9 +352,11 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateMvCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(p),
-			Ui:          ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(p),
+				Ui:          ui,
+			},
 		},
 	}
 
