@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform/backend"
 	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -34,6 +35,12 @@ func dataSourceRemoteState() *schema.Resource {
 			"config": {
 				Type:     schema.TypeMap,
 				Optional: true,
+			},
+
+			"environment": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  backend.DefaultStateName,
 			},
 
 			"__has_dynamic_attributes": {
@@ -73,7 +80,8 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Get the state
-	state, err := b.State()
+	env := d.Get("environment").(string)
+	state, err := b.State(env)
 	if err != nil {
 		return fmt.Errorf("error loading the remote state: %s", err)
 	}
