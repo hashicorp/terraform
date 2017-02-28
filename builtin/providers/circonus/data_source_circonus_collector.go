@@ -1,8 +1,11 @@
 package circonus
 
 import (
+	"fmt"
+
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/circonus-labs/circonus-gometrics/api/config"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -31,13 +34,6 @@ func dataSourceCirconusCollector() *schema.Resource {
 		Read: dataSourceCirconusCollectorRead,
 
 		Schema: map[string]*schema.Schema{
-			collectorIDAttr: &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ValidateFunc: validateRegexp(collectorIDAttr, config.BrokerCIDRegex),
-				Description:  collectorDescription[collectorIDAttr],
-			},
 			collectorDetailsAttr: &schema.Schema{
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -100,6 +96,13 @@ func dataSourceCirconusCollector() *schema.Resource {
 					},
 				},
 			},
+			collectorIDAttr: &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateRegexp(collectorIDAttr, config.BrokerCIDRegex),
+				Description:  collectorDescription[collectorIDAttr],
+			},
 			collectorLatitudeAttr: &schema.Schema{
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -141,13 +144,16 @@ func dataSourceCirconusCollectorRead(d *schema.ResourceData, meta interface{}) e
 
 	d.SetId(collector.CID)
 
-	stateSet(d, collectorDetailsAttr, collectorDetailsToState(collector))
-	stateSet(d, collectorIDAttr, collector.CID)
-	stateSet(d, collectorLatitudeAttr, collector.Latitude)
-	stateSet(d, collectorLongitudeAttr, collector.Longitude)
-	stateSet(d, collectorNameAttr, collector.Name)
-	stateSet(d, collectorTagsAttr, collector.Tags)
-	stateSet(d, collectorTypeAttr, collector.Type)
+	if err := d.Set(collectorDetailsAttr, collectorDetailsToState(collector)); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store collector %q attribute: {{err}}", collectorDetailsAttr), err)
+	}
+
+	d.Set(collectorIDAttr, collector.CID)
+	d.Set(collectorLatitudeAttr, collector.Latitude)
+	d.Set(collectorLongitudeAttr, collector.Longitude)
+	d.Set(collectorNameAttr, collector.Name)
+	d.Set(collectorTagsAttr, collector.Tags)
+	d.Set(collectorTypeAttr, collector.Type)
 
 	return nil
 }
