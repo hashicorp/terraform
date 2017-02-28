@@ -486,7 +486,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 					"maintenance", "renaming", "rebooting", "upgrading"},
 				Target:     []string{"available"},
 				Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
-				Timeout:    d.Timeout("create"),
+				Timeout:    d.Timeout(schema.TimeoutCreate),
 				MinTimeout: 10 * time.Second,
 				Delay:      30 * time.Second, // Wait 30 secs before starting
 			}
@@ -644,7 +644,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			"maintenance", "renaming", "rebooting", "upgrading", "configuring-enhanced-monitoring"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
-		Timeout:    d.Timeout("create"),
+		Timeout:    d.Timeout(schema.TimeoutCreate),
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
@@ -817,7 +817,7 @@ func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error
 			"modifying", "deleting", "available"},
 		Target:     []string{},
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
-		Timeout:    d.Timeout("delete"),
+		Timeout:    d.Timeout(schema.TimeoutDelete),
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
@@ -984,7 +984,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 				"maintenance", "renaming", "rebooting", "upgrading", "configuring-enhanced-monitoring", "moving-to-vpc"},
 			Target:     []string{"available"},
 			Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
-			Timeout:    d.Timeout("update"),
+			Timeout:    d.Timeout(schema.TimeoutUpdate),
 			MinTimeout: 10 * time.Second,
 			Delay:      30 * time.Second, // Wait 30 secs before starting
 		}
