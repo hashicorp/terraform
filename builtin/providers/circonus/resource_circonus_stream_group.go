@@ -162,10 +162,10 @@ func streamGroupRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set(streamGroupNameAttr, sg.Name)
 
 	if err := d.Set(streamGroupTagsAttr, tagsToState(apiToTags(sg.Tags))); err != nil {
-		return errwrap.Wrapf("Unable to store stream group tags: {{err}}", err)
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store stream group %q attribute: {{err}}", streamGroupTagsAttr), err)
 	}
 
-	stateSet(d, streamGroupIDAttr, sg.CID)
+	d.Set(streamGroupIDAttr, sg.CID)
 
 	return nil
 }

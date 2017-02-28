@@ -409,7 +409,7 @@ func triggerRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set(triggerCheckAttr, t.CheckCID)
 
 	if err := d.Set(triggerIfAttr, ifRules); err != nil {
-		return errwrap.Wrapf("Unable to store trigger rules: {{err}}", err)
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store trigger %q attribute: {{err}}", triggerIfAttr), err)
 	}
 
 	d.Set(triggerLinkAttr, indirect(t.Link))
@@ -419,7 +419,7 @@ func triggerRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set(triggerParentAttr, indirect(t.Parent))
 
 	if err := d.Set(triggerTagsAttr, tagsToState(apiToTags(t.Tags))); err != nil {
-		return errwrap.Wrapf("Unable to store trigger tags: {{err}}", err)
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store trigger %q attribute: {{err}}", triggerTagsAttr), err)
 	}
 
 	return nil

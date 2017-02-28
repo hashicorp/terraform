@@ -14,43 +14,43 @@ import (
 
 const (
 	// circonus_graph.* resource attribute names
-	graphDescriptionAttr schemaAttr = "description"
-	graphLeftAttr        schemaAttr = "left"
-	graphLineStyleAttr   schemaAttr = "line_style"
-	graphNameAttr        schemaAttr = "name"
-	graphNotesAttr       schemaAttr = "notes"
-	graphRightAttr       schemaAttr = "right"
-	graphStreamAttr      schemaAttr = "stream"
-	graphStreamGroupAttr schemaAttr = "stream_group"
-	graphStyleAttr       schemaAttr = "graph_style"
-	graphTagsAttr        schemaAttr = "tags"
+	graphDescriptionAttr = "description"
+	graphLeftAttr        = "left"
+	graphLineStyleAttr   = "line_style"
+	graphNameAttr        = "name"
+	graphNotesAttr       = "notes"
+	graphRightAttr       = "right"
+	graphStreamAttr      = "stream"
+	graphStreamGroupAttr = "stream_group"
+	graphStyleAttr       = "graph_style"
+	graphTagsAttr        = "tags"
 
 	// circonus_graph.stream.* resource attribute names
-	graphStreamActiveAttr        schemaAttr = "active"
-	graphStreamAlphaAttr         schemaAttr = "alpha"
-	graphStreamAxisAttr          schemaAttr = "axis"
-	graphStreamCAQLAttr          schemaAttr = "caql"
-	graphStreamCheckAttr         schemaAttr = "check"
-	graphStreamColorAttr         schemaAttr = "color"
-	graphStreamFormulaAttr       schemaAttr = "formula"
-	graphStreamFormulaLegendAttr schemaAttr = "legend_formula"
-	graphStreamFunctionAttr      schemaAttr = "function"
-	graphStreamHumanNameAttr     schemaAttr = "name"
-	graphStreamMetricTypeAttr    schemaAttr = "metric_type"
-	graphStreamNameAttr          schemaAttr = "stream_name"
-	graphStreamStackAttr         schemaAttr = "stack"
+	graphStreamActiveAttr        = "active"
+	graphStreamAlphaAttr         = "alpha"
+	graphStreamAxisAttr          = "axis"
+	graphStreamCAQLAttr          = "caql"
+	graphStreamCheckAttr         = "check"
+	graphStreamColorAttr         = "color"
+	graphStreamFormulaAttr       = "formula"
+	graphStreamFormulaLegendAttr = "legend_formula"
+	graphStreamFunctionAttr      = "function"
+	graphStreamHumanNameAttr     = "name"
+	graphStreamMetricTypeAttr    = "metric_type"
+	graphStreamNameAttr          = "stream_name"
+	graphStreamStackAttr         = "stack"
 
 	// circonus_graph.stream_group.* resource attribute names
-	graphStreamGroupActiveAttr    schemaAttr = "active"
-	graphStreamGroupAggregateAttr schemaAttr = "aggregate"
-	graphStreamGroupAxisAttr      schemaAttr = "axis"
-	graphStreamGroupGroupAttr     schemaAttr = "group"
-	graphStreamGroupHumanNameAttr schemaAttr = "name"
+	graphStreamGroupActiveAttr    = "active"
+	graphStreamGroupAggregateAttr = "aggregate"
+	graphStreamGroupAxisAttr      = "axis"
+	graphStreamGroupGroupAttr     = "group"
+	graphStreamGroupHumanNameAttr = "name"
 
 	// circonus_graph.{left,right}.* resource attribute names
-	graphAxisLogarithmicAttr schemaAttr = "logarithmic"
-	graphAxisMaxAttr         schemaAttr = "max"
-	graphAxisMinAttr         schemaAttr = "min"
+	graphAxisLogarithmicAttr = "logarithmic"
+	graphAxisMaxAttr         = "max"
+	graphAxisMinAttr         = "min"
 )
 
 const (
@@ -468,16 +468,33 @@ func graphRead(d *schema.ResourceData, meta interface{}) error {
 		rightAxisMap[string(graphAxisMinAttr)] = strconv.FormatFloat(*g.MinRightY, 'f', -1, 64)
 	}
 
-	stateSet(d, graphDescriptionAttr, g.Description)
-	stateSet(d, graphLeftAttr, leftAxisMap)
-	stateSet(d, graphLineStyleAttr, g.LineStyle)
-	stateSet(d, graphNameAttr, g.Title)
-	stateSet(d, graphNotesAttr, indirect(g.Notes))
-	stateSet(d, graphRightAttr, rightAxisMap)
-	stateSet(d, graphStreamAttr, streams)
-	stateSet(d, graphStreamGroupAttr, streamGroups)
-	stateSet(d, graphStyleAttr, g.Style)
-	stateSet(d, graphTagsAttr, tagsToState(apiToTags(g.Tags)))
+	d.Set(graphDescriptionAttr, g.Description)
+
+	if err := d.Set(graphLeftAttr, leftAxisMap); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store graph %q attribute: {{err}}", graphLeftAttr), err)
+	}
+
+	d.Set(graphLineStyleAttr, g.LineStyle)
+	d.Set(graphNameAttr, g.Title)
+	d.Set(graphNotesAttr, indirect(g.Notes))
+
+	if err := d.Set(graphRightAttr, rightAxisMap); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store graph %q attribute: {{err}}", graphRightAttr), err)
+	}
+
+	if err := d.Set(graphStreamAttr, streams); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store graph %q attribute: {{err}}", graphStreamAttr), err)
+	}
+
+	if err := d.Set(graphStreamGroupAttr, streamGroups); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store graph %q attribute: {{err}}", graphStreamGroupAttr), err)
+	}
+
+	d.Set(graphStyleAttr, g.Style)
+
+	if err := d.Set(graphTagsAttr, tagsToState(apiToTags(g.Tags))); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store graph %q attribute: {{err}}", graphTagsAttr), err)
+	}
 
 	return nil
 }
