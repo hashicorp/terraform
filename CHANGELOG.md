@@ -1,4 +1,8 @@
-## 0.6.16.ens.15 (Febuary 21, 2017)
+## 0.6.16-ens.16 (2017-02-28)
+### Changed
+- vendor: update ensighten/udnssdk to 1.3.0
+
+## 0.6.16-ens.15 (Febuary 21, 2017)
 ### Added
  * provider/aws: updated regions and region zone ids.
 
