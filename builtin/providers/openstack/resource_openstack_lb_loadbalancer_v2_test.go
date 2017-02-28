@@ -190,6 +190,7 @@ resource "openstack_networking_subnet_v2" "subnet_1" {
 
 resource "openstack_lb_loadbalancer_v2" "loadbalancer_1" {
   name = "loadbalancer_1"
+  loadbalancer_provider = "haproxy"
   vip_subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
 }
 `
@@ -209,6 +210,7 @@ resource "openstack_networking_subnet_v2" "subnet_1" {
 
 resource "openstack_lb_loadbalancer_v2" "loadbalancer_1" {
   name = "loadbalancer_1_updated"
+  loadbalancer_provider = "haproxy"
   admin_state_up = "true"
   vip_subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
 }
