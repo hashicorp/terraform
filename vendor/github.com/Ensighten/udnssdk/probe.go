@@ -6,8 +6,10 @@ import (
 	"net/http"
 )
 
+// ProbeType wraps the possible types of a ProbeInfoDTO
 type ProbeType string
 
+// Here lie all the possible ProbeType values
 const (
 	DNSProbeType      ProbeType = "DNS"
 	FTPProbeType      ProbeType = "FTP"
@@ -62,10 +64,7 @@ func (s *ProbeDetailsDTO) Populate(t ProbeType) (err error) {
 	return nil
 }
 
-// Populate does magical things with json unmarshalling to unroll the Probe into
-// an appropriate datatype.  These are helper structures and functions for testing
-// and direct API use.  In the Terraform implementation, we will use Terraforms own
-// warped schema structure to handle the marshalling and unmarshalling.
+// GetDetailsObject extracts the appropriate details object from a ProbeDetailsDTO with the given ProbeType
 func (s *ProbeDetailsDTO) GetDetailsObject(t ProbeType) (interface{}, error) {
 	switch t {
 	case DNSProbeType:

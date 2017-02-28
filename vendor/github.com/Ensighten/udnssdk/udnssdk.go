@@ -11,11 +11,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"golang.org/x/oauth2"
 
-	"github.com/Ensighten/udnssdk/passwordcredentials"
+	oauthPassword "github.com/Ensighten/udnssdk/password"
 )
 
 const (
@@ -49,9 +50,9 @@ type ResultInfo struct {
 type Client struct {
 	// This is our client structure.
 	HTTPClient *http.Client
-	Config     *passwordcredentials.Config
+	Config     *oauthPassword.Config
 
-	BaseURL   string
+	BaseURL   *url.URL
 	UserAgent string
 
 	// Accounts API
@@ -73,13 +74,18 @@ type Client struct {
 }
 
 // NewClient returns a new ultradns API client.
-func NewClient(username, password, BaseURL string) (*Client, error) {
+func NewClient(username, password, baseURL string) (*Client, error) {
 	ctx := oauth2.NoContext
-	conf := NewConfig(username, password, BaseURL)
+	conf := NewConfig(username, password, baseURL)
+
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, err
+	}
 
 	c := &Client{
 		HTTPClient: conf.Client(ctx),
-		BaseURL:    BaseURL,
+		BaseURL:    u,
 		UserAgent:  userAgent,
 		Config:     conf,
 	}
@@ -95,10 +101,15 @@ func NewClient(username, password, BaseURL string) (*Client, error) {
 }
 
 // newStubClient returns a new ultradns API client.
-func newStubClient(username, password, BaseURL, clientID, clientSecret string) (*Client, error) {
+func newStubClient(username, password, baseURL, clientID, clientSecret string) (*Client, error) {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, err
+	}
+
 	c := &Client{
 		HTTPClient: &http.Client{},
-		BaseURL:    BaseURL,
+		BaseURL:    u,
 		UserAgent:  userAgent,
 	}
 	c.Accounts = &AccountsService{client: c}
@@ -116,7 +127,8 @@ func newStubClient(username, password, BaseURL, clientID, clientSecret string) (
 // The path is expected to be a relative path and will be resolved
 // according to the BaseURL of the Client. Paths should always be specified without a preceding slash.
 func (c *Client) NewRequest(method, path string, payload interface{}) (*http.Request, error) {
-	url := c.BaseURL + fmt.Sprintf("%s/%s", apiVersion, path)
+	url := c.BaseURL
+	url.Path = url.Path + fmt.Sprintf("%s/%s", apiVersion, path)
 
 	body := new(bytes.Buffer)
 	if payload != nil {
@@ -126,7 +138,7 @@ func (c *Client) NewRequest(method, path string, payload interface{}) (*http.Req
 		}
 	}
 
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequest(method, url.String(), body)
 	if err != nil {
 		return nil, err
 	}

@@ -52,7 +52,7 @@ func (rp RawProfile) GetProfileObject() (interface{}, error) {
 	case TCPoolSchema:
 		return rp.TCPoolProfile()
 	default:
-		return nil, fmt.Errorf("Fallthrough on GetProfileObject type %s\n", c)
+		return nil, fmt.Errorf("fallthrough on GetProfileObject type %s", c)
 	}
 }
 
@@ -81,7 +81,7 @@ func (rp RawProfile) DirPoolProfile() (DirPoolProfile, error) {
 	var result DirPoolProfile
 	c := rp.Context()
 	if c != DirPoolSchema {
-		return result, fmt.Errorf("RDPoolProfile has incorrect JSON-LD @context %s\n", c)
+		return result, fmt.Errorf("incorrect JSON-LD @context for DirPoolProfile %s", c)
 	}
 	err := decodeProfile(rp, &result)
 	return result, err
@@ -92,7 +92,7 @@ func (rp RawProfile) RDPoolProfile() (RDPoolProfile, error) {
 	var result RDPoolProfile
 	c := rp.Context()
 	if c != RDPoolSchema {
-		return result, fmt.Errorf("RDPoolProfile has incorrect JSON-LD @context %s\n", c)
+		return result, fmt.Errorf("incorrect JSON-LD @context for RDPoolProfile %s", c)
 	}
 	err := decodeProfile(rp, &result)
 	return result, err
@@ -103,7 +103,7 @@ func (rp RawProfile) SBPoolProfile() (SBPoolProfile, error) {
 	var result SBPoolProfile
 	c := rp.Context()
 	if c != SBPoolSchema {
-		return result, fmt.Errorf("SBPoolProfile has incorrect JSON-LD @context %s\n", c)
+		return result, fmt.Errorf("incorrect JSON-LD @context for SBPoolProfile %s", c)
 	}
 	err := decodeProfile(rp, &result)
 	return result, err
@@ -114,7 +114,7 @@ func (rp RawProfile) TCPoolProfile() (TCPoolProfile, error) {
 	var result TCPoolProfile
 	c := rp.Context()
 	if c != TCPoolSchema {
-		return result, fmt.Errorf("TCPoolProfile has incorrect JSON-LD @context %s\n", c)
+		return result, fmt.Errorf("incorrect JSON-LD @context for TCPoolProfile %s", c)
 	}
 	err := decodeProfile(rp, &result)
 	return result, err
@@ -161,6 +161,7 @@ type DPRDataInfo struct {
 	AllNonConfigured bool     `json:"allNonConfigured,omitempty" terraform:"all_non_configured"`
 	IPInfo           *IPInfo  `json:"ipInfo,omitempty" terraform:"ip_info"`
 	GeoInfo          *GeoInfo `json:"geoInfo,omitempty" terraform:"geo_info"`
+	Type             string   `json:"type,omitempty" terraform:"type"` // not mentioned in REST API doc
 }
 
 // IPInfo wraps the ipInfo object of a DPRDataInfo
