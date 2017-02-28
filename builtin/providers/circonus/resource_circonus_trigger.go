@@ -16,38 +16,38 @@ import (
 
 const (
 	// circonus_trigger.* resource attribute names
-	triggerCheckAttr      schemaAttr = "check"
-	triggerIfAttr         schemaAttr = "if"
-	triggerLinkAttr       schemaAttr = "link"
-	triggerMetricTypeAttr schemaAttr = "metric_type"
-	triggerNotesAttr      schemaAttr = "notes"
-	triggerParentAttr     schemaAttr = "parent"
-	triggerStreamNameAttr schemaAttr = "stream_name"
-	triggerTagsAttr       schemaAttr = "tags"
+	triggerCheckAttr      = "check"
+	triggerIfAttr         = "if"
+	triggerLinkAttr       = "link"
+	triggerMetricTypeAttr = "metric_type"
+	triggerNotesAttr      = "notes"
+	triggerParentAttr     = "parent"
+	triggerStreamNameAttr = "stream_name"
+	triggerTagsAttr       = "tags"
 
 	// circonus_trigger.if.* resource attribute names
-	triggerThenAttr  schemaAttr = "then"
-	triggerValueAttr schemaAttr = "value"
+	triggerThenAttr  = "then"
+	triggerValueAttr = "value"
 
 	// circonus_trigger.if.then.* resource attribute names
-	triggerAfterAttr    schemaAttr = "after"
-	triggerNotifyAttr   schemaAttr = "notify"
-	triggerSeverityAttr schemaAttr = "severity"
+	triggerAfterAttr    = "after"
+	triggerNotifyAttr   = "notify"
+	triggerSeverityAttr = "severity"
 
 	// circonus_trigger.if.value.* resource attribute names
-	triggerAbsentAttr   schemaAttr = "absent"   // apiRulesetAbsent
-	triggerChangedAttr  schemaAttr = "changed"  // apiRulesetChanged
-	triggerContainsAttr schemaAttr = "contains" // apiRulesetContains
-	triggerEqualsAttr   schemaAttr = "equals"   // apiRulesetMatch
-	triggerExcludesAttr schemaAttr = "excludes" // apiRulesetNotMatch
-	triggerLessAttr     schemaAttr = "less"     // apiRulesetMinValue
-	triggerMissingAttr  schemaAttr = "missing"  // apiRulesetNotContains
-	triggerMoreAttr     schemaAttr = "more"     // apiRulesetMaxValue
-	triggerOverAttr     schemaAttr = "over"
+	triggerAbsentAttr   = "absent"   // apiRulesetAbsent
+	triggerChangedAttr  = "changed"  // apiRulesetChanged
+	triggerContainsAttr = "contains" // apiRulesetContains
+	triggerEqualsAttr   = "equals"   // apiRulesetMatch
+	triggerExcludesAttr = "excludes" // apiRulesetNotMatch
+	triggerLessAttr     = "less"     // apiRulesetMinValue
+	triggerMissingAttr  = "missing"  // apiRulesetNotContains
+	triggerMoreAttr     = "more"     // apiRulesetMaxValue
+	triggerOverAttr     = "over"
 
 	// circonus_trigger.if.value.over.* resource attribute names
-	triggerLastAttr  schemaAttr = "last"
-	triggerUsingAttr schemaAttr = "using"
+	triggerLastAttr  = "last"
+	triggerUsingAttr = "using"
 )
 
 const (
@@ -406,14 +406,21 @@ func triggerRead(d *schema.ResourceData, meta interface{}) error {
 		ifRules = append(ifRules, ifAttrs)
 	}
 
-	stateSet(d, triggerCheckAttr, t.CheckCID)
-	stateSet(d, triggerIfAttr, ifRules)
-	stateSet(d, triggerLinkAttr, indirect(t.Link))
-	stateSet(d, triggerStreamNameAttr, t.MetricName)
-	stateSet(d, triggerMetricTypeAttr, t.MetricType)
-	stateSet(d, triggerNotesAttr, indirect(t.Notes))
-	stateSet(d, triggerParentAttr, indirect(t.Parent))
-	stateSet(d, triggerTagsAttr, tagsToState(apiToTags(t.Tags)))
+	d.Set(triggerCheckAttr, t.CheckCID)
+
+	if err := d.Set(triggerIfAttr, ifRules); err != nil {
+		return errwrap.Wrapf("Unable to store trigger rules: {{err}}", err)
+	}
+
+	d.Set(triggerLinkAttr, indirect(t.Link))
+	d.Set(triggerStreamNameAttr, t.MetricName)
+	d.Set(triggerMetricTypeAttr, t.MetricType)
+	d.Set(triggerNotesAttr, indirect(t.Notes))
+	d.Set(triggerParentAttr, indirect(t.Parent))
+
+	if err := d.Set(triggerTagsAttr, tagsToState(apiToTags(t.Tags))); err != nil {
+		return errwrap.Wrapf("Unable to store trigger tags: {{err}}", err)
+	}
 
 	return nil
 }
