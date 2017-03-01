@@ -51,6 +51,7 @@ BUG FIXES:
  * provider/aws: Refresh aws_autoscaling_schedule from state when autoscaling_group not found [GH-12312]
  * provider/aws: No longer ForceNew resource on lambda_function runtime update [GH-12329]
  * provider/aws: reading multiple pages of aws_efs_file_system tags [GH-12328]
+ * provider/aws: Refresh cloudwatch log subscription filter on 404 [GH-12333]
  * provider/azurerm: Ignore case on protocol and allocation types [GH-12176]
  * provider/cloudflare: add validation for proxied record types [GH-11993]
  * provider/datadog: Adding default values to datadog_monitor [GH-12168]
