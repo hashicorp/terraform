@@ -79,6 +79,13 @@ func resourceVcdNetwork() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"shared": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
+
 			"dhcp_pool": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -152,7 +159,7 @@ func resourceVcdNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 		EdgeGateway: &types.Reference{
 			HREF: edgeGateway.EdgeGateway.HREF,
 		},
-		IsShared: false,
+		IsShared: d.Get("shared").(bool),
 	}
 
 	log.Printf("[INFO] NETWORK: %#v", newnetwork)
