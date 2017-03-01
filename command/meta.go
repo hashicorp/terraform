@@ -424,8 +424,8 @@ func (m *Meta) Env() string {
 		current = backend.DefaultStateName
 	}
 
-	// return default if the file simply doesn't exist
 	if err != nil && !os.IsNotExist(err) {
+		// always return the default if we can't get an environment name
 		log.Printf("[ERROR] failed to read current environment: %s", err)
 	}
 

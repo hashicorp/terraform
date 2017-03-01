@@ -39,7 +39,7 @@ func (c *StateMeta) State(m *Meta) (state.State, error) {
 		panic(err)
 	}
 	localB := localRaw.(*backendlocal.Local)
-	_, stateOutPath, _, err := localB.StatePaths(env)
+	_, stateOutPath, _ := localB.StatePaths(env)
 	if err != nil {
 		return nil, err
 	}
