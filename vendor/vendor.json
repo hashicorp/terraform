@@ -23,7 +23,7 @@
 			"version": "v8.0.1-beta",
 			"versionExact": "v8.0.1-beta"
 		},
-		{
+		/*{
 			"checksumSHA1": "+w9njWehvjvkFK4JHAEtTgvmVgE=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/compute",
@@ -31,7 +31,7 @@
 			"revisionTime": "2017-02-08T01:01:20Z",
 			"version": "v8.0.1-beta",
 			"versionExact": "v8.0.1-beta"
-		},
+		},*/
 		{
 			"checksumSHA1": "JbbZWArn6iqSs+neT5X8AxxH6o0=",
 			"comment": "v2.1.1-beta-8-gca4d906",
@@ -2346,6 +2346,14 @@
 			"comment": "v0.6.0",
 			"path": "github.com/maximilien/softlayer-go/softlayer",
 			"revision": "85659debe44fab5792fc92cf755c04b115b9dc19"
+		},
+		{
+			"checksumSHA1": "MJ2PfEAmNJ0/H+uFcNYKWdiQIiM=",
+			"path": "github.com/mcardosos/azure-sdk-for-go/arm/compute",
+			"revision": "a7cd8005acf2eb9ffa8298450616e042370c22bc",
+			"revisionTime": "2017-02-28T01:51:47Z",
+			"version": "=v8.1.0-beta",
+			"versionExact": "v8.1.0-beta"
 		},
 		{
 			"checksumSHA1": "GSum+utW01N3KeMdvAPnsW0TemM=",
