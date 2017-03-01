@@ -66,6 +66,9 @@ func setupBaseVars() (string, string) {
 	if v := os.Getenv("VSPHERE_DATASTORE"); v != "" {
 		datastoreOpt = fmt.Sprintf("        datastore = \"%s\"\n", v)
 	}
+	if v := os.Getenv("VSPHERE_HOST"); v != "" {
+		locationOpt += fmt.Sprintf("    host = \"%s\"\n", v)
+	}
 
 	return locationOpt, datastoreOpt
 }
