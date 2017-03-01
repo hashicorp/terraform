@@ -179,10 +179,7 @@ func (b *Local) State(name string) (state.State, error) {
 		return nil, err
 	}
 
-	statePath, stateOutPath, backupPath, err := b.StatePaths(name)
-	if err != nil {
-		return nil, err
-	}
+	statePath, stateOutPath, backupPath := b.StatePaths(name)
 
 	// Otherwise, we need to load the state.
 	var s state.State = &state.LocalState{
@@ -296,7 +293,7 @@ func (b *Local) schemaConfigure(ctx context.Context) error {
 
 // StatePaths returns the StatePath, StateOutPath, and StateBackupPath as
 // configured from the CLI.
-func (b *Local) StatePaths(name string) (string, string, string, error) {
+func (b *Local) StatePaths(name string) (string, string, string) {
 	statePath := b.StatePath
 	stateOutPath := b.StateOutPath
 	backupPath := b.StateBackupPath
@@ -324,7 +321,7 @@ func (b *Local) StatePaths(name string) (string, string, string, error) {
 		backupPath = stateOutPath + DefaultBackupExtension
 	}
 
-	return statePath, stateOutPath, backupPath, nil
+	return statePath, stateOutPath, backupPath
 }
 
 // this only ensures that the named directory exists
