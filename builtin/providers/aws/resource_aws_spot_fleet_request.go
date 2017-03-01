@@ -349,10 +349,11 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 	}
 
 	var groupIds []*string
+	var secGroups []*ec2.GroupIdentifier
 	if v, ok := d["vpc_security_group_ids"]; ok {
 		if s := v.(*schema.Set); s.Len() > 0 {
 			for _, v := range s.List() {
-				opts.SecurityGroups = append(opts.SecurityGroups, &ec2.GroupIdentifier{GroupId: aws.String(v.(string))})
+				secGroups = append(opts.SecurityGroups, &ec2.GroupIdentifier{GroupId: aws.String(v.(string))})
 				groupIds = append(groupIds, aws.String(v.(string)))
 			}
 		}
@@ -383,6 +384,8 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 
 		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
 		opts.SubnetId = aws.String("")
+	} else {
+		opts.SecurityGroups = secGroups
 	}
 
 	blockDevices, err := readSpotFleetBlockDeviceMappingsFromConfig(d, conn)
