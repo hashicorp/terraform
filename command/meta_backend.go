@@ -646,28 +646,9 @@ func (m *Meta) backend_c_r_S(
 			return nil, fmt.Errorf(strings.TrimSpace(errBackendLocalRead), err)
 		}
 
-		env := m.Env()
-
-		localState, err := localB.State(env)
-		if err != nil {
-			return nil, fmt.Errorf(strings.TrimSpace(errBackendLocalRead), err)
-		}
-		if err := localState.RefreshState(); err != nil {
-			return nil, fmt.Errorf(strings.TrimSpace(errBackendLocalRead), err)
-		}
-
 		// Initialize the configured backend
 		b, err := m.backend_C_r_S_unchanged(c, sMgr)
 		if err != nil {
-			return nil, fmt.Errorf(
-				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
-		}
-		backendState, err := b.State(env)
-		if err != nil {
-			return nil, fmt.Errorf(
-				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
-		}
-		if err := backendState.RefreshState(); err != nil {
 			return nil, fmt.Errorf(
 				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
 		}
@@ -676,8 +657,8 @@ func (m *Meta) backend_c_r_S(
 		err = m.backendMigrateState(&backendMigrateOpts{
 			OneType: s.Backend.Type,
 			TwoType: "local",
-			One:     backendState,
-			Two:     localState,
+			One:     b,
+			Two:     localB,
 		})
 		if err != nil {
 			return nil, err
@@ -762,16 +743,6 @@ func (m *Meta) backend_c_R_S(
 		return nil, fmt.Errorf(errBackendLocalRead, err)
 	}
 
-	env := m.Env()
-
-	localState, err := localB.State(env)
-	if err != nil {
-		return nil, fmt.Errorf(errBackendLocalRead, err)
-	}
-	if err := localState.RefreshState(); err != nil {
-		return nil, fmt.Errorf(errBackendLocalRead, err)
-	}
-
 	// Grab the state
 	s := sMgr.State()
 
@@ -795,22 +766,13 @@ func (m *Meta) backend_c_R_S(
 		if err != nil {
 			return nil, err
 		}
-		oldState, err := oldB.State(env)
-		if err != nil {
-			return nil, fmt.Errorf(
-				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
-		}
-		if err := oldState.RefreshState(); err != nil {
-			return nil, fmt.Errorf(
-				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
-		}
 
 		// Perform the migration
 		err = m.backendMigrateState(&backendMigrateOpts{
 			OneType: s.Remote.Type,
 			TwoType: "local",
-			One:     oldState,
-			Two:     localState,
+			One:     oldB,
+			Two:     localB,
 		})
 		if err != nil {
 			return nil, err
@@ -898,33 +860,12 @@ func (m *Meta) backend_C_R_s(
 			return nil, err
 		}
 
-		env := m.Env()
-
-		oldState, err := oldB.State(env)
-		if err != nil {
-			return nil, fmt.Errorf(
-				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
-		}
-		if err := oldState.RefreshState(); err != nil {
-			return nil, fmt.Errorf(
-				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
-		}
-
-		// Get the new state
-		newState, err := b.State(env)
-		if err != nil {
-			return nil, fmt.Errorf(strings.TrimSpace(errBackendNewRead), err)
-		}
-		if err := newState.RefreshState(); err != nil {
-			return nil, fmt.Errorf(strings.TrimSpace(errBackendNewRead), err)
-		}
-
 		// Perform the migration
 		err = m.backendMigrateState(&backendMigrateOpts{
 			OneType: s.Remote.Type,
 			TwoType: c.Type,
-			One:     oldState,
-			Two:     newState,
+			One:     oldB,
+			Two:     b,
 		})
 		if err != nil {
 			return nil, err
@@ -979,20 +920,12 @@ func (m *Meta) backend_C_r_s(
 	// If the local state is not empty, we need to potentially do a
 	// state migration to the new backend (with user permission).
 	if localS := localState.State(); !localS.Empty() {
-		backendState, err := b.State(env)
-		if err != nil {
-			return nil, fmt.Errorf(errBackendRemoteRead, err)
-		}
-		if err := backendState.RefreshState(); err != nil {
-			return nil, fmt.Errorf(errBackendRemoteRead, err)
-		}
-
 		// Perform the migration
 		err = m.backendMigrateState(&backendMigrateOpts{
 			OneType: "local",
 			TwoType: c.Type,
-			One:     localState,
-			Two:     backendState,
+			One:     localB,
+			Two:     b,
 		})
 		if err != nil {
 			return nil, err
@@ -1084,33 +1017,12 @@ func (m *Meta) backend_C_r_S_changed(
 				"Error loading previously configured backend: %s", err)
 		}
 
-		env := m.Env()
-
-		oldState, err := oldB.State(env)
-		if err != nil {
-			return nil, fmt.Errorf(
-				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
-		}
-		if err := oldState.RefreshState(); err != nil {
-			return nil, fmt.Errorf(
-				strings.TrimSpace(errBackendSavedUnsetConfig), s.Backend.Type, err)
-		}
-
-		// Get the new state
-		newState, err := b.State(env)
-		if err != nil {
-			return nil, fmt.Errorf(strings.TrimSpace(errBackendNewRead), err)
-		}
-		if err := newState.RefreshState(); err != nil {
-			return nil, fmt.Errorf(strings.TrimSpace(errBackendNewRead), err)
-		}
-
 		// Perform the migration
 		err = m.backendMigrateState(&backendMigrateOpts{
 			OneType: s.Backend.Type,
 			TwoType: c.Type,
-			One:     oldState,
-			Two:     newState,
+			One:     oldB,
+			Two:     b,
 		})
 		if err != nil {
 			return nil, err
@@ -1248,33 +1160,12 @@ func (m *Meta) backend_C_R_S_unchanged(
 			return nil, err
 		}
 
-		env := m.Env()
-
-		oldState, err := oldB.State(env)
-		if err != nil {
-			return nil, fmt.Errorf(
-				strings.TrimSpace(errBackendSavedUnsetConfig), s.Remote.Type, err)
-		}
-		if err := oldState.RefreshState(); err != nil {
-			return nil, fmt.Errorf(
-				strings.TrimSpace(errBackendSavedUnsetConfig), s.Remote.Type, err)
-		}
-
-		// Get the new state
-		newState, err := b.State(env)
-		if err != nil {
-			return nil, fmt.Errorf(strings.TrimSpace(errBackendNewRead), err)
-		}
-		if err := newState.RefreshState(); err != nil {
-			return nil, fmt.Errorf(strings.TrimSpace(errBackendNewRead), err)
-		}
-
 		// Perform the migration
 		err = m.backendMigrateState(&backendMigrateOpts{
 			OneType: s.Remote.Type,
 			TwoType: s.Backend.Type,
-			One:     oldState,
-			Two:     newState,
+			One:     oldB,
+			Two:     b,
 		})
 		if err != nil {
 			return nil, err
