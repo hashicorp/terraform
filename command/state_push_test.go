@@ -80,7 +80,7 @@ func TestStatePush_replaceMatchStdin(t *testing.T) {
 	// Setup the replacement to come from stdin
 	var buf bytes.Buffer
 	if err := terraform.WriteState(expected, &buf); err != nil {
-		t.Fatalf("err: %s")
+		t.Fatalf("err: %s", err)
 	}
 	defer testStdinPipe(t, &buf)()
 
