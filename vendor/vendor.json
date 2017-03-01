@@ -1355,6 +1355,12 @@
 			"versionExact": "1.0.0"
 		},
 		{
+			"checksumSHA1": "xPPXsop1MasrinvYYmMBeuwDu9c=",
+			"path": "github.com/exponent-io/jsonpath",
+			"revision": "d6023ce2651d8eafb5c75bb0c7167536102ec9f5",
+			"revisionTime": "2015-10-13T19:33:12Z"
+		},
+		{
 			"checksumSHA1": "40Ns85VYa4smQPcewZ7SOdfLnKU=",
 			"path": "github.com/fatih/structs",
 			"revision": "a720dfa8df582c51dee1b36feabb906bde1588bd",
@@ -3282,8 +3288,28 @@
 			"revisionTime": "2017-02-20T05:26:33Z"
 		},
 		{
+			"checksumSHA1": "7Moak3A23GAQIGxMBNwdHng8ZUk=",
+			"path": "k8s.io/apiserver/pkg/features",
+			"revision": "f5134760969bc1bb7457ac717f329538208174e6",
+			"revisionTime": "2017-02-23T16:14:39Z"
+		},
+		{
+			"checksumSHA1": "eD47gRCYqFRXXw4CdIqIbGnJid8=",
+			"path": "k8s.io/apiserver/pkg/util/feature",
+			"revision": "f5134760969bc1bb7457ac717f329538208174e6",
+			"revisionTime": "2017-02-23T16:14:39Z"
+		},
+		{
 			"checksumSHA1": "7AJnegJy/B9YU9VnaSjbmwo7bxA=",
 			"path": "k8s.io/kubernetes/pkg/api",
+			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
+			"revisionTime": "2017-02-15T06:33:32Z",
+			"version": "v1.5.3",
+			"versionExact": "v1.5.3"
+		},
+		{
+			"checksumSHA1": "yTgKpHz2CFFN/lMP9Evm87rvYkM=",
+			"path": "k8s.io/kubernetes/pkg/api/endpoints",
 			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
 			"revisionTime": "2017-02-15T06:33:32Z",
 			"version": "v1.5.3",
@@ -3322,8 +3348,24 @@
 			"versionExact": "v1.5.3"
 		},
 		{
+			"checksumSHA1": "YU331KDG4VxRBuD4zFoE9LNj3t4=",
+			"path": "k8s.io/kubernetes/pkg/api/pod",
+			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
+			"revisionTime": "2017-02-15T06:33:32Z",
+			"version": "v1.5.3",
+			"versionExact": "v1.5.3"
+		},
+		{
 			"checksumSHA1": "glESePhq3u+sf13SpTzJ9ict/T4=",
 			"path": "k8s.io/kubernetes/pkg/api/resource",
+			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
+			"revisionTime": "2017-02-15T06:33:32Z",
+			"version": "v1.5.3",
+			"versionExact": "v1.5.3"
+		},
+		{
+			"checksumSHA1": "dYhk2yrh+k3G3APFuYx5vF8Rmw0=",
+			"path": "k8s.io/kubernetes/pkg/api/service",
 			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
 			"revisionTime": "2017-02-15T06:33:32Z",
 			"version": "v1.5.3",
@@ -3338,8 +3380,32 @@
 			"versionExact": "v1.5.3"
 		},
 		{
+			"checksumSHA1": "S3bCRWM0uMVXSas9JvKQdqfH76s=",
+			"path": "k8s.io/kubernetes/pkg/api/unversioned/validation",
+			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
+			"revisionTime": "2017-02-15T06:33:32Z",
+			"version": "v1.5.3",
+			"versionExact": "v1.5.3"
+		},
+		{
+			"checksumSHA1": "Oe4S5Bk0mR5lU5mh6WsJfS5tNMU=",
+			"path": "k8s.io/kubernetes/pkg/api/util",
+			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
+			"revisionTime": "2017-02-15T06:33:32Z",
+			"version": "v1.5.3",
+			"versionExact": "v1.5.3"
+		},
+		{
 			"checksumSHA1": "W5U8zCxHpibrVPlVv3YtNAG6mhI=",
 			"path": "k8s.io/kubernetes/pkg/api/v1",
+			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
+			"revisionTime": "2017-02-15T06:33:32Z",
+			"version": "v1.5.3",
+			"versionExact": "v1.5.3"
+		},
+		{
+			"checksumSHA1": "h9jLBKF7NtXnJ+GRyG6NZJMNyZA=",
+			"path": "k8s.io/kubernetes/pkg/api/validation",
 			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
 			"revisionTime": "2017-02-15T06:33:32Z",
 			"version": "v1.5.3",
@@ -3634,6 +3700,12 @@
 			"versionExact": "v1.5.3"
 		},
 		{
+			"checksumSHA1": "DwUkQeGOyctoYMqg/QbdEuTzLWE=",
+			"path": "k8s.io/kubernetes/pkg/capabilities",
+			"revision": "cff3c99613fda9d4b1dc0d959cb528326ee4416c",
+			"revisionTime": "2017-02-26T16:10:02Z"
+		},
+		{
 			"checksumSHA1": "QNBGekG5aiFIkuaTHX0DTgKLyiE=",
 			"path": "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5",
 			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
@@ -3823,6 +3895,12 @@
 			"versionExact": "v1.5.3"
 		},
 		{
+			"checksumSHA1": "tJOdN7PyF09mHrpWplVYO609sI8=",
+			"path": "k8s.io/kubernetes/pkg/features",
+			"revision": "cff3c99613fda9d4b1dc0d959cb528326ee4416c",
+			"revisionTime": "2017-02-26T16:10:02Z"
+		},
+		{
 			"checksumSHA1": "n22dqZqoIzhpTiW7WsteC+Zd4ww=",
 			"path": "k8s.io/kubernetes/pkg/fields",
 			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
@@ -3903,6 +3981,12 @@
 			"versionExact": "v1.5.3"
 		},
 		{
+			"checksumSHA1": "JS1foKD2+ytR+8ioRzb894EGHBw=",
+			"path": "k8s.io/kubernetes/pkg/security/apparmor",
+			"revision": "cff3c99613fda9d4b1dc0d959cb528326ee4416c",
+			"revisionTime": "2017-02-26T16:10:02Z"
+		},
+		{
 			"checksumSHA1": "JoovLtllozmF5E6V55//mtxkS3U=",
 			"path": "k8s.io/kubernetes/pkg/selection",
 			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
@@ -3943,6 +4027,14 @@
 			"versionExact": "v1.5.3"
 		},
 		{
+			"checksumSHA1": "9lYagUSPgmV/iiHV/ONEXeqFblc=",
+			"path": "k8s.io/kubernetes/pkg/util/config",
+			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
+			"revisionTime": "2017-02-15T06:33:32Z",
+			"version": "v1.5.3",
+			"versionExact": "v1.5.3"
+		},
+		{
 			"checksumSHA1": "MfaCGqPJXEj29bpJ/cDAA1K9FE4=",
 			"path": "k8s.io/kubernetes/pkg/util/errors",
 			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
@@ -3961,6 +4053,14 @@
 		{
 			"checksumSHA1": "XpodtTHIZcUfBGPY5Ce9+Th1fLc=",
 			"path": "k8s.io/kubernetes/pkg/util/framer",
+			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
+			"revisionTime": "2017-02-15T06:33:32Z",
+			"version": "v1.5.3",
+			"versionExact": "v1.5.3"
+		},
+		{
+			"checksumSHA1": "rvkgO7Yk+ISdyFyabs3nu2e4tIs=",
+			"path": "k8s.io/kubernetes/pkg/util/hash",
 			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
 			"revisionTime": "2017-02-15T06:33:32Z",
 			"version": "v1.5.3",
@@ -4017,6 +4117,14 @@
 		{
 			"checksumSHA1": "/odrhTTSYqRGeWRP/MKyWYipoAw=",
 			"path": "k8s.io/kubernetes/pkg/util/net",
+			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
+			"revisionTime": "2017-02-15T06:33:32Z",
+			"version": "v1.5.3",
+			"versionExact": "v1.5.3"
+		},
+		{
+			"checksumSHA1": "D/GHEAK824gP9AuEI3ct2dRQ1I0=",
+			"path": "k8s.io/kubernetes/pkg/util/net/sets",
 			"revision": "029c3a408176b55c30846f0faedf56aae5992e9b",
 			"revisionTime": "2017-02-15T06:33:32Z",
 			"version": "v1.5.3",
