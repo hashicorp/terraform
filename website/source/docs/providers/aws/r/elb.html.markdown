@@ -8,7 +8,9 @@ description: |-
 
 # aws\_elb
 
-Provides an Elastic Load Balancer resource.
+Provides an Elastic Load Balancer resource, also known as a "Classic
+Load Balancer" after the release of
+[Application Load Balancers](/docs/providers/aws/r/alb.html).
 
 ~> **NOTE on ELB Instances and ELB Attachments:** Terraform currently
 provides both a standalone [ELB Attachment resource](elb_attachment.html)
@@ -16,6 +18,7 @@ provides both a standalone [ELB Attachment resource](elb_attachment.html)
 `instances` defined in-line. At this time you cannot use an ELB with in-line
 instances in conjunction with a ELB Attachment resources. Doing so will cause a
 conflict and will overwrite attachments.
+
 ## Example Usage
 
 ```

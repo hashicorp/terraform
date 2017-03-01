@@ -10,6 +10,10 @@ description: |-
 
 Provides an Application Load Balancer resource.
 
+The official AWS CLI calls this "elbv2" while their documentation calls it
+an Application Load Balancer. Terraform uses "ALB" but they mean the same
+thing.
+
 ## Example Usage
 
 ```
