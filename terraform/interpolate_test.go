@@ -680,7 +680,7 @@ func TestInterpolator_interpolatedListOrder(t *testing.T) {
 			&ModuleState{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_route53_zone.list": &ResourceState{
+					"aws_route53_zone.yada": &ResourceState{
 						Type:         "aws_route53_zone",
 						Dependencies: []string{},
 						Primary: &InstanceState{
@@ -719,7 +719,7 @@ func TestInterpolator_interpolatedListOrder(t *testing.T) {
 
 	list := []interface{}{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"}
 
-	testInterpolate(t, i, scope, "aws_route53_zone.list.foo",
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.foo",
 		interfaceToVariableSwallowError(list))
 }
 
@@ -844,7 +844,7 @@ func TestInterpolator_sets(t *testing.T) {
 			&ModuleState{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_network_interface.set": &ResourceState{
+					"aws_route53_zone.yada": &ResourceState{
 						Type:         "aws_network_interface",
 						Dependencies: []string{},
 						Primary: &InstanceState{
@@ -872,7 +872,7 @@ func TestInterpolator_sets(t *testing.T) {
 
 	set := []interface{}{"10.42.16.179"}
 
-	testInterpolate(t, i, scope, "aws_network_interface.set.private_ips",
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.private_ips",
 		interfaceToVariableSwallowError(set))
 }
 
