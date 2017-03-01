@@ -61,53 +61,20 @@ func (b *Backend) Configure(c *terraform.ResourceConfig) error {
 	return b.schema.Configure(c)
 }
 
-func (b *Backend) State() (state.State, error) {
-	return &remote.State{Client: b.stateClient}, nil
+func (b *Backend) States() ([]string, error) {
+	return nil, backend.ErrNamedStatesNotSupported
 }
 
-// Operation implements backend.Enhanced
-//
-// This will initialize an in-memory terraform.Context to perform the
-// operation within this process.
-//
-// The given operation parameter will be merged with the ContextOpts on
-// the structure with the following rules. If a rule isn't specified and the
-// name conflicts, assume that the field is overwritten if set.
-func (b *Backend) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
-	// Determine the function to call for our operation
-	var f func(context.Context, *backend.Operation, *backend.RunningOperation)
-	switch op.Type {
-	/*
-		case backend.OperationTypeRefresh:
-			f = b.opRefresh
-		case backend.OperationTypePlan:
-			f = b.opPlan
-		case backend.OperationTypeApply:
-			f = b.opApply
-	*/
-	default:
-		return nil, fmt.Errorf(
-			"Unsupported operation type: %s\n\n"+
-				"This is a bug in Terraform and should be reported.",
-			op.Type)
+func (b *Backend) DeleteState(name string) error {
+	return backend.ErrNamedStatesNotSupported
+}
+
+func (b *Backend) State(name string) (state.State, error) {
+	if name != backend.DefaultStateName {
+		return nil, backend.ErrNamedStatesNotSupported
 	}
 
-	// Lock
-	b.opLock.Lock()
-
-	// Build our running operation
-	runningCtx, runningCtxCancel := context.WithCancel(context.Background())
-	runningOp := &backend.RunningOperation{Context: runningCtx}
-
-	// Do it
-	go func() {
-		defer b.opLock.Unlock()
-		defer runningCtxCancel()
-		f(ctx, op, runningOp)
-	}()
-
-	// Return
-	return runningOp, nil
+	return &remote.State{Client: b.stateClient}, nil
 }
 
 // Colorize returns the Colorize structure that can be used for colorizing
