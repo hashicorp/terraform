@@ -114,7 +114,7 @@ resource "profitbricks_server" "webserver" {
     size = 5
     disk_type = "SSD"
     image_name ="ubuntu-16.04"
-    image_password = "test1234"
+    image_password = "K3tTj8G14a3EgKyNeeiY"
 }
   nic {
     lan = "1"
