@@ -55,7 +55,8 @@ func (c *UntaintCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	st, err := b.State()
+	env := c.Env()
+	st, err := b.State(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1

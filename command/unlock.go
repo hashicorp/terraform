@@ -52,7 +52,8 @@ func (c *UnlockCommand) Run(args []string) int {
 		return 1
 	}
 
-	st, err := b.State()
+	env := c.Env()
+	st, err := b.State(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
@@ -102,7 +103,6 @@ func (c *UnlockCommand) Run(args []string) int {
 		}
 	}
 
-	// FIXME: unlock should require the lock ID
 	if err := s.Unlock(lockID); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to unlock state: %s", err))
 		return 1

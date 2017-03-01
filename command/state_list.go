@@ -12,6 +12,7 @@ import (
 // within a state file.
 type StateListCommand struct {
 	Meta
+	StateMeta
 }
 
 func (c *StateListCommand) Run(args []string) int {
@@ -31,8 +32,9 @@ func (c *StateListCommand) Run(args []string) int {
 		return 1
 	}
 
+	env := c.Env()
 	// Get the state
-	state, err := b.State()
+	state, err := b.State(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1

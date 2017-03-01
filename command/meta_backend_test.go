@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -29,7 +30,7 @@ func TestMetaBackend_emptyDir(t *testing.T) {
 	}
 
 	// Write some state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -99,7 +100,7 @@ func TestMetaBackend_emptyWithDefaultState(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -172,7 +173,7 @@ func TestMetaBackend_emptyWithExplicitState(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -231,7 +232,7 @@ func TestMetaBackend_emptyLegacyRemote(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -280,7 +281,7 @@ func TestMetaBackend_configureNew(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -349,7 +350,7 @@ func TestMetaBackend_configureNewWithState(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -425,7 +426,7 @@ func TestMetaBackend_configureNewWithStateNoMigrate(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -470,7 +471,7 @@ func TestMetaBackend_configureNewWithStateExisting(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -544,7 +545,7 @@ func TestMetaBackend_configureNewWithStateExistingNoMigrate(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -618,7 +619,7 @@ func TestMetaBackend_configureNewLegacy(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -712,7 +713,7 @@ func TestMetaBackend_configureNewLegacyCopy(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -798,7 +799,7 @@ func TestMetaBackend_configuredUnchanged(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -845,7 +846,7 @@ func TestMetaBackend_configuredChange(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -924,7 +925,7 @@ func TestMetaBackend_configuredChangeCopy(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -971,7 +972,7 @@ func TestMetaBackend_configuredUnset(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -1055,7 +1056,7 @@ func TestMetaBackend_configuredUnsetCopy(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -1134,7 +1135,7 @@ func TestMetaBackend_configuredUnchangedLegacy(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -1237,7 +1238,7 @@ func TestMetaBackend_configuredUnchangedLegacyCopy(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -1340,7 +1341,7 @@ func TestMetaBackend_configuredChangedLegacy(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -1440,7 +1441,7 @@ func TestMetaBackend_configuredChangedLegacyCopyBackend(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -1543,7 +1544,7 @@ func TestMetaBackend_configuredChangedLegacyCopyLegacy(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -1646,7 +1647,7 @@ func TestMetaBackend_configuredChangedLegacyCopyBoth(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -1749,7 +1750,7 @@ func TestMetaBackend_configuredUnsetWithLegacyNoCopy(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -1839,7 +1840,7 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyBackend(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -1937,7 +1938,7 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyLegacy(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -2035,7 +2036,7 @@ func TestMetaBackend_configuredUnsetWithLegacyCopyBoth(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -2136,7 +2137,7 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -2233,7 +2234,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -2319,7 +2320,7 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -2519,7 +2520,7 @@ func TestMetaBackend_planBackendEmptyDir(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -2621,7 +2622,7 @@ func TestMetaBackend_planBackendMatch(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
@@ -2784,7 +2785,7 @@ func TestMetaBackend_planLegacy(t *testing.T) {
 	}
 
 	// Check the state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("bad: %s", err)
 	}
