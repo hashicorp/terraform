@@ -6,6 +6,7 @@ package remotestate
 import (
 	"context"
 
+	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
@@ -46,10 +47,22 @@ func (b *Backend) Configure(rc *terraform.ResourceConfig) error {
 	return b.Backend.Configure(rc)
 }
 
-func (b *Backend) State() (state.State, error) {
+func (b *Backend) States() ([]string, error) {
+	return nil, backend.ErrNamedStatesNotSupported
+}
+
+func (b *Backend) DeleteState(name string) error {
+	return backend.ErrNamedStatesNotSupported
+}
+
+func (b *Backend) State(name string) (state.State, error) {
 	// This shouldn't happen
 	if b.client == nil {
 		panic("nil remote client")
+	}
+
+	if name != backend.DefaultStateName {
+		return nil, backend.ErrNamedStatesNotSupported
 	}
 
 	s := &remote.State{Client: b.client}

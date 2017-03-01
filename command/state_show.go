@@ -34,7 +34,8 @@ func (c *StateShowCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	state, err := b.State()
+	env := c.Env()
+	state, err := b.State(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
