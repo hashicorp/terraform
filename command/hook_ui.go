@@ -16,6 +16,7 @@ import (
 )
 
 const periodicUiTimer = 10 * time.Second
+const maxIdLen = 20
 
 type UiHook struct {
 	terraform.NilHook
@@ -128,19 +129,25 @@ func (h *UiHook) PreApply(
 		attrString = "\n  " + attrString
 	}
 
+	var stateIdSuffix string
+	if s.ID != "" {
+		stateIdSuffix = fmt.Sprintf(" (ID: %s)", truncateId(s.ID, maxIdLen))
+	}
+
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s[reset]%s",
+		"[reset][bold]%s: %s%s[reset]%s",
 		id,
 		operation,
+		stateIdSuffix,
 		attrString)))
 
 	// Set a timer to show an operation is still happening
-	time.AfterFunc(periodicUiTimer, func() { h.stillApplying(id) })
+	time.AfterFunc(periodicUiTimer, func() { h.stillApplying(id, s.ID) })
 
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) stillApplying(id string) {
+func (h *UiHook) stillApplying(id, stateId string) {
 	// Grab the operation. We defer the lock here to avoid the "still..."
 	// message showing up after a completion message.
 	h.l.Lock()
@@ -164,15 +171,21 @@ func (h *UiHook) stillApplying(id string) {
 		return
 	}
 
+	var stateIdSuffix string
+	if stateId != "" {
+		stateIdSuffix = fmt.Sprintf("ID: %s, ", truncateId(stateId, maxIdLen))
+	}
+
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s (%s elapsed)[reset]",
+		"[reset][bold]%s: %s (%s%s elapsed)[reset]",
 		id,
 		msg,
+		stateIdSuffix,
 		time.Now().Round(time.Second).Sub(state.Start),
 	)))
 
 	// Reschedule
-	time.AfterFunc(periodicUiTimer, func() { h.stillApplying(id) })
+	time.AfterFunc(periodicUiTimer, func() { h.stillApplying(id, stateId) })
 }
 
 func (h *UiHook) PostApply(
@@ -185,6 +198,11 @@ func (h *UiHook) PostApply(
 	state := h.resources[id]
 	delete(h.resources, id)
 	h.l.Unlock()
+
+	var stateIdSuffix string
+	if s.ID != "" {
+		stateIdSuffix = fmt.Sprintf(" (ID: %s)", truncateId(s.ID, maxIdLen))
+	}
 
 	var msg string
 	switch state.Op {
@@ -204,8 +222,8 @@ func (h *UiHook) PostApply(
 	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s[reset]",
-		id, msg)))
+		"[reset][bold]%s: %s%s[reset]",
+		id, msg, stateIdSuffix)))
 
 	return terraform.HookActionContinue, nil
 }
@@ -258,7 +276,7 @@ func (h *UiHook) PreRefresh(
 	// Data resources refresh before they have ids, whereas managed
 	// resources are only refreshed when they have ids.
 	if s.ID != "" {
-		stateIdSuffix = fmt.Sprintf(" (ID: %s)", s.ID)
+		stateIdSuffix = fmt.Sprintf(" (ID: %s)", truncateId(s.ID, maxIdLen))
 	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
@@ -335,4 +353,33 @@ func dropCR(data []byte) []byte {
 		return data[0 : len(data)-1]
 	}
 	return data
+}
+
+func truncateId(id string, maxLen int) string {
+	totalLength := len(id)
+	if totalLength <= maxLen {
+		return id
+	}
+	if maxLen < 5 {
+		// We don't shorten to less than 5 chars
+		// as that would be pointless with ... (3 chars)
+		maxLen = 5
+	}
+
+	dots := "..."
+	partLen := maxLen / 2
+
+	leftIdx := partLen - 1
+	leftPart := id[0:leftIdx]
+
+	rightIdx := totalLength - partLen - 1
+
+	overlap := maxLen - (partLen*2 + len(dots))
+	if overlap < 0 {
+		rightIdx -= overlap
+	}
+
+	rightPart := id[rightIdx:]
+
+	return leftPart + dots + rightPart
 }
