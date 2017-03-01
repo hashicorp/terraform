@@ -22,6 +22,7 @@ IMPROVEMENTS:
  * provider/aws: Report bucket name in S3 Error message [GH-12122]
  * provider/aws: Implement IPV6 Support for ec2 / VPC [GH-10538]
  * provider/aws: Add support for import of aws_elasticsearch_domain [GH-12330]
+ * provider/aws: improve redshift cluster validation [GH-12313]
  * provider/azurerm: Auto base64encode virtual_machine custom data [GH-12164]
  * provider/datadog: add support for new host delay to the datadog_monitor resource [GH-11975]
  * provider/datadog: Upgrade to Datadog API v2 [GH-12098]
