@@ -22,7 +22,7 @@ func (c *EnvCommand) Help() string {
 	helpText := `
 Usage: terraform env
 
-  Create, change and delete Terraform environments. 
+  Create, change and delete Terraform environments.
 
 
 Subcommands:
@@ -44,29 +44,41 @@ const (
 
 	envExists = `Environment %q already exists`
 
-	envDoesNotExist = `Environment %q doesn't exist!
+	envDoesNotExist = `
+Environment %q doesn't exist!
+
 You can create this environment with the "-new" option.`
 
 	envChanged = `[reset][green]Switched to environment %q!`
 
-	envCreated = `[reset][green]Created environment %q!`
+	envCreated = `
+[reset][green][bold]Created and switched to environment %q![reset][green]
+
+You're now on a new, empty environment. Environments isolate their state,
+so if you run "terraform plan" Terraform will not see any existing state
+for this configuration.
+`
 
 	envDeleted = `[reset][green]Deleted environment %q!`
 
-	envNotEmpty = `Environment %[1]q is not empty!
-Deleting %[1]q can result in dangling resources: resources that 
+	envNotEmpty = `
+Environment %[1]q is not empty!
+
+Deleting %[1]q can result in dangling resources: resources that
 exist but are no longer manageable by Terraform. Please destroy
 these resources first.  If you want to delete this environment
 anyways and risk dangling resources, use the '-force' flag.
 `
 
-	envWarnNotEmpty = `[reset][yellow]WARNING: %q was non-empty. 
+	envWarnNotEmpty = `[reset][yellow]WARNING: %q was non-empty.
 The resources managed by the deleted environment may still exist,
 but are no longer manageable by Terraform since the state has
 been deleted.
 `
 
-	envDelCurrent = `Environment %[1]q is your active environment!
+	envDelCurrent = `
+Environment %[1]q is your active environment!
+
 You cannot delete the currently active environment. Please switch
 to another environment and try again.
 `
