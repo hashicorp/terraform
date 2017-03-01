@@ -29,7 +29,7 @@ func (c *EnvNewCommand) Run(args []string) int {
 	}
 	args = cmdFlags.Args()
 	if len(args) == 0 {
-		c.Ui.Error("expected NAME.\n")
+		c.Ui.Error("Expected a single argument: NAME.\n")
 		return cli.RunResultHelp
 	}
 
@@ -68,11 +68,8 @@ func (c *EnvNewCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(
-		c.Colorize().Color(
-			fmt.Sprintf(envCreated, newEnv),
-		),
-	)
+	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+		strings.TrimSpace(envCreated), newEnv)))
 
 	if statePath == "" {
 		// if we're not loading a state, then we're done
