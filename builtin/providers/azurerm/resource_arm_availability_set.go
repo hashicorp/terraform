@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jen20/riviera/azure"
+	"github.com/mcardosos/azure-sdk-for-go/arm/compute"
 )
 
 func resourceArmAvailabilitySet() *schema.Resource {
