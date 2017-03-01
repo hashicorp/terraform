@@ -57,6 +57,7 @@ func expandArray(m map[string]string, prefix string) []interface{} {
 	// regardless of value, and expand them in numeric order.
 	// See GH-11042 for more details.
 	keySet := map[int]bool{}
+	computed := map[string]bool{}
 	for k := range m {
 		if !strings.HasPrefix(k, prefix+".") {
 			continue
@@ -71,6 +72,12 @@ func expandArray(m map[string]string, prefix string) []interface{} {
 		// skip the count value
 		if key == "#" {
 			continue
+		}
+
+		// strip the computed flag if there is one
+		if strings.HasPrefix(key, "~") {
+			key = key[1:]
+			computed[key] = true
 		}
 
 		k, err := strconv.Atoi(key)
@@ -88,7 +95,11 @@ func expandArray(m map[string]string, prefix string) []interface{} {
 
 	result := make([]interface{}, num)
 	for i, key := range keysList {
-		result[i] = Expand(m, fmt.Sprintf("%s.%d", prefix, key))
+		keyString := strconv.Itoa(key)
+		if computed[keyString] {
+			keyString = "~" + keyString
+		}
+		result[i] = Expand(m, fmt.Sprintf("%s.%s", prefix, keyString))
 	}
 
 	return result
