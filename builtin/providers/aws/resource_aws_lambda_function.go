@@ -79,7 +79,6 @@ func resourceAwsLambdaFunction() *schema.Resource {
 			"runtime": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     true,
 				ValidateFunc: validateRuntime,
 			},
 			"timeout": {
@@ -483,6 +482,21 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 	}
 	if d.HasChange("kms_key_arn") {
 		configReq.KMSKeyArn = aws.String(d.Get("kms_key_arn").(string))
+		configUpdate = true
+	}
+
+	if d.HasChange("dead_letter_config") {
+		dlcMaps := d.Get("dead_letter_config").([]interface{})
+		if len(dlcMaps) == 1 { // Schema guarantees either 0 or 1
+			dlcMap := dlcMaps[0].(map[string]interface{})
+			configReq.DeadLetterConfig = &lambda.DeadLetterConfig{
+				TargetArn: aws.String(dlcMap["target_arn"].(string)),
+			}
+			configUpdate = true
+		}
+	}
+	if d.HasChange("runtime") {
+		configReq.Runtime = aws.String(d.Get("runtime").(string))
 		configUpdate = true
 	}
 	if d.HasChange("environment") {
