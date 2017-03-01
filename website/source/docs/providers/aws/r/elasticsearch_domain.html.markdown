@@ -90,3 +90,11 @@ The following attributes are exported:
 * `arn` - Amazon Resource Name (ARN) of the domain.
 * `domain_id` - Unique identifier for the domain.
 * `endpoint` - Domain-specific endpoint used to submit index, search, and data upload requests.
+
+## Import
+
+ElasticSearch domains can be imported using the `domain_name`, e.g.
+
+```
+$ terraform import aws_elasticsearch_domain.example domain_name
+```
