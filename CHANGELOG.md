@@ -47,6 +47,7 @@ BUG FIXES:
  * provider/aws: Fix the panic in ssm_association with parameters [GH-12215]
  * provider/aws: Fix update of environment_variable in codebuild_project [GH-12169]
  * provider/aws: Refresh aws_autoscaling_schedule from state when autoscaling_group not found [GH-12312]
+ * provider/aws: No longer ForceNew resource on lambda_function runtime update [GH-12329]
  * provider/azurerm: Ignore case on protocol and allocation types [GH-12176]
  * provider/cloudflare: add validation for proxied record types [GH-11993]
  * provider/datadog: Adding default values to datadog_monitor [GH-12168]
