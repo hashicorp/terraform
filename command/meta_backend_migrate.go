@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/terraform/backend"
 	clistate "github.com/hashicorp/terraform/command/state"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -24,30 +25,131 @@ import (
 //
 // This will attempt to lock both states for the migration.
 func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
+	// We need to check what the named state status is. If we're converting
+	// from multi-state to single-state for example, we need to handle that.
+	var oneSingle, twoSingle bool
+	oneStates, err := opts.One.States()
+	if err == backend.ErrNamedStatesNotSupported {
+		oneSingle = true
+		err = nil
+	}
+	if err != nil {
+		return fmt.Errorf(strings.TrimSpace(
+			errMigrateLoadStates), opts.OneType, err)
+	}
+
+	_, err = opts.Two.States()
+	if err == backend.ErrNamedStatesNotSupported {
+		twoSingle = true
+		err = nil
+	}
+	if err != nil {
+		return fmt.Errorf(strings.TrimSpace(
+			errMigrateLoadStates), opts.TwoType, err)
+	}
+
+	// Determine migration behavior based on whether the source/destionation
+	// supports multi-state.
+	switch {
+	// Single-state to single-state. This is the easiest case: we just
+	// copy the default state directly.
+	case oneSingle && twoSingle:
+		return m.backendMigrateState_s_s(opts)
+
+	// Single-state to multi-state. This is easy since we just copy
+	// the default state and ignore the rest in the destination.
+	case oneSingle && !twoSingle:
+		return m.backendMigrateState_s_s(opts)
+
+	// Multi-state to single-state. If the source has more than the default
+	// state this is complicated since we have to ask the user what to do.
+	case !oneSingle && twoSingle:
+		// If the source only has one state and it is the default,
+		// treat it as if it doesn't support multi-state.
+		if len(oneStates) == 1 && oneStates[0] == backend.DefaultStateName {
+			panic("YO")
+			return m.backendMigrateState_s_s(opts)
+		}
+
+		panic("unhandled")
+
+	// Multi-state to multi-state. We merge the states together (migrating
+	// each from the source to the destination one by one).
+	case !oneSingle && !twoSingle:
+		// If the source only has one state and it is the default,
+		// treat it as if it doesn't support multi-state.
+		if len(oneStates) == 1 && oneStates[0] == backend.DefaultStateName {
+			return m.backendMigrateState_s_s(opts)
+		}
+
+		panic("unhandled")
+	}
+
+	return nil
+}
+
+//-------------------------------------------------------------------
+// State Migration Scenarios
+//
+// The functions below cover handling all the various scenarios that
+// can exist when migrating state. They are named in an immediately not
+// obvious format but is simple:
+//
+// Format: backendMigrateState_s1_s2[_suffix]
+//
+// When s1 or s2 is lower case, it means that it is a single state backend.
+// When either is uppercase, it means that state is a multi-state backend.
+// The suffix is used to disambiguate multiple cases with the same type of
+// states.
+//
+//-------------------------------------------------------------------
+
+// Single state to single state, assumed default state name.
+func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
+	stateOne, err := opts.One.State(backend.DefaultStateName)
+	if err != nil {
+		return fmt.Errorf(strings.TrimSpace(
+			errMigrateSingleLoadDefault), opts.OneType, err)
+	}
+	if err := stateOne.RefreshState(); err != nil {
+		return fmt.Errorf(strings.TrimSpace(
+			errMigrateSingleLoadDefault), opts.OneType, err)
+	}
+
+	stateTwo, err := opts.Two.State(backend.DefaultStateName)
+	if err != nil {
+		return fmt.Errorf(strings.TrimSpace(
+			errMigrateSingleLoadDefault), opts.TwoType, err)
+	}
+	if err := stateTwo.RefreshState(); err != nil {
+		return fmt.Errorf(strings.TrimSpace(
+			errMigrateSingleLoadDefault), opts.TwoType, err)
+	}
+
 	lockInfoOne := state.NewLockInfo()
 	lockInfoOne.Operation = "migration"
 	lockInfoOne.Info = "source state"
 
-	lockIDOne, err := clistate.Lock(opts.One, lockInfoOne, m.Ui, m.Colorize())
+	lockIDOne, err := clistate.Lock(stateOne, lockInfoOne, m.Ui, m.Colorize())
 	if err != nil {
 		return fmt.Errorf("Error locking source state: %s", err)
 	}
-	defer clistate.Unlock(opts.One, lockIDOne, m.Ui, m.Colorize())
+	defer clistate.Unlock(stateOne, lockIDOne, m.Ui, m.Colorize())
 
 	lockInfoTwo := state.NewLockInfo()
 	lockInfoTwo.Operation = "migration"
 	lockInfoTwo.Info = "destination state"
 
-	lockIDTwo, err := clistate.Lock(opts.Two, lockInfoTwo, m.Ui, m.Colorize())
+	lockIDTwo, err := clistate.Lock(stateTwo, lockInfoTwo, m.Ui, m.Colorize())
 	if err != nil {
 		return fmt.Errorf("Error locking destination state: %s", err)
 	}
-	defer clistate.Unlock(opts.Two, lockIDTwo, m.Ui, m.Colorize())
+	defer clistate.Unlock(stateTwo, lockIDTwo, m.Ui, m.Colorize())
 
-	one := opts.One.State()
-	two := opts.Two.State()
+	one := stateOne.State()
+	two := stateTwo.State()
 
-	var confirmFunc func(opts *backendMigrateOpts) (bool, error)
+	var confirmFunc func(state.State, state.State, *backendMigrateOpts) (bool, error)
 	switch {
 	// No migration necessary
 	case one.Empty() && two.Empty():
@@ -73,7 +175,7 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	}
 
 	// Confirm with the user whether we want to copy state over
-	confirm, err := confirmFunc(opts)
+	confirm, err := confirmFunc(stateOne, stateTwo, opts)
 	if err != nil {
 		return err
 	}
@@ -82,11 +184,11 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	}
 
 	// Confirmed! Write.
-	if err := opts.Two.WriteState(one); err != nil {
+	if err := stateTwo.WriteState(one); err != nil {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.OneType, opts.TwoType, err)
 	}
-	if err := opts.Two.PersistState(); err != nil {
+	if err := stateTwo.PersistState(); err != nil {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.OneType, opts.TwoType, err)
 	}
@@ -95,9 +197,9 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	return nil
 }
 
-func (m *Meta) backendMigrateEmptyConfirm(opts *backendMigrateOpts) (bool, error) {
+func (m *Meta) backendMigrateEmptyConfirm(one, two state.State, opts *backendMigrateOpts) (bool, error) {
 	inputOpts := &terraform.InputOpts{
-		Id: "backend-migrate-to-backend",
+		Id: "backend-migrate-copy-to-empty",
 		Query: fmt.Sprintf(
 			"Do you want to copy state from %q to %q?",
 			opts.OneType, opts.TwoType),
@@ -124,10 +226,11 @@ func (m *Meta) backendMigrateEmptyConfirm(opts *backendMigrateOpts) (bool, error
 	}
 }
 
-func (m *Meta) backendMigrateNonEmptyConfirm(opts *backendMigrateOpts) (bool, error) {
+func (m *Meta) backendMigrateNonEmptyConfirm(
+	stateOne, stateTwo state.State, opts *backendMigrateOpts) (bool, error) {
 	// We need to grab both states so we can write them to a file
-	one := opts.One.State()
-	two := opts.Two.State()
+	one := stateOne.State()
+	two := stateTwo.State()
 
 	// Save both to a temporary
 	td, err := ioutil.TempDir("", "terraform")
@@ -188,8 +291,27 @@ func (m *Meta) backendMigrateNonEmptyConfirm(opts *backendMigrateOpts) (bool, er
 
 type backendMigrateOpts struct {
 	OneType, TwoType string
-	One, Two         state.State
+	One, Two         backend.Backend
 }
+
+const errMigrateLoadStates = `
+Error inspecting state in %q: %s
+
+Prior to changing backends, Terraform inspects the source and destionation
+states to determine what kind of migration steps need to be taken, if any.
+Terraform failed to load the states. The data in both the source and the
+destination remain unmodified. Please resolve the above error and try again.
+`
+
+const errMigrateSingleLoadDefault = `
+Error loading state from %q: %s
+
+Terraform failed to load the default state from %[1]q.
+State migration cannot occur unless the state can be loaded. Backend
+modification and state migration has been aborted. The state in both the
+source and the destination remain unmodified. Please resolve the
+above error and try again.
+`
 
 const errBackendStateCopy = `
 Error copying state from %q to %q: %s
