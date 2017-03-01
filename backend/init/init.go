@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 
+	backendatlas "github.com/hashicorp/terraform/backend/atlas"
 	backendlegacy "github.com/hashicorp/terraform/backend/legacy"
 	backendlocal "github.com/hashicorp/terraform/backend/local"
 	backendconsul "github.com/hashicorp/terraform/backend/remote-state/consul"
@@ -31,6 +32,7 @@ func init() {
 	// Our hardcoded backends. We don't need to acquire a lock here
 	// since init() code is serial and can't spawn goroutines.
 	backends = map[string]func() backend.Backend{
+		"atlas":  func() backend.Backend { return &backendatlas.Backend{} },
 		"local":  func() backend.Backend { return &backendlocal.Local{} },
 		"consul": func() backend.Backend { return backendconsul.New() },
 		"inmem":  func() backend.Backend { return backendinmem.New() },
