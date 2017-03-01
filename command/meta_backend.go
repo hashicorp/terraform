@@ -725,8 +725,12 @@ func (m *Meta) backend_c_R_s(
 	}
 	config := terraform.NewResourceConfig(rawC)
 
-	// Initialize the legacy remote backend
-	b := &backendlegacy.Backend{Type: s.Remote.Type}
+	// Get the backend
+	f := backendinit.Backend(s.Remote.Type)
+	if f == nil {
+		return nil, fmt.Errorf(strings.TrimSpace(errBackendLegacyUnknown), s.Remote.Type)
+	}
+	b := f()
 
 	// Configure
 	if err := b.Configure(config); err != nil {
@@ -1434,6 +1438,17 @@ The error(s) configuring the legacy remote state:
 %s
 `
 
+const errBackendLegacyUnknown = `
+The legacy remote state type %q could not be found.
+
+Terraform 0.9.0 shipped with backwards compatible for all built-in
+legacy remote state types. This error may mean that you were using a
+custom Terraform build that perhaps supported a different type of
+remote state.
+
+Please check with the creator of the remote state above and try again.
+`
+
 const errBackendLocalRead = `
 Error reading local state: %s
 
@@ -1713,4 +1728,8 @@ Remote state changed significantly in Terraform 0.9. Please update your remote
 state configuration to use the new 'backend' settings. For now, Terraform
 will continue to use your existing settings. Legacy remote state support
 will be removed in Terraform 0.11.
+
+You can find a guide for upgrading here:
+
+https://www.terraform.io/docs/backends/legacy-0-8.html
 `
