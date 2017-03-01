@@ -36,6 +36,7 @@ func New() backend.Backend {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Description: "Address to the Consul Cluster",
+					Default:     "", // To prevent input
 				},
 
 				"scheme": &schema.Schema{
