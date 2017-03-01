@@ -129,14 +129,6 @@ func resourceContainerNodePoolRead(d *schema.ResourceData, meta interface{}) err
 	nodePool, err := config.clientContainer.Projects.Zones.Clusters.NodePools.Get(
 		project, zone, cluster, name).Do()
 	if err != nil {
-		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
-			log.Printf("[WARN] Removing Container NodePool %q because it's gone", name)
-			// The resource doesn't exist anymore
-			d.SetId("")
-
-			return nil
-		}
-
 		return fmt.Errorf("Error reading NodePool: %s", err)
 	}
 
@@ -192,7 +184,13 @@ func resourceContainerNodePoolExists(d *schema.ResourceData, meta interface{}) (
 	_, err = config.clientContainer.Projects.Zones.Clusters.NodePools.Get(
 		project, zone, cluster, name).Do()
 	if err != nil {
-		return false, err
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			log.Printf("[WARN] Removing Container NodePool %q because it's gone", name)
+			// The resource doesn't exist anymore
+			return false, err
+		}
+		// There was some other error in reading the resource
+		return true, err
 	}
 	return true, nil
 }
