@@ -52,6 +52,7 @@ BUG FIXES:
  * provider/datadog: Adding default values to datadog_monitor [GH-12168]
  * provider/google: make local_traffic_selector computed [GH-11631]
  * provider/google: Write the raw disk encryption key in the state file to avoid diffs on plan [GH-12068]
+ * provider/google: fix url map test and update logic [GH-12317]
  * provider/openstack: Rename provider to loadbalancer_provider [GH-12239]
  * provider/pagerduty: Setting incident_urgency_rule as optional [GH-12211]
  * provider/profitbricks: Fixing how primary_nic is added to profitbricks server [GH-12197]
