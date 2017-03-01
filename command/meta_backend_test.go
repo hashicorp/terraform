@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
+	backendinit "github.com/hashicorp/terraform/backend/init"
+	backendlocal "github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -914,6 +916,61 @@ func TestMetaBackend_configuredChangeCopy(t *testing.T) {
 
 	// Ask input
 	defer testInteractiveInput(t, []string{"yes", "yes"})()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+
+	// Get the backend
+	b, err := m.Backend(&BackendOpts{Init: true})
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Check the state
+	s, err := b.State(backend.DefaultStateName)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	if err := s.RefreshState(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	state := s.State()
+	if state == nil {
+		t.Fatal("state should not be nil")
+	}
+	if state.Lineage != "backend-change" {
+		t.Fatalf("bad: %#v", state)
+	}
+
+	// Verify no local state
+	if _, err := os.Stat(DefaultStateFilename); err == nil {
+		t.Fatal("file should not exist")
+	}
+
+	// Verify no local backup
+	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
+		t.Fatal("file should not exist")
+	}
+}
+
+// Changing a configured backend that supports only single states to another
+// backend that only supports single states.
+func TestMetaBackend_configuredChangeCopy_singleState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("backend-change-single-to-single"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Register the single-state backend
+	backendinit.Set("local-single", backendlocal.TestNewLocalSingle)
+	defer backendinit.Set("local-single", nil)
+
+	// Ask input
+	defer testInputMap(t, map[string]string{
+		"backend-migrate-to-new":        "yes",
+		"backend-migrate-copy-to-empty": "yes",
+	})()
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
