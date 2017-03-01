@@ -21,7 +21,7 @@ func (c *EnvSelectCommand) Run(args []string) int {
 	}
 	args = cmdFlags.Args()
 	if len(args) == 0 {
-		c.Ui.Error("expected NAME.\n")
+		c.Ui.Error("Expected a single argument: NAME.\n")
 		return cli.RunResultHelp
 	}
 

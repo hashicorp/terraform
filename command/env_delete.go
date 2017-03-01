@@ -60,12 +60,12 @@ func (c *EnvDeleteCommand) Run(args []string) int {
 	}
 
 	if !exists {
-		c.Ui.Error(fmt.Sprintf(envDoesNotExist, delEnv))
+		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envDoesNotExist), delEnv))
 		return 1
 	}
 
 	if delEnv == c.Env() {
-		c.Ui.Error(fmt.Sprintf(envDelCurrent, delEnv))
+		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envDelCurrent), delEnv))
 		return 1
 	}
 
@@ -84,7 +84,7 @@ func (c *EnvDeleteCommand) Run(args []string) int {
 	hasResources := sMgr.State().HasResources()
 
 	if hasResources && !force {
-		c.Ui.Error(fmt.Sprintf(envNotEmpty, delEnv))
+		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envNotEmpty), delEnv))
 		return 1
 	}
 
