@@ -13,9 +13,13 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+// This is the name of the default, initial state that every backend
+// must have. This state cannot be deleted.
 const DefaultStateName = "default"
 
-// Error value to return when a named state operation isn't supported
+// Error value to return when a named state operation isn't supported.
+// This must be returned rather than a custom error so that the Terraform
+// CLI can detect it and handle it appropriately.
 var ErrNamedStatesNotSupported = errors.New("named states not supported")
 
 // Backend is the minimal interface that must be implemented to enable Terraform.
