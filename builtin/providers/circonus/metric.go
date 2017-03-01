@@ -114,7 +114,7 @@ func metricAPIStatusToBool(s string) bool {
 	case metricStatusAvailable:
 		return false
 	default:
-		fmt.Sprintf("PROVIDER BUG: metric status %q unsupported", s)
+		// log.Printf("PROVIDER BUG: metric status %q unsupported", s)
 		return false
 	}
 }
