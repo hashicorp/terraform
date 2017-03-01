@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -1190,6 +1192,100 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleCurrentEnv(t *testing.T) 
 	envPath := filepath.Join(backendlocal.DefaultEnvDir, "env2", backendlocal.DefaultStateFilename)
 	if _, err := os.Stat(envPath); err != nil {
 		t.Fatal("env should exist")
+	}
+}
+
+// Changing a configured backend that supports multi-state to a
+// backend that also supports multi-state.
+func TestMetaBackend_configuredChangeCopy_multiToMulti(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("backend-change-multi-to-multi"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Ask input
+	defer testInputMap(t, map[string]string{
+		"backend-migrate-to-new":                   "yes",
+		"backend-migrate-multistate-to-multistate": "yes",
+	})()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+
+	// Get the backend
+	b, err := m.Backend(&BackendOpts{Init: true})
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Check resulting states
+	states, err := b.States()
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	sort.Strings(states)
+	expected := []string{"default", "env2"}
+	if !reflect.DeepEqual(states, expected) {
+		t.Fatalf("bad: %#v", states)
+	}
+
+	{
+		// Check the default state
+		s, err := b.State(backend.DefaultStateName)
+		if err != nil {
+			t.Fatalf("bad: %s", err)
+		}
+		if err := s.RefreshState(); err != nil {
+			t.Fatalf("bad: %s", err)
+		}
+		state := s.State()
+		if state == nil {
+			t.Fatal("state should not be nil")
+		}
+		if state.Lineage != "backend-change" {
+			t.Fatalf("bad: %#v", state)
+		}
+	}
+
+	{
+		// Check the other state
+		s, err := b.State("env2")
+		if err != nil {
+			t.Fatalf("bad: %s", err)
+		}
+		if err := s.RefreshState(); err != nil {
+			t.Fatalf("bad: %s", err)
+		}
+		state := s.State()
+		if state == nil {
+			t.Fatal("state should not be nil")
+		}
+		if state.Lineage != "backend-change-env2" {
+			t.Fatalf("bad: %#v", state)
+		}
+	}
+
+	// Verify no local backup
+	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
+		t.Fatal("file should not exist")
+	}
+
+	{
+		// Verify existing environments exist
+		envPath := filepath.Join(backendlocal.DefaultEnvDir, "env2", backendlocal.DefaultStateFilename)
+		if _, err := os.Stat(envPath); err != nil {
+			t.Fatal("env should exist")
+		}
+	}
+
+	{
+		// Verify new environments exist
+		envPath := filepath.Join("envdir-new", "env2", backendlocal.DefaultStateFilename)
+		if _, err := os.Stat(envPath); err != nil {
+			t.Fatal("env should exist")
+		}
 	}
 }
 
