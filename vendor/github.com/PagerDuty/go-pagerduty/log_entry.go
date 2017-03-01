@@ -46,8 +46,8 @@ type ListLogEntryResponse struct {
 type ListLogEntriesOptions struct {
 	APIListObject
 	TimeZone   string   `url:"time_zone"`
-	Since      string   `url:"omitempty"`
-	Until      string   `url:"omitempty"`
+	Since      string   `url:"since,omitempty"`
+	Until      string   `url:"until,omitempty"`
 	IsOverview bool     `url:"is_overview,omitempty"`
 	Includes   []string `url:"include,omitempty,brackets"`
 }
