@@ -73,6 +73,8 @@ instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/Use
 * `user_data` - (Optional) The user data to provide when launching the instance.
 * `iam_instance_profile` - (Optional) The IAM Instance Profile to
   launch the instance with.
+* `ipv6_address_count`- (Optional) A number of IPv6 addresses to associate with the primary network interface. Amazon EC2 chooses the IPv6 addresses from the range of your subnet.
+* `ipv6_addresses` - (Optional) Specify one or more IPv6 addresses from the range of the subnet to associate with the primary network interface
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 * `root_block_device` - (Optional) Customize details about the root block
   device of the instance. See [Block Devices](#block-devices) below for details.

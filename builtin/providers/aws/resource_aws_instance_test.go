@@ -498,6 +498,29 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_ipv6_supportAddressCount(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigIpv6Support,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo",
+						"ipv6_address_count",
+						"1"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_multipleRegions(t *testing.T) {
 	var v ec2.Instance
 
@@ -1120,6 +1143,37 @@ resource "aws_instance" "foo" {
 	tenancy = "dedicated"
 	# pre-encoded base64 data
 	user_data = "3dc39dda39be1205215e776bad998da361a5955d"
+}
+`
+
+const testAccInstanceConfigIpv6Support = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+	assign_generated_ipv6_cidr_block = true
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+	ipv6_cidr_block = "${cidrsubnet(aws_vpc.foo.ipv6_cidr_block, 8, 1)}"
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
+}
+
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-c5eabbf5"
+	instance_type = "t2.micro"
+	subnet_id = "${aws_subnet.foo.id}"
+
+	ipv6_address_count = 1
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
 }
 `
 
