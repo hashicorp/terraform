@@ -877,7 +877,7 @@ func TestInterpolator_sets(t *testing.T) {
 }
 
 // When a splat reference is made to a resource that is unknown, we should
-// return an error.
+// return an empty list rather than panicking.
 func TestInterpolater_resourceUnknownVariableList(t *testing.T) {
 	i := &Interpolater{
 		Module:    testModule(t, "plan-computed-data-resource"),
@@ -889,16 +889,8 @@ func TestInterpolater_resourceUnknownVariableList(t *testing.T) {
 		Path: rootModulePath,
 	}
 
-	// missing "data" from the reference here
-	v, err := config.NewInterpolatedVariable("aws_vpc.bar.*.foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	_, err = i.Values(scope, map[string]config.InterpolatedVariable{"foo": v})
-	if err == nil {
-		t.Fatal("expected error interpolating invalid resource")
-	}
+	testInterpolate(t, i, scope, "aws_vpc.bar.*.foo",
+		interfaceToVariableSwallowError([]interface{}{}))
 }
 
 func testInterpolate(
