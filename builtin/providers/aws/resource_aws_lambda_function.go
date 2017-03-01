@@ -95,7 +95,6 @@ func resourceAwsLambdaFunction() *schema.Resource {
 			"runtime": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     true,
 				ValidateFunc: validateRuntime,
 			},
 			"timeout": {
@@ -530,6 +529,10 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 			}
 			configUpdate = true
 		}
+	}
+	if d.HasChange("runtime") {
+		configReq.Runtime = aws.String(d.Get("runtime").(string))
+		configUpdate = true
 	}
 	if d.HasChange("environment") {
 		if v, ok := d.GetOk("environment"); ok {
