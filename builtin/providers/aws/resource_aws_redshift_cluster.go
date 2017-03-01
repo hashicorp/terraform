@@ -863,9 +863,9 @@ func validateRedshiftClusterIdentifier(v interface{}, k string) (ws []string, er
 
 func validateRedshiftClusterDbName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9A-Za-z_$]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z_$]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only alphanumeric characters, underscores, and dollar signs are allowed in %q", k))
+			"only lowercase alphanumeric characters, underscores, and dollar signs are allowed in %q", k))
 	}
 	if !regexp.MustCompile(`^[a-zA-Z_]`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
@@ -930,6 +930,10 @@ func validateRedshiftClusterMasterPassword(v interface{}, k string) (ws []string
 	if !regexp.MustCompile(`^.*[0-9].*`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q must contain at least one number", k))
+	}
+	if !regexp.MustCompile(`^[^\@\/'" ]*$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot contain [/@\"' ]", k))
 	}
 	if len(value) < 8 {
 		errors = append(errors, fmt.Errorf("%q must be at least 8 characters", k))
