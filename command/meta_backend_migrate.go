@@ -48,6 +48,10 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 			errMigrateLoadStates), opts.TwoType, err)
 	}
 
+	// Setup defaults
+	opts.oneEnv = backend.DefaultStateName
+	opts.twoEnv = backend.DefaultStateName
+
 	// Determine migration behavior based on whether the source/destionation
 	// supports multi-state.
 	switch {
@@ -105,6 +109,8 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 
 // Multi-state to single state.
 func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
+	currentEnv := m.Env()
+
 	// Ask the user if they want to migrate their existing remote state
 	migrate, err := m.confirm(&terraform.InputOpts{
 		Id: "backend-migrate-multistate-to-single",
@@ -112,7 +118,9 @@ func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 			"Destination state %q doesn't support environments (named states).\n"+
 				"Do you want to copy only your current environment?",
 			opts.TwoType),
-		Description: strings.TrimSpace(inputBackendMigrateMultiToSingle),
+		Description: fmt.Sprintf(
+			strings.TrimSpace(inputBackendMigrateMultiToSingle),
+			opts.OneType, opts.TwoType, currentEnv),
 	})
 	if err != nil {
 		return fmt.Errorf(
@@ -123,12 +131,13 @@ func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 	}
 
 	// Copy the default state
+	opts.oneEnv = currentEnv
 	return m.backendMigrateState_s_s(opts)
 }
 
 // Single state to single state, assumed default state name.
 func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
-	stateOne, err := opts.One.State(backend.DefaultStateName)
+	stateOne, err := opts.One.State(opts.oneEnv)
 	if err != nil {
 		return fmt.Errorf(strings.TrimSpace(
 			errMigrateSingleLoadDefault), opts.OneType, err)
@@ -138,7 +147,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 			errMigrateSingleLoadDefault), opts.OneType, err)
 	}
 
-	stateTwo, err := opts.Two.State(backend.DefaultStateName)
+	stateTwo, err := opts.Two.State(opts.twoEnv)
 	if err != nil {
 		return fmt.Errorf(strings.TrimSpace(
 			errMigrateSingleLoadDefault), opts.TwoType, err)
@@ -314,6 +323,11 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 type backendMigrateOpts struct {
 	OneType, TwoType string
 	One, Two         backend.Backend
+
+	// Fields below are set internally when migrate is called
+
+	oneEnv string // source env
+	twoEnv string // dest env
 }
 
 const errMigrateLoadStates = `
@@ -361,10 +375,10 @@ and "no" to start with the existing state in %[2]q.
 `
 
 const inputBackendMigrateMultiToSingle = `
-The existing backend %q supports environments and you currently are
-using more than one. The target backend %q doesn't support environments.
+The existing backend %[1]q supports environments and you currently are
+using more than one. The target backend %[2]q doesn't support environments.
 If you continue, Terraform will offer to copy your current environment
-%q to the default environment in the target. Your existing environments
+%[3]q to the default environment in the target. Your existing environments
 in the source backend won't be modified. If you want to switch environments,
 back them up, or cancel altogether, answer "no" and Terraform will abort.
 `
