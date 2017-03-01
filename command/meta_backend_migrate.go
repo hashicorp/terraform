@@ -67,7 +67,6 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 		// If the source only has one state and it is the default,
 		// treat it as if it doesn't support multi-state.
 		if len(oneStates) == 1 && oneStates[0] == backend.DefaultStateName {
-			panic("YO")
 			return m.backendMigrateState_s_s(opts)
 		}
 
