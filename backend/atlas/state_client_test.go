@@ -1,4 +1,4 @@
-package remote
+package atlas
 
 import (
 	"bytes"
@@ -13,15 +13,28 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/acctest"
+	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAtlasClient_impl(t *testing.T) {
-	var _ Client = new(AtlasClient)
+func testStateClient(t *testing.T, c map[string]interface{}) remote.Client {
+	b := backend.TestBackendConfig(t, &Backend{}, c)
+	raw, err := b.State(backend.DefaultStateName)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	s := raw.(*remote.State)
+	return s.Client
 }
 
-func TestAtlasClient(t *testing.T) {
+func TestStateClient_impl(t *testing.T) {
+	var _ remote.Client = new(stateClient)
+}
+
+func TestStateClient(t *testing.T) {
 	acctest.RemoteTestPrecheck(t)
 
 	token := os.Getenv("ATLAS_TOKEN")
@@ -29,30 +42,24 @@ func TestAtlasClient(t *testing.T) {
 		t.Skipf("skipping, ATLAS_TOKEN must be set")
 	}
 
-	client, err := atlasFactory(map[string]string{
+	client := testStateClient(t, map[string]interface{}{
 		"access_token": token,
 		"name":         "hashicorp/test-remote-state",
 	})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
 
-	testClient(t, client)
+	remote.TestClient(t, client)
 }
 
-func TestAtlasClient_noRetryOnBadCerts(t *testing.T) {
+func TestStateClient_noRetryOnBadCerts(t *testing.T) {
 	acctest.RemoteTestPrecheck(t)
 
-	client, err := atlasFactory(map[string]string{
+	client := testStateClient(t, map[string]interface{}{
 		"access_token": "NOT_REQUIRED",
 		"name":         "hashicorp/test-remote-state",
 	})
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
 
-	ac := client.(*AtlasClient)
-	// trigger the AtlasClient to build the http client and assign HTTPClient
+	ac := client.(*stateClient)
+	// trigger the StateClient to build the http client and assign HTTPClient
 	httpClient, err := ac.http()
 	if err != nil {
 		t.Fatal(err)
@@ -87,18 +94,16 @@ func TestAtlasClient_noRetryOnBadCerts(t *testing.T) {
 	t.Fatalf("expected x509.UnknownAuthorityError, got %v", err)
 }
 
-func TestAtlasClient_ReportedConflictEqualStates(t *testing.T) {
+func TestStateClient_ReportedConflictEqualStates(t *testing.T) {
 	fakeAtlas := newFakeAtlas(t, testStateModuleOrderChange)
 	srv := fakeAtlas.Server()
 	defer srv.Close()
-	client, err := atlasFactory(map[string]string{
+
+	client := testStateClient(t, map[string]interface{}{
 		"access_token": "sometoken",
 		"name":         "someuser/some-test-remote-state",
 		"address":      srv.URL,
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
 
 	state, err := terraform.ReadState(bytes.NewReader(testStateModuleOrderChange))
 	if err != nil {
@@ -114,18 +119,16 @@ func TestAtlasClient_ReportedConflictEqualStates(t *testing.T) {
 	}
 }
 
-func TestAtlasClient_NoConflict(t *testing.T) {
+func TestStateClient_NoConflict(t *testing.T) {
 	fakeAtlas := newFakeAtlas(t, testStateSimple)
 	srv := fakeAtlas.Server()
 	defer srv.Close()
-	client, err := atlasFactory(map[string]string{
+
+	client := testStateClient(t, map[string]interface{}{
 		"access_token": "sometoken",
 		"name":         "someuser/some-test-remote-state",
 		"address":      srv.URL,
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
 
 	state, err := terraform.ReadState(bytes.NewReader(testStateSimple))
 	if err != nil {
@@ -144,18 +147,16 @@ func TestAtlasClient_NoConflict(t *testing.T) {
 	}
 }
 
-func TestAtlasClient_LegitimateConflict(t *testing.T) {
+func TestStateClient_LegitimateConflict(t *testing.T) {
 	fakeAtlas := newFakeAtlas(t, testStateSimple)
 	srv := fakeAtlas.Server()
 	defer srv.Close()
-	client, err := atlasFactory(map[string]string{
+
+	client := testStateClient(t, map[string]interface{}{
 		"access_token": "sometoken",
 		"name":         "someuser/some-test-remote-state",
 		"address":      srv.URL,
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
 
 	state, err := terraform.ReadState(bytes.NewReader(testStateSimple))
 	if err != nil {
@@ -181,7 +182,7 @@ func TestAtlasClient_LegitimateConflict(t *testing.T) {
 	}
 }
 
-func TestAtlasClient_UnresolvableConflict(t *testing.T) {
+func TestStateClient_UnresolvableConflict(t *testing.T) {
 	fakeAtlas := newFakeAtlas(t, testStateSimple)
 
 	// Something unexpected causes Atlas to conflict in a way that we can't fix.
@@ -189,14 +190,12 @@ func TestAtlasClient_UnresolvableConflict(t *testing.T) {
 
 	srv := fakeAtlas.Server()
 	defer srv.Close()
-	client, err := atlasFactory(map[string]string{
+
+	client := testStateClient(t, map[string]interface{}{
 		"access_token": "sometoken",
 		"name":         "someuser/some-test-remote-state",
 		"address":      srv.URL,
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
 
 	state, err := terraform.ReadState(bytes.NewReader(testStateSimple))
 	if err != nil {

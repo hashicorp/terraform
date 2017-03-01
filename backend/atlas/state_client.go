@@ -1,4 +1,4 @@
-package remote
+package atlas
 
 import (
 	"bytes"
@@ -13,11 +13,11 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/go-rootcerts"
+	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -27,55 +27,8 @@ const (
 	atlasTokenHeader   = "X-Atlas-Token"
 )
 
-func atlasFactory(conf map[string]string) (Client, error) {
-	var client AtlasClient
-
-	server, ok := conf["address"]
-	if !ok || server == "" {
-		server = defaultAtlasServer
-	}
-
-	url, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	token, ok := conf["access_token"]
-	if token == "" {
-		token = os.Getenv("ATLAS_TOKEN")
-		ok = true
-	}
-	if !ok || token == "" {
-		return nil, fmt.Errorf(
-			"missing 'access_token' configuration or ATLAS_TOKEN environmental variable")
-	}
-
-	name, ok := conf["name"]
-	if !ok || name == "" {
-		return nil, fmt.Errorf("missing 'name' configuration")
-	}
-
-	parts := strings.Split(name, "/")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("malformed name '%s', expected format '<account>/<name>'", name)
-	}
-
-	// If it exists, add the `ATLAS_RUN_ID` environment
-	// variable as a param, which is injected during Atlas Terraform
-	// runs. This is completely optional.
-	client.RunId = os.Getenv("ATLAS_RUN_ID")
-
-	client.Server = server
-	client.ServerURL = url
-	client.AccessToken = token
-	client.User = parts[0]
-	client.Name = parts[1]
-
-	return &client, nil
-}
-
 // AtlasClient implements the Client interface for an Atlas compatible server.
-type AtlasClient struct {
+type stateClient struct {
 	Server      string
 	ServerURL   *url.URL
 	User        string
@@ -87,7 +40,7 @@ type AtlasClient struct {
 	conflictHandlingAttempted bool
 }
 
-func (c *AtlasClient) Get() (*Payload, error) {
+func (c *stateClient) Get() (*remote.Payload, error) {
 	// Make the HTTP request
 	req, err := retryablehttp.NewRequest("GET", c.url().String(), nil)
 	if err != nil {
@@ -134,7 +87,7 @@ func (c *AtlasClient) Get() (*Payload, error) {
 	}
 
 	// Create the payload
-	payload := &Payload{
+	payload := &remote.Payload{
 		Data: buf.Bytes(),
 	}
 
@@ -159,7 +112,7 @@ func (c *AtlasClient) Get() (*Payload, error) {
 	return payload, nil
 }
 
-func (c *AtlasClient) Put(state []byte) error {
+func (c *stateClient) Put(state []byte) error {
 	// Get the target URL
 	base := c.url()
 
@@ -203,7 +156,7 @@ func (c *AtlasClient) Put(state []byte) error {
 	}
 }
 
-func (c *AtlasClient) Delete() error {
+func (c *stateClient) Delete() error {
 	// Make the HTTP request
 	req, err := retryablehttp.NewRequest("DELETE", c.url().String(), nil)
 	if err != nil {
@@ -237,7 +190,7 @@ func (c *AtlasClient) Delete() error {
 	}
 }
 
-func (c *AtlasClient) readBody(b io.Reader) string {
+func (c *stateClient) readBody(b io.Reader) string {
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, b); err != nil {
 		return fmt.Sprintf("Error reading body: %s", err)
@@ -251,7 +204,7 @@ func (c *AtlasClient) readBody(b io.Reader) string {
 	return result
 }
 
-func (c *AtlasClient) url() *url.URL {
+func (c *stateClient) url() *url.URL {
 	values := url.Values{}
 
 	values.Add("atlas_run_id", c.RunId)
@@ -264,7 +217,7 @@ func (c *AtlasClient) url() *url.URL {
 	}
 }
 
-func (c *AtlasClient) http() (*retryablehttp.Client, error) {
+func (c *stateClient) http() (*retryablehttp.Client, error) {
 	if c.HTTPClient != nil {
 		return c.HTTPClient, nil
 	}
@@ -314,7 +267,7 @@ func (c *AtlasClient) http() (*retryablehttp.Client, error) {
 //
 // In other words, in this situation Terraform can override Atlas's detected
 // conflict by asserting that the state it is pushing is indeed correct.
-func (c *AtlasClient) handleConflict(msg string, state []byte) error {
+func (c *stateClient) handleConflict(msg string, state []byte) error {
 	log.Printf("[DEBUG] Handling Atlas conflict response: %s", msg)
 
 	if c.conflictHandlingAttempted {
