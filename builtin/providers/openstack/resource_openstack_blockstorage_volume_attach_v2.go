@@ -33,6 +33,25 @@ func resourceBlockStorageVolumeAttachV2() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"instance_id": &schema.Schema{
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "instance_id is no longer used in this resource",
+			},
+
+			"host_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"device": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"attach_mode": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -45,18 +64,6 @@ func resourceBlockStorageVolumeAttachV2() *schema.Resource {
 					}
 					return
 				},
-			},
-
-			"device": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"host_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
 			},
 
 			"initiator": &schema.Schema{
