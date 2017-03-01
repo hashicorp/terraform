@@ -32,12 +32,61 @@ func TestAccAWSSubnet_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckSubnetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccSubnetConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckSubnetExists(
 						"aws_subnet.foo", &v),
 					testCheck,
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSubnet_ipv6(t *testing.T) {
+	var v ec2.Subnet
+
+	testCheck := func(*terraform.State) error {
+		if v.Ipv6CidrBlockAssociationSet == nil {
+			return fmt.Errorf("Expected IPV6 CIDR Block Association")
+		}
+
+		if *v.AssignIpv6AddressOnCreation != true {
+			return fmt.Errorf("bad AssignIpv6AddressOnCreation: %t", *v.AssignIpv6AddressOnCreation)
+		}
+
+		return nil
+	}
+
+	testCheckUpdated := func(*terraform.State) error {
+		if *v.AssignIpv6AddressOnCreation != false {
+			return fmt.Errorf("bad AssignIpv6AddressOnCreation: %t", *v.AssignIpv6AddressOnCreation)
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_subnet.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckSubnetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccSubnetConfigIpv6,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckSubnetExists(
+						"aws_subnet.foo", &v),
+					testCheck,
+				),
+			},
+			{
+				Config: testAccSubnetConfigIpv6Updated,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckSubnetExists(
+						"aws_subnet.foo", &v),
+					testCheckUpdated,
 				),
 			},
 		},
@@ -114,6 +163,42 @@ resource "aws_subnet" "foo" {
 	cidr_block = "10.1.1.0/24"
 	vpc_id = "${aws_vpc.foo.id}"
 	map_public_ip_on_launch = true
+	tags {
+		Name = "tf-subnet-acc-test"
+	}
+}
+`
+
+const testAccSubnetConfigIpv6 = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.10.0.0/16"
+	assign_generated_ipv6_cidr_block = true
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.10.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+	ipv6_cidr_block = "${cidrsubnet(aws_vpc.foo.ipv6_cidr_block, 8, 1)}"
+	map_public_ip_on_launch = true
+	assign_ipv6_address_on_creation = true
+	tags {
+		Name = "tf-subnet-acc-test"
+	}
+}
+`
+
+const testAccSubnetConfigIpv6Updated = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.10.0.0/16"
+	assign_generated_ipv6_cidr_block = true
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.10.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+	ipv6_cidr_block = "${cidrsubnet(aws_vpc.foo.ipv6_cidr_block, 8, 3)}"
+	map_public_ip_on_launch = true
+	assign_ipv6_address_on_creation = false
 	tags {
 		Name = "tf-subnet-acc-test"
 	}

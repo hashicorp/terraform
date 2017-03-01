@@ -175,6 +175,23 @@ func resourceAwsInstance() *schema.Resource {
 				Optional: true,
 			},
 
+			"ipv6_address_count": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"ipv6_addresses": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				ConflictsWith: []string{"ipv6_address_count"},
+			},
+
 			"tenancy": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -363,6 +380,23 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		UserData:                          instanceOpts.UserData64,
 	}
 
+	if v, ok := d.GetOk("ipv6_address_count"); ok {
+		runOpts.Ipv6AddressCount = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("ipv6_addresses"); ok {
+		ipv6Addresses := make([]*ec2.InstanceIpv6Address, len(v.([]interface{})))
+		for _, address := range v.([]interface{}) {
+			ipv6Address := &ec2.InstanceIpv6Address{
+				Ipv6Address: aws.String(address.(string)),
+			}
+
+			ipv6Addresses = append(ipv6Addresses, ipv6Address)
+		}
+
+		runOpts.Ipv6Addresses = ipv6Addresses
+	}
+
 	// Create the instance
 	log.Printf("[DEBUG] Run configuration: %s", runOpts)
 
@@ -501,6 +535,13 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 				d.Set("subnet_id", ni.SubnetId)
 				d.Set("network_interface_id", ni.NetworkInterfaceId)
 				d.Set("associate_public_ip_address", ni.Association != nil)
+				d.Set("ipv6_address_count", len(ni.Ipv6Addresses))
+
+				var ipv6Addresses []string
+				for _, address := range ni.Ipv6Addresses {
+					ipv6Addresses = append(ipv6Addresses, *address.Ipv6Address)
+				}
+				d.Set("ipv6_addresses", ipv6Addresses)
 			}
 		}
 	} else {
