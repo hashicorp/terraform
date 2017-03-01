@@ -29,6 +29,7 @@ BUG FIXES:
  * core: destroy provisioners dependent on module variables work [GH-12063]
  * core: resource destruction happens after dependent resources' destroy provisioners [GH-12063]
  * core: invalid resource attribute interpolation in a destroy provisioner errors [GH-12063]
+ * core: legacy backend loading of Consul now works properly [GH-12320]
  * command/init: allow unsetting a backend properly [GH-11988]
  * command/apply: fix crash that could happen with an empty directory [GH-11989]
  * command/refresh: fix crash when no configs were in the pwd [GH-12178]
