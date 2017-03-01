@@ -69,6 +69,12 @@ func init() {
 			}, nil
 		},
 
+		"env": func() (cli.Command, error) {
+			return &command.EnvCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"fmt": func() (cli.Command, error) {
 			return &command.FmtCommand{
 				Meta: meta,

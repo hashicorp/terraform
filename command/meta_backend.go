@@ -76,9 +76,15 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 	statePath := m.statePath
 	stateOutPath := m.stateOutPath
 	backupPath := m.backupPath
+
 	if statePath == "" {
-		statePath = DefaultStateFilename
+		path, err := EnvStatePath()
+		if err != nil {
+			return nil, err
+		}
+		statePath = path
 	}
+
 	if stateOutPath == "" {
 		stateOutPath = statePath
 	}
