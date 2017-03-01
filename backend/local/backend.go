@@ -47,9 +47,13 @@ type Local struct {
 	//
 	// StateBackupPath is the local path where a backup file will be written.
 	// Set this to "-" to disable state backup.
+	//
+	// StateEnvPath is the path to the folder containing environments. This
+	// defaults to DefaultEnvDir if not set.
 	StatePath       string
 	StateOutPath    string
 	StateBackupPath string
+	StateEnvDir     string
 
 	// We only want to create a single instance of a local state, so store them
 	// here as they're loaded.
@@ -266,6 +270,13 @@ func (b *Local) init() {
 			"path": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "",
+			},
+
+			"environment_dir": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
 			},
 		},
 
@@ -288,6 +299,13 @@ func (b *Local) schemaConfigure(ctx context.Context) error {
 		b.StateOutPath = path
 	}
 
+	if raw, ok := d.GetOk("environment_dir"); ok {
+		path := raw.(string)
+		if path != "" {
+			b.StateEnvDir = path
+		}
+	}
+
 	return nil
 }
 
@@ -302,12 +320,17 @@ func (b *Local) StatePaths(name string) (string, string, string) {
 		name = backend.DefaultStateName
 	}
 
+	envDir := DefaultEnvDir
+	if b.StateEnvDir != "" {
+		envDir = b.StateEnvDir
+	}
+
 	if name == backend.DefaultStateName {
 		if statePath == "" {
 			statePath = DefaultStateFilename
 		}
 	} else {
-		statePath = filepath.Join(DefaultEnvDir, name, DefaultStateFilename)
+		statePath = filepath.Join(envDir, name, DefaultStateFilename)
 	}
 
 	if stateOutPath == "" {
@@ -330,7 +353,12 @@ func (b *Local) createState(name string) error {
 		return nil
 	}
 
-	stateDir := filepath.Join(DefaultEnvDir, name)
+	envDir := DefaultEnvDir
+	if b.StateEnvDir != "" {
+		envDir = b.StateEnvDir
+	}
+
+	stateDir := filepath.Join(envDir, name)
 	s, err := os.Stat(stateDir)
 	if err == nil && s.IsDir() {
 		// no need to check for os.IsNotExist, since that is covered by os.MkdirAll
