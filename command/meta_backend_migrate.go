@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
@@ -51,6 +52,7 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	// Setup defaults
 	opts.oneEnv = backend.DefaultStateName
 	opts.twoEnv = backend.DefaultStateName
+	opts.force = false
 
 	// Determine migration behavior based on whether the source/destionation
 	// supports multi-state.
@@ -85,7 +87,7 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 			return m.backendMigrateState_s_s(opts)
 		}
 
-		panic("unhandled")
+		return m.backendMigrateState_S_S(opts)
 	}
 
 	return nil
@@ -106,6 +108,55 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 // states.
 //
 //-------------------------------------------------------------------
+
+// Multi-state to multi-state.
+func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
+	// Ask the user if they want to migrate their existing remote state
+	migrate, err := m.confirm(&terraform.InputOpts{
+		Id: "backend-migrate-multistate-to-multistate",
+		Query: fmt.Sprintf(
+			"Do you want to migrate all environments to %q?",
+			opts.TwoType),
+		Description: fmt.Sprintf(
+			strings.TrimSpace(inputBackendMigrateMultiToMulti),
+			opts.OneType, opts.TwoType),
+	})
+	if err != nil {
+		return fmt.Errorf(
+			"Error asking for state migration action: %s", err)
+	}
+	if !migrate {
+		return fmt.Errorf("Migration aborted by user.")
+	}
+
+	// Read all the states
+	oneStates, err := opts.One.States()
+	if err != nil {
+		return fmt.Errorf(strings.TrimSpace(
+			errMigrateLoadStates), opts.OneType, err)
+	}
+
+	// Sort the states so they're always copied alphabetically
+	sort.Strings(oneStates)
+
+	// Go through each and migrate
+	for _, name := range oneStates {
+		// Copy the same names
+		opts.oneEnv = name
+		opts.twoEnv = name
+
+		// Force it, we confirmed above
+		opts.force = true
+
+		// Perform the migration
+		if err := m.backendMigrateState_s_s(opts); err != nil {
+			return fmt.Errorf(strings.TrimSpace(
+				errMigrateMulti), name, opts.OneType, opts.TwoType, err)
+		}
+	}
+
+	return nil
+}
 
 // Multi-state to single state.
 func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
@@ -205,13 +256,15 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		panic("confirmFunc must not be nil")
 	}
 
-	// Confirm with the user whether we want to copy state over
-	confirm, err := confirmFunc(stateOne, stateTwo, opts)
-	if err != nil {
-		return err
-	}
-	if !confirm {
-		return nil
+	if !opts.force {
+		// Confirm with the user whether we want to copy state over
+		confirm, err := confirmFunc(stateOne, stateTwo, opts)
+		if err != nil {
+			return err
+		}
+		if !confirm {
+			return nil
+		}
 	}
 
 	// Confirmed! Write.
@@ -328,6 +381,7 @@ type backendMigrateOpts struct {
 
 	oneEnv string // source env
 	twoEnv string // dest env
+	force  bool   // if true, won't ask for confirmation
 }
 
 const errMigrateLoadStates = `
@@ -347,6 +401,20 @@ State migration cannot occur unless the state can be loaded. Backend
 modification and state migration has been aborted. The state in both the
 source and the destination remain unmodified. Please resolve the
 above error and try again.
+`
+
+const errMigrateMulti = `
+Error migrating the environment %q from %q to %q:
+
+%s
+
+Terraform copies environments in alphabetical order. Any environments
+alphabetically earlier than this one have been copied. Any environments
+later than this haven't been modified in the destination. No environments
+in the source state have been modified.
+
+Please resolve the error above and run the initialization command again.
+This will attempt to copy (with permission) all environments again.
 `
 
 const errBackendStateCopy = `
@@ -381,4 +449,18 @@ If you continue, Terraform will offer to copy your current environment
 %[3]q to the default environment in the target. Your existing environments
 in the source backend won't be modified. If you want to switch environments,
 back them up, or cancel altogether, answer "no" and Terraform will abort.
+`
+
+const inputBackendMigrateMultiToMulti = `
+Both the existing backend %[1]q and the target backend %[2]q support
+environments. When migrating between backends, Terraform will copy all
+environments (with the same names). THIS WILL OVERWRITE any conflicting
+states in the destination.
+
+Terraform initialization doesn't currently migrate only select environments.
+If you want to migrate a select number of environments, you must manually
+pull and push those states.
+
+If you answer "yes", Terraform will migrate all states. If you answer
+"no", Terraform will abort.
 `
