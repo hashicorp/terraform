@@ -16,22 +16,22 @@ import (
 
 const (
 	// circonus_check.http.* resource attribute names
-	checkHTTPAuthMethodAttr   schemaAttr = "auth_method"
-	checkHTTPAuthPasswordAttr schemaAttr = "auth_password"
-	checkHTTPAuthUserAttr     schemaAttr = "auth_user"
-	checkHTTPBodyRegexpAttr   schemaAttr = "body_regexp"
-	checkHTTPCAChainAttr      schemaAttr = "ca_chain"
-	checkHTTPCertFileAttr     schemaAttr = "certificate_file"
-	checkHTTPCiphersAttr      schemaAttr = "ciphers"
-	checkHTTPCodeRegexpAttr   schemaAttr = "code"
-	checkHTTPExtractAttr      schemaAttr = "extract"
-	checkHTTPHeadersAttr      schemaAttr = "headers"
-	checkHTTPKeyFileAttr      schemaAttr = "key_file"
-	checkHTTPMethodAttr       schemaAttr = "method"
-	checkHTTPPayloadAttr      schemaAttr = "payload"
-	checkHTTPReadLimitAttr    schemaAttr = "read_limit"
-	checkHTTPURLAttr          schemaAttr = "url"
-	checkHTTPVersionAttr      schemaAttr = "version"
+	checkHTTPAuthMethodAttr   = "auth_method"
+	checkHTTPAuthPasswordAttr = "auth_password"
+	checkHTTPAuthUserAttr     = "auth_user"
+	checkHTTPBodyRegexpAttr   = "body_regexp"
+	checkHTTPCAChainAttr      = "ca_chain"
+	checkHTTPCertFileAttr     = "certificate_file"
+	checkHTTPCiphersAttr      = "ciphers"
+	checkHTTPCodeRegexpAttr   = "code"
+	checkHTTPExtractAttr      = "extract"
+	checkHTTPHeadersAttr      = "headers"
+	checkHTTPKeyFileAttr      = "key_file"
+	checkHTTPMethodAttr       = "method"
+	checkHTTPPayloadAttr      = "payload"
+	checkHTTPReadLimitAttr    = "read_limit"
+	checkHTTPURLAttr          = "url"
+	checkHTTPVersionAttr      = "version"
 )
 
 var checkHTTPDescriptions = attrDescrs{
@@ -295,49 +295,48 @@ func hashCheckHTTP(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func checkConfigToAPIHTTP(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+func checkConfigToAPIHTTP(c *circonusCheck, l interfaceList) error {
 	c.Type = string(apiCheckTypeHTTP)
 
 	// Iterate over all `http` attributes, even though we have a max of 1 in the
 	// schema.
 	for _, mapRaw := range l {
 		httpConfig := newInterfaceMap(mapRaw)
-		ar := newMapReader(ctxt, httpConfig)
 
-		if s, ok := ar.GetStringOK(checkHTTPAuthMethodAttr); ok {
-			c.Config[config.AuthMethod] = s
+		if v, found := httpConfig[checkHTTPAuthMethodAttr]; found {
+			c.Config[config.AuthMethod] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkHTTPAuthPasswordAttr); ok {
-			c.Config[config.AuthPassword] = s
+		if v, found := httpConfig[checkHTTPAuthPasswordAttr]; found {
+			c.Config[config.AuthPassword] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkHTTPAuthUserAttr); ok {
-			c.Config[config.AuthUser] = s
+		if v, found := httpConfig[checkHTTPAuthUserAttr]; found {
+			c.Config[config.AuthUser] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkHTTPBodyRegexpAttr); ok {
-			c.Config[config.Body] = s
+		if v, found := httpConfig[checkHTTPBodyRegexpAttr]; found {
+			c.Config[config.Body] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkHTTPCAChainAttr); ok {
-			c.Config[config.CAChain] = s
+		if v, found := httpConfig[checkHTTPCAChainAttr]; found {
+			c.Config[config.CAChain] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkHTTPCertFileAttr); ok {
-			c.Config[config.CertFile] = s
+		if v, found := httpConfig[checkHTTPCertFileAttr]; found {
+			c.Config[config.CertFile] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkHTTPCiphersAttr); ok {
-			c.Config[config.Ciphers] = s
+		if v, found := httpConfig[checkHTTPCiphersAttr]; found {
+			c.Config[config.Ciphers] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkHTTPCodeRegexpAttr); ok {
-			c.Config[config.Code] = s
+		if v, found := httpConfig[checkHTTPCodeRegexpAttr]; found {
+			c.Config[config.Code] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkHTTPExtractAttr); ok {
-			c.Config[config.Extract] = s
+		if v, found := httpConfig[checkHTTPExtractAttr]; found {
+			c.Config[config.Extract] = v.(string)
 		}
 
 		if headers := httpConfig.CollectMap(checkHTTPHeadersAttr); headers != nil {
@@ -347,34 +346,34 @@ func checkConfigToAPIHTTP(c *circonusCheck, ctxt *providerContext, l interfaceLi
 			}
 		}
 
-		if s, ok := ar.GetStringOK(checkHTTPKeyFileAttr); ok {
-			c.Config[config.KeyFile] = s
+		if v, found := httpConfig[checkHTTPKeyFileAttr]; found {
+			c.Config[config.KeyFile] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkHTTPMethodAttr); ok {
-			c.Config[config.Method] = s
+		if v, found := httpConfig[checkHTTPMethodAttr]; found {
+			c.Config[config.Method] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkHTTPPayloadAttr); ok {
-			c.Config[config.Payload] = s
+		if v, found := httpConfig[checkHTTPPayloadAttr]; found {
+			c.Config[config.Payload] = v.(string)
 		}
 
-		if i, ok := ar.GetIntOK(checkHTTPReadLimitAttr); ok {
-			c.Config[config.ReadLimit] = fmt.Sprintf("%d", i)
+		if v, found := httpConfig[checkHTTPReadLimitAttr]; found {
+			c.Config[config.ReadLimit] = fmt.Sprintf("%d", v.(int))
 		}
 
-		if s, ok := ar.GetStringOK(checkHTTPURLAttr); ok {
-			c.Config[config.URL] = s
+		if v, found := httpConfig[checkHTTPURLAttr]; found {
+			c.Config[config.URL] = v.(string)
 
-			u, _ := url.Parse(s)
+			u, _ := url.Parse(v.(string))
 			hostInfo := strings.SplitN(u.Host, ":", 2)
 			if len(c.Target) == 0 {
 				c.Target = hostInfo[0]
 			}
 		}
 
-		if s, ok := ar.GetStringOK(checkHTTPVersionAttr); ok {
-			c.Config[config.HTTPVersion] = s
+		if v, found := httpConfig[checkHTTPVersionAttr]; found {
+			c.Config[config.HTTPVersion] = v.(string)
 		}
 	}
 

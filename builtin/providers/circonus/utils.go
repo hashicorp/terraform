@@ -75,6 +75,16 @@ func flattenSet(s *schema.Set) []*string {
 	return flattenList(s.List())
 }
 
+func derefStringList(lp []*string) []string {
+	l := make([]string, 0, len(lp))
+	for _, sp := range lp {
+		if sp != nil {
+			l = append(l, *sp)
+		}
+	}
+	return l
+}
+
 // listToSet returns a TypeSet from the given list.
 func stringListToSet(stringList []string, keyName schemaAttr) []interface{} {
 	m := make([]interface{}, 0, len(stringList))

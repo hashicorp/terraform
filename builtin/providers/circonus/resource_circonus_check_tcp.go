@@ -14,14 +14,14 @@ import (
 
 const (
 	// circonus_check.tcp.* resource attribute names
-	checkTCPBannerRegexpAttr schemaAttr = "banner_regexp"
-	checkTCPCAChainAttr      schemaAttr = "ca_chain"
-	checkTCPCertFileAttr     schemaAttr = "certificate_file"
-	checkTCPCiphersAttr      schemaAttr = "ciphers"
-	checkTCPHostAttr         schemaAttr = "host"
-	checkTCPKeyFileAttr      schemaAttr = "key_file"
-	checkTCPPortAttr         schemaAttr = "port"
-	checkTCPTLSAttr          schemaAttr = "tls"
+	checkTCPBannerRegexpAttr = "banner_regexp"
+	checkTCPCAChainAttr      = "ca_chain"
+	checkTCPCertFileAttr     = "certificate_file"
+	checkTCPCiphersAttr      = "ciphers"
+	checkTCPHostAttr         = "host"
+	checkTCPKeyFileAttr      = "key_file"
+	checkTCPPortAttr         = "port"
+	checkTCPTLSAttr          = "tls"
 )
 
 var checkTCPDescriptions = attrDescrs{
@@ -206,45 +206,44 @@ func hashCheckTCP(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func checkConfigToAPITCP(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+func checkConfigToAPITCP(c *circonusCheck, l interfaceList) error {
 	c.Type = string(apiCheckTypeTCP)
 
 	// Iterate over all `tcp` attributes, even though we have a max of 1 in the
 	// schema.
 	for _, mapRaw := range l {
 		tcpConfig := newInterfaceMap(mapRaw)
-		ar := newMapReader(ctxt, tcpConfig)
 
-		if s, ok := ar.GetStringOK(checkTCPBannerRegexpAttr); ok {
-			c.Config[config.BannerMatch] = s
+		if v, found := tcpConfig[checkTCPBannerRegexpAttr]; found {
+			c.Config[config.BannerMatch] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkTCPCAChainAttr); ok {
-			c.Config[config.CAChain] = s
+		if v, found := tcpConfig[checkTCPCAChainAttr]; found {
+			c.Config[config.CAChain] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkTCPCertFileAttr); ok {
-			c.Config[config.CertFile] = s
+		if v, found := tcpConfig[checkTCPCertFileAttr]; found {
+			c.Config[config.CertFile] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkTCPCiphersAttr); ok {
-			c.Config[config.Ciphers] = s
+		if v, found := tcpConfig[checkTCPCiphersAttr]; found {
+			c.Config[config.Ciphers] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkTCPHostAttr); ok {
-			c.Target = s
+		if v, found := tcpConfig[checkTCPHostAttr]; found {
+			c.Target = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkTCPKeyFileAttr); ok {
-			c.Config[config.KeyFile] = s
+		if v, found := tcpConfig[checkTCPKeyFileAttr]; found {
+			c.Config[config.KeyFile] = v.(string)
 		}
 
-		if i, ok := ar.GetIntOK(checkTCPPortAttr); ok {
-			c.Config[config.Port] = fmt.Sprintf("%d", i)
+		if v, found := tcpConfig[checkTCPPortAttr]; found {
+			c.Config[config.Port] = fmt.Sprintf("%d", v.(int))
 		}
 
-		if b, ok := ar.GetBoolOK(checkTCPTLSAttr); ok {
-			c.Config[config.UseSSL] = fmt.Sprintf("%t", b)
+		if v, found := tcpConfig[checkTCPTLSAttr]; found {
+			c.Config[config.UseSSL] = fmt.Sprintf("%t", v.(bool))
 		}
 	}
 

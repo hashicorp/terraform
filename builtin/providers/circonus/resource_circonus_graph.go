@@ -287,8 +287,7 @@ func newGraphResource() *schema.Resource {
 func graphCreate(d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*providerContext)
 	g := newGraph()
-	cr := newConfigReader(ctxt, d)
-	if err := g.ParseConfig(cr); err != nil {
+	if err := g.ParseConfig(d); err != nil {
 		return errwrap.Wrapf("error parsing graph schema during create: {{err}}", err)
 	}
 
@@ -502,8 +501,7 @@ func graphRead(d *schema.ResourceData, meta interface{}) error {
 func graphUpdate(d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*providerContext)
 	g := newGraph()
-	cr := newConfigReader(ctxt, d)
-	if err := g.ParseConfig(cr); err != nil {
+	if err := g.ParseConfig(d); err != nil {
 		return err
 	}
 
@@ -553,11 +551,16 @@ func loadGraph(ctxt *providerContext, cid api.CIDType) (circonusGraph, error) {
 
 // ParseConfig reads Terraform config data and stores the information into a
 // Circonus Graph object.  ParseConfig and graphRead() must be kept in sync.
-func (g *circonusGraph) ParseConfig(ar attrReader) error {
+func (g *circonusGraph) ParseConfig(d *schema.ResourceData) error {
 	g.Datapoints = make([]api.GraphDatapoint, 0, defaultGraphDatapoints)
 
-	{
-		leftAxisMap := ar.GetMap(graphLeftAttr)
+	if v, found := d.GetOk(graphLeftAttr); found {
+		listRaw := v.(map[string]interface{})
+		leftAxisMap := make(map[string]interface{}, len(listRaw))
+		for k, v := range listRaw {
+			leftAxisMap[k] = v
+		}
+
 		if v, ok := leftAxisMap[string(graphAxisLogarithmicAttr)]; ok {
 			i64, _ := strconv.ParseInt(v.(string), 10, 64)
 			i := int(i64)
@@ -575,8 +578,13 @@ func (g *circonusGraph) ParseConfig(ar attrReader) error {
 		}
 	}
 
-	{
-		rightAxisMap := ar.GetMap(graphRightAttr)
+	if v, found := d.GetOk(graphRightAttr); found {
+		listRaw := v.(map[string]interface{})
+		rightAxisMap := make(map[string]interface{}, len(listRaw))
+		for k, v := range listRaw {
+			rightAxisMap[k] = v
+		}
+
 		if v, ok := rightAxisMap[string(graphAxisLogarithmicAttr)]; ok {
 			i64, _ := strconv.ParseInt(v.(string), 10, 64)
 			i := int(i64)
@@ -594,144 +602,236 @@ func (g *circonusGraph) ParseConfig(ar attrReader) error {
 		}
 	}
 
-	if s, ok := ar.GetStringOK(graphDescriptionAttr); ok {
-		g.Description = s
+	if v, found := d.GetOk(graphDescriptionAttr); found {
+		g.Description = v.(string)
 	}
 
-	if p := ar.GetStringPtr(graphLineStyleAttr); p != nil {
-		g.LineStyle = p
+	if v, found := d.GetOk(graphLineStyleAttr); found {
+		switch v.(type) {
+		case string:
+			s := v.(string)
+			g.LineStyle = &s
+		case *string:
+			g.LineStyle = v.(*string)
+		default:
+			return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphLineStyleAttr, v)
+		}
 	}
 
-	if s, ok := ar.GetStringOK(graphNameAttr); ok {
-		g.Title = s
+	if v, found := d.GetOk(graphNameAttr); found {
+		g.Title = v.(string)
 	}
 
-	if s, ok := ar.GetStringOK(graphNotesAttr); ok {
+	if v, found := d.GetOk(graphNotesAttr); found {
+		s := v.(string)
 		g.Notes = &s
 	}
 
-	if streamList, ok := ar.GetListOK(graphStreamAttr); ok {
-		for _, streamListRaw := range streamList {
-			for _, streamListElem := range streamListRaw.([]interface{}) {
-				streamAttrs := newInterfaceMap(streamListElem.(map[string]interface{}))
-				streamReader := newMapReader(ar.Context(), streamAttrs)
-				datapoint := api.GraphDatapoint{}
+	if listRaw, found := d.GetOk(graphStreamAttr); found {
+		streamList := listRaw.([]interface{})
+		for _, streamListElem := range streamList {
+			streamAttrs := newInterfaceMap(streamListElem.(map[string]interface{}))
+			datapoint := api.GraphDatapoint{}
 
-				if b, ok := streamReader.GetBoolOK(graphStreamActiveAttr); ok {
-					datapoint.Hidden = !b
-				}
+			if v, found := streamAttrs[graphStreamActiveAttr]; found {
+				datapoint.Hidden = !(v.(bool))
+			}
 
-				if f, ok := streamReader.GetFloat64OK(graphStreamAlphaAttr); ok && f != 0 {
+			if v, found := streamAttrs[graphStreamAlphaAttr]; found {
+				f := v.(float64)
+				if f != 0 {
 					datapoint.Alpha = &f
 				}
+			}
 
-				if s, ok := streamReader.GetStringOK(graphStreamAxisAttr); ok {
-					switch s {
-					case "left", "":
-						datapoint.Axis = "l"
-					case "right":
-						datapoint.Axis = "r"
-					default:
-						panic(fmt.Sprintf("PROVIDER BUG: Unsupported axis attribute %q", s))
-					}
+			if v, found := streamAttrs[graphStreamAxisAttr]; found {
+				switch v.(string) {
+				case "left", "":
+					datapoint.Axis = "l"
+				case "right":
+					datapoint.Axis = "r"
+				default:
+					return fmt.Errorf("PROVIDER BUG: Unsupported axis attribute %q: %q", graphStreamAxisAttr, v.(string))
 				}
+			}
 
-				if s, ok := streamReader.GetStringOK(graphStreamCheckAttr); ok {
-					re := regexp.MustCompile(config.CheckCIDRegex)
-					matches := re.FindStringSubmatch(s)
-					if len(matches) == 3 {
-						checkID, _ := strconv.ParseUint(matches[2], 10, 64)
-						datapoint.CheckID = uint(checkID)
-					}
+			if v, found := streamAttrs[graphStreamCheckAttr]; found {
+				re := regexp.MustCompile(config.CheckCIDRegex)
+				matches := re.FindStringSubmatch(v.(string))
+				if len(matches) == 3 {
+					checkID, _ := strconv.ParseUint(matches[2], 10, 64)
+					datapoint.CheckID = uint(checkID)
 				}
+			}
 
-				if s, ok := streamReader.GetStringOK(graphStreamColorAttr); ok {
-					datapoint.Color = &s
+			if v, found := streamAttrs[graphStreamColorAttr]; found {
+				s := v.(string)
+				datapoint.Color = &s
+			}
+
+			if v, found := streamAttrs[graphStreamFormulaAttr]; found {
+				switch v.(type) {
+				case string:
+					s := v.(string)
+					datapoint.DataFormula = &s
+				case *string:
+					datapoint.DataFormula = v.(*string)
+				default:
+					return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphStreamAttr, v)
 				}
+			}
 
-				if s := streamReader.GetStringPtr(graphStreamFormulaAttr); s != nil {
-					datapoint.DataFormula = s
-				}
-
-				if s, ok := streamReader.GetStringOK(graphStreamFunctionAttr); ok && s != "" {
+			if v, found := streamAttrs[graphStreamFunctionAttr]; found {
+				s := v.(string)
+				if s != "" {
 					datapoint.Derive = s
 				} else {
 					datapoint.Derive = false
 				}
+			} else {
+				datapoint.Derive = false
+			}
 
-				if s := streamReader.GetStringPtr(graphStreamFormulaLegendAttr); s != nil {
-					datapoint.LegendFormula = s
+			if v, found := streamAttrs[graphStreamFormulaLegendAttr]; found {
+				switch u := v.(type) {
+				case string:
+					datapoint.LegendFormula = &u
+				case *string:
+					datapoint.LegendFormula = u
+				default:
+					return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphStreamAttr, v)
 				}
+			}
 
-				if s, ok := streamReader.GetStringOK(graphStreamNameAttr); ok && s != "" {
+			if v, found := streamAttrs[graphStreamNameAttr]; found {
+				s := v.(string)
+				if s != "" {
 					datapoint.MetricName = s
 				}
+			}
 
-				if s, ok := streamReader.GetStringOK(graphStreamMetricTypeAttr); ok && s != "" {
+			if v, found := streamAttrs[graphStreamMetricTypeAttr]; found {
+				s := v.(string)
+				if s != "" {
 					datapoint.MetricType = s
 				}
+			}
 
-				if s, ok := streamReader.GetStringOK(graphStreamHumanNameAttr); ok && s != "" {
+			if v, found := streamAttrs[graphStreamHumanNameAttr]; found {
+				s := v.(string)
+				if s != "" {
 					datapoint.Name = s
 				}
+			}
 
-				if s := streamReader.GetStringPtr(graphStreamStackAttr); s != nil && *s != "" {
-					u64, _ := strconv.ParseUint(*s, 10, 64)
+			if v, found := streamAttrs[graphStreamStackAttr]; found {
+				var stackStr string
+				switch u := v.(type) {
+				case string:
+					stackStr = u
+				case *string:
+					if u != nil {
+						stackStr = *u
+					}
+				default:
+					return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphStreamStackAttr, v)
+				}
+
+				if stackStr != "" {
+					u64, _ := strconv.ParseUint(stackStr, 10, 64)
 					u := uint(u64)
 					datapoint.Stack = &u
 				}
-
-				g.Datapoints = append(g.Datapoints, datapoint)
 			}
+
+			g.Datapoints = append(g.Datapoints, datapoint)
 		}
 	}
 
-	if streamGroupList, ok := ar.GetListOK(graphStreamGroupAttr); ok {
+	if listRaw, found := d.GetOk(graphStreamGroupAttr); found {
+		streamGroupList := listRaw.([]interface{})
+
 		for _, streamGroupListRaw := range streamGroupList {
 			for _, streamGroupListElem := range streamGroupListRaw.([]interface{}) {
 				streamGroupAttrs := newInterfaceMap(streamGroupListElem.(map[string]interface{}))
-				streamGroupReader := newMapReader(ar.Context(), streamGroupAttrs)
+
 				metricCluster := api.GraphMetricCluster{}
 
-				if b, ok := streamGroupReader.GetBoolOK(graphStreamGroupActiveAttr); ok {
-					metricCluster.Hidden = !b
+				if v, found := streamGroupAttrs[graphStreamGroupActiveAttr]; found {
+					metricCluster.Hidden = !(v.(bool))
 				}
 
-				if s, ok := streamGroupReader.GetStringOK(graphStreamGroupAggregateAttr); ok {
-					metricCluster.AggregateFunc = s
+				if v, found := streamGroupAttrs[graphStreamGroupAggregateAttr]; found {
+					metricCluster.AggregateFunc = v.(string)
 				}
 
-				if s, ok := streamGroupReader.GetStringOK(graphStreamGroupAxisAttr); ok {
-					switch s {
+				if v, found := streamGroupAttrs[graphStreamGroupAxisAttr]; found {
+					switch v.(string) {
 					case "left", "":
 						metricCluster.Axis = "l"
 					case "right":
 						metricCluster.Axis = "r"
 					default:
-						panic(fmt.Sprintf("PROVIDER BUG: Unsupported axis attribute %q", s))
+						return fmt.Errorf("PROVIDER BUG: Unsupported axis attribute %q: %q", graphStreamGroupAxisAttr, v.(string))
 					}
 				}
 
-				if s := streamGroupReader.GetStringPtr(graphStreamFormulaAttr); s != nil {
-					metricCluster.DataFormula = s
+				if v, found := streamGroupAttrs[graphStreamFormulaAttr]; found {
+					switch v.(type) {
+					case string:
+						s := v.(string)
+						metricCluster.DataFormula = &s
+					case *string:
+						metricCluster.DataFormula = v.(*string)
+					default:
+						return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphStreamFormulaAttr, v)
+					}
 				}
 
-				if s := streamGroupReader.GetStringPtr(graphStreamFormulaLegendAttr); s != nil {
-					metricCluster.LegendFormula = s
+				if v, found := streamGroupAttrs[graphStreamFormulaLegendAttr]; found {
+					switch v.(type) {
+					case string:
+						s := v.(string)
+						metricCluster.LegendFormula = &s
+					case *string:
+						metricCluster.LegendFormula = v.(*string)
+					default:
+						return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphStreamFormulaLegendAttr, v)
+					}
 				}
 
-				if s, ok := streamGroupReader.GetStringOK(graphStreamGroupGroupAttr); ok && s != "" {
-					metricCluster.MetricCluster = s
+				if v, found := streamGroupAttrs[graphStreamGroupGroupAttr]; found {
+					s := v.(string)
+					if s != "" {
+						metricCluster.MetricCluster = s
+					}
 				}
 
-				if s, ok := streamGroupReader.GetStringOK(graphStreamHumanNameAttr); ok && s != "" {
-					metricCluster.Name = s
+				if v, found := streamGroupAttrs[graphStreamHumanNameAttr]; found {
+					s := v.(string)
+					if s != "" {
+						metricCluster.Name = s
+					}
 				}
 
-				if s := streamGroupReader.GetStringPtr(graphStreamStackAttr); s != nil && *s != "" {
-					u64, _ := strconv.ParseUint(*s, 10, 64)
-					u := uint(u64)
-					metricCluster.Stack = &u
+				if v, found := streamGroupAttrs[graphStreamStackAttr]; found {
+					var stackStr string
+					switch u := v.(type) {
+					case string:
+						stackStr = u
+					case *string:
+						if u != nil {
+							stackStr = *u
+						}
+					default:
+						return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphStreamStackAttr, v)
+					}
+
+					if stackStr != "" {
+						u64, _ := strconv.ParseUint(stackStr, 10, 64)
+						u := uint(u64)
+						metricCluster.Stack = &u
+					}
 				}
 
 				g.MetricClusters = append(g.MetricClusters, metricCluster)
@@ -739,11 +839,21 @@ func (g *circonusGraph) ParseConfig(ar attrReader) error {
 		}
 	}
 
-	if p := ar.GetStringPtr(graphStyleAttr); p != nil {
-		g.Style = p
+	if v, found := d.GetOk(graphStyleAttr); found {
+		switch v.(type) {
+		case string:
+			s := v.(string)
+			g.Style = &s
+		case *string:
+			g.Style = v.(*string)
+		default:
+			return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphStyleAttr, v)
+		}
 	}
 
-	g.Tags = tagsToAPI(ar.GetTags(graphTagsAttr))
+	if v, found := d.GetOk(graphTagsAttr); found {
+		g.Tags = derefStringList(flattenSet(v.(*schema.Set)))
+	}
 
 	if err := g.Validate(); err != nil {
 		return err

@@ -41,8 +41,11 @@ func TestAccCirconusContactGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "slack.274933206.buttons", "true"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "sms.#", "1"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "sms.1119127802.user", "/user/5469"),
-					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "xmpp.#", "1"),
-					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "xmpp.1456570992.user", "/user/6331"),
+
+					// xmpp.# will be 0 for user faux user accounts that don't have an
+					// XMPP address setup.
+					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "xmpp.#", "0"),
+					// resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "xmpp.1119127802.user", "/user/5469"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "victorops.#", "1"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "victorops.2029434450.api_key", "123"),
 					resource.TestCheckResourceAttr("circonus_contact_group.staging-sev3", "victorops.2029434450.critical", "2"),
@@ -206,9 +209,12 @@ resource "circonus_contact_group" "staging-sev3" {
     warning = 3
   }
 
-  xmpp {
-    user = "/user/6331"
-  }
+	// Faux user accounts that don't have an XMPP address setup will not return a
+	// valid response in the future.
+  //
+  // xmpp {
+  //   user = "/user/5469"
+  // }
 
   aggregation_window = "1m"
 

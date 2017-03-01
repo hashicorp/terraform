@@ -101,8 +101,8 @@ func newStreamGroupResource() *schema.Resource {
 func streamGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*providerContext)
 	sg := newStreamGroup()
-	cr := newConfigReader(ctxt, d)
-	if err := sg.ParseConfig(cr); err != nil {
+
+	if err := sg.ParseConfig(d); err != nil {
 		return errwrap.Wrapf("error parsing stream group schema during create: {{err}}", err)
 	}
 
@@ -173,8 +173,8 @@ func streamGroupRead(d *schema.ResourceData, meta interface{}) error {
 func streamGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*providerContext)
 	sg := newStreamGroup()
-	cr := newConfigReader(ctxt, d)
-	if err := sg.ParseConfig(cr); err != nil {
+
+	if err := sg.ParseConfig(d); err != nil {
 		return err
 	}
 
@@ -201,15 +201,19 @@ func streamGroupDelete(d *schema.ResourceData, meta interface{}) error {
 
 func streamGroupGroupChecksum(v interface{}) int {
 	m := v.(map[string]interface{})
-	ar := newMapReader(nil, m)
 
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
 	// Order writes to the buffer using lexically sorted list for easy visual
 	// reconciliation with other lists.
-	fmt.Fprint(b, ar.GetString(streamGroupQueryAttr))
-	fmt.Fprint(b, ar.GetString(streamGroupTypeAttr))
+	if v, found := m[streamGroupQueryAttr]; found {
+		fmt.Fprint(b, v.(string))
+	}
+
+	if v, found := m[streamGroupTypeAttr]; found {
+		fmt.Fprint(b, v.(string))
+	}
 
 	s := b.String()
 	return hashcode.String(s)
@@ -217,30 +221,31 @@ func streamGroupGroupChecksum(v interface{}) int {
 
 // ParseConfig reads Terraform config data and stores the information into a
 // Circonus MetricCluster object.
-func (sg *circonusStreamGroup) ParseConfig(ar attrReader) error {
-	if s, ok := ar.GetStringOK(streamGroupDescriptionAttr); ok {
-		sg.Description = s
+func (sg *circonusStreamGroup) ParseConfig(d *schema.ResourceData) error {
+	if v, found := d.GetOk(streamGroupDescriptionAttr); found {
+		sg.Description = v.(string)
 	}
 
-	if s, ok := ar.GetStringOK(streamGroupNameAttr); ok {
-		sg.Name = s
+	if v, found := d.GetOk(streamGroupNameAttr); found {
+		sg.Name = v.(string)
 	}
 
-	if groupList, ok := ar.GetSetAsListOK(streamGroupGroupAttr); ok {
+	if groupListRaw, found := d.GetOk(streamGroupGroupAttr); found {
+		groupList := groupListRaw.(*schema.Set).List()
+
 		sg.Queries = make([]api.MetricQuery, 0, len(groupList))
 
 		for _, groupListRaw := range groupList {
 			groupAttrs := newInterfaceMap(groupListRaw)
-			gr := newMapReader(ar.Context(), groupAttrs)
 
 			var query string
-			if s, ok := gr.GetStringOK(streamGroupQueryAttr); ok {
-				query = s
+			if v, found := groupAttrs[streamGroupQueryAttr]; found {
+				query = v.(string)
 			}
 
 			var queryType string
-			if s, ok := gr.GetStringOK(streamGroupTypeAttr); ok {
-				queryType = s
+			if v, found := groupAttrs[streamGroupTypeAttr]; found {
+				queryType = v.(string)
 			}
 
 			sg.Queries = append(sg.Queries, api.MetricQuery{
@@ -250,7 +255,9 @@ func (sg *circonusStreamGroup) ParseConfig(ar attrReader) error {
 		}
 	}
 
-	sg.Tags = tagsToAPI(ar.GetTags(streamGroupTagsAttr))
+	if v, found := d.GetOk(streamGroupTagsAttr); found {
+		sg.Tags = derefStringList(flattenSet(v.(*schema.Set)))
+	}
 
 	if err := sg.Validate(); err != nil {
 		return err

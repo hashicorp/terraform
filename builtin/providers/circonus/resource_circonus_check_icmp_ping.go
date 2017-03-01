@@ -14,9 +14,9 @@ import (
 
 const (
 	// circonus_check.icmp_ping.* resource attribute names
-	checkICMPPingAvailabilityAttr schemaAttr = "availability"
-	checkICMPPingCountAttr        schemaAttr = "count"
-	checkICMPPingIntervalAttr     schemaAttr = "interval"
+	checkICMPPingAvailabilityAttr = "availability"
+	checkICMPPingCountAttr        = "count"
+	checkICMPPingIntervalAttr     = "interval"
 )
 
 var checkICMPPingDescriptions = attrDescrs{
@@ -130,25 +130,25 @@ func hashCheckICMPPing(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func checkConfigToAPIICMPPing(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+func checkConfigToAPIICMPPing(c *circonusCheck, l interfaceList) error {
 	c.Type = string(apiCheckTypeICMPPing)
 
 	// Iterate over all `icmp_ping` attributes, even though we have a max of 1 in
 	// the schema.
 	for _, mapRaw := range l {
 		icmpPingConfig := newInterfaceMap(mapRaw)
-		ar := newMapReader(ctxt, icmpPingConfig)
 
-		if f, ok := ar.GetFloat64OK(checkICMPPingAvailabilityAttr); ok {
+		if v, found := icmpPingConfig[checkICMPPingAvailabilityAttr]; found {
+			f := v.(float64)
 			c.Config[config.AvailNeeded] = fmt.Sprintf("%d", int(f))
 		}
 
-		if i, ok := ar.GetIntOK(checkICMPPingCountAttr); ok {
-			c.Config[config.Count] = fmt.Sprintf("%d", i)
+		if v, found := icmpPingConfig[checkICMPPingCountAttr]; found {
+			c.Config[config.Count] = fmt.Sprintf("%d", v.(int))
 		}
 
-		if s, ok := ar.GetStringOK(checkICMPPingIntervalAttr); ok {
-			d, _ := time.ParseDuration(s)
+		if v, found := icmpPingConfig[checkICMPPingIntervalAttr]; found {
+			d, _ := time.ParseDuration(v.(string))
 			c.Config[config.Interval] = fmt.Sprintf("%d", int64(d/time.Millisecond))
 		}
 	}

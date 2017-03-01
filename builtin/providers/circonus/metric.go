@@ -26,13 +26,61 @@ func (m *circonusMetric) Create(d *schema.ResourceData) error {
 	return m.SaveState(d)
 }
 
-func (m *circonusMetric) ParseConfig(id string, ar attrReader) error {
+func (m *circonusMetric) ParseConfig(id string, d *schema.ResourceData) error {
 	m.ID = metricID(id)
-	m.Name = ar.GetString(metricNameAttr)
-	m.Status = metricActiveToAPIStatus(ar.GetBool(metricActiveAttr))
-	m.Tags = tagsToAPI(ar.GetTags(metricTagsAttr))
-	m.Type = ar.GetString(metricTypeAttr)
-	m.Units = ar.GetStringPtr(metricUnitAttr)
+
+	if v, found := d.GetOk(metricNameAttr); found {
+		m.Name = v.(string)
+	}
+
+	if v, found := d.GetOk(metricActiveAttr); found {
+		m.Status = metricActiveToAPIStatus(v.(bool))
+	}
+
+	if v, found := d.GetOk(metricTagsAttr); found {
+		m.Tags = derefStringList(flattenSet(v.(*schema.Set)))
+	}
+
+	if v, found := d.GetOk(metricTypeAttr); found {
+		m.Type = v.(string)
+	}
+
+	if v, found := d.GetOk(metricUnitAttr); found {
+		s := v.(string)
+		m.Units = &s
+	}
+
+	if m.Units != nil && *m.Units == "" {
+		m.Units = nil
+	}
+
+	return nil
+}
+
+func (m *circonusMetric) ParseConfigMap(id string, attrMap map[string]interface{}) error {
+	m.ID = metricID(id)
+
+	if v, found := attrMap[metricNameAttr]; found {
+		m.Name = v.(string)
+	}
+
+	if v, found := attrMap[metricActiveAttr]; found {
+		m.Status = metricActiveToAPIStatus(v.(bool))
+	}
+
+	if v, found := attrMap[metricTagsAttr]; found {
+		m.Tags = derefStringList(flattenSet(v.(*schema.Set)))
+	}
+
+	if v, found := attrMap[metricTypeAttr]; found {
+		m.Type = v.(string)
+	}
+
+	if v, found := attrMap[metricUnitAttr]; found {
+		s := v.(string)
+		m.Units = &s
+	}
+
 	if m.Units != nil && *m.Units == "" {
 		m.Units = nil
 	}
@@ -66,19 +114,17 @@ func metricAPIStatusToBool(s string) bool {
 	case metricStatusAvailable:
 		return false
 	default:
-		panic(fmt.Sprintf("PROVIDER BUG: metric status %q unsupported", s))
+		fmt.Sprintf("PROVIDER BUG: metric status %q unsupported", s)
+		return false
 	}
 }
 
 func metricActiveToAPIStatus(active bool) string {
-	switch active {
-	case true:
+	if active {
 		return metricStatusActive
-	case false:
-		return metricStatusAvailable
 	}
 
-	panic("suppress Go error message")
+	return metricStatusAvailable
 }
 
 func newMetricID() (string, error) {
@@ -90,21 +136,45 @@ func newMetricID() (string, error) {
 	return id, nil
 }
 
-func metricChecksum(ar attrReader) int {
+func metricChecksum(m interfaceMap) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
 	// Order writes to the buffer using lexically sorted list for easy visual
 	// reconciliation with other lists.
-	fmt.Fprint(b, ar.GetBool(metricActiveAttr))
-	fmt.Fprint(b, ar.GetString(metricNameAttr))
-	tags := ar.GetTags(metricTagsAttr)
-	for _, tag := range tags {
-		fmt.Fprint(b, tag)
+	if v, found := m[metricActiveAttr]; found {
+		fmt.Fprintf(b, "%t", v.(bool))
 	}
-	fmt.Fprint(b, ar.GetString(metricTypeAttr))
-	if p := ar.GetStringPtr(metricUnitAttr); p != nil && *p != "" {
-		fmt.Fprint(b, indirect(p))
+
+	if v, found := m[metricNameAttr]; found {
+		fmt.Fprint(b, v.(string))
+	}
+
+	if v, found := m[metricTagsAttr]; found {
+		tags := derefStringList(flattenSet(v.(*schema.Set)))
+		for _, tag := range tags {
+			fmt.Fprint(b, tag)
+		}
+	}
+
+	if v, found := m[metricTypeAttr]; found {
+		fmt.Fprint(b, v.(string))
+	}
+
+	if v, found := m[metricUnitAttr]; found {
+		if v != nil {
+			var s string
+			switch v.(type) {
+			case string:
+				s = v.(string)
+			case *string:
+				s = *v.(*string)
+			}
+
+			if s != "" {
+				fmt.Fprint(b, s)
+			}
+		}
 	}
 
 	s := b.String()

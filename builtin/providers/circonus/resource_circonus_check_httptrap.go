@@ -13,8 +13,8 @@ import (
 
 const (
 	// circonus_check.httptrap.* resource attribute names
-	checkHTTPTrapAsyncMetricsAttr schemaAttr = "async_metrics"
-	checkHTTPTrapSecretAttr       schemaAttr = "secret"
+	checkHTTPTrapAsyncMetricsAttr = "async_metrics"
+	checkHTTPTrapSecretAttr       = "secret"
 )
 
 var checkHTTPTrapDescriptions = attrDescrs{
@@ -131,21 +131,23 @@ func hashCheckHTTPTrap(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func checkConfigToAPIHTTPTrap(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+func checkConfigToAPIHTTPTrap(c *circonusCheck, l interfaceList) error {
 	c.Type = string(apiCheckTypeHTTPTrapAttr)
 
 	// Iterate over all `httptrap` attributes, even though we have a max of 1 in the
 	// schema.
 	for _, mapRaw := range l {
 		httpTrapConfig := newInterfaceMap(mapRaw)
-		ar := newMapReader(ctxt, httpTrapConfig)
 
-		if b, ok := ar.GetBoolOK(checkHTTPTrapAsyncMetricsAttr); ok {
-			c.Config[config.AsyncMetrics] = fmt.Sprintf("%t", b)
+		if v, found := httpTrapConfig[checkHTTPTrapAsyncMetricsAttr]; found {
+			b := v.(bool)
+			if b {
+				c.Config[config.AsyncMetrics] = fmt.Sprintf("%t", b)
+			}
 		}
 
-		if s, ok := ar.GetStringOK(checkHTTPTrapSecretAttr); ok {
-			c.Config[config.Secret] = s
+		if v, found := httpTrapConfig[checkHTTPTrapSecretAttr]; found {
+			c.Config[config.Secret] = v.(string)
 		}
 	}
 

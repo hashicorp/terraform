@@ -16,20 +16,20 @@ import (
 
 const (
 	// circonus_check.json.* resource attribute names
-	checkJSONAuthMethodAttr   schemaAttr = "auth_method"
-	checkJSONAuthPasswordAttr schemaAttr = "auth_password"
-	checkJSONAuthUserAttr     schemaAttr = "auth_user"
-	checkJSONCAChainAttr      schemaAttr = "ca_chain"
-	checkJSONCertFileAttr     schemaAttr = "certificate_file"
-	checkJSONCiphersAttr      schemaAttr = "ciphers"
-	checkJSONHeadersAttr      schemaAttr = "headers"
-	checkJSONKeyFileAttr      schemaAttr = "key_file"
-	checkJSONMethodAttr       schemaAttr = "method"
-	checkJSONPayloadAttr      schemaAttr = "payload"
-	checkJSONPortAttr         schemaAttr = "port"
-	checkJSONReadLimitAttr    schemaAttr = "read_limit"
-	checkJSONURLAttr          schemaAttr = "url"
-	checkJSONVersionAttr      schemaAttr = "version"
+	checkJSONAuthMethodAttr   = "auth_method"
+	checkJSONAuthPasswordAttr = "auth_password"
+	checkJSONAuthUserAttr     = "auth_user"
+	checkJSONCAChainAttr      = "ca_chain"
+	checkJSONCertFileAttr     = "certificate_file"
+	checkJSONCiphersAttr      = "ciphers"
+	checkJSONHeadersAttr      = "headers"
+	checkJSONKeyFileAttr      = "key_file"
+	checkJSONMethodAttr       = "method"
+	checkJSONPayloadAttr      = "payload"
+	checkJSONPortAttr         = "port"
+	checkJSONReadLimitAttr    = "read_limit"
+	checkJSONURLAttr          = "url"
+	checkJSONVersionAttr      = "version"
 )
 
 var checkJSONDescriptions = attrDescrs{
@@ -280,37 +280,36 @@ func checkJSONConfigChecksum(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func checkConfigToAPIJSON(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+func checkConfigToAPIJSON(c *circonusCheck, l interfaceList) error {
 	c.Type = string(apiCheckTypeJSON)
 
 	// Iterate over all `json` attributes, even though we have a max of 1 in the
 	// schema.
 	for _, mapRaw := range l {
 		jsonConfig := newInterfaceMap(mapRaw)
-		ar := newMapReader(ctxt, jsonConfig)
 
-		if s, ok := ar.GetStringOK(checkJSONAuthMethodAttr); ok {
-			c.Config[config.AuthMethod] = s
+		if v, found := jsonConfig[checkJSONAuthMethodAttr]; found {
+			c.Config[config.AuthMethod] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkJSONAuthPasswordAttr); ok {
-			c.Config[config.AuthPassword] = s
+		if v, found := jsonConfig[checkJSONAuthPasswordAttr]; found {
+			c.Config[config.AuthPassword] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkJSONAuthUserAttr); ok {
-			c.Config[config.AuthUser] = s
+		if v, found := jsonConfig[checkJSONAuthUserAttr]; found {
+			c.Config[config.AuthUser] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkJSONCAChainAttr); ok {
-			c.Config[config.CAChain] = s
+		if v, found := jsonConfig[checkJSONCAChainAttr]; found {
+			c.Config[config.CAChain] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkJSONCertFileAttr); ok {
-			c.Config[config.CertFile] = s
+		if v, found := jsonConfig[checkJSONCertFileAttr]; found {
+			c.Config[config.CertFile] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkJSONCiphersAttr); ok {
-			c.Config[config.Ciphers] = s
+		if v, found := jsonConfig[checkJSONCiphersAttr]; found {
+			c.Config[config.Ciphers] = v.(string)
 		}
 
 		if headers := jsonConfig.CollectMap(checkJSONHeadersAttr); headers != nil {
@@ -320,38 +319,44 @@ func checkConfigToAPIJSON(c *circonusCheck, ctxt *providerContext, l interfaceLi
 			}
 		}
 
-		if s, ok := ar.GetStringOK(checkJSONKeyFileAttr); ok {
-			c.Config[config.KeyFile] = s
+		if v, found := jsonConfig[checkJSONKeyFileAttr]; found {
+			c.Config[config.KeyFile] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkJSONMethodAttr); ok {
-			c.Config[config.Method] = s
+		if v, found := jsonConfig[checkJSONMethodAttr]; found {
+			c.Config[config.Method] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkJSONPayloadAttr); ok {
-			c.Config[config.Payload] = s
+		if v, found := jsonConfig[checkJSONPayloadAttr]; found {
+			c.Config[config.Payload] = v.(string)
 		}
 
-		if i, ok := ar.GetIntOK(checkJSONPortAttr); ok && i != 0 {
-			c.Config[config.Port] = fmt.Sprintf("%d", i)
+		if v, found := jsonConfig[checkJSONPortAttr]; found {
+			i := v.(int)
+			if i != 0 {
+				c.Config[config.Port] = fmt.Sprintf("%d", i)
+			}
 		}
 
-		if i, ok := ar.GetIntOK(checkJSONReadLimitAttr); ok && i != 0 {
-			c.Config[config.ReadLimit] = fmt.Sprintf("%d", i)
+		if v, found := jsonConfig[checkJSONReadLimitAttr]; found {
+			i := v.(int)
+			if i != 0 {
+				c.Config[config.ReadLimit] = fmt.Sprintf("%d", i)
+			}
 		}
 
-		if s, ok := ar.GetStringOK(checkJSONURLAttr); ok {
-			c.Config[config.URL] = s
+		if v, found := jsonConfig[checkJSONURLAttr]; found {
+			c.Config[config.URL] = v.(string)
 
-			u, _ := url.Parse(s)
+			u, _ := url.Parse(v.(string))
 			hostInfo := strings.SplitN(u.Host, ":", 2)
 			if len(c.Target) == 0 {
 				c.Target = hostInfo[0]
 			}
 		}
 
-		if s, ok := ar.GetStringOK(checkJSONVersionAttr); ok {
-			c.Config[config.HTTPVersion] = s
+		if v, found := jsonConfig[checkJSONVersionAttr]; found {
+			c.Config[config.HTTPVersion] = v.(string)
 		}
 	}
 

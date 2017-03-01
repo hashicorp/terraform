@@ -515,7 +515,7 @@ func resourceContactGroup() *schema.Resource {
 func contactGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*providerContext)
 
-	in, err := getContactGroupInput(d, meta)
+	in, err := getContactGroupInput(d)
 	if err != nil {
 		return err
 	}
@@ -656,7 +656,7 @@ func contactGroupRead(d *schema.ResourceData, meta interface{}) error {
 func contactGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*providerContext)
 
-	in, err := getContactGroupInput(d, meta)
+	in, err := getContactGroupInput(d)
 	if err != nil {
 		return err
 	}
@@ -774,9 +774,7 @@ func contactGroupHTTPToState(cg *api.ContactGroup) ([]interface{}, error) {
 	return httpContacts, nil
 }
 
-func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.ContactGroup, error) {
-	ctxt := meta.(*providerContext)
-
+func getContactGroupInput(d *schema.ResourceData) (*api.ContactGroup, error) {
 	cg := api.NewContactGroup()
 	if v, ok := d.GetOk(contactAggregationWindowAttr); ok {
 		aggWindow, _ := time.ParseDuration(v.(string))
@@ -1119,8 +1117,9 @@ func getContactGroupInput(d *schema.ResourceData, meta interface{}) (*api.Contac
 		cg.AlertFormats.ShortMessage = &msg
 	}
 
-	contactTags := configGetTags(ctxt, d, checkTagsAttr)
-	cg.Tags = tagsToAPI(contactTags)
+	if v, found := d.GetOk(checkTagsAttr); found {
+		cg.Tags = derefStringList(flattenSet(v.(*schema.Set)))
+	}
 
 	if err := validateContactGroup(cg); err != nil {
 		return nil, err

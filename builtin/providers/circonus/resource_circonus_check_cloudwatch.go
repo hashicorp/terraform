@@ -14,13 +14,13 @@ import (
 
 const (
 	// circonus_check.cloudwatch.* resource attribute names
-	checkCloudWatchAPIKeyAttr      schemaAttr = "api_key"
-	checkCloudWatchAPISecretAttr   schemaAttr = "api_secret"
-	checkCloudWatchDimmensionsAttr schemaAttr = "dimmensions"
-	checkCloudWatchMetricAttr      schemaAttr = "metric"
-	checkCloudWatchNamespaceAttr   schemaAttr = "namespace"
-	checkCloudWatchURLAttr         schemaAttr = "url"
-	checkCloudWatchVersionAttr     schemaAttr = "version"
+	checkCloudWatchAPIKeyAttr      = "api_key"
+	checkCloudWatchAPISecretAttr   = "api_secret"
+	checkCloudWatchDimmensionsAttr = "dimmensions"
+	checkCloudWatchMetricAttr      = "metric"
+	checkCloudWatchNamespaceAttr   = "namespace"
+	checkCloudWatchURLAttr         = "url"
+	checkCloudWatchVersionAttr     = "version"
 )
 
 var checkCloudWatchDescriptions = attrDescrs{
@@ -209,21 +209,20 @@ func hashCheckCloudWatch(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func checkConfigToAPICloudWatch(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+func checkConfigToAPICloudWatch(c *circonusCheck, l interfaceList) error {
 	c.Type = string(apiCheckTypeCloudWatchAttr)
 
 	// Iterate over all `cloudwatch` attributes, even though we have a max of 1 in the
 	// schema.
 	for _, mapRaw := range l {
 		cloudwatchConfig := newInterfaceMap(mapRaw)
-		ar := newMapReader(ctxt, cloudwatchConfig)
 
-		if s, ok := ar.GetStringOK(checkCloudWatchAPIKeyAttr); ok {
-			c.Config[config.APIKey] = s
+		if v, found := cloudwatchConfig[checkCloudWatchAPIKeyAttr]; found {
+			c.Config[config.APIKey] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkCloudWatchAPISecretAttr); ok {
-			c.Config[config.APISecret] = s
+		if v, found := cloudwatchConfig[checkCloudWatchAPISecretAttr]; found {
+			c.Config[config.APISecret] = v.(string)
 		}
 
 		if dimmensions := cloudwatchConfig.CollectMap(checkCloudWatchDimmensionsAttr); dimmensions != nil {
@@ -233,22 +232,26 @@ func checkConfigToAPICloudWatch(c *circonusCheck, ctxt *providerContext, l inter
 			}
 		}
 
-		if metricsSet, ok := ar.GetSetAsListOK(checkCloudWatchMetricAttr); ok {
-			metrics := metricsSet.List()
+		if v, found := cloudwatchConfig[checkCloudWatchMetricAttr]; found {
+			metricsRaw := v.(*schema.Set).List()
+			metrics := make([]string, 0, len(metricsRaw))
+			for _, m := range metricsRaw {
+				metrics = append(metrics, m.(string))
+			}
 			sort.Strings(metrics)
 			c.Config[config.CloudwatchMetrics] = strings.Join(metrics, ",")
 		}
 
-		if s, ok := ar.GetStringOK(checkCloudWatchNamespaceAttr); ok {
-			c.Config[config.Namespace] = s
+		if v, found := cloudwatchConfig[checkCloudWatchNamespaceAttr]; found {
+			c.Config[config.Namespace] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkCloudWatchURLAttr); ok {
-			c.Config[config.URL] = s
+		if v, found := cloudwatchConfig[checkCloudWatchURLAttr]; found {
+			c.Config[config.URL] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkCloudWatchVersionAttr); ok {
-			c.Config[config.Version] = s
+		if v, found := cloudwatchConfig[checkCloudWatchVersionAttr]; found {
+			c.Config[config.Version] = v.(string)
 		}
 	}
 

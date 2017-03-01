@@ -74,8 +74,6 @@ func newMetricResource() *schema.Resource {
 
 func metricCreate(d *schema.ResourceData, meta interface{}) error {
 	m := newMetric()
-	ctxt := meta.(*providerContext)
-	cr := newConfigReader(ctxt, d)
 
 	id := d.Id()
 	if id == "" {
@@ -86,7 +84,7 @@ func metricCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	if err := m.ParseConfig(id, cr); err != nil {
+	if err := m.ParseConfig(id, d); err != nil {
 		return errwrap.Wrapf("error parsing metric schema during create: {{err}}", err)
 	}
 
@@ -99,10 +97,8 @@ func metricCreate(d *schema.ResourceData, meta interface{}) error {
 
 func metricRead(d *schema.ResourceData, meta interface{}) error {
 	m := newMetric()
-	ctxt := meta.(*providerContext)
-	cr := newConfigReader(ctxt, d)
 
-	if err := m.ParseConfig(d.Id(), cr); err != nil {
+	if err := m.ParseConfig(d.Id(), d); err != nil {
 		return errwrap.Wrapf("error parsing metric schema during read: {{err}}", err)
 	}
 
@@ -115,10 +111,8 @@ func metricRead(d *schema.ResourceData, meta interface{}) error {
 
 func metricUpdate(d *schema.ResourceData, meta interface{}) error {
 	m := newMetric()
-	ctxt := meta.(*providerContext)
-	cr := newConfigReader(ctxt, d)
 
-	if err := m.ParseConfig(d.Id(), cr); err != nil {
+	if err := m.ParseConfig(d.Id(), d); err != nil {
 		return errwrap.Wrapf("error parsing metric schema during update: {{err}}", err)
 	}
 

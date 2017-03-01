@@ -13,7 +13,7 @@ import (
 
 const (
 	// circonus_check.caql.* resource attribute names
-	checkCAQLQueryAttr schemaAttr = "query"
+	checkCAQLQueryAttr = "query"
 )
 
 var checkCAQLDescriptions = attrDescrs{
@@ -71,7 +71,7 @@ func hashCheckCAQL(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func checkConfigToAPICAQL(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+func checkConfigToAPICAQL(c *circonusCheck, l interfaceList) error {
 	c.Type = string(apiCheckTypeCAQL)
 	c.Target = defaultCheckCAQLTarget
 
@@ -79,10 +79,9 @@ func checkConfigToAPICAQL(c *circonusCheck, ctxt *providerContext, l interfaceLi
 	// the schema.
 	for _, mapRaw := range l {
 		caqlConfig := newInterfaceMap(mapRaw)
-		ar := newMapReader(ctxt, caqlConfig)
 
-		if s, ok := ar.GetStringOK(checkCAQLQueryAttr); ok {
-			c.Config[config.Query] = s
+		if v, found := caqlConfig[checkCAQLQueryAttr]; found {
+			c.Config[config.Query] = v.(string)
 		}
 	}
 

@@ -293,8 +293,7 @@ func newCheckResource() *schema.Resource {
 func checkCreate(d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*providerContext)
 	c := newCheck()
-	cr := newConfigReader(ctxt, d)
-	if err := c.ParseConfig(cr); err != nil {
+	if err := c.ParseConfig(d); err != nil {
 		return errwrap.Wrapf("error parsing check schema during create: {{err}}", err)
 	}
 
@@ -420,8 +419,7 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 func checkUpdate(d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*providerContext)
 	c := newCheck()
-	cr := newConfigReader(ctxt, d)
-	if err := c.ParseConfig(cr); err != nil {
+	if err := c.ParseConfig(d); err != nil {
 		return err
 	}
 
@@ -447,47 +445,62 @@ func checkDelete(d *schema.ResourceData, meta interface{}) error {
 
 func checkStreamChecksum(v interface{}) int {
 	m := v.(map[string]interface{})
-
-	ar := newMapReader(nil, m)
-	csum := metricChecksum(ar)
+	csum := metricChecksum(m)
 	return csum
 }
 
 // ParseConfig reads Terraform config data and stores the information into a
 // Circonus CheckBundle object.
-func (c *circonusCheck) ParseConfig(ar attrReader) error {
-	if status, ok := ar.GetBoolOK(checkActiveAttr); ok {
-		c.Status = checkActiveToAPIStatus(status)
+func (c *circonusCheck) ParseConfig(d *schema.ResourceData) error {
+	if v, found := d.GetOk(checkActiveAttr); found {
+		c.Status = checkActiveToAPIStatus(v.(bool))
 	}
 
-	if collectorsList, ok := ar.GetSetAsListOK(checkCollectorAttr); ok {
-		c.Brokers = collectorsList.CollectList(checkCollectorIDAttr)
+	if v, found := d.GetOk(checkCollectorAttr); found {
+		l := v.(*schema.Set).List()
+		c.Brokers = make([]string, 0, len(l))
+
+		for _, mapRaw := range l {
+			mapAttrs := mapRaw.(map[string]interface{})
+
+			if mv, mapFound := mapAttrs[checkCollectorIDAttr]; mapFound {
+				c.Brokers = append(c.Brokers, mv.(string))
+			}
+		}
 	}
 
-	if i, ok := ar.GetIntOK(checkMetricLimitAttr); ok {
-		c.MetricLimit = i
+	if v, found := d.GetOk(checkMetricLimitAttr); found {
+		c.MetricLimit = v.(int)
 	}
 
-	if name, ok := ar.GetStringOK(checkNameAttr); ok {
-		c.DisplayName = name
+	if v, found := d.GetOk(checkNameAttr); found {
+		c.DisplayName = v.(string)
 	}
 
-	c.Notes = ar.GetStringPtr(checkNotesAttr)
+	if v, found := d.GetOk(checkNotesAttr); found {
+		s := v.(string)
+		c.Notes = &s
+	}
 
-	if d, ok := ar.GetDurationOK(checkPeriodAttr); ok {
+	if v, found := d.GetOk(checkPeriodAttr); found {
+		d, err := time.ParseDuration(v.(string))
+		if err != nil {
+			return errwrap.Wrapf(fmt.Sprintf("unable to parse %q as a duration: {{err}}", checkPeriodAttr), err)
+		}
+
 		c.Period = uint(d.Seconds())
 	}
 
-	if streamList, ok := ar.GetSetAsListOK(checkStreamAttr); ok {
+	if v, found := d.GetOk(checkStreamAttr); found {
+		streamList := v.(*schema.Set).List()
 		c.Metrics = make([]api.CheckBundleMetric, 0, len(streamList))
 
 		for _, metricListRaw := range streamList {
-			metricAttrs := newInterfaceMap(metricListRaw)
-			mr := newMapReader(ar.Context(), metricAttrs)
+			metricAttrs := metricListRaw.(map[string]interface{})
 
 			var id string
-			if v, ok := mr.GetStringOK(metricIDAttr); ok {
-				id = v
+			if av, found := metricAttrs[metricIDAttr]; found {
+				id = av.(string)
 			} else {
 				var err error
 				id, err = newMetricID()
@@ -497,7 +510,7 @@ func (c *circonusCheck) ParseConfig(ar attrReader) error {
 			}
 
 			m := newMetric()
-			if err := m.ParseConfig(id, mr); err != nil {
+			if err := m.ParseConfigMap(id, metricAttrs); err != nil {
 				return errwrap.Wrapf("unable to parse config: {{err}}", err)
 			}
 
@@ -505,19 +518,26 @@ func (c *circonusCheck) ParseConfig(ar attrReader) error {
 		}
 	}
 
-	c.Tags = tagsToAPI(ar.GetTags(checkTagsAttr))
-
-	if s, ok := ar.GetStringOK(checkTargetAttr); ok {
-		c.Target = s
+	if v, found := d.GetOk(checkTagsAttr); found {
+		c.Tags = derefStringList(flattenSet(v.(*schema.Set)))
 	}
 
-	if d, ok := ar.GetDurationOK(checkTimeoutAttr); ok {
+	if v, found := d.GetOk(checkTargetAttr); found {
+		c.Target = v.(string)
+	}
+
+	if v, found := d.GetOk(checkTimeoutAttr); found {
+		d, err := time.ParseDuration(v.(string))
+		if err != nil {
+			return errwrap.Wrapf(fmt.Sprintf("unable to parse %q as a duration: {{err}}", checkTimeoutAttr), err)
+		}
+
 		t := float32(d.Seconds())
 		c.Timeout = t
 	}
 
 	// Last step: parse the individual check types
-	if err := checkConfigToAPI(c, ar); err != nil {
+	if err := checkConfigToAPI(c, d); err != nil {
 		return errwrap.Wrapf("unable to parse check type: {{err}}", err)
 	}
 
@@ -534,8 +554,8 @@ func (c *circonusCheck) ParseConfig(ar attrReader) error {
 
 // checkConfigToAPI parses the Terraform config into the respective per-check
 // type api.Config attributes.
-func checkConfigToAPI(c *circonusCheck, ar attrReader) error {
-	checkTypeParseMap := map[schemaAttr]func(*circonusCheck, *providerContext, interfaceList) error{
+func checkConfigToAPI(c *circonusCheck, d *schema.ResourceData) error {
+	checkTypeParseMap := map[string]func(*circonusCheck, interfaceList) error{
 		checkCAQLAttr:       checkConfigToAPICAQL,
 		checkCloudWatchAttr: checkConfigToAPICloudWatch,
 		checkHTTPAttr:       checkConfigToAPIHTTP,
@@ -548,8 +568,8 @@ func checkConfigToAPI(c *circonusCheck, ar attrReader) error {
 	}
 
 	for checkType, fn := range checkTypeParseMap {
-		if l, ok := ar.GetSetAsListOK(checkType); ok {
-			if err := fn(c, ar.Context(), l); err != nil {
+		if listRaw, found := d.GetOk(checkType); found {
+			if err := fn(c, listRaw.(*schema.Set).List()); err != nil {
 				return errwrap.Wrapf(fmt.Sprintf("Unable to parse type %q: {{err}}", string(checkType)), err)
 			}
 		}

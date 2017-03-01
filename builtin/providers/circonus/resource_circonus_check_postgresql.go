@@ -13,14 +13,14 @@ import (
 
 const (
 	// circonus_check.postgresql.* resource attribute names
-	checkPostgreSQLDSNAttr schemaAttr = "dsn"
-	// checkPostgreSQLHostAttr     schemaAttr = "host"
-	// checkPostgreSQLNameAttr     schemaAttr = "name"
-	// checkPostgreSQLPasswordAttr schemaAttr = "password"
-	// checkPostgreSQLPortAttr     schemaAttr = "port"
-	checkPostgreSQLQueryAttr schemaAttr = "query"
-	// checkPostgreSQLSSLModeAttr  schemaAttr = "sslmode"
-	// checkPostgreSQLUserAttr     schemaAttr = "user"
+	checkPostgreSQLDSNAttr = "dsn"
+	// checkPostgreSQLHostAttr      = "host"
+	// checkPostgreSQLNameAttr      = "name"
+	// checkPostgreSQLPasswordAttr  = "password"
+	// checkPostgreSQLPortAttr      = "port"
+	checkPostgreSQLQueryAttr = "query"
+	// checkPostgreSQLSSLModeAttr   = "sslmode"
+	// checkPostgreSQLUserAttr      = "user"
 )
 
 var checkPostgreSQLDescriptions = attrDescrs{
@@ -145,21 +145,20 @@ func hashCheckPostgreSQL(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func checkConfigToAPIPostgreSQL(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+func checkConfigToAPIPostgreSQL(c *circonusCheck, l interfaceList) error {
 	c.Type = string(apiCheckTypePostgreSQL)
 
 	// Iterate over all `postgres` attributes, even though we have a max of 1 in
 	// the schema.
 	for _, mapRaw := range l {
 		postgresConfig := newInterfaceMap(mapRaw)
-		ar := newMapReader(ctxt, postgresConfig)
 
-		if s, ok := ar.GetStringOK(checkPostgreSQLDSNAttr); ok {
-			c.Config[config.DSN] = s
+		if v, found := postgresConfig[checkPostgreSQLDSNAttr]; found {
+			c.Config[config.DSN] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkPostgreSQLQueryAttr); ok {
-			c.Config[config.SQL] = s
+		if v, found := postgresConfig[checkPostgreSQLQueryAttr]; found {
+			c.Config[config.SQL] = v.(string)
 		}
 	}
 

@@ -304,8 +304,8 @@ func newTriggerResource() *schema.Resource {
 func triggerCreate(d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*providerContext)
 	t := newTrigger()
-	cr := newConfigReader(ctxt, d)
-	if err := t.ParseConfig(cr); err != nil {
+
+	if err := t.ParseConfig(d); err != nil {
 		return errwrap.Wrapf("error parsing trigger schema during create: {{err}}", err)
 	}
 
@@ -428,8 +428,8 @@ func triggerRead(d *schema.ResourceData, meta interface{}) error {
 func triggerUpdate(d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*providerContext)
 	t := newTrigger()
-	cr := newConfigReader(ctxt, d)
-	if err := t.ParseConfig(cr); err != nil {
+
+	if err := t.ParseConfig(d); err != nil {
 		return err
 	}
 
@@ -452,35 +452,6 @@ func triggerDelete(d *schema.ResourceData, meta interface{}) error {
 	d.SetId("")
 
 	return nil
-}
-
-func triggerGroup(v interface{}) int {
-	m := v.(map[string]interface{})
-	ar := newMapReader(nil, m)
-
-	b := &bytes.Buffer{}
-	b.Grow(defaultHashBufSize)
-
-	// Order writes to the buffer using lexically sorted list for easy visual
-	// reconciliation with other lists.
-	fmt.Fprint(b, ar.GetString(triggerCheckAttr))
-	if p := ar.GetStringPtr(triggerLinkAttr); p != nil {
-		fmt.Fprint(b, indirect(p))
-	}
-	fmt.Fprint(b, ar.GetString(triggerStreamNameAttr))
-	fmt.Fprint(b, ar.GetString(triggerMetricTypeAttr))
-	if p := ar.GetStringPtr(triggerNotesAttr); p != nil {
-		fmt.Fprint(b, indirect(p))
-	}
-	{
-		tags := ar.GetTags(triggerTagsAttr)
-		for _, tag := range tags {
-			fmt.Fprint(b, tag)
-		}
-	}
-
-	s := b.String()
-	return hashcode.String(s)
 }
 
 type circonusTrigger struct {
@@ -517,33 +488,41 @@ func triggerThenChecksum(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
-	writeInt := func(ar attrReader, attrName schemaAttr) {
-		if i, ok := ar.GetIntOK(attrName); ok && i != 0 {
-			fmt.Fprintf(b, "%x", i)
+	writeInt := func(m map[string]interface{}, attrName string) {
+		if v, found := m[attrName]; found {
+			i := v.(int)
+			if i != 0 {
+				fmt.Fprintf(b, "%x", i)
+			}
 		}
 	}
 
-	writeString := func(ar attrReader, attrName schemaAttr) {
-		if s, ok := ar.GetStringOK(attrName); ok && s != "" {
-			fmt.Fprint(b, strings.TrimSpace(s))
+	writeString := func(m map[string]interface{}, attrName string) {
+		if v, found := m[attrName]; found {
+			s := strings.TrimSpace(v.(string))
+			if s != "" {
+				fmt.Fprint(b, s)
+			}
 		}
 	}
 
-	writeStringArray := func(ar attrReader, attrName schemaAttr) {
-		if a := ar.GetStringSlice(attrName); a != nil {
-			sort.Strings(a)
-			for _, s := range a {
-				fmt.Fprint(b, strings.TrimSpace(s))
+	writeStringArray := func(m map[string]interface{}, attrName string) {
+		if v, found := m[attrName]; found {
+			a := v.([]string)
+			if a != nil {
+				sort.Strings(a)
+				for _, s := range a {
+					fmt.Fprint(b, strings.TrimSpace(s))
+				}
 			}
 		}
 	}
 
 	m := v.(map[string]interface{})
-	thenReader := newMapReader(nil, m)
 
-	writeString(thenReader, triggerAfterAttr)
-	writeStringArray(thenReader, triggerNotifyAttr)
-	writeInt(thenReader, triggerSeverityAttr)
+	writeString(m, triggerAfterAttr)
+	writeStringArray(m, triggerNotifyAttr)
+	writeInt(m, triggerSeverityAttr)
 
 	s := b.String()
 	return hashcode.String(s)
@@ -553,48 +532,50 @@ func triggerValueChecksum(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
-	writeBool := func(ar attrReader, attrName schemaAttr) {
-		if v, ok := ar.GetBoolOK(attrName); ok {
-			fmt.Fprintf(b, "%t", v)
+	writeBool := func(m map[string]interface{}, attrName string) {
+		if v, found := m[attrName]; found {
+			fmt.Fprintf(b, "%t", v.(bool))
 		}
 	}
 
-	writeDuration := func(ar attrReader, attrName schemaAttr) {
-		if s, ok := ar.GetStringOK(attrName); ok && s != "" {
-			d, _ := time.ParseDuration(s)
-			fmt.Fprint(b, d.String())
+	writeDuration := func(m map[string]interface{}, attrName string) {
+		if v, found := m[attrName]; found {
+			s := v.(string)
+			if s != "" {
+				d, _ := time.ParseDuration(s)
+				fmt.Fprint(b, d.String())
+			}
 		}
 	}
 
-	// writeFloat64 := func(ar attrReader, attrName schemaAttr) {
-	// 	if f, ok := ar.GetFloat64OK(attrName); ok {
-	// 		fmt.Fprintf(b, "%f", f)
-	// 	}
-	// }
-
-	writeString := func(ar attrReader, attrName schemaAttr) {
-		if s, ok := ar.GetStringOK(attrName); ok && s != "" {
-			fmt.Fprint(b, strings.TrimSpace(s))
+	writeString := func(m map[string]interface{}, attrName string) {
+		if v, found := m[attrName]; found {
+			s := strings.TrimSpace(v.(string))
+			if s != "" {
+				fmt.Fprint(b, s)
+			}
 		}
 	}
 
 	m := v.(map[string]interface{})
-	ifReader := newMapReader(nil, m)
 
-	if valueReader := newMapReader(nil, ifReader.GetMap(triggerValueAttr)); valueReader != nil {
-		// writeFloat64(valueReader, triggerAbsentAttr)
-		writeDuration(valueReader, triggerAbsentAttr)
-		writeBool(valueReader, triggerChangedAttr)
-		writeString(valueReader, triggerContainsAttr)
-		writeString(valueReader, triggerEqualsAttr)
-		writeString(valueReader, triggerExcludesAttr)
-		writeString(valueReader, triggerLessAttr)
-		writeString(valueReader, triggerMissingAttr)
-		writeString(valueReader, triggerMoreAttr)
+	if v, found := m[triggerValueAttr]; found {
+		valueMap := v.(map[string]interface{})
+		if valueMap != nil {
+			writeDuration(valueMap, triggerAbsentAttr)
+			writeBool(valueMap, triggerChangedAttr)
+			writeString(valueMap, triggerContainsAttr)
+			writeString(valueMap, triggerEqualsAttr)
+			writeString(valueMap, triggerExcludesAttr)
+			writeString(valueMap, triggerLessAttr)
+			writeString(valueMap, triggerMissingAttr)
+			writeString(valueMap, triggerMoreAttr)
 
-		if overReader := newMapReader(nil, valueReader.GetMap(triggerOverAttr)); overReader != nil {
-			writeDuration(overReader, triggerLastAttr)
-			writeString(overReader, triggerUsingAttr)
+			if v, found := valueMap[triggerOverAttr]; found {
+				overMap := v.(map[string]interface{})
+				writeDuration(overMap, triggerLastAttr)
+				writeString(overMap, triggerUsingAttr)
+			}
 		}
 	}
 
@@ -606,17 +587,19 @@ func triggerValueOverChecksum(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
-	writeString := func(ar attrReader, attrName schemaAttr) {
-		if s, ok := ar.GetStringOK(attrName); ok && s != "" {
-			fmt.Fprint(b, strings.TrimSpace(s))
+	writeString := func(m map[string]interface{}, attrName string) {
+		if v, found := m[attrName]; found {
+			s := strings.TrimSpace(v.(string))
+			if s != "" {
+				fmt.Fprint(b, s)
+			}
 		}
 	}
 
 	m := v.(map[string]interface{})
-	overReader := newMapReader(nil, m)
 
-	writeString(overReader, triggerLastAttr)
-	writeString(overReader, triggerUsingAttr)
+	writeString(m, triggerLastAttr)
+	writeString(m, triggerUsingAttr)
 
 	s := b.String()
 	return hashcode.String(s)
@@ -625,161 +608,218 @@ func triggerValueOverChecksum(v interface{}) int {
 // ParseConfig reads Terraform config data and stores the information into a
 // Circonus RuleSet object.  ParseConfig, triggerRead(), and triggerChecksum
 // must be kept in sync.
-func (t *circonusTrigger) ParseConfig(ar attrReader) error {
-	if s, ok := ar.GetStringOK(triggerCheckAttr); ok {
-		t.CheckCID = s
+func (t *circonusTrigger) ParseConfig(d *schema.ResourceData) error {
+	if v, found := d.GetOk(triggerCheckAttr); found {
+		t.CheckCID = v.(string)
 	}
 
-	t.Link = ar.GetStringPtr(triggerLinkAttr)
-
-	if s, ok := ar.GetStringOK(triggerMetricTypeAttr); ok {
-		t.MetricType = s
+	if v, found := d.GetOk(triggerLinkAttr); found {
+		s := v.(string)
+		t.Link = &s
 	}
 
-	t.Notes = ar.GetStringPtr(triggerNotesAttr)
-	t.Parent = ar.GetStringPtr(triggerParentAttr)
-	if s, ok := ar.GetStringOK(triggerStreamNameAttr); ok {
-		t.MetricName = s
+	if v, found := d.GetOk(triggerMetricTypeAttr); found {
+		t.MetricType = v.(string)
+	}
+
+	if v, found := d.GetOk(triggerNotesAttr); found {
+		s := v.(string)
+		t.Notes = &s
+	}
+
+	if v, found := d.GetOk(triggerParentAttr); found {
+		s := v.(string)
+		t.Parent = &s
+	}
+
+	if v, found := d.GetOk(triggerStreamNameAttr); found {
+		t.MetricName = v.(string)
 	}
 
 	t.Rules = make([]api.RuleSetRule, 0, defaultTriggerRuleLen)
-	if ifList, ok := ar.GetListOK(triggerIfAttr); ok {
-		for _, ifListRaw := range ifList {
-			for _, ifListElem := range ifListRaw.([]interface{}) {
-				ifAttrs := newInterfaceMap(ifListElem.(map[string]interface{}))
-				ifReader := newMapReader(ar.Context(), ifAttrs)
-				rule := api.RuleSetRule{}
+	if ifListRaw, found := d.GetOk(triggerIfAttr); found {
+		ifList := ifListRaw.([]interface{})
+		for _, ifListElem := range ifList {
+			ifAttrs := newInterfaceMap(ifListElem.(map[string]interface{}))
 
-				if thenList, ok := ifReader.GetSetAsListOK(triggerThenAttr); ok {
-					for _, thenListRaw := range thenList {
-						thenAttrs := newInterfaceMap(thenListRaw)
-						thenReader := newMapReader(ar.Context(), thenAttrs)
+			rule := api.RuleSetRule{}
 
-						if s, ok := thenReader.GetStringOK(triggerAfterAttr); ok {
-							d, _ := time.ParseDuration(s)
+			if thenListRaw, found := ifAttrs[triggerThenAttr]; found {
+				thenList := thenListRaw.(*schema.Set).List()
+
+				for _, thenListRaw := range thenList {
+					thenAttrs := newInterfaceMap(thenListRaw)
+
+					if v, found := thenAttrs[triggerAfterAttr]; found {
+						s := v.(string)
+						if s != "" {
+							d, err := time.ParseDuration(v.(string))
+							if err != nil {
+								return errwrap.Wrapf(fmt.Sprintf("unable to parse %q duration %q: {{err}}", triggerAfterAttr, v.(string)), err)
+							}
 							rule.Wait = uint(d.Minutes())
 						}
+					}
 
-						// NOTE: break from convention of alpha sorting attributes and handle Notify after Severity
+					// NOTE: break from convention of alpha sorting attributes and handle Notify after Severity
 
-						if i, ok := thenReader.GetIntOK(triggerSeverityAttr); ok {
-							rule.Severity = uint(i)
-						}
+					if i, found := thenAttrs[triggerSeverityAttr]; found {
+						rule.Severity = uint(i.(int))
+					}
 
-						if notifyList, ok := thenReader.GetListOK(triggerNotifyAttr); ok {
-							sev := uint8(rule.Severity)
-							for _, contactGroupCID := range notifyList.List() {
-								var found bool
-								if contactGroups, ok := t.ContactGroups[sev]; ok {
-									for _, contactGroup := range contactGroups {
-										if contactGroup == contactGroupCID {
-											found = true
-											break
-										}
+					if notifyListRaw, found := thenAttrs[triggerNotifyAttr]; found {
+						notifyList := interfaceList(notifyListRaw.([]interface{}))
+
+						sev := uint8(rule.Severity)
+						for _, contactGroupCID := range notifyList.List() {
+							var found bool
+							if contactGroups, ok := t.ContactGroups[sev]; ok {
+								for _, contactGroup := range contactGroups {
+									if contactGroup == contactGroupCID {
+										found = true
+										break
 									}
 								}
-								if !found {
-									t.ContactGroups[sev] = append(t.ContactGroups[sev], contactGroupCID)
-								}
+							}
+							if !found {
+								t.ContactGroups[sev] = append(t.ContactGroups[sev], contactGroupCID)
 							}
 						}
 					}
 				}
+			}
 
-				if valueList, ok := ifReader.GetSetAsListOK(triggerValueAttr); ok {
-					for _, valueListRaw := range valueList {
-						valueAttrs := newInterfaceMap(valueListRaw)
-						valueReader := newMapReader(ar.Context(), valueAttrs)
+			if triggerValueListRaw, found := ifAttrs[triggerValueAttr]; found {
+				triggerValueList := triggerValueListRaw.(*schema.Set).List()
 
-					METRIC_TYPE:
-						switch t.MetricType {
-						case triggerMetricTypeNumeric:
-							if s, ok := valueReader.GetStringOK(triggerAbsentAttr); ok && s != "" {
+				for _, valueListRaw := range triggerValueList {
+					valueAttrs := newInterfaceMap(valueListRaw)
+
+				METRIC_TYPE:
+					switch t.MetricType {
+					case triggerMetricTypeNumeric:
+						if v, found := valueAttrs[triggerAbsentAttr]; found {
+							s := v.(string)
+							if s != "" {
 								d, _ := time.ParseDuration(s)
 								rule.Criteria = apiRulesetAbsent
 								rule.Value = float64(d.Seconds())
 								break METRIC_TYPE
 							}
+						}
 
-							if b, ok := valueReader.GetBoolOK(triggerChangedAttr); ok && b {
+						if v, found := valueAttrs[triggerChangedAttr]; found {
+							b := v.(bool)
+							if b {
 								rule.Criteria = apiRulesetChanged
 								break METRIC_TYPE
 							}
+						}
 
-							if s, ok := valueReader.GetStringOK(triggerLessAttr); ok && s != "" {
+						if v, found := valueAttrs[triggerLessAttr]; found {
+							s := v.(string)
+							if s != "" {
 								rule.Criteria = apiRulesetMinValue
 								rule.Value = s
 								break METRIC_TYPE
 							}
+						}
 
-							if s, ok := valueReader.GetStringOK(triggerMoreAttr); ok && s != "" {
+						if v, found := valueAttrs[triggerMoreAttr]; found {
+							s := v.(string)
+							if s != "" {
 								rule.Criteria = apiRulesetMaxValue
 								rule.Value = s
 								break METRIC_TYPE
 							}
-						case triggerMetricTypeText:
-							if s, ok := valueReader.GetStringOK(triggerAbsentAttr); ok && s != "" {
+						}
+					case triggerMetricTypeText:
+						if v, found := valueAttrs[triggerAbsentAttr]; found {
+							s := v.(string)
+							if s != "" {
 								d, _ := time.ParseDuration(s)
 								rule.Criteria = apiRulesetAbsent
 								rule.Value = float64(d.Seconds())
 								break METRIC_TYPE
 							}
+						}
 
-							if b, ok := valueReader.GetBoolOK(triggerChangedAttr); ok && b {
+						if v, found := valueAttrs[triggerChangedAttr]; found {
+							b := v.(bool)
+							if b {
 								rule.Criteria = apiRulesetChanged
 								break METRIC_TYPE
 							}
+						}
 
-							if s, ok := valueReader.GetStringOK(triggerContainsAttr); ok && s != "" {
+						if v, found := valueAttrs[triggerContainsAttr]; found {
+							s := v.(string)
+							if s != "" {
 								rule.Criteria = apiRulesetContains
 								rule.Value = s
 								break METRIC_TYPE
 							}
+						}
 
-							if s, ok := valueReader.GetStringOK(triggerEqualsAttr); ok && s != "" {
+						if v, found := valueAttrs[triggerEqualsAttr]; found {
+							s := v.(string)
+							if s != "" {
 								rule.Criteria = apiRulesetMatch
 								rule.Value = s
 								break METRIC_TYPE
 							}
+						}
 
-							if s, ok := valueReader.GetStringOK(triggerExcludesAttr); ok && s != "" {
+						if v, found := valueAttrs[triggerExcludesAttr]; found {
+							s := v.(string)
+							if s != "" {
 								rule.Criteria = apiRulesetNotMatch
 								rule.Value = s
 								break METRIC_TYPE
 							}
+						}
 
-							if s, ok := valueReader.GetStringOK(triggerMissingAttr); ok && s != "" {
+						if v, found := valueAttrs[triggerMissingAttr]; found {
+							s := v.(string)
+							if s != "" {
 								rule.Criteria = apiRulesetNotContains
 								rule.Value = s
 								break METRIC_TYPE
 							}
-						default:
-							panic(fmt.Sprintf("PROVIDER BUG: unsupported trigger metric type: %q", t.MetricType))
 						}
+					default:
+						return fmt.Errorf("PROVIDER BUG: unsupported trigger metric type: %q", t.MetricType)
+					}
 
-						if overList, ok := valueReader.GetSetAsListOK(triggerOverAttr); ok {
-							for _, overListRaw := range overList {
-								overAttrs := newInterfaceMap(overListRaw)
-								overReader := newMapReader(ar.Context(), overAttrs)
+					if triggerOverListRaw, found := valueAttrs[triggerOverAttr]; found {
+						overList := triggerOverListRaw.(*schema.Set).List()
 
-								if s, ok := overReader.GetStringOK(triggerLastAttr); ok {
-									last, _ := time.ParseDuration(s)
-									rule.WindowingDuration = uint(last.Seconds())
+						for _, overListRaw := range overList {
+							overAttrs := newInterfaceMap(overListRaw)
+
+							if v, found := overAttrs[triggerLastAttr]; found {
+								last, err := time.ParseDuration(v.(string))
+								if err != nil {
+									return errwrap.Wrapf(fmt.Sprintf("unable to parse duration %s attribute", triggerLastAttr), err)
 								}
+								rule.WindowingDuration = uint(last.Seconds())
+							}
 
-								if s, ok := overReader.GetStringOK(triggerUsingAttr); ok {
-									rule.WindowingFunction = &s
-								}
+							if v, found := overAttrs[triggerUsingAttr]; found {
+								s := v.(string)
+								rule.WindowingFunction = &s
 							}
 						}
 					}
 				}
-				t.Rules = append(t.Rules, rule)
 			}
+			t.Rules = append(t.Rules, rule)
 		}
 	}
 
-	t.Tags = tagsToAPI(ar.GetTags(triggerTagsAttr))
+	if v, found := d.GetOk(triggerTagsAttr); found {
+		t.Tags = derefStringList(flattenSet(v.(*schema.Set)))
+	}
 
 	if err := t.Validate(); err != nil {
 		return err

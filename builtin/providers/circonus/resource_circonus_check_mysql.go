@@ -13,8 +13,8 @@ import (
 
 const (
 	// circonus_check.mysql.* resource attribute names
-	checkMySQLDSNAttr   schemaAttr = "dsn"
-	checkMySQLQueryAttr schemaAttr = "query"
+	checkMySQLDSNAttr   = "dsn"
+	checkMySQLQueryAttr = "query"
 )
 
 var checkMySQLDescriptions = attrDescrs{
@@ -81,21 +81,20 @@ func hashCheckMySQL(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func checkConfigToAPIMySQL(c *circonusCheck, ctxt *providerContext, l interfaceList) error {
+func checkConfigToAPIMySQL(c *circonusCheck, l interfaceList) error {
 	c.Type = string(apiCheckTypeMySQL)
 
 	// Iterate over all `postgres` attributes, even though we have a max of 1 in
 	// the schema.
 	for _, mapRaw := range l {
 		mysqlConfig := newInterfaceMap(mapRaw)
-		ar := newMapReader(ctxt, mysqlConfig)
 
-		if s, ok := ar.GetStringOK(checkMySQLDSNAttr); ok {
-			c.Config[config.DSN] = s
+		if v, found := mysqlConfig[checkMySQLDSNAttr]; found {
+			c.Config[config.DSN] = v.(string)
 		}
 
-		if s, ok := ar.GetStringOK(checkMySQLQueryAttr); ok {
-			c.Config[config.SQL] = s
+		if v, found := mysqlConfig[checkMySQLQueryAttr]; found {
+			c.Config[config.SQL] = v.(string)
 		}
 	}
 

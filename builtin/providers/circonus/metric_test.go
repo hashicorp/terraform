@@ -11,9 +11,8 @@ func Test_MetricChecksum(t *testing.T) {
 		string(metricTypeAttr):   "json",
 		string(metricUnitAttr):   &unit,
 	}
-	ar := newMapReader(nil, m)
 
-	csum := metricChecksum(ar)
+	csum := metricChecksum(m)
 	if csum != 4250221491 {
 		t.Fatalf("Checksum mismatch")
 	}
