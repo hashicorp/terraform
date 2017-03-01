@@ -353,7 +353,7 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 	if v, ok := d["vpc_security_group_ids"]; ok {
 		if s := v.(*schema.Set); s.Len() > 0 {
 			for _, v := range s.List() {
-				secGroups = append(opts.SecurityGroups, &ec2.GroupIdentifier{GroupId: aws.String(v.(string))})
+				secGroups = append(secGroups, &ec2.GroupIdentifier{GroupId: aws.String(v.(string))})
 				groupIds = append(groupIds, aws.String(v.(string)))
 			}
 		}
