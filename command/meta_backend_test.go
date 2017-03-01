@@ -1064,6 +1064,68 @@ func TestMetaBackend_configuredChangeCopy_multiToSingleDefault(t *testing.T) {
 	}
 }
 
+// Changing a configured backend that supports multi-state to a
+// backend that only supports single states.
+func TestMetaBackend_configuredChangeCopy_multiToSingle(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("backend-change-multi-to-single"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Register the single-state backend
+	backendinit.Set("local-single", backendlocal.TestNewLocalSingle)
+	defer backendinit.Set("local-single", nil)
+
+	// Ask input
+	defer testInputMap(t, map[string]string{
+		"backend-migrate-to-new":               "yes",
+		"backend-migrate-multistate-to-single": "yes",
+		"backend-migrate-copy-to-empty":        "yes",
+	})()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+
+	// Get the backend
+	b, err := m.Backend(&BackendOpts{Init: true})
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Check the state
+	s, err := b.State(backend.DefaultStateName)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	if err := s.RefreshState(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	state := s.State()
+	if state == nil {
+		t.Fatal("state should not be nil")
+	}
+	if state.Lineage != "backend-change" {
+		t.Fatalf("bad: %#v", state)
+	}
+
+	// Verify no local state
+	if _, err := os.Stat(DefaultStateFilename); err == nil {
+		t.Fatal("file should not exist")
+	}
+
+	// Verify no local backup
+	if _, err := os.Stat(DefaultStateFilename + DefaultBackupExtension); err == nil {
+		t.Fatal("file should not exist")
+	}
+
+	// Verify existing environments exist
+	envPath := filepath.Join(backendlocal.DefaultEnvDir, "env2", backendlocal.DefaultStateFilename)
+	if _, err := os.Stat(envPath); err != nil {
+		t.Fatal("env should exist")
+	}
+}
+
 // Unsetting a saved backend
 func TestMetaBackend_configuredUnset(t *testing.T) {
 	// Create a temporary working directory that is empty

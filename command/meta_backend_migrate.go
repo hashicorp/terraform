@@ -70,7 +70,7 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 			return m.backendMigrateState_s_s(opts)
 		}
 
-		panic("unhandled")
+		return m.backendMigrateState_S_s(opts)
 
 	// Multi-state to multi-state. We merge the states together (migrating
 	// each from the source to the destination one by one).
@@ -102,6 +102,29 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 // states.
 //
 //-------------------------------------------------------------------
+
+// Multi-state to single state.
+func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
+	// Ask the user if they want to migrate their existing remote state
+	migrate, err := m.confirm(&terraform.InputOpts{
+		Id: "backend-migrate-multistate-to-single",
+		Query: fmt.Sprintf(
+			"Destination state %q doesn't support environments (named states).\n"+
+				"Do you want to copy only your current environment?",
+			opts.TwoType),
+		Description: strings.TrimSpace(inputBackendMigrateMultiToSingle),
+	})
+	if err != nil {
+		return fmt.Errorf(
+			"Error asking for state migration action: %s", err)
+	}
+	if !migrate {
+		return fmt.Errorf("Migration aborted by user.")
+	}
+
+	// Copy the default state
+	return m.backendMigrateState_s_s(opts)
+}
 
 // Single state to single state, assumed default state name.
 func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
@@ -335,4 +358,13 @@ Two (%[2]q): %[4]s
 
 Do you want to copy the state from %[1]q to %[2]q? Enter "yes" to copy
 and "no" to start with the existing state in %[2]q.
+`
+
+const inputBackendMigrateMultiToSingle = `
+The existing backend %q supports environments and you currently are
+using more than one. The target backend %q doesn't support environments.
+If you continue, Terraform will offer to copy your current environment
+%q to the default environment in the target. Your existing environments
+in the source backend won't be modified. If you want to switch environments,
+back them up, or cancel altogether, answer "no" and Terraform will abort.
 `
