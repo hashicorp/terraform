@@ -147,6 +147,9 @@ The following arguments are supported:
 * `type_handler_version` - (Required) Specifies the version of the extension to
     use, available versions can be found using the Azure CLI.
 
+* `auto_upgrade_minor_version` - (Optional) Specifies if the platform deploys
+    the latest minor version update to the `type_handler_version` specified.
+
 * `settings` - (Required) The settings passed to the extension, these are
     specified as a JSON object in a string.
 
