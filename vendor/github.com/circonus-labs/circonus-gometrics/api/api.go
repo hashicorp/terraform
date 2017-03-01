@@ -6,18 +6,36 @@ package api
 
 import (
 	"bytes"
+	crand "crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
+	"math/big"
+	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 )
+
+func init() {
+	n, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
+	if err != nil {
+		rand.Seed(time.Now().UTC().UnixNano())
+		return
+	}
+	rand.Seed(n.Int64())
+}
 
 const (
 	// a few sensible defaults
@@ -57,17 +75,21 @@ type Config struct {
 	URL      string
 	TokenKey string
 	TokenApp string
+	CACert   *x509.CertPool
 	Log      *log.Logger
 	Debug    bool
 }
 
 // API Circonus API
 type API struct {
-	apiURL *url.URL
-	key    TokenKeyType
-	app    TokenAppType
-	Debug  bool
-	Log    *log.Logger
+	apiURL                  *url.URL
+	key                     TokenKeyType
+	app                     TokenAppType
+	caCert                  *x509.CertPool
+	Debug                   bool
+	Log                     *log.Logger
+	useExponentialBackoff   bool
+	useExponentialBackoffmu sync.Mutex
 }
 
 // NewClient returns a new Circonus API (alias for New)
@@ -114,7 +136,15 @@ func New(ac *Config) (*API, error) {
 		return nil, err
 	}
 
-	a := &API{apiURL, key, app, ac.Debug, ac.Log}
+	a := &API{
+		apiURL: apiURL,
+		key:    key,
+		app:    app,
+		caCert: ac.CACert,
+		Debug:  ac.Debug,
+		Log:    ac.Log,
+		useExponentialBackoff: false,
+	}
 
 	a.Debug = ac.Debug
 	a.Log = ac.Log
@@ -128,29 +158,90 @@ func New(ac *Config) (*API, error) {
 	return a, nil
 }
 
+// EnableExponentialBackoff enables use of exponential backoff for next API call(s)
+// and use exponential backoff for all API calls until exponential backoff is disabled.
+func (a *API) EnableExponentialBackoff() {
+	a.useExponentialBackoffmu.Lock()
+	a.useExponentialBackoff = true
+	a.useExponentialBackoffmu.Unlock()
+}
+
+// DisableExponentialBackoff disables use of exponential backoff. If a request using
+// exponential backoff is currently running, it will stop using exponential backoff
+// on its next iteration (if needed).
+func (a *API) DisableExponentialBackoff() {
+	a.useExponentialBackoffmu.Lock()
+	a.useExponentialBackoff = false
+	a.useExponentialBackoffmu.Unlock()
+}
+
 // Get API request
 func (a *API) Get(reqPath string) ([]byte, error) {
-	return a.apiCall("GET", reqPath, nil)
+	return a.apiRequest("GET", reqPath, nil)
 }
 
 // Delete API request
 func (a *API) Delete(reqPath string) ([]byte, error) {
-	return a.apiCall("DELETE", reqPath, nil)
+	return a.apiRequest("DELETE", reqPath, nil)
 }
 
 // Post API request
 func (a *API) Post(reqPath string, data []byte) ([]byte, error) {
-	return a.apiCall("POST", reqPath, data)
+	return a.apiRequest("POST", reqPath, data)
 }
 
 // Put API request
 func (a *API) Put(reqPath string, data []byte) ([]byte, error) {
-	return a.apiCall("PUT", reqPath, data)
+	return a.apiRequest("PUT", reqPath, data)
+}
+
+func backoff(interval uint) float64 {
+	return math.Floor(((float64(interval) * (1 + rand.Float64())) / 2) + .5)
+}
+
+// apiRequest manages retry strategy for exponential backoffs
+func (a *API) apiRequest(reqMethod string, reqPath string, data []byte) ([]byte, error) {
+	backoffs := []uint{2, 4, 8, 16, 32}
+	attempts := 0
+	success := false
+
+	var result []byte
+	var err error
+
+	for !success {
+		result, err = a.apiCall(reqMethod, reqPath, data)
+		if err == nil {
+			success = true
+		}
+
+		// break and return error if not using exponential backoff
+		if err != nil {
+			if !a.useExponentialBackoff {
+				break
+			}
+			if matched, _ := regexp.MatchString("code 403", err.Error()); matched {
+				break
+			}
+		}
+
+		if !success {
+			var wait float64
+			if attempts >= len(backoffs) {
+				wait = backoff(backoffs[len(backoffs)-1])
+			} else {
+				wait = backoff(backoffs[attempts])
+			}
+			attempts++
+			a.Log.Printf("[WARN] API call failed %s, retrying in %d seconds.\n", err.Error(), uint(wait))
+			time.Sleep(time.Duration(wait) * time.Second)
+		}
+	}
+
+	return result, err
 }
 
 // apiCall call Circonus API
 func (a *API) apiCall(reqMethod string, reqPath string, data []byte) ([]byte, error) {
-	dataReader := bytes.NewReader(data)
 	reqURL := a.apiURL.String()
 
 	if reqPath == "" {
@@ -160,18 +251,10 @@ func (a *API) apiCall(reqMethod string, reqPath string, data []byte) ([]byte, er
 		reqURL += "/"
 	}
 	if len(reqPath) >= 3 && reqPath[:3] == "/v2" {
-		reqURL += reqPath[3:len(reqPath)]
+		reqURL += reqPath[3:]
 	} else {
 		reqURL += reqPath
 	}
-
-	req, err := retryablehttp.NewRequest(reqMethod, reqURL, dataReader)
-	if err != nil {
-		return nil, fmt.Errorf("[ERROR] creating API request: %s %+v", reqURL, err)
-	}
-	req.Header.Add("Accept", "application/json")
-	req.Header.Add("X-Circonus-Auth-Token", string(a.key))
-	req.Header.Add("X-Circonus-App-Name", string(a.app))
 
 	// keep last HTTP error in the event of retry failure
 	var lastHTTPError error
@@ -190,21 +273,69 @@ func (a *API) apiCall(reqMethod string, reqPath string, data []byte) ([]byte, er
 			resp.StatusCode == 429 { // rate limit
 			body, readErr := ioutil.ReadAll(resp.Body)
 			if readErr != nil {
-				lastHTTPError = fmt.Errorf("- last HTTP error: %d %+v", resp.StatusCode, readErr)
+				lastHTTPError = fmt.Errorf("- response: %d %s", resp.StatusCode, readErr.Error())
 			} else {
-				lastHTTPError = fmt.Errorf("- last HTTP error: %d %s", resp.StatusCode, string(body))
+				lastHTTPError = fmt.Errorf("- response: %d %s", resp.StatusCode, strings.TrimSpace(string(body)))
 			}
 			return true, nil
 		}
 		return false, nil
 	}
 
+	dataReader := bytes.NewReader(data)
+
+	req, err := retryablehttp.NewRequest(reqMethod, reqURL, dataReader)
+	if err != nil {
+		return nil, fmt.Errorf("[ERROR] creating API request: %s %+v", reqURL, err)
+	}
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("X-Circonus-Auth-Token", string(a.key))
+	req.Header.Add("X-Circonus-App-Name", string(a.app))
+
 	client := retryablehttp.NewClient()
-	client.RetryWaitMin = minRetryWait
-	client.RetryWaitMax = maxRetryWait
-	client.RetryMax = maxRetries
+	if a.apiURL.Scheme == "https" && a.caCert != nil {
+		client.HTTPClient.Transport = &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			Dial: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 10 * time.Second,
+			TLSClientConfig:     &tls.Config{RootCAs: a.caCert},
+			DisableKeepAlives:   true,
+			MaxIdleConnsPerHost: -1,
+			DisableCompression:  true,
+		}
+	} else {
+		client.HTTPClient.Transport = &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			Dial: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 10 * time.Second,
+			DisableKeepAlives:   true,
+			MaxIdleConnsPerHost: -1,
+			DisableCompression:  true,
+		}
+	}
+
+	a.useExponentialBackoffmu.Lock()
+	eb := a.useExponentialBackoff
+	a.useExponentialBackoffmu.Unlock()
+
+	if eb {
+		// limit to one request if using exponential backoff
+		client.RetryWaitMin = 1
+		client.RetryWaitMax = 2
+		client.RetryMax = 0
+	} else {
+		client.RetryWaitMin = minRetryWait
+		client.RetryWaitMax = maxRetryWait
+		client.RetryMax = maxRetries
+	}
+
 	// retryablehttp only groks log or no log
-	// but, outputs everything as [DEBUG] messages
 	if a.Debug {
 		client.Logger = a.Log
 	} else {

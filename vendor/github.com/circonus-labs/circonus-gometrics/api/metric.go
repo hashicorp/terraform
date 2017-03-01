@@ -26,7 +26,7 @@ type Metric struct {
 	CheckTags      []string `json:"_check_tags,omitempty"`   // [] len >= 0
 	CheckUUID      string   `json:"_check_uuid,omitempty"`   // string
 	CID            string   `json:"_cid,omitempty"`          // string
-	Histogram      bool     `json:"_histogram,omitempty"`    // boolean
+	Histogram      string   `json:"_histogram,omitempty"`    // string
 	Link           *string  `json:"link,omitempty"`          // string or null
 	MetricName     string   `json:"_metric_name,omitempty"`  // string
 	MetricType     string   `json:"_metric_type,omitempty"`  // string

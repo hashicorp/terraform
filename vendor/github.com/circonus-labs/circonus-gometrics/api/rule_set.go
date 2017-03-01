@@ -20,7 +20,7 @@ import (
 type RuleSetRule struct {
 	Criteria          string      `json:"criteria"`                     // string
 	Severity          uint        `json:"severity"`                     // uint
-	Value             interface{} `json:"value"`                        // string when the metric type is text, float64 or int when the value is numeric.
+	Value             interface{} `json:"value"`                        // BUG doc: string, api: actual type returned switches based on Criteria
 	Wait              uint        `json:"wait"`                         // uint
 	WindowingDuration uint        `json:"windowing_duration,omitempty"` // uint
 	WindowingFunction *string     `json:"windowing_function,omitempty"` // string or null

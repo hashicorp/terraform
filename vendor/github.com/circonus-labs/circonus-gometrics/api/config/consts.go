@@ -67,7 +67,7 @@ const (
 	// Port
 	// URL
 	Calculated = Key("calculated")
-	Category   = Key("cateogry")
+	Category   = Key("category")
 
 	//
 	// Cloudwatch
