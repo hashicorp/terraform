@@ -49,12 +49,12 @@ func notifyListToResourceData(d *schema.ResourceData, nl *monitor.NotifyList) er
 	if len(nl.Notifications) > 0 {
 		notifications := make([]map[string]interface{}, len(nl.Notifications))
 		for i, n := range nl.Notifications {
-			m := make(map[string]interface{})
-			m["type"] = n.Type
+			ni := make(map[string]interface{})
+			ni["type"] = n.Type
 			if n.Config != nil {
-				m["config"] = n.Config
+				ni["config"] = n.Config
 			}
-			notifications[i] = m
+			notifications[i] = ni
 		}
 		d.Set("notifications", notifications)
 	}
@@ -65,17 +65,18 @@ func resourceDataToNotifyList(nl *monitor.NotifyList, d *schema.ResourceData) er
 	nl.ID = d.Id()
 
 	if rawNotifications := d.Get("notifications").([]interface{}); len(rawNotifications) > 0 {
-
 		ns := make([]*monitor.Notification, len(rawNotifications))
-
 		for i, notificationRaw := range rawNotifications {
-
 			ni := notificationRaw.(map[string]interface{})
+			config := ni["config"].(map[string]interface{})
 
 			switch ni["type"].(string) {
+			case "webhook":
+				ns[i] = monitor.NewWebNotification(config["url"].(string))
 			case "email":
-				config := ni["config"].(map[string]interface{})
 				ns[i] = monitor.NewEmailNotification(config["email"].(string))
+			case "datafeed":
+				ns[i] = monitor.NewFeedNotification(config["sourceid"].(string))
 			}
 		}
 		nl.Notifications = ns
@@ -86,7 +87,6 @@ func resourceDataToNotifyList(nl *monitor.NotifyList, d *schema.ResourceData) er
 // NotifyListCreate creates an ns1 notifylist
 func NotifyListCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ns1.Client)
-
 	nl := monitor.NewNotifyList(d.Get("name").(string))
 
 	if err := resourceDataToNotifyList(nl, d); err != nil {
