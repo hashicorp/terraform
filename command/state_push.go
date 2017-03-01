@@ -11,6 +11,7 @@ import (
 
 // StatePushCommand is a Command implementation that shows a single resource.
 type StatePushCommand struct {
+	Meta
 	StateMeta
 }
 

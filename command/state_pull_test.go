@@ -20,11 +20,9 @@ func TestStatePull(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StatePullCommand{
-		StateMeta: StateMeta{
-			Meta: Meta{
-				ContextOpts: testCtxConfig(p),
-				Ui:          ui,
-			},
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
 		},
 	}
 

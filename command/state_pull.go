@@ -11,6 +11,7 @@ import (
 
 // StatePullCommand is a Command implementation that shows a single resource.
 type StatePullCommand struct {
+	Meta
 	StateMeta
 }
 

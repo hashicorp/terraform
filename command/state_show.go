@@ -12,6 +12,7 @@ import (
 
 // StateShowCommand is a Command implementation that shows a single resource.
 type StateShowCommand struct {
+	Meta
 	StateMeta
 }
 

@@ -90,7 +90,7 @@ func (c *EnvDeleteCommand) Run(args []string) int {
 
 	// Lock the state if we can
 	lockInfo := state.NewLockInfo()
-	lockInfo.Operation = "env new"
+	lockInfo.Operation = "env delete"
 	lockID, err := clistate.Lock(sMgr, lockInfo, c.Ui, c.Colorize())
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
