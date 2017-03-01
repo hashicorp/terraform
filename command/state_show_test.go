@@ -34,11 +34,9 @@ func TestStateShow(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateShowCommand{
-		StateMeta: StateMeta{
-			Meta: Meta{
-				ContextOpts: testCtxConfig(p),
-				Ui:          ui,
-			},
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
 		},
 	}
 
@@ -94,11 +92,9 @@ func TestStateShow_multi(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateShowCommand{
-		StateMeta: StateMeta{
-			Meta: Meta{
-				ContextOpts: testCtxConfig(p),
-				Ui:          ui,
-			},
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
 		},
 	}
 
@@ -118,11 +114,9 @@ func TestStateShow_noState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateShowCommand{
-		StateMeta: StateMeta{
-			Meta: Meta{
-				ContextOpts: testCtxConfig(p),
-				Ui:          ui,
-			},
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
 		},
 	}
 
@@ -140,11 +134,9 @@ func TestStateShow_emptyState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateShowCommand{
-		StateMeta: StateMeta{
-			Meta: Meta{
-				ContextOpts: testCtxConfig(p),
-				Ui:          ui,
-			},
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
 		},
 	}
 
@@ -171,11 +163,9 @@ func TestStateShow_emptyStateWithModule(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StateShowCommand{
-		StateMeta: StateMeta{
-			Meta: Meta{
-				ContextOpts: testCtxConfig(p),
-				Ui:          ui,
-			},
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
 		},
 	}
 

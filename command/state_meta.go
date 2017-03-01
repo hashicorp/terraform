@@ -11,13 +11,12 @@ import (
 )
 
 // StateMeta is the meta struct that should be embedded in state subcommands.
-type StateMeta struct {
-	Meta
-}
+type StateMeta struct{}
 
-// State returns the state for this meta. This is different then Meta.State
-// in the way that backups are done. This configures backups to be timestamped
-// rather than just the original state path plus a backup path.
+// State returns the state for this meta. This gets the appropriate state from
+// the backend, but changes the way that backups are done. This configures
+// backups to be timestamped rather than just the original state path plus a
+// backup path.
 func (c *StateMeta) State(m *Meta) (state.State, error) {
 	// Load the backend
 	b, err := m.Backend(nil)
@@ -25,7 +24,7 @@ func (c *StateMeta) State(m *Meta) (state.State, error) {
 		return nil, err
 	}
 
-	env := c.Env()
+	env := m.Env()
 	// Get the state
 	s, err := b.State(env)
 	if err != nil {

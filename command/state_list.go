@@ -11,6 +11,7 @@ import (
 // StateListCommand is a Command implementation that lists the resources
 // within a state file.
 type StateListCommand struct {
+	Meta
 	StateMeta
 }
 

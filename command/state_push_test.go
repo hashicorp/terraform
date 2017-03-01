@@ -20,11 +20,9 @@ func TestStatePush_empty(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StatePushCommand{
-		StateMeta: StateMeta{
-			Meta: Meta{
-				ContextOpts: testCtxConfig(p),
-				Ui:          ui,
-			},
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
 		},
 	}
 
@@ -51,11 +49,9 @@ func TestStatePush_replaceMatch(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StatePushCommand{
-		StateMeta: StateMeta{
-			Meta: Meta{
-				ContextOpts: testCtxConfig(p),
-				Ui:          ui,
-			},
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
 		},
 	}
 
@@ -82,11 +78,9 @@ func TestStatePush_lineageMismatch(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StatePushCommand{
-		StateMeta: StateMeta{
-			Meta: Meta{
-				ContextOpts: testCtxConfig(p),
-				Ui:          ui,
-			},
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
 		},
 	}
 
@@ -113,11 +107,9 @@ func TestStatePush_serialNewer(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StatePushCommand{
-		StateMeta: StateMeta{
-			Meta: Meta{
-				ContextOpts: testCtxConfig(p),
-				Ui:          ui,
-			},
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
 		},
 	}
 
@@ -144,11 +136,9 @@ func TestStatePush_serialOlder(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &StatePushCommand{
-		StateMeta: StateMeta{
-			Meta: Meta{
-				ContextOpts: testCtxConfig(p),
-				Ui:          ui,
-			},
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
 		},
 	}
 

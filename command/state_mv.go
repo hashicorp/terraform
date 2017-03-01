@@ -10,6 +10,7 @@ import (
 
 // StateMvCommand is a Command implementation that shows a single resource.
 type StateMvCommand struct {
+	Meta
 	StateMeta
 }
 

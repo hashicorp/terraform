@@ -46,11 +46,6 @@ func init() {
 		"debug": struct{}{}, // includes all subcommands
 	}
 
-	// meta struct used in state commands
-	stateMeta := command.StateMeta{
-		Meta: meta,
-	}
-
 	Commands = map[string]cli.CommandFactory{
 		"apply": func() (cli.Command, error) {
 			return &command.ApplyCommand{
@@ -221,44 +216,42 @@ func init() {
 		},
 
 		"state": func() (cli.Command, error) {
-			return &command.StateCommand{
-				StateMeta: stateMeta,
-			}, nil
+			return &command.StateCommand{}, nil
 		},
 
 		"state list": func() (cli.Command, error) {
 			return &command.StateListCommand{
-				StateMeta: stateMeta,
+				Meta: meta,
 			}, nil
 		},
 
 		"state rm": func() (cli.Command, error) {
 			return &command.StateRmCommand{
-				StateMeta: stateMeta,
+				Meta: meta,
 			}, nil
 		},
 
 		"state mv": func() (cli.Command, error) {
 			return &command.StateMvCommand{
-				StateMeta: stateMeta,
+				Meta: meta,
 			}, nil
 		},
 
 		"state pull": func() (cli.Command, error) {
 			return &command.StatePullCommand{
-				StateMeta: stateMeta,
+				Meta: meta,
 			}, nil
 		},
 
 		"state push": func() (cli.Command, error) {
 			return &command.StatePushCommand{
-				StateMeta: stateMeta,
+				Meta: meta,
 			}, nil
 		},
 
 		"state show": func() (cli.Command, error) {
 			return &command.StateShowCommand{
-				StateMeta: stateMeta,
+				Meta: meta,
 			}, nil
 		},
 	}
