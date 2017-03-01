@@ -1305,6 +1305,12 @@
 			"revisionTime": "2017-02-14T20:43:37Z"
 		},
 		{
+			"checksumSHA1": "1PlWp7ZA8IBK6J6XcIwRpoSTNoc=",
+			"path": "github.com/dnsimple/dnsimple-go/dnsimple",
+			"revision": "84018270a30ebbdaa9b4900a4525c72d8c0b44df",
+			"revisionTime": "2017-02-21T09:21:47Z"
+		},
+		{
 			"checksumSHA1": "Gj+xR1VgFKKmFXYOJMnAczC3Znk=",
 			"path": "github.com/docker/distribution/digestset",
 			"revision": "50133d63723f8fa376e632a853739990a133be16",
@@ -1315,12 +1321,6 @@
 			"path": "github.com/docker/distribution/reference",
 			"revision": "50133d63723f8fa376e632a853739990a133be16",
 			"revisionTime": "2017-02-21T19:08:14Z"
-		},
-		{
-			"checksumSHA1": "PmgDj/xdOCRdD07WBFlIT3k1ZGw=",
-			"path": "github.com/dnsimple/dnsimple-go/dnsimple",
-			"revision": "4e6e43c563b1b01d5b711855a82c687ab5cd315d",
-			"revisionTime": "2016-12-13T14:58:42Z"
 		},
 		{
 			"checksumSHA1": "zkENTbOfU8YoxPfFwVAhTz516Dg=",
