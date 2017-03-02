@@ -32,8 +32,12 @@ type UiHook struct {
 
 // uiResourceState tracks the state of a single resource
 type uiResourceState struct {
-	Op    uiResourceOp
-	Start time.Time
+	Name       string
+	ResourceId string
+	Op         uiResourceOp
+	Start      time.Time
+
+	DoneCh chan struct{} // To be used for cancellation
 }
 
 // uiResourceOp is an enum for operations on a resource
@@ -60,13 +64,6 @@ func (h *UiHook) PreApply(
 	} else if s.ID == "" {
 		op = uiResourceCreate
 	}
-
-	h.l.Lock()
-	h.resources[id] = uiResourceState{
-		Op:    op,
-		Start: time.Now().Round(time.Second),
-	}
-	h.l.Unlock()
 
 	var operation string
 	switch op {
@@ -142,61 +139,74 @@ func (h *UiHook) PreApply(
 		stateIdSuffix,
 		attrString)))
 
-	// Set a timer to show an operation is still happening
-	time.AfterFunc(periodicUiTimer, func() { h.stillApplying(id, stateId) })
+	uiState := uiResourceState{
+		Name:       id,
+		ResourceId: stateId,
+		Op:         op,
+		Start:      time.Now().Round(time.Second),
+		DoneCh:     make(chan struct{}),
+	}
+
+	h.l.Lock()
+	h.resources[id] = uiState
+	h.l.Unlock()
+
+	// Start goroutine that shows progress
+	go h.stillApplying(uiState)
 
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) stillApplying(id, stateId string) {
-	// Grab the operation. We defer the lock here to avoid the "still..."
-	// message showing up after a completion message.
-	h.l.Lock()
-	defer h.l.Unlock()
-	state, ok := h.resources[id]
+func (h *UiHook) stillApplying(state uiResourceState) {
+	for {
+		select {
+		case <-state.DoneCh:
+			return
 
-	// If the resource is out of the map it means we're done with it
-	if !ok {
-		return
+		case <-time.After(periodicUiTimer):
+			// Timer up, show status
+		}
+
+		var msg string
+		switch state.Op {
+		case uiResourceModify:
+			msg = "Still modifying..."
+		case uiResourceDestroy:
+			msg = "Still destroying..."
+		case uiResourceCreate:
+			msg = "Still creating..."
+		case uiResourceUnknown:
+			return
+		}
+
+		idSuffix := ""
+		if v := state.ResourceId; v != "" {
+			idSuffix = fmt.Sprintf("ID: %s, ", truncateId(v, maxIdLen))
+		}
+
+		h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+			"[reset][bold]%s: %s (%s%s elapsed)[reset]",
+			state.Name,
+			msg,
+			idSuffix,
+			time.Now().Round(time.Second).Sub(state.Start),
+		)))
 	}
-
-	var msg string
-	switch state.Op {
-	case uiResourceModify:
-		msg = "Still modifying..."
-	case uiResourceDestroy:
-		msg = "Still destroying..."
-	case uiResourceCreate:
-		msg = "Still creating..."
-	case uiResourceUnknown:
-		return
-	}
-
-	var stateIdSuffix string
-	if stateId != "" {
-		stateIdSuffix = fmt.Sprintf("ID: %s, ", truncateId(stateId, maxIdLen))
-	}
-
-	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s (%s%s elapsed)[reset]",
-		id,
-		msg,
-		stateIdSuffix,
-		time.Now().Round(time.Second).Sub(state.Start),
-	)))
-
-	// Reschedule
-	time.AfterFunc(periodicUiTimer, func() { h.stillApplying(id, stateId) })
 }
 
 func (h *UiHook) PostApply(
 	n *terraform.InstanceInfo,
 	s *terraform.InstanceState,
 	applyerr error) (terraform.HookAction, error) {
+
 	id := n.HumanId()
 
 	h.l.Lock()
 	state := h.resources[id]
+	if state.DoneCh != nil {
+		close(state.DoneCh)
+	}
+
 	delete(h.resources, id)
 	h.l.Unlock()
 
@@ -222,9 +232,11 @@ func (h *UiHook) PostApply(
 		return terraform.HookActionContinue, nil
 	}
 
-	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+	colorized := h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: %s%s[reset]",
-		id, msg, stateIdSuffix)))
+		id, msg, stateIdSuffix))
+
+	h.ui.Output(colorized)
 
 	return terraform.HookActionContinue, nil
 }
