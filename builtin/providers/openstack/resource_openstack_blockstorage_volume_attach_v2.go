@@ -8,6 +8,7 @@ import (
 
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/extensions/volumeactions"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes"
+
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -17,9 +18,6 @@ func resourceBlockStorageVolumeAttachV2() *schema.Resource {
 		Create: resourceBlockStorageVolumeAttachV2Create,
 		Read:   resourceBlockStorageVolumeAttachV2Read,
 		Delete: resourceBlockStorageVolumeAttachV2Delete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -36,23 +34,22 @@ func resourceBlockStorageVolumeAttachV2() *schema.Resource {
 			},
 
 			"instance_id": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"host_name"},
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Deprecated: "instance_id is no longer used in this resource",
 			},
 
 			"host_name": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"instance_id"},
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"device": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
+				ForceNew: true,
 			},
 
 			"attach_mode": &schema.Schema{
@@ -68,6 +65,66 @@ func resourceBlockStorageVolumeAttachV2() *schema.Resource {
 					return
 				},
 			},
+
+			"initiator": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"ip_address": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"multipath": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"os_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"platform": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"wwpn": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
+			"wwnn": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			// Volume attachment information
+			"data": &schema.Schema{
+				Type:      schema.TypeMap,
+				Computed:  true,
+				Sensitive: true,
+			},
+
+			"driver_volume_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"mount_point_base": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -79,25 +136,86 @@ func resourceBlockStorageVolumeAttachV2Create(d *schema.ResourceData, meta inter
 		return fmt.Errorf("Error creating OpenStack block storage client: %s", err)
 	}
 
-	// Check if either instance_id or host_name was set.
-	instanceId := d.Get("instance_id").(string)
-	hostName := d.Get("host_name").(string)
-	if instanceId == "" && hostName == "" {
-		return fmt.Errorf("One of 'instance_id' or 'host_name' must be set.")
+	// initialize the connection
+	volumeId := d.Get("volume_id").(string)
+	connOpts := &volumeactions.InitializeConnectionOpts{}
+	if v, ok := d.GetOk("host_name"); ok {
+		connOpts.Host = v.(string)
 	}
 
-	volumeId := d.Get("volume_id").(string)
+	if v, ok := d.GetOk("multipath"); ok {
+		multipath := v.(bool)
+		connOpts.Multipath = &multipath
+	}
 
+	if v, ok := d.GetOk("ip_address"); ok {
+		connOpts.IP = v.(string)
+	}
+
+	if v, ok := d.GetOk("initiator"); ok {
+		connOpts.Initiator = v.(string)
+	}
+
+	if v, ok := d.GetOk("os_type"); ok {
+		connOpts.OSType = v.(string)
+	}
+
+	if v, ok := d.GetOk("platform"); ok {
+		connOpts.Platform = v.(string)
+	}
+
+	if v, ok := d.GetOk("wwnns"); ok {
+		connOpts.Wwnns = v.(string)
+	}
+
+	if v, ok := d.GetOk("wwpns"); ok {
+		var wwpns []string
+		for _, i := range v.([]string) {
+			wwpns = append(wwpns, i)
+		}
+
+		connOpts.Wwpns = wwpns
+	}
+
+	connInfo, err := volumeactions.InitializeConnection(client, volumeId, connOpts).Extract()
+	if err != nil {
+		return fmt.Errorf("Unable to create connection: %s", err)
+	}
+
+	// Only uncomment this when debugging since connInfo contains sensitive information.
+	// log.Printf("[DEBUG] Volume Connection for %s: %#v", volumeId, connInfo)
+
+	// Because this information is only returned upon creation,
+	// it must be set in Create.
+	if v, ok := connInfo["data"]; ok {
+		data := make(map[string]string)
+		for key, value := range v.(map[string]interface{}) {
+			if v, ok := value.(string); ok {
+				data[key] = v
+			}
+		}
+
+		d.Set("data", data)
+	}
+
+	if v, ok := connInfo["driver_volume_type"]; ok {
+		d.Set("driver_volume_type", v)
+	}
+
+	if v, ok := connInfo["mount_point_base"]; ok {
+		d.Set("mount_point_base", v)
+	}
+
+	// Once the connection has been made, tell Cinder to mark the volume as attached.
 	attachMode, err := blockStorageVolumeAttachV2AttachMode(d.Get("attach_mode").(string))
 	if err != nil {
 		return nil
 	}
 
 	attachOpts := &volumeactions.AttachOpts{
-		InstanceUUID: d.Get("instance_id").(string),
-		HostName:     d.Get("host_name").(string),
-		MountPoint:   d.Get("device").(string),
-		Mode:         attachMode,
+		HostName:   d.Get("host_name").(string),
+		MountPoint: d.Get("device").(string),
+		Mode:       attachMode,
 	}
 
 	log.Printf("[DEBUG] Attachment Options: %#v", attachOpts)
@@ -123,17 +241,17 @@ func resourceBlockStorageVolumeAttachV2Create(d *schema.ResourceData, meta inter
 		return fmt.Errorf("Error waiting for volume (%s) to become ready: %s", volumeId, err)
 	}
 
+	// Once the volume has been marked as attached,
+	// retrieve a fresh copy of it with all information now available.
 	volume, err := volumes.Get(client, volumeId).Extract()
 	if err != nil {
 		return err
 	}
 
+	// Search for the attachmentId
 	var attachmentId string
+	hostName := d.Get("host_name").(string)
 	for _, attachment := range volume.Attachments {
-		if instanceId != "" && instanceId == attachment.ServerID {
-			attachmentId = attachment.AttachmentID
-		}
-
 		if hostName != "" && hostName == attachment.HostName {
 			attachmentId = attachment.AttachmentID
 		}
@@ -144,7 +262,7 @@ func resourceBlockStorageVolumeAttachV2Create(d *schema.ResourceData, meta inter
 	}
 
 	// The ID must be a combination of the volume and attachment ID
-	// in order to import attachments.
+	// since a volume ID is required to retrieve an attachment ID.
 	id := fmt.Sprintf("%s/%s", volumeId, attachmentId)
 	d.SetId(id)
 
@@ -179,13 +297,6 @@ func resourceBlockStorageVolumeAttachV2Read(d *schema.ResourceData, meta interfa
 
 	log.Printf("[DEBUG] Retrieved volume attachment: %#v", attachment)
 
-	d.Set("volume_id", volumeId)
-	d.Set("attachment_id", attachmentId)
-	d.Set("device", attachment.Device)
-	d.Set("instance_id", attachment.ServerID)
-	d.Set("host_name", attachment.HostName)
-	d.Set("region", GetRegion(d))
-
 	return nil
 }
 
@@ -197,10 +308,53 @@ func resourceBlockStorageVolumeAttachV2Delete(d *schema.ResourceData, meta inter
 	}
 
 	volumeId, attachmentId, err := blockStorageVolumeAttachV2ParseId(d.Id())
-	if err != nil {
-		return err
+
+	// Terminate the connection
+	termOpts := &volumeactions.TerminateConnectionOpts{}
+	if v, ok := d.GetOk("host_name"); ok {
+		termOpts.Host = v.(string)
 	}
 
+	if v, ok := d.GetOk("multipath"); ok {
+		multipath := v.(bool)
+		termOpts.Multipath = &multipath
+	}
+
+	if v, ok := d.GetOk("ip_address"); ok {
+		termOpts.IP = v.(string)
+	}
+
+	if v, ok := d.GetOk("initiator"); ok {
+		termOpts.Initiator = v.(string)
+	}
+
+	if v, ok := d.GetOk("os_type"); ok {
+		termOpts.OSType = v.(string)
+	}
+
+	if v, ok := d.GetOk("platform"); ok {
+		termOpts.Platform = v.(string)
+	}
+
+	if v, ok := d.GetOk("wwnns"); ok {
+		termOpts.Wwnns = v.(string)
+	}
+
+	if v, ok := d.GetOk("wwpns"); ok {
+		var wwpns []string
+		for _, i := range v.([]string) {
+			wwpns = append(wwpns, i)
+		}
+
+		termOpts.Wwpns = wwpns
+	}
+
+	err = volumeactions.TerminateConnection(client, volumeId, termOpts).ExtractErr()
+	if err != nil {
+		return fmt.Errorf("Error terminating volume connection %s: %s", volumeId, err)
+	}
+
+	// Detach the volume
 	detachOpts := volumeactions.DetachOpts{
 		AttachmentID: attachmentId,
 	}

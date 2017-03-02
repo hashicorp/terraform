@@ -113,14 +113,14 @@ resource "openstack_blockstorage_volume_v2" "volume_1" {
   size = 1
 }
 
-resource "openstack_compute_instance_v2" "instance_1" {
-  name = "instance_1"
-  security_groups = ["default"]
-}
-
 resource "openstack_blockstorage_volume_attach_v2" "va_1" {
-  instance_id = "${openstack_compute_instance_v2.instance_1.id}"
   volume_id = "${openstack_blockstorage_volume_v2.volume_1.id}"
   device = "auto"
+
+  host_name = "devstack"
+  ip_address = "192.168.255.10"
+  initiator = "iqn.1993-08.org.debian:01:e9861fb1859"
+  os_type = "linux2"
+  platform = "x86_64"
 }
 `
