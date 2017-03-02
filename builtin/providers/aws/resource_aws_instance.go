@@ -528,6 +528,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("private_ip", instance.PrivateIpAddress)
 	d.Set("iam_instance_profile", iamInstanceProfileArnToName(instance.IamInstanceProfile))
 
+	var ipv6Addresses []string
 	if len(instance.NetworkInterfaces) > 0 {
 		for _, ni := range instance.NetworkInterfaces {
 			if *ni.Attachment.DeviceIndex == 0 {
@@ -536,17 +537,20 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 				d.Set("associate_public_ip_address", ni.Association != nil)
 				d.Set("ipv6_address_count", len(ni.Ipv6Addresses))
 
-				var ipv6Addresses []string
 				for _, address := range ni.Ipv6Addresses {
 					ipv6Addresses = append(ipv6Addresses, *address.Ipv6Address)
 				}
-				d.Set("ipv6_addresses", ipv6Addresses)
 			}
 		}
 	} else {
 		d.Set("subnet_id", instance.SubnetId)
 		d.Set("network_interface_id", "")
 	}
+
+	if err := d.Set("ipv6_addresses", ipv6Addresses); err != nil {
+		log.Printf("[WARN] Error setting ipv6_addresses for AWS Instance (%d): %s", d.Id(), err)
+	}
+
 	d.Set("ebs_optimized", instance.EbsOptimized)
 	if instance.SubnetId != nil && *instance.SubnetId != "" {
 		d.Set("source_dest_check", instance.SourceDestCheck)
