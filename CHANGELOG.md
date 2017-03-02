@@ -1,77 +1,77 @@
-## 0.8.8 (unreleased)
+## 0.8.8 (March 2, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
- * provider/aws: Potential breaking change for `root_block_device` [GH-12379]
+ * provider/aws: Potential breaking change for `root_block_device` ([#12379](https://github.com/hashicorp/terraform/issues/12379))
 
 FEATURES:
 
- * **New Provider:**  `spotinst` [GH-5001]
- * **New Interpolation:**  `slice` [GH-9729]
- * **New Data Source:**  `aws_sns_topic` [GH-11752]
- * **New Data Source:**  `openstack_images_image_v2` [GH-12097]
- * **New Resource:**  `aws_elastic_beanstalk_application_version` [GH-5770]
- * **New Resource:**  `aws_cloudwatch_log_destination` [GH-11940]
- * **New Resource:**  `aws_cloudwatch_log_destination_policy` [GH-11940]
- * **New Resource:**  `aws_codepipeline` [GH-11814]
- * **New Resource:**  `aws_egress_only_internet_gateway` [GH-10538]
- * **New Resource:**  `datadog_user`  [GH-12268]
- * **New Resource:**  `digitalocean_loadbalancer` [GH-12077]
- * **New Resource:**  `openstack_images_image_v2` [GH-11942]
- * **New Resource:**  `openstack_compute_floatingip_associate_v2` [GH-12190]
+ * **New Provider:**  `spotinst` ([#5001](https://github.com/hashicorp/terraform/issues/5001))
+ * **New Interpolation:**  `slice` ([#9729](https://github.com/hashicorp/terraform/issues/9729))
+ * **New Data Source:**  `aws_sns_topic` ([#11752](https://github.com/hashicorp/terraform/issues/11752))
+ * **New Data Source:**  `openstack_images_image_v2` ([#12097](https://github.com/hashicorp/terraform/issues/12097))
+ * **New Resource:**  `aws_elastic_beanstalk_application_version` ([#5770](https://github.com/hashicorp/terraform/issues/5770))
+ * **New Resource:**  `aws_cloudwatch_log_destination` ([#11940](https://github.com/hashicorp/terraform/issues/11940))
+ * **New Resource:**  `aws_cloudwatch_log_destination_policy` ([#11940](https://github.com/hashicorp/terraform/issues/11940))
+ * **New Resource:**  `aws_codepipeline` ([#11814](https://github.com/hashicorp/terraform/issues/11814))
+ * **New Resource:**  `aws_egress_only_internet_gateway` ([#10538](https://github.com/hashicorp/terraform/issues/10538))
+ * **New Resource:**  `datadog_user`  ([#12268](https://github.com/hashicorp/terraform/issues/12268))
+ * **New Resource:**  `digitalocean_loadbalancer` ([#12077](https://github.com/hashicorp/terraform/issues/12077))
+ * **New Resource:**  `openstack_images_image_v2` ([#11942](https://github.com/hashicorp/terraform/issues/11942))
+ * **New Resource:**  `openstack_compute_floatingip_associate_v2` ([#12190](https://github.com/hashicorp/terraform/issues/12190))
 
 IMPROVEMENTS:
 
- * provider/aws: Add support for AWS EBS Elastic Volumes [GH-11981]
- * provider/aws: Allow aws_instances to be resized rather than forcing a new instance [GH-11998]
- * provider/aws: Report bucket name in S3 Error message [GH-12122]
- * provider/aws: Implement IPV6 Support for ec2 / VPC [GH-10538]
- * provider/aws: Add support for import of aws_elasticsearch_domain [GH-12330]
- * provider/aws: improve redshift cluster validation [GH-12313]
- * provider/aws: Support IAM role attachment and replacement for existing EC2 instance [GH-11852]
- * provider/azurerm: Auto base64encode virtual_machine custom data [GH-12164]
- * provider/datadog: add support for new host delay to the datadog_monitor resource [GH-11975]
- * provider/datadog: Upgrade to Datadog API v2 [GH-12098]
- * provider/fastly: Make Backends optional if used in VCL [GH-12025]
- * provider/fastly: Add support for custom `response_object` [GH-12032]
- * provider/google: Add support for maintenance window in `sql_database_instance` [GH-12042]
- * provider/google: google_project supports billing account [GH-11653]
- * provider/openstack: Don't allow floating IP and port [GH-12099]
- * provider/openstack: Enable HTTP Logging [GH-12089]
- * provider/openstack: Add Additional Targets for LBaaS v1 Member [GH-12266]
- * provider/openstack: Redesign openstack_blockstorage_volume_attach_v2 [GH-12071]
- * provider/pagerduty: Import support for service integrations [GH-12141]
- * provider/pagerduty: Updated implementation of pagerduty_vendor & pagerduty_service_integration [GH-12357]
- * provider/random_id: Add prefix attribute [GH-12016]
- * provider/statuscake: Add support for Port in statuscake_test [GH-11966]
+ * provider/aws: Add support for AWS EBS Elastic Volumes ([#11981](https://github.com/hashicorp/terraform/issues/11981))
+ * provider/aws: Allow aws_instances to be resized rather than forcing a new instance ([#11998](https://github.com/hashicorp/terraform/issues/11998))
+ * provider/aws: Report bucket name in S3 Error message ([#12122](https://github.com/hashicorp/terraform/issues/12122))
+ * provider/aws: Implement IPV6 Support for ec2 / VPC ([#10538](https://github.com/hashicorp/terraform/issues/10538))
+ * provider/aws: Add support for import of aws_elasticsearch_domain ([#12330](https://github.com/hashicorp/terraform/issues/12330))
+ * provider/aws: improve redshift cluster validation ([#12313](https://github.com/hashicorp/terraform/issues/12313))
+ * provider/aws: Support IAM role attachment and replacement for existing EC2 instance ([#11852](https://github.com/hashicorp/terraform/issues/11852))
+ * provider/azurerm: Auto base64encode virtual_machine custom data ([#12164](https://github.com/hashicorp/terraform/issues/12164))
+ * provider/datadog: add support for new host delay to the datadog_monitor resource ([#11975](https://github.com/hashicorp/terraform/issues/11975))
+ * provider/datadog: Upgrade to Datadog API v2 ([#12098](https://github.com/hashicorp/terraform/issues/12098))
+ * provider/fastly: Make Backends optional if used in VCL ([#12025](https://github.com/hashicorp/terraform/issues/12025))
+ * provider/fastly: Add support for custom `response_object` ([#12032](https://github.com/hashicorp/terraform/issues/12032))
+ * provider/google: Add support for maintenance window in `sql_database_instance` ([#12042](https://github.com/hashicorp/terraform/issues/12042))
+ * provider/google: google_project supports billing account ([#11653](https://github.com/hashicorp/terraform/issues/11653))
+ * provider/openstack: Don't allow floating IP and port ([#12099](https://github.com/hashicorp/terraform/issues/12099))
+ * provider/openstack: Enable HTTP Logging ([#12089](https://github.com/hashicorp/terraform/issues/12089))
+ * provider/openstack: Add Additional Targets for LBaaS v1 Member ([#12266](https://github.com/hashicorp/terraform/issues/12266))
+ * provider/openstack: Redesign openstack_blockstorage_volume_attach_v2 ([#12071](https://github.com/hashicorp/terraform/issues/12071))
+ * provider/pagerduty: Import support for service integrations ([#12141](https://github.com/hashicorp/terraform/issues/12141))
+ * provider/pagerduty: Updated implementation of pagerduty_vendor & pagerduty_service_integration ([#12357](https://github.com/hashicorp/terraform/issues/12357))
+ * provider/random_id: Add prefix attribute ([#12016](https://github.com/hashicorp/terraform/issues/12016))
+ * provider/statuscake: Add support for Port in statuscake_test ([#11966](https://github.com/hashicorp/terraform/issues/11966))
 
 BUG FIXES:
 
- * core: Fix a hang that could occur at the end of a Terraform command with custom plugins used [GH-12048]
- * command/fmt: Fix incorrect formatting with single line object following complex object [GH-12049]
- * command/state: `-backup` flags work with `mv` and `rm` [GH-12156]
- * provider/aws: add bucket name to delete error notification [GH-11952]
- * provider/aws: Use proper Set for source.Auth in resource_aws_codebuild_project [GH-11741]
- * provider/aws: aws_ecs_service should output service name along with err [GH-12072]
- * provider/aws: Add VRRP to allowed protocols in network ACL rules [GH-12107]
- * provider/aws: Add owner_account option to aws_redshift_cluster [GH-12062]
- * provider/aws: Update of inspector_assessment_target should use ARN not Name [GH-12115]
- * provider/aws: Fix the panic in ssm_association with parameters [GH-12215]
- * provider/aws: Fix update of environment_variable in codebuild_project [GH-12169]
- * provider/aws: Refresh aws_autoscaling_schedule from state when autoscaling_group not found [GH-12312]
- * provider/aws: No longer ForceNew resource on lambda_function runtime update [GH-12329]
- * provider/aws: reading multiple pages of aws_efs_file_system tags [GH-12328]
- * provider/aws: Refresh cloudwatch log subscription filter on 404 [GH-12333]
- * provider/aws: more details on which s3 bucket had an error [GH-12314]
- * provider/azurerm: Ignore case on protocol and allocation types [GH-12176]
- * provider/cloudflare: add validation for proxied record types [GH-11993]
- * provider/datadog: Adding default values to datadog_monitor [GH-12168]
- * provider/google: make local_traffic_selector computed [GH-11631]
- * provider/google: Write the raw disk encryption key in the state file to avoid diffs on plan [GH-12068]
- * provider/google: fix url map test and update logic [GH-12317]
- * provider/openstack: Rename provider to loadbalancer_provider [GH-12239]
- * provider/pagerduty: Setting incident_urgency_rule as optional [GH-12211]
- * provider/profitbricks: Fixing how primary_nic is added to profitbricks server [GH-12197]
- * state/azure: add environment option for non-public cloud usage [GH-12364]
+ * core: Fix a hang that could occur at the end of a Terraform command with custom plugins used ([#12048](https://github.com/hashicorp/terraform/issues/12048))
+ * command/fmt: Fix incorrect formatting with single line object following complex object ([#12049](https://github.com/hashicorp/terraform/issues/12049))
+ * command/state: `-backup` flags work with `mv` and `rm` ([#12156](https://github.com/hashicorp/terraform/issues/12156))
+ * provider/aws: add bucket name to delete error notification ([#11952](https://github.com/hashicorp/terraform/issues/11952))
+ * provider/aws: Use proper Set for source.Auth in resource_aws_codebuild_project ([#11741](https://github.com/hashicorp/terraform/issues/11741))
+ * provider/aws: aws_ecs_service should output service name along with err ([#12072](https://github.com/hashicorp/terraform/issues/12072))
+ * provider/aws: Add VRRP to allowed protocols in network ACL rules ([#12107](https://github.com/hashicorp/terraform/issues/12107))
+ * provider/aws: Add owner_account option to aws_redshift_cluster ([#12062](https://github.com/hashicorp/terraform/issues/12062))
+ * provider/aws: Update of inspector_assessment_target should use ARN not Name ([#12115](https://github.com/hashicorp/terraform/issues/12115))
+ * provider/aws: Fix the panic in ssm_association with parameters ([#12215](https://github.com/hashicorp/terraform/issues/12215))
+ * provider/aws: Fix update of environment_variable in codebuild_project ([#12169](https://github.com/hashicorp/terraform/issues/12169))
+ * provider/aws: Refresh aws_autoscaling_schedule from state when autoscaling_group not found ([#12312](https://github.com/hashicorp/terraform/issues/12312))
+ * provider/aws: No longer ForceNew resource on lambda_function runtime update ([#12329](https://github.com/hashicorp/terraform/issues/12329))
+ * provider/aws: reading multiple pages of aws_efs_file_system tags ([#12328](https://github.com/hashicorp/terraform/issues/12328))
+ * provider/aws: Refresh cloudwatch log subscription filter on 404 ([#12333](https://github.com/hashicorp/terraform/issues/12333))
+ * provider/aws: more details on which s3 bucket had an error ([#12314](https://github.com/hashicorp/terraform/issues/12314))
+ * provider/azurerm: Ignore case on protocol and allocation types ([#12176](https://github.com/hashicorp/terraform/issues/12176))
+ * provider/cloudflare: add validation for proxied record types ([#11993](https://github.com/hashicorp/terraform/issues/11993))
+ * provider/datadog: Adding default values to datadog_monitor ([#12168](https://github.com/hashicorp/terraform/issues/12168))
+ * provider/google: make local_traffic_selector computed ([#11631](https://github.com/hashicorp/terraform/issues/11631))
+ * provider/google: Write the raw disk encryption key in the state file to avoid diffs on plan ([#12068](https://github.com/hashicorp/terraform/issues/12068))
+ * provider/google: fix url map test and update logic ([#12317](https://github.com/hashicorp/terraform/issues/12317))
+ * provider/openstack: Rename provider to loadbalancer_provider ([#12239](https://github.com/hashicorp/terraform/issues/12239))
+ * provider/pagerduty: Setting incident_urgency_rule as optional ([#12211](https://github.com/hashicorp/terraform/issues/12211))
+ * provider/profitbricks: Fixing how primary_nic is added to profitbricks server ([#12197](https://github.com/hashicorp/terraform/issues/12197))
+ * state/azure: add environment option for non-public cloud usage ([#12364](https://github.com/hashicorp/terraform/issues/12364))
 
 ## 0.8.7 (February 15, 2017)
 
