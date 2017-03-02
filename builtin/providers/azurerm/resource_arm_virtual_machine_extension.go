@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mcardosos/azure-sdk-for-go/arm/compute"
 )
 
 func resourceArmVirtualMachineExtensions() *schema.Resource {

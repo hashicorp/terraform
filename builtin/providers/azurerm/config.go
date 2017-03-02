@@ -8,6 +8,7 @@ import (
 	"net/http/httputil"
 
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
+	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/containerregistry"
 	"github.com/Azure/azure-sdk-for-go/arm/containerservice"
 	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
@@ -24,7 +25,6 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/terraform/terraform"
 	riviera "github.com/jen20/riviera/azure"
-	"github.com/mcardosos/azure-sdk-for-go/arm/compute"
 )
 
 // ArmClient contains the handles to all the specific Azure Resource Manager
