@@ -808,8 +808,8 @@ func resourceArmVirtualMachineStorageOsDiskHash(v interface{}) int {
 	if m["vhd_uri"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", m["vhd_uri"].(string)))
 	}
-	if m["managed_disk"] != nil {
-		managedDisk := m["managed_disk"].(map[string]interface{})
+	managedDisk := m["managed_disk"].(map[string]interface{})
+	if managedDisk["storage_account_type"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", managedDisk["storage_account_type"].(string)))
 	}
 	return hashcode.String(buf.String())
