@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -19,11 +20,12 @@ import (
 // The most relevant methods to take a look at are Get, Set, and Partial.
 type ResourceData struct {
 	// Settable (internally)
-	schema map[string]*Schema
-	config *terraform.ResourceConfig
-	state  *terraform.InstanceState
-	diff   *terraform.InstanceDiff
-	meta   map[string]interface{}
+	schema   map[string]*Schema
+	config   *terraform.ResourceConfig
+	state    *terraform.InstanceState
+	diff     *terraform.InstanceDiff
+	meta     map[string]interface{}
+	timeouts *ResourceTimeout
 
 	// Don't set
 	multiReader *MultiLevelFieldReader
@@ -250,6 +252,12 @@ func (d *ResourceData) State() *terraform.InstanceState {
 		return nil
 	}
 
+	if d.timeouts != nil {
+		if err := d.timeouts.StateEncode(&result); err != nil {
+			log.Printf("[ERR] Error encoding Timeout meta to Instance State: %s", err)
+		}
+	}
+
 	// Look for a magic key in the schema that determines we skip the
 	// integrity check of fields existing in the schema, allowing dynamic
 	// keys to be created.
@@ -329,6 +337,35 @@ func (d *ResourceData) State() *terraform.InstanceState {
 	}
 
 	return &result
+}
+
+// Timeout returns the data for the given timeout key
+// Returns a duration of 20 minutes for any key not found, or not found and no default.
+func (d *ResourceData) Timeout(key string) time.Duration {
+	key = strings.ToLower(key)
+
+	var timeout *time.Duration
+	switch key {
+	case TimeoutCreate:
+		timeout = d.timeouts.Create
+	case TimeoutRead:
+		timeout = d.timeouts.Read
+	case TimeoutUpdate:
+		timeout = d.timeouts.Update
+	case TimeoutDelete:
+		timeout = d.timeouts.Delete
+	}
+
+	if timeout != nil {
+		return *timeout
+	}
+
+	if d.timeouts.Default != nil {
+		return *d.timeouts.Default
+	}
+
+	// Return system default of 20 minutes
+	return 20 * time.Minute
 }
 
 func (d *ResourceData) init() {
