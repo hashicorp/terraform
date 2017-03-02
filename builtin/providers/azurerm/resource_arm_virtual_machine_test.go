@@ -31,6 +31,25 @@ func TestAccAzureRMVirtualMachine_basicLinuxMachine(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMVirtualMachine_basicLinuxMachine_managedDisk(t *testing.T) {
+	var vm compute.VirtualMachine
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine_managedDisk, ri, ri, ri, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAzureRMVirtualMachine_basicLinuxMachine_disappears(t *testing.T) {
 	var vm compute.VirtualMachine
 	ri := acctest.RandInt()
@@ -57,6 +76,26 @@ func TestAccAzureRMVirtualMachine_withDataDisk(t *testing.T) {
 
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMVirtualMachine_withDataDisk, ri, ri, ri, ri, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMVirtualMachine_withDataDisk_managedDisk(t *testing.T) {
+	var vm compute.VirtualMachine
+
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVirtualMachine_withDataDisk_managedDisk, ri, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -118,6 +157,39 @@ func TestAccAzureRMVirtualMachine_updateMachineSize(t *testing.T) {
 	ri := acctest.RandInt()
 	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine, ri, ri, ri, ri, ri, ri, ri)
 	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_updatedLinuxMachine, ri, ri, ri, ri, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
+					resource.TestCheckResourceAttr(
+						"azurerm_virtual_machine.test", "vm_size", "Standard_A0"),
+				),
+			},
+			{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
+					resource.TestCheckResourceAttr(
+						"azurerm_virtual_machine.test", "vm_size", "Standard_A1"),
+				),
+			},
+		},
+	})
+}
+
+//This is a regression test around https://github.com/hashicorp/terraform/issues/6517
+//Because we use CreateOrUpdate, we were sending an empty password on update requests
+func TestAccAzureRMVirtualMachine_updateMachineSize_managedDisk(t *testing.T) {
+	var vm compute.VirtualMachine
+
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine_managedDisk, ri, ri, ri, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_updatedLinuxMachine_managedDisk, ri, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -602,13 +674,13 @@ func TestAccAzureRMVirtualMachine_primaryNetworkInterfaceId(t *testing.T) {
 var testAccAzureRMVirtualMachine_basicLinuxMachine = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -621,7 +693,7 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -634,7 +706,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -651,7 +723,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A0"
@@ -688,16 +760,16 @@ resource "azurerm_virtual_machine" "test" {
 }
 `
 
-var testAccAzureRMVirtualMachine_machineNameBeforeUpdate = `
+var testAccAzureRMVirtualMachine_basicLinuxMachine_managedDisk = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -710,7 +782,81 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+    }
+}
+
+resource "azurerm_virtual_machine" "test" {
+    name = "acctvm-%d"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    network_interface_ids = ["${azurerm_network_interface.test.id}"]
+    vm_size = "Standard_A0"
+
+    storage_image_reference {
+	publisher = "Canonical"
+	offer = "UbuntuServer"
+	sku = "14.04.2-LTS"
+	version = "latest"
+    }
+
+    storage_os_disk {
+        name = "myosdisk1"
+        caching = "ReadWrite"
+        create_option = "FromImage"
+        disk_size_gb = "45"
+
+        managed_disk {
+            storage_account_type = "Standard_LRS"
+        }
+    }
+
+    os_profile {
+	computer_name = "hostname%d"
+	admin_username = "testadmin"
+	admin_password = "Password1234!"
+    }
+
+    os_profile_linux_config {
+	disable_password_authentication = false
+    }
+
+    tags {
+    	environment = "Production"
+    	cost-center = "Ops"
+    }
+}
+`
+
+var testAccAzureRMVirtualMachine_machineNameBeforeUpdate = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US 2"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acctvn-%d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "acctsub-%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+    name = "acctni-%d"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -723,7 +869,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -740,7 +886,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A0"
@@ -780,18 +926,18 @@ resource "azurerm_virtual_machine" "test" {
 var testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisksBefore = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_resource_group" "test-sa" {
     name = "acctestRG-sa-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -804,7 +950,7 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -817,7 +963,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test-sa.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -834,7 +980,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A0"
@@ -885,18 +1031,18 @@ resource "azurerm_virtual_machine" "test" {
 var testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisksAfter = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_resource_group" "test-sa" {
     name = "acctestRG-sa-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -909,7 +1055,7 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -922,7 +1068,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test-sa.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -941,13 +1087,13 @@ resource "azurerm_storage_container" "test" {
 var testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -960,7 +1106,7 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -973,7 +1119,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -992,13 +1138,13 @@ resource "azurerm_storage_container" "test" {
 var testAccAzureRMVirtualMachine_withDataDisk = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -1011,7 +1157,7 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -1024,7 +1170,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -1041,7 +1187,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A0"
@@ -1086,16 +1232,16 @@ resource "azurerm_virtual_machine" "test" {
 }
 `
 
-var testAccAzureRMVirtualMachine_basicLinuxMachineUpdated = `
+var testAccAzureRMVirtualMachine_withDataDisk_managedDisk = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -1108,7 +1254,92 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+    }
+}
+
+resource "azurerm_virtual_machine" "test" {
+    name = "acctvm-%d"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    network_interface_ids = ["${azurerm_network_interface.test.id}"]
+    vm_size = "Standard_DS1"
+
+    storage_image_reference {
+	publisher = "Canonical"
+	offer = "UbuntuServer"
+	sku = "14.04.2-LTS"
+	version = "latest"
+    }
+
+    storage_os_disk {
+        name = "myosdisk1"
+        caching = "ReadWrite"
+        create_option = "FromImage"
+
+        managed_disk {
+            storage_account_type = "Standard_LRS"
+        }
+    }
+
+    storage_data_disk {
+        name          = "mydatadisk1"
+    	disk_size_gb  = "1023"
+    	create_option = "Empty"
+        caching       = "ReadWrite"
+    	lun           = 0
+
+    	managed_disk {
+    	    storage_account_type = "Premium_LRS"
+    	}
+    }
+
+    os_profile {
+	computer_name = "hostname%d"
+	admin_username = "testadmin"
+	admin_password = "Password1234!"
+    }
+
+    os_profile_linux_config {
+	disable_password_authentication = false
+    }
+
+    tags {
+    	environment = "Production"
+    	cost-center = "Ops"
+    }
+}
+`
+
+var testAccAzureRMVirtualMachine_basicLinuxMachineUpdated = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US 2"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acctvn-%d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "acctsub-%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+    name = "acctni-%d"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -1121,7 +1352,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -1138,7 +1369,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A0"
@@ -1173,16 +1404,16 @@ resource "azurerm_virtual_machine" "test" {
 }
 `
 
-var testAccAzureRMVirtualMachine_updatedLinuxMachine = `
+var testAccAzureRMVirtualMachine_basicLinuxMachineUpdated_managedDisk = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -1195,7 +1426,79 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+    }
+}
+
+resource "azurerm_virtual_machine" "test" {
+    name = "acctvm-%d"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    network_interface_ids = ["${azurerm_network_interface.test.id}"]
+    vm_size = "Standard_DS1"
+
+    storage_image_reference {
+	publisher = "Canonical"
+	offer = "UbuntuServer"
+	sku = "14.04.2-LTS"
+	version = "latest"
+    }
+
+    storage_os_disk {
+        name = "myosdisk1"
+        caching = "ReadWrite"
+        create_option = "FromImage"
+
+        managed_disk {
+            storage_account_type = "Premium_LRS"
+        }
+    }
+
+    os_profile {
+	computer_name = "hostname%d"
+	admin_username = "testadmin"
+	admin_password = "Password1234!"
+    }
+
+    os_profile_linux_config {
+	disable_password_authentication = false
+    }
+
+    tags {
+    	environment = "Production"
+    }
+}
+`
+
+var testAccAzureRMVirtualMachine_updatedLinuxMachine = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US 2"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acctvn-%d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "acctsub-%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+    name = "acctni-%d"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -1208,7 +1511,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -1225,7 +1528,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A1"
@@ -1256,16 +1559,16 @@ resource "azurerm_virtual_machine" "test" {
 }
 `
 
-var testAccAzureRMVirtualMachine_basicWindowsMachine = `
+var testAccAzureRMVirtualMachine_updatedLinuxMachine_managedDisk = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -1278,7 +1581,75 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+    }
+}
+
+resource "azurerm_virtual_machine" "test" {
+    name = "acctvm-%d"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    network_interface_ids = ["${azurerm_network_interface.test.id}"]
+    vm_size = "Standard_DS1"
+
+    storage_image_reference {
+	publisher = "Canonical"
+	offer = "UbuntuServer"
+	sku = "14.04.2-LTS"
+	version = "latest"
+    }
+
+    storage_os_disk {
+        name = "myosdisk1"
+        caching = "ReadWrite"
+        create_option = "FromImage"
+
+        managed_disk {
+            storage_account_type = "Premium_LRS"
+        }
+    }
+
+    os_profile {
+	computer_name = "hostname%d"
+	admin_username = "testadmin"
+	admin_password = "Password1234!"
+    }
+
+    os_profile_linux_config {
+	disable_password_authentication = false
+    }
+}
+`
+
+var testAccAzureRMVirtualMachine_basicWindowsMachine = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US 2"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acctvn-%d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "acctsub-%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+    name = "acctni-%d"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -1291,7 +1662,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -1308,7 +1679,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A0"
@@ -1343,13 +1714,13 @@ resource "azurerm_virtual_machine" "test" {
 var testAccAzureRMVirtualMachine_windowsUnattendedConfig = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -1362,7 +1733,7 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -1375,7 +1746,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -1392,7 +1763,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A0"
@@ -1433,13 +1804,13 @@ resource "azurerm_virtual_machine" "test" {
 var testAccAzureRMVirtualMachine_diagnosticsProfile = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -1452,7 +1823,7 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -1465,7 +1836,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -1482,7 +1853,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A0"
@@ -1524,13 +1895,13 @@ resource "azurerm_virtual_machine" "test" {
 var testAccAzureRMVirtualMachine_winRMConfig = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -1543,7 +1914,7 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -1556,7 +1927,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -1573,7 +1944,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A0"
@@ -1609,13 +1980,13 @@ resource "azurerm_virtual_machine" "test" {
 var testAccAzureRMVirtualMachine_withAvailabilitySet = `
  resource "azurerm_resource_group" "test" {
      name = "acctestRG-%d"
-     location = "West US"
+     location = "West US 2"
  }
 
  resource "azurerm_virtual_network" "test" {
      name = "acctvn-%d"
      address_space = ["10.0.0.0/16"]
-     location = "West US"
+     location = "West US 2"
      resource_group_name = "${azurerm_resource_group.test.name}"
  }
 
@@ -1628,7 +1999,7 @@ var testAccAzureRMVirtualMachine_withAvailabilitySet = `
 
  resource "azurerm_network_interface" "test" {
      name = "acctni-%d"
-     location = "West US"
+     location = "West US 2"
      resource_group_name = "${azurerm_resource_group.test.name}"
 
      ip_configuration {
@@ -1641,7 +2012,7 @@ var testAccAzureRMVirtualMachine_withAvailabilitySet = `
  resource "azurerm_storage_account" "test" {
      name = "accsa%d"
      resource_group_name = "${azurerm_resource_group.test.name}"
-     location = "westus"
+     location = "West US 2"
      account_type = "Standard_LRS"
 
      tags {
@@ -1651,7 +2022,7 @@ var testAccAzureRMVirtualMachine_withAvailabilitySet = `
 
  resource "azurerm_availability_set" "test" {
     name = "availabilityset%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -1664,7 +2035,7 @@ var testAccAzureRMVirtualMachine_withAvailabilitySet = `
 
  resource "azurerm_virtual_machine" "test" {
      name = "acctvm-%d"
-     location = "West US"
+     location = "West US 2"
      resource_group_name = "${azurerm_resource_group.test.name}"
      network_interface_ids = ["${azurerm_network_interface.test.id}"]
      vm_size = "Standard_A0"
@@ -1700,13 +2071,13 @@ var testAccAzureRMVirtualMachine_withAvailabilitySet = `
 var testAccAzureRMVirtualMachine_updateAvailabilitySet = `
  resource "azurerm_resource_group" "test" {
      name = "acctestRG-%d"
-     location = "West US"
+     location = "West US 2"
  }
 
  resource "azurerm_virtual_network" "test" {
      name = "acctvn-%d"
      address_space = ["10.0.0.0/16"]
-     location = "West US"
+     location = "West US 2"
      resource_group_name = "${azurerm_resource_group.test.name}"
  }
 
@@ -1719,7 +2090,7 @@ var testAccAzureRMVirtualMachine_updateAvailabilitySet = `
 
  resource "azurerm_network_interface" "test" {
      name = "acctni-%d"
-     location = "West US"
+     location = "West US 2"
      resource_group_name = "${azurerm_resource_group.test.name}"
 
      ip_configuration {
@@ -1732,7 +2103,7 @@ var testAccAzureRMVirtualMachine_updateAvailabilitySet = `
  resource "azurerm_storage_account" "test" {
      name = "accsa%d"
      resource_group_name = "${azurerm_resource_group.test.name}"
-     location = "westus"
+     location = "West US 2"
      account_type = "Standard_LRS"
 
      tags {
@@ -1742,7 +2113,7 @@ var testAccAzureRMVirtualMachine_updateAvailabilitySet = `
 
  resource "azurerm_availability_set" "test" {
     name = "updatedAvailabilitySet%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -1755,7 +2126,7 @@ var testAccAzureRMVirtualMachine_updateAvailabilitySet = `
 
  resource "azurerm_virtual_machine" "test" {
      name = "acctvm-%d"
-     location = "West US"
+     location = "West US 2"
      resource_group_name = "${azurerm_resource_group.test.name}"
      network_interface_ids = ["${azurerm_network_interface.test.id}"]
      vm_size = "Standard_A0"
@@ -1791,13 +2162,13 @@ var testAccAzureRMVirtualMachine_updateAvailabilitySet = `
 var testAccAzureRMVirtualMachine_updateMachineName = `
  resource "azurerm_resource_group" "test" {
      name = "acctestRG-%d"
-     location = "West US"
+     location = "West US 2"
  }
 
  resource "azurerm_virtual_network" "test" {
      name = "acctvn-%d"
      address_space = ["10.0.0.0/16"]
-     location = "West US"
+     location = "West US 2"
      resource_group_name = "${azurerm_resource_group.test.name}"
  }
 
@@ -1810,7 +2181,7 @@ var testAccAzureRMVirtualMachine_updateMachineName = `
 
  resource "azurerm_network_interface" "test" {
      name = "acctni-%d"
-     location = "West US"
+     location = "West US 2"
      resource_group_name = "${azurerm_resource_group.test.name}"
 
      ip_configuration {
@@ -1823,7 +2194,7 @@ var testAccAzureRMVirtualMachine_updateMachineName = `
  resource "azurerm_storage_account" "test" {
      name = "accsa%d"
      resource_group_name = "${azurerm_resource_group.test.name}"
-     location = "westus"
+     location = "West US 2"
      account_type = "Standard_LRS"
 
      tags {
@@ -1840,7 +2211,7 @@ var testAccAzureRMVirtualMachine_updateMachineName = `
 
  resource "azurerm_virtual_machine" "test" {
      name = "acctvm-%d"
-     location = "West US"
+     location = "West US 2"
      resource_group_name = "${azurerm_resource_group.test.name}"
      network_interface_ids = ["${azurerm_network_interface.test.id}"]
      vm_size = "Standard_A0"
@@ -1875,13 +2246,13 @@ var testAccAzureRMVirtualMachine_updateMachineName = `
 var testAccAzureRMVirtualMachine_basicLinuxMachineStorageImageBefore = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -1894,7 +2265,7 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -1907,7 +2278,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -1924,7 +2295,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A0"
@@ -1965,13 +2336,13 @@ resource "azurerm_virtual_machine" "test" {
 var testAccAzureRMVirtualMachine_basicLinuxMachineStorageImageAfter = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -1984,7 +2355,7 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -1997,7 +2368,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -2014,7 +2385,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A0"
@@ -2055,13 +2426,13 @@ resource "azurerm_virtual_machine" "test" {
 var testAccAzureRMVirtualMachine_basicLinuxMachineWithOSDiskVhdUriChanged = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -2074,7 +2445,7 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -2087,7 +2458,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -2104,7 +2475,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A0"
@@ -2144,13 +2515,13 @@ resource "azurerm_virtual_machine" "test" {
 var testAccAzureRMVirtualMachine_windowsLicenseType = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -2163,7 +2534,7 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -2176,7 +2547,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -2193,7 +2564,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_A0"
@@ -2229,13 +2600,13 @@ resource "azurerm_virtual_machine" "test" {
 var testAccAzureRMVirtualMachine_plan = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
-    location = "West US"
+    location = "West US 2"
 }
 
 resource "azurerm_virtual_network" "test" {
     name = "acctvn-%d"
     address_space = ["10.0.0.0/16"]
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
@@ -2248,7 +2619,7 @@ resource "azurerm_subnet" "test" {
 
 resource "azurerm_network_interface" "test" {
     name = "acctni-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     ip_configuration {
@@ -2261,7 +2632,7 @@ resource "azurerm_network_interface" "test" {
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
+    location = "West US 2"
     account_type = "Standard_LRS"
 
     tags {
@@ -2278,7 +2649,7 @@ resource "azurerm_storage_container" "test" {
 
 resource "azurerm_virtual_machine" "test" {
     name = "acctvm-%d"
-    location = "West US"
+    location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
     vm_size = "Standard_DS1_v2"

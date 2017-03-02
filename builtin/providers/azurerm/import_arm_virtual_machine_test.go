@@ -35,3 +35,31 @@ func TestAccAzureRMVirtualMachine_importBasic(t *testing.T) {
 		},
 	})
 }
+
+func TestAccAzureRMVirtualMachine_importBasic_managedDisk(t *testing.T) {
+	resourceName := "azurerm_virtual_machine.test"
+
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine_managedDisk, ri, ri, ri, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+			},
+
+			resource.TestStep{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"delete_data_disks_on_termination",
+					"delete_os_disk_on_termination",
+				},
+			},
+		},
+	})
+}
