@@ -314,6 +314,42 @@ func TestAccAzureRMStorageBlob_source_uri(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMStorageBlob_multipleAccounts(t *testing.T) {
+	ri := acctest.RandInt()
+	rs1 := strings.ToLower(acctest.RandString(11))
+	rs2 := strings.ToLower(acctest.RandString(11))
+	sourceBlob, err := ioutil.TempFile("", "")
+	if err != nil {
+		t.Fatalf("Failed to create local source blob file")
+	}
+
+	_, err = io.CopyN(sourceBlob, rand.Reader, 25*1024*1024)
+	if err != nil {
+		t.Fatalf("Failed to write random test to source blob")
+	}
+
+	err = sourceBlob.Close()
+	if err != nil {
+		t.Fatalf("Failed to close source blob")
+	}
+
+	config := fmt.Sprintf(testAccAzureRMStorageBlob_multipleAccounts, ri, rs1, rs2, sourceBlob.Name())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMStorageBlobDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageBlobMatchesFile("azurerm_storage_blob.destination", storage.BlobTypeBlock, sourceBlob.Name()),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMStorageBlobExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
@@ -637,5 +673,62 @@ resource "azurerm_storage_blob" "destination" {
     storage_container_name = "${azurerm_storage_container.source.name}"
 
 		source_uri = "${azurerm_storage_blob.source.url}"
+}
+`
+
+var testAccAzureRMStorageBlob_multipleAccounts = `
+resource "azurerm_resource_group" "test" {
+    name     = "acctestRG-%d"
+    location = "westus"
+}
+
+resource "azurerm_storage_account" "source" {
+    name                = "acctestacc%s"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    location            = "westus"
+    account_type        = "Standard_LRS"
+}
+
+resource "azurerm_storage_container" "source" {
+    name                  = "source"
+    resource_group_name   = "${azurerm_resource_group.test.name}"
+    storage_account_name  = "${azurerm_storage_account.source.name}"
+    container_access_type = "private"
+}
+
+resource "azurerm_storage_account" "destination" {
+    name                = "acctestacc%s"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    location            = "westus"
+    account_type        = "Standard_LRS"
+}
+
+resource "azurerm_storage_container" "destination" {
+    name                  = "destination"
+    resource_group_name   = "${azurerm_resource_group.test.name}"
+    storage_account_name  = "${azurerm_storage_account.destination.name}"
+    container_access_type = "private"
+}
+
+resource "azurerm_storage_blob" "source" {
+    name                   = "source.vhd"
+    resource_group_name    = "${azurerm_resource_group.test.name}"
+    storage_account_name   = "${azurerm_storage_account.source.name}"
+    storage_container_name = "${azurerm_storage_container.source.name}"
+
+    type  = "block"
+	source = "%s"
+}
+
+resource "azurerm_storage_blob" "destination" {
+    name                   = "destination.vhd"
+    resource_group_name    = "${azurerm_resource_group.test.name}"
+    storage_account_name   = "${azurerm_storage_account.destination.name}"
+    storage_container_name = "${azurerm_storage_container.destination.name}"
+
+	source_resource_group_name    = "${azurerm_resource_group.test.name}"
+	source_storage_account_name   = "${azurerm_storage_account.source.name}"
+	source_storage_container_name = "${azurerm_storage_container.source.name}"
+	source_blob_name              = "${azurerm_storage_blob.source.name}"
 }
 `
