@@ -267,6 +267,24 @@ func TestMetaBackend_emptyLegacyRemote(t *testing.T) {
 	}
 }
 
+// Verify that interpolations result in an error
+func TestMetaBackend_configureInterpolation(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("backend-new-interp"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+
+	// Get the backend
+	_, err := m.Backend(&BackendOpts{Init: true})
+	if err == nil {
+		t.Fatal("should error")
+	}
+}
+
 // Newly configured backend
 func TestMetaBackend_configureNew(t *testing.T) {
 	// Create a temporary working directory that is empty

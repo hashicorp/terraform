@@ -237,6 +237,12 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*config.Backend, error) {
 		backend.RawConfig = backend.RawConfig.Merge(rc)
 	}
 
+	// Validate the backend early. We have to do this before the normal
+	// config validation pass since backend loading happens earlier.
+	if errs := backend.Validate(); len(errs) > 0 {
+		return nil, multierror.Append(nil, errs...)
+	}
+
 	// Return the configuration which may or may not be set
 	return backend, nil
 }
