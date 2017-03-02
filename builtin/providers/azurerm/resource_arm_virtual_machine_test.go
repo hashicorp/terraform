@@ -208,7 +208,7 @@ func TestAccAzureRMVirtualMachine_updateMachineSize_managedDisk(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 					resource.TestCheckResourceAttr(
-						"azurerm_virtual_machine.test", "vm_size", "Standard_A1"),
+						"azurerm_virtual_machine.test", "vm_size", "Standard_DS1"),
 				),
 			},
 		},
