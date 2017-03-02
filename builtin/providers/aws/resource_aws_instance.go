@@ -216,8 +216,7 @@ func resourceAwsInstance() *schema.Resource {
 						"delete_on_termination": {
 							Type:     schema.TypeBool,
 							Optional: true,
-							Default:  true,
-							ForceNew: true,
+							Computed: true,
 						},
 
 						"device_name": {
