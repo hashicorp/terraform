@@ -129,8 +129,9 @@ func (h *UiHook) PreApply(
 		attrString = "\n  " + attrString
 	}
 
-	var stateIdSuffix string
-	if s.ID != "" {
+	var stateId, stateIdSuffix string
+	if s != nil && s.ID != "" {
+		stateId = s.ID
 		stateIdSuffix = fmt.Sprintf(" (ID: %s)", truncateId(s.ID, maxIdLen))
 	}
 
@@ -142,7 +143,7 @@ func (h *UiHook) PreApply(
 		attrString)))
 
 	// Set a timer to show an operation is still happening
-	time.AfterFunc(periodicUiTimer, func() { h.stillApplying(id, s.ID) })
+	time.AfterFunc(periodicUiTimer, func() { h.stillApplying(id, stateId) })
 
 	return terraform.HookActionContinue, nil
 }
@@ -200,7 +201,7 @@ func (h *UiHook) PostApply(
 	h.l.Unlock()
 
 	var stateIdSuffix string
-	if s.ID != "" {
+	if s != nil && s.ID != "" {
 		stateIdSuffix = fmt.Sprintf(" (ID: %s)", truncateId(s.ID, maxIdLen))
 	}
 
