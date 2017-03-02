@@ -208,7 +208,7 @@ func TestAccAzureRMVirtualMachine_updateMachineSize_managedDisk(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 					resource.TestCheckResourceAttr(
-						"azurerm_virtual_machine.test", "vm_size", "Standard_DS1"),
+						"azurerm_virtual_machine.test", "vm_size", "Standard_DS1_v2"),
 				),
 			},
 		},
@@ -1250,7 +1250,7 @@ resource "azurerm_virtual_machine" "test" {
     location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
-    vm_size = "Standard_DS1"
+    vm_size = "Standard_DS1_v2"
 
     storage_image_reference {
 	publisher = "Canonical"
@@ -1422,7 +1422,7 @@ resource "azurerm_virtual_machine" "test" {
     location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
-    vm_size = "Standard_DS1"
+    vm_size = "Standard_DS1_v2"
 
     storage_image_reference {
 	publisher = "Canonical"
@@ -1577,7 +1577,7 @@ resource "azurerm_virtual_machine" "test" {
     location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
-    vm_size = "Standard_DS1"
+    vm_size = "Standard_DS1_v2"
 
     storage_image_reference {
 	publisher = "Canonical"
@@ -2633,7 +2633,7 @@ resource "azurerm_virtual_machine" "test" {
     location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
     network_interface_ids = ["${azurerm_network_interface.test.id}"]
-    vm_size = "Standard_DS1_v2"
+    vm_size = "Standard_DS1_v2_v2"
 
     storage_image_reference {
 	publisher = "kemptech"
