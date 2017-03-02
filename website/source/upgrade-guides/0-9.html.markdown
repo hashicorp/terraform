@@ -25,10 +25,9 @@ Remote state has been overhauled to be easier and safer to configure and use.
 **The new changes are backwards compatible** with existing remote state and
 you'll be prompted to migrate to the new remote backend system.
 
-For extra safety when upgrading, you may backup your existing remote state
-by running `terraform remote pull` with 0.8.x and saving your
-`.terraform/terraform.tfstate` file somewhere safe. You must do this prior
-to upgrading to Terraform 0.9.
+An in-depth guide for migrating to the new backend system
+[is available here](/docs/backends/legacy-0-8.html). This includes
+backing up your existing remote state and also rolling back if necessary.
 
 The only non-backwards compatible change is in the CLI: the existing
 `terraform remote config` command is now gone. Remote state is now configured
@@ -46,9 +45,9 @@ terraform {
 }
 ```
 
-**Action:** Run `terraform init` to migrate your existing remote state.
-Update any scripts or guides that may have used `terraform remote config`
-to use the new file-based configuration.
+**Action:** Nothing immediately, everything will continue working
+except scripts using `terraform remote config`.
+As soon as possible, [upgrade to backends](/docs/backends/legacy-0-8.html).
 
 ## State Locking
 

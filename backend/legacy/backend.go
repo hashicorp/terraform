@@ -3,6 +3,7 @@ package legacy
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/state/remote"
 	"github.com/hashicorp/terraform/terraform"
@@ -53,10 +54,22 @@ func (b *Backend) Configure(c *terraform.ResourceConfig) error {
 	return nil
 }
 
-func (b *Backend) State() (state.State, error) {
+func (b *Backend) State(name string) (state.State, error) {
+	if name != backend.DefaultStateName {
+		return nil, backend.ErrNamedStatesNotSupported
+	}
+
 	if b.client == nil {
 		panic("State called with nil remote state client")
 	}
 
 	return &remote.State{Client: b.client}, nil
+}
+
+func (b *Backend) States() ([]string, error) {
+	return nil, backend.ErrNamedStatesNotSupported
+}
+
+func (b *Backend) DeleteState(string) error {
+	return backend.ErrNamedStatesNotSupported
 }

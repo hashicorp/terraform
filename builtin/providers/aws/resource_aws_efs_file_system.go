@@ -149,15 +149,34 @@ func resourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("EFS file system %q could not be found.", d.Id())
 	}
 
-	tagsResp, err := conn.DescribeTags(&efs.DescribeTagsInput{
-		FileSystemId: aws.String(d.Id()),
-	})
-	if err != nil {
-		return fmt.Errorf("Error retrieving EC2 tags for EFS file system (%q): %s",
-			d.Id(), err.Error())
+	tags := make([]*efs.Tag, 0)
+	var marker string
+	for {
+		params := &efs.DescribeTagsInput{
+			FileSystemId: aws.String(d.Id()),
+		}
+		if marker != "" {
+			params.Marker = aws.String(marker)
+		}
+
+		tagsResp, err := conn.DescribeTags(params)
+		if err != nil {
+			return fmt.Errorf("Error retrieving EC2 tags for EFS file system (%q): %s",
+				d.Id(), err.Error())
+		}
+
+		for _, tag := range tagsResp.Tags {
+			tags = append(tags, tag)
+		}
+
+		if tagsResp.NextMarker != nil {
+			marker = *tagsResp.NextMarker
+		} else {
+			break
+		}
 	}
 
-	err = d.Set("tags", tagsToMapEFS(tagsResp.Tags))
+	err = d.Set("tags", tagsToMapEFS(tags))
 	if err != nil {
 		return err
 	}
