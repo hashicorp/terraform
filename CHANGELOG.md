@@ -1,5 +1,8 @@
 ## 0.8.8 (unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+ * provider/aws: Potential breaking change for `root_block_device` [GH-12379]
+
 FEATURES:
 
  * **New Provider:**  `spotinst` [GH-5001]
