@@ -1,1 +1,2 @@
 variable "memory" {}
+variable "feature" {}
