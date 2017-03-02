@@ -69,7 +69,8 @@ func (b *Backend) DeleteState(name string) error {
 	// Determine the path of the data
 	path := b.path(name)
 
-	// Delete it
+	// Delete it. We just delete it without any locking since
+	// the DeleteState API is documented as such.
 	_, err = client.KV().Delete(path, nil)
 	return err
 }
