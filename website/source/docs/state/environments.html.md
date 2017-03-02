@@ -29,7 +29,7 @@ you've only ever worked on the "default" environment.
 
 Environments are managed with the `terraform env` set of commands. To
 create a new environment and switch to it, you can use `terraform env new`,
-to switch environments you can use `terraform env switch`, etc.
+to switch environments you can use `terraform env select`, etc.
 
 For example, creating an environment:
 
