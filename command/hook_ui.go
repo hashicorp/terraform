@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -55,7 +54,6 @@ func (h *UiHook) PreApply(
 	n *terraform.InstanceInfo,
 	s *terraform.InstanceState,
 	d *terraform.InstanceDiff) (terraform.HookAction, error) {
-	log.Printf("[DEBUG] PreApply arguments:\n%#v\n%#v\n%#v", n, s, d)
 	h.once.Do(h.init)
 
 	id := n.HumanId()
@@ -201,7 +199,6 @@ func (h *UiHook) PostApply(
 	s *terraform.InstanceState,
 	applyerr error) (terraform.HookAction, error) {
 
-	log.Printf("[DEBUG] PostApply arguments:\n%#v\n%#v\n%#v", n, s, applyerr)
 	id := n.HumanId()
 
 	h.l.Lock()
@@ -234,7 +231,6 @@ func (h *UiHook) PostApply(
 		// Errors are collected and printed in ApplyCommand, no need to duplicate
 		return terraform.HookActionContinue, nil
 	}
-	log.Printf("[DEBUG] Printing out output: %#v", msg)
 
 	colorized := h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: %s%s[reset]",
