@@ -137,7 +137,7 @@ func (s *APIKeysService) Delete(keyID string) (*http.Response, error) {
 
 var (
 	// ErrKeyExists bundles PUT create error.
-	ErrKeyExists = errors.New("Key already exists.")
+	ErrKeyExists = errors.New("key already exists")
 	// ErrKeyMissing bundles GET/POST/DELETE error.
-	ErrKeyMissing = errors.New("Key does not exist.")
+	ErrKeyMissing = errors.New("key does not exist")
 )
