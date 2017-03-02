@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -50,6 +51,7 @@ func (h *UiHook) PreApply(
 	n *terraform.InstanceInfo,
 	s *terraform.InstanceState,
 	d *terraform.InstanceDiff) (terraform.HookAction, error) {
+	log.Printf("[DEBUG] PreApply arguments:\n%#v\n%#v\n%#v", n, s, d)
 	h.once.Do(h.init)
 
 	id := n.HumanId()
@@ -129,9 +131,8 @@ func (h *UiHook) PreApply(
 		attrString = "\n  " + attrString
 	}
 
-	var stateId, stateIdSuffix string
+	var stateIdSuffix string
 	if s != nil && s.ID != "" {
-		stateId = s.ID
 		stateIdSuffix = fmt.Sprintf(" (ID: %s)", truncateId(s.ID, maxIdLen))
 	}
 
@@ -143,12 +144,12 @@ func (h *UiHook) PreApply(
 		attrString)))
 
 	// Set a timer to show an operation is still happening
-	time.AfterFunc(periodicUiTimer, func() { h.stillApplying(id, stateId) })
+	time.AfterFunc(periodicUiTimer, func() { h.stillApplying(id, s) })
 
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) stillApplying(id, stateId string) {
+func (h *UiHook) stillApplying(id string, s *terraform.InstanceState) {
 	// Grab the operation. We defer the lock here to avoid the "still..."
 	// message showing up after a completion message.
 	h.l.Lock()
@@ -173,8 +174,8 @@ func (h *UiHook) stillApplying(id, stateId string) {
 	}
 
 	var stateIdSuffix string
-	if stateId != "" {
-		stateIdSuffix = fmt.Sprintf("ID: %s, ", truncateId(stateId, maxIdLen))
+	if s != nil && s.ID != "" {
+		stateIdSuffix = fmt.Sprintf("ID: %s, ", truncateId(s.ID, maxIdLen))
 	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
@@ -186,13 +187,15 @@ func (h *UiHook) stillApplying(id, stateId string) {
 	)))
 
 	// Reschedule
-	time.AfterFunc(periodicUiTimer, func() { h.stillApplying(id, stateId) })
+	time.AfterFunc(periodicUiTimer, func() { h.stillApplying(id, s) })
 }
 
 func (h *UiHook) PostApply(
 	n *terraform.InstanceInfo,
 	s *terraform.InstanceState,
 	applyerr error) (terraform.HookAction, error) {
+
+	log.Printf("[DEBUG] PostApply arguments:\n%#v\n%#v\n%#v", n, s, applyerr)
 	id := n.HumanId()
 
 	h.l.Lock()
@@ -221,10 +224,13 @@ func (h *UiHook) PostApply(
 		// Errors are collected and printed in ApplyCommand, no need to duplicate
 		return terraform.HookActionContinue, nil
 	}
+	log.Printf("[DEBUG] Printing out output: %#v", msg)
 
-	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+	colorized := h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: %s%s[reset]",
-		id, msg, stateIdSuffix)))
+		id, msg, stateIdSuffix))
+
+	h.ui.Output(colorized)
 
 	return terraform.HookActionContinue, nil
 }
