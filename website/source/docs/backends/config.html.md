@@ -82,6 +82,10 @@ the reinitialization process, Terraform will ask if you'd like to migrate
 your existing state to the new configuration. This allows you to easily
 switch from one backend to another.
 
+If you're using [state environments](/docs/state/environments.html),
+Terraform is able to copy all environments to the destination. If Terraform
+detects you have multiple states, it will ask if this is what you want to do.
+
 If you're just reconfiguring the same backend, Terraform will still ask if you
 want to migrate your state. You can respond "no" in this scenario.
 
