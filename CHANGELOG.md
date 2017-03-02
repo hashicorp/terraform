@@ -34,6 +34,7 @@ IMPROVEMENTS:
  * provider/openstack: Enable HTTP Logging [GH-12089]
  * provider/openstack: Add Additional Targets for LBaaS v1 Member [GH-12266]
  * provider/pagerduty: Import support for service integrations [GH-12141]
+ * provider/pagerduty: Updated implementation of pagerduty_vendor & pagerduty_service_integration [GH-12357]
  * provider/random_id: Add prefix attribute [GH-12016]
  * provider/statuscake: Add support for Port in statuscake_test [GH-11966]
 
