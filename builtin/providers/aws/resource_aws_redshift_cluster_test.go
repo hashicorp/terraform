@@ -567,7 +567,7 @@ func TestResourceAWSRedshiftClusterMasterPasswordValidation(t *testing.T) {
 			ErrCount: 0,
 		},
 		{
-			Value:    "Testing@",
+			Value:    "1Testing@",
 			ErrCount: 1,
 		},
 	}
