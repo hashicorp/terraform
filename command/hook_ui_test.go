@@ -51,7 +51,7 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 		t.Fatal(err)
 	}
 	if action != terraform.HookActionContinue {
-		t.Fatal("Expected hook to continue, given: %#v", action)
+		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
 
 	expectedOutput := ""
