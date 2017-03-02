@@ -244,6 +244,78 @@ func TestAccComputeInstance_diskEncryption(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_updateDisks_basic(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+	var diskName2 = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_disks_update_basic(diskName, diskName2, instanceName, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceDisk(&instance, instanceName, true, true),
+					testAccCheckComputeInstanceDisk(&instance, diskName, true, false),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeInstance_disks_update_add(diskName, diskName2, instanceName, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceDisk(&instance, instanceName, true, true),
+					testAccCheckComputeInstanceDisk(&instance, diskName, true, false),
+					testAccCheckComputeInstanceDisk(&instance, diskName2, true, false),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeInstance_disks_update_basic(diskName, diskName2, instanceName, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceDisk(&instance, instanceName, true, true),
+					testAccCheckComputeInstanceDisk(&instance, diskName, true, false),
+					testAccCheckComputeInstanceDiskMissing(&instance, diskName2),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_updateDisks_removeBoot(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+	var diskName2 = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_disks_update_basic(diskName, diskName2, instanceName, true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceDisk(&instance, instanceName, true, true),
+					testAccCheckComputeInstanceDisk(&instance, diskName, true, false),
+				),
+			},
+			resource.TestStep{
+				Config:      testAccComputeInstance_disks_update_removeBoot(diskName, diskName2, instanceName),
+				ExpectError: regexp.MustCompile("Detaching the boot disk is prohibited"),
+			},
+		},
+	})
+}
+
 func TestAccComputeInstance_local_ssd(t *testing.T) {
 	var instance compute.Instance
 	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
@@ -711,12 +783,28 @@ func testAccCheckComputeInstanceDisk(instance *compute.Instance, source string, 
 		}
 
 		for _, disk := range instance.Disks {
-			if strings.LastIndex(disk.Source, "/"+source) == len(disk.Source)-len(source)-1 && disk.AutoDelete == delete && disk.Boot == boot {
+			if strings.HasSuffix(disk.Source, "/"+source) && disk.AutoDelete == delete && disk.Boot == boot {
 				return nil
 			}
 		}
 
 		return fmt.Errorf("Disk not found: %s", source)
+	}
+}
+
+func testAccCheckComputeInstanceDiskMissing(instance *compute.Instance, source string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if instance.Disks == nil {
+			return nil
+		}
+
+		for _, disk := range instance.Disks {
+			if strings.HasSuffix(disk.Source, "/"+source) {
+				return fmt.Errorf("Found disk that was expected to be gone: %s", source)
+			}
+		}
+
+		return nil
 	}
 }
 
@@ -1086,6 +1174,173 @@ func testAccComputeInstance_disks(disk, instance string, autodelete bool) string
 			foo = "bar"
 		}
 	}`, disk, instance, autodelete)
+}
+
+func testAccComputeInstance_disks_update_basic(disk, disk2, instance string, autodelete bool) string {
+	return fmt.Sprintf(`
+	resource "google_compute_disk" "foo" {
+		name = "%s"
+		size = 10
+		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	# Removing a disk and detaching it at the same time doesn't currently work in TF,
+	# so even though this resource is not used inside this method, keeping it here
+	# so the test that goes from update_add->update_basic doesn't remove it.
+	resource "google_compute_disk" "bar" {
+		name = "%s"
+		size = 10
+		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		disk {
+			image = "debian-cloud/debian-8-jessie-v20160803"
+		}
+
+		disk {
+			disk = "${google_compute_disk.foo.name}"
+			auto_delete = %v
+		}
+
+		network_interface {
+			network = "default"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, disk, disk2, instance, autodelete)
+}
+
+func testAccComputeInstance_disks_update_add(disk, disk2, instance string, autodelete bool) string {
+	return fmt.Sprintf(`
+	resource "google_compute_disk" "foo" {
+		name = "%s"
+		size = 10
+		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_disk" "bar" {
+		name = "%s"
+		size = 10
+		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		disk {
+			image = "debian-cloud/debian-8-jessie-v20160803"
+		}
+
+		disk {
+			disk = "${google_compute_disk.bar.name}"
+		}
+
+		disk {
+			disk = "${google_compute_disk.foo.name}"
+			auto_delete = %v
+		}
+
+		network_interface {
+			network = "default"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, disk, disk2, instance, autodelete)
+}
+
+func testAccComputeInstance_disks_update_removeBoot(disk, disk2, instance string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_disk" "foo" {
+		name = "%s"
+		size = 10
+		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_disk" "bar" {
+		name = "%s"
+		size = 10
+		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		disk {
+			disk = "${google_compute_disk.foo.name}"
+			auto_delete = true
+		}
+
+		network_interface {
+			network = "default"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, disk, disk2, instance)
+}
+
+func testAccComputeInstance_disks_update_duplicate(disk, disk2, instance string, autodelete bool) string {
+	return fmt.Sprintf(`
+	resource "google_compute_disk" "foo" {
+		name = "%s"
+		size = 10
+		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_disk" "bar" {
+		name = "%s"
+		size = 10
+		type = "pd-ssd"
+		zone = "us-central1-a"
+	}
+
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		disk {
+			image = "debian-cloud/debian-8-jessie-v20160803"
+		}
+
+		disk {
+			disk = "${google_compute_disk.foo.name}"
+			auto_delete = %v
+		}
+
+		disk {
+			image = "debian-cloud/debian-8-jessie-v20160803"
+		}
+
+		network_interface {
+			network = "default"
+		}
+
+		metadata {
+			foo = "bar"
+		}
+	}`, disk, disk2, instance, autodelete)
 }
 
 func testAccComputeInstance_disks_encryption(disk, instance string) string {
