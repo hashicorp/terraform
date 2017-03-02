@@ -205,7 +205,7 @@ func resourceArmStorageBlobCreate(d *schema.ResourceData, meta interface{}) erro
 			return fmt.Errorf("Source storage account %q not found", sourceAccount)
 		}
 
-		sourceUri, err = sourceBlobClient.GetBlobSASURI(sourceContainer, sourceBlob, time.Now().Add(10*time.Minute), "r")
+		sourceUri, err = sourceBlobClient.GetBlobSASURI(sourceContainer, sourceBlob, time.Now().Add(60*time.Minute), "r")
 		if err != nil {
 			return err
 		}
