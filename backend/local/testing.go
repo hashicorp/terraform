@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -54,6 +56,38 @@ func TestLocalProvider(t *testing.T, b *Local, name string) *terraform.MockResou
 	}
 
 	return p
+}
+
+// TestNewLocalSingle is a factory for creating a TestLocalSingleState.
+// This function matches the signature required for backend/init.
+func TestNewLocalSingle() backend.Backend {
+	return &TestLocalSingleState{}
+}
+
+// TestLocalSingleState is a backend implementation that wraps Local
+// and modifies it to only support single states (returns
+// ErrNamedStatesNotSupported for multi-state operations).
+//
+// This isn't an actual use case, this is exported just to provide a
+// easy way to test that behavior.
+type TestLocalSingleState struct {
+	Local
+}
+
+func (b *TestLocalSingleState) State(name string) (state.State, error) {
+	if name != backend.DefaultStateName {
+		return nil, backend.ErrNamedStatesNotSupported
+	}
+
+	return b.Local.State(name)
+}
+
+func (b *TestLocalSingleState) States() ([]string, error) {
+	return nil, backend.ErrNamedStatesNotSupported
+}
+
+func (b *TestLocalSingleState) DeleteState(string) error {
+	return backend.ErrNamedStatesNotSupported
 }
 
 func testTempDir(t *testing.T) string {

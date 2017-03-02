@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -498,6 +499,29 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_ipv6_supportAddressCount(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigIpv6Support,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo",
+						"ipv6_address_count",
+						"1"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_multipleRegions(t *testing.T) {
 	var v ec2.Instance
 
@@ -599,6 +623,43 @@ func TestAccAWSInstance_tags(t *testing.T) {
 					testAccCheckInstanceExists("aws_instance.foo", &v),
 					testAccCheckTags(&v.Tags, "foo", ""),
 					testAccCheckTags(&v.Tags, "bar", "baz"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_instanceProfileChange(t *testing.T) {
+	var v ec2.Instance
+	rName := acctest.RandString(5)
+
+	testCheckInstanceProfile := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if v.IamInstanceProfile == nil {
+				return fmt.Errorf("Instance Profile is nil - we expected an InstanceProfile associated with the Instance")
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_instance.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigWithoutInstanceProfile(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+				),
+			},
+			{
+				Config: testAccInstanceConfigAttachInstanceProfile(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testCheckInstanceProfile(),
 				),
 			},
 		},
@@ -1123,6 +1184,37 @@ resource "aws_instance" "foo" {
 }
 `
 
+const testAccInstanceConfigIpv6Support = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+	assign_generated_ipv6_cidr_block = true
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+	ipv6_cidr_block = "${cidrsubnet(aws_vpc.foo.ipv6_cidr_block, 8, 1)}"
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
+}
+
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-c5eabbf5"
+	instance_type = "t2.micro"
+	subnet_id = "${aws_subnet.foo.id}"
+
+	ipv6_address_count = 1
+	tags {
+		Name = "tf-ipv6-instance-acc-test"
+	}
+}
+`
+
 const testAccInstanceConfigMultipleRegions = `
 provider "aws" {
 	alias = "west"
@@ -1168,6 +1260,49 @@ resource "aws_instance" "foo" {
 	}
 }
 `
+
+func testAccInstanceConfigWithoutInstanceProfile(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_iam_role" "test" {
+	name = "test-%s"
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+}
+
+resource "aws_iam_instance_profile" "test" {
+	name = "test-%s"
+	roles = ["${aws_iam_role.test.name}"]
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+	tags {
+		bar = "baz"
+	}
+}`, rName, rName)
+}
+
+func testAccInstanceConfigAttachInstanceProfile(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_iam_role" "test" {
+	name = "test-%s"
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+}
+
+resource "aws_iam_instance_profile" "test" {
+	name = "test-%s"
+	roles = ["${aws_iam_role.test.name}"]
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+	iam_instance_profile = "${aws_iam_instance_profile.test.name}"
+	tags {
+		bar = "baz"
+	}
+}`, rName, rName)
+}
 
 const testAccInstanceConfigPrivateIP = `
 resource "aws_vpc" "foo" {

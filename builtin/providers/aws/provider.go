@@ -275,6 +275,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_ecs_task_definition":                      resourceAwsEcsTaskDefinition(),
 			"aws_efs_file_system":                          resourceAwsEfsFileSystem(),
 			"aws_efs_mount_target":                         resourceAwsEfsMountTarget(),
+			"aws_egress_only_internet_gateway":             resourceAwsEgressOnlyInternetGateway(),
 			"aws_eip":                                      resourceAwsEip(),
 			"aws_eip_association":                          resourceAwsEipAssociation(),
 			"aws_elasticache_cluster":                      resourceAwsElasticacheCluster(),

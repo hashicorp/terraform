@@ -1327,6 +1327,9 @@ func (m schemaMap) validateObject(
 	if m, ok := raw.(map[string]interface{}); ok {
 		for subk, _ := range m {
 			if _, ok := schema[subk]; !ok {
+				if subk == "timeout" {
+					continue
+				}
 				es = append(es, fmt.Errorf(
 					"%s: invalid or unknown key: %s", k, subk))
 			}
