@@ -52,13 +52,13 @@ Terraform environment.
 An environment alone **should not** be used to manage the difference between
 development, staging, and production. While it is technically possible, it is
 much more manageable and safe to use multiple independently managed Terraform
-modules linked together with
+configurations linked together with
 [terraform_remote_state](/docs/providers/terraform/d/remote_state.html)
 data sources.
 
 The [terraform_remote_state](/docs/providers/terraform/d/remote_state.html)
 resource accepts an `environment` name to target. Therefore, you can link
-together multiple independently managed Terraform modules with the same
+together multiple independently managed Terraform configurations with the same
 environment easily. But, they can also have different environments.
 
 While environments are available to all,
