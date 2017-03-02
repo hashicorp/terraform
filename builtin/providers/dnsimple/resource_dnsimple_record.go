@@ -3,9 +3,10 @@ package dnsimple
 import (
 	"fmt"
 	"log"
+	"strconv"
 
+	"github.com/dnsimple/dnsimple-go/dnsimple"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/pearkes/dnsimple"
 )
 
 func resourceDNSimpleRecord() *schema.Resource {
@@ -16,45 +17,45 @@ func resourceDNSimpleRecord() *schema.Resource {
 		Delete: resourceDNSimpleRecordDelete,
 
 		Schema: map[string]*schema.Schema{
-			"domain": &schema.Schema{
+			"domain": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"domain_id": &schema.Schema{
+			"domain_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"hostname": &schema.Schema{
+			"hostname": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"value": &schema.Schema{
+			"value": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"ttl": &schema.Schema{
+			"ttl": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "3600",
 			},
 
-			"priority": &schema.Schema{
+			"priority": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -63,81 +64,87 @@ func resourceDNSimpleRecord() *schema.Resource {
 }
 
 func resourceDNSimpleRecordCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dnsimple.Client)
+	provider := meta.(*Client)
 
 	// Create the new record
-	newRecord := &dnsimple.ChangeRecord{
-		Name:  d.Get("name").(string),
-		Type:  d.Get("type").(string),
-		Value: d.Get("value").(string),
+	newRecord := dnsimple.ZoneRecord{
+		Name:    d.Get("name").(string),
+		Type:    d.Get("type").(string),
+		Content: d.Get("value").(string),
 	}
-
-	if ttl, ok := d.GetOk("ttl"); ok {
-		newRecord.Ttl = ttl.(string)
+	if attr, ok := d.GetOk("ttl"); ok {
+		newRecord.TTL, _ = strconv.Atoi(attr.(string))
 	}
 
 	log.Printf("[DEBUG] DNSimple Record create configuration: %#v", newRecord)
 
-	recId, err := client.CreateRecord(d.Get("domain").(string), newRecord)
-
+	resp, err := provider.client.Zones.CreateRecord(provider.config.Account, d.Get("domain").(string), newRecord)
 	if err != nil {
 		return fmt.Errorf("Failed to create DNSimple Record: %s", err)
 	}
 
-	d.SetId(recId)
-	log.Printf("[INFO] record ID: %s", d.Id())
+	d.SetId(strconv.Itoa(resp.Data.ID))
+	log.Printf("[INFO] DNSimple Record ID: %s", d.Id())
 
 	return resourceDNSimpleRecordRead(d, meta)
 }
 
 func resourceDNSimpleRecordRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dnsimple.Client)
+	provider := meta.(*Client)
 
-	rec, err := client.RetrieveRecord(d.Get("domain").(string), d.Id())
+	recordID, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return fmt.Errorf("Error converting Record ID: %s", err)
+	}
+
+	resp, err := provider.client.Zones.GetRecord(provider.config.Account, d.Get("domain").(string), recordID)
 	if err != nil {
 		return fmt.Errorf("Couldn't find DNSimple Record: %s", err)
 	}
 
-	d.Set("domain_id", rec.StringDomainId())
-	d.Set("name", rec.Name)
-	d.Set("type", rec.RecordType)
-	d.Set("value", rec.Content)
-	d.Set("ttl", rec.StringTtl())
-	d.Set("priority", rec.StringPrio())
+	record := resp.Data
+	d.Set("domain_id", record.ZoneID)
+	d.Set("name", record.Name)
+	d.Set("type", record.Type)
+	d.Set("value", record.Content)
+	d.Set("ttl", strconv.Itoa(record.TTL))
+	d.Set("priority", strconv.Itoa(record.Priority))
 
-	if rec.Name == "" {
+	if record.Name == "" {
 		d.Set("hostname", d.Get("domain").(string))
 	} else {
-		d.Set("hostname", fmt.Sprintf("%s.%s", rec.Name, d.Get("domain").(string)))
+		d.Set("hostname", fmt.Sprintf("%s.%s", record.Name, d.Get("domain").(string)))
 	}
 
 	return nil
 }
 
 func resourceDNSimpleRecordUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dnsimple.Client)
+	provider := meta.(*Client)
 
-	updateRecord := &dnsimple.ChangeRecord{}
+	recordID, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return fmt.Errorf("Error converting Record ID: %s", err)
+	}
+
+	updateRecord := dnsimple.ZoneRecord{}
 
 	if attr, ok := d.GetOk("name"); ok {
 		updateRecord.Name = attr.(string)
 	}
-
 	if attr, ok := d.GetOk("type"); ok {
 		updateRecord.Type = attr.(string)
 	}
-
 	if attr, ok := d.GetOk("value"); ok {
-		updateRecord.Value = attr.(string)
+		updateRecord.Content = attr.(string)
 	}
-
 	if attr, ok := d.GetOk("ttl"); ok {
-		updateRecord.Ttl = attr.(string)
+		updateRecord.TTL, _ = strconv.Atoi(attr.(string))
 	}
 
 	log.Printf("[DEBUG] DNSimple Record update configuration: %#v", updateRecord)
 
-	_, err := client.UpdateRecord(d.Get("domain").(string), d.Id(), updateRecord)
+	_, err = provider.client.Zones.UpdateRecord(provider.config.Account, d.Get("domain").(string), recordID, updateRecord)
 	if err != nil {
 		return fmt.Errorf("Failed to update DNSimple Record: %s", err)
 	}
@@ -146,12 +153,16 @@ func resourceDNSimpleRecordUpdate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceDNSimpleRecordDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dnsimple.Client)
+	provider := meta.(*Client)
 
 	log.Printf("[INFO] Deleting DNSimple Record: %s, %s", d.Get("domain").(string), d.Id())
 
-	err := client.DestroyRecord(d.Get("domain").(string), d.Id())
+	recordID, err := strconv.Atoi(d.Id())
+	if err != nil {
+		return fmt.Errorf("Error converting Record ID: %s", err)
+	}
 
+	_, err = provider.client.Zones.DeleteRecord(provider.config.Account, d.Get("domain").(string), recordID)
 	if err != nil {
 		return fmt.Errorf("Error deleting DNSimple Record: %s", err)
 	}
