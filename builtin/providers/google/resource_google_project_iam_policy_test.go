@@ -254,7 +254,24 @@ func TestAccGoogleProjectIamPolicy_basic(t *testing.T) {
 	})
 }
 
-func testAccCheckGoogleProjectIamPolicyIsMerged(projectRes, policyRes, pid string) resource.TestCheckFunc {
+// Test that a non-collapsed IAM policy doesn't perpetually diff
+func TestAccGoogleProjectIamPolicy_expanded(t *testing.T) {
+	pid := "terraform-" + acctest.RandString(10)
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccGoogleProjectAssociatePolicyExpanded(pid, pname, org),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleProjectIamPolicyExists("google_project_iam_policy.acceptance", "data.google_iam_policy.expanded", pid),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckGoogleProjectIamPolicyExists(projectRes, policyRes, pid string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Get the project resource
 		project, ok := s.RootModule().Resources[projectRes]
@@ -290,10 +307,55 @@ func testAccCheckGoogleProjectIamPolicyIsMerged(projectRes, policyRes, pid strin
 		}
 
 		// The bindings in both policies should be identical
+		projectP.Bindings = mergeBindings(projectP.Bindings)
+		policyP.Bindings = mergeBindings(policyP.Bindings)
 		sort.Sort(sortableBindings(projectP.Bindings))
 		sort.Sort(sortableBindings(policyP.Bindings))
 		if !reflect.DeepEqual(derefBindings(projectP.Bindings), derefBindings(policyP.Bindings)) {
 			return fmt.Errorf("Project and data source policies do not match: project policy is %+v, data resource policy is  %+v", derefBindings(projectP.Bindings), derefBindings(policyP.Bindings))
+		}
+		return nil
+	}
+}
+
+func testAccCheckGoogleProjectIamPolicyIsMerged(projectRes, policyRes, pid string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Get the project resource
+		project, ok := s.RootModule().Resources[projectRes]
+		if !ok {
+			return fmt.Errorf("Not found: %s", projectRes)
+		}
+		// The project ID should match the config's project ID
+		if project.Primary.ID != pid {
+			return fmt.Errorf("Expected project %q to match ID %q in state", pid, project.Primary.ID)
+		}
+
+		err := testAccCheckGoogleProjectIamPolicyExists(projectRes, policyRes, pid)(s)
+		if err != nil {
+			return err
+		}
+
+		var projectP, policyP cloudresourcemanager.Policy
+		// The project should have a policy
+		ps, ok := project.Primary.Attributes["policy_data"]
+		if !ok {
+			return fmt.Errorf("Project resource %q did not have a 'policy_data' attribute. Attributes were %#v", project.Primary.Attributes["id"], project.Primary.Attributes)
+		}
+		if err := json.Unmarshal([]byte(ps), &projectP); err != nil {
+			return fmt.Errorf("Could not unmarshal %s:\n: %v", ps, err)
+		}
+
+		// The data policy resource should have a policy
+		policy, ok := s.RootModule().Resources[policyRes]
+		if !ok {
+			return fmt.Errorf("Not found: %s", policyRes)
+		}
+		ps, ok = policy.Primary.Attributes["policy_data"]
+		if !ok {
+			return fmt.Errorf("Data policy resource %q did not have a 'policy_data' attribute. Attributes were %#v", policy.Primary.Attributes["id"], project.Primary.Attributes)
+		}
+		if err := json.Unmarshal([]byte(ps), &policyP); err != nil {
+			return err
 		}
 
 		// Merge the project policy in Terraform state with the policy the project had before the config was applied
@@ -633,4 +695,33 @@ resource "google_project" "acceptance" {
 	org_id = "%s"
 	billing_account = "%s"
 }`, pid, name, org, billing)
+}
+
+func testAccGoogleProjectAssociatePolicyExpanded(pid, name, org string) string {
+	return fmt.Sprintf(`
+resource "google_project" "acceptance" {
+    project_id = "%s"
+    name = "%s"
+    org_id = "%s"
+}
+resource "google_project_iam_policy" "acceptance" {
+    project = "${google_project.acceptance.id}"
+    policy_data = "${data.google_iam_policy.expanded.policy_data}"
+    authoritative = false
+}
+data "google_iam_policy" "expanded" {
+    binding {
+        role = "roles/viewer"
+	members = [
+	    "user:paddy@carvers.co",
+	]
+    }
+    
+    binding {
+        role = "roles/viewer"
+	members = [
+	    "user:paddy@hashicorp.com",
+	]
+    }
+}`, pid, name, org)
 }
