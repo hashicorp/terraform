@@ -22,11 +22,6 @@ func resourceContainerNodePool() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"GOOGLE_PROJECT",
-					"GCLOUD_PROJECT",
-					"CLOUDSDK_CORE_PROJECT",
-				}, nil),
 			},
 
 			"name": &schema.Schema{
