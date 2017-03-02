@@ -14,6 +14,7 @@ FEATURES:
  * **New Resource:**  `datadog_user`  [GH-12268]
  * **New Resource:**  `digitalocean_loadbalancer` [GH-12077]
  * **New Resource:**  `openstack_images_image_v2` [GH-11942]
+ * **New Resource:**  `openstack_compute_floatingip_associate_v2` [GH-12190]
 
 IMPROVEMENTS:
 
