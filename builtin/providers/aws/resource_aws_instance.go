@@ -171,7 +171,6 @@ func resourceAwsInstance() *schema.Resource {
 
 			"iam_instance_profile": {
 				Type:     schema.TypeString,
-				ForceNew: true,
 				Optional: true,
 			},
 
@@ -606,6 +605,66 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	} else {
 		d.SetPartial("tags")
+	}
+
+	if d.HasChange("iam_instance_profile") {
+		request := &ec2.DescribeIamInstanceProfileAssociationsInput{
+			Filters: []*ec2.Filter{
+				&ec2.Filter{
+					Name:   aws.String("instance-id"),
+					Values: []*string{aws.String(d.Id())},
+				},
+			},
+		}
+
+		resp, err := conn.DescribeIamInstanceProfileAssociations(request)
+		if err != nil {
+			return err
+		}
+
+		// An Iam Instance Profile has been provided and is pending a change
+		// This means it is an association or a replacement to an association
+		if _, ok := d.GetOk("iam_instance_profile"); ok {
+			// Does not have an Iam Instance Profile associated with it, need to associate
+			if len(resp.IamInstanceProfileAssociations) == 0 {
+				_, err := conn.AssociateIamInstanceProfile(&ec2.AssociateIamInstanceProfileInput{
+					InstanceId: aws.String(d.Id()),
+					IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+						Name: aws.String(d.Get("iam_instance_profile").(string)),
+					},
+				})
+				if err != nil {
+					return err
+				}
+
+			} else {
+				// Has an Iam Instance Profile associated with it, need to replace the association
+				associationId := resp.IamInstanceProfileAssociations[0].AssociationId
+
+				_, err := conn.ReplaceIamInstanceProfileAssociation(&ec2.ReplaceIamInstanceProfileAssociationInput{
+					AssociationId: associationId,
+					IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+						Name: aws.String(d.Get("iam_instance_profile").(string)),
+					},
+				})
+				if err != nil {
+					return err
+				}
+			}
+			// An Iam Instance Profile has _not_ been provided but is pending a change. This means there is a pending removal
+		} else {
+			if len(resp.IamInstanceProfileAssociations) > 0 {
+				// Has an Iam Instance Profile associated with it, need to remove the association
+				associationId := resp.IamInstanceProfileAssociations[0].AssociationId
+
+				_, err := conn.DisassociateIamInstanceProfile(&ec2.DisassociateIamInstanceProfileInput{
+					AssociationId: associationId,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	if d.HasChange("source_dest_check") || d.IsNewResource() {

@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -628,6 +629,43 @@ func TestAccAWSInstance_tags(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_instanceProfileChange(t *testing.T) {
+	var v ec2.Instance
+	rName := acctest.RandString(5)
+
+	testCheckInstanceProfile := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if v.IamInstanceProfile == nil {
+				return fmt.Errorf("Instance Profile is nil - we expected an InstanceProfile associated with the Instance")
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_instance.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigWithoutInstanceProfile(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+				),
+			},
+			{
+				Config: testAccInstanceConfigAttachInstanceProfile(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testCheckInstanceProfile(),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_privateIP(t *testing.T) {
 	var v ec2.Instance
 
@@ -1222,6 +1260,49 @@ resource "aws_instance" "foo" {
 	}
 }
 `
+
+func testAccInstanceConfigWithoutInstanceProfile(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_iam_role" "test" {
+	name = "test-%s"
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+}
+
+resource "aws_iam_instance_profile" "test" {
+	name = "test-%s"
+	roles = ["${aws_iam_role.test.name}"]
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+	tags {
+		bar = "baz"
+	}
+}`, rName, rName)
+}
+
+func testAccInstanceConfigAttachInstanceProfile(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_iam_role" "test" {
+	name = "test-%s"
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+}
+
+resource "aws_iam_instance_profile" "test" {
+	name = "test-%s"
+	roles = ["${aws_iam_role.test.name}"]
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+	iam_instance_profile = "${aws_iam_instance_profile.test.name}"
+	tags {
+		bar = "baz"
+	}
+}`, rName, rName)
+}
 
 const testAccInstanceConfigPrivateIP = `
 resource "aws_vpc" "foo" {
