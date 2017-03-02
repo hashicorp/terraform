@@ -72,19 +72,6 @@ type InstanceInfo struct {
 	uniqueExtra string
 }
 
-type MockInstanceInfo struct {
-	InstanceInfo
-}
-
-func (m *MockInstanceInfo) WithUniqueExtra(extra string) *InstanceInfo {
-	return &InstanceInfo{
-		Id:          m.Id,
-		ModulePath:  m.ModulePath,
-		Type:        m.Type,
-		uniqueExtra: extra,
-	}
-}
-
 // HumanId is a unique Id that is human-friendly and useful for UI elements.
 func (i *InstanceInfo) HumanId() string {
 	if i == nil {
