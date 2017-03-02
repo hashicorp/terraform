@@ -9,11 +9,11 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	riviera "github.com/jen20/riviera/azure"
-	"github.com/mcardosos/azure-sdk-for-go/arm/compute"
 )
 
 func resourceArmVirtualMachine() *schema.Resource {
