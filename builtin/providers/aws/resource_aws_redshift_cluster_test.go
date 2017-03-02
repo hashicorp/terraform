@@ -488,6 +488,10 @@ func TestResourceAWSRedshiftClusterMasterPasswordValidation(t *testing.T) {
 			Value:    "1Testing",
 			ErrCount: 0,
 		},
+		{
+			Value:    "1Testing@",
+			ErrCount: 1,
+		},
 	}
 
 	for _, tc := range cases {
