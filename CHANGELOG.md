@@ -9,6 +9,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * provider/azurerm: scale_sets `os_profile_master_password` now marked as sensitive
  * provider/azurerm: sql_server `administrator_login_password` now marked as sensitive
  * provider/google: storage buckets have been updated with the new storage classes. The old classes will continue working as before, but should be migrated as soon as possible, as there's no guarantee they'll continue working forever. [GH-12044]
+ * provider/dnsimple: Provider has been upgraded to APIv2 therefore, you will need to use the APIv2 auth token
 
 IMPROVEMENTS:
 
@@ -17,6 +18,7 @@ IMPROVEMENTS:
  * provider/aws: AWS Lambda DeadLetterConfig support [GH-12188]
  * provider/azurerm: Mark the azurerm_scale_set machine password as sensitive [GH-11982]
  * provider/azurerm: Mark the azurerm_sql_server admin password as sensitive [GH-12004]
+ * provider/dnsimple: Upgrade DNSimple provider to API v2 [GH-10760]
 
 BUG FIXES:
 
