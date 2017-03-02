@@ -65,6 +65,7 @@ BUG FIXES:
  * provider/openstack: Rename provider to loadbalancer_provider [GH-12239]
  * provider/pagerduty: Setting incident_urgency_rule as optional [GH-12211]
  * provider/profitbricks: Fixing how primary_nic is added to profitbricks server [GH-12197]
+ * state/azure: add environment option for non-public cloud usage [GH-12364]
 
 ## 0.8.7 (February 15, 2017)
 
