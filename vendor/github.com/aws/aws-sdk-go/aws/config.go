@@ -22,9 +22,9 @@ type RequestRetryer interface{}
 //
 //     // Create Session with MaxRetry configuration to be shared by multiple
 //     // service clients.
-//     sess, err := session.NewSession(&aws.Config{
+//     sess := session.Must(session.NewSession(&aws.Config{
 //         MaxRetries: aws.Int(3),
-//     })
+//     }))
 //
 //     // Create S3 service client with a specific Region.
 //     svc := s3.New(sess, &aws.Config{
@@ -154,7 +154,8 @@ type Config struct {
 	// the EC2Metadata overriding the timeout for default credentials chain.
 	//
 	// Example:
-	//    sess, err := session.NewSession(aws.NewConfig().WithEC2MetadataDiableTimeoutOverride(true))
+	//    sess := session.Must(session.NewSession(aws.NewConfig()
+	//       .WithEC2MetadataDiableTimeoutOverride(true)))
 	//
 	//    svc := s3.New(sess)
 	//
@@ -174,7 +175,7 @@ type Config struct {
 	//
 	// Only supported with.
 	//
-	//     sess, err := session.NewSession()
+	//     sess := session.Must(session.NewSession())
 	//
 	//     svc := s3.New(sess, &aws.Config{
 	//         UseDualStack: aws.Bool(true),
@@ -192,7 +193,9 @@ type Config struct {
 	// Will default to false. This would only be used for empty directory names in s3 requests.
 	//
 	// Example:
-	//    sess, err := session.NewSession(&aws.Config{DisableRestProtocolURICleaning: aws.Bool(true))
+	//    sess := session.Must(session.NewSession(&aws.Config{
+	//         DisableRestProtocolURICleaning: aws.Bool(true),
+	//    }))
 	//
 	//    svc := s3.New(sess)
 	//    out, err := svc.GetObject(&s3.GetObjectInput {
@@ -207,9 +210,9 @@ type Config struct {
 //
 //     // Create Session with MaxRetry configuration to be shared by multiple
 //     // service clients.
-//     sess, err := session.NewSession(aws.NewConfig().
+//     sess := session.Must(session.NewSession(aws.NewConfig().
 //         WithMaxRetries(3),
-//     )
+//     ))
 //
 //     // Create S3 service client with a specific Region.
 //     svc := s3.New(sess, aws.NewConfig().

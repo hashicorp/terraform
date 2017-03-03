@@ -500,6 +500,94 @@ func (c *ElasticsearchService) DescribeElasticsearchDomains(input *DescribeElast
 	return out, err
 }
 
+const opDescribeElasticsearchInstanceTypeLimits = "DescribeElasticsearchInstanceTypeLimits"
+
+// DescribeElasticsearchInstanceTypeLimitsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeElasticsearchInstanceTypeLimits operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeElasticsearchInstanceTypeLimits for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeElasticsearchInstanceTypeLimits method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeElasticsearchInstanceTypeLimitsRequest method.
+//    req, resp := client.DescribeElasticsearchInstanceTypeLimitsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/DescribeElasticsearchInstanceTypeLimits
+func (c *ElasticsearchService) DescribeElasticsearchInstanceTypeLimitsRequest(input *DescribeElasticsearchInstanceTypeLimitsInput) (req *request.Request, output *DescribeElasticsearchInstanceTypeLimitsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeElasticsearchInstanceTypeLimits,
+		HTTPMethod: "GET",
+		HTTPPath:   "/2015-01-01/es/instanceTypeLimits/{ElasticsearchVersion}/{InstanceType}",
+	}
+
+	if input == nil {
+		input = &DescribeElasticsearchInstanceTypeLimitsInput{}
+	}
+
+	output = &DescribeElasticsearchInstanceTypeLimitsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeElasticsearchInstanceTypeLimits API operation for Amazon Elasticsearch Service.
+//
+// Describe Elasticsearch Limits for a given InstanceType and ElasticsearchVersion.
+// When modifying existing Domain, specify the DomainName to know what Limits
+// are supported for modifying.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elasticsearch Service's
+// API operation DescribeElasticsearchInstanceTypeLimits for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBaseException "BaseException"
+//   An error occurred while processing the request.
+//
+//   * ErrCodeInternalException "InternalException"
+//   The request processing has failed because of an unknown error, exception
+//   or failure (the failure is internal to the service) . Gives http status code
+//   of 500.
+//
+//   * ErrCodeInvalidTypeException "InvalidTypeException"
+//   An exception for trying to create or access sub-resource that is either invalid
+//   or not supported. Gives http status code of 409.
+//
+//   * ErrCodeLimitExceededException "LimitExceededException"
+//   An exception for trying to create more than allowed resources or sub-resources.
+//   Gives http status code of 409.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   An exception for accessing or deleting a resource that does not exist. Gives
+//   http status code of 400.
+//
+//   * ErrCodeValidationException "ValidationException"
+//   An exception for missing / invalid input fields. Gives http status code of
+//   400.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/DescribeElasticsearchInstanceTypeLimits
+func (c *ElasticsearchService) DescribeElasticsearchInstanceTypeLimits(input *DescribeElasticsearchInstanceTypeLimitsInput) (*DescribeElasticsearchInstanceTypeLimitsOutput, error) {
+	req, out := c.DescribeElasticsearchInstanceTypeLimitsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opListDomainNames = "ListDomainNames"
 
 // ListDomainNamesRequest generates a "aws/request.Request" representing the
@@ -568,6 +656,224 @@ func (c *ElasticsearchService) ListDomainNames(input *ListDomainNamesInput) (*Li
 	req, out := c.ListDomainNamesRequest(input)
 	err := req.Send()
 	return out, err
+}
+
+const opListElasticsearchInstanceTypes = "ListElasticsearchInstanceTypes"
+
+// ListElasticsearchInstanceTypesRequest generates a "aws/request.Request" representing the
+// client's request for the ListElasticsearchInstanceTypes operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ListElasticsearchInstanceTypes for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListElasticsearchInstanceTypes method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListElasticsearchInstanceTypesRequest method.
+//    req, resp := client.ListElasticsearchInstanceTypesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/ListElasticsearchInstanceTypes
+func (c *ElasticsearchService) ListElasticsearchInstanceTypesRequest(input *ListElasticsearchInstanceTypesInput) (req *request.Request, output *ListElasticsearchInstanceTypesOutput) {
+	op := &request.Operation{
+		Name:       opListElasticsearchInstanceTypes,
+		HTTPMethod: "GET",
+		HTTPPath:   "/2015-01-01/es/instanceTypes/{ElasticsearchVersion}",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListElasticsearchInstanceTypesInput{}
+	}
+
+	output = &ListElasticsearchInstanceTypesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListElasticsearchInstanceTypes API operation for Amazon Elasticsearch Service.
+//
+// List all Elasticsearch instance types that are supported for given ElasticsearchVersion
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elasticsearch Service's
+// API operation ListElasticsearchInstanceTypes for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBaseException "BaseException"
+//   An error occurred while processing the request.
+//
+//   * ErrCodeInternalException "InternalException"
+//   The request processing has failed because of an unknown error, exception
+//   or failure (the failure is internal to the service) . Gives http status code
+//   of 500.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   An exception for accessing or deleting a resource that does not exist. Gives
+//   http status code of 400.
+//
+//   * ErrCodeValidationException "ValidationException"
+//   An exception for missing / invalid input fields. Gives http status code of
+//   400.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/ListElasticsearchInstanceTypes
+func (c *ElasticsearchService) ListElasticsearchInstanceTypes(input *ListElasticsearchInstanceTypesInput) (*ListElasticsearchInstanceTypesOutput, error) {
+	req, out := c.ListElasticsearchInstanceTypesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+// ListElasticsearchInstanceTypesPages iterates over the pages of a ListElasticsearchInstanceTypes operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListElasticsearchInstanceTypes method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListElasticsearchInstanceTypes operation.
+//    pageNum := 0
+//    err := client.ListElasticsearchInstanceTypesPages(params,
+//        func(page *ListElasticsearchInstanceTypesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *ElasticsearchService) ListElasticsearchInstanceTypesPages(input *ListElasticsearchInstanceTypesInput, fn func(p *ListElasticsearchInstanceTypesOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListElasticsearchInstanceTypesRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*ListElasticsearchInstanceTypesOutput), lastPage)
+	})
+}
+
+const opListElasticsearchVersions = "ListElasticsearchVersions"
+
+// ListElasticsearchVersionsRequest generates a "aws/request.Request" representing the
+// client's request for the ListElasticsearchVersions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ListElasticsearchVersions for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListElasticsearchVersions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListElasticsearchVersionsRequest method.
+//    req, resp := client.ListElasticsearchVersionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/ListElasticsearchVersions
+func (c *ElasticsearchService) ListElasticsearchVersionsRequest(input *ListElasticsearchVersionsInput) (req *request.Request, output *ListElasticsearchVersionsOutput) {
+	op := &request.Operation{
+		Name:       opListElasticsearchVersions,
+		HTTPMethod: "GET",
+		HTTPPath:   "/2015-01-01/es/versions",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListElasticsearchVersionsInput{}
+	}
+
+	output = &ListElasticsearchVersionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListElasticsearchVersions API operation for Amazon Elasticsearch Service.
+//
+// List all supported Elasticsearch versions
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elasticsearch Service's
+// API operation ListElasticsearchVersions for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeBaseException "BaseException"
+//   An error occurred while processing the request.
+//
+//   * ErrCodeInternalException "InternalException"
+//   The request processing has failed because of an unknown error, exception
+//   or failure (the failure is internal to the service) . Gives http status code
+//   of 500.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   An exception for accessing or deleting a resource that does not exist. Gives
+//   http status code of 400.
+//
+//   * ErrCodeValidationException "ValidationException"
+//   An exception for missing / invalid input fields. Gives http status code of
+//   400.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/ListElasticsearchVersions
+func (c *ElasticsearchService) ListElasticsearchVersions(input *ListElasticsearchVersionsInput) (*ListElasticsearchVersionsOutput, error) {
+	req, out := c.ListElasticsearchVersionsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+// ListElasticsearchVersionsPages iterates over the pages of a ListElasticsearchVersions operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListElasticsearchVersions method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListElasticsearchVersions operation.
+//    pageNum := 0
+//    err := client.ListElasticsearchVersionsPages(params,
+//        func(page *ListElasticsearchVersionsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *ElasticsearchService) ListElasticsearchVersionsPages(input *ListElasticsearchVersionsInput, fn func(p *ListElasticsearchVersionsOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListElasticsearchVersionsRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*ListElasticsearchVersionsOutput), lastPage)
+	})
 }
 
 const opListTags = "ListTags"
@@ -932,6 +1238,46 @@ func (s AddTagsOutput) String() string {
 // GoString returns the string representation
 func (s AddTagsOutput) GoString() string {
 	return s.String()
+}
+
+// List of limits that are specific to a given InstanceType and for each of
+// it's InstanceRole .
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/AdditionalLimit
+type AdditionalLimit struct {
+	_ struct{} `type:"structure"`
+
+	// Name of Additional Limit is specific to a given InstanceType and for each
+	// of it's InstanceRole etc. Attributes and their details: MaximumNumberOfDataNodesSupported
+	// This attribute will be present in Master node only to specify how much data
+	// nodes upto which given ESPartitionInstanceTypecan support as master node. MaximumNumberOfDataNodesWithoutMasterNode
+	// This attribute will be present in Data node only to specify how much data
+	// nodes of given ESPartitionInstanceType
+	LimitName *string `type:"string"`
+
+	// Value for given AdditionalLimit$LimitName .
+	LimitValues []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s AdditionalLimit) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AdditionalLimit) GoString() string {
+	return s.String()
+}
+
+// SetLimitName sets the LimitName field's value.
+func (s *AdditionalLimit) SetLimitName(v string) *AdditionalLimit {
+	s.LimitName = &v
+	return s
+}
+
+// SetLimitValues sets the LimitValues field's value.
+func (s *AdditionalLimit) SetLimitValues(v []*string) *AdditionalLimit {
+	s.LimitValues = v
+	return s
 }
 
 // Status of the advanced options for the specified Elasticsearch domain. Currently,
@@ -1397,6 +1743,104 @@ func (s DescribeElasticsearchDomainsOutput) GoString() string {
 // SetDomainStatusList sets the DomainStatusList field's value.
 func (s *DescribeElasticsearchDomainsOutput) SetDomainStatusList(v []*ElasticsearchDomainStatus) *DescribeElasticsearchDomainsOutput {
 	s.DomainStatusList = v
+	return s
+}
+
+// Container for the parameters to DescribeElasticsearchInstanceTypeLimits operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/DescribeElasticsearchInstanceTypeLimitsRequest
+type DescribeElasticsearchInstanceTypeLimitsInput struct {
+	_ struct{} `type:"structure"`
+
+	// DomainName represents the name of the Domain that we are trying to modify.
+	// This should be present only if we are querying for Elasticsearch Limits for
+	// existing domain.
+	DomainName *string `location:"querystring" locationName:"domainName" min:"3" type:"string"`
+
+	// Version of Elasticsearch for which Limits are needed.
+	//
+	// ElasticsearchVersion is a required field
+	ElasticsearchVersion *string `location:"uri" locationName:"ElasticsearchVersion" type:"string" required:"true"`
+
+	// The instance type for an Elasticsearch cluster for which Elasticsearch Limits
+	// are needed.
+	//
+	// InstanceType is a required field
+	InstanceType *string `location:"uri" locationName:"InstanceType" type:"string" required:"true" enum:"ESPartitionInstanceType"`
+}
+
+// String returns the string representation
+func (s DescribeElasticsearchInstanceTypeLimitsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeElasticsearchInstanceTypeLimitsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeElasticsearchInstanceTypeLimitsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeElasticsearchInstanceTypeLimitsInput"}
+	if s.DomainName != nil && len(*s.DomainName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
+	}
+	if s.ElasticsearchVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("ElasticsearchVersion"))
+	}
+	if s.InstanceType == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceType"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDomainName sets the DomainName field's value.
+func (s *DescribeElasticsearchInstanceTypeLimitsInput) SetDomainName(v string) *DescribeElasticsearchInstanceTypeLimitsInput {
+	s.DomainName = &v
+	return s
+}
+
+// SetElasticsearchVersion sets the ElasticsearchVersion field's value.
+func (s *DescribeElasticsearchInstanceTypeLimitsInput) SetElasticsearchVersion(v string) *DescribeElasticsearchInstanceTypeLimitsInput {
+	s.ElasticsearchVersion = &v
+	return s
+}
+
+// SetInstanceType sets the InstanceType field's value.
+func (s *DescribeElasticsearchInstanceTypeLimitsInput) SetInstanceType(v string) *DescribeElasticsearchInstanceTypeLimitsInput {
+	s.InstanceType = &v
+	return s
+}
+
+// Container for the parameters received from DescribeElasticsearchInstanceTypeLimits
+// operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/DescribeElasticsearchInstanceTypeLimitsResponse
+type DescribeElasticsearchInstanceTypeLimitsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Map of Role of the Instance and Limits that are applicable. Role performed
+	// by given Instance in Elasticsearch can be one of the following: Data: If
+	// the given InstanceType is used as Data node
+	// Master: If the given InstanceType is used as Master node
+	LimitsByRole map[string]*Limits `type:"map"`
+}
+
+// String returns the string representation
+func (s DescribeElasticsearchInstanceTypeLimitsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeElasticsearchInstanceTypeLimitsOutput) GoString() string {
+	return s.String()
+}
+
+// SetLimitsByRole sets the LimitsByRole field's value.
+func (s *DescribeElasticsearchInstanceTypeLimitsOutput) SetLimitsByRole(v map[string]*Limits) *DescribeElasticsearchInstanceTypeLimitsOutput {
+	s.LimitsByRole = v
 	return s
 }
 
@@ -1895,6 +2339,114 @@ func (s *ElasticsearchVersionStatus) SetStatus(v *OptionStatus) *ElasticsearchVe
 	return s
 }
 
+// InstanceCountLimits represents the limits on number of instances that be
+// created in Amazon Elasticsearch for given InstanceType.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/InstanceCountLimits
+type InstanceCountLimits struct {
+	_ struct{} `type:"structure"`
+
+	// Maximum number of Instances that can be instantiated for given InstanceType.
+	MaximumInstanceCount *int64 `type:"integer"`
+
+	// Minimum number of Instances that can be instantiated for given InstanceType.
+	MinimumInstanceCount *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s InstanceCountLimits) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstanceCountLimits) GoString() string {
+	return s.String()
+}
+
+// SetMaximumInstanceCount sets the MaximumInstanceCount field's value.
+func (s *InstanceCountLimits) SetMaximumInstanceCount(v int64) *InstanceCountLimits {
+	s.MaximumInstanceCount = &v
+	return s
+}
+
+// SetMinimumInstanceCount sets the MinimumInstanceCount field's value.
+func (s *InstanceCountLimits) SetMinimumInstanceCount(v int64) *InstanceCountLimits {
+	s.MinimumInstanceCount = &v
+	return s
+}
+
+// InstanceLimits represents the list of instance related attributes that are
+// available for given InstanceType.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/InstanceLimits
+type InstanceLimits struct {
+	_ struct{} `type:"structure"`
+
+	// InstanceCountLimits represents the limits on number of instances that be
+	// created in Amazon Elasticsearch for given InstanceType.
+	InstanceCountLimits *InstanceCountLimits `type:"structure"`
+}
+
+// String returns the string representation
+func (s InstanceLimits) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstanceLimits) GoString() string {
+	return s.String()
+}
+
+// SetInstanceCountLimits sets the InstanceCountLimits field's value.
+func (s *InstanceLimits) SetInstanceCountLimits(v *InstanceCountLimits) *InstanceLimits {
+	s.InstanceCountLimits = v
+	return s
+}
+
+// Limits for given InstanceType and for each of it's role. Limits contains following StorageTypes,   InstanceLimitsand AdditionalLimits
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/Limits
+type Limits struct {
+	_ struct{} `type:"structure"`
+
+	// List of additional limits that are specific to a given InstanceType and for
+	// each of it's InstanceRole .
+	AdditionalLimits []*AdditionalLimit `type:"list"`
+
+	// InstanceLimits represents the list of instance related attributes that are
+	// available for given InstanceType.
+	InstanceLimits *InstanceLimits `type:"structure"`
+
+	// StorageType represents the list of storage related types and attributes that
+	// are available for given InstanceType.
+	StorageTypes []*StorageType `type:"list"`
+}
+
+// String returns the string representation
+func (s Limits) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Limits) GoString() string {
+	return s.String()
+}
+
+// SetAdditionalLimits sets the AdditionalLimits field's value.
+func (s *Limits) SetAdditionalLimits(v []*AdditionalLimit) *Limits {
+	s.AdditionalLimits = v
+	return s
+}
+
+// SetInstanceLimits sets the InstanceLimits field's value.
+func (s *Limits) SetInstanceLimits(v *InstanceLimits) *Limits {
+	s.InstanceLimits = v
+	return s
+}
+
+// SetStorageTypes sets the StorageTypes field's value.
+func (s *Limits) SetStorageTypes(v []*StorageType) *Limits {
+	s.StorageTypes = v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/ListDomainNamesInput
 type ListDomainNamesInput struct {
 	_ struct{} `type:"structure"`
@@ -1933,6 +2485,197 @@ func (s ListDomainNamesOutput) GoString() string {
 // SetDomainNames sets the DomainNames field's value.
 func (s *ListDomainNamesOutput) SetDomainNames(v []*DomainInfo) *ListDomainNamesOutput {
 	s.DomainNames = v
+	return s
+}
+
+// Container for the parameters to the ListElasticsearchInstanceTypes operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/ListElasticsearchInstanceTypesRequest
+type ListElasticsearchInstanceTypesInput struct {
+	_ struct{} `type:"structure"`
+
+	// DomainName represents the name of the Domain that we are trying to modify.
+	// This should be present only if we are querying for list of available Elasticsearch
+	// instance types when modifying existing domain.
+	DomainName *string `location:"querystring" locationName:"domainName" min:"3" type:"string"`
+
+	// Version of Elasticsearch for which list of supported elasticsearch instance
+	// types are needed.
+	//
+	// ElasticsearchVersion is a required field
+	ElasticsearchVersion *string `location:"uri" locationName:"ElasticsearchVersion" type:"string" required:"true"`
+
+	// Set this value to limit the number of results returned. Value provided must
+	// be greater than 30 else it wont be honored.
+	MaxResults *int64 `location:"querystring" locationName:"maxResults" type:"integer"`
+
+	// NextToken should be sent in case if earlier API call produced result containing
+	// NextToken. It is used for pagination.
+	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+}
+
+// String returns the string representation
+func (s ListElasticsearchInstanceTypesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListElasticsearchInstanceTypesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListElasticsearchInstanceTypesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListElasticsearchInstanceTypesInput"}
+	if s.DomainName != nil && len(*s.DomainName) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("DomainName", 3))
+	}
+	if s.ElasticsearchVersion == nil {
+		invalidParams.Add(request.NewErrParamRequired("ElasticsearchVersion"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDomainName sets the DomainName field's value.
+func (s *ListElasticsearchInstanceTypesInput) SetDomainName(v string) *ListElasticsearchInstanceTypesInput {
+	s.DomainName = &v
+	return s
+}
+
+// SetElasticsearchVersion sets the ElasticsearchVersion field's value.
+func (s *ListElasticsearchInstanceTypesInput) SetElasticsearchVersion(v string) *ListElasticsearchInstanceTypesInput {
+	s.ElasticsearchVersion = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListElasticsearchInstanceTypesInput) SetMaxResults(v int64) *ListElasticsearchInstanceTypesInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListElasticsearchInstanceTypesInput) SetNextToken(v string) *ListElasticsearchInstanceTypesInput {
+	s.NextToken = &v
+	return s
+}
+
+// Container for the parameters returned by ListElasticsearchInstanceTypes operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/ListElasticsearchInstanceTypesResponse
+type ListElasticsearchInstanceTypesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// List of instance types supported by Amazon Elasticsearch service for given
+	// ElasticsearchVersion
+	ElasticsearchInstanceTypes []*string `type:"list"`
+
+	// In case if there are more results available NextToken would be present, make
+	// further request to the same API with received NextToken to paginate remaining
+	// results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListElasticsearchInstanceTypesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListElasticsearchInstanceTypesOutput) GoString() string {
+	return s.String()
+}
+
+// SetElasticsearchInstanceTypes sets the ElasticsearchInstanceTypes field's value.
+func (s *ListElasticsearchInstanceTypesOutput) SetElasticsearchInstanceTypes(v []*string) *ListElasticsearchInstanceTypesOutput {
+	s.ElasticsearchInstanceTypes = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListElasticsearchInstanceTypesOutput) SetNextToken(v string) *ListElasticsearchInstanceTypesOutput {
+	s.NextToken = &v
+	return s
+}
+
+// Container for the parameters to the ListElasticsearchVersions operation.
+//  Use MaxResults to control the maximum number of results to retrieve in a
+// single call.
+//
+//  Use NextToken in response to retrieve more results. If the received response
+// does not contain a NextToken, then there are no more results to retrieve.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/ListElasticsearchVersionsRequest
+type ListElasticsearchVersionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Set this value to limit the number of results returned. Value provided must
+	// be greater than 10 else it wont be honored.
+	MaxResults *int64 `location:"querystring" locationName:"maxResults" type:"integer"`
+
+	// Paginated APIs accepts NextToken input to returns next page results and provides
+	// a NextToken output in the response which can be used by the client to retrieve
+	// more results.
+	NextToken *string `location:"querystring" locationName:"nextToken" type:"string"`
+}
+
+// String returns the string representation
+func (s ListElasticsearchVersionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListElasticsearchVersionsInput) GoString() string {
+	return s.String()
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListElasticsearchVersionsInput) SetMaxResults(v int64) *ListElasticsearchVersionsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListElasticsearchVersionsInput) SetNextToken(v string) *ListElasticsearchVersionsInput {
+	s.NextToken = &v
+	return s
+}
+
+// Container for the parameters for response received from ListElasticsearchVersions
+// operation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/ListElasticsearchVersionsResponse
+type ListElasticsearchVersionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// List of supported elastic search versions.
+	ElasticsearchVersions []*string `type:"list"`
+
+	// Paginated APIs accepts NextToken input to returns next page results and provides
+	// a NextToken output in the response which can be used by the client to retrieve
+	// more results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListElasticsearchVersionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListElasticsearchVersionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetElasticsearchVersions sets the ElasticsearchVersions field's value.
+func (s *ListElasticsearchVersionsOutput) SetElasticsearchVersions(v []*string) *ListElasticsearchVersionsOutput {
+	s.ElasticsearchVersions = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListElasticsearchVersionsOutput) SetNextToken(v string) *ListElasticsearchVersionsOutput {
+	s.NextToken = &v
 	return s
 }
 
@@ -2210,6 +2953,100 @@ func (s *SnapshotOptionsStatus) SetStatus(v *OptionStatus) *SnapshotOptionsStatu
 	return s
 }
 
+// StorageTypes represents the list of storage related types and their attributes
+// that are available for given InstanceType.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/StorageType
+type StorageType struct {
+	_ struct{} `type:"structure"`
+
+	// SubType of the given storage type. List of available sub-storage options:
+	// For "instance" storageType we wont have any storageSubType, in case of "ebs"
+	// storageType we will have following valid storageSubTypes standard
+	// gp2
+	// io1
+	//  Refer VolumeType for more information regarding above EBS storage options.
+	StorageSubTypeName *string `type:"string"`
+
+	// List of limits that are applicable for given storage type.
+	StorageTypeLimits []*StorageTypeLimit `type:"list"`
+
+	// Type of the storage. List of available storage options: instance
+	//  Inbuilt storage available for the given Instance ebs
+	//  Elastic block storage that would be attached to the given Instance
+	StorageTypeName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s StorageType) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StorageType) GoString() string {
+	return s.String()
+}
+
+// SetStorageSubTypeName sets the StorageSubTypeName field's value.
+func (s *StorageType) SetStorageSubTypeName(v string) *StorageType {
+	s.StorageSubTypeName = &v
+	return s
+}
+
+// SetStorageTypeLimits sets the StorageTypeLimits field's value.
+func (s *StorageType) SetStorageTypeLimits(v []*StorageTypeLimit) *StorageType {
+	s.StorageTypeLimits = v
+	return s
+}
+
+// SetStorageTypeName sets the StorageTypeName field's value.
+func (s *StorageType) SetStorageTypeName(v string) *StorageType {
+	s.StorageTypeName = &v
+	return s
+}
+
+// Limits that are applicable for given storage type.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/StorageTypeLimit
+type StorageTypeLimit struct {
+	_ struct{} `type:"structure"`
+
+	// Name of storage limits that are applicable for given storage type. If StorageType
+	// is ebs, following storage options are applicable MinimumVolumeSize
+	//  Minimum amount of volume size that is applicable for given storage type.It
+	// can be empty if it is not applicable. MaximumVolumeSize
+	//  Maximum amount of volume size that is applicable for given storage type.It
+	// can be empty if it is not applicable. MaximumIops
+	//  Maximum amount of Iops that is applicable for given storage type.It can
+	// be empty if it is not applicable. MinimumIops
+	//  Minimum amount of Iops that is applicable for given storage type.It can
+	// be empty if it is not applicable.
+	LimitName *string `type:"string"`
+
+	// Values for the StorageTypeLimit$LimitName .
+	LimitValues []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s StorageTypeLimit) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StorageTypeLimit) GoString() string {
+	return s.String()
+}
+
+// SetLimitName sets the LimitName field's value.
+func (s *StorageTypeLimit) SetLimitName(v string) *StorageTypeLimit {
+	s.LimitName = &v
+	return s
+}
+
+// SetLimitValues sets the LimitValues field's value.
+func (s *StorageTypeLimit) SetLimitValues(v []*string) *StorageTypeLimit {
+	s.LimitValues = v
+	return s
+}
+
 // Specifies a key value pair for a resource tag.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/es-2015-01-01/Tag
 type Tag struct {
@@ -2449,6 +3286,51 @@ const (
 
 	// ESPartitionInstanceTypeI22xlargeElasticsearch is a ESPartitionInstanceType enum value
 	ESPartitionInstanceTypeI22xlargeElasticsearch = "i2.2xlarge.elasticsearch"
+
+	// ESPartitionInstanceTypeD2XlargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeD2XlargeElasticsearch = "d2.xlarge.elasticsearch"
+
+	// ESPartitionInstanceTypeD22xlargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeD22xlargeElasticsearch = "d2.2xlarge.elasticsearch"
+
+	// ESPartitionInstanceTypeD24xlargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeD24xlargeElasticsearch = "d2.4xlarge.elasticsearch"
+
+	// ESPartitionInstanceTypeD28xlargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeD28xlargeElasticsearch = "d2.8xlarge.elasticsearch"
+
+	// ESPartitionInstanceTypeC4LargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeC4LargeElasticsearch = "c4.large.elasticsearch"
+
+	// ESPartitionInstanceTypeC4XlargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeC4XlargeElasticsearch = "c4.xlarge.elasticsearch"
+
+	// ESPartitionInstanceTypeC42xlargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeC42xlargeElasticsearch = "c4.2xlarge.elasticsearch"
+
+	// ESPartitionInstanceTypeC44xlargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeC44xlargeElasticsearch = "c4.4xlarge.elasticsearch"
+
+	// ESPartitionInstanceTypeC48xlargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeC48xlargeElasticsearch = "c4.8xlarge.elasticsearch"
+
+	// ESPartitionInstanceTypeR4LargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeR4LargeElasticsearch = "r4.large.elasticsearch"
+
+	// ESPartitionInstanceTypeR4XlargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeR4XlargeElasticsearch = "r4.xlarge.elasticsearch"
+
+	// ESPartitionInstanceTypeR42xlargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeR42xlargeElasticsearch = "r4.2xlarge.elasticsearch"
+
+	// ESPartitionInstanceTypeR44xlargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeR44xlargeElasticsearch = "r4.4xlarge.elasticsearch"
+
+	// ESPartitionInstanceTypeR48xlargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeR48xlargeElasticsearch = "r4.8xlarge.elasticsearch"
+
+	// ESPartitionInstanceTypeR416xlargeElasticsearch is a ESPartitionInstanceType enum value
+	ESPartitionInstanceTypeR416xlargeElasticsearch = "r4.16xlarge.elasticsearch"
 )
 
 // The state of a requested change. One of the following:
