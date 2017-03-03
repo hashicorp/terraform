@@ -12,16 +12,18 @@ description: |-
 
 Stores the state as a given object_name in a given bucket on
 [Minio](https://minio.io/) or on any S3-compatible object
-store that the Minio client supports (including those using
-AWS Signature V4 and V2).
+store that the 
+[Minio client](http://docs.minio.io/docs/golang-client-quickstart-guide) 
+supports (including those requiring both AWS Signature V4 and V2).
 
 Supported object stores include:
- * Amazon S3
- * Minio
- * Google Cloud Storage (Compatibility Mode)
- * Openstack Swift + Swift3 Middleware
- * Ceph Object Gateway (radosgw)
- * Riak CS
+
+ * [Amazon S3](https://aws.amazon.com/s3/)
+ * [Minio](https://minio.io/)
+ * [Google Cloud Storage (S3 Compatibility Mode)](https://cloud.google.com/storage/docs/migrating#migration-simple)
+ * Openstack Swift with [Swift3 Middleware](https://github.com/openstack/swift3)
+ * [Ceph Object Gateway (radosgw)](http://docs.ceph.com/docs/master/radosgw/)
+ * [Riak CS](http://docs.basho.com/riak/cs/)
 
 ## Example Configuration
 
@@ -64,7 +66,7 @@ data.terraform_remote_state.network:
   addresses.# = 2
   addresses.0 = 52.207.220.222
   addresses.1 = 54.196.78.166
-  backend = s3
+  backend = minio
   config.% = 3
   config.bucket = terraform-state-prod
   config.key = network/terraform.tfstate
@@ -90,6 +92,6 @@ not exist).
 The path to the state file object inside the bucket.
  * `bucket_location` / `MINIO_BUCKET_LOCATION` - (Optional)
 The location of the Minio bucket (equivalent to region in Amazon S3).
- * `use_ssl` - (Optional)
+ * `use_ssl` / `MINIO_USE_SSL` - (Optional)
 Whether to use SSL (https) for the connection to the API endpoint
 (default: true).
