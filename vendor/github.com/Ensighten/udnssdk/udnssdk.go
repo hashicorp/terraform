@@ -127,7 +127,7 @@ func newStubClient(username, password, baseURL, clientID, clientSecret string) (
 // The path is expected to be a relative path and will be resolved
 // according to the BaseURL of the Client. Paths should always be specified without a preceding slash.
 func (c *Client) NewRequest(method, path string, payload interface{}) (*http.Request, error) {
-	url := c.BaseURL
+	url := *c.BaseURL
 	url.Path = url.Path + fmt.Sprintf("%s/%s", apiVersion, path)
 
 	body := new(bytes.Buffer)
