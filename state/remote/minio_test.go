@@ -64,7 +64,7 @@ func TestMinioClient(t *testing.T) {
 	// This test creates a bucket in the public Minio server and populates it.
 
 	bucketName := fmt.Sprintf("terraform-remote-minio-test-%x", time.Now().Unix())
-	objectName := "testState.tf"
+	objectName := "testState/tfstate.tf"
 	testData := []byte(`testing data`)
 
 	config := make(map[string]string)
