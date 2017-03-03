@@ -1,13 +1,13 @@
 package azurerm
 
 import (
+	"fmt"
 	"github.com/Azure/azure-sdk-for-go/arm/disk"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
-	"fmt"
 	"log"
-	"strings"
 	"net/http"
+	"strings"
 )
 
 func resourceArmDisk() *schema.Resource {
@@ -22,7 +22,7 @@ func resourceArmDisk() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
@@ -36,7 +36,7 @@ func resourceArmDisk() *schema.Resource {
 			},
 
 			"storage_account_type": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(disk.PremiumLRS),
@@ -45,7 +45,7 @@ func resourceArmDisk() *schema.Resource {
 			},
 
 			"create_option": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(disk.Import),
@@ -60,7 +60,7 @@ func resourceArmDisk() *schema.Resource {
 			},
 
 			"os_type": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Optional: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(disk.Windows),
@@ -69,9 +69,8 @@ func resourceArmDisk() *schema.Resource {
 			},
 
 			"disk_size_gb": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeInt,
+				Required:     true,
 				ValidateFunc: validateDiskSizeGB,
 			},
 
@@ -101,7 +100,7 @@ func resourceArmDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	tags := d.Get("tags").(map[string]interface{})
 	expandedTags := expandTags(tags)
 
-	createDisk := &disk.Model {
+	createDisk := disk.Model{
 		Name:     &name,
 		Location: &location,
 		Tags:     expandedTags,
@@ -109,25 +108,27 @@ func resourceArmDiskCreate(d *schema.ResourceData, meta interface{}) error {
 
 	storageAccountType := d.Get("storage_account_type").(string)
 	osType := d.Get("os_type").(string)
-	diskSize := d.Get("disk_size_db").(int)
 
-	createDisk.Properties = &disk.Properties {
-		AccountType: &storageAccountType,
-		OsType:      &osType,
-		DiskSizeGB:  &diskSize,
+	createDisk.Properties = &disk.Properties{
+		AccountType: disk.StorageAccountTypes(storageAccountType),
+		OsType:      disk.OperatingSystemTypes(osType),
 	}
 
+	if v := d.Get("disk_size_gb"); v != nil {
+		diskSize := int32(v.(int))
+		createDisk.Properties.DiskSizeGB = &diskSize
+	}
 	createOption := d.Get("create_option").(string)
 
 	creationData := &disk.CreationData{
 		CreateOption: disk.CreateOption(createOption),
 	}
 
-	if strings.EqualFold(createOption, disk.Import) {
+	if strings.EqualFold(createOption, string(disk.Import)) {
 		if vhdUri := d.Get("vhd_uri").(string); vhdUri != "" {
-			creationData.SourceURI = vhdUri;
+			creationData.SourceURI = &vhdUri
 		} else {
-			return nil, fmt.Errorf("[ERROR] vhd_uri must be specified when create_option is `%s`", disk.Import)
+			return fmt.Errorf("[ERROR] vhd_uri must be specified when create_option is `%s`", disk.Import)
 		}
 	}
 
@@ -139,7 +140,7 @@ func resourceArmDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	read, err := diskClient.Get(resGroup, name)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	if read.ID == nil {
@@ -222,10 +223,10 @@ func resourceArmDiskDelete(d *schema.ResourceData, meta interface{}) error {
 
 func flattenAzureRmDiskProperties(properties *disk.Properties) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
-	result["storage_account_type"] = *properties.AccountType
+	result["storage_account_type"] = string(properties.AccountType)
 	result["disk_size_gb"] = *properties.DiskSizeGB
-	if properties.OsType != nil {
-		result["os_type"] = *properties.OsType
+	if properties.OsType != "" {
+		result["os_type"] = string(properties.OsType)
 	}
 
 	return result, nil
@@ -233,7 +234,7 @@ func flattenAzureRmDiskProperties(properties *disk.Properties) (map[string]inter
 
 func flattenAzureRmDiskCreationData(creationData *disk.CreationData) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
-	result["create_option"] = *creationData.CreateOption
+	result["create_option"] = string(creationData.CreateOption)
 	if creationData.SourceURI != nil {
 		result["vhd_uri"] = *creationData.SourceURI
 	}
