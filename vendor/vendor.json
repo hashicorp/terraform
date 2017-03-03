@@ -2372,6 +2372,12 @@
 			"revisionTime": "2016-07-26T03:20:27Z"
 		},
 		{
+			"checksumSHA1": "QRQQes1Enn5XyBAfTCOjm5hHzIg=",
+			"path": "github.com/minio/minio-go",
+			"revision": "7a3619e41885dcbcfafee193c10eb80530c2be53",
+			"revisionTime": "2017-02-17T20:03:45Z"
+		},
+		{
 			"checksumSHA1": "7niW29CvYceZ6zbia6b/LT+yD/M=",
 			"path": "github.com/mitchellh/cli",
 			"revision": "fcf521421aa29bde1d93b6920dfce826d7932208",
