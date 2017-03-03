@@ -41,7 +41,7 @@ var schemaCheckPostgreSQL = &schema.Schema{
 	MinItems: 1,
 	Set:      hashCheckPostgreSQL,
 	Elem: &schema.Resource{
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(checkPostgreSQLDescriptions, map[schemaAttr]*schema.Schema{
 			checkPostgreSQLDSNAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
@@ -92,7 +92,7 @@ var schemaCheckPostgreSQL = &schema.Schema{
 			// 	Required:     true,
 			// 	ValidateFunc: validateRegexp(checkPostgreSQLUserAttr, `.+`),
 			// },
-		}, checkPostgreSQLDescriptions),
+		}),
 	},
 }
 

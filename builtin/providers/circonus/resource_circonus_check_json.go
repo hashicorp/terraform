@@ -56,7 +56,7 @@ var schemaCheckJSON = &schema.Schema{
 	MinItems: 1,
 	Set:      checkJSONConfigChecksum,
 	Elem: &schema.Resource{
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(checkJSONDescriptions, map[schemaAttr]*schema.Schema{
 			checkJSONAuthMethodAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -139,7 +139,7 @@ var schemaCheckJSON = &schema.Schema{
 				Default:      defaultCheckJSONVersion,
 				ValidateFunc: validateStringIn(checkJSONVersionAttr, supportedHTTPVersions),
 			},
-		}, checkJSONDescriptions),
+		}),
 	},
 }
 

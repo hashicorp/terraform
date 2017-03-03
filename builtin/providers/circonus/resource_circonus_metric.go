@@ -45,7 +45,7 @@ func newMetricResource() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(metricDescriptions, map[schemaAttr]*schema.Schema{
 			metricActiveAttr: &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -68,7 +68,7 @@ func newMetricResource() *schema.Resource {
 				Default:      metricUnit,
 				ValidateFunc: validateRegexp(metricUnitAttr, metricUnitRegexp),
 			},
-		}, metricDescriptions),
+		}),
 	}
 }
 

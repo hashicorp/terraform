@@ -56,7 +56,7 @@ func newStreamGroupResource() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(streamGroupDescriptions, map[schemaAttr]*schema.Schema{
 			streamGroupDescriptionAttr: &schema.Schema{
 				Type:      schema.TypeString,
 				Optional:  true,
@@ -72,7 +72,7 @@ func newStreamGroupResource() *schema.Resource {
 				Optional: true,
 				MinItems: 1,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(streamGroupGroupDescriptions, map[schemaAttr]*schema.Schema{
 						streamGroupQueryAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
@@ -83,7 +83,7 @@ func newStreamGroupResource() *schema.Resource {
 							Required:     true,
 							ValidateFunc: validateStringIn(streamGroupTypeAttr, supportedStreamGroupTypes),
 						},
-					}, streamGroupGroupDescriptions),
+					}),
 				},
 			},
 			streamGroupTagsAttr: tagMakeConfigSchema(streamGroupTagsAttr),
@@ -94,7 +94,7 @@ func newStreamGroupResource() *schema.Resource {
 				Type:         schema.TypeString,
 				ValidateFunc: validateRegexp(streamGroupIDAttr, config.MetricClusterCIDRegex),
 			},
-		}, streamGroupDescriptions),
+		}),
 	}
 }
 

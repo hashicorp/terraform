@@ -60,7 +60,7 @@ var schemaCheckHTTP = &schema.Schema{
 	MinItems: 1,
 	Set:      hashCheckHTTP,
 	Elem: &schema.Resource{
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(checkHTTPDescriptions, map[schemaAttr]*schema.Schema{
 			checkHTTPAuthMethodAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -150,7 +150,7 @@ var schemaCheckHTTP = &schema.Schema{
 				Default:      defaultCheckHTTPVersion,
 				ValidateFunc: validateStringIn(checkHTTPVersionAttr, supportedHTTPVersions),
 			},
-		}, checkHTTPDescriptions),
+		}),
 	},
 }
 

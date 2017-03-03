@@ -29,7 +29,7 @@ var schemaCheckMySQL = &schema.Schema{
 	MinItems: 1,
 	Set:      hashCheckMySQL,
 	Elem: &schema.Resource{
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(checkMySQLDescriptions, map[schemaAttr]*schema.Schema{
 			checkMySQLDSNAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
@@ -41,7 +41,7 @@ var schemaCheckMySQL = &schema.Schema{
 				StateFunc:    func(v interface{}) string { return strings.TrimSpace(v.(string)) },
 				ValidateFunc: validateRegexp(checkMySQLQueryAttr, `.+`),
 			},
-		}, checkMySQLDescriptions),
+		}),
 	},
 }
 

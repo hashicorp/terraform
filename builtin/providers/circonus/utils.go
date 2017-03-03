@@ -13,7 +13,10 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func castSchemaToTF(in map[schemaAttr]*schema.Schema, descrs attrDescrs) map[string]*schema.Schema {
+// convertToHelperSchema converts the schema and injects the necessary
+// parameters, notably the descriptions, in order to be valid input to
+// Terraform's helper schema.
+func convertToHelperSchema(descrs attrDescrs, in map[schemaAttr]*schema.Schema) map[string]*schema.Schema {
 	out := make(map[string]*schema.Schema, len(in))
 	for k, v := range in {
 		if descr, ok := descrs[k]; ok {
@@ -26,7 +29,9 @@ func castSchemaToTF(in map[schemaAttr]*schema.Schema, descrs attrDescrs) map[str
 
 			v.Description = string(descr)
 		} else {
-			panic(fmt.Sprintf("PROVIDER BUG: Unable to find description for attr %q", k))
+			// NOTE(sean@): Uncomment the following to help audit for missing descriptions.
+			//
+			// panic(fmt.Sprintf("PROVIDER BUG: Unable to find description for attr %q", k))
 		}
 
 		out[string(k)] = v

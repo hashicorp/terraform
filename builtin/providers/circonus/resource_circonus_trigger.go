@@ -126,7 +126,7 @@ func newTriggerResource() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(triggerDescriptions, map[schemaAttr]*schema.Schema{
 			triggerCheckAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
@@ -137,13 +137,13 @@ func newTriggerResource() *schema.Resource {
 				Required: true,
 				MinItems: 1,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(triggerIfDescriptions, map[schemaAttr]*schema.Schema{
 						triggerThenAttr: &schema.Schema{
 							Type:     schema.TypeSet,
 							MaxItems: 1,
 							Optional: true,
 							Elem: &schema.Resource{
-								Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+								Schema: convertToHelperSchema(triggerIfThenDescriptions, map[schemaAttr]*schema.Schema{
 									triggerAfterAttr: &schema.Schema{
 										Type:             schema.TypeString,
 										Optional:         true,
@@ -171,7 +171,7 @@ func newTriggerResource() *schema.Resource {
 											validateIntMin(triggerSeverityAttr, minSeverity),
 										),
 									},
-								}, triggerIfThenDescriptions),
+								}),
 							},
 						},
 						triggerValueAttr: &schema.Schema{
@@ -179,7 +179,7 @@ func newTriggerResource() *schema.Resource {
 							Optional: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
-								Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+								Schema: convertToHelperSchema(triggerIfValueDescriptions, map[schemaAttr]*schema.Schema{
 									triggerAbsentAttr: &schema.Schema{
 										Type:             schema.TypeString, // Applies to text or numeric metrics
 										Optional:         true,
@@ -240,7 +240,7 @@ func newTriggerResource() *schema.Resource {
 										// triggerChangedAttr.
 										ConflictsWith: makeConflictsWith(triggerAbsentAttr, triggerChangedAttr, triggerContainsAttr, triggerEqualsAttr, triggerExcludesAttr, triggerMissingAttr),
 										Elem: &schema.Resource{
-											Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+											Schema: convertToHelperSchema(triggerIfValueOverDescriptions, map[schemaAttr]*schema.Schema{
 												triggerLastAttr: &schema.Schema{
 													Type:             schema.TypeString,
 													Optional:         true,
@@ -257,13 +257,13 @@ func newTriggerResource() *schema.Resource {
 													Default:      defaultTriggerWindowFunc,
 													ValidateFunc: validateStringIn(triggerUsingAttr, validTriggerWindowFuncs),
 												},
-											}, triggerIfValueOverDescriptions),
+											}),
 										},
 									},
-								}, triggerIfValueDescriptions),
+								}),
 							},
 						},
-					}, triggerIfDescriptions),
+					}),
 				},
 			},
 			triggerLinkAttr: &schema.Schema{
@@ -297,7 +297,7 @@ func newTriggerResource() *schema.Resource {
 				ValidateFunc: validateRegexp(triggerStreamNameAttr, `^[\S]+$`),
 			},
 			triggerTagsAttr: tagMakeConfigSchema(triggerTagsAttr),
-		}, triggerDescriptions),
+		}),
 	}
 }
 

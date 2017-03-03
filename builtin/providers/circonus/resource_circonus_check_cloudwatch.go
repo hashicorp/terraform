@@ -40,7 +40,7 @@ var schemaCheckCloudWatch = &schema.Schema{
 	MinItems: 1,
 	Set:      hashCheckCloudWatch,
 	Elem: &schema.Resource{
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(checkCloudWatchDescriptions, map[schemaAttr]*schema.Schema{
 			checkCloudWatchAPIKeyAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
@@ -87,7 +87,7 @@ var schemaCheckCloudWatch = &schema.Schema{
 				Default:      defaultCheckCloudWatchVersion,
 				ValidateFunc: validateRegexp(checkCloudWatchVersionAttr, `^[\d]{4}-[\d]{2}-[\d]{2}$`),
 			},
-		}, checkCloudWatchDescriptions),
+		}),
 	},
 }
 

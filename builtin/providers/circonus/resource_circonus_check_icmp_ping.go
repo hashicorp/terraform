@@ -32,7 +32,7 @@ var schemaCheckICMPPing = &schema.Schema{
 	MinItems: 1,
 	Set:      hashCheckICMPPing,
 	Elem: &schema.Resource{
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(checkICMPPingDescriptions, map[schemaAttr]*schema.Schema{
 			checkICMPPingAvailabilityAttr: &schema.Schema{
 				Type:     schema.TypeFloat,
 				Optional: true,
@@ -60,7 +60,7 @@ var schemaCheckICMPPing = &schema.Schema{
 					validateDurationMax(checkICMPPingIntervalAttr, "5m"),
 				),
 			},
-		}, checkICMPPingDescriptions),
+		}),
 	},
 }
 

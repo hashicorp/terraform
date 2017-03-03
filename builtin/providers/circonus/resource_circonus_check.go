@@ -130,7 +130,7 @@ func newCheckResource() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(checkDescriptions, map[schemaAttr]*schema.Schema{
 			checkActiveAttr: &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -143,13 +143,13 @@ func newCheckResource() *schema.Resource {
 				Optional: true,
 				MinItems: 1,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(checkCollectorDescriptions, map[schemaAttr]*schema.Schema{
 						checkCollectorIDAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateRegexp(checkCollectorIDAttr, config.BrokerCIDRegex),
 						},
-					}, checkCollectorDescriptions),
+					}),
 				},
 			},
 			checkHTTPAttr:     schemaCheckHTTP,
@@ -193,7 +193,7 @@ func newCheckResource() *schema.Resource {
 				Set:      checkStreamChecksum,
 				MinItems: 1,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(checkStreamDescriptions, map[schemaAttr]*schema.Schema{
 						metricActiveAttr: &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
@@ -216,7 +216,7 @@ func newCheckResource() *schema.Resource {
 							Default:      metricUnit,
 							ValidateFunc: validateRegexp(metricUnitAttr, metricUnitRegexp),
 						},
-					}, checkStreamDescriptions),
+					}),
 				},
 			},
 			checkTagsAttr: tagMakeConfigSchema(checkTagsAttr),
@@ -286,7 +286,7 @@ func newCheckResource() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-		}, checkDescriptions),
+		}),
 	}
 }
 

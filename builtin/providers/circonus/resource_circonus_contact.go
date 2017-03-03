@@ -215,7 +215,7 @@ func resourceContactGroup() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(contactGroupDescriptions, map[schemaAttr]*schema.Schema{
 			contactAggregationWindowAttr: &schema.Schema{
 				Type:             schema.TypeString,
 				Optional:         true,
@@ -231,7 +231,7 @@ func resourceContactGroup() *schema.Resource {
 				Optional: true,
 				Set:      contactGroupAlertOptionsChecksum,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(contactAlertDescriptions, map[schemaAttr]*schema.Schema{
 						contactEscalateAfterAttr: &schema.Schema{
 							Type:             schema.TypeString,
 							Optional:         true,
@@ -263,14 +263,14 @@ func resourceContactGroup() *schema.Resource {
 								validateIntMax(contactSeverityAttr, maxSeverity),
 							),
 						},
-					}, contactAlertDescriptions),
+					}),
 				},
 			},
 			contactEmailAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(contactEmailDescriptions, map[schemaAttr]*schema.Schema{
 						contactEmailAddressAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
@@ -282,14 +282,14 @@ func resourceContactGroup() *schema.Resource {
 							ValidateFunc:  validateUserCID(contactUserCIDAttr),
 							ConflictsWith: []string{contactEmailAttr + "." + contactEmailAddressAttr},
 						},
-					}, contactEmailDescriptions),
+					}),
 				},
 			},
 			contactHTTPAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(contactHTTPDescriptions, map[schemaAttr]*schema.Schema{
 						contactHTTPAddressAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
@@ -307,7 +307,7 @@ func resourceContactGroup() *schema.Resource {
 							Default:      defaultCirconusHTTPMethod,
 							ValidateFunc: validateStringIn(contactHTTPMethodAttr, validContactHTTPMethods),
 						},
-					}, contactHTTPDescriptions),
+					}),
 				},
 			},
 			contactIRCAttr: &schema.Schema{
@@ -346,7 +346,7 @@ func resourceContactGroup() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(contactPagerDutyDescriptions, map[schemaAttr]*schema.Schema{
 						contactContactGroupFallbackAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
@@ -363,7 +363,7 @@ func resourceContactGroup() *schema.Resource {
 							Required:     true,
 							ValidateFunc: validateHTTPURL(contactPagerDutyWebhookURLAttr, urlIsAbs),
 						},
-					}, contactPagerDutyDescriptions),
+					}),
 				},
 			},
 			contactShortMessageAttr: &schema.Schema{
@@ -380,7 +380,7 @@ func resourceContactGroup() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(contactSlackDescriptions, map[schemaAttr]*schema.Schema{
 						contactContactGroupFallbackAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
@@ -410,14 +410,14 @@ func resourceContactGroup() *schema.Resource {
 								validateRegexp(contactSlackChannelAttr, `^[\S]+$`),
 							),
 						},
-					}, contactSlackDescriptions),
+					}),
 				},
 			},
 			contactSMSAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(contactSMSDescriptions, map[schemaAttr]*schema.Schema{
 						contactSMSAddressAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
@@ -429,7 +429,7 @@ func resourceContactGroup() *schema.Resource {
 							ValidateFunc:  validateUserCID(contactUserCIDAttr),
 							ConflictsWith: []string{contactSMSAttr + "." + contactSMSAddressAttr},
 						},
-					}, contactSMSDescriptions),
+					}),
 				},
 			},
 			contactTagsAttr: tagMakeConfigSchema(contactTagsAttr),
@@ -437,7 +437,7 @@ func resourceContactGroup() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(contactVictorOpsDescriptions, map[schemaAttr]*schema.Schema{
 						contactContactGroupFallbackAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
@@ -476,14 +476,14 @@ func resourceContactGroup() *schema.Resource {
 								validateIntMax(contactVictorOpsWarningAttr, 5),
 							),
 						},
-					}, contactVictorOpsDescriptions),
+					}),
 				},
 			},
 			contactXMPPAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(contactXMPPDescriptions, map[schemaAttr]*schema.Schema{
 						contactXMPPAddressAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
@@ -495,7 +495,7 @@ func resourceContactGroup() *schema.Resource {
 							ValidateFunc:  validateUserCID(contactUserCIDAttr),
 							ConflictsWith: []string{contactXMPPAttr + "." + contactXMPPAddressAttr},
 						},
-					}, contactXMPPDescriptions),
+					}),
 				},
 			},
 
@@ -508,7 +508,7 @@ func resourceContactGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-		}, contactGroupDescriptions),
+		}),
 	}
 }
 

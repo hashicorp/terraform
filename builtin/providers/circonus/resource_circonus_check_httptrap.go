@@ -29,7 +29,7 @@ var schemaCheckHTTPTrap = &schema.Schema{
 	MinItems: 1,
 	Set:      hashCheckHTTPTrap,
 	Elem: &schema.Resource{
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(checkHTTPTrapDescriptions, map[schemaAttr]*schema.Schema{
 			checkHTTPTrapAsyncMetricsAttr: &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -41,7 +41,7 @@ var schemaCheckHTTPTrap = &schema.Schema{
 				Sensitive:    true,
 				ValidateFunc: validateRegexp(checkHTTPTrapSecretAttr, `^[a-zA-Z0-9_]+$`),
 			},
-		}, checkHTTPTrapDescriptions),
+		}),
 	},
 }
 

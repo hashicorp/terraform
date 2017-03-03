@@ -27,13 +27,13 @@ var schemaCheckCAQL = &schema.Schema{
 	MinItems: 1,
 	Set:      hashCheckCAQL,
 	Elem: &schema.Resource{
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(checkCAQLDescriptions, map[schemaAttr]*schema.Schema{
 			checkCAQLQueryAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateRegexp(checkCAQLQueryAttr, `.+`),
 			},
-		}, checkCAQLDescriptions),
+		}),
 	},
 }
 

@@ -42,7 +42,7 @@ var schemaCheckTCP = &schema.Schema{
 	MinItems: 1,
 	Set:      hashCheckTCP,
 	Elem: &schema.Resource{
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(checkTCPDescriptions, map[schemaAttr]*schema.Schema{
 			checkTCPBannerRegexpAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -86,7 +86,7 @@ var schemaCheckTCP = &schema.Schema{
 				Optional: true,
 				Default:  false,
 			},
-		}, checkTCPDescriptions),
+		}),
 	},
 }
 

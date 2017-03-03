@@ -123,7 +123,7 @@ func newGraphResource() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+		Schema: convertToHelperSchema(graphDescriptions, map[schemaAttr]*schema.Schema{
 			graphDescriptionAttr: &schema.Schema{
 				Type:      schema.TypeString,
 				Optional:  true,
@@ -161,7 +161,7 @@ func newGraphResource() *schema.Resource {
 				Optional: true,
 				MinItems: 1,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(graphStreamDescriptions, map[schemaAttr]*schema.Schema{
 						graphStreamActiveAttr: &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
@@ -234,7 +234,7 @@ func newGraphResource() *schema.Resource {
 							Optional:     true,
 							ValidateFunc: validateRegexp(graphStreamStackAttr, `^[\d]*$`),
 						},
-					}, graphStreamDescriptions),
+					}),
 				},
 			},
 			graphStreamGroupAttr: &schema.Schema{
@@ -242,7 +242,7 @@ func newGraphResource() *schema.Resource {
 				Optional: true,
 				MinItems: 1,
 				Elem: &schema.Resource{
-					Schema: castSchemaToTF(map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(graphStreamGroupDescriptions, map[schemaAttr]*schema.Schema{
 						graphStreamGroupActiveAttr: &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
@@ -270,7 +270,7 @@ func newGraphResource() *schema.Resource {
 							Required:     true,
 							ValidateFunc: validateRegexp(graphStreamHumanNameAttr, `.+`),
 						},
-					}, graphStreamGroupDescriptions),
+					}),
 				},
 			},
 			graphStyleAttr: &schema.Schema{
@@ -280,7 +280,7 @@ func newGraphResource() *schema.Resource {
 				ValidateFunc: validateStringIn(graphStyleAttr, validGraphStyles),
 			},
 			graphTagsAttr: tagMakeConfigSchema(graphTagsAttr),
-		}, graphDescriptions),
+		}),
 	}
 }
 
