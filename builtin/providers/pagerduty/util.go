@@ -3,7 +3,6 @@ package pagerduty
 import (
 	"fmt"
 
-	pagerduty "github.com/PagerDuty/go-pagerduty"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -24,45 +23,4 @@ func validateValueFunc(values []string) schema.SchemaValidateFunc {
 		}
 		return
 	}
-}
-
-// getVendors retrieves all PagerDuty vendors and returns a list of []pagerduty.Vendor
-func getVendors(client *pagerduty.Client) ([]pagerduty.Vendor, error) {
-	var offset uint
-	var totalCount int
-	var vendors []pagerduty.Vendor
-
-	for {
-		o := &pagerduty.ListVendorOptions{
-			APIListObject: pagerduty.APIListObject{
-				Limit:  100,
-				Total:  1,
-				Offset: offset,
-			},
-		}
-
-		resp, err := client.ListVendors(*o)
-
-		if err != nil {
-			return nil, err
-		}
-
-		for _, v := range resp.Vendors {
-			totalCount++
-			vendors = append(vendors, v)
-		}
-
-		rOffset := uint(resp.Offset)
-		returnedCount := uint(len(resp.Vendors))
-		rTotal := uint(resp.Total)
-
-		if resp.More && uint(totalCount) != uint(rTotal) {
-			offset = returnedCount + rOffset
-			continue
-		}
-
-		break
-	}
-
-	return vendors, nil
 }
