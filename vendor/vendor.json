@@ -2378,6 +2378,30 @@
 			"revisionTime": "2017-02-17T20:03:45Z"
 		},
 		{
+			"checksumSHA1": "neH34/65OXeKHM/MlV8MbhcdFBc=",
+			"path": "github.com/minio/minio-go/pkg/policy",
+			"revision": "7a3619e41885dcbcfafee193c10eb80530c2be53",
+			"revisionTime": "2017-02-17T20:03:45Z"
+		},
+		{
+			"checksumSHA1": "m/6/na9lVtamkfmIdIOi5pdccgw=",
+			"path": "github.com/minio/minio-go/pkg/s3signer",
+			"revision": "7a3619e41885dcbcfafee193c10eb80530c2be53",
+			"revisionTime": "2017-02-17T20:03:45Z"
+		},
+		{
+			"checksumSHA1": "gRnCFKb4x83GBLVUZXoOjujd+U0=",
+			"path": "github.com/minio/minio-go/pkg/s3utils",
+			"revision": "7a3619e41885dcbcfafee193c10eb80530c2be53",
+			"revisionTime": "2017-02-17T20:03:45Z"
+		},
+		{
+			"checksumSHA1": "maUy+dbN6VfTTnfErrAW2lLit1w=",
+			"path": "github.com/minio/minio-go/pkg/set",
+			"revision": "7a3619e41885dcbcfafee193c10eb80530c2be53",
+			"revisionTime": "2017-02-17T20:03:45Z"
+		},
+		{
 			"checksumSHA1": "7niW29CvYceZ6zbia6b/LT+yD/M=",
 			"path": "github.com/mitchellh/cli",
 			"revision": "fcf521421aa29bde1d93b6920dfce826d7932208",
