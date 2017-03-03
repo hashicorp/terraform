@@ -35,7 +35,7 @@ func azureFactory(conf map[string]string) (Client, error) {
 	if !ok {
 		resourceGroupName, ok := conf["resource_group_name"]
 		if !ok {
-			return nil, fmt.Errorf("missing 'resource_group' configuration")
+			return nil, fmt.Errorf("missing 'resource_group_name' configuration")
 		}
 
 		var err error
