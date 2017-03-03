@@ -35,6 +35,13 @@ const (
 	accountUsersAttr         = "users"
 )
 
+var accountDescription = map[schemaAttr]string{
+	accountContactGroupsAttr: "Contact Groups in this account",
+	accountInvitesAttr:       "Outstanding invites attached to the account",
+	accountUsageAttr:         "Account's usage limits",
+	accountUsersAttr:         "Users attached to this account",
+}
+
 func dataSourceCirconusAccount() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceCirconusAccountRead,

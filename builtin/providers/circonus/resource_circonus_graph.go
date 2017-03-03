@@ -61,7 +61,7 @@ var graphDescriptions = attrDescrs{
 	// circonus_graph.* resource attribute names
 	graphDescriptionAttr: "",
 	graphLeftAttr:        "",
-	graphLineStyleAttr:   "",
+	graphLineStyleAttr:   "How the line should change between point. A string containing either 'stepped', 'interpolated' or null.",
 	graphNameAttr:        "",
 	graphNotesAttr:       "",
 	graphRightAttr:       "",

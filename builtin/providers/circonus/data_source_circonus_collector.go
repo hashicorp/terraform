@@ -29,6 +29,11 @@ const (
 	collectorVersionAttr      = "version"
 )
 
+var collectorDescription = map[schemaAttr]string{
+	collectorDetailsAttr: "Details associated with individual collectors (a.k.a. broker)",
+	collectorTagsAttr:    "Tags assigned to a collector",
+}
+
 func dataSourceCirconusCollector() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceCirconusCollectorRead,

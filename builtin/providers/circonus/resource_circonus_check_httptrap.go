@@ -18,7 +18,7 @@ const (
 )
 
 var checkHTTPTrapDescriptions = attrDescrs{
-	checkHTTPTrapAsyncMetricsAttr: "",
+	checkHTTPTrapAsyncMetricsAttr: "Specify whether httptrap metrics are logged immediately or held until the status message is emitted",
 	checkHTTPTrapSecretAttr:       "",
 }
 

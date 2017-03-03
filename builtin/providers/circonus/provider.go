@@ -25,6 +25,12 @@ const (
 	minSeverity                          = 1
 )
 
+var providerDescription = map[string]string{
+	providerAPIURLAttr:  "URL of the Circonus API",
+	providerAutoTagAttr: "Signals that the provider should automatically add a tag to all API calls denoting that the resource was created by Terraform",
+	providerKeyAttr:     "API token used to authenticate with the Circonus API",
+}
+
 // Constants that want to be a constant but can't in Go
 var (
 	validContactHTTPFormats = validStringValues{"json", "params"}

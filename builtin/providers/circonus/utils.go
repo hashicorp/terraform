@@ -2,6 +2,7 @@ package circonus
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,17 +22,15 @@ func convertToHelperSchema(descrs attrDescrs, in map[schemaAttr]*schema.Schema) 
 	for k, v := range in {
 		if descr, ok := descrs[k]; ok {
 			// NOTE(sean@): At some point this check needs to be uncommented and all
-			// missing descriptions need to be populated.
+			// empty descriptions need to be populated.
 			//
 			// if len(descr) == 0 {
-			// 	panic(fmt.Sprintf("PROVIDER BUG: Description of attribute %s empty", k))
+			// 	log.Printf("[WARN] PROVIDER BUG: Description of attribute %s empty", k)
 			// }
 
 			v.Description = string(descr)
 		} else {
-			// NOTE(sean@): Uncomment the following to help audit for missing descriptions.
-			//
-			// panic(fmt.Sprintf("PROVIDER BUG: Unable to find description for attr %q", k))
+			log.Printf("[WARN] PROVIDER BUG: Unable to find description for attr %q", k)
 		}
 
 		out[string(k)] = v
