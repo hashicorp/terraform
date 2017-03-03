@@ -414,7 +414,7 @@ resource "aws_route53_zone" "main" {
 
 const testAccRoute53ZoneConfig_forceDestroy = `
 resource "aws_route53_zone" "destroyable" {
-	name = "terraform.io"
+	name = "terraform.io."
 	force_destroy = true
 }
 `
