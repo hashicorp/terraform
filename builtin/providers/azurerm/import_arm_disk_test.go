@@ -9,20 +9,20 @@ import (
 )
 
 func TestAccAzureRMDisk_importEmpty(t *testing.T) {
-	runTestAzureRMDisk_import(t, "azurerm_disk.test", testAccAzureRMDisk_emptyDisk)
+	runTestAzureRMDisk_import(t, "azurerm_disk.test", testAccAzureRMDisk_empty)
 }
 
-func TestAccAzureRMDisk_importBlob(t *testing.T) {
+/*func TestAccAzureRMDisk_importBlob(t *testing.T) {
 	runTestAzureRMDisk_import(t, "azurerm_disk.test", testAccAzureRMDisk_blob)
-}
+}*/
 
 func runTestAzureRMDisk_import(t *testing.T, resourceName string, configSource string) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(configSource, ri, ri, ri)
+	config := fmt.Sprintf(configSource, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() { testAccPreCheck(t)},
-		Providers: testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMDiskDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
@@ -30,8 +30,8 @@ func runTestAzureRMDisk_import(t *testing.T, resourceName string, configSource s
 			},
 
 			resource.TestStep{
-				ResourceName: resourceName,
-				ImportState: true,
+				ResourceName:      resourceName,
+				ImportState:       true,
 				ImportStateVerify: true,
 			},
 		},

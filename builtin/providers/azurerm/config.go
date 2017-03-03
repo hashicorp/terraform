@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/containerregistry"
 	"github.com/Azure/azure-sdk-for-go/arm/containerservice"
+	"github.com/Azure/azure-sdk-for-go/arm/disk"
 	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
 	"github.com/Azure/azure-sdk-for-go/arm/keyvault"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
@@ -25,7 +26,6 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/terraform/terraform"
 	riviera "github.com/jen20/riviera/azure"
-	"github.com/Azure/azure-sdk-for-go/arm/disk"
 )
 
 // ArmClient contains the handles to all the specific Azure Resource Manager
@@ -247,6 +247,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	csc.Authorizer = spt
 	csc.Sender = autorest.CreateSender(withRequestLogging())
 	client.containerServicesClient = csc
+
+	dkc := disk.NewDisksClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&dkc.Client)
+	dkc.Authorizer = spt
+	dkc.Sender = autorest.CreateSender(withRequestLogging())
+	client.diskClient = dkc
 
 	ehc := eventhub.NewEventHubsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&ehc.Client)
