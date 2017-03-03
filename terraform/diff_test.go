@@ -292,6 +292,47 @@ func TestModuleDiff_Empty(t *testing.T) {
 	}
 }
 
+func TestDiff_EmptyExceptData(t *testing.T) {
+	modDiff := new(ModuleDiff)
+	diff := Diff{
+		Modules: []*ModuleDiff{modDiff},
+	}
+
+	if !diff.EmptyExceptData() {
+		t.Fatal("should be empty")
+	}
+
+	modDiff.Resources = map[string]*InstanceDiff{
+		"nodeA": &InstanceDiff{},
+	}
+
+	if !diff.EmptyExceptData() {
+		t.Fatal("should be empty")
+	}
+
+	modDiff.Resources["data.nodeB"] = &InstanceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"foo": &ResourceAttrDiff{
+				Old:         "foo",
+				New:         "<computed>",
+				NewComputed: true,
+				Type:        2,
+			},
+		},
+	}
+
+	if !diff.EmptyExceptData() {
+		t.Fatal("should be empty except for data.foo")
+	}
+
+	modDiff.Resources["nodeA"].Attributes = nil
+	modDiff.Resources["nodeA"].Destroy = true
+
+	if diff.EmptyExceptData() {
+		t.Fatal("should not be empty")
+	}
+}
+
 func TestModuleDiff_String(t *testing.T) {
 	diff := &ModuleDiff{
 		Resources: map[string]*InstanceDiff{

@@ -109,6 +109,29 @@ func (d *Diff) Empty() bool {
 	return true
 }
 
+// EmptyExceptData returns true if the only changes in the diff are data
+// sources.  Since data sources are read-only, there's no reason to output a
+// diff only containing data source reads.
+func (d *Diff) EmptyExceptData() bool {
+	if d.Empty() {
+		return true
+	}
+
+	for _, m := range d.Modules {
+		if m.Empty() {
+			continue
+		}
+
+		for res, diff := range m.Resources {
+			if !strings.HasPrefix(res, "data.") && !diff.Empty() {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
 // Equal compares two diffs for exact equality.
 //
 // This is different from the Same comparison that is supported which

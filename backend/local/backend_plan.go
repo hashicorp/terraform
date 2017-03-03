@@ -102,8 +102,15 @@ func (b *Local) opPlan(
 		return
 	}
 
-	// Record state
-	runningOp.PlanEmpty = plan.Diff.Empty()
+	// the hook counts and EmptyExceptData have to match in order to hide
+	// diff output.
+	anyChanges := (countHook.ToAdd +
+		countHook.ToRemoveAndAdd +
+		countHook.ToChange +
+		countHook.ToRemove +
+		countHook.ToRemoveAndAdd)
+
+	runningOp.PlanEmpty = plan.Diff.EmptyExceptData() && anyChanges == 0
 
 	// Save the plan to disk
 	if path := op.PlanOutPath; path != "" {
@@ -124,7 +131,7 @@ func (b *Local) opPlan(
 
 	// Perform some output tasks if we have a CLI to output to.
 	if b.CLI != nil {
-		if plan.Diff.Empty() {
+		if runningOp.PlanEmpty {
 			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(planNoChanges)))
 			return
 		}
