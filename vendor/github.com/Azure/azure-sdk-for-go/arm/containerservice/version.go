@@ -19,7 +19,9 @@ package containerservice
 // regenerated.
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -46,5 +48,13 @@ func UserAgent() string {
 
 // Version returns the semantic version (see http://semver.org) of the client.
 func Version() string {
-	return fmt.Sprintf(semVerFormat, major, minor, patch, tag)
+	if version == "" {
+		versionBuilder := bytes.NewBufferString(fmt.Sprintf("%s.%s.%s", major, minor, patch))
+		if tag != "" {
+			versionBuilder.WriteRune('-')
+			versionBuilder.WriteString(strings.TrimPrefix(tag, "-"))
+		}
+		version = string(versionBuilder.Bytes())
+	}
+	return version
 }
