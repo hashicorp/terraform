@@ -104,7 +104,6 @@ func minioFactory(conf map[string]string) (Client, error) {
 }
 
 func (c *MinioClient) Get() (*Payload, error) {
-	log.Printf("[DEBUG] Calling GetObject %v %v", c.bucketName, c.objectName)
 	object, err := c.client.GetObject(c.bucketName, c.objectName)
 	if err != nil {
 		return nil, fmt.Errorf("GetObject failed: %v", err)
@@ -135,7 +134,6 @@ func (c *MinioClient) Put(data []byte) error {
 
 	reader := bytes.NewReader(data)
 
-	log.Printf("[DEBUG] Calling PutObject %v %v", c.bucketName, c.objectName)
 	_, err := c.client.PutObject(c.bucketName, c.objectName, reader, CONTENT_TYPE)
 	if err != nil {
 		return fmt.Errorf("Failed to PutObject: %v", err)
@@ -145,7 +143,6 @@ func (c *MinioClient) Put(data []byte) error {
 }
 
 func (c *MinioClient) Delete() error {
-	log.Printf("[DEBUG] Calling DeleteObject %v %v", c.bucketName, c.objectName)
 	err := c.client.RemoveObject(c.bucketName, c.objectName)
 	if err != nil {
 		return fmt.Errorf("Failed to RemoveObject: %v", err)
@@ -160,7 +157,7 @@ func (c *MinioClient) ensureBucketExists() error {
 		return fmt.Errorf("Failed BucketExists check: %v", err)
 	}
 	if !found {
-		log.Printf("[DEBUG] Creating bucket %s at location %s", c.bucketName, c.bucketLocation)
+		log.Printf("Creating Minio bucket %s at location %s", c.bucketName, c.bucketLocation)
 		err = c.client.MakeBucket(c.bucketName, c.bucketLocation)
 		if err != nil {
 			return fmt.Errorf("Failed to MakeBucket: %v", err)
