@@ -325,6 +325,18 @@ func waitForTaskUpdated(client *dms.DatabaseMigrationService, id string, delay i
 				Argument: "ReplicationTasks[].Status",
 				Expected: "ready",
 			},
+			{
+				State:    "success",
+				Matcher:  "pathAll",
+				Argument: "ReplicationTasks[].Status",
+				Expected: "stopped",
+			},
+			{
+				State:    "success",
+				Matcher:  "pathAll",
+				Argument: "ReplicationTasks[].Status",
+				Expected: "failed",
+			},
 		},
 	}
 
