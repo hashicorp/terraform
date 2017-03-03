@@ -243,6 +243,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
+							ValidateFunc: validateDiskSizeGB,
 						},
 
 						"lun": {
@@ -479,15 +480,6 @@ func validateLicenseType(v interface{}, k string) (ws []string, errors []error) 
 	if value != "" && value != "Windows_Server" {
 		errors = append(errors, fmt.Errorf(
 			"[ERROR] license_type must be 'Windows_Server' or empty"))
-	}
-	return
-}
-
-func validateDiskSizeGB(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(int)
-	if value < 1 || value > 1023 {
-		errors = append(errors, fmt.Errorf(
-			"The `disk_size_gb` can only be between 1 and 1023"))
 	}
 	return
 }
