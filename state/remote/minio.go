@@ -111,7 +111,7 @@ func minioFactory(conf map[string]string) (Client, error) {
 		return nil, fmt.Errorf("Failed to create Minio client: %v", err)
 	}
 	c.client = minioClient
-	
+
 	return c, nil
 }
 
@@ -128,9 +128,9 @@ func (c *MinioClient) Get() (*Payload, error) {
 			// object does not exist
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Failed to ReadAll from object %v %v: %v" , c.bucketName, c.objectName, err)
+		return nil, fmt.Errorf("Failed to ReadAll from object %v %v: %v", c.bucketName, c.objectName, err)
 	}
-	
+
 	hash := md5.Sum(bytes)
 	payload := &Payload{
 		Data: bytes,
@@ -150,7 +150,7 @@ func (c *MinioClient) Put(data []byte) error {
 	if err != nil {
 		return fmt.Errorf("Failed to PutObject: %v", err)
 	}
-	
+
 	return err
 }
 
@@ -159,7 +159,7 @@ func (c *MinioClient) Delete() error {
 	if err != nil {
 		return fmt.Errorf("Failed to RemoveObject: %v", err)
 	}
-	
+
 	return err
 }
 
@@ -177,4 +177,3 @@ func (c *MinioClient) ensureBucketExists() error {
 	}
 	return nil
 }
-

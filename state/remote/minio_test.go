@@ -87,7 +87,7 @@ func TestMinioClient(t *testing.T) {
 	config["endpoint"] = "play.minio.io:9000"
 	config["bucket_location"] = "us-east-1"
 	config["use_ssl"] = "true"
-	config["access_key_id"] = "Q3AM3UQ867SPQQA43P2F" 
+	config["access_key_id"] = "Q3AM3UQ867SPQQA43P2F"
 	config["secret_access_key"] = "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
 
 	client, err := minioFactory(config)
@@ -102,11 +102,11 @@ func TestMinioClient(t *testing.T) {
 	if err != nil {
 		t.Logf("WARNING: Failed to send test data to Minio bucket. (error was %s)", err)
 	}
-	
+
 	defer func() {
 		err := minioClient.client.RemoveBucket(bucketName)
 		if err != nil {
-		 	t.Logf("WARNING: Failed to delete the test Minio bucket. It may have been left in your account and may incur storage charges. (error was %s)", err)
+			t.Logf("WARNING: Failed to delete the test Minio bucket. It may have been left in your account and may incur storage charges. (error was %s)", err)
 		}
 	}()
 
