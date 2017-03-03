@@ -8,22 +8,22 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccAzureRMDisk_importEmpty(t *testing.T) {
-	runTestAzureRMDisk_import(t, "azurerm_disk.test", testAccAzureRMDisk_empty)
+func TestAccAzureRMManagedDisk_importEmpty(t *testing.T) {
+	runTestAzureRMManagedDisk_import(t, "azurerm_disk.test", testAccAzureRMManagedDisk_empty)
 }
 
-/*func TestAccAzureRMDisk_importBlob(t *testing.T) {
-	runTestAzureRMDisk_import(t, "azurerm_disk.test", testAccAzureRMDisk_blob)
+/*func TestAccAzureRMManagedDisk_importBlob(t *testing.T) {
+	runTestAzureRMManagedDisk_import(t, "azurerm_disk.test", testAccAzureRMManagedDisk_blob)
 }*/
 
-func runTestAzureRMDisk_import(t *testing.T, resourceName string, configSource string) {
+func runTestAzureRMManagedDisk_import(t *testing.T, resourceName string, configSource string) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(configSource, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMDiskDestroy,
+		CheckDestroy: testCheckAzureRMManagedDiskDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

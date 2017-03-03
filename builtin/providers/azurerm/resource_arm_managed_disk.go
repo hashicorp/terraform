@@ -10,12 +10,12 @@ import (
 	"strings"
 )
 
-func resourceArmDisk() *schema.Resource {
+func resourceArmManagedDisk() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmDiskCreate,
-		Read:   resourceArmDiskRead,
-		Update: resourceArmDiskCreate,
-		Delete: resourceArmDiskDelete,
+		Create: resourceArmManagedDiskCreate,
+		Read:   resourceArmManagedDiskRead,
+		Update: resourceArmManagedDiskCreate,
+		Delete: resourceArmManagedDiskDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -88,11 +88,11 @@ func validateDiskSizeGB(v interface{}, k string) (ws []string, errors []error) {
 	return
 }
 
-func resourceArmDiskCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmManagedDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	diskClient := client.diskClient
 
-	log.Printf("[INFO] preparing arguments for Azure ARM Disk creation.")
+	log.Printf("[INFO] preparing arguments for Azure ARM Managed Disk creation.")
 
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
@@ -144,15 +144,15 @@ func resourceArmDiskCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	if read.ID == nil {
-		return fmt.Errorf("[ERROR] Cannot read Disk %s (resource group %s) ID", name, resGroup)
+		return fmt.Errorf("[ERROR] Cannot read Managed Disk %s (resource group %s) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
 
-	return resourceArmDiskRead(d, meta)
+	return resourceArmManagedDiskRead(d, meta)
 }
 
-func resourceArmDiskRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArmManagedDiskRead(d *schema.ResourceData, meta interface{}) error {
 	diskClient := meta.(*ArmClient).diskClient
 
 	id, err := parseAzureResourceID(d.Id())
@@ -168,7 +168,7 @@ func resourceArmDiskRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("[ERROR] Error making Read request on Azure Disk %s (resource group %s): %s", name, resGroup, err)
+		return fmt.Errorf("[ERROR] Error making Read request on Azure Managed Disk %s (resource group %s): %s", name, resGroup, err)
 	}
 
 	d.Set("name", resp.Name)
@@ -176,7 +176,7 @@ func resourceArmDiskRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("location", resp.Location)
 
 	if resp.Properties != nil {
-		if m, err := flattenAzureRmDiskProperties(resp.Properties); err != nil {
+		if m, err := flattenAzureRmManagedDiskProperties(resp.Properties); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting disk properties: %#v", err)
 		} else {
 			d.Set("storage_account_type", m["storage_account_type"])
@@ -189,8 +189,8 @@ func resourceArmDiskRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if resp.CreationData != nil {
-		if m, err := flattenAzureRmDiskCreationData(resp.CreationData); err != nil {
-			return fmt.Errorf("[DEBUG] Error setting disk creation data: %#v", err)
+		if m, err := flattenAzureRmManagedDiskCreationData(resp.CreationData); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting managed disk creation data: %#v", err)
 		} else {
 			d.Set("create_option", m["create_option"])
 			if m["vhd_uri"] != nil {
@@ -204,7 +204,7 @@ func resourceArmDiskRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceArmDiskDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmManagedDiskDelete(d *schema.ResourceData, meta interface{}) error {
 	diskClient := meta.(*ArmClient).diskClient
 
 	id, err := parseAzureResourceID(d.Id())
@@ -221,7 +221,7 @@ func resourceArmDiskDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func flattenAzureRmDiskProperties(properties *disk.Properties) (map[string]interface{}, error) {
+func flattenAzureRmManagedDiskProperties(properties *disk.Properties) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 	result["storage_account_type"] = string(properties.AccountType)
 	result["disk_size_gb"] = *properties.DiskSizeGB
@@ -232,7 +232,7 @@ func flattenAzureRmDiskProperties(properties *disk.Properties) (map[string]inter
 	return result, nil
 }
 
-func flattenAzureRmDiskCreationData(creationData *disk.CreationData) (map[string]interface{}, error) {
+func flattenAzureRmManagedDiskCreationData(creationData *disk.CreationData) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 	result["create_option"] = string(creationData.CreateOption)
 	if creationData.SourceURI != nil {

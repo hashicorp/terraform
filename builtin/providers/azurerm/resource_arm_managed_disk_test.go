@@ -11,26 +11,26 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAzureRMDisk_empty(t *testing.T) {
+func TestAccAzureRMManagedDisk_empty(t *testing.T) {
 	var d disk.Model
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMDisk_empty, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMManagedDisk_empty, ri, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMDiskDestroy,
+		CheckDestroy: testCheckAzureRMManagedDiskDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMDiskExists("azurerm_disk.test", &d),
+					testCheckAzureRMManagedDiskExists("azurerm_managed_disk.test", &d),
 				),
 			},
 		},
 	})
 }
 
-func testCheckAzureRMDiskExists(name string, d *disk.Model) resource.TestCheckFunc {
+func testCheckAzureRMManagedDiskExists(name string, d *disk.Model) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -51,7 +51,7 @@ func testCheckAzureRMDiskExists(name string, d *disk.Model) resource.TestCheckFu
 		}
 
 		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("Bad: VirtualMachine %q (resource group %q) does not exist", dName, resourceGroup)
+			return fmt.Errorf("Bad: ManagedDisk %q (resource group %q) does not exist", dName, resourceGroup)
 		}
 
 		*d = resp
@@ -60,11 +60,11 @@ func testCheckAzureRMDiskExists(name string, d *disk.Model) resource.TestCheckFu
 	}
 }
 
-func testCheckAzureRMDiskDestroy(s *terraform.State) error {
+func testCheckAzureRMManagedDiskDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).diskClient
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "azurerm_disk" {
+		if rs.Type != "azurerm_managed_disk" {
 			continue
 		}
 
@@ -78,20 +78,20 @@ func testCheckAzureRMDiskDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Disk still exists: \n%#v", resp.Properties)
+			return fmt.Errorf("Managed Disk still exists: \n%#v", resp.Properties)
 		}
 	}
 
 	return nil
 }
 
-var testAccAzureRMDisk_empty = `
+var testAccAzureRMManagedDisk_empty = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
     location = "West US 2"
 }
 
-resource "azurerm_disk" "test" {
+resource "azurerm_managed_disk" "test" {
     name = "acctestd-%d"
     location = "West US 2"
     resource_group_name = "${azurerm_resource_group.test.name}"
