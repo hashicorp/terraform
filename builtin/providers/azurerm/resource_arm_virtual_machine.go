@@ -240,9 +240,9 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 
 						"disk_size_gb": {
-							Type:     schema.TypeInt,
-							Optional: true,
-							Computed: true,
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Computed:     true,
 							ValidateFunc: validateDiskSizeGB,
 						},
 
