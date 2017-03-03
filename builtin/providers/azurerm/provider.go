@@ -70,8 +70,6 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_container_registry": resourceArmContainerRegistry(),
 			"azurerm_container_service":  resourceArmContainerService(),
 
-			"azurerm_disk": resourceArmDisk(),
-
 			"azurerm_eventhub":                    resourceArmEventHub(),
 			"azurerm_eventhub_authorization_rule": resourceArmEventHubAuthorizationRule(),
 			"azurerm_eventhub_consumer_group":     resourceArmEventHubConsumerGroup(),
@@ -83,6 +81,8 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_lb_nat_pool":             resourceArmLoadBalancerNatPool(),
 			"azurerm_lb_probe":                resourceArmLoadBalancerProbe(),
 			"azurerm_lb_rule":                 resourceArmLoadBalancerRule(),
+
+			"azurerm_managed_disk": resourceArmManagedDisk(),
 
 			"azurerm_key_vault":                 resourceArmKeyVault(),
 			"azurerm_local_network_gateway":     resourceArmLocalNetworkGateway(),
