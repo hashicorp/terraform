@@ -284,6 +284,15 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 				return fmt.Errorf("Failed to find Default ACL for VPC %s", d.Get("vpc_id").(string))
 			}
 			for _, r := range remove {
+				_, err := conn.DescribeSubnets(&ec2.DescribeSubnetsInput{
+					SubnetIds: []*string{aws.String(d.Id())},
+				})
+				if err != nil {
+					if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidSubnetID.NotFound" {
+						continue
+					}
+					return fmt.Errorf("Failed to describe subnet %s", d.Id())
+				}
 				association, err := findNetworkAclAssociation(r.(string), conn)
 				if err != nil {
 					return fmt.Errorf("Failed to find acl association: acl %s with subnet %s: %s", d.Id(), r, err)
