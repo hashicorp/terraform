@@ -373,10 +373,20 @@
 			"revisionTime": "2017-02-15T23:13:05Z"
 		},
 		{
-			"checksumSHA1": "nomT+8bvze/Qmc0tK0r0mwgHV6M=",
+			"checksumSHA1": "y+nxGeKPzz0Pi2/POmHFRxMSYLA=",
 			"path": "github.com/Ensighten/udnssdk",
-			"revision": "9f1218928b30c6dec7f2c184c47286abc325deb9",
-			"revisionTime": "2016-06-13T20:05:45Z"
+			"revision": "d7c88e079bacea85e6655c7409b210f4b5ee9cbb",
+			"revisionTime": "2017-03-03T17:13:23Z",
+			"version": "v1.3.1",
+			"versionExact": "v1.3.1"
+		},
+		{
+			"checksumSHA1": "XVAeelbnNav0PIcwk32LiKg1dpQ=",
+			"path": "github.com/Ensighten/udnssdk/password",
+			"revision": "d7c88e079bacea85e6655c7409b210f4b5ee9cbb",
+			"revisionTime": "2017-03-03T17:13:23Z",
+			"version": "v1.3.1",
+			"versionExact": "v1.3.1"
 		},
 		{
 			"checksumSHA1": "B+GonfgNwOAJMEe0WUHQGATRtMA=",
