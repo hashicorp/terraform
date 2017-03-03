@@ -107,7 +107,7 @@ func TestConfigCount_list(t *testing.T) {
 	c.Resources[0].RawCount.Interpolate(map[string]ast.Variable{
 		"var.list": ast.Variable{
 			Value: []ast.Variable{},
-			Type:  ast.TypeList,
+			Type:  ast.TypeList{ast.TypeString},
 		},
 	})
 
