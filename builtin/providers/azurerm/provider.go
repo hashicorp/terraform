@@ -70,6 +70,8 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_container_registry": resourceArmContainerRegistry(),
 			"azurerm_container_service":  resourceArmContainerService(),
 
+			"azurerm_disk": resourceArmDisk(),
+
 			"azurerm_eventhub":                    resourceArmEventHub(),
 			"azurerm_eventhub_authorization_rule": resourceArmEventHubAuthorizationRule(),
 			"azurerm_eventhub_consumer_group":     resourceArmEventHubConsumerGroup(),
