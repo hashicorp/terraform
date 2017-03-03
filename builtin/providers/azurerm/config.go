@@ -25,6 +25,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/terraform/terraform"
 	riviera "github.com/jen20/riviera/azure"
+	"github.com/Azure/azure-sdk-for-go/arm/disk"
 )
 
 // ArmClient contains the handles to all the specific Azure Resource Manager
@@ -46,6 +47,8 @@ type ArmClient struct {
 	vmScaleSetClient       compute.VirtualMachineScaleSetsClient
 	vmImageClient          compute.VirtualMachineImagesClient
 	vmClient               compute.VirtualMachinesClient
+
+	diskClient disk.DisksClient
 
 	appGatewayClient             network.ApplicationGatewaysClient
 	ifaceClient                  network.InterfacesClient
