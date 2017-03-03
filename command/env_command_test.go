@@ -64,6 +64,16 @@ func TestEnv_createAndList(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
+	// make sure a vars file doesn't interfere
+	err := ioutil.WriteFile(
+		DefaultVarsFilename,
+		[]byte(`foo = "bar"`),
+		0644,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	newCmd := &EnvNewCommand{}
 
 	envs := []string{"test_a", "test_b", "test_c"}
