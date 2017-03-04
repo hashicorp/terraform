@@ -165,6 +165,7 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 						"ebs_optimized": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  false,
 						},
 						"iam_instance_profile": &schema.Schema{
 							Type:     schema.TypeString,
@@ -191,6 +192,7 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 						"monitoring": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  false,
 						},
 						"placement_group": &schema.Schema{
 							Type:     schema.TypeString,
