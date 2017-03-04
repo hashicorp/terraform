@@ -21,7 +21,7 @@ variable "myapp-tags" {
 
 resource "circonus_rule_set" "myapp-cert-ttl-alarm" {
   check = "${circonus_check.myapp-https.checks[0]}"
-  stream_name = "cert_end_in"
+  metric_name = "cert_end_in"
   link = "https://wiki.example.org/playbook/how-to-renew-cert"
 
   if {
@@ -73,7 +73,7 @@ resource "circonus_rule_set" "myapp-cert-ttl-alarm" {
 
 resource "circonus_rule_set" "myapp-healthy-alarm" {
   check = "${circonus_check.myapp-https.checks[0]}"
-  stream_name = "duration"
+  metric_name = "duration"
   link = "https://wiki.example.org/playbook/debug-down-app"
 
   if {
@@ -173,14 +173,14 @@ EOF
     url = "https://www.example.com/myapp/healthz"
   }
 
-  stream {
+  metric {
     name = "${circonus_metric.myapp-cert-ttl.name}"
     tags = "${circonus_metric.myapp-cert-ttl.tags}"
     type = "${circonus_metric.myapp-cert-ttl.type}"
     unit = "${circonus_metric.myapp-cert-ttl.unit}"
   }
 
-  stream {
+  metric {
     name = "${circonus_metric.myapp-duration.name}"
     tags = "${circonus_metric.myapp-duration.tags}"
     type = "${circonus_metric.myapp-duration.type}"
@@ -220,7 +220,7 @@ resource "circonus_metric" "myapp-duration" {
   feel is important) when a notification is sent.  This value will show up in
   email alerts and the Circonus UI.
 
-* `metric_type` - (Optional) The type of stream this rule set will operate on.
+* `metric_type` - (Optional) The type of metric this rule set will operate on.
   Valid values are `numeric` (the default) and `text`.
 
 * `notes` - (Optional) Notes about this rule set.
@@ -230,7 +230,7 @@ resource "circonus_metric" "myapp-duration" {
   alarms on the parent clear.  This value must match the format
   `${check_id}_${metric_name}`.
 
-* `stream_name` - (Required) The name of the metric stream within a given check
+* `metric_name` - (Required) The name of the metric stream within a given check
   that this rule set is active on.
 
 * `tags` - (Optional) A list of tags assigned to this rule set.
@@ -334,7 +334,7 @@ and [`circonus_check`](check.html) have already been imported):
 ```
 resource "circonus_rule_set" "icmp-latency-alarm" {
   check = "${circonus_check.api_latency.checks[0]}"
-  stream_name = "maximum"
+  metric_name = "maximum"
 
   if {
     value {
@@ -371,7 +371,7 @@ It is possible to import a `circonus_rule_set` resource with the following comma
 $ terraform import circonus_rule_set.usage ID
 ```
 
-Where `ID` is the `_cid` or Circonus ID of the Ruleset
+Where `ID` is the `_cid` or Circonus ID of the Rule Set
 (e.g. `/rule_set/201285_maximum`) and `circonus_rule_set.icmp-latency-alarm` is
 the name of the resource whose state will be populated as a result of the
 command.

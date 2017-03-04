@@ -13,16 +13,16 @@ description: |-
 [Circonus Collector](https://login.circonus.com/user/docs/Administration/Brokers).
 
 As well as validating a given Circonus ID, this resource can be used to discover
-the additional details about a collector configured within the provider.
+the additional details about a collector configured within the provider.  The
+results of a `circonus_collector` API call can return more than one collector
+per Circonus ID.  Details of each individual collector in the group of
+collectors can be found via the `details` attribute described below.
 
 ~> **NOTE regarding `cirocnus_collector`:** The `circonus_collector` data source
 actually queries and operates on Circonus "brokers" at the broker group level.
 The `circonus_collector` is simply a renamed Circonus "broker" to make it clear
 what the function of the "broker" actually does: act as a fan-in agent that
 either pulls or has metrics pushed into it and funneled back through Circonus.
-A `circonus_collector` can return more than one collector per Circonus ID.
-Details of each individual collector in the group of collectors can be found via
-the `details` attribute described below.
 
 ## Example Usage
 

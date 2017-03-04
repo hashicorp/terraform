@@ -2,7 +2,7 @@ package circonus
 
 // The `circonus_metric` type is a synthetic, top-level resource that doesn't
 // actually exist within Circonus.  The `circonus_check` resource uses
-// `circonus_metric` as input to its `streams` attribute.  The `circonus_check`
+// `circonus_metric` as input to its `metric` attribute.  The `circonus_check`
 // resource can, if configured, override various parameters in the
 // `circonus_metric` resource if no value was set (e.g. the `icmp_ping` will
 // implicitly set the `unit` metric to `seconds`).

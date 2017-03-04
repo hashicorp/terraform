@@ -36,7 +36,7 @@ EOF
     id = "/broker/1"
   }
 
-  stream {
+  metric {
     name = "${circonus_metric.used.name}"
     tags = "${circonus_metric.used.tags}"
     type = "${circonus_metric.used.type}"
@@ -122,9 +122,9 @@ resource "circonus_metric" "used" {
 * `postgresql` - (Optional) A PostgreSQL check.  See below for details on how to
   configure the `postgresql` check.
 
-* `stream` - (Required) A list of one or more `stream` configurations.  See
-  below for a list of supported `stream` attrbutes.  A collection of known
-  metrics are aggregated into a metric stream.
+* `metric` - (Required) A list of one or more `metric` configurations.  All
+  metrics obtained from this check instance will be available as individual
+  metric streams.  See below for a list of supported `metric` attrbutes.
 
 * `tags` - (Optional) A list of tags assigned to this check.
 
@@ -139,7 +139,7 @@ resource "circonus_metric" "used" {
 * `timeout` - (Optional) A floating point number representing the maximum number
   of seconds this check should wait for a result.  Defaults to `10.0`.
 
-## Supported `stream` Attributes
+## Supported `metric` Attributes
 
 The following attributes are available within a `metric`.
 
@@ -230,14 +230,14 @@ resource "circonus_check" "rds_metrics" {
     url = "https://monitoring.us-east-1.amazonaws.com"
   }
 
-  stream {
+  metric {
     name = "CPUUtilization"
     tags = [ "${var.cloudwatch_rds_tags}" ]
     type = "numeric"
     unit = "%"
   }
 
-  stream {
+  metric {
     name = "DatabaseConnections"
     tags = [ "${var.cloudwatch_rds_tags}" ]
     type = "numeric"
@@ -448,14 +448,14 @@ resource "circonus_check" "tcp_check" {
     tls = true
   }
 
-  stream {
+  metric {
     name = "cert_end_in"
     tags = [ "${var.tcp_check_tags}" ]
     type = "numeric"
     unit = "seconds"
   }
 
-  stream {
+  metric {
     name = "tt_connect"
     tags = [ "${var.tcp_check_tags}" ]
     type = "numeric"
@@ -502,7 +502,7 @@ resource "circonus_check" "usage" {
     }
   }
 
-  stream {
+  metric {
     name = "${circonus_metric.used.name}"
     type = "${circonus_metric.used.type}"
   }

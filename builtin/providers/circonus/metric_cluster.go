@@ -18,38 +18,38 @@ func newMetricCluster() circonusMetricCluster {
 }
 
 func loadMetricCluster(ctxt *providerContext, cid api.CIDType) (circonusMetricCluster, error) {
-	var sg circonusMetricCluster
-	mc, err := ctxt.client.FetchMetricCluster(cid, "")
+	var mc circonusMetricCluster
+	cmc, err := ctxt.client.FetchMetricCluster(cid, "")
 	if err != nil {
 		return circonusMetricCluster{}, err
 	}
-	sg.MetricCluster = *mc
+	mc.MetricCluster = *cmc
 
-	return sg, nil
+	return mc, nil
 }
 
-func (sg *circonusMetricCluster) Create(ctxt *providerContext) error {
-	mc, err := ctxt.client.CreateMetricCluster(&sg.MetricCluster)
+func (mc *circonusMetricCluster) Create(ctxt *providerContext) error {
+	cmc, err := ctxt.client.CreateMetricCluster(&mc.MetricCluster)
 	if err != nil {
 		return err
 	}
 
-	sg.CID = mc.CID
+	mc.CID = cmc.CID
 
 	return nil
 }
 
-func (sg *circonusMetricCluster) Update(ctxt *providerContext) error {
-	_, err := ctxt.client.UpdateMetricCluster(&sg.MetricCluster)
+func (mc *circonusMetricCluster) Update(ctxt *providerContext) error {
+	_, err := ctxt.client.UpdateMetricCluster(&mc.MetricCluster)
 	if err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("Unable to update stream group %s: {{err}}", sg.CID), err)
+		return errwrap.Wrapf(fmt.Sprintf("Unable to update stream group %s: {{err}}", mc.CID), err)
 	}
 
 	return nil
 }
 
-func (sg *circonusMetricCluster) Validate() error {
-	if len(sg.Queries) < 1 {
+func (mc *circonusMetricCluster) Validate() error {
+	if len(mc.Queries) < 1 {
 		return fmt.Errorf("there must be at least one stream group query present")
 	}
 

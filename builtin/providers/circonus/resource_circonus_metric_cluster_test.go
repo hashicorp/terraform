@@ -83,7 +83,7 @@ func testAccMetricClusterExists(n string, metricClusterCID api.CIDType) resource
 }
 
 func checkMetricClusterExists(c *providerContext, metricClusterCID api.CIDType) (bool, error) {
-	sg, err := c.client.FetchMetricCluster(metricClusterCID, "")
+	cmc, err := c.client.FetchMetricCluster(metricClusterCID, "")
 	if err != nil {
 		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {
 			return false, nil
@@ -92,7 +92,7 @@ func checkMetricClusterExists(c *providerContext, metricClusterCID api.CIDType) 
 		return false, err
 	}
 
-	if api.CIDType(&sg.CID) == metricClusterCID {
+	if api.CIDType(&cmc.CID) == metricClusterCID {
 		return true, nil
 	}
 

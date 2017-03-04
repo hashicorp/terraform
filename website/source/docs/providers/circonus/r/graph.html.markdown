@@ -28,18 +28,18 @@ resource "circonus_graph" "latency-graph" {
   graph_style = "line"
   line_style = "stepped"
 
-  stream {
+  metric {
     check = "${circonus_check.api_latency.checks[0]}"
-    stream_name = "maximum"
+    metric_name = "maximum"
     metric_type = "numeric"
     name = "Maximum Latency"
     axis = "left"
     color = "#657aa6"
   }
 
-  stream {
+  metric {
     check = "${circonus_check.api_latency.checks[0]}"
-    stream_name = "minimum"
+    metric_name = "minimum"
     metric_type = "numeric"
     name = "Minimum Latency"
     axis = "right"
@@ -73,18 +73,19 @@ resource "circonus_graph" "latency-graph" {
   the `min` Y axis value on the right; and `max` is the Y axis max value on the
   right.
 
-* `stream` - (Optional) A list of metric streams to graph.  See below for
+* `metric` - (Optional) A list of metric streams to graph.  See below for
   options.
 
 * `metric_cluster` - (Optional) A metric cluster to graph.  See below for options.
 
 * `tags` - (Optional) A list of tags assigned to this graph.
 
-## `stream` Configuration
+## `metric` Configuration
 
-A metric stream is what generates data points or lines on a graph. The `stream`
-attribute can have the following options set.  Either a `caql` attribute is
-required or a `check` and `stream` must be set.
+An individual metric stream is the underlying source of data points used for
+visualization in a graph. Either a `caql` attribute is required or a `check` and
+`metric` must be set. The `metric` attribute can have the following options
+set.
 
 * `active` - (Optional) A boolean if the metric stream is enabled or not.
 
@@ -93,7 +94,7 @@ required or a `check` and `stream` must be set.
 * `axis` - (Optional) The axis that the metric stream will use.  Valid options
   are `left` (default) or `right`.
 
-* `caql` - (Optional) A CAQL formula.  Conflicts with the `check` and `stream`
+* `caql` - (Optional) A CAQL formula.  Conflicts with the `check` and `metric`
   attributes.
 
 * `check` - (Optional) The check that this metric stream belongs to.
@@ -114,7 +115,7 @@ required or a `check` and `stream` must be set.
 
 * `name` - (Optional) A name which will appear in the graph legend.
 
-* `stream_name` - (Optional) The name of the metric stream within the check to
+* `metric_name` - (Optional) The name of the metric stream within the check to
   graph.
 
 * `stack` - (Optional) If this metric is to be stacked, which stack set does it
@@ -122,23 +123,24 @@ required or a `check` and `stream` must be set.
 
 ## `metric_cluster` Configuration
 
-A metric cluster aggregates multiple metric streams together dynamically using a
-query language.
+A metric cluster selects multiple metric streams together dynamically using a
+query language and returns the set of matching metric streams as a single result
+set to the graph rendering engine.
 
-* `active` - (Optional) A boolean if the stream group is enabled or not.
+* `active` - (Optional) A boolean if the metric cluster is enabled or not.
 
 * `aggregate` - (Optional) The aggregate function to apply across this metric
   cluster to create a single value.  Valid values are: `none` (default), `min`,
   `max`, `sum`, `mean`, or `geometric_mean`.
 
-* `axis` - (Optional) The axis that the stream group will use.  Valid options
+* `axis` - (Optional) The axis that the metric cluster will use.  Valid options
   are `left` (default) or `right`.
 
 * `group` - (Optional) The `metric_cluster` that will provide datapoints for this
   graph.
 
 * `name` - (Optional) A name which will appear in the graph legend for this
-  stream group.
+  metric cluster.
 
 ## Import Example
 
@@ -152,9 +154,9 @@ resource "circonus_graph" "icmp-graph" {
   graph_style = "line"
   line_style = "stepped"
 
-  stream {
+  metric {
     check = "${circonus_check.api_latency.checks[0]}"
-    stream_name = "maximum"
+    metric_name = "maximum"
     metric_type = "numeric"
     name = "Maximum Latency"
     axis = "left"

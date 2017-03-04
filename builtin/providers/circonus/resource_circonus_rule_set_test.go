@@ -127,7 +127,7 @@ func testAccRuleSetExists(n string, ruleSetCID api.CIDType) resource.TestCheckFu
 }
 
 func checkRuleSetExists(c *providerContext, ruleSetCID api.CIDType) (bool, error) {
-	sg, err := c.client.FetchMetricCluster(ruleSetCID, "")
+	rs, err := c.client.FetchRuleSet(ruleSetCID)
 	if err != nil {
 		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {
 			return false, nil
@@ -136,7 +136,7 @@ func checkRuleSetExists(c *providerContext, ruleSetCID api.CIDType) (bool, error
 		return false, err
 	}
 
-	if api.CIDType(&sg.CID) == ruleSetCID {
+	if api.CIDType(&rs.CID) == ruleSetCID {
 		return true, nil
 	}
 
