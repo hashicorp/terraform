@@ -50,10 +50,11 @@ func resourceArmManagedDisk() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					string(disk.Import),
 					string(disk.Empty),
+					//todo: add support for snapshots as a source (disk.Copy)
 				}, true),
 			},
 
-			"vhd_uri": {
+			"source_uri": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -70,7 +71,7 @@ func resourceArmManagedDisk() *schema.Resource {
 
 			"disk_size_gb": {
 				Type:         schema.TypeInt,
-				Required:     true,
+				Optional:     true,
 				ValidateFunc: validateDiskSizeGB,
 			},
 
@@ -114,7 +115,7 @@ func resourceArmManagedDiskCreate(d *schema.ResourceData, meta interface{}) erro
 		OsType:      disk.OperatingSystemTypes(osType),
 	}
 
-	if v := d.Get("disk_size_gb"); v != nil {
+	if v := d.Get("disk_size_gb"); v != 0 {
 		diskSize := int32(v.(int))
 		createDisk.Properties.DiskSizeGB = &diskSize
 	}
@@ -125,10 +126,10 @@ func resourceArmManagedDiskCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if strings.EqualFold(createOption, string(disk.Import)) {
-		if vhdUri := d.Get("vhd_uri").(string); vhdUri != "" {
-			creationData.SourceURI = &vhdUri
+		if sourceUri := d.Get("source_uri").(string); sourceUri != "" {
+			creationData.SourceURI = &sourceUri
 		} else {
-			return fmt.Errorf("[ERROR] vhd_uri must be specified when create_option is `%s`", disk.Import)
+			return fmt.Errorf("[ERROR] source_uri must be specified when create_option is `%s` or `%s`", disk.Import, disk.Copy)
 		}
 	}
 
@@ -193,8 +194,8 @@ func resourceArmManagedDiskRead(d *schema.ResourceData, meta interface{}) error 
 			return fmt.Errorf("[DEBUG] Error setting managed disk creation data: %#v", err)
 		} else {
 			d.Set("create_option", m["create_option"])
-			if m["vhd_uri"] != nil {
-				d.Set("vhd_uri", m["vhd_uri"])
+			if m["source_uri"] != nil {
+				d.Set("source_uri", m["source_uri"])
 			}
 		}
 	}
@@ -236,7 +237,7 @@ func flattenAzureRmManagedDiskCreationData(creationData *disk.CreationData) (map
 	result := make(map[string]interface{})
 	result["create_option"] = string(creationData.CreateOption)
 	if creationData.SourceURI != nil {
-		result["vhd_uri"] = *creationData.SourceURI
+		result["source_uri"] = *creationData.SourceURI
 	}
 
 	return result, nil
