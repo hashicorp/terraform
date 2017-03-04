@@ -127,7 +127,10 @@ func validateDurationMin(attrName schemaAttr, minDuration string) func(v interfa
 		var err error
 		min, err = time.ParseDuration(minDuration)
 		if err != nil {
-			panic(fmt.Sprintf("Invalid time +%q: %v", minDuration, err))
+			return func(interface{}, string) (warnings []string, errors []error) {
+				errors = []error{errwrap.Wrapf(fmt.Sprintf("Invalid time +%q: {{err}}", minDuration), err)}
+				return warnings, errors
+			}
 		}
 	}
 
@@ -150,7 +153,10 @@ func validateDurationMax(attrName schemaAttr, maxDuration string) func(v interfa
 		var err error
 		max, err = time.ParseDuration(maxDuration)
 		if err != nil {
-			panic(fmt.Sprintf("Invalid time +%q: %v", maxDuration, err))
+			return func(interface{}, string) (warnings []string, errors []error) {
+				errors = []error{errwrap.Wrapf(fmt.Sprintf("Invalid time +%q: {{err}}", maxDuration), err)}
+				return warnings, errors
+			}
 		}
 	}
 

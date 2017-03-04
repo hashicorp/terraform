@@ -3,6 +3,7 @@ package circonus
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/circonus-labs/circonus-gometrics/api/config"
@@ -64,7 +65,7 @@ func checkAPIToStateHTTPTrap(c *circonusCheck, d *schema.ResourceData) error {
 			case "false", "off":
 				httpTrapConfig[string(attrName)] = false
 			default:
-				panic(fmt.Sprintf("PROVIDER BUG: unsupported value %q returned in key %q", s, apiKey))
+				log.Printf("PROVIDER BUG: unsupported value %q returned in key %q", s, apiKey)
 			}
 		}
 
@@ -93,7 +94,7 @@ func checkAPIToStateHTTPTrap(c *circonusCheck, d *schema.ResourceData) error {
 		}
 
 		if _, ok := whitelistedConfigKeys[k]; !ok {
-			panic(fmt.Sprintf("PROVIDER BUG: API Config not empty: %#v", swamp))
+			log.Printf("[ERROR]: PROVIDER BUG: API Config not empty: %#v", swamp)
 		}
 	}
 

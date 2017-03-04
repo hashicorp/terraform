@@ -3,6 +3,7 @@ package circonus
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"net/url"
 	"sort"
 	"strconv"
@@ -166,7 +167,8 @@ func checkAPIToStateJSON(c *circonusCheck, d *schema.ResourceData) error {
 		if s, ok := c.Config[apiKey]; ok && s != "0" {
 			i, err := strconv.ParseInt(s, 10, 64)
 			if err != nil {
-				panic(fmt.Sprintf("Unable to convert %s to an integer: %v", apiKey, err))
+				log.Printf("[ERROR]: Unable to convert %s to an integer: %v", apiKey, err)
+				return
 			}
 			jsonConfig[string(attrName)] = int(i)
 		}
@@ -215,7 +217,7 @@ func checkAPIToStateJSON(c *circonusCheck, d *schema.ResourceData) error {
 		}
 
 		if _, ok := whitelistedConfigKeys[k]; !ok {
-			panic(fmt.Sprintf("PROVIDER BUG: API Config not empty: %#v", swamp))
+			return fmt.Errorf("PROVIDER BUG: API Config not empty: %#v", swamp)
 		}
 	}
 

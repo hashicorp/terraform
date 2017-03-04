@@ -1,6 +1,7 @@
 package circonus
 
 import (
+	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -29,7 +30,8 @@ func (t circonusTag) Category() string {
 	case 2:
 		return tagInfo[0]
 	default:
-		panic("bad")
+		log.Printf("[ERROR]: Invalid category on tag %q", string(t))
+		return ""
 	}
 }
 
@@ -41,7 +43,8 @@ func (t circonusTag) Value() string {
 	case 2:
 		return tagInfo[1]
 	default:
-		panic("bad")
+		log.Printf("[ERROR]: Invalid value on tag %q", string(t))
+		return ""
 	}
 }
 

@@ -3,6 +3,7 @@ package circonus
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 
@@ -150,7 +151,7 @@ func checkAPIToStateCloudWatch(c *circonusCheck, d *schema.ResourceData) error {
 		}
 
 		if _, ok := whitelistedConfigKeys[k]; !ok {
-			panic(fmt.Sprintf("PROVIDER BUG: API Config not empty: %#v", swamp))
+			log.Printf("[ERROR]: PROVIDER BUG: API Config not empty: %#v", swamp)
 		}
 	}
 

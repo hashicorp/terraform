@@ -349,7 +349,7 @@ func graphRead(d *schema.ResourceData, meta interface{}) error {
 		case "r":
 			dataPointAttrs[string(graphStreamAxisAttr)] = "right"
 		default:
-			panic(fmt.Sprintf("PROVIDER BUG: Unsupported axis type %q", datapoint.Axis))
+			return fmt.Errorf("PROVIDER BUG: Unsupported axis type %q", datapoint.Axis)
 		}
 
 		if datapoint.CAQL != nil {
@@ -373,7 +373,7 @@ func graphRead(d *schema.ResourceData, meta interface{}) error {
 		case string:
 			dataPointAttrs[string(graphStreamFunctionAttr)] = datapoint.Derive.(string)
 		default:
-			panic(fmt.Sprintf("PROVIDER BUG: Unsupported type for derive: %T", datapoint.Derive))
+			return fmt.Errorf("PROVIDER BUG: Unsupported type for derive: %T", datapoint.Derive)
 		}
 
 		if datapoint.LegendFormula != nil {
@@ -415,7 +415,7 @@ func graphRead(d *schema.ResourceData, meta interface{}) error {
 		case "r":
 			streamGroupAttrs[string(graphStreamGroupAxisAttr)] = "right"
 		default:
-			panic(fmt.Sprintf("PROVIDER BUG: Unsupported axis type %q", metricCluster.Axis))
+			return fmt.Errorf("PROVIDER BUG: Unsupported axis type %q", metricCluster.Axis)
 		}
 
 		if metricCluster.DataFormula != nil {

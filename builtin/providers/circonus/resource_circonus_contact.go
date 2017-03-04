@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -685,10 +686,12 @@ func contactGroupDelete(d *schema.ResourceData, meta interface{}) error {
 
 func contactGroupAlertOptionsToState(cg *api.ContactGroup) []interface{} {
 	if config.NumSeverityLevels != len(cg.Reminders) {
-		panic("Need to update constants")
+		log.Printf("[FATAL] PROVIDER BUG: Need to update constants in contactGroupAlertOptionsToState re: reminders")
+		return nil
 	}
 	if config.NumSeverityLevels != len(cg.Escalations) {
-		panic("Need to update constants")
+		log.Printf("[FATAL] PROVIDER BUG: Need to update constants in contactGroupAlertOptionsToState re: escalations")
+		return nil
 	}
 
 	// Populate all alert options for every severity level.  We'll prune empty

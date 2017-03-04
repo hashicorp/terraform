@@ -373,7 +373,7 @@ func triggerRead(d *schema.ResourceData, meta interface{}) error {
 		case apiRulesetNotMatch:
 			valueAttrs[string(triggerMissingAttr)] = rule.Value
 		default:
-			panic(fmt.Sprintf("PROVIDER BUG: Unsupported criteria %q", rule.Criteria))
+			return fmt.Errorf("PROVIDER BUG: Unsupported criteria %q", rule.Criteria)
 		}
 
 		if rule.Wait > 0 {

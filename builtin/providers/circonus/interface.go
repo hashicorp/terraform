@@ -1,6 +1,6 @@
 package circonus
 
-import "fmt"
+import "log"
 
 type interfaceList []interface{}
 type interfaceMap map[string]interface{}
@@ -39,7 +39,8 @@ func (l interfaceList) List() []string {
 				stringList = append(stringList, v.(string))
 			}
 		default:
-			panic(fmt.Sprintf("PROVIDER BUG: unable to convert %#v to list", e))
+			log.Printf("[ERROR] PROVIDER BUG: unable to convert %#v to list", e)
+			return nil
 		}
 	}
 	return stringList

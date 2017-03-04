@@ -3,6 +3,7 @@ package circonus
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -109,7 +110,8 @@ func checkAPIToStateTCP(c *circonusCheck, d *schema.ResourceData) error {
 			case "0", "false", "f", "no", "n":
 				tcpConfig[string(attrName)] = false
 			default:
-				panic(fmt.Sprintf("PROVIDER BUG: unsupported boolean: %q for API Config Key %q", s, string(apiKey)))
+				log.Printf("PROVIDER BUG: unsupported boolean: %q for API Config Key %q", s, string(apiKey))
+				return
 			}
 		}
 
@@ -120,7 +122,8 @@ func checkAPIToStateTCP(c *circonusCheck, d *schema.ResourceData) error {
 		if v, ok := c.Config[apiKey]; ok {
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				panic(fmt.Sprintf("Unable to convert %s to an integer: %v", apiKey, err))
+				log.Printf("[ERROR]: Unable to convert %s to an integer: %v", apiKey, err)
+				return
 			}
 			tcpConfig[string(attrName)] = int(i)
 		}
@@ -156,7 +159,7 @@ func checkAPIToStateTCP(c *circonusCheck, d *schema.ResourceData) error {
 		}
 
 		if _, ok := whitelistedConfigKeys[k]; !ok {
-			panic(fmt.Sprintf("PROVIDER BUG: API Config not empty: %#v", swamp))
+			log.Printf("[ERROR]: PROVIDER BUG: API Config not empty: %#v", swamp)
 		}
 	}
 

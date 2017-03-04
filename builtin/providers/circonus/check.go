@@ -2,6 +2,7 @@ package circonus
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
 	"github.com/circonus-labs/circonus-gometrics/api/config"
@@ -57,21 +58,18 @@ func checkAPIStatusToBool(s string) bool {
 	case checkStatusDisabled:
 		active = false
 	default:
-		panic(fmt.Sprintf("PROVIDER BUG: check status %q unsupported", s))
+		log.Printf("[ERROR] PROVIDER BUG: check status %q unsupported", s)
 	}
 
 	return active
 }
 
 func checkActiveToAPIStatus(active bool) string {
-	switch active {
-	case true:
+	if active {
 		return checkStatusActive
-	case false:
-		return checkStatusDisabled
 	}
 
-	panic("suppress Go error message")
+	return checkStatusDisabled
 }
 
 func (c *circonusCheck) Create(ctxt *providerContext) error {
