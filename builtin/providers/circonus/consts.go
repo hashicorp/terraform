@@ -45,12 +45,12 @@ const (
 	metricUnit       = ""
 	metricUnitRegexp = `^.*$`
 
-	defaultTriggerLast       = "300s"
-	defaultTriggerMetricType = "numeric"
-	defaultTriggerRuleLen    = 4
-	defaultTriggerSeverity   = 1
-	defaultTriggerWindowFunc = "average"
-	triggerAbsentMin         = "70s"
+	defaultRuleSetLast       = "300s"
+	defaultRuleSetMetricType = "numeric"
+	defaultRuleSetRuleLen    = 4
+	defaultAlertSeverity     = 1
+	defaultRuleSetWindowFunc = "average"
+	ruleSetAbsentMin         = "70s"
 )
 
 // Consts and their close relative, Go pseudo-consts.
@@ -99,8 +99,8 @@ var validGraphFunctionValues = validStringValues{
 	`gauge`,
 }
 
-// validTriggerWindowFuncs: See `derive` or `windowing_func`: https://login.circonus.com/resources/api/calls/rule_set
-var validTriggerWindowFuncs = validStringValues{
+// validRuleSetWindowFuncs: See `derive` or `windowing_func`: https://login.circonus.com/resources/api/calls/rule_set
+var validRuleSetWindowFuncs = validStringValues{
 	`average`,
 	`stddev`,
 	`derive`,
@@ -116,12 +116,12 @@ var validTriggerWindowFuncs = validStringValues{
 const (
 	// Supported circonus_trigger.metric_types.  See `metric_type`:
 	// https://login.circonus.com/resources/api/calls/rule_set
-	triggerMetricTypeNumeric = "numeric"
-	triggerMetricTypeText    = "text"
+	ruleSetMetricTypeNumeric = "numeric"
+	ruleSetMetricTypeText    = "text"
 )
 
-// validTriggerMetricTypes: See `metric_type`: https://login.circonus.com/resources/api/calls/rule_set
-var validTriggerMetricTypes = validStringValues{
-	triggerMetricTypeNumeric,
-	triggerMetricTypeText,
+// validRuleSetMetricTypes: See `metric_type`: https://login.circonus.com/resources/api/calls/rule_set
+var validRuleSetMetricTypes = validStringValues{
+	ruleSetMetricTypeNumeric,
+	ruleSetMetricTypeText,
 }

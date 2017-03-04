@@ -1,22 +1,15 @@
 ---
 layout: "circonus"
-page_title: "Circonus: circonus_trigger"
-sidebar_current: "docs-circonus-resource-circonus_trigger"
+page_title: "Circonus: circonus_rule_set"
+sidebar_current: "docs-circonus-resource-circonus_rule_set"
 description: |-
-  Manages a Circonus trigger.
+  Manages a Circonus rule set.
 ---
 
-# circonus\_trigger
+# circonus\_rule_set
 
-The ``circonus_trigger`` resource creates and manages a
-[Circonus Trigger](https://login.circonus.com/resources/api/calls/rule_set).
-
-~> **NOTE regarding `cirocnus_trigger` vs a Circonus Ruleset:** The
-`circonus_trigger` resource is implemented in terms of a [Circonus
-Ruleset](https://login.circonus.com/resources/api/calls/rule_set).  The
-`circonus_trigger` creates a higher-level abstraction over the implementation of a
-Ruleset.  As such, the naming and structure does not map 1:1 with the
-underlying Circonus API.
+The ``circonus_rule_set`` resource creates and manages a
+[Circonus Rule Set](https://login.circonus.com/resources/api/calls/rule_set).
 
 ## Usage
 
@@ -26,7 +19,7 @@ variable "myapp-tags" {
   default = [ "app:myapp", "owner:myteam" ]
 }
 
-resource "circonus_trigger" "myapp-cert-ttl-alarm" {
+resource "circonus_rule_set" "myapp-cert-ttl-alarm" {
   check = "${circonus_check.myapp-https.checks[0]}"
   stream_name = "cert_end_in"
   link = "https://wiki.example.org/playbook/how-to-renew-cert"
@@ -78,7 +71,7 @@ resource "circonus_trigger" "myapp-cert-ttl-alarm" {
   tags = [ "${var.myapp-tags}" ]
 }
 
-resource "circonus_trigger" "myapp-healthy-alarm" {
+resource "circonus_rule_set" "myapp-healthy-alarm" {
   check = "${circonus_check.myapp-https.checks[0]}"
   stream_name = "duration"
   link = "https://wiki.example.org/playbook/debug-down-app"
@@ -216,7 +209,7 @@ resource "circonus_metric" "myapp-duration" {
 
 ## Argument Reference
 
-* `check` - (Required) The Circonus ID that this Trigger will use to search for
+* `check` - (Required) The Circonus ID that this Rule Set will use to search for
   a metric stream to alert on.
 
 * `if` - (Required) One or more ordered predicate clauses that describe when
@@ -227,27 +220,27 @@ resource "circonus_metric" "myapp-duration" {
   feel is important) when a notification is sent.  This value will show up in
   email alerts and the Circonus UI.
 
-* `metric_type` - (Optional) The type of stream this trigger will operate on.
+* `metric_type` - (Optional) The type of stream this rule set will operate on.
   Valid values are `numeric` (the default) and `text`.
 
-* `notes` - (Optional) Notes about this trigger.
+* `notes` - (Optional) Notes about this rule set.
 
 * `parent` - (Optional) A Circonus Metric ID that, if specified and active with
-  a severity 1 alert, will silence this trigger until all of the severity 1
+  a severity 1 alert, will silence this rule set until all of the severity 1
   alarms on the parent clear.  This value must match the format
   `${check_id}_${metric_name}`.
 
 * `stream_name` - (Required) The name of the metric stream within a given check
-  that this trigger is active on.
+  that this rule set is active on.
 
-* `tags` - (Optional) A list of tags assigned to this trigger.
+* `tags` - (Optional) A list of tags assigned to this rule set.
 
 ## `if` Configuration
 
 The `if` configuration block is an
 [ordered list of rules](https://login.circonus.com/user/docs/Alerting/Rules/Configure) that
 are evaluated in order, first to last.  The first `if` condition to evaluate
-true shortcircuits all other `if` blocks in this trigger.  An `if` block is also
+true shortcircuits all other `if` blocks in this rule set.  An `if` block is also
 referred to as a "rule."  It is advised that all high-severity rules are ordered
 before low-severity rules otherwise low-severity rules will mask notifications
 that should be delivered with a high-severity.
@@ -334,12 +327,12 @@ A `then` block can have the following attributes:
 
 ## Import Example
 
-`circonus_trigger` supports importing resources.  Supposing the following
+`circonus_rule_set` supports importing resources.  Supposing the following
 Terraform (and that the referenced [`circonus_metric`](metric.html)
 and [`circonus_check`](check.html) have already been imported):
 
 ```
-resource "circonus_trigger" "icmp-latency-alarm" {
+resource "circonus_rule_set" "icmp-latency-alarm" {
   check = "${circonus_check.api_latency.checks[0]}"
   stream_name = "maximum"
 
@@ -372,13 +365,13 @@ resource "circonus_trigger" "icmp-latency-alarm" {
 }
 ```
 
-It is possible to import a `circonus_trigger` resource with the following command:
+It is possible to import a `circonus_rule_set` resource with the following command:
 
 ```
-$ terraform import circonus_trigger.usage ID
+$ terraform import circonus_rule_set.usage ID
 ```
 
 Where `ID` is the `_cid` or Circonus ID of the Ruleset
-(e.g. `/rule_set/201285_maximum`) and `circonus_trigger.icmp-latency-alarm` is
+(e.g. `/rule_set/201285_maximum`) and `circonus_rule_set.icmp-latency-alarm` is
 the name of the resource whose state will be populated as a result of the
 command.

@@ -15,247 +15,247 @@ import (
 )
 
 const (
-	// circonus_trigger.* resource attribute names
-	triggerCheckAttr      = "check"
-	triggerIfAttr         = "if"
-	triggerLinkAttr       = "link"
-	triggerMetricTypeAttr = "metric_type"
-	triggerNotesAttr      = "notes"
-	triggerParentAttr     = "parent"
-	triggerStreamNameAttr = "stream_name"
-	triggerTagsAttr       = "tags"
+	// circonus_rule_set.* resource attribute names
+	ruleSetCheckAttr      = "check"
+	ruleSetIfAttr         = "if"
+	ruleSetLinkAttr       = "link"
+	ruleSetMetricTypeAttr = "metric_type"
+	ruleSetNotesAttr      = "notes"
+	ruleSetParentAttr     = "parent"
+	ruleSetStreamNameAttr = "stream_name"
+	ruleSetTagsAttr       = "tags"
 
-	// circonus_trigger.if.* resource attribute names
-	triggerThenAttr  = "then"
-	triggerValueAttr = "value"
+	// circonus_rule_set.if.* resource attribute names
+	ruleSetThenAttr  = "then"
+	ruleSetValueAttr = "value"
 
-	// circonus_trigger.if.then.* resource attribute names
-	triggerAfterAttr    = "after"
-	triggerNotifyAttr   = "notify"
-	triggerSeverityAttr = "severity"
+	// circonus_rule_set.if.then.* resource attribute names
+	ruleSetAfterAttr    = "after"
+	ruleSetNotifyAttr   = "notify"
+	ruleSetSeverityAttr = "severity"
 
-	// circonus_trigger.if.value.* resource attribute names
-	triggerAbsentAttr   = "absent"   // apiRulesetAbsent
-	triggerChangedAttr  = "changed"  // apiRulesetChanged
-	triggerContainsAttr = "contains" // apiRulesetContains
-	triggerEqualsAttr   = "equals"   // apiRulesetMatch
-	triggerExcludesAttr = "excludes" // apiRulesetNotMatch
-	triggerLessAttr     = "less"     // apiRulesetMinValue
-	triggerMissingAttr  = "missing"  // apiRulesetNotContains
-	triggerMoreAttr     = "more"     // apiRulesetMaxValue
-	triggerOverAttr     = "over"
+	// circonus_rule_set.if.value.* resource attribute names
+	ruleSetAbsentAttr   = "absent"   // apiRuleSetAbsent
+	ruleSetChangedAttr  = "changed"  // apiRuleSetChanged
+	ruleSetContainsAttr = "contains" // apiRuleSetContains
+	ruleSetEqualsAttr   = "equals"   // apiRuleSetMatch
+	ruleSetExcludesAttr = "excludes" // apiRuleSetNotMatch
+	ruleSetLessAttr     = "less"     // apiRuleSetMinValue
+	ruleSetMissingAttr  = "missing"  // apiRuleSetNotContains
+	ruleSetMoreAttr     = "more"     // apiRuleSetMaxValue
+	ruleSetOverAttr     = "over"
 
-	// circonus_trigger.if.value.over.* resource attribute names
-	triggerLastAttr  = "last"
-	triggerUsingAttr = "using"
+	// circonus_rule_set.if.value.over.* resource attribute names
+	ruleSetLastAttr  = "last"
+	ruleSetUsingAttr = "using"
 )
 
 const (
 	// Different criteria that an api.RuleSetRule can return
-	apiRulesetAbsent      = "on absence"       // triggerAbsentAttr
-	apiRulesetChanged     = "on change"        // triggerChangedAttr
-	apiRulesetContains    = "contains"         // triggerContainsAttr
-	apiRulesetMatch       = "match"            // triggerEqualsAttr
-	apiRulesetMaxValue    = "max value"        // triggerMoreAttr
-	apiRulesetMinValue    = "min value"        // triggerLessAttr
-	apiRulesetNotContains = "does not contain" // triggerExcludesAttr
-	apiRulesetNotMatch    = "does not match"   // triggerMissingAttr
+	apiRuleSetAbsent      = "on absence"       // ruleSetAbsentAttr
+	apiRuleSetChanged     = "on change"        // ruleSetChangedAttr
+	apiRuleSetContains    = "contains"         // ruleSetContainsAttr
+	apiRuleSetMatch       = "match"            // ruleSetEqualsAttr
+	apiRuleSetMaxValue    = "max value"        // ruleSetMoreAttr
+	apiRuleSetMinValue    = "min value"        // ruleSetLessAttr
+	apiRuleSetNotContains = "does not contain" // ruleSetExcludesAttr
+	apiRuleSetNotMatch    = "does not match"   // ruleSetMissingAttr
 )
 
-var triggerDescriptions = attrDescrs{
-	// circonus_trigger.* resource attribute names
-	triggerCheckAttr:      "The CID of the check that contains the stream for this trigger",
-	triggerIfAttr:         "A rule to execute for this trigger",
-	triggerLinkAttr:       "URL to show users when this trigger is active (e.g. wiki)",
-	triggerMetricTypeAttr: "The type of data flowing through the specified stream",
-	triggerNotesAttr:      "Notes describing this trigger",
-	triggerParentAttr:     "Parent CID that must be healthy for this trigger to be active",
-	triggerStreamNameAttr: "The name of the stream within a check to register the trigger with",
-	triggerTagsAttr:       "Tags associated with this trigger",
+var ruleSetDescriptions = attrDescrs{
+	// circonus_rule_set.* resource attribute names
+	ruleSetCheckAttr:      "The CID of the check that contains the stream for this rule set",
+	ruleSetIfAttr:         "A rule to execute for this rule set",
+	ruleSetLinkAttr:       "URL to show users when this rule set is active (e.g. wiki)",
+	ruleSetMetricTypeAttr: "The type of data flowing through the specified stream",
+	ruleSetNotesAttr:      "Notes describing this rule set",
+	ruleSetParentAttr:     "Parent CID that must be healthy for this rule set to be active",
+	ruleSetStreamNameAttr: "The name of the stream within a check to register the rule set with",
+	ruleSetTagsAttr:       "Tags associated with this rule set",
 }
 
-var triggerIfDescriptions = attrDescrs{
-	// circonus_trigger.if.* resource attribute names
-	triggerThenAttr:  "Description of the action(s) to take when this trigger is active",
-	triggerValueAttr: "Predicate that the trigger uses to evaluate a stream of metrics",
+var ruleSetIfDescriptions = attrDescrs{
+	// circonus_rule_set.if.* resource attribute names
+	ruleSetThenAttr:  "Description of the action(s) to take when this rule set is active",
+	ruleSetValueAttr: "Predicate that the rule set uses to evaluate a stream of metrics",
 }
 
-var triggerIfValueDescriptions = attrDescrs{
-	// circonus_trigger.if.value.* resource attribute names
-	triggerAbsentAttr:   "Fire the trigger if there has been no data for the given stream over the last duration",
-	triggerChangedAttr:  "Boolean indicating the value has changed",
-	triggerContainsAttr: "Fire the trigger if the text metric contain the following string",
-	triggerEqualsAttr:   "Fire the trigger if the text metric exactly match the following string",
-	triggerExcludesAttr: "Fire the trigger if the text metric not match the following string",
-	triggerLessAttr:     "Fire the trigger if the numeric value less than the specified value",
-	triggerMissingAttr:  "Fire the trigger if the text metric does not contain the following string",
-	triggerMoreAttr:     "Fire the trigger if the numeric value is more than the specified value",
-	triggerOverAttr:     "Use a derived value using a window",
-	triggerThenAttr:     "Action to take when the trigger is active",
+var ruleSetIfValueDescriptions = attrDescrs{
+	// circonus_rule_set.if.value.* resource attribute names
+	ruleSetAbsentAttr:   "Fire the rule set if there has been no data for the given stream over the last duration",
+	ruleSetChangedAttr:  "Boolean indicating the value has changed",
+	ruleSetContainsAttr: "Fire the rule set if the text metric contain the following string",
+	ruleSetEqualsAttr:   "Fire the rule set if the text metric exactly match the following string",
+	ruleSetExcludesAttr: "Fire the rule set if the text metric not match the following string",
+	ruleSetLessAttr:     "Fire the rule set if the numeric value less than the specified value",
+	ruleSetMissingAttr:  "Fire the rule set if the text metric does not contain the following string",
+	ruleSetMoreAttr:     "Fire the rule set if the numeric value is more than the specified value",
+	ruleSetOverAttr:     "Use a derived value using a window",
+	ruleSetThenAttr:     "Action to take when the rule set is active",
 }
 
-var triggerIfValueOverDescriptions = attrDescrs{
-	// circonus_trigger.if.value.over.* resource attribute names
-	triggerLastAttr:  "Duration over which data from the last interval is examined",
-	triggerUsingAttr: "Define the window funciton to use over the last duration",
+var ruleSetIfValueOverDescriptions = attrDescrs{
+	// circonus_rule_set.if.value.over.* resource attribute names
+	ruleSetLastAttr:  "Duration over which data from the last interval is examined",
+	ruleSetUsingAttr: "Define the window funciton to use over the last duration",
 }
 
-var triggerIfThenDescriptions = attrDescrs{
-	// circonus_trigger.if.then.* resource attribute names
-	triggerAfterAttr:    "The length of time we should wait before contacting the contact groups after this ruleset has faulted.",
-	triggerNotifyAttr:   "List of contact groups to notify at the following appropriate severity if this trigger is active.",
-	triggerSeverityAttr: "Send a notification at this severity level.",
+var ruleSetIfThenDescriptions = attrDescrs{
+	// circonus_rule_set.if.then.* resource attribute names
+	ruleSetAfterAttr:    "The length of time we should wait before contacting the contact groups after this ruleset has faulted.",
+	ruleSetNotifyAttr:   "List of contact groups to notify at the following appropriate severity if this rule set is active.",
+	ruleSetSeverityAttr: "Send a notification at this severity level.",
 }
 
 func resourceRuleSet() *schema.Resource {
 	makeConflictsWith := func(in ...schemaAttr) []string {
 		out := make([]string, 0, len(in))
 		for _, attr := range in {
-			out = append(out, string(triggerIfAttr)+"."+string(triggerValueAttr)+"."+string(attr))
+			out = append(out, string(ruleSetIfAttr)+"."+string(ruleSetValueAttr)+"."+string(attr))
 		}
 		return out
 	}
 
 	return &schema.Resource{
-		Create: triggerCreate,
-		Read:   triggerRead,
-		Update: triggerUpdate,
-		Delete: triggerDelete,
-		Exists: triggerExists,
+		Create: ruleSetCreate,
+		Read:   ruleSetRead,
+		Update: ruleSetUpdate,
+		Delete: ruleSetDelete,
+		Exists: ruleSetExists,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
-		Schema: convertToHelperSchema(triggerDescriptions, map[schemaAttr]*schema.Schema{
-			triggerCheckAttr: &schema.Schema{
+		Schema: convertToHelperSchema(ruleSetDescriptions, map[schemaAttr]*schema.Schema{
+			ruleSetCheckAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateRegexp(triggerCheckAttr, config.CheckCIDRegex),
+				ValidateFunc: validateRegexp(ruleSetCheckAttr, config.CheckCIDRegex),
 			},
-			triggerIfAttr: &schema.Schema{
+			ruleSetIfAttr: &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
 				MinItems: 1,
 				Elem: &schema.Resource{
-					Schema: convertToHelperSchema(triggerIfDescriptions, map[schemaAttr]*schema.Schema{
-						triggerThenAttr: &schema.Schema{
+					Schema: convertToHelperSchema(ruleSetIfDescriptions, map[schemaAttr]*schema.Schema{
+						ruleSetThenAttr: &schema.Schema{
 							Type:     schema.TypeSet,
 							MaxItems: 1,
 							Optional: true,
 							Elem: &schema.Resource{
-								Schema: convertToHelperSchema(triggerIfThenDescriptions, map[schemaAttr]*schema.Schema{
-									triggerAfterAttr: &schema.Schema{
+								Schema: convertToHelperSchema(ruleSetIfThenDescriptions, map[schemaAttr]*schema.Schema{
+									ruleSetAfterAttr: &schema.Schema{
 										Type:             schema.TypeString,
 										Optional:         true,
 										DiffSuppressFunc: suppressEquivalentTimeDurations,
 										StateFunc:        normalizeTimeDurationStringToSeconds,
 										ValidateFunc: validateFuncs(
-											validateDurationMin(triggerAfterAttr, "0s"),
+											validateDurationMin(ruleSetAfterAttr, "0s"),
 										),
 									},
-									triggerNotifyAttr: &schema.Schema{
+									ruleSetNotifyAttr: &schema.Schema{
 										Type:     schema.TypeList,
 										Optional: true,
 										MinItems: 1,
 										Elem: &schema.Schema{
 											Type:         schema.TypeString,
-											ValidateFunc: validateContactGroupCID(triggerNotifyAttr),
+											ValidateFunc: validateContactGroupCID(ruleSetNotifyAttr),
 										},
 									},
-									triggerSeverityAttr: &schema.Schema{
+									ruleSetSeverityAttr: &schema.Schema{
 										Type:     schema.TypeInt,
 										Optional: true,
-										Default:  defaultTriggerSeverity,
+										Default:  defaultAlertSeverity,
 										ValidateFunc: validateFuncs(
-											validateIntMax(triggerSeverityAttr, maxSeverity),
-											validateIntMin(triggerSeverityAttr, minSeverity),
+											validateIntMax(ruleSetSeverityAttr, maxSeverity),
+											validateIntMin(ruleSetSeverityAttr, minSeverity),
 										),
 									},
 								}),
 							},
 						},
-						triggerValueAttr: &schema.Schema{
+						ruleSetValueAttr: &schema.Schema{
 							Type:     schema.TypeSet,
 							Optional: true,
 							MaxItems: 1,
 							Elem: &schema.Resource{
-								Schema: convertToHelperSchema(triggerIfValueDescriptions, map[schemaAttr]*schema.Schema{
-									triggerAbsentAttr: &schema.Schema{
+								Schema: convertToHelperSchema(ruleSetIfValueDescriptions, map[schemaAttr]*schema.Schema{
+									ruleSetAbsentAttr: &schema.Schema{
 										Type:             schema.TypeString, // Applies to text or numeric metrics
 										Optional:         true,
 										DiffSuppressFunc: suppressEquivalentTimeDurations,
 										StateFunc:        normalizeTimeDurationStringToSeconds,
 										ValidateFunc: validateFuncs(
-											validateDurationMin(triggerAbsentAttr, triggerAbsentMin),
+											validateDurationMin(ruleSetAbsentAttr, ruleSetAbsentMin),
 										),
-										ConflictsWith: makeConflictsWith(triggerChangedAttr, triggerContainsAttr, triggerEqualsAttr, triggerExcludesAttr, triggerLessAttr, triggerMissingAttr, triggerMoreAttr, triggerOverAttr),
+										ConflictsWith: makeConflictsWith(ruleSetChangedAttr, ruleSetContainsAttr, ruleSetEqualsAttr, ruleSetExcludesAttr, ruleSetLessAttr, ruleSetMissingAttr, ruleSetMoreAttr, ruleSetOverAttr),
 									},
-									triggerChangedAttr: &schema.Schema{
+									ruleSetChangedAttr: &schema.Schema{
 										Type:          schema.TypeBool, // Applies to text or numeric metrics
 										Optional:      true,
-										ConflictsWith: makeConflictsWith(triggerAbsentAttr, triggerContainsAttr, triggerEqualsAttr, triggerExcludesAttr, triggerLessAttr, triggerMissingAttr, triggerMoreAttr, triggerOverAttr),
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetContainsAttr, ruleSetEqualsAttr, ruleSetExcludesAttr, ruleSetLessAttr, ruleSetMissingAttr, ruleSetMoreAttr, ruleSetOverAttr),
 									},
-									triggerContainsAttr: &schema.Schema{
+									ruleSetContainsAttr: &schema.Schema{
 										Type:          schema.TypeString, // Applies to text metrics only
 										Optional:      true,
-										ValidateFunc:  validateRegexp(triggerContainsAttr, `.+`),
-										ConflictsWith: makeConflictsWith(triggerAbsentAttr, triggerChangedAttr, triggerEqualsAttr, triggerExcludesAttr, triggerLessAttr, triggerMissingAttr, triggerMoreAttr, triggerOverAttr),
+										ValidateFunc:  validateRegexp(ruleSetContainsAttr, `.+`),
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetEqualsAttr, ruleSetExcludesAttr, ruleSetLessAttr, ruleSetMissingAttr, ruleSetMoreAttr, ruleSetOverAttr),
 									},
-									triggerEqualsAttr: &schema.Schema{
+									ruleSetEqualsAttr: &schema.Schema{
 										Type:          schema.TypeString, // Applies to text metrics only
 										Optional:      true,
-										ValidateFunc:  validateRegexp(triggerEqualsAttr, `.+`),
-										ConflictsWith: makeConflictsWith(triggerAbsentAttr, triggerChangedAttr, triggerContainsAttr, triggerExcludesAttr, triggerLessAttr, triggerMissingAttr, triggerMoreAttr, triggerOverAttr),
+										ValidateFunc:  validateRegexp(ruleSetEqualsAttr, `.+`),
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetExcludesAttr, ruleSetLessAttr, ruleSetMissingAttr, ruleSetMoreAttr, ruleSetOverAttr),
 									},
-									triggerExcludesAttr: &schema.Schema{
+									ruleSetExcludesAttr: &schema.Schema{
 										Type:          schema.TypeString, // Applies to text metrics only
 										Optional:      true,
-										ValidateFunc:  validateRegexp(triggerExcludesAttr, `.+`),
-										ConflictsWith: makeConflictsWith(triggerAbsentAttr, triggerChangedAttr, triggerContainsAttr, triggerEqualsAttr, triggerLessAttr, triggerMissingAttr, triggerMoreAttr, triggerOverAttr),
+										ValidateFunc:  validateRegexp(ruleSetExcludesAttr, `.+`),
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetEqualsAttr, ruleSetLessAttr, ruleSetMissingAttr, ruleSetMoreAttr, ruleSetOverAttr),
 									},
-									triggerLessAttr: &schema.Schema{
+									ruleSetLessAttr: &schema.Schema{
 										Type:          schema.TypeString, // Applies to numeric metrics only
 										Optional:      true,
-										ValidateFunc:  validateRegexp(triggerLessAttr, `.+`), // TODO(sean): improve this regexp to match int and float
-										ConflictsWith: makeConflictsWith(triggerAbsentAttr, triggerChangedAttr, triggerContainsAttr, triggerEqualsAttr, triggerExcludesAttr, triggerMissingAttr, triggerMoreAttr),
+										ValidateFunc:  validateRegexp(ruleSetLessAttr, `.+`), // TODO(sean): improve this regexp to match int and float
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetEqualsAttr, ruleSetExcludesAttr, ruleSetMissingAttr, ruleSetMoreAttr),
 									},
-									triggerMissingAttr: &schema.Schema{
+									ruleSetMissingAttr: &schema.Schema{
 										Type:          schema.TypeString, // Applies to text metrics only
 										Optional:      true,
-										ValidateFunc:  validateRegexp(triggerMissingAttr, `.+`),
-										ConflictsWith: makeConflictsWith(triggerAbsentAttr, triggerChangedAttr, triggerContainsAttr, triggerEqualsAttr, triggerExcludesAttr, triggerLessAttr, triggerMoreAttr, triggerOverAttr),
+										ValidateFunc:  validateRegexp(ruleSetMissingAttr, `.+`),
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetEqualsAttr, ruleSetExcludesAttr, ruleSetLessAttr, ruleSetMoreAttr, ruleSetOverAttr),
 									},
-									triggerMoreAttr: &schema.Schema{
+									ruleSetMoreAttr: &schema.Schema{
 										Type:          schema.TypeString, // Applies to numeric metrics only
 										Optional:      true,
-										ValidateFunc:  validateRegexp(triggerMoreAttr, `.+`), // TODO(sean): improve this regexp to match int and float
-										ConflictsWith: makeConflictsWith(triggerAbsentAttr, triggerChangedAttr, triggerContainsAttr, triggerEqualsAttr, triggerExcludesAttr, triggerLessAttr, triggerMissingAttr),
+										ValidateFunc:  validateRegexp(ruleSetMoreAttr, `.+`), // TODO(sean): improve this regexp to match int and float
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetEqualsAttr, ruleSetExcludesAttr, ruleSetLessAttr, ruleSetMissingAttr),
 									},
-									triggerOverAttr: &schema.Schema{
+									ruleSetOverAttr: &schema.Schema{
 										Type:     schema.TypeSet,
 										Optional: true,
 										MaxItems: 1,
-										// triggerOverAttr is only compatible with checks of
+										// ruleSetOverAttr is only compatible with checks of
 										// numeric type.  NOTE: It may be premature to conflict with
-										// triggerChangedAttr.
-										ConflictsWith: makeConflictsWith(triggerAbsentAttr, triggerChangedAttr, triggerContainsAttr, triggerEqualsAttr, triggerExcludesAttr, triggerMissingAttr),
+										// ruleSetChangedAttr.
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetEqualsAttr, ruleSetExcludesAttr, ruleSetMissingAttr),
 										Elem: &schema.Resource{
-											Schema: convertToHelperSchema(triggerIfValueOverDescriptions, map[schemaAttr]*schema.Schema{
-												triggerLastAttr: &schema.Schema{
+											Schema: convertToHelperSchema(ruleSetIfValueOverDescriptions, map[schemaAttr]*schema.Schema{
+												ruleSetLastAttr: &schema.Schema{
 													Type:             schema.TypeString,
 													Optional:         true,
-													Default:          defaultTriggerLast,
+													Default:          defaultRuleSetLast,
 													DiffSuppressFunc: suppressEquivalentTimeDurations,
 													StateFunc:        normalizeTimeDurationStringToSeconds,
 													ValidateFunc: validateFuncs(
-														validateDurationMin(triggerLastAttr, "0s"),
+														validateDurationMin(ruleSetLastAttr, "0s"),
 													),
 												},
-												triggerUsingAttr: &schema.Schema{
+												ruleSetUsingAttr: &schema.Schema{
 													Type:         schema.TypeString,
 													Optional:     true,
-													Default:      defaultTriggerWindowFunc,
-													ValidateFunc: validateStringIn(triggerUsingAttr, validTriggerWindowFuncs),
+													Default:      defaultRuleSetWindowFunc,
+													ValidateFunc: validateStringIn(ruleSetUsingAttr, validRuleSetWindowFuncs),
 												},
 											}),
 										},
@@ -266,187 +266,187 @@ func resourceRuleSet() *schema.Resource {
 					}),
 				},
 			},
-			triggerLinkAttr: &schema.Schema{
+			ruleSetLinkAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: validateHTTPURL(triggerLinkAttr, urlIsAbs),
+				ValidateFunc: validateHTTPURL(ruleSetLinkAttr, urlIsAbs),
 			},
-			triggerMetricTypeAttr: &schema.Schema{
+			ruleSetMetricTypeAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      defaultTriggerMetricType,
-				ValidateFunc: validateStringIn(triggerMetricTypeAttr, validTriggerMetricTypes),
+				Default:      defaultRuleSetMetricType,
+				ValidateFunc: validateStringIn(ruleSetMetricTypeAttr, validRuleSetMetricTypes),
 			},
-			triggerNotesAttr: &schema.Schema{
+			ruleSetNotesAttr: &schema.Schema{
 				Type:      schema.TypeString,
 				Optional:  true,
 				Computed:  true,
 				StateFunc: suppressWhitespace,
 			},
-			triggerParentAttr: &schema.Schema{
+			ruleSetParentAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
 				StateFunc:    suppressWhitespace,
-				ValidateFunc: validateRegexp(triggerParentAttr, `^[\d]+_[\d\w]+$`),
+				ValidateFunc: validateRegexp(ruleSetParentAttr, `^[\d]+_[\d\w]+$`),
 			},
-			triggerStreamNameAttr: &schema.Schema{
+			ruleSetStreamNameAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateRegexp(triggerStreamNameAttr, `^[\S]+$`),
+				ValidateFunc: validateRegexp(ruleSetStreamNameAttr, `^[\S]+$`),
 			},
-			triggerTagsAttr: tagMakeConfigSchema(triggerTagsAttr),
+			ruleSetTagsAttr: tagMakeConfigSchema(ruleSetTagsAttr),
 		}),
 	}
 }
 
-func triggerCreate(d *schema.ResourceData, meta interface{}) error {
+func ruleSetCreate(d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*providerContext)
-	t := newTrigger()
+	rs := newRuleSet()
 
-	if err := t.ParseConfig(d); err != nil {
-		return errwrap.Wrapf("error parsing trigger schema during create: {{err}}", err)
+	if err := rs.ParseConfig(d); err != nil {
+		return errwrap.Wrapf("error parsing rule set schema during create: {{err}}", err)
 	}
 
-	if err := t.Create(ctxt); err != nil {
-		return errwrap.Wrapf("error creating trigger: {{err}}", err)
+	if err := rs.Create(ctxt); err != nil {
+		return errwrap.Wrapf("error creating rule set: {{err}}", err)
 	}
 
-	d.SetId(t.CID)
+	d.SetId(rs.CID)
 
-	return triggerRead(d, meta)
+	return ruleSetRead(d, meta)
 }
 
-func triggerExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+func ruleSetExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	ctxt := meta.(*providerContext)
 
 	cid := d.Id()
-	t, err := ctxt.client.FetchRuleSet(api.CIDType(&cid))
+	rs, err := ctxt.client.FetchRuleSet(api.CIDType(&cid))
 	if err != nil {
 		return false, err
 	}
 
-	if t.CID == "" {
+	if rs.CID == "" {
 		return false, nil
 	}
 
 	return true, nil
 }
 
-// triggerRead pulls data out of the RuleSet object and stores it into the
+// ruleSetRead pulls data out of the RuleSet object and stores it into the
 // appropriate place in the statefile.
-func triggerRead(d *schema.ResourceData, meta interface{}) error {
+func ruleSetRead(d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*providerContext)
 
 	cid := d.Id()
-	t, err := loadTrigger(ctxt, api.CIDType(&cid))
+	rs, err := loadRuleSet(ctxt, api.CIDType(&cid))
 	if err != nil {
 		return err
 	}
 
-	d.SetId(t.CID)
+	d.SetId(rs.CID)
 
-	ifRules := make([]interface{}, 0, defaultTriggerRuleLen)
-	for _, rule := range t.Rules {
+	ifRules := make([]interface{}, 0, defaultRuleSetRuleLen)
+	for _, rule := range rs.Rules {
 		ifAttrs := make(map[string]interface{}, 2)
 		valueAttrs := make(map[string]interface{}, 2)
 		valueOverAttrs := make(map[string]interface{}, 2)
 		thenAttrs := make(map[string]interface{}, 3)
 
 		switch rule.Criteria {
-		case apiRulesetAbsent:
+		case apiRuleSetAbsent:
 			d, _ := time.ParseDuration(fmt.Sprintf("%fs", rule.Value.(float64)))
-			valueAttrs[string(triggerAbsentAttr)] = fmt.Sprintf("%ds", int(d.Seconds()))
-		case apiRulesetChanged:
-			valueAttrs[string(triggerChangedAttr)] = true
-		case apiRulesetContains:
-			valueAttrs[string(triggerContainsAttr)] = rule.Value
-		case apiRulesetMatch:
-			valueAttrs[string(triggerEqualsAttr)] = rule.Value
-		case apiRulesetMaxValue:
-			valueAttrs[string(triggerMoreAttr)] = rule.Value
-		case apiRulesetMinValue:
-			valueAttrs[string(triggerLessAttr)] = rule.Value
-		case apiRulesetNotContains:
-			valueAttrs[string(triggerExcludesAttr)] = rule.Value
-		case apiRulesetNotMatch:
-			valueAttrs[string(triggerMissingAttr)] = rule.Value
+			valueAttrs[string(ruleSetAbsentAttr)] = fmt.Sprintf("%ds", int(d.Seconds()))
+		case apiRuleSetChanged:
+			valueAttrs[string(ruleSetChangedAttr)] = true
+		case apiRuleSetContains:
+			valueAttrs[string(ruleSetContainsAttr)] = rule.Value
+		case apiRuleSetMatch:
+			valueAttrs[string(ruleSetEqualsAttr)] = rule.Value
+		case apiRuleSetMaxValue:
+			valueAttrs[string(ruleSetMoreAttr)] = rule.Value
+		case apiRuleSetMinValue:
+			valueAttrs[string(ruleSetLessAttr)] = rule.Value
+		case apiRuleSetNotContains:
+			valueAttrs[string(ruleSetExcludesAttr)] = rule.Value
+		case apiRuleSetNotMatch:
+			valueAttrs[string(ruleSetMissingAttr)] = rule.Value
 		default:
 			return fmt.Errorf("PROVIDER BUG: Unsupported criteria %q", rule.Criteria)
 		}
 
 		if rule.Wait > 0 {
-			thenAttrs[string(triggerAfterAttr)] = fmt.Sprintf("%ds", 60*rule.Wait)
+			thenAttrs[string(ruleSetAfterAttr)] = fmt.Sprintf("%ds", 60*rule.Wait)
 		}
-		thenAttrs[string(triggerSeverityAttr)] = int(rule.Severity)
+		thenAttrs[string(ruleSetSeverityAttr)] = int(rule.Severity)
 
 		if rule.WindowingFunction != nil {
-			valueOverAttrs[string(triggerUsingAttr)] = *rule.WindowingFunction
+			valueOverAttrs[string(ruleSetUsingAttr)] = *rule.WindowingFunction
 
 			// NOTE: Only save the window duration if a function was specified
-			valueOverAttrs[string(triggerLastAttr)] = fmt.Sprintf("%ds", rule.WindowingDuration)
+			valueOverAttrs[string(ruleSetLastAttr)] = fmt.Sprintf("%ds", rule.WindowingDuration)
 		}
-		valueOverSet := schema.NewSet(triggerValueOverChecksum, nil)
+		valueOverSet := schema.NewSet(ruleSetValueOverChecksum, nil)
 		valueOverSet.Add(valueOverAttrs)
-		valueAttrs[string(triggerOverAttr)] = valueOverSet
+		valueAttrs[string(ruleSetOverAttr)] = valueOverSet
 
-		if contactGroups, ok := t.ContactGroups[uint8(rule.Severity)]; ok {
+		if contactGroups, ok := rs.ContactGroups[uint8(rule.Severity)]; ok {
 			sort.Strings(contactGroups)
-			thenAttrs[string(triggerNotifyAttr)] = contactGroups
+			thenAttrs[string(ruleSetNotifyAttr)] = contactGroups
 		}
-		thenSet := schema.NewSet(triggerThenChecksum, nil)
+		thenSet := schema.NewSet(ruleSetThenChecksum, nil)
 		thenSet.Add(thenAttrs)
 
-		valueSet := schema.NewSet(triggerValueChecksum, nil)
+		valueSet := schema.NewSet(ruleSetValueChecksum, nil)
 		valueSet.Add(valueAttrs)
-		ifAttrs[string(triggerThenAttr)] = thenSet
-		ifAttrs[string(triggerValueAttr)] = valueSet
+		ifAttrs[string(ruleSetThenAttr)] = thenSet
+		ifAttrs[string(ruleSetValueAttr)] = valueSet
 
 		ifRules = append(ifRules, ifAttrs)
 	}
 
-	d.Set(triggerCheckAttr, t.CheckCID)
+	d.Set(ruleSetCheckAttr, rs.CheckCID)
 
-	if err := d.Set(triggerIfAttr, ifRules); err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("Unable to store trigger %q attribute: {{err}}", triggerIfAttr), err)
+	if err := d.Set(ruleSetIfAttr, ifRules); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store rule set %q attribute: {{err}}", ruleSetIfAttr), err)
 	}
 
-	d.Set(triggerLinkAttr, indirect(t.Link))
-	d.Set(triggerStreamNameAttr, t.MetricName)
-	d.Set(triggerMetricTypeAttr, t.MetricType)
-	d.Set(triggerNotesAttr, indirect(t.Notes))
-	d.Set(triggerParentAttr, indirect(t.Parent))
+	d.Set(ruleSetLinkAttr, indirect(rs.Link))
+	d.Set(ruleSetStreamNameAttr, rs.MetricName)
+	d.Set(ruleSetMetricTypeAttr, rs.MetricType)
+	d.Set(ruleSetNotesAttr, indirect(rs.Notes))
+	d.Set(ruleSetParentAttr, indirect(rs.Parent))
 
-	if err := d.Set(triggerTagsAttr, tagsToState(apiToTags(t.Tags))); err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("Unable to store trigger %q attribute: {{err}}", triggerTagsAttr), err)
+	if err := d.Set(ruleSetTagsAttr, tagsToState(apiToTags(rs.Tags))); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store rule set %q attribute: {{err}}", ruleSetTagsAttr), err)
 	}
 
 	return nil
 }
 
-func triggerUpdate(d *schema.ResourceData, meta interface{}) error {
+func ruleSetUpdate(d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*providerContext)
-	t := newTrigger()
+	rs := newRuleSet()
 
-	if err := t.ParseConfig(d); err != nil {
+	if err := rs.ParseConfig(d); err != nil {
 		return err
 	}
 
-	t.CID = d.Id()
-	if err := t.Update(ctxt); err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("unable to update trigger %q: {{err}}", d.Id()), err)
+	rs.CID = d.Id()
+	if err := rs.Update(ctxt); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("unable to update rule set %q: {{err}}", d.Id()), err)
 	}
 
-	return triggerRead(d, meta)
+	return ruleSetRead(d, meta)
 }
 
-func triggerDelete(d *schema.ResourceData, meta interface{}) error {
+func ruleSetDelete(d *schema.ResourceData, meta interface{}) error {
 	ctxt := meta.(*providerContext)
 
 	cid := d.Id()
 	if _, err := ctxt.client.DeleteRuleSetByCID(api.CIDType(&cid)); err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("unable to delete trigger %q: {{err}}", d.Id()), err)
+		return errwrap.Wrapf(fmt.Sprintf("unable to delete rule set %q: {{err}}", d.Id()), err)
 	}
 
 	d.SetId("")
@@ -454,37 +454,37 @@ func triggerDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-type circonusTrigger struct {
+type circonusRuleSet struct {
 	api.RuleSet
 }
 
-func newTrigger() circonusTrigger {
-	t := circonusTrigger{
+func newRuleSet() circonusRuleSet {
+	rs := circonusRuleSet{
 		RuleSet: *api.NewRuleSet(),
 	}
 
-	t.ContactGroups = make(map[uint8][]string, config.NumSeverityLevels)
+	rs.ContactGroups = make(map[uint8][]string, config.NumSeverityLevels)
 	for i := uint8(0); i < config.NumSeverityLevels; i++ {
-		t.ContactGroups[i+1] = make([]string, 0, 1)
+		rs.ContactGroups[i+1] = make([]string, 0, 1)
 	}
 
-	t.Rules = make([]api.RuleSetRule, 0, 1)
+	rs.Rules = make([]api.RuleSetRule, 0, 1)
 
-	return t
+	return rs
 }
 
-func loadTrigger(ctxt *providerContext, cid api.CIDType) (circonusTrigger, error) {
-	var t circonusTrigger
-	rs, err := ctxt.client.FetchRuleSet(cid)
+func loadRuleSet(ctxt *providerContext, cid api.CIDType) (circonusRuleSet, error) {
+	var rs circonusRuleSet
+	crs, err := ctxt.client.FetchRuleSet(cid)
 	if err != nil {
-		return circonusTrigger{}, err
+		return circonusRuleSet{}, err
 	}
-	t.RuleSet = *rs
+	rs.RuleSet = *crs
 
-	return t, nil
+	return rs, nil
 }
 
-func triggerThenChecksum(v interface{}) int {
+func ruleSetThenChecksum(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
@@ -520,15 +520,15 @@ func triggerThenChecksum(v interface{}) int {
 
 	m := v.(map[string]interface{})
 
-	writeString(m, triggerAfterAttr)
-	writeStringArray(m, triggerNotifyAttr)
-	writeInt(m, triggerSeverityAttr)
+	writeString(m, ruleSetAfterAttr)
+	writeStringArray(m, ruleSetNotifyAttr)
+	writeInt(m, ruleSetSeverityAttr)
 
 	s := b.String()
 	return hashcode.String(s)
 }
 
-func triggerValueChecksum(v interface{}) int {
+func ruleSetValueChecksum(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
@@ -559,22 +559,22 @@ func triggerValueChecksum(v interface{}) int {
 
 	m := v.(map[string]interface{})
 
-	if v, found := m[triggerValueAttr]; found {
+	if v, found := m[ruleSetValueAttr]; found {
 		valueMap := v.(map[string]interface{})
 		if valueMap != nil {
-			writeDuration(valueMap, triggerAbsentAttr)
-			writeBool(valueMap, triggerChangedAttr)
-			writeString(valueMap, triggerContainsAttr)
-			writeString(valueMap, triggerEqualsAttr)
-			writeString(valueMap, triggerExcludesAttr)
-			writeString(valueMap, triggerLessAttr)
-			writeString(valueMap, triggerMissingAttr)
-			writeString(valueMap, triggerMoreAttr)
+			writeDuration(valueMap, ruleSetAbsentAttr)
+			writeBool(valueMap, ruleSetChangedAttr)
+			writeString(valueMap, ruleSetContainsAttr)
+			writeString(valueMap, ruleSetEqualsAttr)
+			writeString(valueMap, ruleSetExcludesAttr)
+			writeString(valueMap, ruleSetLessAttr)
+			writeString(valueMap, ruleSetMissingAttr)
+			writeString(valueMap, ruleSetMoreAttr)
 
-			if v, found := valueMap[triggerOverAttr]; found {
+			if v, found := valueMap[ruleSetOverAttr]; found {
 				overMap := v.(map[string]interface{})
-				writeDuration(overMap, triggerLastAttr)
-				writeString(overMap, triggerUsingAttr)
+				writeDuration(overMap, ruleSetLastAttr)
+				writeString(overMap, ruleSetUsingAttr)
 			}
 		}
 	}
@@ -583,7 +583,7 @@ func triggerValueChecksum(v interface{}) int {
 	return hashcode.String(s)
 }
 
-func triggerValueOverChecksum(v interface{}) int {
+func ruleSetValueOverChecksum(v interface{}) int {
 	b := &bytes.Buffer{}
 	b.Grow(defaultHashBufSize)
 
@@ -598,64 +598,64 @@ func triggerValueOverChecksum(v interface{}) int {
 
 	m := v.(map[string]interface{})
 
-	writeString(m, triggerLastAttr)
-	writeString(m, triggerUsingAttr)
+	writeString(m, ruleSetLastAttr)
+	writeString(m, ruleSetUsingAttr)
 
 	s := b.String()
 	return hashcode.String(s)
 }
 
 // ParseConfig reads Terraform config data and stores the information into a
-// Circonus RuleSet object.  ParseConfig, triggerRead(), and triggerChecksum
+// Circonus RuleSet object.  ParseConfig, ruleSetRead(), and ruleSetChecksum
 // must be kept in sync.
-func (t *circonusTrigger) ParseConfig(d *schema.ResourceData) error {
-	if v, found := d.GetOk(triggerCheckAttr); found {
-		t.CheckCID = v.(string)
+func (rs *circonusRuleSet) ParseConfig(d *schema.ResourceData) error {
+	if v, found := d.GetOk(ruleSetCheckAttr); found {
+		rs.CheckCID = v.(string)
 	}
 
-	if v, found := d.GetOk(triggerLinkAttr); found {
+	if v, found := d.GetOk(ruleSetLinkAttr); found {
 		s := v.(string)
-		t.Link = &s
+		rs.Link = &s
 	}
 
-	if v, found := d.GetOk(triggerMetricTypeAttr); found {
-		t.MetricType = v.(string)
+	if v, found := d.GetOk(ruleSetMetricTypeAttr); found {
+		rs.MetricType = v.(string)
 	}
 
-	if v, found := d.GetOk(triggerNotesAttr); found {
+	if v, found := d.GetOk(ruleSetNotesAttr); found {
 		s := v.(string)
-		t.Notes = &s
+		rs.Notes = &s
 	}
 
-	if v, found := d.GetOk(triggerParentAttr); found {
+	if v, found := d.GetOk(ruleSetParentAttr); found {
 		s := v.(string)
-		t.Parent = &s
+		rs.Parent = &s
 	}
 
-	if v, found := d.GetOk(triggerStreamNameAttr); found {
-		t.MetricName = v.(string)
+	if v, found := d.GetOk(ruleSetStreamNameAttr); found {
+		rs.MetricName = v.(string)
 	}
 
-	t.Rules = make([]api.RuleSetRule, 0, defaultTriggerRuleLen)
-	if ifListRaw, found := d.GetOk(triggerIfAttr); found {
+	rs.Rules = make([]api.RuleSetRule, 0, defaultRuleSetRuleLen)
+	if ifListRaw, found := d.GetOk(ruleSetIfAttr); found {
 		ifList := ifListRaw.([]interface{})
 		for _, ifListElem := range ifList {
 			ifAttrs := newInterfaceMap(ifListElem.(map[string]interface{}))
 
 			rule := api.RuleSetRule{}
 
-			if thenListRaw, found := ifAttrs[triggerThenAttr]; found {
+			if thenListRaw, found := ifAttrs[ruleSetThenAttr]; found {
 				thenList := thenListRaw.(*schema.Set).List()
 
 				for _, thenListRaw := range thenList {
 					thenAttrs := newInterfaceMap(thenListRaw)
 
-					if v, found := thenAttrs[triggerAfterAttr]; found {
+					if v, found := thenAttrs[ruleSetAfterAttr]; found {
 						s := v.(string)
 						if s != "" {
 							d, err := time.ParseDuration(v.(string))
 							if err != nil {
-								return errwrap.Wrapf(fmt.Sprintf("unable to parse %q duration %q: {{err}}", triggerAfterAttr, v.(string)), err)
+								return errwrap.Wrapf(fmt.Sprintf("unable to parse %q duration %q: {{err}}", ruleSetAfterAttr, v.(string)), err)
 							}
 							rule.Wait = uint(d.Minutes())
 						}
@@ -663,17 +663,17 @@ func (t *circonusTrigger) ParseConfig(d *schema.ResourceData) error {
 
 					// NOTE: break from convention of alpha sorting attributes and handle Notify after Severity
 
-					if i, found := thenAttrs[triggerSeverityAttr]; found {
+					if i, found := thenAttrs[ruleSetSeverityAttr]; found {
 						rule.Severity = uint(i.(int))
 					}
 
-					if notifyListRaw, found := thenAttrs[triggerNotifyAttr]; found {
+					if notifyListRaw, found := thenAttrs[ruleSetNotifyAttr]; found {
 						notifyList := interfaceList(notifyListRaw.([]interface{}))
 
 						sev := uint8(rule.Severity)
 						for _, contactGroupCID := range notifyList.List() {
 							var found bool
-							if contactGroups, ok := t.ContactGroups[sev]; ok {
+							if contactGroups, ok := rs.ContactGroups[sev]; ok {
 								for _, contactGroup := range contactGroups {
 									if contactGroup == contactGroupCID {
 										found = true
@@ -682,130 +682,130 @@ func (t *circonusTrigger) ParseConfig(d *schema.ResourceData) error {
 								}
 							}
 							if !found {
-								t.ContactGroups[sev] = append(t.ContactGroups[sev], contactGroupCID)
+								rs.ContactGroups[sev] = append(rs.ContactGroups[sev], contactGroupCID)
 							}
 						}
 					}
 				}
 			}
 
-			if triggerValueListRaw, found := ifAttrs[triggerValueAttr]; found {
-				triggerValueList := triggerValueListRaw.(*schema.Set).List()
+			if ruleSetValueListRaw, found := ifAttrs[ruleSetValueAttr]; found {
+				ruleSetValueList := ruleSetValueListRaw.(*schema.Set).List()
 
-				for _, valueListRaw := range triggerValueList {
+				for _, valueListRaw := range ruleSetValueList {
 					valueAttrs := newInterfaceMap(valueListRaw)
 
 				METRIC_TYPE:
-					switch t.MetricType {
-					case triggerMetricTypeNumeric:
-						if v, found := valueAttrs[triggerAbsentAttr]; found {
+					switch rs.MetricType {
+					case ruleSetMetricTypeNumeric:
+						if v, found := valueAttrs[ruleSetAbsentAttr]; found {
 							s := v.(string)
 							if s != "" {
 								d, _ := time.ParseDuration(s)
-								rule.Criteria = apiRulesetAbsent
+								rule.Criteria = apiRuleSetAbsent
 								rule.Value = float64(d.Seconds())
 								break METRIC_TYPE
 							}
 						}
 
-						if v, found := valueAttrs[triggerChangedAttr]; found {
+						if v, found := valueAttrs[ruleSetChangedAttr]; found {
 							b := v.(bool)
 							if b {
-								rule.Criteria = apiRulesetChanged
+								rule.Criteria = apiRuleSetChanged
 								break METRIC_TYPE
 							}
 						}
 
-						if v, found := valueAttrs[triggerLessAttr]; found {
+						if v, found := valueAttrs[ruleSetLessAttr]; found {
 							s := v.(string)
 							if s != "" {
-								rule.Criteria = apiRulesetMinValue
+								rule.Criteria = apiRuleSetMinValue
 								rule.Value = s
 								break METRIC_TYPE
 							}
 						}
 
-						if v, found := valueAttrs[triggerMoreAttr]; found {
+						if v, found := valueAttrs[ruleSetMoreAttr]; found {
 							s := v.(string)
 							if s != "" {
-								rule.Criteria = apiRulesetMaxValue
+								rule.Criteria = apiRuleSetMaxValue
 								rule.Value = s
 								break METRIC_TYPE
 							}
 						}
-					case triggerMetricTypeText:
-						if v, found := valueAttrs[triggerAbsentAttr]; found {
+					case ruleSetMetricTypeText:
+						if v, found := valueAttrs[ruleSetAbsentAttr]; found {
 							s := v.(string)
 							if s != "" {
 								d, _ := time.ParseDuration(s)
-								rule.Criteria = apiRulesetAbsent
+								rule.Criteria = apiRuleSetAbsent
 								rule.Value = float64(d.Seconds())
 								break METRIC_TYPE
 							}
 						}
 
-						if v, found := valueAttrs[triggerChangedAttr]; found {
+						if v, found := valueAttrs[ruleSetChangedAttr]; found {
 							b := v.(bool)
 							if b {
-								rule.Criteria = apiRulesetChanged
+								rule.Criteria = apiRuleSetChanged
 								break METRIC_TYPE
 							}
 						}
 
-						if v, found := valueAttrs[triggerContainsAttr]; found {
+						if v, found := valueAttrs[ruleSetContainsAttr]; found {
 							s := v.(string)
 							if s != "" {
-								rule.Criteria = apiRulesetContains
+								rule.Criteria = apiRuleSetContains
 								rule.Value = s
 								break METRIC_TYPE
 							}
 						}
 
-						if v, found := valueAttrs[triggerEqualsAttr]; found {
+						if v, found := valueAttrs[ruleSetEqualsAttr]; found {
 							s := v.(string)
 							if s != "" {
-								rule.Criteria = apiRulesetMatch
+								rule.Criteria = apiRuleSetMatch
 								rule.Value = s
 								break METRIC_TYPE
 							}
 						}
 
-						if v, found := valueAttrs[triggerExcludesAttr]; found {
+						if v, found := valueAttrs[ruleSetExcludesAttr]; found {
 							s := v.(string)
 							if s != "" {
-								rule.Criteria = apiRulesetNotMatch
+								rule.Criteria = apiRuleSetNotMatch
 								rule.Value = s
 								break METRIC_TYPE
 							}
 						}
 
-						if v, found := valueAttrs[triggerMissingAttr]; found {
+						if v, found := valueAttrs[ruleSetMissingAttr]; found {
 							s := v.(string)
 							if s != "" {
-								rule.Criteria = apiRulesetNotContains
+								rule.Criteria = apiRuleSetNotContains
 								rule.Value = s
 								break METRIC_TYPE
 							}
 						}
 					default:
-						return fmt.Errorf("PROVIDER BUG: unsupported trigger metric type: %q", t.MetricType)
+						return fmt.Errorf("PROVIDER BUG: unsupported rule set metric type: %q", rs.MetricType)
 					}
 
-					if triggerOverListRaw, found := valueAttrs[triggerOverAttr]; found {
-						overList := triggerOverListRaw.(*schema.Set).List()
+					if ruleSetOverListRaw, found := valueAttrs[ruleSetOverAttr]; found {
+						overList := ruleSetOverListRaw.(*schema.Set).List()
 
 						for _, overListRaw := range overList {
 							overAttrs := newInterfaceMap(overListRaw)
 
-							if v, found := overAttrs[triggerLastAttr]; found {
+							if v, found := overAttrs[ruleSetLastAttr]; found {
 								last, err := time.ParseDuration(v.(string))
 								if err != nil {
-									return errwrap.Wrapf(fmt.Sprintf("unable to parse duration %s attribute", triggerLastAttr), err)
+									return errwrap.Wrapf(fmt.Sprintf("unable to parse duration %s attribute", ruleSetLastAttr), err)
 								}
 								rule.WindowingDuration = uint(last.Seconds())
 							}
 
-							if v, found := overAttrs[triggerUsingAttr]; found {
+							if v, found := overAttrs[ruleSetUsingAttr]; found {
 								s := v.(string)
 								rule.WindowingFunction = &s
 							}
@@ -813,42 +813,42 @@ func (t *circonusTrigger) ParseConfig(d *schema.ResourceData) error {
 					}
 				}
 			}
-			t.Rules = append(t.Rules, rule)
+			rs.Rules = append(rs.Rules, rule)
 		}
 	}
 
-	if v, found := d.GetOk(triggerTagsAttr); found {
-		t.Tags = derefStringList(flattenSet(v.(*schema.Set)))
+	if v, found := d.GetOk(ruleSetTagsAttr); found {
+		rs.Tags = derefStringList(flattenSet(v.(*schema.Set)))
 	}
 
-	if err := t.Validate(); err != nil {
+	if err := rs.Validate(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (t *circonusTrigger) Create(ctxt *providerContext) error {
-	rs, err := ctxt.client.CreateRuleSet(&t.RuleSet)
+func (rs *circonusRuleSet) Create(ctxt *providerContext) error {
+	crs, err := ctxt.client.CreateRuleSet(&rs.RuleSet)
 	if err != nil {
 		return err
 	}
 
-	t.CID = rs.CID
+	rs.CID = crs.CID
 
 	return nil
 }
 
-func (t *circonusTrigger) Update(ctxt *providerContext) error {
-	_, err := ctxt.client.UpdateRuleSet(&t.RuleSet)
+func (rs *circonusRuleSet) Update(ctxt *providerContext) error {
+	_, err := ctxt.client.UpdateRuleSet(&rs.RuleSet)
 	if err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("Unable to update trigger %s: {{err}}", t.CID), err)
+		return errwrap.Wrapf(fmt.Sprintf("Unable to update rule set %s: {{err}}", rs.CID), err)
 	}
 
 	return nil
 }
 
-func (t *circonusTrigger) Validate() error {
+func (rs *circonusRuleSet) Validate() error {
 	// TODO(sean@): From https://login.circonus.com/resources/api/calls/rule_set
 	// under `value`:
 	//
