@@ -2,10 +2,9 @@ package google
 
 import (
 	"fmt"
-	"testing"
-
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"testing"
 )
 
 func TestAccDataSourceGoogleNetwork(t *testing.T) {
@@ -17,7 +16,6 @@ func TestAccDataSourceGoogleNetwork(t *testing.T) {
 				Config: TestAccDataSourceGoogleNetworkConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceGoogleNetworktCheck("data.google_compute_network.my_network"),
-
 				),
 			},
 		},
@@ -35,7 +33,6 @@ func testAccDataSourceGoogleNetworktCheck(name string) resource.TestCheckFunc {
 		if !ok {
 			return fmt.Errorf("can't find google_compute_network.foobar in state")
 		}
-
 
 		attr := rs.Primary.Attributes
 
@@ -61,10 +58,10 @@ func testAccDataSourceGoogleNetworktCheck(name string) resource.TestCheckFunc {
 		if attr["description"] != "my-description" {
 			return fmt.Errorf("bad description %s", attr["description"])
 		}
+
 		return nil
 	}
 }
-
 
 var TestAccDataSourceGoogleNetworkConfig = `
 resource "google_compute_network" "foobar" {

@@ -9,7 +9,7 @@ import (
 
 func dataSourceGoogleComputeNetwork() *schema.Resource {
 	return &schema.Resource{
-		Read:   dataSourceGoogleComputeNetworkRead,
+		Read: dataSourceGoogleComputeNetworkRead,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -28,7 +28,7 @@ func dataSourceGoogleComputeNetwork() *schema.Resource {
 			},
 
 			"ipv4_range": &schema.Schema{
-				Type:       schema.TypeString,
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 
@@ -36,11 +36,18 @@ func dataSourceGoogleComputeNetwork() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"subnetworks_self_links": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
-
-
 
 func dataSourceGoogleComputeNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
@@ -60,12 +67,11 @@ func dataSourceGoogleComputeNetworkRead(d *schema.ResourceData, meta interface{}
 
 		return fmt.Errorf("Error reading network: %s", err)
 	}
-
-
 	d.Set("gateway_ipv4", network.GatewayIPv4)
 	d.Set("self_link", network.SelfLink)
 	d.Set("description", network.Description)
 	d.Set("ipv4_range", network.IPv4Range)
+	d.Set("subnetworks_self_links", network.Subnetworks)
 	d.SetId(network.Name)
 	return nil
 }
