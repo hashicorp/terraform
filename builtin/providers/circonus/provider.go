@@ -89,12 +89,12 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"circonus_check":         newCheckResource(),
-			"circonus_contact_group": resourceContactGroup(),
-			"circonus_graph":         newGraphResource(),
-			"circonus_metric":        newMetricResource(),
-			"circonus_stream_group":  newStreamGroupResource(),
-			"circonus_trigger":       newTriggerResource(),
+			"circonus_check":          resourceCheck(),
+			"circonus_contact_group":  resourceContactGroup(),
+			"circonus_graph":          resourceGraph(),
+			"circonus_metric":         resourceMetric(),
+			"circonus_metric_cluster": resourceMetricCluster(),
+			"circonus_rule_set":       resourceRuleSet(),
 		},
 
 		ConfigureFunc: providerConfigure,

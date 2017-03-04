@@ -119,7 +119,7 @@ var checkCollectorDescriptions = attrDescrs{
 
 var checkStreamDescriptions = metricDescriptions
 
-func newCheckResource() *schema.Resource {
+func resourceCheck() *schema.Resource {
 	return &schema.Resource{
 		Create: checkCreate,
 		Read:   checkRead,

@@ -10,33 +10,33 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccCirconusStreamGroup_basic(t *testing.T) {
+func TestAccCirconusMetricCluster_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDestroyCirconusStreamGroup,
+		CheckDestroy: testAccCheckDestroyCirconusMetricCluster,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCirconusStreamGroupConfig,
+				Config: testAccCirconusMetricClusterConfig,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("circonus_stream_group.nomad-job1", "description", `Stream Group (a.k.a. "metric cluster") Description`),
-					resource.TestCheckResourceAttrSet("circonus_stream_group.nomad-job1", "id"),
-					resource.TestCheckResourceAttr("circonus_stream_group.nomad-job1", "name", "job1-stream-agg"),
-					resource.TestCheckResourceAttr("circonus_stream_group.nomad-job1", "group.1688061877.query", "*`nomad-jobname`memory`rss"),
-					resource.TestCheckResourceAttr("circonus_stream_group.nomad-job1", "group.1688061877.type", "average"),
-					resource.TestCheckResourceAttr("circonus_stream_group.nomad-job1", "tags.2087084518", "author:terraform"),
-					resource.TestCheckResourceAttr("circonus_stream_group.nomad-job1", "tags.3354173695", "source:nomad"),
+					resource.TestCheckResourceAttr("circonus_metric_cluster.nomad-job1", "description", `Metric Cluster Description`),
+					resource.TestCheckResourceAttrSet("circonus_metric_cluster.nomad-job1", "id"),
+					resource.TestCheckResourceAttr("circonus_metric_cluster.nomad-job1", "name", "job1-stream-agg"),
+					resource.TestCheckResourceAttr("circonus_metric_cluster.nomad-job1", "query.236803225.definition", "*`nomad-jobname`memory`rss"),
+					resource.TestCheckResourceAttr("circonus_metric_cluster.nomad-job1", "query.236803225.type", "average"),
+					resource.TestCheckResourceAttr("circonus_metric_cluster.nomad-job1", "tags.2087084518", "author:terraform"),
+					resource.TestCheckResourceAttr("circonus_metric_cluster.nomad-job1", "tags.3354173695", "source:nomad"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckDestroyCirconusStreamGroup(s *terraform.State) error {
+func testAccCheckDestroyCirconusMetricCluster(s *terraform.State) error {
 	ctxt := testAccProvider.Meta().(*providerContext)
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "circonus_stream_group" {
+		if rs.Type != "circonus_metric_cluster" {
 			continue
 		}
 
@@ -99,15 +99,15 @@ func checkStreamGroupExists(c *providerContext, streamGroupID api.CIDType) (bool
 	return false, nil
 }
 
-const testAccCirconusStreamGroupConfig = `
-resource "circonus_stream_group" "nomad-job1" {
+const testAccCirconusMetricClusterConfig = `
+resource "circonus_metric_cluster" "nomad-job1" {
   description = <<EOF
-Stream Group (a.k.a. "metric cluster") Description
+Metric Cluster Description
 EOF
   name = "job1-stream-agg"
 
-  group {
-    query = "*` + "`" + `nomad-jobname` + "`" + `memory` + "`" + `rss"
+  query {
+    definition = "*` + "`" + `nomad-jobname` + "`" + `memory` + "`" + `rss"
     type = "average"
   }
 

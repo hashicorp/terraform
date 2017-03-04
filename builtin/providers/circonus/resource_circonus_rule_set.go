@@ -107,7 +107,7 @@ var triggerIfThenDescriptions = attrDescrs{
 	triggerSeverityAttr: "Send a notification at this severity level.",
 }
 
-func newTriggerResource() *schema.Resource {
+func resourceRuleSet() *schema.Resource {
 	makeConflictsWith := func(in ...schemaAttr) []string {
 		out := make([]string, 0, len(in))
 		for _, attr := range in {

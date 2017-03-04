@@ -7,28 +7,28 @@ import (
 	"github.com/hashicorp/errwrap"
 )
 
-type circonusStreamGroup struct {
+type circonusMetricCluster struct {
 	api.MetricCluster
 }
 
-func newStreamGroup() circonusStreamGroup {
-	return circonusStreamGroup{
+func newMetricCluster() circonusMetricCluster {
+	return circonusMetricCluster{
 		MetricCluster: api.MetricCluster{},
 	}
 }
 
-func loadStreamGroup(ctxt *providerContext, cid api.CIDType) (circonusStreamGroup, error) {
-	var sg circonusStreamGroup
+func loadMetricCluster(ctxt *providerContext, cid api.CIDType) (circonusMetricCluster, error) {
+	var sg circonusMetricCluster
 	mc, err := ctxt.client.FetchMetricCluster(cid, "")
 	if err != nil {
-		return circonusStreamGroup{}, err
+		return circonusMetricCluster{}, err
 	}
 	sg.MetricCluster = *mc
 
 	return sg, nil
 }
 
-func (sg *circonusStreamGroup) Create(ctxt *providerContext) error {
+func (sg *circonusMetricCluster) Create(ctxt *providerContext) error {
 	mc, err := ctxt.client.CreateMetricCluster(&sg.MetricCluster)
 	if err != nil {
 		return err
@@ -39,7 +39,7 @@ func (sg *circonusStreamGroup) Create(ctxt *providerContext) error {
 	return nil
 }
 
-func (sg *circonusStreamGroup) Update(ctxt *providerContext) error {
+func (sg *circonusMetricCluster) Update(ctxt *providerContext) error {
 	_, err := ctxt.client.UpdateMetricCluster(&sg.MetricCluster)
 	if err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("Unable to update stream group %s: {{err}}", sg.CID), err)
@@ -48,7 +48,7 @@ func (sg *circonusStreamGroup) Update(ctxt *providerContext) error {
 	return nil
 }
 
-func (sg *circonusStreamGroup) Validate() error {
+func (sg *circonusMetricCluster) Validate() error {
 	if len(sg.Queries) < 1 {
 		return fmt.Errorf("there must be at least one stream group query present")
 	}

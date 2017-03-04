@@ -198,7 +198,7 @@ resource "circonus_graph" "mixed-points" {
     active = true
   }
 
-  // stream_group {
+  // metric_cluster {
   //   active = true
   //   aggregate = "average"
   //   axis = "left" # right

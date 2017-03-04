@@ -14,16 +14,16 @@ import (
 
 const (
 	// circonus_graph.* resource attribute names
-	graphDescriptionAttr = "description"
-	graphLeftAttr        = "left"
-	graphLineStyleAttr   = "line_style"
-	graphNameAttr        = "name"
-	graphNotesAttr       = "notes"
-	graphRightAttr       = "right"
-	graphStreamAttr      = "stream"
-	graphStreamGroupAttr = "stream_group"
-	graphStyleAttr       = "graph_style"
-	graphTagsAttr        = "tags"
+	graphDescriptionAttr   = "description"
+	graphLeftAttr          = "left"
+	graphLineStyleAttr     = "line_style"
+	graphMetricClusterAttr = "metric_cluster"
+	graphNameAttr          = "name"
+	graphNotesAttr         = "notes"
+	graphRightAttr         = "right"
+	graphStreamAttr        = "stream"
+	graphStyleAttr         = "graph_style"
+	graphTagsAttr          = "tags"
 
 	// circonus_graph.stream.* resource attribute names
 	graphStreamActiveAttr        = "active"
@@ -40,7 +40,7 @@ const (
 	graphStreamNameAttr          = "stream_name"
 	graphStreamStackAttr         = "stack"
 
-	// circonus_graph.stream_group.* resource attribute names
+	// circonus_graph.metric_cluster.* resource attribute names
 	graphStreamGroupActiveAttr    = "active"
 	graphStreamGroupAggregateAttr = "aggregate"
 	graphStreamGroupAxisAttr      = "axis"
@@ -59,16 +59,16 @@ const (
 
 var graphDescriptions = attrDescrs{
 	// circonus_graph.* resource attribute names
-	graphDescriptionAttr: "",
-	graphLeftAttr:        "",
-	graphLineStyleAttr:   "How the line should change between point. A string containing either 'stepped', 'interpolated' or null.",
-	graphNameAttr:        "",
-	graphNotesAttr:       "",
-	graphRightAttr:       "",
-	graphStreamAttr:      "",
-	graphStreamGroupAttr: "",
-	graphStyleAttr:       "",
-	graphTagsAttr:        "",
+	graphDescriptionAttr:   "",
+	graphLeftAttr:          "",
+	graphLineStyleAttr:     "How the line should change between point. A string containing either 'stepped', 'interpolated' or null.",
+	graphNameAttr:          "",
+	graphNotesAttr:         "",
+	graphRightAttr:         "",
+	graphStreamAttr:        "",
+	graphMetricClusterAttr: "",
+	graphStyleAttr:         "",
+	graphTagsAttr:          "",
 }
 
 var graphStreamDescriptions = attrDescrs{
@@ -89,7 +89,7 @@ var graphStreamDescriptions = attrDescrs{
 }
 
 var graphStreamGroupDescriptions = attrDescrs{
-	// circonus_graph.stream_group.* resource attribute names
+	// circonus_graph.metric_cluster.* resource attribute names
 	graphStreamGroupActiveAttr:    "",
 	graphStreamGroupAggregateAttr: "",
 	graphStreamGroupAxisAttr:      "",
@@ -104,7 +104,7 @@ var graphStreamAxisOptionDescriptions = attrDescrs{
 	graphAxisMinAttr:         "",
 }
 
-func newGraphResource() *schema.Resource {
+func resourceGraph() *schema.Resource {
 	makeConflictsWith := func(in ...schemaAttr) []string {
 		out := make([]string, 0, len(in))
 		for _, attr := range in {
@@ -237,7 +237,7 @@ func newGraphResource() *schema.Resource {
 					}),
 				},
 			},
-			graphStreamGroupAttr: &schema.Schema{
+			graphMetricClusterAttr: &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				MinItems: 1,
@@ -258,7 +258,7 @@ func newGraphResource() *schema.Resource {
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      "left",
-							ValidateFunc: validateStringIn(graphStreamGroupAttr, validAxisAttrs),
+							ValidateFunc: validateStringIn(graphMetricClusterAttr, validAxisAttrs),
 						},
 						graphStreamGroupGroupAttr: &schema.Schema{
 							Type:         schema.TypeString,
@@ -485,8 +485,8 @@ func graphRead(d *schema.ResourceData, meta interface{}) error {
 		return errwrap.Wrapf(fmt.Sprintf("Unable to store graph %q attribute: {{err}}", graphStreamAttr), err)
 	}
 
-	if err := d.Set(graphStreamGroupAttr, streamGroups); err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("Unable to store graph %q attribute: {{err}}", graphStreamGroupAttr), err)
+	if err := d.Set(graphMetricClusterAttr, streamGroups); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store graph %q attribute: {{err}}", graphMetricClusterAttr), err)
 	}
 
 	d.Set(graphStyleAttr, g.Style)
@@ -748,7 +748,7 @@ func (g *circonusGraph) ParseConfig(d *schema.ResourceData) error {
 		}
 	}
 
-	if listRaw, found := d.GetOk(graphStreamGroupAttr); found {
+	if listRaw, found := d.GetOk(graphMetricClusterAttr); found {
 		streamGroupList := listRaw.([]interface{})
 
 		for _, streamGroupListRaw := range streamGroupList {

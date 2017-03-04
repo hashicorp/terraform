@@ -76,7 +76,7 @@ resource "circonus_graph" "latency-graph" {
 * `stream` - (Optional) A list of metric streams to graph.  See below for
   options.
 
-* `stream_group` - (Optional) A stream group to graph.  See below for options.
+* `metric_cluster` - (Optional) A metric cluster to graph.  See below for options.
 
 * `tags` - (Optional) A list of tags assigned to this graph.
 
@@ -120,9 +120,9 @@ required or a `check` and `stream` must be set.
 * `stack` - (Optional) If this metric is to be stacked, which stack set does it
   belong to (starting at `0`).
 
-## `stream_group` Configuration
+## `metric_cluster` Configuration
 
-A stream group aggregates multiple metric streams together dynamically using a
+A metric cluster aggregates multiple metric streams together dynamically using a
 query language.
 
 * `active` - (Optional) A boolean if the stream group is enabled or not.
@@ -134,7 +134,7 @@ query language.
 * `axis` - (Optional) The axis that the stream group will use.  Valid options
   are `left` (default) or `right`.
 
-* `group` - (Optional) The `stream_group` that will provide datapoints for this
+* `group` - (Optional) The `metric_cluster` that will provide datapoints for this
   graph.
 
 * `name` - (Optional) A name which will appear in the graph legend for this

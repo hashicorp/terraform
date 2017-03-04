@@ -34,7 +34,7 @@ var metricDescriptions = attrDescrs{
 	metricUnitAttr:   "The unit of measurement for a metric",
 }
 
-func newMetricResource() *schema.Resource {
+func resourceMetric() *schema.Resource {
 	return &schema.Resource{
 		Create: metricCreate,
 		Read:   metricRead,
