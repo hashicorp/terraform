@@ -111,35 +111,8 @@ func testAccCheckDestroyCirconusContactGroup(s *terraform.State) error {
 	return nil
 }
 
-func testAccContactGroupExists(n string, contactID api.CIDType) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Resource not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
-		}
-
-		client := testAccProvider.Meta().(*providerContext)
-		cid := rs.Primary.ID
-		exists, err := checkContactGroupExists(client, api.CIDType(&cid))
-		switch {
-		case !exists:
-			// noop
-		case exists:
-			return fmt.Errorf("contact group still exists after destroy")
-		case err != nil:
-			return fmt.Errorf("Error checking contact group %s", err)
-		}
-
-		return nil
-	}
-}
-
-func checkContactGroupExists(c *providerContext, contactID api.CIDType) (bool, error) {
-	cb, err := c.client.FetchContactGroup(contactID)
+func checkContactGroupExists(c *providerContext, contactGroupCID api.CIDType) (bool, error) {
+	cb, err := c.client.FetchContactGroup(contactGroupCID)
 	if err != nil {
 		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {
 			return false, nil
@@ -148,7 +121,7 @@ func checkContactGroupExists(c *providerContext, contactID api.CIDType) (bool, e
 		return false, err
 	}
 
-	if api.CIDType(&cb.CID) == contactID {
+	if api.CIDType(&cb.CID) == contactGroupCID {
 		return true, nil
 	}
 

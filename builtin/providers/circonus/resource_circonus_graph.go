@@ -97,12 +97,15 @@ var graphMetricClusterDescriptions = attrDescrs{
 	graphMetricClusterHumanNameAttr: "",
 }
 
-var graphMetricAxisOptionDescriptions = attrDescrs{
-	// circonus_graph.if.value.over.* resource attribute names
-	graphAxisLogarithmicAttr: "",
-	graphAxisMaxAttr:         "",
-	graphAxisMinAttr:         "",
-}
+// NOTE(sean@): There is no way to set a description on map inputs, but if that
+// does happen:
+//
+// var graphMetricAxisOptionDescriptions = attrDescrs{
+// 	// circonus_graph.if.value.over.* resource attribute names
+// 	graphAxisLogarithmicAttr: "",
+// 	graphAxisMaxAttr:         "",
+// 	graphAxisMinAttr:         "",
+// }
 
 func resourceGraph() *schema.Resource {
 	makeConflictsWith := func(in ...schemaAttr) []string {

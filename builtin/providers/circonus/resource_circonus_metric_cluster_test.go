@@ -55,33 +55,6 @@ func testAccCheckDestroyCirconusMetricCluster(s *terraform.State) error {
 	return nil
 }
 
-func testAccMetricClusterExists(n string, metricClusterCID api.CIDType) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Resource not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
-		}
-
-		ctxt := testAccProvider.Meta().(*providerContext)
-		cid := rs.Primary.ID
-		exists, err := checkMetricClusterExists(ctxt, api.CIDType(&cid))
-		switch {
-		case !exists:
-			// noop
-		case exists:
-			return fmt.Errorf("metric cluster still exists after destroy")
-		case err != nil:
-			return fmt.Errorf("Error checking metric cluster: %v", err)
-		}
-
-		return nil
-	}
-}
-
 func checkMetricClusterExists(c *providerContext, metricClusterCID api.CIDType) (bool, error) {
 	cmc, err := c.client.FetchMetricCluster(metricClusterCID, "")
 	if err != nil {

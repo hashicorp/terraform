@@ -99,33 +99,6 @@ func testAccCheckDestroyCirconusRuleSet(s *terraform.State) error {
 	return nil
 }
 
-func testAccRuleSetExists(n string, ruleSetCID api.CIDType) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Resource not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
-		}
-
-		ctxt := testAccProvider.Meta().(*providerContext)
-		cid := rs.Primary.ID
-		exists, err := checkRuleSetExists(ctxt, api.CIDType(&cid))
-		switch {
-		case !exists:
-			// noop
-		case exists:
-			return fmt.Errorf("rule setstill exists after destroy")
-		case err != nil:
-			return fmt.Errorf("Error checking rule set: %v", err)
-		}
-
-		return nil
-	}
-}
-
 func checkRuleSetExists(c *providerContext, ruleSetCID api.CIDType) (bool, error) {
 	rs, err := c.client.FetchRuleSet(ruleSetCID)
 	if err != nil {
