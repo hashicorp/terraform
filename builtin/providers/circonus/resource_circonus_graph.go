@@ -44,6 +44,7 @@ const (
 	graphMetricClusterActiveAttr    = "active"
 	graphMetricClusterAggregateAttr = "aggregate"
 	graphMetricClusterAxisAttr      = "axis"
+	graphMetricClusterColorAttr     = "color"
 	graphMetricClusterQueryAttr     = "query"
 	graphMetricClusterHumanNameAttr = "name"
 
@@ -263,6 +264,11 @@ func resourceGraph() *schema.Resource {
 							Default:      "left",
 							ValidateFunc: validateStringIn(graphMetricClusterAttr, validAxisAttrs),
 						},
+						graphMetricClusterColorAttr: &schema.Schema{
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateRegexp(graphMetricClusterColorAttr, `^#[0-9a-fA-F]{6}$`),
+						},
 						graphMetricClusterQueryAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
@@ -419,6 +425,10 @@ func graphRead(d *schema.ResourceData, meta interface{}) error {
 			metricClusterAttrs[string(graphMetricClusterAxisAttr)] = "right"
 		default:
 			return fmt.Errorf("PROVIDER BUG: Unsupported axis type %q", metricCluster.Axis)
+		}
+
+		if metricCluster.Color != nil {
+			metricClusterAttrs[string(graphMetricClusterColorAttr)] = *metricCluster.Color
 		}
 
 		if metricCluster.DataFormula != nil {
@@ -755,90 +765,95 @@ func (g *circonusGraph) ParseConfig(d *schema.ResourceData) error {
 		metricClusterList := listRaw.([]interface{})
 
 		for _, metricClusterListRaw := range metricClusterList {
-			for _, metricClusterListElem := range metricClusterListRaw.([]interface{}) {
-				metricClusterAttrs := newInterfaceMap(metricClusterListElem.(map[string]interface{}))
+			metricClusterAttrs := newInterfaceMap(metricClusterListRaw.(map[string]interface{}))
 
-				metricCluster := api.GraphMetricCluster{}
+			metricCluster := api.GraphMetricCluster{}
 
-				if v, found := metricClusterAttrs[graphMetricClusterActiveAttr]; found {
-					metricCluster.Hidden = !(v.(bool))
-				}
-
-				if v, found := metricClusterAttrs[graphMetricClusterAggregateAttr]; found {
-					metricCluster.AggregateFunc = v.(string)
-				}
-
-				if v, found := metricClusterAttrs[graphMetricClusterAxisAttr]; found {
-					switch v.(string) {
-					case "left", "":
-						metricCluster.Axis = "l"
-					case "right":
-						metricCluster.Axis = "r"
-					default:
-						return fmt.Errorf("PROVIDER BUG: Unsupported axis attribute %q: %q", graphMetricClusterAxisAttr, v.(string))
-					}
-				}
-
-				if v, found := metricClusterAttrs[graphMetricFormulaAttr]; found {
-					switch v.(type) {
-					case string:
-						s := v.(string)
-						metricCluster.DataFormula = &s
-					case *string:
-						metricCluster.DataFormula = v.(*string)
-					default:
-						return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphMetricFormulaAttr, v)
-					}
-				}
-
-				if v, found := metricClusterAttrs[graphMetricFormulaLegendAttr]; found {
-					switch v.(type) {
-					case string:
-						s := v.(string)
-						metricCluster.LegendFormula = &s
-					case *string:
-						metricCluster.LegendFormula = v.(*string)
-					default:
-						return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphMetricFormulaLegendAttr, v)
-					}
-				}
-
-				if v, found := metricClusterAttrs[graphMetricClusterQueryAttr]; found {
-					s := v.(string)
-					if s != "" {
-						metricCluster.MetricCluster = s
-					}
-				}
-
-				if v, found := metricClusterAttrs[graphMetricHumanNameAttr]; found {
-					s := v.(string)
-					if s != "" {
-						metricCluster.Name = s
-					}
-				}
-
-				if v, found := metricClusterAttrs[graphMetricStackAttr]; found {
-					var stackStr string
-					switch u := v.(type) {
-					case string:
-						stackStr = u
-					case *string:
-						if u != nil {
-							stackStr = *u
-						}
-					default:
-						return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphMetricStackAttr, v)
-					}
-
-					if stackStr != "" {
-						u64, _ := strconv.ParseUint(stackStr, 10, 64)
-						u := uint(u64)
-						metricCluster.Stack = &u
-					}
-				}
-
-				g.MetricClusters = append(g.MetricClusters, metricCluster)
+			if v, found := metricClusterAttrs[graphMetricClusterActiveAttr]; found {
+				metricCluster.Hidden = !(v.(bool))
 			}
+
+			if v, found := metricClusterAttrs[graphMetricClusterAggregateAttr]; found {
+				metricCluster.AggregateFunc = v.(string)
+			}
+
+			if v, found := metricClusterAttrs[graphMetricClusterAxisAttr]; found {
+				switch v.(string) {
+				case "left", "":
+					metricCluster.Axis = "l"
+				case "right":
+					metricCluster.Axis = "r"
+				default:
+					return fmt.Errorf("PROVIDER BUG: Unsupported axis attribute %q: %q", graphMetricClusterAxisAttr, v.(string))
+				}
+			}
+
+			if v, found := metricClusterAttrs[graphMetricClusterColorAttr]; found {
+				s := v.(string)
+				if s != "" {
+					metricCluster.Color = &s
+				}
+			}
+
+			if v, found := metricClusterAttrs[graphMetricFormulaAttr]; found {
+				switch v.(type) {
+				case string:
+					s := v.(string)
+					metricCluster.DataFormula = &s
+				case *string:
+					metricCluster.DataFormula = v.(*string)
+				default:
+					return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphMetricFormulaAttr, v)
+				}
+			}
+
+			if v, found := metricClusterAttrs[graphMetricFormulaLegendAttr]; found {
+				switch v.(type) {
+				case string:
+					s := v.(string)
+					metricCluster.LegendFormula = &s
+				case *string:
+					metricCluster.LegendFormula = v.(*string)
+				default:
+					return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphMetricFormulaLegendAttr, v)
+				}
+			}
+
+			if v, found := metricClusterAttrs[graphMetricClusterQueryAttr]; found {
+				s := v.(string)
+				if s != "" {
+					metricCluster.MetricCluster = s
+				}
+			}
+
+			if v, found := metricClusterAttrs[graphMetricHumanNameAttr]; found {
+				s := v.(string)
+				if s != "" {
+					metricCluster.Name = s
+				}
+			}
+
+			if v, found := metricClusterAttrs[graphMetricStackAttr]; found {
+				var stackStr string
+				switch u := v.(type) {
+				case string:
+					stackStr = u
+				case *string:
+					if u != nil {
+						stackStr = *u
+					}
+				default:
+					return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphMetricStackAttr, v)
+				}
+
+				if stackStr != "" {
+					u64, _ := strconv.ParseUint(stackStr, 10, 64)
+					u := uint(u64)
+					metricCluster.Stack = &u
+				}
+			}
+
+			g.MetricClusters = append(g.MetricClusters, metricCluster)
 		}
 	}
 
@@ -892,15 +907,21 @@ func (g *circonusGraph) Validate() error {
 		}
 
 		if datapoint.CheckID != 0 && datapoint.MetricName == "" {
-			return fmt.Errorf("Error with metric[%d] name=%q: %s is set, missing attribute %s must also be set", i, datapoint.Name, graphMetricCheckAttr, graphMetricNameAttr)
+			return fmt.Errorf("Error with %s[%d] name=%q: %s is set, missing attribute %s must also be set", graphMetricAttr, i, datapoint.Name, graphMetricCheckAttr, graphMetricNameAttr)
 		}
 
 		if datapoint.CheckID == 0 && datapoint.MetricName != "" {
-			return fmt.Errorf("Error with metric[%d] name=%q: %s is set, missing attribute %s must also be set", i, datapoint.Name, graphMetricNameAttr, graphMetricCheckAttr)
+			return fmt.Errorf("Error with %s[%d] name=%q: %s is set, missing attribute %s must also be set", graphMetricAttr, i, datapoint.Name, graphMetricNameAttr, graphMetricCheckAttr)
 		}
 
 		if datapoint.CAQL != nil && (datapoint.CheckID != 0 || datapoint.MetricName != "") {
-			return fmt.Errorf("Error with metric[%d] name=%q: %q attribute is mutually exclusive with attributes %s or %s", i, datapoint.Name, graphMetricCAQLAttr, graphMetricNameAttr, graphMetricCheckAttr)
+			return fmt.Errorf("Error with %s[%d] name=%q: %q attribute is mutually exclusive with attributes %s or %s", graphMetricAttr, i, datapoint.Name, graphMetricCAQLAttr, graphMetricNameAttr, graphMetricCheckAttr)
+		}
+	}
+
+	for i, mc := range g.MetricClusters {
+		if mc.AggregateFunc != "" && (mc.Color == nil || *mc.Color == "") {
+			return fmt.Errorf("Error with %s[%d] name=%q: %s is a required attribute for graphs with %s set", graphMetricClusterAttr, i, mc.Name, graphMetricClusterColorAttr, graphMetricClusterAggregateAttr)
 		}
 	}
 

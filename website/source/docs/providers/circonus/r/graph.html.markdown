@@ -136,6 +136,9 @@ set to the graph rendering engine.
 * `axis` - (Optional) The axis that the metric cluster will use.  Valid options
   are `left` (default) or `right`.
 
+* `color` - (Optional) A hex-encoded color of the line / area on the graph.
+  This is a required attribute when `aggregate` is specified.
+
 * `group` - (Optional) The `metric_cluster` that will provide datapoints for this
   graph.
 
