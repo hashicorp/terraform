@@ -53,22 +53,22 @@ The following arguments are supported:
 * `service_namespace` - (Required) The AWS service namespace of the scalable target. Valid values are `ecs` for Amazon ECS services and `ec2` Amazon EC2 Spot fleet requests.
 * `step_adjustment` - (Optional) A set of adjustments that manage scaling. These have the following structure:
 
-```
-step_adjustment {
-  metric_interval_lower_bound = 1.0
-  metric_interval_upper_bound = 2.0
-  scaling_adjustment = -1
-}
-step_adjustment {
-  metric_interval_lower_bound = 2.0
-  metric_interval_upper_bound = 3.0
-  scaling_adjustment = 1
-}
-```
+  ```
+  step_adjustment {
+    metric_interval_lower_bound = 1.0
+    metric_interval_upper_bound = 2.0
+    scaling_adjustment = -1
+  }
+  step_adjustment {
+    metric_interval_lower_bound = 2.0
+    metric_interval_upper_bound = 3.0
+    scaling_adjustment = 1
+  }
+  ```
 
-* `metric_interval_lower_bound` - (Optional) The lower bound for the difference between the alarm threshold and the CloudWatch metric. Without a value, AWS will treat this bound as infinity.
-* `metric_interval_upper_bound` - (Optional) The upper bound for the difference between the alarm threshold and the CloudWatch metric. Without a value, AWS will treat this bound as infinity. The upper bound must be greater than the lower bound.
-* `scaling_adjustment` - (Required) The number of members by which to scale, when the adjustment bounds are breached. A positive value scales up. A negative value scales down.
+  * `metric_interval_lower_bound` - (Optional) The lower bound for the difference between the alarm threshold and the CloudWatch metric. Without a value, AWS will treat this bound as infinity.
+  * `metric_interval_upper_bound` - (Optional) The upper bound for the difference between the alarm threshold and the CloudWatch metric. Without a value, AWS will treat this bound as infinity. The upper bound must be greater than the lower bound.
+  * `scaling_adjustment` - (Required) The number of members by which to scale, when the adjustment bounds are breached. A positive value scales up. A negative value scales down.
 
 ## Attribute Reference
 * `adjustment_type` - The scaling policy's adjustment type.
