@@ -152,7 +152,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"id": {
+									"managed_disk_id": {
 										Type:     schema.TypeString,
 										Optional: true,
 										ForceNew: true,
@@ -221,6 +221,11 @@ func resourceArmVirtualMachine() *schema.Resource {
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"managed_disk_id": {
+										Type:     schema.TypeString,
+										Optional: true,
+										ForceNew: true,
+									},
 									"storage_account_type": {
 										Type:     schema.TypeString,
 										Required: true,
@@ -810,6 +815,9 @@ func resourceArmVirtualMachineStorageOsDiskHash(v interface{}) int {
 		if managedDisk["storage_account_type"] != nil {
 			buf.WriteString(fmt.Sprintf("%s-", managedDisk["storage_account_type"].(string)))
 		}
+		if managedDisk["managed_disk_id"] != nil {
+			buf.WriteString(fmt.Sprintf("%s-", managedDisk["managed_disk_id"].(string)))
+		}
 	}
 	return hashcode.String(buf.String())
 }
@@ -1272,16 +1280,18 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 			Lun:          &lun,
 			CreateOption: compute.DiskCreateOptionTypes(createOption),
 		}
-		if vhd != "" && managedDisk != nil {
+		if vhd != "" && len(managedDisk) != 0 {
 			return nil, fmt.Errorf("[ERROR] Conflict between `vhd_uri` and `managed_disk` (only one or the other can be used)")
 		} else if vhd != "" {
 			data_disk.Vhd = &compute.VirtualHardDisk{
 				URI: &vhd,
 			}
 		} else if managedDisk != nil {
-			data_disk.ManagedDisk = expandAzureRmVirtualMachineManagedDisk(managedDisk)
-		} else {
-			return nil, fmt.Errorf("[ERROR] A value must be specified for either `vhd_uri` or `managed_disk`")
+			managedDisk, err := expandAzureRmVirtualMachineManagedDisk(managedDisk, &data_disk.CreateOption)
+			if err != nil {
+				return nil, err
+			}
+			data_disk.ManagedDisk = managedDisk
 		}
 
 		if v := config["caching"].(string); v != "" {
@@ -1372,14 +1382,18 @@ func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk,
 		CreateOption: compute.DiskCreateOptionTypes(createOption),
 	}
 
-	if vhdURI != "" {
+	if vhdURI != "" && len(managedDisk) != 0 {
+		return nil, fmt.Errorf("[ERROR] Conflict between `vhd_uri` and `managed_disk` (only one or the other can be used)")
+	} else if vhdURI != "" {
 		osDisk.Vhd = &compute.VirtualHardDisk{
 			URI: &vhdURI,
 		}
 	} else if managedDisk != nil {
-		osDisk.ManagedDisk = expandAzureRmVirtualMachineManagedDisk(managedDisk)
-	} else {
-		return nil, fmt.Errorf("[ERROR] must specify value for either vhd_uri or managed_disk")
+		managedDisk, err := expandAzureRmVirtualMachineManagedDisk(managedDisk, &osDisk.CreateOption)
+		if err != nil {
+			return nil, err
+		}
+		osDisk.ManagedDisk = managedDisk
 	}
 
 	if v := disk["image_uri"].(string); v != "" {
@@ -1410,11 +1424,19 @@ func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk,
 	return osDisk, nil
 }
 
-func expandAzureRmVirtualMachineManagedDisk(managedDisk map[string]interface{}) *compute.ManagedDiskParameters {
-	managedDiskParameters := &compute.ManagedDiskParameters{
-		StorageAccountType: compute.StorageAccountTypes(managedDisk["storage_account_type"].(string)),
+func expandAzureRmVirtualMachineManagedDisk(managedDisk map[string]interface{}, createOption *compute.DiskCreateOptionTypes) (*compute.ManagedDiskParameters, error) {
+	managedDiskParameters := &compute.ManagedDiskParameters{}
+	if storageAccountType := managedDisk["storage_account_type"]; storageAccountType != nil {
+		managedDiskParameters.StorageAccountType = compute.StorageAccountTypes(storageAccountType.(string))
 	}
-	return managedDiskParameters
+	if managedDisk["managed_disk_id"] != nil {
+		managedDiskId := managedDisk["managed_disk_id"].(string)
+		managedDiskParameters.ID = &managedDiskId
+	}
+	if *createOption == compute.Attach && managedDiskParameters.ID == nil {
+		return nil, fmt.Errorf("[ERROR] A value is required for `managed_disk_id` when `create_option` is %s", compute.Attach)
+	}
+	return managedDiskParameters, nil
 }
 
 func findStorageAccountResourceGroup(meta interface{}, storageAccountName string) (string, error) {
