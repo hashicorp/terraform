@@ -62,6 +62,25 @@ func TestAccAzureRMManagedDisk_import(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMManagedDisk_copy(t *testing.T) {
+	var d disk.Model
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMManagedDisk_copy, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMManagedDiskDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMManagedDiskExists("azurerm_managed_disk.test", &d),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAzureRMManagedDisk_update(t *testing.T) {
 	var d disk.Model
 
@@ -206,25 +225,6 @@ resource "azurerm_managed_disk" "test" {
     }
 }`
 
-var testAccAzureRMManagedDisk_empty_updated = `
-resource "azurerm_resource_group" "test" {
-    name = "acctestRG-%d"
-    location = "West US 2"
-}
-
-resource "azurerm_managed_disk" "test" {
-    name = "acctestd-%d"
-    location = "West US 2"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    storage_account_type = "Premium_LRS"
-    create_option = "Empty"
-    disk_size_gb = "30"
-
-    tags {
-        environment = "acctest"
-    }
-}`
-
 var testAccAzureRMManagedDisk_import = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
@@ -256,6 +256,60 @@ resource "azurerm_managed_disk" "test" {
     storage_account_type = "Standard_LRS"
     create_option = "Import"
     source_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
+
+    tags {
+        environment = "acctest"
+    }
+}`
+
+var testAccAzureRMManagedDisk_copy = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US 2"
+}
+
+resource "azurerm_managed_disk" "source" {
+    name = "acctestd1-%d"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    storage_account_type = "Standard_LRS"
+    create_option = "Empty"
+    disk_size_gb = "1"
+
+    tags {
+        environment = "acctest"
+        cost-center = "ops"
+    }
+}
+
+resource "azurerm_managed_disk" "test" {
+    name = "acctestd2-%d"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    storage_account_type = "Standard_LRS"
+    create_option = "Copy"
+    source_resource_id = "${azurerm_managed_disk.source.id}"
+    disk_size_gb = "1"
+
+    tags {
+        environment = "acctest"
+        cost-center = "ops"
+    }
+}`
+
+var testAccAzureRMManagedDisk_empty_updated = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US 2"
+}
+
+resource "azurerm_managed_disk" "test" {
+    name = "acctestd-%d"
+    location = "West US 2"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    storage_account_type = "Premium_LRS"
+    create_option = "Empty"
+    disk_size_gb = "30"
 
     tags {
         environment = "acctest"

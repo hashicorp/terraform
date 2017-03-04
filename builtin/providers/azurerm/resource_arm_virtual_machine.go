@@ -152,9 +152,14 @@ func resourceArmVirtualMachine() *schema.Resource {
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
+									"id": {
+										Type:     schema.TypeString,
+										Optional: true,
+										ForceNew: true,
+									},
 									"storage_account_type": {
 										Type:     schema.TypeString,
-										Required: true,
+										Optional: true,
 										ValidateFunc: validation.StringInSlice([]string{
 											string(compute.PremiumLRS),
 											string(compute.StandardLRS),
