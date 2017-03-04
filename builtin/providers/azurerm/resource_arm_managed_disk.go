@@ -47,14 +47,22 @@ func resourceArmManagedDisk() *schema.Resource {
 			"create_option": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(disk.Import),
 					string(disk.Empty),
-					//todo: add support for snapshots as a source (disk.Copy)
+					string(disk.Copy),
 				}, true),
 			},
 
 			"source_uri": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"source_resource_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -129,7 +137,13 @@ func resourceArmManagedDiskCreate(d *schema.ResourceData, meta interface{}) erro
 		if sourceUri := d.Get("source_uri").(string); sourceUri != "" {
 			creationData.SourceURI = &sourceUri
 		} else {
-			return fmt.Errorf("[ERROR] source_uri must be specified when create_option is `%s` or `%s`", disk.Import, disk.Copy)
+			return fmt.Errorf("[ERROR] source_uri must be specified when create_option is `%s`", disk.Import)
+		}
+	} else if strings.EqualFold(createOption, string(disk.Copy)) {
+		if sourceResourceId := d.Get("source_resource_id").(string); sourceResourceId != "" {
+			creationData.SourceResourceID = &sourceResourceId
+		} else {
+			return fmt.Errorf("[ERROR] source_resource_id must be specified when create_option is `%s`", disk.Copy)
 		}
 	}
 
@@ -177,26 +191,22 @@ func resourceArmManagedDiskRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("location", resp.Location)
 
 	if resp.Properties != nil {
-		if m, err := flattenAzureRmManagedDiskProperties(resp.Properties); err != nil {
-			return fmt.Errorf("[DEBUG] Error setting disk properties: %#v", err)
-		} else {
-			d.Set("storage_account_type", m["storage_account_type"])
-			d.Set("disk_size_gb", m["disk_size_gb"])
-			if m["os_type"] != nil {
-				d.Set("os_type", m["os_type"])
-			}
-
+		m := flattenAzureRmManagedDiskProperties(resp.Properties)
+		d.Set("storage_account_type", m["storage_account_type"])
+		d.Set("disk_size_gb", m["disk_size_gb"])
+		if m["os_type"] != nil {
+			d.Set("os_type", m["os_type"])
 		}
 	}
 
 	if resp.CreationData != nil {
-		if m, err := flattenAzureRmManagedDiskCreationData(resp.CreationData); err != nil {
-			return fmt.Errorf("[DEBUG] Error setting managed disk creation data: %#v", err)
-		} else {
-			d.Set("create_option", m["create_option"])
-			if m["source_uri"] != nil {
-				d.Set("source_uri", m["source_uri"])
-			}
+		m := flattenAzureRmManagedDiskCreationData(resp.CreationData)
+		d.Set("create_option", m["create_option"])
+		if m["source_uri"] != nil {
+			d.Set("source_uri", m["source_uri"])
+		}
+		if m["source_resource_id"] != nil {
+			d.Set("source_resource_id", m["source_resource_id"])
 		}
 	}
 
@@ -222,7 +232,7 @@ func resourceArmManagedDiskDelete(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func flattenAzureRmManagedDiskProperties(properties *disk.Properties) (map[string]interface{}, error) {
+func flattenAzureRmManagedDiskProperties(properties *disk.Properties) map[string]interface{} {
 	result := make(map[string]interface{})
 	result["storage_account_type"] = string(properties.AccountType)
 	result["disk_size_gb"] = *properties.DiskSizeGB
@@ -230,15 +240,15 @@ func flattenAzureRmManagedDiskProperties(properties *disk.Properties) (map[strin
 		result["os_type"] = string(properties.OsType)
 	}
 
-	return result, nil
+	return result
 }
 
-func flattenAzureRmManagedDiskCreationData(creationData *disk.CreationData) (map[string]interface{}, error) {
+func flattenAzureRmManagedDiskCreationData(creationData *disk.CreationData) map[string]interface{} {
 	result := make(map[string]interface{})
 	result["create_option"] = string(creationData.CreateOption)
 	if creationData.SourceURI != nil {
 		result["source_uri"] = *creationData.SourceURI
 	}
 
-	return result, nil
+	return result
 }
