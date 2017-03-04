@@ -2,9 +2,6 @@ package aws
 
 import (
 	"bytes"
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"strconv"
@@ -213,8 +210,7 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 							StateFunc: func(v interface{}) string {
 								switch v.(type) {
 								case string:
-									hash := sha1.Sum([]byte(v.(string)))
-									return hex.EncodeToString(hash[:])
+									return userDataHashSum(v.(string))
 								default:
 									return ""
 								}
@@ -323,8 +319,7 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 	}
 
 	if v, ok := d["user_data"]; ok {
-		opts.UserData = aws.String(
-			base64Encode([]byte(v.(string))))
+		opts.UserData = aws.String(base64Encode([]byte(v.(string))))
 	}
 
 	if v, ok := d["key_name"]; ok {
@@ -779,10 +774,7 @@ func launchSpecToMap(
 	}
 
 	if l.UserData != nil {
-		ud_dec, err := base64.StdEncoding.DecodeString(aws.StringValue(l.UserData))
-		if err == nil {
-			m["user_data"] = string(ud_dec)
-		}
+		m["user_data"] = userDataHashSum(aws.StringValue(l.UserData))
 	}
 
 	if l.KeyName != nil {
@@ -1009,7 +1001,6 @@ func hashLaunchSpecification(v interface{}) int {
 	}
 	buf.WriteString(fmt.Sprintf("%s-", m["instance_type"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["spot_price"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["user_data"].(string)))
 	return hashcode.String(buf.String())
 }
 
