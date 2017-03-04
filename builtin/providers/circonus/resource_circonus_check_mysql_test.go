@@ -23,13 +23,13 @@ func TestAccCirconusCheckMySQL_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.table_ops", "mysql.3110376931.query", `select 'binlog', total from (select variable_value as total from information_schema.global_status where variable_name='BINLOG_CACHE_USE') total`),
 					resource.TestCheckResourceAttr("circonus_check.table_ops", "name", "MySQL binlog total"),
 					resource.TestCheckResourceAttr("circonus_check.table_ops", "period", "300s"),
-					resource.TestCheckResourceAttr("circonus_check.table_ops", "stream.#", "1"),
+					resource.TestCheckResourceAttr("circonus_check.table_ops", "metric.#", "1"),
 
-					resource.TestCheckResourceAttr("circonus_check.table_ops", "stream.885029470.name", "binlog`total"),
-					resource.TestCheckResourceAttr("circonus_check.table_ops", "stream.885029470.tags.#", "2"),
-					resource.TestCheckResourceAttr("circonus_check.table_ops", "stream.885029470.tags.2087084518", "author:terraform"),
-					resource.TestCheckResourceAttr("circonus_check.table_ops", "stream.885029470.tags.1401442048", "lifecycle:unittest"),
-					resource.TestCheckResourceAttr("circonus_check.table_ops", "stream.885029470.type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_check.table_ops", "metric.885029470.name", "binlog`total"),
+					resource.TestCheckResourceAttr("circonus_check.table_ops", "metric.885029470.tags.#", "2"),
+					resource.TestCheckResourceAttr("circonus_check.table_ops", "metric.885029470.tags.2087084518", "author:terraform"),
+					resource.TestCheckResourceAttr("circonus_check.table_ops", "metric.885029470.tags.1401442048", "lifecycle:unittest"),
+					resource.TestCheckResourceAttr("circonus_check.table_ops", "metric.885029470.type", "numeric"),
 
 					resource.TestCheckResourceAttr("circonus_check.table_ops", "tags.#", "2"),
 					resource.TestCheckResourceAttr("circonus_check.table_ops", "tags.2087084518", "author:terraform"),
@@ -64,7 +64,7 @@ select 'binlog', total from (select variable_value as total from information_sch
 EOF
   }
 
-  stream {
+  metric {
     name = "binlog` + "`" + `total"
     tags = [ "${var.test_tags}" ]
     type = "numeric"

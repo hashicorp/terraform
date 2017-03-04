@@ -21,31 +21,31 @@ const (
 	graphNameAttr          = "name"
 	graphNotesAttr         = "notes"
 	graphRightAttr         = "right"
-	graphStreamAttr        = "stream"
+	graphMetricAttr        = "metric"
 	graphStyleAttr         = "graph_style"
 	graphTagsAttr          = "tags"
 
-	// circonus_graph.stream.* resource attribute names
-	graphStreamActiveAttr        = "active"
-	graphStreamAlphaAttr         = "alpha"
-	graphStreamAxisAttr          = "axis"
-	graphStreamCAQLAttr          = "caql"
-	graphStreamCheckAttr         = "check"
-	graphStreamColorAttr         = "color"
-	graphStreamFormulaAttr       = "formula"
-	graphStreamFormulaLegendAttr = "legend_formula"
-	graphStreamFunctionAttr      = "function"
-	graphStreamHumanNameAttr     = "name"
-	graphStreamMetricTypeAttr    = "metric_type"
-	graphStreamNameAttr          = "stream_name"
-	graphStreamStackAttr         = "stack"
+	// circonus_graph.metric.* resource attribute names
+	graphMetricActiveAttr        = "active"
+	graphMetricAlphaAttr         = "alpha"
+	graphMetricAxisAttr          = "axis"
+	graphMetricCAQLAttr          = "caql"
+	graphMetricCheckAttr         = "check"
+	graphMetricColorAttr         = "color"
+	graphMetricFormulaAttr       = "formula"
+	graphMetricFormulaLegendAttr = "legend_formula"
+	graphMetricFunctionAttr      = "function"
+	graphMetricHumanNameAttr     = "name"
+	graphMetricMetricTypeAttr    = "metric_type"
+	graphMetricNameAttr          = "metric_name"
+	graphMetricStackAttr         = "stack"
 
 	// circonus_graph.metric_cluster.* resource attribute names
-	graphStreamGroupActiveAttr    = "active"
-	graphStreamGroupAggregateAttr = "aggregate"
-	graphStreamGroupAxisAttr      = "axis"
-	graphStreamGroupGroupAttr     = "group"
-	graphStreamGroupHumanNameAttr = "name"
+	graphMetricClusterActiveAttr    = "active"
+	graphMetricClusterAggregateAttr = "aggregate"
+	graphMetricClusterAxisAttr      = "axis"
+	graphMetricClusterQueryAttr     = "query"
+	graphMetricClusterHumanNameAttr = "name"
 
 	// circonus_graph.{left,right}.* resource attribute names
 	graphAxisLogarithmicAttr = "logarithmic"
@@ -65,39 +65,39 @@ var graphDescriptions = attrDescrs{
 	graphNameAttr:          "",
 	graphNotesAttr:         "",
 	graphRightAttr:         "",
-	graphStreamAttr:        "",
+	graphMetricAttr:        "",
 	graphMetricClusterAttr: "",
 	graphStyleAttr:         "",
 	graphTagsAttr:          "",
 }
 
-var graphStreamDescriptions = attrDescrs{
-	// circonus_graph.stream.* resource attribute names
-	graphStreamActiveAttr:        "",
-	graphStreamAlphaAttr:         "",
-	graphStreamAxisAttr:          "",
-	graphStreamCAQLAttr:          "",
-	graphStreamCheckAttr:         "",
-	graphStreamColorAttr:         "",
-	graphStreamFormulaAttr:       "",
-	graphStreamFormulaLegendAttr: "",
-	graphStreamFunctionAttr:      "",
-	graphStreamMetricTypeAttr:    "",
-	graphStreamHumanNameAttr:     "",
-	graphStreamNameAttr:          "",
-	graphStreamStackAttr:         "",
+var graphMetricDescriptions = attrDescrs{
+	// circonus_graph.metric.* resource attribute names
+	graphMetricActiveAttr:        "",
+	graphMetricAlphaAttr:         "",
+	graphMetricAxisAttr:          "",
+	graphMetricCAQLAttr:          "",
+	graphMetricCheckAttr:         "",
+	graphMetricColorAttr:         "",
+	graphMetricFormulaAttr:       "",
+	graphMetricFormulaLegendAttr: "",
+	graphMetricFunctionAttr:      "",
+	graphMetricMetricTypeAttr:    "",
+	graphMetricHumanNameAttr:     "",
+	graphMetricNameAttr:          "",
+	graphMetricStackAttr:         "",
 }
 
-var graphStreamGroupDescriptions = attrDescrs{
+var graphMetricClusterDescriptions = attrDescrs{
 	// circonus_graph.metric_cluster.* resource attribute names
-	graphStreamGroupActiveAttr:    "",
-	graphStreamGroupAggregateAttr: "",
-	graphStreamGroupAxisAttr:      "",
-	graphStreamGroupGroupAttr:     "",
-	graphStreamGroupHumanNameAttr: "",
+	graphMetricClusterActiveAttr:    "",
+	graphMetricClusterAggregateAttr: "",
+	graphMetricClusterAxisAttr:      "",
+	graphMetricClusterQueryAttr:     "",
+	graphMetricClusterHumanNameAttr: "",
 }
 
-var graphStreamAxisOptionDescriptions = attrDescrs{
+var graphMetricAxisOptionDescriptions = attrDescrs{
 	// circonus_graph.if.value.over.* resource attribute names
 	graphAxisLogarithmicAttr: "",
 	graphAxisMaxAttr:         "",
@@ -108,7 +108,7 @@ func resourceGraph() *schema.Resource {
 	makeConflictsWith := func(in ...schemaAttr) []string {
 		out := make([]string, 0, len(in))
 		for _, attr := range in {
-			out = append(out, string(graphStreamAttr)+"."+string(attr))
+			out = append(out, string(graphMetricAttr)+"."+string(attr))
 		}
 		return out
 	}
@@ -156,83 +156,83 @@ func resourceGraph() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validateGraphAxisOptions,
 			},
-			graphStreamAttr: &schema.Schema{
+			graphMetricAttr: &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				MinItems: 1,
 				Elem: &schema.Resource{
-					Schema: convertToHelperSchema(graphStreamDescriptions, map[schemaAttr]*schema.Schema{
-						graphStreamActiveAttr: &schema.Schema{
+					Schema: convertToHelperSchema(graphMetricDescriptions, map[schemaAttr]*schema.Schema{
+						graphMetricActiveAttr: &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  true,
 						},
-						graphStreamAlphaAttr: &schema.Schema{
+						graphMetricAlphaAttr: &schema.Schema{
 							Type:     schema.TypeFloat,
 							Optional: true,
 							ValidateFunc: validateFuncs(
-								validateFloatMin(graphStreamAlphaAttr, 0.0),
-								validateFloatMax(graphStreamAlphaAttr, 1.0),
+								validateFloatMin(graphMetricAlphaAttr, 0.0),
+								validateFloatMax(graphMetricAlphaAttr, 1.0),
 							),
 						},
-						graphStreamAxisAttr: &schema.Schema{
+						graphMetricAxisAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      "left",
-							ValidateFunc: validateStringIn(graphStreamAxisAttr, validAxisAttrs),
+							ValidateFunc: validateStringIn(graphMetricAxisAttr, validAxisAttrs),
 						},
-						graphStreamCAQLAttr: &schema.Schema{
+						graphMetricCAQLAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
-							ValidateFunc:  validateRegexp(graphStreamCAQLAttr, `.+`),
-							ConflictsWith: makeConflictsWith(graphStreamCheckAttr, graphStreamNameAttr),
+							ValidateFunc:  validateRegexp(graphMetricCAQLAttr, `.+`),
+							ConflictsWith: makeConflictsWith(graphMetricCheckAttr, graphMetricNameAttr),
 						},
-						graphStreamCheckAttr: &schema.Schema{
+						graphMetricCheckAttr: &schema.Schema{
 							Type:          schema.TypeString,
 							Optional:      true,
-							ValidateFunc:  validateRegexp(graphStreamCheckAttr, config.CheckCIDRegex),
-							ConflictsWith: makeConflictsWith(graphStreamCAQLAttr),
+							ValidateFunc:  validateRegexp(graphMetricCheckAttr, config.CheckCIDRegex),
+							ConflictsWith: makeConflictsWith(graphMetricCAQLAttr),
 						},
-						graphStreamColorAttr: &schema.Schema{
+						graphMetricColorAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateRegexp(graphStreamColorAttr, `^#[0-9a-fA-F]{6}$`),
+							ValidateFunc: validateRegexp(graphMetricColorAttr, `^#[0-9a-fA-F]{6}$`),
 						},
-						graphStreamFormulaAttr: &schema.Schema{
+						graphMetricFormulaAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateRegexp(graphStreamFormulaAttr, `^.+$`),
+							ValidateFunc: validateRegexp(graphMetricFormulaAttr, `^.+$`),
 						},
-						graphStreamFormulaLegendAttr: &schema.Schema{
+						graphMetricFormulaLegendAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateRegexp(graphStreamFormulaLegendAttr, `^.+$`),
+							ValidateFunc: validateRegexp(graphMetricFormulaLegendAttr, `^.+$`),
 						},
-						graphStreamFunctionAttr: &schema.Schema{
+						graphMetricFunctionAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      defaultGraphFunction,
-							ValidateFunc: validateStringIn(graphStreamFunctionAttr, validGraphFunctionValues),
+							ValidateFunc: validateStringIn(graphMetricFunctionAttr, validGraphFunctionValues),
 						},
-						graphStreamMetricTypeAttr: &schema.Schema{
+						graphMetricMetricTypeAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateStringIn(graphStreamMetricTypeAttr, validMetricTypes),
+							ValidateFunc: validateStringIn(graphMetricMetricTypeAttr, validMetricTypes),
 						},
-						graphStreamHumanNameAttr: &schema.Schema{
+						graphMetricHumanNameAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateRegexp(graphStreamHumanNameAttr, `.+`),
+							ValidateFunc: validateRegexp(graphMetricHumanNameAttr, `.+`),
 						},
-						graphStreamNameAttr: &schema.Schema{
+						graphMetricNameAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateRegexp(graphStreamNameAttr, `^[\S]+$`),
+							ValidateFunc: validateRegexp(graphMetricNameAttr, `^[\S]+$`),
 						},
-						graphStreamStackAttr: &schema.Schema{
+						graphMetricStackAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateRegexp(graphStreamStackAttr, `^[\d]*$`),
+							ValidateFunc: validateRegexp(graphMetricStackAttr, `^[\d]*$`),
 						},
 					}),
 				},
@@ -242,33 +242,33 @@ func resourceGraph() *schema.Resource {
 				Optional: true,
 				MinItems: 1,
 				Elem: &schema.Resource{
-					Schema: convertToHelperSchema(graphStreamGroupDescriptions, map[schemaAttr]*schema.Schema{
-						graphStreamGroupActiveAttr: &schema.Schema{
+					Schema: convertToHelperSchema(graphMetricClusterDescriptions, map[schemaAttr]*schema.Schema{
+						graphMetricClusterActiveAttr: &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  true,
 						},
-						graphStreamGroupAggregateAttr: &schema.Schema{
+						graphMetricClusterAggregateAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      "none",
-							ValidateFunc: validateStringIn(graphStreamGroupAggregateAttr, validAggregateFuncs),
+							ValidateFunc: validateStringIn(graphMetricClusterAggregateAttr, validAggregateFuncs),
 						},
-						graphStreamGroupAxisAttr: &schema.Schema{
+						graphMetricClusterAxisAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
 							Default:      "left",
 							ValidateFunc: validateStringIn(graphMetricClusterAttr, validAxisAttrs),
 						},
-						graphStreamGroupGroupAttr: &schema.Schema{
+						graphMetricClusterQueryAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Optional:     true,
-							ValidateFunc: validateRegexp(graphStreamGroupGroupAttr, config.MetricClusterCIDRegex),
+							ValidateFunc: validateRegexp(graphMetricClusterQueryAttr, config.MetricClusterCIDRegex),
 						},
-						graphStreamGroupHumanNameAttr: &schema.Schema{
+						graphMetricClusterHumanNameAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateRegexp(graphStreamHumanNameAttr, `.+`),
+							ValidateFunc: validateRegexp(graphMetricHumanNameAttr, `.+`),
 						},
 					}),
 				},
@@ -333,112 +333,112 @@ func graphRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(g.CID)
 
-	streams := make([]interface{}, 0, len(g.Datapoints))
+	metrics := make([]interface{}, 0, len(g.Datapoints))
 	for _, datapoint := range g.Datapoints {
 		dataPointAttrs := make(map[string]interface{}, 13) // 13 == len(members in api.GraphDatapoint)
 
-		dataPointAttrs[string(graphStreamActiveAttr)] = !datapoint.Hidden
+		dataPointAttrs[string(graphMetricActiveAttr)] = !datapoint.Hidden
 
 		if datapoint.Alpha != nil && *datapoint.Alpha != 0 {
-			dataPointAttrs[string(graphStreamAlphaAttr)] = *datapoint.Alpha
+			dataPointAttrs[string(graphMetricAlphaAttr)] = *datapoint.Alpha
 		}
 
 		switch datapoint.Axis {
 		case "l", "":
-			dataPointAttrs[string(graphStreamAxisAttr)] = "left"
+			dataPointAttrs[string(graphMetricAxisAttr)] = "left"
 		case "r":
-			dataPointAttrs[string(graphStreamAxisAttr)] = "right"
+			dataPointAttrs[string(graphMetricAxisAttr)] = "right"
 		default:
 			return fmt.Errorf("PROVIDER BUG: Unsupported axis type %q", datapoint.Axis)
 		}
 
 		if datapoint.CAQL != nil {
-			dataPointAttrs[string(graphStreamCAQLAttr)] = *datapoint.CAQL
+			dataPointAttrs[string(graphMetricCAQLAttr)] = *datapoint.CAQL
 		}
 
 		if datapoint.CheckID != 0 {
-			dataPointAttrs[string(graphStreamCheckAttr)] = fmt.Sprintf("%s/%d", config.CheckPrefix, datapoint.CheckID)
+			dataPointAttrs[string(graphMetricCheckAttr)] = fmt.Sprintf("%s/%d", config.CheckPrefix, datapoint.CheckID)
 		}
 
 		if datapoint.Color != nil {
-			dataPointAttrs[string(graphStreamColorAttr)] = *datapoint.Color
+			dataPointAttrs[string(graphMetricColorAttr)] = *datapoint.Color
 		}
 
 		if datapoint.DataFormula != nil {
-			dataPointAttrs[string(graphStreamFormulaAttr)] = *datapoint.DataFormula
+			dataPointAttrs[string(graphMetricFormulaAttr)] = *datapoint.DataFormula
 		}
 
 		switch datapoint.Derive.(type) {
 		case bool:
 		case string:
-			dataPointAttrs[string(graphStreamFunctionAttr)] = datapoint.Derive.(string)
+			dataPointAttrs[string(graphMetricFunctionAttr)] = datapoint.Derive.(string)
 		default:
 			return fmt.Errorf("PROVIDER BUG: Unsupported type for derive: %T", datapoint.Derive)
 		}
 
 		if datapoint.LegendFormula != nil {
-			dataPointAttrs[string(graphStreamFormulaLegendAttr)] = *datapoint.LegendFormula
+			dataPointAttrs[string(graphMetricFormulaLegendAttr)] = *datapoint.LegendFormula
 		}
 
 		if datapoint.MetricName != "" {
-			dataPointAttrs[string(graphStreamNameAttr)] = datapoint.MetricName
+			dataPointAttrs[string(graphMetricNameAttr)] = datapoint.MetricName
 		}
 
 		if datapoint.MetricType != "" {
-			dataPointAttrs[string(graphStreamMetricTypeAttr)] = datapoint.MetricType
+			dataPointAttrs[string(graphMetricMetricTypeAttr)] = datapoint.MetricType
 		}
 
 		if datapoint.Name != "" {
-			dataPointAttrs[string(graphStreamHumanNameAttr)] = datapoint.Name
+			dataPointAttrs[string(graphMetricHumanNameAttr)] = datapoint.Name
 		}
 
 		if datapoint.Stack != nil {
-			dataPointAttrs[string(graphStreamStackAttr)] = fmt.Sprintf("%d", *datapoint.Stack)
+			dataPointAttrs[string(graphMetricStackAttr)] = fmt.Sprintf("%d", *datapoint.Stack)
 		}
 
-		streams = append(streams, dataPointAttrs)
+		metrics = append(metrics, dataPointAttrs)
 	}
 
-	streamGroups := make([]interface{}, 0, len(g.MetricClusters))
+	metricClusters := make([]interface{}, 0, len(g.MetricClusters))
 	for _, metricCluster := range g.MetricClusters {
-		streamGroupAttrs := make(map[string]interface{}, 8) // 8 == len(num struct attrs in api.GraphMetricCluster)
+		metricClusterAttrs := make(map[string]interface{}, 8) // 8 == len(num struct attrs in api.GraphMetricCluster)
 
-		streamGroupAttrs[string(graphStreamGroupActiveAttr)] = !metricCluster.Hidden
+		metricClusterAttrs[string(graphMetricClusterActiveAttr)] = !metricCluster.Hidden
 
 		if metricCluster.AggregateFunc != "" {
-			streamGroupAttrs[string(graphStreamGroupAggregateAttr)] = metricCluster.AggregateFunc
+			metricClusterAttrs[string(graphMetricClusterAggregateAttr)] = metricCluster.AggregateFunc
 		}
 
 		switch metricCluster.Axis {
 		case "l", "":
-			streamGroupAttrs[string(graphStreamGroupAxisAttr)] = "left"
+			metricClusterAttrs[string(graphMetricClusterAxisAttr)] = "left"
 		case "r":
-			streamGroupAttrs[string(graphStreamGroupAxisAttr)] = "right"
+			metricClusterAttrs[string(graphMetricClusterAxisAttr)] = "right"
 		default:
 			return fmt.Errorf("PROVIDER BUG: Unsupported axis type %q", metricCluster.Axis)
 		}
 
 		if metricCluster.DataFormula != nil {
-			streamGroupAttrs[string(graphStreamFormulaAttr)] = *metricCluster.DataFormula
+			metricClusterAttrs[string(graphMetricFormulaAttr)] = *metricCluster.DataFormula
 		}
 
 		if metricCluster.LegendFormula != nil {
-			streamGroupAttrs[string(graphStreamFormulaLegendAttr)] = *metricCluster.LegendFormula
+			metricClusterAttrs[string(graphMetricFormulaLegendAttr)] = *metricCluster.LegendFormula
 		}
 
 		if metricCluster.MetricCluster != "" {
-			streamGroupAttrs[string(graphStreamGroupGroupAttr)] = metricCluster.MetricCluster
+			metricClusterAttrs[string(graphMetricClusterQueryAttr)] = metricCluster.MetricCluster
 		}
 
 		if metricCluster.Name != "" {
-			streamGroupAttrs[string(graphStreamHumanNameAttr)] = metricCluster.Name
+			metricClusterAttrs[string(graphMetricHumanNameAttr)] = metricCluster.Name
 		}
 
 		if metricCluster.Stack != nil {
-			streamGroupAttrs[string(graphStreamStackAttr)] = fmt.Sprintf("%d", *metricCluster.Stack)
+			metricClusterAttrs[string(graphMetricStackAttr)] = fmt.Sprintf("%d", *metricCluster.Stack)
 		}
 
-		streamGroups = append(streamGroups, streamGroupAttrs)
+		metricClusters = append(metricClusters, metricClusterAttrs)
 	}
 
 	leftAxisMap := make(map[string]interface{}, 3)
@@ -481,11 +481,11 @@ func graphRead(d *schema.ResourceData, meta interface{}) error {
 		return errwrap.Wrapf(fmt.Sprintf("Unable to store graph %q attribute: {{err}}", graphRightAttr), err)
 	}
 
-	if err := d.Set(graphStreamAttr, streams); err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("Unable to store graph %q attribute: {{err}}", graphStreamAttr), err)
+	if err := d.Set(graphMetricAttr, metrics); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store graph %q attribute: {{err}}", graphMetricAttr), err)
 	}
 
-	if err := d.Set(graphMetricClusterAttr, streamGroups); err != nil {
+	if err := d.Set(graphMetricClusterAttr, metricClusters); err != nil {
 		return errwrap.Wrapf(fmt.Sprintf("Unable to store graph %q attribute: {{err}}", graphMetricClusterAttr), err)
 	}
 
@@ -627,35 +627,35 @@ func (g *circonusGraph) ParseConfig(d *schema.ResourceData) error {
 		g.Notes = &s
 	}
 
-	if listRaw, found := d.GetOk(graphStreamAttr); found {
-		streamList := listRaw.([]interface{})
-		for _, streamListElem := range streamList {
-			streamAttrs := newInterfaceMap(streamListElem.(map[string]interface{}))
+	if listRaw, found := d.GetOk(graphMetricAttr); found {
+		metricList := listRaw.([]interface{})
+		for _, metricListElem := range metricList {
+			metricAttrs := newInterfaceMap(metricListElem.(map[string]interface{}))
 			datapoint := api.GraphDatapoint{}
 
-			if v, found := streamAttrs[graphStreamActiveAttr]; found {
+			if v, found := metricAttrs[graphMetricActiveAttr]; found {
 				datapoint.Hidden = !(v.(bool))
 			}
 
-			if v, found := streamAttrs[graphStreamAlphaAttr]; found {
+			if v, found := metricAttrs[graphMetricAlphaAttr]; found {
 				f := v.(float64)
 				if f != 0 {
 					datapoint.Alpha = &f
 				}
 			}
 
-			if v, found := streamAttrs[graphStreamAxisAttr]; found {
+			if v, found := metricAttrs[graphMetricAxisAttr]; found {
 				switch v.(string) {
 				case "left", "":
 					datapoint.Axis = "l"
 				case "right":
 					datapoint.Axis = "r"
 				default:
-					return fmt.Errorf("PROVIDER BUG: Unsupported axis attribute %q: %q", graphStreamAxisAttr, v.(string))
+					return fmt.Errorf("PROVIDER BUG: Unsupported axis attribute %q: %q", graphMetricAxisAttr, v.(string))
 				}
 			}
 
-			if v, found := streamAttrs[graphStreamCheckAttr]; found {
+			if v, found := metricAttrs[graphMetricCheckAttr]; found {
 				re := regexp.MustCompile(config.CheckCIDRegex)
 				matches := re.FindStringSubmatch(v.(string))
 				if len(matches) == 3 {
@@ -664,12 +664,12 @@ func (g *circonusGraph) ParseConfig(d *schema.ResourceData) error {
 				}
 			}
 
-			if v, found := streamAttrs[graphStreamColorAttr]; found {
+			if v, found := metricAttrs[graphMetricColorAttr]; found {
 				s := v.(string)
 				datapoint.Color = &s
 			}
 
-			if v, found := streamAttrs[graphStreamFormulaAttr]; found {
+			if v, found := metricAttrs[graphMetricFormulaAttr]; found {
 				switch v.(type) {
 				case string:
 					s := v.(string)
@@ -677,11 +677,11 @@ func (g *circonusGraph) ParseConfig(d *schema.ResourceData) error {
 				case *string:
 					datapoint.DataFormula = v.(*string)
 				default:
-					return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphStreamAttr, v)
+					return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphMetricAttr, v)
 				}
 			}
 
-			if v, found := streamAttrs[graphStreamFunctionAttr]; found {
+			if v, found := metricAttrs[graphMetricFunctionAttr]; found {
 				s := v.(string)
 				if s != "" {
 					datapoint.Derive = s
@@ -692,39 +692,39 @@ func (g *circonusGraph) ParseConfig(d *schema.ResourceData) error {
 				datapoint.Derive = false
 			}
 
-			if v, found := streamAttrs[graphStreamFormulaLegendAttr]; found {
+			if v, found := metricAttrs[graphMetricFormulaLegendAttr]; found {
 				switch u := v.(type) {
 				case string:
 					datapoint.LegendFormula = &u
 				case *string:
 					datapoint.LegendFormula = u
 				default:
-					return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphStreamAttr, v)
+					return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphMetricAttr, v)
 				}
 			}
 
-			if v, found := streamAttrs[graphStreamNameAttr]; found {
+			if v, found := metricAttrs[graphMetricNameAttr]; found {
 				s := v.(string)
 				if s != "" {
 					datapoint.MetricName = s
 				}
 			}
 
-			if v, found := streamAttrs[graphStreamMetricTypeAttr]; found {
+			if v, found := metricAttrs[graphMetricMetricTypeAttr]; found {
 				s := v.(string)
 				if s != "" {
 					datapoint.MetricType = s
 				}
 			}
 
-			if v, found := streamAttrs[graphStreamHumanNameAttr]; found {
+			if v, found := metricAttrs[graphMetricHumanNameAttr]; found {
 				s := v.(string)
 				if s != "" {
 					datapoint.Name = s
 				}
 			}
 
-			if v, found := streamAttrs[graphStreamStackAttr]; found {
+			if v, found := metricAttrs[graphMetricStackAttr]; found {
 				var stackStr string
 				switch u := v.(type) {
 				case string:
@@ -734,7 +734,7 @@ func (g *circonusGraph) ParseConfig(d *schema.ResourceData) error {
 						stackStr = *u
 					}
 				default:
-					return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphStreamStackAttr, v)
+					return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphMetricStackAttr, v)
 				}
 
 				if stackStr != "" {
@@ -749,34 +749,34 @@ func (g *circonusGraph) ParseConfig(d *schema.ResourceData) error {
 	}
 
 	if listRaw, found := d.GetOk(graphMetricClusterAttr); found {
-		streamGroupList := listRaw.([]interface{})
+		metricClusterList := listRaw.([]interface{})
 
-		for _, streamGroupListRaw := range streamGroupList {
-			for _, streamGroupListElem := range streamGroupListRaw.([]interface{}) {
-				streamGroupAttrs := newInterfaceMap(streamGroupListElem.(map[string]interface{}))
+		for _, metricClusterListRaw := range metricClusterList {
+			for _, metricClusterListElem := range metricClusterListRaw.([]interface{}) {
+				metricClusterAttrs := newInterfaceMap(metricClusterListElem.(map[string]interface{}))
 
 				metricCluster := api.GraphMetricCluster{}
 
-				if v, found := streamGroupAttrs[graphStreamGroupActiveAttr]; found {
+				if v, found := metricClusterAttrs[graphMetricClusterActiveAttr]; found {
 					metricCluster.Hidden = !(v.(bool))
 				}
 
-				if v, found := streamGroupAttrs[graphStreamGroupAggregateAttr]; found {
+				if v, found := metricClusterAttrs[graphMetricClusterAggregateAttr]; found {
 					metricCluster.AggregateFunc = v.(string)
 				}
 
-				if v, found := streamGroupAttrs[graphStreamGroupAxisAttr]; found {
+				if v, found := metricClusterAttrs[graphMetricClusterAxisAttr]; found {
 					switch v.(string) {
 					case "left", "":
 						metricCluster.Axis = "l"
 					case "right":
 						metricCluster.Axis = "r"
 					default:
-						return fmt.Errorf("PROVIDER BUG: Unsupported axis attribute %q: %q", graphStreamGroupAxisAttr, v.(string))
+						return fmt.Errorf("PROVIDER BUG: Unsupported axis attribute %q: %q", graphMetricClusterAxisAttr, v.(string))
 					}
 				}
 
-				if v, found := streamGroupAttrs[graphStreamFormulaAttr]; found {
+				if v, found := metricClusterAttrs[graphMetricFormulaAttr]; found {
 					switch v.(type) {
 					case string:
 						s := v.(string)
@@ -784,11 +784,11 @@ func (g *circonusGraph) ParseConfig(d *schema.ResourceData) error {
 					case *string:
 						metricCluster.DataFormula = v.(*string)
 					default:
-						return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphStreamFormulaAttr, v)
+						return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphMetricFormulaAttr, v)
 					}
 				}
 
-				if v, found := streamGroupAttrs[graphStreamFormulaLegendAttr]; found {
+				if v, found := metricClusterAttrs[graphMetricFormulaLegendAttr]; found {
 					switch v.(type) {
 					case string:
 						s := v.(string)
@@ -796,25 +796,25 @@ func (g *circonusGraph) ParseConfig(d *schema.ResourceData) error {
 					case *string:
 						metricCluster.LegendFormula = v.(*string)
 					default:
-						return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphStreamFormulaLegendAttr, v)
+						return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphMetricFormulaLegendAttr, v)
 					}
 				}
 
-				if v, found := streamGroupAttrs[graphStreamGroupGroupAttr]; found {
+				if v, found := metricClusterAttrs[graphMetricClusterQueryAttr]; found {
 					s := v.(string)
 					if s != "" {
 						metricCluster.MetricCluster = s
 					}
 				}
 
-				if v, found := streamGroupAttrs[graphStreamHumanNameAttr]; found {
+				if v, found := metricClusterAttrs[graphMetricHumanNameAttr]; found {
 					s := v.(string)
 					if s != "" {
 						metricCluster.Name = s
 					}
 				}
 
-				if v, found := streamGroupAttrs[graphStreamStackAttr]; found {
+				if v, found := metricClusterAttrs[graphMetricStackAttr]; found {
 					var stackStr string
 					switch u := v.(type) {
 					case string:
@@ -824,7 +824,7 @@ func (g *circonusGraph) ParseConfig(d *schema.ResourceData) error {
 							stackStr = *u
 						}
 					default:
-						return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphStreamStackAttr, v)
+						return fmt.Errorf("PROVIDER BUG: unsupported type for %q: %T", graphMetricStackAttr, v)
 					}
 
 					if stackStr != "" {
@@ -885,19 +885,19 @@ func (g *circonusGraph) Update(ctxt *providerContext) error {
 func (g *circonusGraph) Validate() error {
 	for i, datapoint := range g.Datapoints {
 		if *g.Style == apiGraphStyleLine && datapoint.Alpha != nil && *datapoint.Alpha != 0 {
-			return fmt.Errorf("%s can not be set on graphs with style %s", graphStreamAlphaAttr, apiGraphStyleLine)
+			return fmt.Errorf("%s can not be set on graphs with style %s", graphMetricAlphaAttr, apiGraphStyleLine)
 		}
 
 		if datapoint.CheckID != 0 && datapoint.MetricName == "" {
-			return fmt.Errorf("Error with stream[%d] name=%q: %s is set, missing attribute %s must also be set", i, datapoint.Name, graphStreamCheckAttr, graphStreamNameAttr)
+			return fmt.Errorf("Error with metric[%d] name=%q: %s is set, missing attribute %s must also be set", i, datapoint.Name, graphMetricCheckAttr, graphMetricNameAttr)
 		}
 
 		if datapoint.CheckID == 0 && datapoint.MetricName != "" {
-			return fmt.Errorf("Error with stream[%d] name=%q: %s is set, missing attribute %s must also be set", i, datapoint.Name, graphStreamNameAttr, graphStreamCheckAttr)
+			return fmt.Errorf("Error with metric[%d] name=%q: %s is set, missing attribute %s must also be set", i, datapoint.Name, graphMetricNameAttr, graphMetricCheckAttr)
 		}
 
 		if datapoint.CAQL != nil && (datapoint.CheckID != 0 || datapoint.MetricName != "") {
-			return fmt.Errorf("Error with stream[%d] name=%q: %q attribute is mutually exclusive with attributes %s or %s", i, datapoint.Name, graphStreamCAQLAttr, graphStreamNameAttr, graphStreamCheckAttr)
+			return fmt.Errorf("Error with metric[%d] name=%q: %q attribute is mutually exclusive with attributes %s or %s", i, datapoint.Name, graphMetricCAQLAttr, graphMetricNameAttr, graphMetricCheckAttr)
 		}
 	}
 

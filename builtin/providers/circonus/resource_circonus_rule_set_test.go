@@ -20,7 +20,7 @@ func TestAccCirconusRuleSet_basic(t *testing.T) {
 				Config: testAccCirconusRuleSetConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("circonus_rule_set.icmp-latency-alarm", "check"),
-					resource.TestCheckResourceAttr("circonus_rule_set.icmp-latency-alarm", "stream_name", "maximum"),
+					resource.TestCheckResourceAttr("circonus_rule_set.icmp-latency-alarm", "metric_name", "maximum"),
 					resource.TestCheckResourceAttr("circonus_rule_set.icmp-latency-alarm", "metric_type", "numeric"),
 					resource.TestCheckResourceAttr("circonus_rule_set.icmp-latency-alarm", "notes", "Simple check to create notifications based on ICMP performance."),
 					resource.TestCheckResourceAttr("circonus_rule_set.icmp-latency-alarm", "link", "https://wiki.example.org/playbook/what-to-do-when-high-latency-strikes"),
@@ -90,16 +90,16 @@ func testAccCheckDestroyCirconusRuleSet(s *terraform.State) error {
 		case !exists:
 			// noop
 		case exists:
-			return fmt.Errorf("stream group still exists after destroy")
+			return fmt.Errorf("rule set still exists after destroy")
 		case err != nil:
-			return fmt.Errorf("Error checking stream group %s", err)
+			return fmt.Errorf("Error checking rule set: %v", err)
 		}
 	}
 
 	return nil
 }
 
-func testAccRuleSetExists(n string, streamGroupID api.CIDType) resource.TestCheckFunc {
+func testAccRuleSetExists(n string, ruleSetCID api.CIDType) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -117,17 +117,17 @@ func testAccRuleSetExists(n string, streamGroupID api.CIDType) resource.TestChec
 		case !exists:
 			// noop
 		case exists:
-			return fmt.Errorf("stream group still exists after destroy")
+			return fmt.Errorf("rule setstill exists after destroy")
 		case err != nil:
-			return fmt.Errorf("Error checking stream group %s", err)
+			return fmt.Errorf("Error checking rule set: %v", err)
 		}
 
 		return nil
 	}
 }
 
-func checkRuleSetExists(c *providerContext, streamGroupID api.CIDType) (bool, error) {
-	sg, err := c.client.FetchMetricCluster(streamGroupID, "")
+func checkRuleSetExists(c *providerContext, ruleSetCID api.CIDType) (bool, error) {
+	sg, err := c.client.FetchMetricCluster(ruleSetCID, "")
 	if err != nil {
 		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {
 			return false, nil
@@ -136,7 +136,7 @@ func checkRuleSetExists(c *providerContext, streamGroupID api.CIDType) (bool, er
 		return false, err
 	}
 
-	if api.CIDType(&sg.CID) == streamGroupID {
+	if api.CIDType(&sg.CID) == ruleSetCID {
 		return true, nil
 	}
 
@@ -167,7 +167,7 @@ resource "circonus_check" "api_latency" {
     count = 1
   }
 
-  stream {
+  metric {
     name = "maximum"
     tags = [ "${var.test_tags}" ]
     type = "numeric"
@@ -180,9 +180,9 @@ resource "circonus_check" "api_latency" {
 
 resource "circonus_rule_set" "icmp-latency-alarm" {
   check = "${circonus_check.api_latency.checks[0]}"
-  stream_name = "maximum"
-  // stream_name = "${circonus_check.api_latency.stream["maximum"].name}"
-  // metric_type = "${circonus_check.api_latency.stream["maximum"].type}"
+  metric_name = "maximum"
+  // metric_name = "${circonus_check.api_latency.metric["maximum"].name}"
+  // metric_type = "${circonus_check.api_latency.metric["maximum"].type}"
   notes = <<EOF
 Simple check to create notifications based on ICMP performance.
 EOF

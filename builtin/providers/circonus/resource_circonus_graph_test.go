@@ -32,27 +32,27 @@ func TestAccCirconusGraph_basic(t *testing.T) {
 
 					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "line_style", "stepped"),
 
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.#", "2"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.#", "2"),
 
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.0.caql", ""),
-					resource.TestCheckResourceAttrSet("circonus_graph.mixed-points", "stream.0.check"),
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.0.stream_name", "maximum"),
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.0.metric_type", "numeric"),
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.0.name", "Maximum Latency"),
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.0.axis", "left"),
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.0.color", "#657aa6"),
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.0.function", "gauge"),
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.0.active", "true"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.0.caql", ""),
+					resource.TestCheckResourceAttrSet("circonus_graph.mixed-points", "metric.0.check"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.0.metric_name", "maximum"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.0.metric_type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.0.name", "Maximum Latency"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.0.axis", "left"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.0.color", "#657aa6"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.0.function", "gauge"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.0.active", "true"),
 
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.1.caql", ""),
-					resource.TestCheckResourceAttrSet("circonus_graph.mixed-points", "stream.1.check"),
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.1.stream_name", "minimum"),
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.1.metric_type", "numeric"),
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.1.name", "Minimum Latency"),
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.1.axis", "right"),
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.1.color", "#657aa6"),
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.1.function", "gauge"),
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "stream.1.active", "true"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.1.caql", ""),
+					resource.TestCheckResourceAttrSet("circonus_graph.mixed-points", "metric.1.check"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.1.metric_name", "minimum"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.1.metric_type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.1.name", "Minimum Latency"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.1.axis", "right"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.1.color", "#657aa6"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.1.function", "gauge"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "metric.1.active", "true"),
 
 					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "tags.#", "2"),
 					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "tags.2087084518", "author:terraform"),
@@ -86,7 +86,7 @@ func testAccCheckDestroyCirconusGraph(s *terraform.State) error {
 	return nil
 }
 
-func testAccGraphExists(n string, streamGroupID api.CIDType) resource.TestCheckFunc {
+func testAccGraphExists(n string, metricClusterID api.CIDType) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -149,14 +149,14 @@ resource "circonus_check" "api_latency" {
     count = 5
   }
 
-  stream {
+  metric {
     name = "maximum"
     tags = [ "${var.test_tags}" ]
     type = "numeric"
     unit = "seconds"
   }
 
-  stream {
+  metric {
     name = "minimum"
     tags = [ "${var.test_tags}" ]
     type = "numeric"
@@ -174,10 +174,10 @@ resource "circonus_graph" "mixed-points" {
   graph_style = "line"
   line_style = "stepped"
 
-  stream {
-    # caql = "" # conflicts with stream_name/check
+  metric {
+    # caql = "" # conflicts with metric_name/check
     check = "${circonus_check.api_latency.checks[0]}"
-    stream_name = "maximum"
+    metric_name = "maximum"
     metric_type = "numeric"
     name = "Maximum Latency"
     axis = "left" # right
@@ -186,10 +186,10 @@ resource "circonus_graph" "mixed-points" {
     active = true
   }
 
-  stream {
-    # caql = "" # conflicts with stream_name/check
+  metric {
+    # caql = "" # conflicts with metric_name/check
     check = "${circonus_check.api_latency.checks[0]}"
-    stream_name = "minimum"
+    metric_name = "minimum"
     metric_type = "numeric"
     name = "Minimum Latency"
     axis = "right" # left

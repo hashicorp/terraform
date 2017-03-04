@@ -22,7 +22,7 @@ const (
 	ruleSetMetricTypeAttr = "metric_type"
 	ruleSetNotesAttr      = "notes"
 	ruleSetParentAttr     = "parent"
-	ruleSetStreamNameAttr = "stream_name"
+	ruleSetMetricNameAttr = "metric_name"
 	ruleSetTagsAttr       = "tags"
 
 	// circonus_rule_set.if.* resource attribute names
@@ -64,13 +64,13 @@ const (
 
 var ruleSetDescriptions = attrDescrs{
 	// circonus_rule_set.* resource attribute names
-	ruleSetCheckAttr:      "The CID of the check that contains the stream for this rule set",
+	ruleSetCheckAttr:      "The CID of the check that contains the metric for this rule set",
 	ruleSetIfAttr:         "A rule to execute for this rule set",
 	ruleSetLinkAttr:       "URL to show users when this rule set is active (e.g. wiki)",
-	ruleSetMetricTypeAttr: "The type of data flowing through the specified stream",
+	ruleSetMetricTypeAttr: "The type of data flowing through the specified metric stream",
 	ruleSetNotesAttr:      "Notes describing this rule set",
 	ruleSetParentAttr:     "Parent CID that must be healthy for this rule set to be active",
-	ruleSetStreamNameAttr: "The name of the stream within a check to register the rule set with",
+	ruleSetMetricNameAttr: "The name of the metric stream within a check to register the rule set with",
 	ruleSetTagsAttr:       "Tags associated with this rule set",
 }
 
@@ -82,7 +82,7 @@ var ruleSetIfDescriptions = attrDescrs{
 
 var ruleSetIfValueDescriptions = attrDescrs{
 	// circonus_rule_set.if.value.* resource attribute names
-	ruleSetAbsentAttr:   "Fire the rule set if there has been no data for the given stream over the last duration",
+	ruleSetAbsentAttr:   "Fire the rule set if there has been no data for the given metric stream over the last duration",
 	ruleSetChangedAttr:  "Boolean indicating the value has changed",
 	ruleSetContainsAttr: "Fire the rule set if the text metric contain the following string",
 	ruleSetEqualsAttr:   "Fire the rule set if the text metric exactly match the following string",
@@ -291,10 +291,10 @@ func resourceRuleSet() *schema.Resource {
 				StateFunc:    suppressWhitespace,
 				ValidateFunc: validateRegexp(ruleSetParentAttr, `^[\d]+_[\d\w]+$`),
 			},
-			ruleSetStreamNameAttr: &schema.Schema{
+			ruleSetMetricNameAttr: &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateRegexp(ruleSetStreamNameAttr, `^[\S]+$`),
+				ValidateFunc: validateRegexp(ruleSetMetricNameAttr, `^[\S]+$`),
 			},
 			ruleSetTagsAttr: tagMakeConfigSchema(ruleSetTagsAttr),
 		}),
@@ -413,7 +413,7 @@ func ruleSetRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set(ruleSetLinkAttr, indirect(rs.Link))
-	d.Set(ruleSetStreamNameAttr, rs.MetricName)
+	d.Set(ruleSetMetricNameAttr, rs.MetricName)
 	d.Set(ruleSetMetricTypeAttr, rs.MetricType)
 	d.Set(ruleSetNotesAttr, indirect(rs.Notes))
 	d.Set(ruleSetParentAttr, indirect(rs.Parent))
@@ -632,7 +632,7 @@ func (rs *circonusRuleSet) ParseConfig(d *schema.ResourceData) error {
 		rs.Parent = &s
 	}
 
-	if v, found := d.GetOk(ruleSetStreamNameAttr); found {
+	if v, found := d.GetOk(ruleSetMetricNameAttr); found {
 		rs.MetricName = v.(string)
 	}
 

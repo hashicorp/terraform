@@ -41,21 +41,21 @@ func testAccCheckDestroyCirconusMetricCluster(s *terraform.State) error {
 		}
 
 		cid := rs.Primary.ID
-		exists, err := checkStreamGroupExists(ctxt, api.CIDType(&cid))
+		exists, err := checkMetricClusterExists(ctxt, api.CIDType(&cid))
 		switch {
 		case !exists:
 			// noop
 		case exists:
-			return fmt.Errorf("stream group still exists after destroy")
+			return fmt.Errorf("metric cluster still exists after destroy")
 		case err != nil:
-			return fmt.Errorf("Error checking stream group %s", err)
+			return fmt.Errorf("Error checking metric cluster: %v", err)
 		}
 	}
 
 	return nil
 }
 
-func testAccStreamGroupExists(n string, streamGroupID api.CIDType) resource.TestCheckFunc {
+func testAccMetricClusterExists(n string, metricClusterCID api.CIDType) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -68,22 +68,22 @@ func testAccStreamGroupExists(n string, streamGroupID api.CIDType) resource.Test
 
 		ctxt := testAccProvider.Meta().(*providerContext)
 		cid := rs.Primary.ID
-		exists, err := checkStreamGroupExists(ctxt, api.CIDType(&cid))
+		exists, err := checkMetricClusterExists(ctxt, api.CIDType(&cid))
 		switch {
 		case !exists:
 			// noop
 		case exists:
-			return fmt.Errorf("stream group still exists after destroy")
+			return fmt.Errorf("metric cluster still exists after destroy")
 		case err != nil:
-			return fmt.Errorf("Error checking stream group %s", err)
+			return fmt.Errorf("Error checking metric cluster: %v", err)
 		}
 
 		return nil
 	}
 }
 
-func checkStreamGroupExists(c *providerContext, streamGroupID api.CIDType) (bool, error) {
-	sg, err := c.client.FetchMetricCluster(streamGroupID, "")
+func checkMetricClusterExists(c *providerContext, metricClusterCID api.CIDType) (bool, error) {
+	sg, err := c.client.FetchMetricCluster(metricClusterCID, "")
 	if err != nil {
 		if strings.Contains(err.Error(), defaultCirconus404ErrorString) {
 			return false, nil
@@ -92,7 +92,7 @@ func checkStreamGroupExists(c *providerContext, streamGroupID api.CIDType) (bool
 		return false, err
 	}
 
-	if api.CIDType(&sg.CID) == streamGroupID {
+	if api.CIDType(&sg.CID) == metricClusterCID {
 		return true, nil
 	}
 

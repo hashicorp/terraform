@@ -43,7 +43,7 @@ const (
 	checkNotesAttr       = "notes"
 	checkPeriodAttr      = "period"
 	checkPostgreSQLAttr  = "postgresql"
-	checkStreamAttr      = "stream"
+	checkMetricAttr      = "metric"
 	checkTagsAttr        = "tags"
 	checkTargetAttr      = "target"
 	checkTCPAttr         = "tcp"
@@ -53,10 +53,10 @@ const (
 	// circonus_check.collector.* resource attribute names
 	checkCollectorIDAttr = "id"
 
-	// circonus_check.stream.* resource attribute names are aliased to
+	// circonus_check.metric.* resource attribute names are aliased to
 	// circonus_metric.* resource attributes.
 
-	// circonus_check.streams.* resource attribute names
+	// circonus_check.metric.* resource attribute names
 	// metricIDAttr  = "id"
 
 	// Out parameters for circonus_check
@@ -97,7 +97,7 @@ var checkDescriptions = attrDescrs{
 	checkNotesAttr:       "Notes about this check bundle",
 	checkPeriodAttr:      "The period between each time the check is made",
 	checkPostgreSQLAttr:  "PostgreSQL check configuration",
-	checkStreamAttr:      "Configuration for a stream of metrics",
+	checkMetricAttr:      "Configuration for a stream of metrics",
 	checkTagsAttr:        "A list of tags assigned to the check",
 	checkTargetAttr:      "The target of the check (e.g. hostname, URL, IP, etc)",
 	checkTCPAttr:         "TCP check configuration",
@@ -117,7 +117,7 @@ var checkCollectorDescriptions = attrDescrs{
 	checkCollectorIDAttr: "The ID of the collector",
 }
 
-var checkStreamDescriptions = metricDescriptions
+var checkMetricDescriptions = metricDescriptions
 
 func resourceCheck() *schema.Resource {
 	return &schema.Resource{
@@ -187,13 +187,13 @@ func resourceCheck() *schema.Resource {
 				),
 			},
 			checkPostgreSQLAttr: schemaCheckPostgreSQL,
-			checkStreamAttr: &schema.Schema{
+			checkMetricAttr: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Set:      checkStreamChecksum,
+				Set:      checkMetricChecksum,
 				MinItems: 1,
 				Elem: &schema.Resource{
-					Schema: convertToHelperSchema(checkStreamDescriptions, map[schemaAttr]*schema.Schema{
+					Schema: convertToHelperSchema(checkMetricDescriptions, map[schemaAttr]*schema.Schema{
 						metricActiveAttr: &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
@@ -343,9 +343,9 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 		checkIDsByCollector[b] = c.Checks[i]
 	}
 
-	streams := schema.NewSet(checkStreamChecksum, nil)
+	metrics := schema.NewSet(checkMetricChecksum, nil)
 	for _, m := range c.Metrics {
-		streamAttrs := map[string]interface{}{
+		metricAttrs := map[string]interface{}{
 			string(metricActiveAttr): metricAPIStatusToBool(m.Status),
 			string(metricNameAttr):   m.Name,
 			string(metricTagsAttr):   tagsToState(apiToTags(m.Tags)),
@@ -353,7 +353,7 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 			string(metricUnitAttr):   indirect(m.Units),
 		}
 
-		streams.Add(streamAttrs)
+		metrics.Add(metricAttrs)
 	}
 
 	// Write the global circonus_check parameters followed by the check
@@ -370,8 +370,8 @@ func checkRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set(checkNotesAttr, c.Notes)
 	d.Set(checkPeriodAttr, fmt.Sprintf("%ds", c.Period))
 
-	if err := d.Set(checkStreamAttr, streams); err != nil {
-		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkStreamAttr), err)
+	if err := d.Set(checkMetricAttr, metrics); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Unable to store check %q attribute: {{err}}", checkMetricAttr), err)
 	}
 
 	if err := d.Set(checkTagsAttr, c.Tags); err != nil {
@@ -443,7 +443,7 @@ func checkDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func checkStreamChecksum(v interface{}) int {
+func checkMetricChecksum(v interface{}) int {
 	m := v.(map[string]interface{})
 	csum := metricChecksum(m)
 	return csum
@@ -491,11 +491,11 @@ func (c *circonusCheck) ParseConfig(d *schema.ResourceData) error {
 		c.Period = uint(d.Seconds())
 	}
 
-	if v, found := d.GetOk(checkStreamAttr); found {
-		streamList := v.(*schema.Set).List()
-		c.Metrics = make([]api.CheckBundleMetric, 0, len(streamList))
+	if v, found := d.GetOk(checkMetricAttr); found {
+		metricList := v.(*schema.Set).List()
+		c.Metrics = make([]api.CheckBundleMetric, 0, len(metricList))
 
-		for _, metricListRaw := range streamList {
+		for _, metricListRaw := range metricList {
 			metricAttrs := metricListRaw.(map[string]interface{})
 
 			var id string

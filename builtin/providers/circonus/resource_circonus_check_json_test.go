@@ -39,19 +39,19 @@ func TestAccCirconusCheckJSON_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.usage", "name", "Terraform test: api.circonus.com metric usage check"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "notes", ""),
 					resource.TestCheckResourceAttr("circonus_check.usage", "period", "60s"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.#", "2"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.active", "true"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.name", "_usage`0`_limit"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.tags.#", "1"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.tags.3241999189", "source:circonus"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.type", "numeric"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.unit", "qty"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.active", "true"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.name", "_usage`0`_used"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.tags.#", "1"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.tags.3241999189", "source:circonus"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.type", "numeric"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.unit", "qty"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.#", "2"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.1992097900.active", "true"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.1992097900.name", "_usage`0`_limit"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.1992097900.tags.#", "1"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.1992097900.tags.3241999189", "source:circonus"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.1992097900.type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.1992097900.unit", "qty"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.3280673139.active", "true"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.3280673139.name", "_usage`0`_used"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.3280673139.tags.#", "1"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.3280673139.tags.3241999189", "source:circonus"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.3280673139.type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.3280673139.unit", "qty"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "tags.#", "2"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "tags.3241999189", "source:circonus"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "tags.3839162439", "source:unittest"),
@@ -86,19 +86,19 @@ func TestAccCirconusCheckJSON_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.usage", "name", "Terraform test: api.circonus.com metric usage check"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "notes", "notes!"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "period", "300s"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.#", "2"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.active", "true"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.name", "_usage`0`_limit"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.tags.#", "1"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.tags.3241999189", "source:circonus"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.type", "numeric"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.1992097900.unit", "qty"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.active", "true"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.name", "_usage`0`_used"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.tags.#", "1"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.tags.3241999189", "source:circonus"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.type", "numeric"),
-					resource.TestCheckResourceAttr("circonus_check.usage", "stream.3280673139.unit", "qty"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.#", "2"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.1992097900.active", "true"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.1992097900.name", "_usage`0`_limit"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.1992097900.tags.#", "1"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.1992097900.tags.3241999189", "source:circonus"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.1992097900.type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.1992097900.unit", "qty"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.3280673139.active", "true"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.3280673139.name", "_usage`0`_used"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.3280673139.tags.#", "1"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.3280673139.tags.3241999189", "source:circonus"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.3280673139.type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_check.usage", "metric.3280673139.unit", "qty"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "tags.#", "2"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "tags.3241999189", "source:circonus"),
 					resource.TestCheckResourceAttr("circonus_check.usage", "tags.3839162439", "source:unittest"),
@@ -151,14 +151,14 @@ resource "circonus_check" "usage" {
     read_limit = 1048576
   }
 
-  stream {
+  metric {
     name = "${circonus_metric.used.name}"
     tags = [ "${circonus_metric.used.tags}" ]
     type = "${circonus_metric.used.type}"
     unit = "${coalesce(circonus_metric.used.unit, var.usage_default_unit)}"
   }
 
-  stream {
+  metric {
     name = "${circonus_metric.limit.name}"
     tags = [ "${circonus_metric.limit.tags}" ]
     type = "${circonus_metric.limit.type}"
@@ -211,14 +211,14 @@ resource "circonus_check" "usage" {
     read_limit = 1048576
   }
 
-  stream {
+  metric {
     name = "${circonus_metric.used.name}"
     tags = [ "${circonus_metric.used.tags}" ]
     type = "${circonus_metric.used.type}"
     unit = "${coalesce(circonus_metric.used.unit, var.usage_default_unit)}"
   }
 
-  stream {
+  metric {
     name = "${circonus_metric.limit.name}"
     tags = [ "${circonus_metric.limit.tags}" ]
     type = "${circonus_metric.limit.type}"

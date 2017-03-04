@@ -22,7 +22,7 @@ func TestAccCirconusCheckCAQL_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.go_gc_latency", "caql.4060628048.query", `search:metric:histogram("*consul*runtime`+"`"+`gc_pause_ns* (active:1)") | histogram:merge() | histogram:percentile(99)`),
 					resource.TestCheckResourceAttr("circonus_check.go_gc_latency", "name", "Consul's Go GC latency (Merged Histogram)"),
 					resource.TestCheckResourceAttr("circonus_check.go_gc_latency", "period", "60s"),
-					resource.TestCheckResourceAttr("circonus_check.go_gc_latency", "stream.#", "1"),
+					resource.TestCheckResourceAttr("circonus_check.go_gc_latency", "metric.#", "1"),
 
 					resource.TestCheckResourceAttr("circonus_check.go_gc_latency", "tags.#", "4"),
 					resource.TestCheckResourceAttr("circonus_check.go_gc_latency", "tags.3728194417", "app:consul"),
@@ -58,7 +58,7 @@ search:metric:histogram("*consul*runtime` + "`" + `gc_pause_ns* (active:1)") | h
 EOF
   }
 
-  stream {
+  metric {
     name = "output[1]"
     tags = [ "${var.test_tags}" ]
     type = "histogram"

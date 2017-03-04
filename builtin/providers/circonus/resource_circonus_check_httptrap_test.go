@@ -24,33 +24,33 @@ func TestAccCirconusCheckHTTPTrap_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.consul", "name", "Terraform test: consul server httptrap check"),
 					resource.TestCheckResourceAttr("circonus_check.consul", "notes", "Check to receive consul server telemetry"),
 					resource.TestCheckResourceAttr("circonus_check.consul", "period", "60s"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.#", "3"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.#", "3"),
 
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2955331924.active", "true"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2955331924.name", "consul`consul-server-10-151-2-8`consul`session_ttl`active"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2955331924.tags.#", "3"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2955331924.tags.3728194417", "app:consul"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2955331924.tags.1543130091", "lifecycle:unittests"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2955331924.tags.2058715988", "source:consul"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2955331924.type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2955331924.active", "true"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2955331924.name", "consul`consul-server-10-151-2-8`consul`session_ttl`active"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2955331924.tags.#", "3"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2955331924.tags.3728194417", "app:consul"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2955331924.tags.1543130091", "lifecycle:unittests"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2955331924.tags.2058715988", "source:consul"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2955331924.type", "numeric"),
 
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2655764695.active", "true"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2655764695.name", "consul`consul-server-10-151-2-8`runtime`alloc_bytes"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2655764695.tags.#", "3"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2655764695.tags.3728194417", "app:consul"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2655764695.tags.1543130091", "lifecycle:unittests"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2655764695.tags.2058715988", "source:consul"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2655764695.type", "numeric"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.2655764695.unit", "bytes"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2655764695.active", "true"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2655764695.name", "consul`consul-server-10-151-2-8`runtime`alloc_bytes"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2655764695.tags.#", "3"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2655764695.tags.3728194417", "app:consul"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2655764695.tags.1543130091", "lifecycle:unittests"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2655764695.tags.2058715988", "source:consul"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2655764695.type", "numeric"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.2655764695.unit", "bytes"),
 
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.52765437.active", "true"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.52765437.name", "consul`consul`http`GET`v1`kv`_"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.52765437.tags.#", "3"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.52765437.tags.3728194417", "app:consul"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.52765437.tags.1543130091", "lifecycle:unittests"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.52765437.tags.2058715988", "source:consul"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.52765437.type", "histogram"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "stream.52765437.unit", "nanoseconds"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.52765437.active", "true"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.52765437.name", "consul`consul`http`GET`v1`kv`_"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.52765437.tags.#", "3"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.52765437.tags.3728194417", "app:consul"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.52765437.tags.1543130091", "lifecycle:unittests"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.52765437.tags.2058715988", "source:consul"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.52765437.type", "histogram"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "metric.52765437.unit", "nanoseconds"),
 
 					resource.TestCheckResourceAttr("circonus_check.consul", "tags.#", "3"),
 					resource.TestCheckResourceAttr("circonus_check.consul", "tags.3728194417", "app:consul"),
@@ -90,20 +90,20 @@ resource "circonus_check" "consul" {
     secret = "12345"
   }
 
-  stream {
+  metric {
     name = "consul` + "`" + `${var.consul_hostname}` + "`" + `consul` + "`" + `session_ttl` + "`" + `active"
     tags = [ "${var.httptrap_check_tags}" ]
     type = "numeric"
   }
 
-  stream {
+  metric {
     name = "consul` + "`" + `${var.consul_hostname}` + "`" + `runtime` + "`" + `alloc_bytes"
     tags = [ "${var.httptrap_check_tags}" ]
     type = "numeric"
     unit = "bytes"
   }
 
-  stream {
+  metric {
     name = "consul` + "`" + `consul` + "`" + `http` + "`" + `GET` + "`" + `v1` + "`" + `kv` + "`" + `_"
     tags = [ "${var.httptrap_check_tags}" ]
     type = "histogram"
