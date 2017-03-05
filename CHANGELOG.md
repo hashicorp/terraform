@@ -1,5 +1,9 @@
 ## 0.8.9 (unreleased)
 
+FEATURES:
+
+ * **New Resource:**  `ns1_notifylist` [GH-12373]
+
 IMPROVEMENTS:
 
  * provider/aws: Return errors from Elastic Beanstalk [GH-12425]
@@ -9,6 +13,7 @@ BUG FIXES:
 
  * provider/mysql: Avoid crash on un-interpolated provider cfg [GH-12391]
  * provider/openstack: Handle cases where volumes are disabled [GH-12374]
+ * provider/openstack: Toggle Creation of Default Security Group Rules [GH-12119]
  * provider/statuscake: use default status code list when updating test [GH-12375]
 
 
