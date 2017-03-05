@@ -5,6 +5,10 @@ IMPROVEMENTS:
  * provider/aws: Return errors from Elastic Beanstalk [GH-12425]
 
 
+BUG FIXES:
+
+ * provider/statuscake: use default status code list when updating test [GH-12375]
+
 
 ## 0.8.8 (March 2, 2017)
 
