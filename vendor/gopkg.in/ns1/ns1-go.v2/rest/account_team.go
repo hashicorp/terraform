@@ -136,7 +136,7 @@ func (s *TeamsService) Delete(id string) (*http.Response, error) {
 
 var (
 	// ErrTeamExists bundles PUT create error.
-	ErrTeamExists = errors.New("Team already exists.")
+	ErrTeamExists = errors.New("team already exists")
 	// ErrTeamMissing bundles GET/POST/DELETE error.
-	ErrTeamMissing = errors.New("Team does not exist.")
+	ErrTeamMissing = errors.New("team does not exist")
 )

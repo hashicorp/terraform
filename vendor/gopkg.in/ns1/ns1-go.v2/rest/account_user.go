@@ -136,7 +136,7 @@ func (s *UsersService) Delete(username string) (*http.Response, error) {
 
 var (
 	// ErrUserExists bundles PUT create error.
-	ErrUserExists = errors.New("User already exists.")
+	ErrUserExists = errors.New("user already exists")
 	// ErrUserMissing bundles GET/POST/DELETE error.
-	ErrUserMissing = errors.New("User does not exist.")
+	ErrUserMissing = errors.New("user does not exist")
 )
