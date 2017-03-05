@@ -1,5 +1,9 @@
 ## 0.8.9 (unreleased)
 
+IMPROVEMENTS:
+
+ * provider/aws: Return errors from Elastic Beanstalk [GH-12425]
+
 
 
 ## 0.8.8 (March 2, 2017)
