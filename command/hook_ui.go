@@ -15,14 +15,15 @@ import (
 	"github.com/mitchellh/colorstring"
 )
 
-const periodicUiTimer = 10 * time.Second
+const defaultPeriodicUiTimer = 10 * time.Second
 const maxIdLen = 20
 
 type UiHook struct {
 	terraform.NilHook
 
-	Colorize *colorstring.Colorize
-	Ui       cli.Ui
+	Colorize        *colorstring.Colorize
+	Ui              cli.Ui
+	PeriodicUiTimer time.Duration
 
 	l         sync.Mutex
 	once      sync.Once
@@ -163,7 +164,7 @@ func (h *UiHook) stillApplying(state uiResourceState) {
 		case <-state.DoneCh:
 			return
 
-		case <-time.After(periodicUiTimer):
+		case <-time.After(h.PeriodicUiTimer):
 			// Timer up, show status
 		}
 
@@ -329,6 +330,9 @@ func (h *UiHook) PostImportState(
 func (h *UiHook) init() {
 	if h.Colorize == nil {
 		panic("colorize not given")
+	}
+	if h.PeriodicUiTimer == 0 {
+		h.PeriodicUiTimer = defaultPeriodicUiTimer
 	}
 
 	h.resources = make(map[string]uiResourceState)
