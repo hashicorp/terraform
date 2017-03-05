@@ -3270,10 +3270,52 @@
 			"revisionTime": "2017-01-17T13:00:17Z"
 		},
 		{
-			"checksumSHA1": "U0s6Vq/AxUhEEsnORw2DnZ4cw1c=",
+			"checksumSHA1": "IOhjrvLMN5Mw8PeiRF/xAfSxvew=",
 			"path": "gopkg.in/ns1/ns1-go.v2",
-			"revision": "d8d10b7f448291ddbdce48d4594fb1b667014c8b",
-			"revisionTime": "2016-11-05T01:14:08Z"
+			"revision": "49e3a8a0b594e847e01cdac77810ba49f9564ccf",
+			"revisionTime": "2017-03-02T13:56:36Z"
+		},
+		{
+			"checksumSHA1": "t20/HSVruhTb/TVwgc9mpw/oMTA=",
+			"path": "gopkg.in/ns1/ns1-go.v2/rest",
+			"revision": "49e3a8a0b594e847e01cdac77810ba49f9564ccf",
+			"revisionTime": "2017-03-02T13:56:36Z"
+		},
+		{
+			"checksumSHA1": "euh1cYwe0t2erigdvOMueyniPH0=",
+			"path": "gopkg.in/ns1/ns1-go.v2/rest/model",
+			"revision": "49e3a8a0b594e847e01cdac77810ba49f9564ccf",
+			"revisionTime": "2017-03-02T13:56:36Z"
+		},
+		{
+			"checksumSHA1": "tdMxXKsUHn3yZpur14ZNLMVyQJM=",
+			"path": "gopkg.in/ns1/ns1-go.v2/rest/model/account",
+			"revision": "49e3a8a0b594e847e01cdac77810ba49f9564ccf",
+			"revisionTime": "2017-03-02T13:56:36Z"
+		},
+		{
+			"checksumSHA1": "gBVND8veklEQV0gxF3lERV6mSZk=",
+			"path": "gopkg.in/ns1/ns1-go.v2/rest/model/data",
+			"revision": "49e3a8a0b594e847e01cdac77810ba49f9564ccf",
+			"revisionTime": "2017-03-02T13:56:36Z"
+		},
+		{
+			"checksumSHA1": "GbL7ThrBZfKs1lhzguxzscIynac=",
+			"path": "gopkg.in/ns1/ns1-go.v2/rest/model/dns",
+			"revision": "49e3a8a0b594e847e01cdac77810ba49f9564ccf",
+			"revisionTime": "2017-03-02T13:56:36Z"
+		},
+		{
+			"checksumSHA1": "CuurmNep8iMdYFodxRxAeewowsQ=",
+			"path": "gopkg.in/ns1/ns1-go.v2/rest/model/filter",
+			"revision": "49e3a8a0b594e847e01cdac77810ba49f9564ccf",
+			"revisionTime": "2017-03-02T13:56:36Z"
+		},
+		{
+			"checksumSHA1": "B0C8F5th11AHl1fo8k0I8+DvrjE=",
+			"path": "gopkg.in/ns1/ns1-go.v2/rest/model/monitor",
+			"revision": "49e3a8a0b594e847e01cdac77810ba49f9564ccf",
+			"revisionTime": "2017-03-02T13:56:36Z"
 		},
 		{
 			"checksumSHA1": "mkLQOQwQwoUc9Kr9+PaVGrKUzI4=",

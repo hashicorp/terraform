@@ -122,7 +122,7 @@ func (s *NotificationsService) Delete(listID string) (*http.Response, error) {
 
 var (
 	// ErrListExists bundles PUT create error.
-	ErrListExists = errors.New("Notify List already exists.")
+	ErrListExists = errors.New("notify List already exists")
 	// ErrListMissing bundles GET/POST/DELETE error.
-	ErrListMissing = errors.New("Notify List does not exist.")
+	ErrListMissing = errors.New("notify List does not exist")
 )

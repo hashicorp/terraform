@@ -166,6 +166,7 @@ func monitoringJobToResourceData(d *schema.ResourceData, r *monitor.Job) error {
 			m["key"] = r.Key
 			rules[i] = m
 		}
+		d.Set("rules", rules)
 	}
 	return nil
 }
