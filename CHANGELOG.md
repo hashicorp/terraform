@@ -7,6 +7,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * provider/openstack: Handle cases where volumes are disabled [GH-12374]
  * provider/statuscake: use default status code list when updating test [GH-12375]
 
 
