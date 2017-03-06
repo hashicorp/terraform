@@ -144,7 +144,7 @@ func TestFetchIMSToken_success_no_iam_token(t *testing.T) {
 }
 
 func TestFetchIMSToken_success_with_iam_token(t *testing.T) {
-	c := &Config{IBMID: "id", IBMIDPassword: "pass", RetryCount: 1, RetryDelay: 1 * time.Second}
+	c := &Config{RetryCount: 1, RetryDelay: 1 * time.Second}
 
 	iamToken := "some_access_token"
 	mockedRequest := mockIAMRequest(c, iamToken)
@@ -488,8 +488,6 @@ func mockIAMRequest(c *Config, iamToken string) *MockedRequest {
 			AcceptType: "application/json",
 			Body: url.Values{
 				"grant_type":    {"urn:ibm:params:oauth:grant-type:derive"},
-				"username":      {c.IBMID},
-				"password":      {c.IBMIDPassword},
 				"access_token":  {iamToken},
 				"response_type": {"ims_portal"},
 			},

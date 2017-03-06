@@ -118,8 +118,6 @@ func fetchIMSToken(c *Config, iamToken string) (imstoken string, imsuserid int, 
 	if iamToken != "" {
 		bodyAsValues = url.Values{
 			"grant_type":    {"urn:ibm:params:oauth:grant-type:derive"},
-			"username":      {c.IBMID},
-			"password":      {c.IBMIDPassword},
 			"access_token":  {iamToken},
 			"response_type": {"ims_portal"},
 		}
