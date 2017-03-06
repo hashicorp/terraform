@@ -31,8 +31,11 @@ func TestAccMonitoringJob_basic(t *testing.T) {
 					testAccCheckMonitoringJobRapidRecheck(&mj, false),
 					testAccCheckMonitoringJobPolicy(&mj, "quorum"),
 					testAccCheckMonitoringJobConfigSend(&mj, "HEAD / HTTP/1.0\r\n\r\n"),
-					testAccCheckMonitoringJobConfigPort(&mj, 80),
-					testAccCheckMonitoringJobConfigHost(&mj, "1.1.1.1"),
+					testAccCheckMonitoringJobConfigPort(&mj, 443),
+					testAccCheckMonitoringJobConfigHost(&mj, "1.2.3.4"),
+					testAccCheckMonitoringJobRuleValue(&mj, "200 OK"),
+					testAccCheckMonitoringJobRuleComparison(&mj, "contains"),
+					testAccCheckMonitoringJobRuleKey(&mj, "output"),
 				),
 			},
 		},
@@ -58,8 +61,11 @@ func TestAccMonitoringJob_updated(t *testing.T) {
 					testAccCheckMonitoringJobRapidRecheck(&mj, false),
 					testAccCheckMonitoringJobPolicy(&mj, "quorum"),
 					testAccCheckMonitoringJobConfigSend(&mj, "HEAD / HTTP/1.0\r\n\r\n"),
-					testAccCheckMonitoringJobConfigPort(&mj, 80),
-					testAccCheckMonitoringJobConfigHost(&mj, "1.1.1.1"),
+					testAccCheckMonitoringJobConfigPort(&mj, 443),
+					testAccCheckMonitoringJobConfigHost(&mj, "1.2.3.4"),
+					testAccCheckMonitoringJobRuleValue(&mj, "200 OK"),
+					testAccCheckMonitoringJobRuleComparison(&mj, "contains"),
+					testAccCheckMonitoringJobRuleKey(&mj, "output"),
 				),
 			},
 			resource.TestStep{
@@ -76,6 +82,9 @@ func TestAccMonitoringJob_updated(t *testing.T) {
 					testAccCheckMonitoringJobConfigSend(&mj, "HEAD / HTTP/1.0\r\n\r\n"),
 					testAccCheckMonitoringJobConfigPort(&mj, 443),
 					testAccCheckMonitoringJobConfigHost(&mj, "1.1.1.1"),
+					testAccCheckMonitoringJobRuleValue(&mj, "200"),
+					testAccCheckMonitoringJobRuleComparison(&mj, "<="),
+					testAccCheckMonitoringJobRuleKey(&mj, "connect"),
 				),
 			},
 		},
@@ -242,6 +251,33 @@ func testAccCheckMonitoringJobConfigHost(mj *monitor.Job, expected string) resou
 	}
 }
 
+func testAccCheckMonitoringJobRuleValue(mj *monitor.Job, expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if mj.Rules[0].Value.(string) != expected {
+			return fmt.Errorf("Rules[0].Value: got: %#v want: %#v", mj.Rules[0].Value.(string), expected)
+		}
+		return nil
+	}
+}
+
+func testAccCheckMonitoringJobRuleComparison(mj *monitor.Job, expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if mj.Rules[0].Comparison != expected {
+			return fmt.Errorf("Rules[0].Comparison: got: %#v want: %#v", mj.Rules[0].Comparison, expected)
+		}
+		return nil
+	}
+}
+
+func testAccCheckMonitoringJobRuleKey(mj *monitor.Job, expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if mj.Rules[0].Key != expected {
+			return fmt.Errorf("Rules[0].Key: got: %#v want: %#v", mj.Rules[0].Key, expected)
+		}
+		return nil
+	}
+}
+
 const testAccMonitoringJobBasic = `
 resource "ns1_monitoringjob" "it" {
   job_type = "tcp"
@@ -250,10 +286,16 @@ resource "ns1_monitoringjob" "it" {
   regions   = ["lga"]
   frequency = 60
 
-  config {
+  config = {
+    ssl = "1",
     send = "HEAD / HTTP/1.0\r\n\r\n"
-    port = 80
-    host = "1.1.1.1"
+    port = 443
+    host = "1.2.3.4"
+  }
+  rules = {
+    value = "200 OK"
+    comparison = "contains"
+    key = "output"
   }
 }
 `
@@ -269,10 +311,16 @@ resource "ns1_monitoringjob" "it" {
   rapid_recheck = true
   policy        = "all"
 
-  config {
+  config = {
+    ssl = "1",
     send = "HEAD / HTTP/1.0\r\n\r\n"
     port = 443
     host = "1.1.1.1"
+  }
+  rules = {
+    value = 200
+    comparison = "<="
+    key = "connect"
   }
 }
 `
