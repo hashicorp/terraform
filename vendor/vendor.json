@@ -59,7 +59,7 @@
 			"versionExact": "v8.1.0-beta"
 		},
 		{
-			"checksumSHA1": "Amd1JuJVsI9wU3+KI4Ba4jBbxps=",
+			"checksumSHA1": "ro1i9qoJcSgbWgV7D93wXhBwoL8=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/eventhub",
 			"revision": "ecf40e315d5ab0ca6d7b3b7f7fbb5c1577814813",
