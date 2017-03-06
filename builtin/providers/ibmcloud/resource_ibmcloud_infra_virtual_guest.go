@@ -206,6 +206,13 @@ func resourceIBMCloudInfraVirtualGuest() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
+				DiffSuppressFunc: func(k, o, n string, d *schema.ResourceData) bool {
+					// secondary_ip_count is only used when a virtual_guest resource is created.
+					if d.State() == nil {
+						return false
+					}
+					return true
+				},
 			},
 
 			"secondary_ip_addresses": {
@@ -712,7 +719,7 @@ func resourceIBMCloudInfraVirtualGuestRead(d *schema.ResourceData, meta interfac
 	d.Set("secondary_ip_addresses", nil)
 	if result.PrimaryIpAddress != nil {
 		secondarySubnetResult, err := services.GetAccountService(meta.(ClientSession).SoftLayerSession()).
-			Mask("ipAddresses[id,ipAddress]").
+			Mask("ipAddresses[id,ipAddress],subnetType").
 			Filter(filter.Build(filter.Path("publicSubnets.endPointIpAddress.ipAddress").Eq(*result.PrimaryIpAddress))).
 			GetPublicSubnets()
 		if err != nil {
@@ -721,8 +728,11 @@ func resourceIBMCloudInfraVirtualGuestRead(d *schema.ResourceData, meta interfac
 
 		secondaryIps := make([]string, 0)
 		for _, subnet := range secondarySubnetResult {
-			for _, ipAddressObj := range subnet.IpAddresses {
-				secondaryIps = append(secondaryIps, *ipAddressObj.IpAddress)
+			// Count static secondary ip addresses.
+			if *subnet.SubnetType == "STATIC_IP_ROUTED" {
+				for _, ipAddressObj := range subnet.IpAddresses {
+					secondaryIps = append(secondaryIps, *ipAddressObj.IpAddress)
+				}
 			}
 		}
 		if len(secondaryIps) > 0 {
@@ -810,7 +820,7 @@ func resourceIBMCloudInfraVirtualGuestUpdate(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	return nil
+	return resourceIBMCloudInfraVirtualGuestRead(d, meta)
 }
 
 func resourceIBMCloudInfraVirtualGuestDelete(d *schema.ResourceData, meta interface{}) error {
@@ -891,9 +901,9 @@ func WaitForUpgradeTransactionsToAppear(d *schema.ResourceData, meta interface{}
 
 			return transactions, "pending_upgrade", nil
 		},
-		Timeout:    5 * time.Minute,
+		Timeout:    10 * time.Minute,
 		Delay:      5 * time.Second,
-		MinTimeout: 10 * time.Second,
+		MinTimeout: 5 * time.Second,
 	}
 
 	return stateConf.WaitForState()

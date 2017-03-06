@@ -1,381 +1,225 @@
 package ibmcloud
 
 import (
-	json "encoding/json"
+	"encoding/json"
 	"errors"
-	"log"
-
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
+	"os"
+
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/terraform/helper/schema"
+	slservices "github.com/softlayer/softlayer-go/services"
 	slsession "github.com/softlayer/softlayer-go/session"
 )
 
 const (
-	uaaServerTokenRequestURI = "/oauth/token"
 	iamServerTokenRequestURI = "/oidc/token"
 )
 
-//ErrorBluemixParamaterValidation sums the insufficient credentials to login to Bluemix API
-var ErrorBluemixParamaterValidation = errors.New("Either ibmid and password (IBMID/IBMID_PASSWORD environment " +
-	"variable) or Bluemix identity cookie via BLUEMIX_IDENTITY_COOKIE environment variable are required")
+//TODO Define Error types to use for better error handling but that  alongwith below codes might go into the bluemix sdk.
 
-//ErrorSoftLayerParamaterValidation sums the insufficient credentials to login to SoftLayer API
-var ErrorSoftLayerParamaterValidation = errors.New("Either softlayer_username and softlayer_api_key " +
-	"(SOFTLAYER_USERNAME and SOFTLAYER_API_KEY environment variable  or softlayer_account_number " +
-	"(SOFTLAYER_ACCOUNT_NUMBER environment variable) are required")
+//SoftlayerRestEndpoint rest endpoint of SoftLayer
+const SoftlayerRestEndpoint = "https://api.softlayer.com/rest/v3"
 
-//ErrorIMSTokenRetrieval announces the error in retrieving IMS Token
-var ErrorIMSTokenRetrieval = errors.New("[ERROR] Failed to retrieve the IMS token")
+//SoftlayerXMLRPCEndpoint rest endpoint of SoftLayer
+const SoftlayerXMLRPCEndpoint = "https://api.softlayer.com/xmlrpc/v3"
+
+//ErrBluemixParamaterValidation sums the insufficient credentials to login to Bluemix API
+var ErrBluemixParamaterValidation = errors.New("ibmid and ibmid_password are required paramters." +
+	"Either mention in the provider block or source them from IBMID/IBMID_PASSWORD environment")
 
 // Session stores the information required for communication with the SoftLayer
 // and Bluemix API
 // At this point we don't have a bluemix-go client. Once this is in place
 // All this code will be a part of that sdk. For now define the required session here
 type Session struct {
-	// Timeout specifies a time limit for http requests made by this
-	// session. Requests that take longer that the specified timeout
-	// will result in an error.
-	Timeout time.Duration
-
-	// AccessToken is the token secret for token-based authentication
-	AccessToken string
-
-	// AccessToken is the token secret for token-based authentication
-	RefreshToken string
-
-	// IdentityCookie is used to aquire a SoftLayer token
-	IdentityCookie string
-
 	// SoftLayer IMS token
 	SoftLayerIMSToken string
 
 	// SoftLayer user ID
 	SoftLayerUserID int
 
+	// SoftLayer username
+	SoftLayerUserName string
+
+	// SoftLayer apikey
+	SoftLayerAPIKey string
+
 	// SoftLayerSesssion is the the SoftLayer session used to connect to the SoftLayer API
 	SoftLayerSession *slsession.Session
+}
 
-	IAMClientID string
-	IAMSecret   string
+//IMSTokenErrorResponse encapsulates the error response from authentication with IAM
+type IMSTokenErrorResponse struct {
+	Code    string `json:"errorCode"`
+	Message string `json:"errorMessage"`
+	Details string `json:"errorDetails"`
+}
 
-	//HTTP Client
-	HTTPClient *http.Client
+func (err IMSTokenErrorResponse) Error() string {
+	return fmt.Sprintf("Code: (%s), Message: (%s), Details: (%s)", err.Code, err.Message, err.Details)
+}
+
+//IMSTokenResponse encapsulates the response from authentication with IAM
+type IMSTokenResponse struct {
+	IMSToken   string `json:"ims_token"`
+	IMSUserID  int    `json:"ims_user_id"`
+	TokenType  string `json:"token_type"`
+	ExpiresIn  int    `json:"expires_in"`
+	Expiration int64  `json:"expiration"`
+	IMSTokenErrorResponse
 }
 
 // newSession creates and returns a pointer to a new session object
 // from a provided Config
 func newSession(c *Config) (*Session, error) {
+	iamToken := os.Getenv("IBMCLOUD_IAM_TOKEN")
+	// ibmid/ibmid_password or iam token needs to be provided
+	// iam token is meant to be used internally at this point by IBM cloud hence don't
+	// show that in error to the regular user of terraform
+	if (c.IBMID == "" || c.IBMIDPassword == "") && (iamToken == "") {
+		return nil, ErrBluemixParamaterValidation
+	}
 
-	identityCookie, err := valueFromEnv("identity_cookie")
+	imstoken, imsuserid, err := fetchIMSToken(c, iamToken)
 	if err != nil {
 		return nil, err
 	}
+	bmxSession := &Session{}
+	bmxSession.SoftLayerIMSToken = imstoken
+	bmxSession.SoftLayerUserID = imsuserid
 
-	// ibmid/password or identity cookie needs to be provided
-	// identity cookie is meant to be used internally at this point
-	if (c.IBMID == "" || c.Password == "") && (identityCookie == "") {
-		return nil, ErrorBluemixParamaterValidation
-	}
-
-	// either SoftLayer username/password or the SoftLayer account number must be provided
-	if (c.SoftLayerUsername == "" || c.SoftLayerAPIKey == "") && (c.SoftLayerAccountNumber == "") {
-		return nil, ErrorSoftLayerParamaterValidation
-	}
-
-	iamClientID, err := valueFromEnv("iam_client_id")
+	slUsername, slAPIKey, err := fetchSoftLayerAPIKey(c, imsuserid, imstoken)
 	if err != nil {
 		return nil, err
 	}
-	iamSecret, err := valueFromEnv("iam_secret")
-	if err != nil {
-		return nil, err
+	bmxSession.SoftLayerUserName = slUsername
+	bmxSession.SoftLayerAPIKey = slAPIKey
+	softlayerSession := &slsession.Session{
+		Endpoint: c.SoftLayerEndpointURL,
+		Timeout:  c.SoftLayerTimeout,
+		UserName: slUsername,
+		APIKey:   slAPIKey,
+		Debug:    os.Getenv("TF_LOG") != "",
 	}
-
-	// Bluemix timeout
-	timeout := c.Timeout
-	timeoutDuration, _ := time.ParseDuration(fmt.Sprintf("%ss", timeout))
-
-	bluemixSession := &Session{
-		IdentityCookie: identityCookie,
-		IAMClientID:    iamClientID,
-		IAMSecret:      iamSecret,
-		Timeout:        timeoutDuration,
-	}
-
-	bluemixSession.HTTPClient = cleanhttp.DefaultClient()
-	bluemixSession.HTTPClient.Timeout = timeoutDuration
-
-	err = bluemixSession.authenticate(c)
-	if err != nil {
-		return nil, err
-	}
-
-	softlayerSession := slsession.New(
-		c.SoftLayerUsername,
-		c.SoftLayerAPIKey,
-		c.SoftLayerEndpointURL,
-		c.SoftLayerTimeout,
-	)
-
-	if os.Getenv("TF_LOG") != "" {
-		softlayerSession.Debug = true
-	}
-
-	// if the SoftLayer IMS account is provided, retrieve the IMS token
-	if c.SoftLayerAccountNumber != "" {
-
-		if identityCookie == "" {
-			err = bluemixSession.createIdentityCookie(c)
-		}
-		if err != nil {
-			return bluemixSession, err
-		}
-		err := bluemixSession.createIMSToken(c)
-		if err != nil {
-			return bluemixSession, err
-		}
-		softlayerSession.UserId = bluemixSession.SoftLayerUserID
-		softlayerSession.AuthToken = bluemixSession.SoftLayerIMSToken
-
-	}
-	bluemixSession.SoftLayerSession = softlayerSession
-	return bluemixSession, nil
+	bmxSession.SoftLayerSession = softlayerSession
+	return bmxSession, nil
 }
 
-//Authenticate against Bluemix
-func (s *Session) authenticate(c *Config) error {
-
-	// Create body for token request
-	bodyAsValues := url.Values{
-		"grant_type": {"password"},
-		"username":   {c.IBMID},
-		"password":   {c.Password},
+func fetchIMSToken(c *Config, iamToken string) (imstoken string, imsuserid int, err error) {
+	log.Printf("[INFO] Fetching the IMS token...")
+	var bodyAsValues url.Values
+	if iamToken != "" {
+		bodyAsValues = url.Values{
+			"grant_type":    {"urn:ibm:params:oauth:grant-type:derive"},
+			"username":      {c.IBMID},
+			"password":      {c.IBMIDPassword},
+			"access_token":  {iamToken},
+			"response_type": {"ims_portal"},
+		}
+	} else {
+		bodyAsValues = url.Values{
+			"grant_type":    {"password"},
+			"username":      {c.IBMID},
+			"password":      {c.IBMIDPassword},
+			"ims_account":   {c.SoftLayerAccountNumber},
+			"response_type": {"cloud_iam,ims_portal"},
+		}
 	}
-
-	authURL := fmt.Sprintf("%s%s", c.Endpoint, uaaServerTokenRequestURI)
-
-	authHeaders := map[string]string{
-		"Authorization": "Basic Y2Y6",
-		"Content-Type":  "application/x-www-form-urlencoded",
-	}
-
-	type AuthenticationErrorResponse struct {
-		Code        string `json:"error"`
-		Description string `json:"error_description"`
-	}
-
-	type AuthenticationResponse struct {
-		AccessToken  string `json:"access_token"`
-		TokenType    string `json:"token_type"`
-		RefreshToken string `json:"refresh_token"`
-		AuthenticationErrorResponse
-	}
-
-	req, err := http.NewRequest("POST", authURL, strings.NewReader(bodyAsValues.Encode()))
-	if err != nil {
-		return fmt.Errorf("error occurred while composing request to retrieve acess token: %s ", err)
-	}
-	for k, v := range authHeaders {
-		req.Header.Add(k, v)
-	}
-	response, err := s.HTTPClient.Do(req)
-
-	if err != nil {
-		return fmt.Errorf("error occurred while retrieving acces token: %s ", err)
-	}
-
-	defer response.Body.Close()
-
-	responseBody, err := ioutil.ReadAll(response.Body)
-
-	// unmarshall the response
-	var jsonResponse AuthenticationResponse
-	err = json.Unmarshal(responseBody, &jsonResponse)
-
-	s.AccessToken = jsonResponse.AccessToken
-	s.RefreshToken = jsonResponse.RefreshToken
-	errorCode := jsonResponse.Code
-	if errorCode != "" {
-		return fmt.Errorf("Bluemix authentication failed %s", string(responseBody))
-	}
-	return err
-}
-
-func (s *Session) createIdentityCookie(c *Config) error {
-	bodyAsValues := url.Values{
-		"grant_type":    {"password"},
-		"username":      {c.IBMID},
-		"password":      {c.Password},
-		"response_type": {"identity_cookie"},
-	}
-
-	authURL := fmt.Sprintf("%s%s", c.Endpoint, uaaServerTokenRequestURI)
-	authHeaders := map[string]string{
-		"Authorization": "Basic Y2Y6",
-		"Content-Type":  "application/x-www-form-urlencoded",
-	}
-	type IdentityCookieErrorResponse struct {
-		Code        string `json:"error"`
-		Description string `json:"error_description"`
-	}
-
-	type IdentityCookieResponse struct {
-		Expiration     int64  `json:"expiration"`
-		IdentityCookie string `json:"identity_cookie"`
-		IdentityCookieErrorResponse
-	}
-
-	req, err := http.NewRequest("POST", authURL, strings.NewReader(bodyAsValues.Encode()))
-	if err != nil {
-		return fmt.Errorf("error occurred while composing request to create identity cookie: %s ", err)
-	}
-	for k, v := range authHeaders {
-		req.Header.Add(k, v)
-	}
-	response, err := s.HTTPClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("error occurred while creating identity cookie: %s ", err)
-	}
-
-	defer response.Body.Close()
-
-	responseBody, err := ioutil.ReadAll(response.Body)
-
-	var jsonResponse IdentityCookieResponse
-	err = json.Unmarshal(responseBody, &jsonResponse)
-
-	s.IdentityCookie = jsonResponse.IdentityCookie
-	errorCode := jsonResponse.Code
-	if errorCode != "" {
-		return fmt.Errorf("Bluemix createIdentityCookie failed, %s", string(responseBody))
-	}
-	return err
-}
-
-func (s *Session) createIMSToken(c *Config) error {
-	log.Printf("[INFO] Creating the IMS token...")
-	bodyAsValues := url.Values{
-		"grant_type":    {"urn:ibm:params:oauth:grant-type:identity-cookie"},
-		"cookie":        {s.IdentityCookie},
-		"ims_account":   {c.SoftLayerAccountNumber},
-		"response_type": {"cloud_iam, ims_portal"},
-	}
-
 	authURL := fmt.Sprintf("%s%s", c.IAMEndpoint, iamServerTokenRequestURI)
-
-	authHeaders := map[string]string{
-		"Authorization": "Basic Y2Y6",
+	headers := map[string]string{
 		"Content-Type":  "application/x-www-form-urlencoded",
+		"Authorization": "Basic Yng6Yng=",
 	}
-	type IMSTokenErrorResponse struct {
-		Code        string `json:"error"`
-		Description string `json:"error_description"`
-	}
-
-	type IMSTokenResponse struct {
-		IMSToken   string `json:"ims_token"`
-		IMSUserID  int    `json:"ims_user_id"`
-		TokenType  string `json:"token_type"`
-		ExpiresIn  int    `json:"expires_in"`
-		Expiration int64  `json:"expiration"`
-		IMSTokenErrorResponse
-	}
-
 	//retry parameters
-	count := 5
-	delay := 4000 * time.Millisecond
+	count := c.RetryCount + 1
+	delay := c.RetryDelay
+
+	httpClient := cleanhttp.DefaultClient()
+	httpClient.Timeout = 60 * time.Second
 
 	for count > 0 {
-		req, _ := http.NewRequest("POST", authURL, strings.NewReader(bodyAsValues.Encode()))
-		for k, v := range authHeaders {
+		var req *http.Request
+		req, err = http.NewRequest("POST", authURL, strings.NewReader(bodyAsValues.Encode()))
+		if err != nil {
+			return "", 0, fmt.Errorf("Failed to compose Auth request to %s: %v", authURL, err)
+		}
+		for k, v := range headers {
 			req.Header.Add(k, v)
 		}
-		req.SetBasicAuth(s.IAMClientID, s.IAMSecret)
-
-		response, err := s.HTTPClient.Do(req)
+		var response *http.Response
+		response, err = httpClient.Do(req)
 		if err != nil {
 			log.Println("[WARNING] Error occurred while aquiring the IMS token:  ", err)
+			err = fmt.Errorf("Client request to fetch IMS token failed %v", err)
 			time.Sleep(delay)
 			count--
 			continue
 		}
 		if response.StatusCode != 200 {
 			log.Printf("[WARNING] Response Status: %s", response.Status)
+			err = fmt.Errorf("Client request to fetch IMS token failed with response code %d", response.StatusCode)
 			time.Sleep(delay)
 			response.Body.Close()
 			count--
 			continue
 		}
-		responseBody, err := ioutil.ReadAll(response.Body)
+		var responseBody []byte
+		responseBody, err = ioutil.ReadAll(response.Body)
+		response.Body.Close()
 		if err != nil {
 			log.Println("[WARNING] Error occurred while reading the HTTP response body:  ", err)
+			err = fmt.Errorf("Couldn't read the server response at %s.%v", authURL, err)
 			time.Sleep(delay)
 			count--
 			continue
 		}
 		var jsonResponse IMSTokenResponse
 		err = json.Unmarshal(responseBody, &jsonResponse)
-
 		if err != nil {
 			log.Println("[WARNING] Error occurred while unmarshalling the IMSTokenResponse:  ", err)
+			err = fmt.Errorf("Couldn't unmarshall the  IMSTokenResponse %v", err)
 			time.Sleep(delay)
 			count--
 			continue
 		}
-		if jsonResponse.IMSToken == "" {
-			log.Printf("[WARNING] Retrying to aquire the IMS token...")
-			time.Sleep(delay)
-			count--
-			continue
+		if jsonResponse.Code != "" {
+			//should never happen as status code is 200 here
+			log.Printf("[SEVERE] Permanent failure occured while acquiring IMS token")
+			panic(jsonResponse)
 		}
+
 		log.Printf("[INFO] IMS token aquired")
-		s.SoftLayerIMSToken = jsonResponse.IMSToken
-		s.SoftLayerUserID = jsonResponse.IMSUserID
-		response.Body.Close()
-		return nil
+		imstoken = jsonResponse.IMSToken
+		imsuserid = jsonResponse.IMSUserID
+		return
 	}
-	return ErrorIMSTokenRetrieval
+	return "", 0, err
 }
 
-func valueFromEnv(paramName string) (string, error) {
-
-	switch paramName {
-
-	case "identity_cookie":
-		//These envs not exposed in schema at this point and are meant to be used internally by IBM Cloud
-		identityCookie, err := schema.MultiEnvDefaultFunc([]string{"BM_IDENTITY_COOKIE", "BLUEMIX_IDENTITY_COOKIE"}, "")()
-		if err != nil {
-			return "", err
-		}
-		return identityCookie.(string), nil
-
-	case "iam_client_id":
-		//These envs not exposed in schema at this point and are meant to be used internally by IBM Cloud
-		iamClientID, err := schema.MultiEnvDefaultFunc([]string{"BM_IAM_CLIENT_ID", "BLUEMIX_IAM_CLIENT_ID"}, "")()
-		if err != nil {
-			return "", err
-		}
-
-		return iamClientID.(string), nil
-
-	case "iam_secret":
-		//These envs not exposed in schema at this point and are meant to be used internally by IBM Cloud
-		iamSecret, err := schema.MultiEnvDefaultFunc([]string{"BM_IAM_SECRET", "BLUEMIX_IAM_SECRET"}, "")()
-		if err != nil {
-			return "", err
-		}
-		return iamSecret.(string), nil
-
-	default:
-		return "", fmt.Errorf("Invalid parameter provided to fetch from Environment variables %s", paramName)
+func fetchSoftLayerAPIKey(c *Config, sluserID int, slToken string) (slUsername, slAPIKey string, err error) {
+	sess := &slsession.Session{
+		Endpoint: c.SoftlayerXMLRPCEndpoint,
+		Timeout:  c.SoftLayerTimeout,
+		Debug:    os.Getenv("TF_LOG") != "",
 	}
-
+	sess.UserId = sluserID
+	sess.AuthToken = slToken
+	userService := slservices.GetUserCustomerService(sess)
+	cust, err := userService.Id(sess.UserId).Mask("username;apiAuthenticationKeys.authenticationKey").GetObject()
+	if err != nil {
+		return "", "", err
+	}
+	if len(cust.ApiAuthenticationKeys) == 0 {
+		return "", "", errors.New("Couldn't find any API Keys")
+	}
+	slAPIKey = *cust.ApiAuthenticationKeys[0].AuthenticationKey
+	slUsername = *cust.Username
+	return
 }

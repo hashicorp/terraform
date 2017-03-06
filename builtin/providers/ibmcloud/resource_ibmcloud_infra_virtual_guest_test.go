@@ -15,6 +15,13 @@ import (
 	"github.com/softlayer/softlayer-go/services"
 )
 
+func init() {
+	imageID := os.Getenv("IBMCLOUD_VIRTUAL_GUEST_IMAGE_ID")
+	if imageID == "" {
+		fmt.Println("[WARN] Set the environment variable IBMCLOUD_VIRTUAL_GUEST_IMAGE_ID for testing " +
+			"the ibmcloud_infra_virtual_guest resource. Some tests for that resource will fail if this is not set correctly")
+	}
+}
 func TestAccIBMCloudInfraVirtualGuest_basic(t *testing.T) {
 	var guest datatypes.Virtual_Guest
 
@@ -343,7 +350,7 @@ resource "ibmcloud_infra_virtual_guest" "terraform-acceptance-test-BDTGroup" {
     domain = "%s"
     datacenter = "wdc04"
     network_speed = 10
-    hourly_billing = false
+    hourly_billing = true
     cores = 1
     memory = 1024
     local_disk = false
@@ -358,7 +365,7 @@ resource "ibmcloud_infra_virtual_guest" "terraform-acceptance-test-disks" {
     domain = "%s"
     datacenter = "wdc04"
     network_speed = 10
-    hourly_billing = false
+    hourly_billing = true
     cores = 1
     memory = 1024
     local_disk = false

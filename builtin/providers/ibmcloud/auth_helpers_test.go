@@ -3,254 +3,425 @@ package ibmcloud
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
+	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
-	"strings"
+	"reflect"
+	"strconv"
 	"testing"
+	"time"
+
+	"strings"
+
+	"github.com/hashicorp/terraform/helper/acctest"
+	"github.com/softlayer/softlayer-go/sl"
 )
 
 func TestSessionMissingBluemixRequiredParamters(t *testing.T) {
 	c := &Config{}
 	_, err := newSession(c)
 
-	if err != ErrorBluemixParamaterValidation {
-		t.Fatalf("Expecting error: %s, instead got: %v", ErrorBluemixParamaterValidation, err)
+	if err != ErrBluemixParamaterValidation {
+		t.Fatalf("Expecting error: %s, instead got: %v", ErrBluemixParamaterValidation, err)
 	}
 }
-
-func TestSessionMissingSoftlayerRequiredParamters(t *testing.T) {
-	c := &Config{IBMID: "user", Password: "password"}
-	_, err := newSession(c)
-
-	if err != ErrorSoftLayerParamaterValidation {
-		t.Fatalf("Expecting error: %s, instead got: %v", ErrorSoftLayerParamaterValidation, err)
-	}
-}
-
-func TestSessionMissingSoftlayerRequiredParamtersWithIdentityCookie(t *testing.T) {
-	c := &Config{}
+func TestSessionCreation_success(t *testing.T) {
+	c := &Config{IBMID: "id", IBMIDPassword: "pass", RetryCount: 1, RetryDelay: 1 * time.Second}
+	imsToken := "token"
+	imsUserid := 1
+	stringifiedUserID := strconv.Itoa(imsUserid)
+	slUserName := "somesluser"
+	slAPIKey := "apikey"
 	resetEnv := setEnv(map[string]string{
-		"BM_IDENTITY_COOKIE": "cookie",
+		"IBMCLOUD_IAM_TOKEN": "",
 	}, t)
 	defer resetEnv()
-	_, err := newSession(c)
+	mockedIAMRequest := mockIAMRequest(c, "")
+	mockedIAMResponse := &MockedResponse{
+		StatusCode:  200,
+		ContentType: "application/json",
+		Body: map[string]interface{}{
+			"ims_token":   imsToken,
+			"ims_user_id": imsUserid,
+			"token_type":  "bearer",
+			"expires_in":  123,
+			"expiration":  5,
+		},
+	}
 
-	if err != ErrorSoftLayerParamaterValidation {
-		t.Fatalf("Expecting error: %s, instead got: %v", ErrorSoftLayerParamaterValidation, err)
+	mockedSLRequest := mockSoftLayerXMLRPCRequest(stringifiedUserID)
+	mockedSLResponse := &MockedResponse{
+		StatusCode:  200,
+		ContentType: "text/xml",
+		Body:        `<?xml version="1.0" encoding="utf-8"?><params><param><value><struct><member><name>username</name><value><string>` + slUserName + `</string></value></member><member><name>apiAuthenticationKeys</name><value><array><data><value><struct><member><name>authenticationKey</name><value><string>` + slAPIKey + `</string></value></member></struct></value></data></array></value></member></struct></value></param></params>`,
+	}
+
+	transactionsIAM := []*MockedTransaction{
+		{
+			Request:  mockedIAMRequest,
+			Response: mockedIAMResponse,
+		},
+	}
+	iamServer := getMockIAMServer(transactionsIAM)
+	c.IAMEndpoint = iamServer.URL
+	defer iamServer.Close()
+
+	transactionsSL := []*MockedTransaction{
+		{
+			Request:  mockedSLRequest,
+			Response: mockedSLResponse,
+		},
+	}
+	slServer := getMockSoftlayerXMLRPCServer(transactionsSL)
+	c.SoftlayerXMLRPCEndpoint = slServer.URL + "/xmlrpc/"
+	defer slServer.Close()
+
+	s, e := newSession(c)
+
+	if e != nil {
+		t.Fatalf("Session creation failed")
+	}
+
+	if s.SoftLayerAPIKey != slAPIKey {
+		t.Fatalf("API Key mismatch, Expecting (%s), instead got (%s)", slAPIKey, s.SoftLayerAPIKey)
+	}
+
+	if s.SoftLayerIMSToken != imsToken {
+		t.Fatalf("IMS Token mismatch, Expecting (%s), instead got (%s)", imsToken, s.SoftLayerIMSToken)
+	}
+
+	if s.SoftLayerUserName != slUserName {
+		t.Fatalf("SL Username mismatch, Expecting (%s), instead got (%s)", slUserName, s.SoftLayerUserName)
+	}
+
+	if s.SoftLayerUserID != imsUserid {
+		t.Fatalf("SL UserID mismatch, Expecting (%d), instead got (%d)", imsUserid, s.SoftLayerUserID)
 	}
 }
 
-func TestSessionAuthenticateError(t *testing.T) {
-	c := &Config{IBMID: "user", Password: "password", SoftLayerUsername: "suser", SoftLayerAPIKey: "apikey"}
-	m := responseMessages["Authenticate_401"]
-
-	resp := &mockServerResponse{uaaToken: uaaTokenResponse{401, m}}
-
-	mockedServer := mockServer(resp)
-	defer mockedServer.Close()
-	c.Endpoint = mockedServer.URL
-
-	_, sessErr := newSession(c)
-
-	if sessErr == nil {
-		t.Fatal("Expecting Bluemix Authentication error,   got nil")
+func TestFetchIMSToken_success_no_iam_token(t *testing.T) {
+	c := &Config{IBMID: "id", IBMIDPassword: "pass", RetryCount: 1, RetryDelay: 1 * time.Second}
+	mockedRequest := mockIAMRequest(c, "")
+	mockedResponse := &MockedResponse{
+		StatusCode:  200,
+		ContentType: "application/json",
+		Body: map[string]interface{}{
+			"ims_token":   "token",
+			"ims_user_id": 1,
+			"token_type":  "bearer",
+			"expires_in":  123,
+			"expiration":  5,
+		},
 	}
+	transactions := []*MockedTransaction{
+		{
+			Request:  mockedRequest,
+			Response: mockedResponse,
+		},
+	}
+	server := getMockIAMServer(transactions)
+	c.IAMEndpoint = server.URL
+	defer server.Close()
 
-	errMessage, err := json.Marshal(m)
+	imstoken, imsuserid, err := fetchIMSToken(c, "")
 	if err != nil {
-		t.Fatalf("error unmarshalling the authenticate response message %v", err)
+		t.Fatalf("Error fetching ims token for %s: %v", c.IBMID, err)
 	}
 
-	if !strings.Contains(sessErr.Error(), string(errMessage)) {
-		t.Fatalf("Expecting Bluemix Authentication failed error,   got %v", sessErr)
+	respBody := mockedResponse.Body.(map[string]interface{})
+	expectedToken := respBody["ims_token"].(string)
+	if imstoken != expectedToken {
+		t.Fatalf("IMS Token mismatch, expected (%s), got (%s)", expectedToken, imstoken)
+	}
+
+	expectedIMSUserID := respBody["ims_user_id"].(int)
+	if imsuserid != expectedIMSUserID {
+		t.Fatalf("IMS User ID mismatch, expected (%d), got (%d)", expectedIMSUserID, imsuserid)
 	}
 }
 
-func TestSessionAuthenticateSuccess(t *testing.T) {
-	c := &Config{IBMID: "user", Password: "password", SoftLayerUsername: "suser", SoftLayerAPIKey: "apikey"}
-	m := responseMessages["Authenticate_200"]
-	resp := &mockServerResponse{uaaToken: uaaTokenResponse{200, m}}
-	mockedServer := mockServer(resp)
-	defer mockedServer.Close()
-	c.Endpoint = mockedServer.URL
+func TestFetchIMSToken_success_with_iam_token(t *testing.T) {
+	c := &Config{IBMID: "id", IBMIDPassword: "pass", RetryCount: 1, RetryDelay: 1 * time.Second}
 
-	s, err := newSession(c)
+	iamToken := "some_access_token"
+	mockedRequest := mockIAMRequest(c, iamToken)
+	mockedResponse := &MockedResponse{
+		StatusCode:  200,
+		ContentType: "application/json",
+		Body: map[string]interface{}{
+			"ims_token":   "token",
+			"ims_user_id": 1,
+			"token_type":  "bearer",
+			"expires_in":  123,
+			"expiration":  5,
+		},
+	}
+	transactions := []*MockedTransaction{
+		{
+			Request:  mockedRequest,
+			Response: mockedResponse,
+		},
+	}
+	server := getMockIAMServer(transactions)
+	c.IAMEndpoint = server.URL
+	defer server.Close()
+
+	imstoken, imsuserid, err := fetchIMSToken(c, iamToken)
 	if err != nil {
-		t.Fatalf("Expecting no error for bluemix authentication but got %v", err)
+		t.Fatalf("Error fetching ims token for %s: %v", c.IBMID, err)
 	}
-	validateTokens(s, m, t)
 
+	respBody := mockedResponse.Body.(map[string]interface{})
+	expectedToken := respBody["ims_token"].(string)
+	if imstoken != expectedToken {
+		t.Fatalf("IMS Token mismatch, expected (%s), got (%s)", expectedToken, imstoken)
+	}
+
+	expectedIMSUserID := respBody["ims_user_id"].(int)
+	if imsuserid != expectedIMSUserID {
+		t.Fatalf("IMS User ID mismatch, expected (%d), got (%d)", expectedIMSUserID, imsuserid)
+	}
 }
 
-func TestSessionCreateIMSTokenSuccess(t *testing.T) {
-	c := &Config{IBMID: "user", Password: "password", SoftLayerAccountNumber: "1234"}
-	authMessage := responseMessages["Authenticate_200"]
-	identityMessage := responseMessages["Identity_200"]
-	iamMessage := responseMessages["IAM_200"]
-	resp := &mockServerResponse{
-		uaaToken:          uaaTokenResponse{200, authMessage},
-		iam:               iamResponse{200, iamMessage},
-		uaaIdentityCookie: uaaIdentityCookieResponse{200, identityMessage},
+func TestFetchIMSToken_failure_invalid_ibmid_crdentials(t *testing.T) {
+	c := &Config{IBMID: "id", IBMIDPassword: "pass", RetryCount: 1, RetryDelay: 1 * time.Second}
+	mockedRequest := mockIAMRequest(c, "")
+	mockedResponse := &MockedResponse{
+		StatusCode:  401,
+		ContentType: "application/json",
+		Body: IMSTokenErrorResponse{
+			Code:    "BXNIM0602E",
+			Message: "The credentials you provided are incorrect",
+			Details: "The credentials you entered for the user '" + c.IBMID + "' are incorrect",
+		},
 	}
-	mockedServer := mockServer(resp)
-	defer mockedServer.Close()
-	//Use same mocked server for both
-	c.Endpoint = mockedServer.URL
-	c.IAMEndpoint = mockedServer.URL
+	transactions := []*MockedTransaction{
+		{
+			Request:  mockedRequest,
+			Response: mockedResponse,
+		},
+	}
+	server := getMockIAMServer(transactions)
+	c.IAMEndpoint = server.URL
+	defer server.Close()
 
-	s, err := newSession(c)
+	_, _, err := fetchIMSToken(c, "")
+	if err == nil {
+		t.Fatalf("Expecting Authorization error but no error occured")
+	}
+
+	if !strings.Contains(err.Error(), "Client request to fetch IMS token failed with response code 401") {
+		t.Fatalf("Auhtorization failure Code 401 is not present in the error message: %v", err)
+	}
+}
+
+func TestFetchIMSToken_failure_invalid_json_response_from_iam(t *testing.T) {
+	c := &Config{IBMID: "id", IBMIDPassword: "pass", RetryCount: 1, RetryDelay: 1 * time.Second}
+	mockedRequest := mockIAMRequest(c, "")
+	mockedResponse := &MockedResponse{
+		StatusCode:      200,
+		ContentType:     "application/json",
+		SendInvalidJSON: true,
+	}
+	transactions := []*MockedTransaction{
+		{
+			Request:  mockedRequest,
+			Response: mockedResponse,
+		},
+	}
+	server := getMockIAMServer(transactions)
+	c.IAMEndpoint = server.URL
+	defer server.Close()
+
+	_, _, err := fetchIMSToken(c, "")
+	if err == nil {
+		t.Fatalf("Expecting unmarshalling error but no error occured")
+	}
+
+	if !strings.Contains(err.Error(), "Couldn't unmarshall the  IMSTokenResponse invalid character") {
+		t.Fatalf("unmarshalling error is not present in the error message: %v", err)
+	}
+}
+
+func TestFetchSoftLayerAPIKey_Success(t *testing.T) {
+	c := &Config{SoftLayerTimeout: 10 * time.Second}
+	slUserID := acctest.RandInt()
+	stringifiedUserID := strconv.Itoa(slUserID)
+	slAuthToken := "ims_token"
+	slUsername := "slusername"
+	slAPIKey := "slapikey"
+
+	mockedRequest := mockSoftLayerXMLRPCRequest(`<member><name>userId</name><value><int>` + stringifiedUserID + `</int></value></member>`)
+	mockedResponse := &MockedResponse{
+		StatusCode:  200,
+		ContentType: "text/xml",
+		Body:        `<?xml version="1.0" encoding="utf-8"?><params><param><value><struct><member><name>username</name><value><string>` + slUsername + `</string></value></member><member><name>apiAuthenticationKeys</name><value><array><data><value><struct><member><name>authenticationKey</name><value><string>` + slAPIKey + `</string></value></member></struct></value></data></array></value></member></struct></value></param></params>`,
+	}
+	transactions := []*MockedTransaction{
+		{
+			Request:  mockedRequest,
+			Response: mockedResponse,
+		},
+	}
+	server := getMockSoftlayerXMLRPCServer(transactions)
+	c.SoftlayerXMLRPCEndpoint = server.URL + "/xmlrpc/"
+	defer server.Close()
+	actualUsername, actualAPIKey, err := fetchSoftLayerAPIKey(c, slUserID, slAuthToken)
+
 	if err != nil {
-		t.Fatalf("Expecting no error for session creation but got %v", err)
+		t.Fatalf("Error fetching softlayer API Key and Username  for %v", err)
 	}
 
-	expectedIMSToken := iamMessage["ims_token"].(string)
-	if s.SoftLayerIMSToken != expectedIMSToken {
-		t.Fatalf("Expecting IMSToken to be %s but actual is %s", expectedIMSToken, s.SoftLayerIMSToken)
+	if actualUsername != slUsername {
+		t.Fatalf("SoftLayer Username mismatch, expected (%s), got (%s)", slUsername, actualUsername)
 	}
 
-	expectedIdentityCookie := identityMessage["identity_cookie"].(string)
-	if s.IdentityCookie != expectedIdentityCookie {
-		t.Fatalf("Expecting IMSToken to be %s but actual is %s", expectedIdentityCookie, s.IdentityCookie)
-	}
-
-	validateTokens(s, authMessage, t)
-}
-
-func TestSessionCreateIMSTokenFailure(t *testing.T) {
-	c := &Config{IBMID: "user", Password: "password", SoftLayerAccountNumber: "1234"}
-	authMessage := responseMessages["Authenticate_200"]
-	identityMessage := responseMessages["Identity_200"]
-	iamMessage := responseMessages["IAM_401"]
-	resp := &mockServerResponse{
-		uaaToken:          uaaTokenResponse{200, authMessage},
-		iam:               iamResponse{401, iamMessage},
-		uaaIdentityCookie: uaaIdentityCookieResponse{200, identityMessage},
-	}
-	mockedServer := mockServer(resp)
-	defer mockedServer.Close()
-	//Use same mocked server for both
-	c.Endpoint = mockedServer.URL
-	c.IAMEndpoint = mockedServer.URL
-
-	_, err := newSession(c)
-	if err != ErrorIMSTokenRetrieval {
-		t.Fatalf("Expecting error %v but got %v", ErrorIMSTokenRetrieval, err)
-	}
-}
-
-func TestSessionCreateIdentityCookieFailure(t *testing.T) {
-	c := &Config{IBMID: "user", Password: "password", SoftLayerAccountNumber: "1234"}
-	authMessage := responseMessages["Authenticate_200"]
-	identityMessage := responseMessages["Identity_401"]
-
-	resp := &mockServerResponse{
-		uaaToken:          uaaTokenResponse{200, authMessage},
-		uaaIdentityCookie: uaaIdentityCookieResponse{401, identityMessage},
-	}
-	mockedServer := mockServer(resp)
-	defer mockedServer.Close()
-	c.Endpoint = mockedServer.URL
-	_, sessErr := newSession(c)
-	if sessErr == nil {
-		t.Fatalf("Expecting error for session creation but got %v", sessErr)
-	}
-
-	m, err := json.Marshal(identityMessage)
-	if err != nil {
-		t.Fatalf("error unmarshalling the identity response message %v", err)
-	}
-
-	if !strings.Contains(sessErr.Error(), string(m)) {
-		t.Fatalf("Expecting Bluemix createIdentityCookie failed error,   got %v", sessErr)
+	if actualAPIKey != slAPIKey {
+		t.Fatalf("SoftLayer API Key mismatch, expected (%s), got (%s)", slAPIKey, actualAPIKey)
 	}
 
 }
 
-func validateTokens(s *Session, m map[string]interface{}, t *testing.T) {
+func TestFetchSoftLayerAPIKey_invalid_userid(t *testing.T) {
+	c := &Config{SoftLayerTimeout: 10 * time.Second}
+	slUserID := acctest.RandInt()
+	invalidUserID := strconv.Itoa(slUserID)
+	slAuthToken := "ims_token"
 
-	expectedAccessToken := m["access_token"].(string)
-	expectedRefreshToken := m["refresh_token"].(string)
-
-	if s.AccessToken != expectedAccessToken {
-		t.Fatalf("Expecting AccessToken to be %s but actual is %s", expectedAccessToken, s.AccessToken)
+	mockedRequest := mockSoftLayerXMLRPCRequest(`<member><name>userId</name><value><int>` + invalidUserID + `</int></value></member>`)
+	mockedResponse := &MockedResponse{
+		StatusCode:  200,
+		ContentType: "text/xml",
+		Body:        `<?xml version="1.0" encoding="iso-8859-1"?><methodResponse><fault><value><struct><member><name>faultCode</name><value><string>SoftLayer_Exception_ObjectNotFound</string></value></member><member><name>faultString</name><value><string>Unable to find object with id of '` + invalidUserID + `'.</string></value></member></struct></value></fault></methodResponse>`,
 	}
 
-	if s.RefreshToken != expectedRefreshToken {
-		t.Fatalf("Expecting RefreshToken to be %s but actual is %s", expectedRefreshToken, s.RefreshToken)
+	transactions := []*MockedTransaction{
+		{
+			Request:  mockedRequest,
+			Response: mockedResponse,
+		},
+	}
+	server := getMockSoftlayerXMLRPCServer(transactions)
+	c.SoftlayerXMLRPCEndpoint = server.URL + "/xmlrpc/"
+	defer server.Close()
+
+	_, _, err := fetchSoftLayerAPIKey(c, slUserID, slAuthToken)
+
+	if err == nil {
+		t.Fatalf("Expecting invalid softlayer user id error but didn't get any error")
+	}
+	apiErr := err.(sl.Error)
+	expectedException := "SoftLayer_Exception_ObjectNotFound"
+	if apiErr.Exception != expectedException {
+		t.Fatalf("Expecting exception message (%s) got (%v)", expectedException, apiErr.Exception)
+	}
+
+	expectedErrMessage := fmt.Sprintf("Unable to find object with id of '%d'.", slUserID)
+	if apiErr.Message != expectedErrMessage {
+		t.Fatalf("Expecting error message (%s) got (%v)", expectedErrMessage, apiErr.Message)
 	}
 }
 
-func mockServer(resp *mockServerResponse) *httptest.Server {
+func TestFetchSoftLayerAPIKey_invalid_authentication_token(t *testing.T) {
+	c := &Config{SoftLayerTimeout: 10 * time.Second}
+	slUserID := acctest.RandInt()
+	invalidSlAuthToken := acctest.RandString(65)
+
+	mockedRequest := mockSoftLayerXMLRPCRequest(`<member><name>authToken</name><value><string>` + invalidSlAuthToken + `</string></value></member>`)
+	mockedResponse := &MockedResponse{
+		StatusCode:  200,
+		ContentType: "text/xml",
+		Body:        `<?xml version="1.0" encoding="iso-8859-1"?><methodResponse><fault><value><struct><member><name>faultCode</name><value><string>SoftLayer_Exception_InvalidLegacyToken</string></value></member><member><name>faultString</name><value><string>Invalid authentication token.</string></value></member></struct></value></fault></methodResponse>`,
+	}
+
+	transactions := []*MockedTransaction{
+		{
+			Request:  mockedRequest,
+			Response: mockedResponse,
+		},
+	}
+	server := getMockSoftlayerXMLRPCServer(transactions)
+	c.SoftlayerXMLRPCEndpoint = server.URL + "/xmlrpc/"
+	defer server.Close()
+
+	_, _, err := fetchSoftLayerAPIKey(c, slUserID, invalidSlAuthToken)
+
+	apiErr := err.(sl.Error)
+	expectedException := "SoftLayer_Exception_InvalidLegacyToken"
+	if apiErr.Exception != expectedException {
+		t.Fatalf("Expecting exception message (%s) got (%v)", expectedException, apiErr.Exception)
+	}
+
+	expectedErrMessage := "Invalid authentication token."
+	if apiErr.Message != expectedErrMessage {
+		t.Fatalf("Expecting error message (%s) got (%v)", expectedErrMessage, apiErr.Message)
+	}
+
+}
+
+func getMockIAMServer(m []*MockedTransaction) *httptest.Server {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var requestBody interface{}
+		err := r.ParseForm()
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		requestBody = r.Form
+		log.Printf("[DEBUG] Received API %q request to %q:", r.Method, r.RequestURI)
+
+		for _, t := range m {
+			if r.Method == t.Request.Method && r.RequestURI == t.Request.URI && reflect.DeepEqual(t.Request.Body, requestBody) {
+				if t.Response.SendInvalidJSON {
+					w.WriteHeader(t.Response.StatusCode)
+					w.Header().Set("Content-Type", t.Response.ContentType)
+					fmt.Fprintln(w, "invalid json")
+					return
+				}
+				b := new(bytes.Buffer)
+				if err := json.NewEncoder(b).Encode(t.Response.Body); err != nil {
+					w.WriteHeader(500)
+					w.Write([]byte(err.Error()))
+					return
+				}
+				w.WriteHeader(t.Response.StatusCode)
+				w.Header().Set("Content-Type", t.Response.ContentType)
+				w.Write(b.Bytes())
+				return
+			}
+		}
+		w.WriteHeader(400)
+		return
+
+	}))
+	return s
+}
+
+func getMockSoftlayerXMLRPCServer(m []*MockedTransaction) *httptest.Server {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		buf := new(bytes.Buffer)
 		buf.ReadFrom(r.Body)
 		requestBody := buf.String()
-		rURI := r.RequestURI
 
-		encoded, statusCode, err := []byte{}, 400, errors.New("Bad Request")
-		switch rURI {
-
-		case uaaServerTokenRequestURI:
-			if strings.Contains(string(requestBody), "response_type=identity_cookie") {
-				encoded, err = json.Marshal(resp.uaaIdentityCookie.message)
-				statusCode = resp.uaaIdentityCookie.status
-
-			} else if strings.Contains(string(requestBody), "grant_type=password") {
-				encoded, err = json.Marshal(resp.uaaToken.message)
-				statusCode = resp.uaaToken.status
+		log.Printf("[DEBUG] Received API %q request to %q", r.Method, r.RequestURI)
+		for _, t := range m {
+			if r.Method == t.Request.Method && r.RequestURI == t.Request.URI && t.Request.ShouldServeRequest(requestBody) {
+				w.WriteHeader(t.Response.StatusCode)
+				w.Header().Set("Content-Type", t.Response.ContentType)
+				w.Write([]byte(t.Response.Body.(string)))
+				return
 			}
-
-		case iamServerTokenRequestURI:
-			encoded, err = json.Marshal(resp.iam.message)
-			statusCode = resp.iam.status
-
 		}
+		log.Printf("[DEBUG] Couldn't find any mocked response to give")
+		w.WriteHeader(400)
+		return
 
-		if err != nil {
-			w.WriteHeader(statusCode)
-			w.Write([]byte(err.Error()))
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(statusCode)
-		w.Write(encoded)
 	}))
-
 	return s
-}
-
-var responseMessages = map[string]map[string]interface{}{
-	"Authenticate_401": map[string]interface{}{
-		"error_description": "Authentication failure - your login credentials are invalid.",
-		"error":             "unauthorized",
-	},
-	"Authenticate_200": map[string]interface{}{
-		"access_token":  "some_token",
-		"token_type":    "bearer",
-		"refresh_token": "refresh_token",
-	},
-	"Identity_401": map[string]interface{}{
-		"error_description": "Authentication failure - your login credentials are invalid.",
-		"error":             "unauthorized",
-	},
-	"Identity_200": map[string]interface{}{
-		"identity_cookie": "some_cookie",
-		"expiration":      12345,
-	},
-	"IAM_200": map[string]interface{}{
-		"ims_token":   "some_ims_token",
-		"token_type":  "bearer",
-		"ims_user_id": 23,
-		"expires_in":  1212,
-		"expiration":  1111,
-	},
-	"IAM_500": map[string]interface{}{
-		"error":             "End point erred",
-		"error_description": "some error occured",
-	},
 }
 
 func setEnv(envs map[string]string, t *testing.T) func() {
@@ -274,7 +445,6 @@ func resetEnv(e map[string]string, t *testing.T) {
 	for k, v := range e {
 		resetHelper(k, v, t)
 	}
-
 }
 
 func getCurrentEnv() *map[string]string {
@@ -285,44 +455,79 @@ func getCurrentEnv() *map[string]string {
 	return &envs
 }
 
-type iamResponse struct {
-	status  int
-	message map[string]interface{}
+type MockedTransaction struct {
+	Response *MockedResponse
+	Request  *MockedRequest
 }
 
-type uaaTokenResponse struct {
-	status  int
-	message map[string]interface{}
+type MockedResponse struct {
+	StatusCode      int
+	ContentType     string
+	Body            interface{}
+	SendInvalidJSON bool
+	ContentEncoding string
 }
 
-type uaaIdentityCookieResponse struct {
-	status  int
-	message map[string]interface{}
+type MockedRequest struct {
+	Method string
+	URI    string
+	Body   interface{}
+	//Mocked server will invoke this function on mocked request to decide if it should serve the request
+	//Useful when we don't want to make this decision based on complicated request bodies
+	//Mainly used by the Mocked XML RPC server where xmls contents could be complicated
+	ShouldServeRequest func(interface{}) bool
+	AcceptType         string
+	ContentType        string
 }
 
-type mockServerResponse struct {
-	iam               iamResponse
-	uaaToken          uaaTokenResponse
-	uaaIdentityCookie uaaIdentityCookieResponse
+func mockIAMRequest(c *Config, iamToken string) *MockedRequest {
+	if iamToken != "" {
+		return &MockedRequest{
+			Method:     "POST",
+			URI:        iamServerTokenRequestURI,
+			AcceptType: "application/json",
+			Body: url.Values{
+				"grant_type":    {"urn:ibm:params:oauth:grant-type:derive"},
+				"username":      {c.IBMID},
+				"password":      {c.IBMIDPassword},
+				"access_token":  {iamToken},
+				"response_type": {"ims_portal"},
+			},
+		}
+	}
+	return &MockedRequest{
+		Method:     "POST",
+		URI:        iamServerTokenRequestURI,
+		AcceptType: "application/json",
+		Body: url.Values{
+			"grant_type":    {"password"},
+			"username":      {c.IBMID},
+			"password":      {c.IBMIDPassword},
+			"ims_account":   {""},
+			"response_type": {"cloud_iam,ims_portal"},
+		},
+	}
+}
+
+func mockSoftLayerXMLRPCRequest(matchString string) *MockedRequest {
+	return &MockedRequest{
+		Method:      "POST",
+		ContentType: "text/xml",
+		AcceptType:  "text/xml",
+		URI:         "/xmlrpc/SoftLayer_User_Customer",
+		ShouldServeRequest: func(xml interface{}) bool {
+			return strings.Contains(xml.(string), matchString)
+		},
+	}
 }
 
 var AllEnvs = []string{
 	"IBM_ID",
 	"IBMID_PASSWORD",
-	"SL_USERNAME",
-	"SOFTLAYER_USERNAME",
-	"SL_API_KEY",
-	"SOFTLAYER_API_KEY",
-	"BM_IDENTITY_COOKIE",
-	"BLUEMIX_IDENTITY_COOKIE",
 	"BM_REGION",
 	"BLUEMIX_REGION",
-	"BM_TIMEOUT",
-	"BLUEMIX_TIMEOUT",
-	"BM_IAM_CLIENT_ID",
-	"BLUEMIX_IAM_CLIENT_ID",
-	"BM_IAM_SECRET",
-	"BLUEMIX_IAM_SECRET",
+	"SL_TIMEOUT",
+	"SOFTLAYER_TIMEOUT",
 	"SL_ACCOUNT_NUMBER",
 	"SOFTLAYER_ACCOUNT_NUMBER",
 }
