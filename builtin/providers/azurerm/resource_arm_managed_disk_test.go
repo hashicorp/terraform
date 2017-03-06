@@ -24,7 +24,7 @@ func TestAccAzureRMManagedDisk_empty(t *testing.T) {
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMManagedDiskExists("azurerm_managed_disk.test", &d),
+					testCheckAzureRMManagedDiskExists("azurerm_managed_disk.test", &d, true),
 				),
 			},
 		},
@@ -55,7 +55,7 @@ func TestAccAzureRMManagedDisk_import(t *testing.T) {
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMManagedDiskExists("azurerm_managed_disk.test", &d),
+					testCheckAzureRMManagedDiskExists("azurerm_managed_disk.test", &d, true),
 				),
 			},
 		},
@@ -74,7 +74,7 @@ func TestAccAzureRMManagedDisk_copy(t *testing.T) {
 			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMManagedDiskExists("azurerm_managed_disk.test", &d),
+					testCheckAzureRMManagedDiskExists("azurerm_managed_disk.test", &d, true),
 				),
 			},
 		},
@@ -95,7 +95,7 @@ func TestAccAzureRMManagedDisk_update(t *testing.T) {
 			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMManagedDiskExists("azurerm_managed_disk.test", &d),
+					testCheckAzureRMManagedDiskExists("azurerm_managed_disk.test", &d, true),
 					resource.TestCheckResourceAttr(
 						"azurerm_managed_disk.test", "tags.%", "2"),
 					resource.TestCheckResourceAttr(
@@ -103,7 +103,7 @@ func TestAccAzureRMManagedDisk_update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"azurerm_managed_disk.test", "tags.cost-center", "ops"),
 					resource.TestCheckResourceAttr(
-						"azurerm_managed_disk.test", "disk_size_gb", "20"),
+						"azurerm_managed_disk.test", "disk_size_gb", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_managed_disk.test", "storage_account_type", string(disk.StandardLRS)),
 				),
@@ -111,13 +111,13 @@ func TestAccAzureRMManagedDisk_update(t *testing.T) {
 			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMManagedDiskExists("azurerm_managed_disk.test", &d),
+					testCheckAzureRMManagedDiskExists("azurerm_managed_disk.test", &d, true),
 					resource.TestCheckResourceAttr(
 						"azurerm_managed_disk.test", "tags.%", "1"),
 					resource.TestCheckResourceAttr(
 						"azurerm_managed_disk.test", "tags.environment", "acctest"),
 					resource.TestCheckResourceAttr(
-						"azurerm_managed_disk.test", "disk_size_gb", "30"),
+						"azurerm_managed_disk.test", "disk_size_gb", "2"),
 					resource.TestCheckResourceAttr(
 						"azurerm_managed_disk.test", "storage_account_type", string(disk.PremiumLRS)),
 				),
@@ -126,7 +126,7 @@ func TestAccAzureRMManagedDisk_update(t *testing.T) {
 	})
 }
 
-func testCheckAzureRMManagedDiskExists(name string, d *disk.Model) resource.TestCheckFunc {
+func testCheckAzureRMManagedDiskExists(name string, d *disk.Model, shouldExist bool) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -146,8 +146,11 @@ func testCheckAzureRMManagedDiskExists(name string, d *disk.Model) resource.Test
 			return fmt.Errorf("Bad: Get on diskClient: %s", err)
 		}
 
-		if resp.StatusCode == http.StatusNotFound {
+		if resp.StatusCode == http.StatusNotFound && shouldExist {
 			return fmt.Errorf("Bad: ManagedDisk %q (resource group %q) does not exist", dName, resourceGroup)
+		}
+		if resp.StatusCode != http.StatusNotFound && !shouldExist {
+			return fmt.Errorf("Bad: ManagedDisk %q (resource group %q) still exists", dName, resourceGroup)
 		}
 
 		*d = resp
@@ -217,7 +220,7 @@ resource "azurerm_managed_disk" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     storage_account_type = "Standard_LRS"
     create_option = "Empty"
-    disk_size_gb = "20"
+    disk_size_gb = "1"
 
     tags {
         environment = "acctest"
@@ -309,7 +312,7 @@ resource "azurerm_managed_disk" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     storage_account_type = "Premium_LRS"
     create_option = "Empty"
-    disk_size_gb = "30"
+    disk_size_gb = "2"
 
     tags {
         environment = "acctest"
