@@ -98,7 +98,7 @@ type Interface struct {
 	IPv6StaticRoutes   []string `mapstructure:"ipv6_static_routes" structs:"ipv6_static_routes"`
 	IPv6DefaultGateway string   `mapstructure:"ipv6_default_gateway structs:"ipv6_default_gateway"`
 	MACAddress         string   `mapstructure:"mac_address" structs:"mac_address"`
-	Management         bool     `mapstructure:"management" structs:"managment"`
+	Management         bool     `mapstructure:"management" structs:"management"`
 	Netmask            string   `mapstructure:"netmask" structs:"netmask"`
 	Static             bool     `mapstructure:"static" structs:"static"`
 	StaticRoutes       []string `mapstructure:"static_routes" structs:"static_routes"`
