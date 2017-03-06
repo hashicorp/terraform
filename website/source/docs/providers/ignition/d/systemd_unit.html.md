@@ -1,7 +1,7 @@
 ---
 layout: "ignition"
 page_title: "Ignition: ignition_systemd_unit"
-sidebar_current: "docs-ignition-resource-systemd-unit"
+sidebar_current: "docs-ignition-datasource-systemd-unit"
 description: |-
   Describes the desired state of the systemd units.
 ---
@@ -13,7 +13,7 @@ Describes the desired state of the systemd units.
 ## Example Usage
 
 ```
-resource "ignition_systemd_unit" "example" {
+data "ignition_systemd_unit" "example" {
 	name = "example.service"
 	content = "[Service]\nType=oneshot\nExecStart=/usr/bin/echo Hello World\n\n[Install]\nWantedBy=multi-user.target"
 }
