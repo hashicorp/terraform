@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -1812,7 +1813,9 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 		close(applyCh)
 
 		for !ctx.sh.Stopped() {
-			// Wait for stop to be called
+			// Wait for stop to be called. We call Gosched here so that
+			// the other goroutines can always be scheduled to set Stopped.
+			runtime.Gosched()
 		}
 
 		// Sleep

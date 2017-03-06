@@ -19,7 +19,7 @@ var Handshake = plugin.HandshakeConfig{
 	// one or the other that makes it so that they can't safely communicate.
 	// This could be adding a new interface value, it could be how
 	// helper/schema computes diffs, etc.
-	ProtocolVersion: 3,
+	ProtocolVersion: 4,
 
 	// The magic cookie values should NEVER be changed.
 	MagicCookieKey:   "TF_PLUGIN_MAGIC_COOKIE",

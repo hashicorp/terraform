@@ -1477,7 +1477,14 @@ func getVolumeAttachments(computeClient *gophercloud.ServiceClient, d *schema.Re
 
 	allPages, err := volumeattach.List(computeClient, d.Id()).AllPages()
 	if err != nil {
-		return err
+		if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+			if errCode.Actual == 403 {
+				log.Printf("[DEBUG] os-volume_attachments disabled.")
+				return nil
+			} else {
+				return err
+			}
+		}
 	}
 
 	allVolumeAttachments, err := volumeattach.ExtractVolumeAttachments(allPages)

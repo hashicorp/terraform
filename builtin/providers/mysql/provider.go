@@ -72,7 +72,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	var endpoint = d.Get("endpoint").(string)
 
 	proto := "tcp"
-	if endpoint[0] == '/' {
+	if len(endpoint) > 0 && endpoint[0] == '/' {
 		proto = "unix"
 	}
 

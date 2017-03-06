@@ -144,7 +144,9 @@ func resourceAwsCloudwatchLogSubscriptionFilterRead(d *schema.ResourceData, meta
 		}
 	}
 
-	return fmt.Errorf("Subscription filter for log group %s with name prefix %s not found!", log_group_name, d.Get("name").(string))
+	log.Printf("[DEBUG] Subscription Filter%q Not Found", name)
+	d.SetId("")
+	return nil
 }
 
 func resourceAwsCloudwatchLogSubscriptionFilterDelete(d *schema.ResourceData, meta interface{}) error {

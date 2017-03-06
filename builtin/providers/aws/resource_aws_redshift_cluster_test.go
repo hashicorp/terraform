@@ -22,7 +22,6 @@ func TestValidateRedshiftClusterDbName(t *testing.T) {
 		"testdbname",
 		"test_dbname",
 		"testdbname123",
-		"TestDBname",
 		"testdbname$hashicorp",
 		"_dbname",
 	}
@@ -44,6 +43,7 @@ func TestValidateRedshiftClusterDbName(t *testing.T) {
 		"slash-at-the-end/",
 		"",
 		randomString(100),
+		"TestDBname",
 	}
 	for _, v := range invalidNames {
 		_, errors := validateRedshiftClusterDbName(v, "name")
@@ -565,6 +565,10 @@ func TestResourceAWSRedshiftClusterMasterPasswordValidation(t *testing.T) {
 		{
 			Value:    "1Testing",
 			ErrCount: 0,
+		},
+		{
+			Value:    "1Testing@",
+			ErrCount: 1,
 		},
 	}
 

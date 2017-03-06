@@ -1209,7 +1209,7 @@
                 </li>
 
 
-                <li<%= sidebar_current(/^docs-aws-resource-(default|customer|flow|internet-gateway|main-route|network|route-|security-group|subnet|vpc|vpn)/) %>>
+                <li<%= sidebar_current(/^docs-aws-resource-(default|customer|egress-only-internet-gateway|flow|internet-gateway|main-route|network|route-|security-group|subnet|vpc|vpn)/) %>>
                     <a href="#">VPC Resources</a>
                     <ul class="nav nav-visible">
 
@@ -1227,6 +1227,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-default-security-group") %>>
                             <a href="/docs/providers/aws/r/default_security_group.html">aws_default_security_group</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-egress-only-internet-gateway") %>>
+                          <a href="/docs/providers/aws/r/egress_only_internet_gateway.html">aws_egress_only_internet_gateway</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-flow-log") %>>

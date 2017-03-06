@@ -22,6 +22,10 @@ Usage: `terraform state push [options] PATH`
 This command will push the state specified by PATH to the currently
 configured [backend](/docs/backends).
 
+If PATH is "-" then the state data to push is read from stdin. This data
+is loaded completely into memory and verified prior to being written to
+the destination state.
+
 Terraform will perform a number of safety checks to prevent you from
 making changes that appear to be unsafe:
 

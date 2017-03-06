@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/helper/hilmapstructure"
@@ -254,26 +253,7 @@ func (c *Config) Validate() error {
 
 	// Validate the Terraform config
 	if tf := c.Terraform; tf != nil {
-		if raw := tf.RequiredVersion; raw != "" {
-			// Check that the value has no interpolations
-			rc, err := NewRawConfig(map[string]interface{}{
-				"root": raw,
-			})
-			if err != nil {
-				errs = append(errs, fmt.Errorf(
-					"terraform.required_version: %s", err))
-			} else if len(rc.Interpolations) > 0 {
-				errs = append(errs, fmt.Errorf(
-					"terraform.required_version: cannot contain interpolations"))
-			} else {
-				// Check it is valid
-				_, err := version.NewConstraint(raw)
-				if err != nil {
-					errs = append(errs, fmt.Errorf(
-						"terraform.required_version: invalid syntax: %s", err))
-				}
-			}
-		}
+		errs = append(errs, c.Terraform.Validate()...)
 	}
 
 	vars := c.InterpolatedVariables()

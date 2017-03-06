@@ -50,3 +50,8 @@ The following configuration options are supported:
  * `key` - (Required) The key where to place/look for state file inside the container
  * `access_key` / `ARM_ACCESS_KEY` - (Required) Storage account access key
  * `lease_id` / `ARM_LEASE_ID` - (Optional) If set, will be used when writing to storage blob.
+ * `environment` / `ARM_ENVIRONMENT` - (Optional) The cloud environment to use. Supported values are:
+   * `public` (default)
+   * `usgovernment`
+   * `german`
+   * `china`

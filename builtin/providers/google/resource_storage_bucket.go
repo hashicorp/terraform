@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"google.golang.org/api/googleapi"
@@ -122,12 +124,23 @@ func resourceStorageBucketCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	call := config.clientStorage.Buckets.Insert(project, sb)
-	if v, ok := d.GetOk("predefined_acl"); ok {
-		call = call.PredefinedAcl(v.(string))
-	}
+	var res *storage.Bucket
 
-	res, err := call.Do()
+	err = resource.Retry(1*time.Minute, func() *resource.RetryError {
+		call := config.clientStorage.Buckets.Insert(project, sb)
+		if v, ok := d.GetOk("predefined_acl"); ok {
+			call = call.PredefinedAcl(v.(string))
+		}
+
+		res, err = call.Do()
+		if err == nil {
+			return nil
+		}
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 429 {
+			return resource.RetryableError(gerr)
+		}
+		return resource.NonRetryableError(err)
+	})
 
 	if err != nil {
 		fmt.Printf("Error creating bucket %s: %v", bucket, err)
@@ -260,7 +273,16 @@ func resourceStorageBucketDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// remove empty bucket
-	err := config.clientStorage.Buckets.Delete(bucket).Do()
+	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		err := config.clientStorage.Buckets.Delete(bucket).Do()
+		if err == nil {
+			return nil
+		}
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 429 {
+			return resource.RetryableError(gerr)
+		}
+		return resource.NonRetryableError(err)
+	})
 	if err != nil {
 		fmt.Printf("Error deleting bucket %s: %v\n\n", bucket, err)
 		return err
