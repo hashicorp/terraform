@@ -16,10 +16,15 @@ body {
 }
 
 // add margin-left to the Mega Nav button
-// this will be fixed and removed later
+// this will be fixed and removed later and addressed in the source
 .mega-nav-sandbox .mega-nav-ctrl { margin-left: 5px;}
-.mega-nav-sandbox .mega-nav-tagline { font-family: $font-family-klavika; font-weight: 300; }
-
+.mega-nav-banner * { font-family: $font-family-klavika; }
+.mega-nav-sandbox .mega-nav-tagline { font-weight: 300; }
+// heading padding-left: 1em causes inconsistent padding in the meganav body
+// project-specifc fix below normalizes
+@media (min-width: 992px) {
+  .mega-nav-sandbox .mega-nav-h1, .mega-nav-h2 { padding-left: 0px !important; }
+}
 
 h1, h2, h3, h4, h5 {
     -webkit-font-smoothing: antialiased;
