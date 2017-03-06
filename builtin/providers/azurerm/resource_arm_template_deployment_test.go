@@ -15,9 +15,9 @@ func TestAccAzureRMTemplateDeployment_basic(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMTemplateDeployment_basicExample, ri, ri)
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTemplateDeploymentDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTemplateDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -33,9 +33,9 @@ func TestAccAzureRMTemplateDeployment_disappears(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMTemplateDeployment_basicExample, ri, ri)
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTemplateDeploymentDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTemplateDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -53,9 +53,9 @@ func TestAccAzureRMTemplateDeployment_withParams(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMTemplateDeployment_withParams, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTemplateDeploymentDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTemplateDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -72,9 +72,9 @@ func TestAccAzureRMTemplateDeployment_withError(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMTemplateDeployment_withError, ri, ri)
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTemplateDeploymentDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTemplateDeploymentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config:      config,

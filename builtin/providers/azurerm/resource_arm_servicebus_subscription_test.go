@@ -15,9 +15,9 @@ func TestAccAzureRMServiceBusSubscription_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMServiceBusSubscription_basic, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMServiceBusTopicDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -35,9 +35,9 @@ func TestAccAzureRMServiceBusSubscription_update(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMServiceBusSubscription_update, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMServiceBusTopicDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,
@@ -62,9 +62,9 @@ func TestAccAzureRMServiceBusSubscription_updateRequiresSession(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMServiceBusSubscription_updateRequiresSession, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMServiceBusTopicDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,

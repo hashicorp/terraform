@@ -15,9 +15,9 @@ func TestAccAzureRMCdnEndpoint_importWithTags(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMCdnEndpoint_withTags, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMCdnEndpointDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMCdnEndpointDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

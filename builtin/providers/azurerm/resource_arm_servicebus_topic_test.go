@@ -15,9 +15,9 @@ func TestAccAzureRMServiceBusTopic_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMServiceBusTopic_basic, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMServiceBusTopicDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -35,9 +35,9 @@ func TestAccAzureRMServiceBusTopic_update(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMServiceBusTopic_update, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMServiceBusTopicDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,
@@ -64,9 +64,9 @@ func TestAccAzureRMServiceBusTopic_enablePartitioningStandard(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMServiceBusTopic_enablePartitioningStandard, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMServiceBusTopicDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,
@@ -94,9 +94,9 @@ func TestAccAzureRMServiceBusTopic_enablePartitioningPremium(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMServiceBusTopic_enablePartitioningPremium, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMServiceBusTopicDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,
@@ -123,9 +123,9 @@ func TestAccAzureRMServiceBusTopic_enableDuplicateDetection(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMServiceBusTopic_enableDuplicateDetection, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMServiceBusTopicDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,

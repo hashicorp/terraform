@@ -15,9 +15,9 @@ func TestAccAzureRMSearchService_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMSearchService_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMSearchServiceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMSearchServiceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -37,9 +37,9 @@ func TestAccAzureRMSearchService_updateReplicaCountAndTags(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMSearchService_updated, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMSearchServiceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMSearchServiceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,

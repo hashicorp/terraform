@@ -15,9 +15,9 @@ func TestAccAzureRMLoadBalancerNatRule_importBasic(t *testing.T) {
 	natRuleName := fmt.Sprintf("NatRule-%d", ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAzureRMLoadBalancerNatRule_basic(ri, natRuleName),

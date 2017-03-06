@@ -15,9 +15,9 @@ func TestAccAzureRMLoadBalancerProbe_importBasic(t *testing.T) {
 	probeName := fmt.Sprintf("probe-%d", ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAzureRMLoadBalancerProbe_basic(ri, probeName),

@@ -16,9 +16,9 @@ func TestAccAzureRMTrafficManagerEndpoint_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMTrafficManagerEndpoint_basic, ri, ri, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTrafficManagerEndpointDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTrafficManagerEndpointDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -38,9 +38,9 @@ func TestAccAzureRMTrafficManagerEndpoint_disappears(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMTrafficManagerEndpoint_basic, ri, ri, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTrafficManagerEndpointDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTrafficManagerEndpointDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -63,9 +63,9 @@ func TestAccAzureRMTrafficManagerEndpoint_basicDisableExternal(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMTrafficManagerEndpoint_basicDisableExternal, ri, ri, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTrafficManagerEndpointDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTrafficManagerEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -96,9 +96,9 @@ func TestAccAzureRMTrafficManagerEndpoint_updateWeight(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMTrafficManagerEndpoint_updateWeight, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTrafficManagerEndpointDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTrafficManagerEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -129,9 +129,9 @@ func TestAccAzureRMTrafficManagerEndpoint_updatePriority(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMTrafficManagerEndpoint_updatePriority, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTrafficManagerEndpointDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTrafficManagerEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -160,9 +160,9 @@ func TestAccAzureRMTrafficManagerEndpoint_nestedEndpoints(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMTrafficManagerEndpoint_nestedEndpoints, ri, ri, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTrafficManagerEndpointDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTrafficManagerEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

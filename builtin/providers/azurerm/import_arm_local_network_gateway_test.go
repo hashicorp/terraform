@@ -10,9 +10,9 @@ func TestAccAzureRMLocalNetworkGateway_importBasic(t *testing.T) {
 	resourceName := "azurerm_local_network_gateway.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLocalNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLocalNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAzureRMLocalNetworkGatewayConfig_basic,

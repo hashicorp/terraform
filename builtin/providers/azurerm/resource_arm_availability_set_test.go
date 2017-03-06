@@ -16,9 +16,9 @@ func TestAccAzureRMAvailabilitySet_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMVAvailabilitySet_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMAvailabilitySetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMAvailabilitySetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -40,9 +40,9 @@ func TestAccAzureRMAvailabilitySet_disappears(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMVAvailabilitySet_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMAvailabilitySetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMAvailabilitySetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -67,9 +67,9 @@ func TestAccAzureRMAvailabilitySet_withTags(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMVAvailabilitySet_withUpdatedTags, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMAvailabilitySetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMAvailabilitySetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,
@@ -104,9 +104,9 @@ func TestAccAzureRMAvailabilitySet_withDomainCounts(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMVAvailabilitySet_withDomainCounts, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMAvailabilitySetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMAvailabilitySetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

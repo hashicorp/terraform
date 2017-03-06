@@ -20,9 +20,9 @@ func TestAccAzureRMStorageTable_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMStorageTable_basic, ri, rs, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMStorageTableDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMStorageTableDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -42,9 +42,9 @@ func TestAccAzureRMStorageTable_disappears(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMStorageTable_basic, ri, rs, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMStorageTableDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMStorageTableDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

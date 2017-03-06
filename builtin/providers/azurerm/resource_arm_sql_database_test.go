@@ -51,9 +51,9 @@ func TestAccAzureRMSqlDatabase_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMSqlDatabase_basic, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMSqlDatabaseDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMSqlDatabaseDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -71,9 +71,9 @@ func TestAccAzureRMSqlDatabase_withTags(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMSqlDatabase_withTagsUpdate, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMSqlDatabaseDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMSqlDatabaseDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
@@ -100,9 +100,9 @@ func TestAccAzureRMSqlDatabase_datawarehouse(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMSqlDatabase_datawarehouse, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMSqlDatabaseDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMSqlDatabaseDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

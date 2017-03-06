@@ -15,9 +15,9 @@ func TestAccAzureRMLoadBalancerNatPool_importBasic(t *testing.T) {
 	natPoolName := fmt.Sprintf("NatPool-%d", ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAzureRMLoadBalancerNatPool_basic(ri, natPoolName),

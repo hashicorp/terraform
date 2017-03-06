@@ -149,9 +149,9 @@ func TestAccAzureRMStorageBlob_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMStorageBlob_basic, ri, rs)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMStorageBlobDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMStorageBlobDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -169,9 +169,9 @@ func TestAccAzureRMStorageBlob_disappears(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMStorageBlob_basic, ri, rs)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMStorageBlobDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMStorageBlobDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -206,9 +206,9 @@ func TestAccAzureRMStorageBlobBlock_source(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMStorageBlobBlock_source, ri, rs1, sourceBlob.Name())
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMStorageBlobDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMStorageBlobDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -265,9 +265,9 @@ func TestAccAzureRMStorageBlobPage_source(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMStorageBlobPage_source, ri, rs1, sourceBlob.Name())
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMStorageBlobDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMStorageBlobDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -300,9 +300,9 @@ func TestAccAzureRMStorageBlob_source_uri(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMStorageBlob_source_uri, ri, rs1, sourceBlob.Name())
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMStorageBlobDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMStorageBlobDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

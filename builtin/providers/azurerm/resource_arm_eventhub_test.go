@@ -100,9 +100,9 @@ func TestAccAzureRMEventHub_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMEventHub_basic, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMEventHubDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMEventHubDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -120,9 +120,9 @@ func TestAccAzureRMEventHub_standard(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMEventHub_standard, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMEventHubDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMEventHubDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

@@ -15,9 +15,9 @@ func TestAccAzureRMTrafficManagerEndpoint_importBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMTrafficManagerEndpoint_basic, ri, ri, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTrafficManagerEndpointDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTrafficManagerEndpointDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

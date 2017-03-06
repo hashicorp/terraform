@@ -15,9 +15,9 @@ func TestAccAzureRMCdnProfile_importWithTags(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMCdnProfile_withTags, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMCdnProfileDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMCdnProfileDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

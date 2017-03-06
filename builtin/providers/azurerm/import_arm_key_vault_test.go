@@ -15,9 +15,9 @@ func TestAccAzureRMKeyVault_importBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMKeyVault_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMKeyVaultDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMKeyVaultDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

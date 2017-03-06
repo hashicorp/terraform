@@ -80,9 +80,9 @@ func TestAccAzureRMContainerService_dcosBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMContainerService_dcosBasic, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMContainerServiceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMContainerServiceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -99,9 +99,9 @@ func TestAccAzureRMContainerService_kubernetesBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMContainerService_kubernetesBasic, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMContainerServiceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMContainerServiceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -118,9 +118,9 @@ func TestAccAzureRMContainerService_kubernetesComplete(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMContainerService_kubernetesComplete, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMContainerServiceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMContainerServiceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -137,9 +137,9 @@ func TestAccAzureRMContainerService_swarmBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMContainerService_swarmBasic, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMContainerServiceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMContainerServiceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

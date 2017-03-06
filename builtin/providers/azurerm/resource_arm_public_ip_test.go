@@ -84,9 +84,9 @@ func TestAccAzureRMPublicIpStatic_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMVPublicIpStatic_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMPublicIpDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -104,9 +104,9 @@ func TestAccAzureRMPublicIpStatic_disappears(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMVPublicIpStatic_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMPublicIpDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -126,9 +126,9 @@ func TestAccAzureRMPublicIpStatic_idleTimeout(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMVPublicIpStatic_idleTimeout, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMPublicIpDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -152,9 +152,9 @@ func TestAccAzureRMPublicIpStatic_withTags(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMVPublicIpStatic_withTagsUpdate, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMPublicIpDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,
@@ -190,9 +190,9 @@ func TestAccAzureRMPublicIpStatic_update(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMVPublicIpStatic_update, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMPublicIpDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,
@@ -219,9 +219,9 @@ func TestAccAzureRMPublicIpDynamic_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMVPublicIpDynamic_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMPublicIpDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

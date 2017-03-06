@@ -16,9 +16,9 @@ func TestAccAzureRMSubnet_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMSubnetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMSubnetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -36,9 +36,9 @@ func TestAccAzureRMSubnet_disappears(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMSubnetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMSubnetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

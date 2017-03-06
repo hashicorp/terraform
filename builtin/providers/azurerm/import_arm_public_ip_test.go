@@ -15,9 +15,9 @@ func TestAccAzureRMPublicIpStatic_importBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMVPublicIpStatic_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMPublicIpDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMPublicIpDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

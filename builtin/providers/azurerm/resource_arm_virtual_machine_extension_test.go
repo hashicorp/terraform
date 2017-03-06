@@ -18,9 +18,9 @@ func TestAccAzureRMVirtualMachineExtension_basic(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachineExtension_basicUpdate, ri, ri, ri, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMVirtualMachineExtensionDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMVirtualMachineExtensionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,
@@ -45,9 +45,9 @@ func TestAccAzureRMVirtualMachineExtension_concurrent(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMVirtualMachineExtension_concurrent, ri, ri, ri, ri, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMVirtualMachineExtensionDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMVirtualMachineExtensionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -67,9 +67,9 @@ func TestAccAzureRMVirtualMachineExtension_linuxDiagnostics(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMVirtualMachineExtension_linuxDiagnostics, ri, ri, ri, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMVirtualMachineExtensionDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMVirtualMachineExtensionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

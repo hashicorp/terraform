@@ -15,9 +15,9 @@ func TestAccAzureRMRouteTable_importBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMRouteTable_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMRouteTableDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMRouteTableDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

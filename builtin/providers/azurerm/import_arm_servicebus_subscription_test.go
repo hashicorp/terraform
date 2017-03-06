@@ -15,9 +15,9 @@ func TestAccAzureRMServiceBusSubscription_importBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMServiceBusSubscription_basic, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMServiceBusSubscriptionDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMServiceBusSubscriptionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

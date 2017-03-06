@@ -13,9 +13,9 @@ import (
 func TestAccAzureRMNetworkInterface_basic(t *testing.T) {
 	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMNetworkInterfaceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMNetworkInterface_basic(rInt),
@@ -30,9 +30,9 @@ func TestAccAzureRMNetworkInterface_basic(t *testing.T) {
 func TestAccAzureRMNetworkInterface_disappears(t *testing.T) {
 	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMNetworkInterfaceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMNetworkInterface_basic(rInt),
@@ -49,9 +49,9 @@ func TestAccAzureRMNetworkInterface_disappears(t *testing.T) {
 func TestAccAzureRMNetworkInterface_enableIPForwarding(t *testing.T) {
 	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMNetworkInterfaceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMNetworkInterface_ipForwarding(rInt),
@@ -68,9 +68,9 @@ func TestAccAzureRMNetworkInterface_enableIPForwarding(t *testing.T) {
 func TestAccAzureRMNetworkInterface_multipleLoadBalancers(t *testing.T) {
 	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMNetworkInterfaceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMNetworkInterface_multipleLoadBalancers(rInt),
@@ -86,9 +86,9 @@ func TestAccAzureRMNetworkInterface_multipleLoadBalancers(t *testing.T) {
 func TestAccAzureRMNetworkInterface_withTags(t *testing.T) {
 	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMNetworkInterfaceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMNetworkInterface_withTags(rInt),

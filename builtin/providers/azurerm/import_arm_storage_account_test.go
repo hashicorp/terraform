@@ -17,9 +17,9 @@ func TestAccAzureRMStorageAccount_importBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMStorageAccount_basic, ri, rs)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMStorageAccountDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

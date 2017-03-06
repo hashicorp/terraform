@@ -15,9 +15,9 @@ func TestAccAzureRMServiceBusNamespace_importBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMServiceBusNamespace_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMServiceBusNamespaceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMServiceBusNamespaceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

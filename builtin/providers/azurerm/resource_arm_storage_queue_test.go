@@ -57,9 +57,9 @@ func TestAccAzureRMStorageQueue_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMStorageQueue_basic, ri, rs, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMStorageQueueDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMStorageQueueDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
