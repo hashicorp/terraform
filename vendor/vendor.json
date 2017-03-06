@@ -2160,11 +2160,11 @@
 			"revisionTime": "2016-06-16T18:50:15Z"
 		},
 		{
-			"checksumSHA1": "N4M0qtTBHR2XBxTuPRL9ocdkQns=",
+			"checksumSHA1": "YhQcOsGx8r2S/jkJ0Qt4cZ5BLCU=",
 			"comment": "v0.3.0-33-g53d1c0a",
 			"path": "github.com/jtopjian/cobblerclient",
-			"revision": "53d1c0a0b003aabfa7ecfa848d856606cb481196",
-			"revisionTime": "2016-04-01T00:38:02Z"
+			"revision": "3b306e0a196ac0dc04751ad27130601a4533cce9",
+			"revisionTime": "2017-03-05T20:21:00Z"
 		},
 		{
 			"checksumSHA1": "sKheT5xw89Tbu2Q071FQO27CVmE=",

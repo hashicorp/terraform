@@ -50,7 +50,7 @@ type Profile struct {
 	Proxy                    string   `mapstructure:"proxy"`
 	RedHatManagementKey      string   `mapstructure:"redhat_management_key"`
 	RedHatManagementServer   string   `mapstructure:"redhat_management_server"`
-	Repos                    []string `mapstructure:"repos"`
+	Repos                    string   `mapstructure:"repos"`
 	Server                   string   `mapstructure:"server"`
 	TemplateFiles            string   `mapstructure:"template_files"`
 	TemplateRemoteKickstarts int      `mapstructure:"template_remote_kickstarts"`
