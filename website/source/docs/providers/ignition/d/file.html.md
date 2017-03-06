@@ -1,7 +1,7 @@
 ---
 layout: "ignition"
 page_title: "Ignition: ignition_file"
-sidebar_current: "docs-ignition-resource-file"
+sidebar_current: "docs-ignition-datasource-file"
 description: |-
   Describes a file to be written in a particular filesystem.
 ---
@@ -16,7 +16,7 @@ File with inline content:
 
 
 ```
-resource "ignition_file" "hello" {
+data "ignition_file" "hello" {
 	filesystem = "foo"
 	path = "/hello.txt"
 	content {
@@ -28,7 +28,7 @@ resource "ignition_file" "hello" {
 File with remote content:
 
 ```
-resource "ignition_file" "hello" {
+data "ignition_file" "hello" {
 	filesystem = "qux"
 	path = "/hello.txt"
 	source {
