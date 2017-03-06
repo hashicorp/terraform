@@ -235,7 +235,9 @@ func resourceArmManagedDiskDelete(d *schema.ResourceData, meta interface{}) erro
 func flattenAzureRmManagedDiskProperties(properties *disk.Properties) map[string]interface{} {
 	result := make(map[string]interface{})
 	result["storage_account_type"] = string(properties.AccountType)
-	result["disk_size_gb"] = *properties.DiskSizeGB
+	if properties.DiskSizeGB != nil {
+		result["disk_size_gb"] = *properties.DiskSizeGB
+	}
 	if properties.OsType != "" {
 		result["os_type"] = string(properties.OsType)
 	}
