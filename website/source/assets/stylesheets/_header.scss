@@ -11,16 +11,13 @@ body.page-sub{
 }
 
 #header {
-  margin-top: -20px;
-
   .navbar-brand {
     .logo{
       width: $project-logo-width;
       height: $project-logo-height;
       font-size: 0px;
       font-family: $font-family-klavika;
-      background: image-url('logo-header.svg') 0 0 no-repeat;
-      background-position: 0 40%;
+      background: image-url('logo-header.svg') 0 32% no-repeat;
 
       &:hover{
         opacity: .6;
