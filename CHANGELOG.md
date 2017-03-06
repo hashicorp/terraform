@@ -14,6 +14,7 @@ BUG FIXES:
  * provider/mysql: Avoid crash on un-interpolated provider cfg [GH-12391]
  * provider/openstack: Handle cases where volumes are disabled [GH-12374]
  * provider/openstack: Toggle Creation of Default Security Group Rules [GH-12119]
+ * provider/cobbler: Fix Profile Repos [GH-12452]
  * provider/statuscake: use default status code list when updating test [GH-12375]
 
 
