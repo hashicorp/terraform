@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Data Source:**  `openstack_networking_network_v2` [GH-12304]
  * **New Resource:**  `ns1_notifylist` [GH-12373]
 
 IMPROVEMENTS:
