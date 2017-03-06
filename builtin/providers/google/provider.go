@@ -66,6 +66,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_address":                resourceComputeAddress(),
 			"google_compute_backend_service":        resourceComputeBackendService(),
 			"google_compute_disk":                   resourceComputeDisk(),
+			"google_compute_snapshot":               resourceComputeSnapshot(),
 			"google_compute_firewall":               resourceComputeFirewall(),
 			"google_compute_forwarding_rule":        resourceComputeForwardingRule(),
 			"google_compute_global_address":         resourceComputeGlobalAddress(),
