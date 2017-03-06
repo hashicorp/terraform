@@ -74,7 +74,7 @@ func testAccCheckAWSOpsworksUserProfileExists(
 		opsuserprofile := *resp.UserProfiles[0]
 
 		if *opsuserprofile.AllowSelfManagement {
-			return fmt.Errorf("Unnexpected allowSelfManagement: %s",
+			return fmt.Errorf("Unnexpected allowSelfManagement: %t",
 				*opsuserprofile.AllowSelfManagement)
 		}
 

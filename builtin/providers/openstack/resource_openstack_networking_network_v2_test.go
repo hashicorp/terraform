@@ -26,13 +26,14 @@ func TestAccNetworkingV2Network_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2Network_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.foo", &network),
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
 				),
 			},
 			resource.TestStep{
 				Config: testAccNetworkingV2Network_update,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("openstack_networking_network_v2.foo", "name", "network_2"),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_network_v2.network_1", "name", "network_2"),
 				),
 			},
 		},
@@ -44,28 +45,6 @@ func TestAccNetworkingV2Network_netstack(t *testing.T) {
 	var subnet subnets.Subnet
 	var router routers.Router
 
-	var testAccNetworkingV2Network_netstack = fmt.Sprintf(`
-		resource "openstack_networking_network_v2" "foo" {
-			name = "network_1"
-			admin_state_up = "true"
-		}
-
-		resource "openstack_networking_subnet_v2" "foo" {
-			name = "subnet_1"
-			network_id = "${openstack_networking_network_v2.foo.id}"
-			cidr = "192.168.10.0/24"
-			ip_version = 4
-		}
-
-		resource "openstack_networking_router_v2" "foo" {
-			name = "router_1"
-		}
-
-		resource "openstack_networking_router_interface_v2" "foo" {
-			router_id = "${openstack_networking_router_v2.foo.id}"
-			subnet_id = "${openstack_networking_subnet_v2.foo.id}"
-		}`)
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -74,10 +53,11 @@ func TestAccNetworkingV2Network_netstack(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2Network_netstack,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.foo", &network),
-					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.foo", &subnet),
-					testAccCheckNetworkingV2RouterExists(t, "openstack_networking_router_v2.foo", &router),
-					testAccCheckNetworkingV2RouterInterfaceExists(t, "openstack_networking_router_interface_v2.foo"),
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					testAccCheckNetworkingV2RouterExists("openstack_networking_router_v2.router_1", &router),
+					testAccCheckNetworkingV2RouterInterfaceExists(
+						"openstack_networking_router_interface_v2.ri_1"),
 				),
 			},
 		},
@@ -91,50 +71,6 @@ func TestAccNetworkingV2Network_fullstack(t *testing.T) {
 	var secgroup secgroups.SecurityGroup
 	var subnet subnets.Subnet
 
-	var testAccNetworkingV2Network_fullstack = fmt.Sprintf(`
-		resource "openstack_networking_network_v2" "foo" {
-			name = "network_1"
-			admin_state_up = "true"
-		}
-
-		resource "openstack_networking_subnet_v2" "foo" {
-			name = "subnet_1"
-			network_id = "${openstack_networking_network_v2.foo.id}"
-			cidr = "192.168.199.0/24"
-			ip_version = 4
-		}
-
-		resource "openstack_compute_secgroup_v2" "foo" {
-			name = "secgroup_1"
-			description = "a security group"
-			rule {
-				from_port = 22
-				to_port = 22
-				ip_protocol = "tcp"
-				cidr = "0.0.0.0/0"
-			}
-		}
-
-		resource "openstack_networking_port_v2" "foo" {
-			name = "port_1"
-			network_id = "${openstack_networking_network_v2.foo.id}"
-			admin_state_up = "true"
-			security_group_ids = ["${openstack_compute_secgroup_v2.foo.id}"]
-			fixed_ip {
-				"subnet_id" =  "${openstack_networking_subnet_v2.foo.id}"
-				"ip_address" =  "192.168.199.23"
-			}
-		}
-
-		resource "openstack_compute_instance_v2" "foo" {
-			name = "terraform-test"
-			security_groups = ["${openstack_compute_secgroup_v2.foo.name}"]
-
-			network {
-				port = "${openstack_networking_port_v2.foo.id}"
-			}
-		}`)
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -143,11 +79,11 @@ func TestAccNetworkingV2Network_fullstack(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2Network_fullstack,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.foo", &network),
-					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.foo", &subnet),
-					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.foo", &secgroup),
-					testAccCheckNetworkingV2PortExists(t, "openstack_networking_port_v2.foo", &port),
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					testAccCheckComputeV2SecGroupExists("openstack_compute_secgroup_v2.secgroup_1", &secgroup),
+					testAccCheckNetworkingV2PortExists("openstack_networking_port_v2.port_1", &port),
+					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_1", &instance),
 				),
 			},
 		},
@@ -158,7 +94,7 @@ func testAccCheckNetworkingV2NetworkDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 	if err != nil {
-		return fmt.Errorf("(testAccCheckNetworkingV2NetworkDestroy) Error creating OpenStack networking client: %s", err)
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
 	for _, rs := range s.RootModule().Resources {
@@ -175,7 +111,7 @@ func testAccCheckNetworkingV2NetworkDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckNetworkingV2NetworkExists(t *testing.T, n string, network *networks.Network) resource.TestCheckFunc {
+func testAccCheckNetworkingV2NetworkExists(n string, network *networks.Network) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -189,7 +125,7 @@ func testAccCheckNetworkingV2NetworkExists(t *testing.T, n string, network *netw
 		config := testAccProvider.Meta().(*Config)
 		networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 		if err != nil {
-			return fmt.Errorf("(testAccCheckNetworkingV2NetworkExists) Error creating OpenStack networking client: %s", err)
+			return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 		}
 
 		found, err := networks.Get(networkingClient, rs.Primary.ID).Extract()
@@ -207,14 +143,85 @@ func testAccCheckNetworkingV2NetworkExists(t *testing.T, n string, network *netw
 	}
 }
 
-var testAccNetworkingV2Network_basic = fmt.Sprintf(`
-  resource "openstack_networking_network_v2" "foo" {
-    name = "network_1"
-    admin_state_up = "true"
-  }`)
+const testAccNetworkingV2Network_basic = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+`
 
-var testAccNetworkingV2Network_update = fmt.Sprintf(`
-  resource "openstack_networking_network_v2" "foo" {
-    name = "network_2"
-    admin_state_up = "true"
-  }`)
+const testAccNetworkingV2Network_update = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_2"
+  admin_state_up = "true"
+}
+`
+
+const testAccNetworkingV2Network_netstack = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.10.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+
+resource "openstack_networking_router_v2" "router_1" {
+  name = "router_1"
+}
+
+resource "openstack_networking_router_interface_v2" "ri_1" {
+  router_id = "${openstack_networking_router_v2.router_1.id}"
+  subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+}
+`
+
+const testAccNetworkingV2Network_fullstack = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+
+resource "openstack_compute_secgroup_v2" "secgroup_1" {
+  name = "secgroup_1"
+  description = "a security group"
+  rule {
+    from_port = 22
+    to_port = 22
+    ip_protocol = "tcp"
+    cidr = "0.0.0.0/0"
+  }
+}
+
+resource "openstack_networking_port_v2" "port_1" {
+  name = "port_1"
+  admin_state_up = "true"
+  security_group_ids = ["${openstack_compute_secgroup_v2.secgroup_1.id}"]
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+
+  fixed_ip {
+    "subnet_id" =  "${openstack_networking_subnet_v2.subnet_1.id}"
+    "ip_address" =  "192.168.199.23"
+  }
+}
+
+resource "openstack_compute_instance_v2" "instance_1" {
+  name = "instance_1"
+  security_groups = ["${openstack_compute_secgroup_v2.secgroup_1.name}"]
+
+  network {
+    port = "${openstack_networking_port_v2.port_1.id}"
+  }
+}
+`

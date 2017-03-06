@@ -15,8 +15,9 @@ import (
 // in the Amazon Web Services (AWS) cloud. Using Amazon EC2 eliminates your
 // need to invest in hardware up front, so you can develop and deploy applications
 // faster.
-//The service client's operations are safe to be used concurrently.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15
 type EC2 struct {
 	*client.Client
 }
@@ -27,8 +28,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "ec2"
+// Service information constants
+const (
+	ServiceName = "ec2"       // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the EC2 client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -41,7 +45,7 @@ const ServiceName = "ec2"
 //     // Create a EC2 client with additional configuration
 //     svc := ec2.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *EC2 {
-	c := p.ClientConfig(ServiceName, cfgs...)
+	c := p.ClientConfig(EndpointsID, cfgs...)
 	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 

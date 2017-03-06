@@ -324,7 +324,7 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 
 	if v, ok := d["user_data"]; ok {
 		opts.UserData = aws.String(
-			base64.StdEncoding.EncodeToString([]byte(v.(string))))
+			base64Encode([]byte(v.(string))))
 	}
 
 	if v, ok := d["key_name"]; ok {
@@ -658,7 +658,7 @@ func resourceAwsSpotFleetRequestRead(d *schema.ResourceData, meta interface{}) e
 		// If the spot request was not found, return nil so that we can show
 		// that it is gone.
 		ec2err, ok := err.(awserr.Error)
-		if ok && ec2err.Code() == "InvalidSpotFleetRequestID.NotFound" {
+		if ok && ec2err.Code() == "InvalidSpotFleetRequestId.NotFound" {
 			d.SetId("")
 			return nil
 		}
@@ -935,11 +935,12 @@ func resourceAwsSpotFleetRequestUpdate(d *schema.ResourceData, meta interface{})
 func resourceAwsSpotFleetRequestDelete(d *schema.ResourceData, meta interface{}) error {
 	// http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CancelSpotFleetRequests.html
 	conn := meta.(*AWSClient).ec2conn
+	terminateInstances := d.Get("terminate_instances_with_expiration").(bool)
 
 	log.Printf("[INFO] Cancelling spot fleet request: %s", d.Id())
 	resp, err := conn.CancelSpotFleetRequests(&ec2.CancelSpotFleetRequestsInput{
 		SpotFleetRequestIds: []*string{aws.String(d.Id())},
-		TerminateInstances:  aws.Bool(d.Get("terminate_instances_with_expiration").(bool)),
+		TerminateInstances:  aws.Bool(terminateInstances),
 	})
 
 	if err != nil {
@@ -956,6 +957,11 @@ func resourceAwsSpotFleetRequestDelete(d *schema.ResourceData, meta interface{})
 
 	if !found {
 		return fmt.Errorf("[ERR] Spot Fleet request (%s) was not found to be successfully canceled, dangling resources may exit", d.Id())
+	}
+
+	// Only wait for instance termination if requested
+	if !terminateInstances {
+		return nil
 	}
 
 	return resource.Retry(5*time.Minute, func() *resource.RetryError {

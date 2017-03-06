@@ -14,20 +14,20 @@ Create a CDN Profile to create a collection of CDN Endpoints.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "resourceGroup1"
-    location = "West US"
+  name     = "resourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_cdn_profile" "test" {
-    name = "acceptanceTestCdnProfile1"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard_Verizon"
+  name                = "acceptanceTestCdnProfile1"
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  sku                 = "Standard_Verizon"
 
-    tags {
-	environment = "Production"
-	cost_center = "MSFT"
-    }
+  tags {
+    environment = "Production"
+    cost_center = "MSFT"
+  }
 }
 ```
 
@@ -45,7 +45,7 @@ The following arguments are supported:
 
 * `sku` - (Required) The pricing related information of current CDN profile. Accepted values are `Standard_Verizon`, `Standard_Akamai` or `Premium_Verizon`.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 
@@ -55,7 +55,7 @@ The following attributes are exported:
 
 ## Import
 
-CDN Profiles can be imported using the `resource id`, e.g. 
+CDN Profiles can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_cdn_profile.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Cdn/profiles/myprofile1

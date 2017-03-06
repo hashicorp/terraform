@@ -79,9 +79,11 @@ func resourceArmNetworkInterface() *schema.Resource {
 						},
 
 						"private_ip_address_allocation": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateNetworkInterfacePrivateIpAddressAllocation,
+							Type:             schema.TypeString,
+							Required:         true,
+							ValidateFunc:     validateNetworkInterfacePrivateIpAddressAllocation,
+							StateFunc:        ignoreCaseStateFunc,
+							DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 						},
 
 						"public_ip_address_id": {

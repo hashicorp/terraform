@@ -27,53 +27,54 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 		MigrateState:  resourceAwsSecurityGroupRuleMigrateState,
 
 		Schema: map[string]*schema.Schema{
-			"type": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				Description: "Type of rule, ingress (inbound) or egress (outbound).",
+			"type": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				Description:  "Type of rule, ingress (inbound) or egress (outbound).",
+				ValidateFunc: validateSecurityRuleType,
 			},
 
-			"from_port": &schema.Schema{
+			"from_port": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"to_port": &schema.Schema{
+			"to_port": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: protocolStateFunc,
 			},
 
-			"cidr_blocks": &schema.Schema{
+			"cidr_blocks": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"prefix_list_ids": &schema.Schema{
+			"prefix_list_ids": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"security_group_id": &schema.Schema{
+			"security_group_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"source_security_group_id": &schema.Schema{
+			"source_security_group_id": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
@@ -81,7 +82,7 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 				ConflictsWith: []string{"cidr_blocks", "self"},
 			},
 
-			"self": &schema.Schema{
+			"self": {
 				Type:          schema.TypeBool,
 				Optional:      true,
 				Default:       false,
@@ -106,6 +107,14 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 
 	perm, err := expandIPPerm(d, sg)
 	if err != nil {
+		return err
+	}
+
+	// Verify that either 'cidr_blocks', 'self', or 'source_security_group_id' is set
+	// If they are not set the AWS API will silently fail. This causes TF to hit a timeout
+	// at 5-minutes waiting for the security group rule to appear, when it was never actually
+	// created.
+	if err := validateAwsSecurityGroupRule(d); err != nil {
 		return err
 	}
 
@@ -193,9 +202,8 @@ information and instructions for recovery. Error message: %s`, sg_id, awsErr.Mes
 	})
 
 	if retErr != nil {
-		log.Printf("[DEBUG] Error finding matching %s Security Group Rule (%s) for Group %s -- NO STATE WILL BE SAVED",
+		return fmt.Errorf("Error finding matching %s Security Group Rule (%s) for Group %s",
 			ruleType, id, sg_id)
-		return nil
 	}
 
 	d.SetId(id)
@@ -592,5 +600,18 @@ func setFromIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup, rule *ec2.IpPe
 		}
 	}
 
+	return nil
+}
+
+// Validates that either 'cidr_blocks', 'self', or 'source_security_group_id' is set
+func validateAwsSecurityGroupRule(d *schema.ResourceData) error {
+	_, blocksOk := d.GetOk("cidr_blocks")
+	_, sourceOk := d.GetOk("source_security_group_id")
+	_, selfOk := d.GetOk("self")
+	_, prefixOk := d.GetOk("prefix_list_ids")
+	if !blocksOk && !sourceOk && !selfOk && !prefixOk {
+		return fmt.Errorf(
+			"One of ['cidr_blocks', 'self', 'source_security_group_id', 'prefix_list_ids'] must be set to create an AWS Security Group Rule")
+	}
 	return nil
 }

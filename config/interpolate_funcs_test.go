@@ -8,8 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"path/filepath"
+
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
+	"github.com/mitchellh/go-homedir"
 )
 
 func TestInterpolateFuncZipMap(t *testing.T) {
@@ -1327,6 +1330,66 @@ func TestInterpolateFuncSignum(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncSlice(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// Negative from index
+			{
+				`${slice(list("a"), -1, 0)}`,
+				nil,
+				true,
+			},
+			// From index > to index
+			{
+				`${slice(list("a", "b", "c"), 2, 1)}`,
+				nil,
+				true,
+			},
+			// To index too large
+			{
+				`${slice(var.list_of_strings, 1, 4)}`,
+				nil,
+				true,
+			},
+			// Empty slice
+			{
+				`${slice(var.list_of_strings, 1, 1)}`,
+				[]interface{}{},
+				false,
+			},
+			{
+				`${slice(var.list_of_strings, 1, 2)}`,
+				[]interface{}{"b"},
+				false,
+			},
+			{
+				`${slice(var.list_of_strings, 0, length(var.list_of_strings) - 1)}`,
+				[]interface{}{"a", "b"},
+				false,
+			},
+		},
+		Vars: map[string]ast.Variable{
+			"var.list_of_strings": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeString,
+						Value: "a",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "b",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "c",
+					},
+				},
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncSort(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{
@@ -1971,4 +2034,40 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 				i, tc.Input, result.Value, tc.Result)
 		}
 	}
+}
+
+func TestInterpolateFuncPathExpand(t *testing.T) {
+	homePath, err := homedir.Dir()
+	if err != nil {
+		t.Fatalf("Error getting home directory: %v", err)
+	}
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${pathexpand("~/test-file")}`,
+				filepath.Join(homePath, "test-file"),
+				false,
+			},
+			{
+				`${pathexpand("~/another/test/file")}`,
+				filepath.Join(homePath, "another/test/file"),
+				false,
+			},
+			{
+				`${pathexpand("/root/file")}`,
+				"/root/file",
+				false,
+			},
+			{
+				`${pathexpand("/")}`,
+				"/",
+				false,
+			},
+			{
+				`${pathexpand()}`,
+				nil,
+				true,
+			},
+		},
+	})
 }

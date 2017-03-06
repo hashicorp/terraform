@@ -40,7 +40,7 @@ type Session struct {
 //
 // If the AWS_SDK_LOAD_CONFIG environment variable is set to a truthy value
 // the shared config file (~/.aws/config) will also be loaded, in addition to
-// the shared credentials file (~/.aws/config). Values set in both the
+// the shared credentials file (~/.aws/credentials). Values set in both the
 // shared config, and shared credentials will be taken from the shared
 // credentials file.
 //
@@ -52,7 +52,7 @@ func New(cfgs ...*aws.Config) *Session {
 	envCfg := loadEnvConfig()
 
 	if envCfg.EnableSharedConfig {
-		s, err := newSession(envCfg, cfgs...)
+		s, err := newSession(Options{}, envCfg, cfgs...)
 		if err != nil {
 			// Old session.New expected all errors to be discovered when
 			// a request is made, and would report the errors then. This
@@ -73,7 +73,7 @@ func New(cfgs ...*aws.Config) *Session {
 		return s
 	}
 
-	return oldNewSession(cfgs...)
+	return deprecatedNewSession(cfgs...)
 }
 
 // NewSession returns a new Session created from SDK defaults, config files,
@@ -83,7 +83,7 @@ func New(cfgs ...*aws.Config) *Session {
 //
 // If the AWS_SDK_LOAD_CONFIG environment variable is set to a truthy value
 // the shared config file (~/.aws/config) will also be loaded in addition to
-// the shared credentials file (~/.aws/config). Values set in both the
+// the shared credentials file (~/.aws/credentials). Values set in both the
 // shared config, and shared credentials will be taken from the shared
 // credentials file. Enabling the Shared Config will also allow the Session
 // to be built with retrieving credentials with AssumeRole set in the config.
@@ -94,7 +94,7 @@ func New(cfgs ...*aws.Config) *Session {
 func NewSession(cfgs ...*aws.Config) (*Session, error) {
 	envCfg := loadEnvConfig()
 
-	return newSession(envCfg, cfgs...)
+	return newSession(Options{}, envCfg, cfgs...)
 }
 
 // SharedConfigState provides the ability to optionally override the state
@@ -147,6 +147,26 @@ type Options struct {
 	// will allow you to override the AWS_SDK_LOAD_CONFIG environment variable
 	// and enable or disable the shared config functionality.
 	SharedConfigState SharedConfigState
+
+	// When the SDK's shared config is configured to assume a role with MFA
+	// this option is required in order to provide the mechanism that will
+	// retrieve the MFA token. There is no default value for this field. If
+	// it is not set an error will be returned when creating the session.
+	//
+	// This token provider will be called when ever the assumed role's
+	// credentials need to be refreshed. Within the context of service clients
+	// all sharing the same session the SDK will ensure calls to the token
+	// provider are atomic. When sharing a token provider across multiple
+	// sessions additional synchronization logic is needed to ensure the
+	// token providers do not introduce race conditions. It is recommend to
+	// share the session where possible.
+	//
+	// stscreds.StdinTokenProvider is a basic implementation that will prompt
+	// from stdin for the MFA token code.
+	//
+	// This field is only used if the shared configuration is enabled, and
+	// the config enables assume role wit MFA via the mfa_serial field.
+	AssumeRoleTokenProvider func() (string, error)
 }
 
 // NewSessionWithOptions returns a new Session created from SDK defaults, config files,
@@ -155,29 +175,29 @@ type Options struct {
 //
 // If the AWS_SDK_LOAD_CONFIG environment variable is set to a truthy value
 // the shared config file (~/.aws/config) will also be loaded in addition to
-// the shared credentials file (~/.aws/config). Values set in both the
+// the shared credentials file (~/.aws/credentials). Values set in both the
 // shared config, and shared credentials will be taken from the shared
 // credentials file. Enabling the Shared Config will also allow the Session
 // to be built with retrieving credentials with AssumeRole set in the config.
 //
 //     // Equivalent to session.New
-//     sess, err := session.NewSessionWithOptions(session.Options{})
+//     sess := session.Must(session.NewSessionWithOptions(session.Options{}))
 //
 //     // Specify profile to load for the session's config
-//     sess, err := session.NewSessionWithOptions(session.Options{
+//     sess := session.Must(session.NewSessionWithOptions(session.Options{
 //          Profile: "profile_name",
-//     })
+//     }))
 //
 //     // Specify profile for config and region for requests
-//     sess, err := session.NewSessionWithOptions(session.Options{
+//     sess := session.Must(session.NewSessionWithOptions(session.Options{
 //          Config: aws.Config{Region: aws.String("us-east-1")},
 //          Profile: "profile_name",
-//     })
+//     }))
 //
 //     // Force enable Shared Config support
-//     sess, err := session.NewSessionWithOptions(session.Options{
+//     sess := session.Must(session.NewSessionWithOptions(session.Options{
 //         SharedConfigState: SharedConfigEnable,
-//     })
+//     }))
 func NewSessionWithOptions(opts Options) (*Session, error) {
 	var envCfg envConfig
 	if opts.SharedConfigState == SharedConfigEnable {
@@ -197,7 +217,7 @@ func NewSessionWithOptions(opts Options) (*Session, error) {
 		envCfg.EnableSharedConfig = true
 	}
 
-	return newSession(envCfg, &opts.Config)
+	return newSession(opts, envCfg, &opts.Config)
 }
 
 // Must is a helper function to ensure the Session is valid and there was no
@@ -215,7 +235,7 @@ func Must(sess *Session, err error) *Session {
 	return sess
 }
 
-func oldNewSession(cfgs ...*aws.Config) *Session {
+func deprecatedNewSession(cfgs ...*aws.Config) *Session {
 	cfg := defaults.Config()
 	handlers := defaults.Handlers()
 
@@ -242,7 +262,7 @@ func oldNewSession(cfgs ...*aws.Config) *Session {
 	return s
 }
 
-func newSession(envCfg envConfig, cfgs ...*aws.Config) (*Session, error) {
+func newSession(opts Options, envCfg envConfig, cfgs ...*aws.Config) (*Session, error) {
 	cfg := defaults.Config()
 	handlers := defaults.Handlers()
 
@@ -266,7 +286,9 @@ func newSession(envCfg envConfig, cfgs ...*aws.Config) (*Session, error) {
 		return nil, err
 	}
 
-	mergeConfigSrcs(cfg, userCfg, envCfg, sharedCfg, handlers)
+	if err := mergeConfigSrcs(cfg, userCfg, envCfg, sharedCfg, handlers, opts); err != nil {
+		return nil, err
+	}
 
 	s := &Session{
 		Config:   cfg,
@@ -278,7 +300,7 @@ func newSession(envCfg envConfig, cfgs ...*aws.Config) (*Session, error) {
 	return s, nil
 }
 
-func mergeConfigSrcs(cfg, userCfg *aws.Config, envCfg envConfig, sharedCfg sharedConfig, handlers request.Handlers) {
+func mergeConfigSrcs(cfg, userCfg *aws.Config, envCfg envConfig, sharedCfg sharedConfig, handlers request.Handlers, sessOpts Options) error {
 	// Merge in user provided configuration
 	cfg.MergeIn(userCfg)
 
@@ -302,6 +324,11 @@ func mergeConfigSrcs(cfg, userCfg *aws.Config, envCfg envConfig, sharedCfg share
 			cfgCp.Credentials = credentials.NewStaticCredentialsFromCreds(
 				sharedCfg.AssumeRoleSource.Creds,
 			)
+			if len(sharedCfg.AssumeRole.MFASerial) > 0 && sessOpts.AssumeRoleTokenProvider == nil {
+				// AssumeRole Token provider is required if doing Assume Role
+				// with MFA.
+				return AssumeRoleTokenProviderNotSetError{}
+			}
 			cfg.Credentials = stscreds.NewCredentials(
 				&Session{
 					Config:   &cfgCp,
@@ -311,11 +338,16 @@ func mergeConfigSrcs(cfg, userCfg *aws.Config, envCfg envConfig, sharedCfg share
 				func(opt *stscreds.AssumeRoleProvider) {
 					opt.RoleSessionName = sharedCfg.AssumeRole.RoleSessionName
 
+					// Assume role with external ID
 					if len(sharedCfg.AssumeRole.ExternalID) > 0 {
 						opt.ExternalID = aws.String(sharedCfg.AssumeRole.ExternalID)
 					}
 
-					// MFA not supported
+					// Assume role with MFA
+					if len(sharedCfg.AssumeRole.MFASerial) > 0 {
+						opt.SerialNumber = aws.String(sharedCfg.AssumeRole.MFASerial)
+						opt.TokenProvider = sessOpts.AssumeRoleTokenProvider
+					}
 				},
 			)
 		} else if len(sharedCfg.Creds.AccessKeyID) > 0 {
@@ -336,6 +368,33 @@ func mergeConfigSrcs(cfg, userCfg *aws.Config, envCfg envConfig, sharedCfg share
 			})
 		}
 	}
+
+	return nil
+}
+
+// AssumeRoleTokenProviderNotSetError is an error returned when creating a session when the
+// MFAToken option is not set when shared config is configured load assume a
+// role with an MFA token.
+type AssumeRoleTokenProviderNotSetError struct{}
+
+// Code is the short id of the error.
+func (e AssumeRoleTokenProviderNotSetError) Code() string {
+	return "AssumeRoleTokenProviderNotSetError"
+}
+
+// Message is the description of the error
+func (e AssumeRoleTokenProviderNotSetError) Message() string {
+	return fmt.Sprintf("assume role with MFA enabled, but AssumeRoleTokenProvider session option not set.")
+}
+
+// OrigErr is the underlying error that caused the failure.
+func (e AssumeRoleTokenProviderNotSetError) OrigErr() error {
+	return nil
+}
+
+// Error satisfies the error interface.
+func (e AssumeRoleTokenProviderNotSetError) Error() string {
+	return awserr.SprintError(e.Code(), e.Message(), "", nil)
 }
 
 type credProviderError struct {
@@ -404,6 +463,10 @@ func (s *Session) clientConfigWithErr(serviceName string, cfgs ...*aws.Config) (
 			func(opt *endpoints.Options) {
 				opt.DisableSSL = aws.BoolValue(s.Config.DisableSSL)
 				opt.UseDualStack = aws.BoolValue(s.Config.UseDualStack)
+
+				// Support the condition where the service is modeled but its
+				// endpoint metadata is not available.
+				opt.ResolveUnknownService = true
 			},
 		)
 	}
@@ -415,4 +478,28 @@ func (s *Session) clientConfigWithErr(serviceName string, cfgs ...*aws.Config) (
 		SigningRegion: resolved.SigningRegion,
 		SigningName:   resolved.SigningName,
 	}, err
+}
+
+// ClientConfigNoResolveEndpoint is the same as ClientConfig with the exception
+// that the EndpointResolver will not be used to resolve the endpoint. The only
+// endpoint set must come from the aws.Config.Endpoint field.
+func (s *Session) ClientConfigNoResolveEndpoint(cfgs ...*aws.Config) client.Config {
+	s = s.Copy(cfgs...)
+
+	var resolved endpoints.ResolvedEndpoint
+
+	region := aws.StringValue(s.Config.Region)
+
+	if ep := aws.StringValue(s.Config.Endpoint); len(ep) > 0 {
+		resolved.URL = endpoints.AddScheme(ep, aws.BoolValue(s.Config.DisableSSL))
+		resolved.SigningRegion = region
+	}
+
+	return client.Config{
+		Config:        s.Config,
+		Handlers:      s.Handlers,
+		Endpoint:      resolved.URL,
+		SigningRegion: resolved.SigningRegion,
+		SigningName:   resolved.SigningName,
+	}
 }

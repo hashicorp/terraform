@@ -1,16 +1,17 @@
 sudo: false
 language: go
 go:
-- 1.7.4
-- 1.8beta2
+- 1.8
 install:
 # This script is used by the Travis build to install a cookie for
 # go.googlesource.com so rate limits are higher when using `go get` to fetch
 # packages that live there.
 # See: https://github.com/golang/go/issues/12933
 - bash scripts/gogetcookie.sh
+- go get github.com/kardianos/govendor
 script:
-- make test vet
+- make vet vendor-status test
+- GOOS=windows go build
 branches:
   only:
   - master

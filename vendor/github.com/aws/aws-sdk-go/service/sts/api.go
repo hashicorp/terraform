@@ -36,6 +36,7 @@ const opAssumeRole = "AssumeRole"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/AssumeRole
 func (c *STS) AssumeRoleRequest(input *AssumeRoleInput) (req *request.Request, output *AssumeRoleOutput) {
 	op := &request.Operation{
 		Name:       opAssumeRole,
@@ -47,9 +48,8 @@ func (c *STS) AssumeRoleRequest(input *AssumeRoleInput) (req *request.Request, o
 		input = &AssumeRoleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssumeRoleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -153,22 +153,23 @@ func (c *STS) AssumeRoleRequest(input *AssumeRoleInput) (req *request.Request, o
 // API operation AssumeRole for usage and error information.
 //
 // Returned Error Codes:
-//   * MalformedPolicyDocument
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
 //   message describes the specific error.
 //
-//   * PackedPolicyTooLarge
+//   * ErrCodePackedPolicyTooLargeException "PackedPolicyTooLarge"
 //   The request was rejected because the policy document was too large. The error
 //   message describes how big the policy document is, in packed form, as a percentage
 //   of what the API allows.
 //
-//   * RegionDisabledException
+//   * ErrCodeRegionDisabledException "RegionDisabledException"
 //   STS is not activated in the requested region for the account that is being
 //   asked to generate credentials. The account administrator must use the IAM
 //   console to activate STS in that region. For more information, see Activating
 //   and Deactivating AWS STS in an AWS Region (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html)
 //   in the IAM User Guide.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/AssumeRole
 func (c *STS) AssumeRole(input *AssumeRoleInput) (*AssumeRoleOutput, error) {
 	req, out := c.AssumeRoleRequest(input)
 	err := req.Send()
@@ -201,6 +202,7 @@ const opAssumeRoleWithSAML = "AssumeRoleWithSAML"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/AssumeRoleWithSAML
 func (c *STS) AssumeRoleWithSAMLRequest(input *AssumeRoleWithSAMLInput) (req *request.Request, output *AssumeRoleWithSAMLOutput) {
 	op := &request.Operation{
 		Name:       opAssumeRoleWithSAML,
@@ -212,9 +214,8 @@ func (c *STS) AssumeRoleWithSAMLRequest(input *AssumeRoleWithSAMLInput) (req *re
 		input = &AssumeRoleWithSAMLInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssumeRoleWithSAMLOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -296,37 +297,38 @@ func (c *STS) AssumeRoleWithSAMLRequest(input *AssumeRoleWithSAMLInput) (req *re
 // API operation AssumeRoleWithSAML for usage and error information.
 //
 // Returned Error Codes:
-//   * MalformedPolicyDocument
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
 //   message describes the specific error.
 //
-//   * PackedPolicyTooLarge
+//   * ErrCodePackedPolicyTooLargeException "PackedPolicyTooLarge"
 //   The request was rejected because the policy document was too large. The error
 //   message describes how big the policy document is, in packed form, as a percentage
 //   of what the API allows.
 //
-//   * IDPRejectedClaim
+//   * ErrCodeIDPRejectedClaimException "IDPRejectedClaim"
 //   The identity provider (IdP) reported that authentication failed. This might
 //   be because the claim is invalid.
 //
 //   If this error is returned for the AssumeRoleWithWebIdentity operation, it
 //   can also mean that the claim has expired or has been explicitly revoked.
 //
-//   * InvalidIdentityToken
+//   * ErrCodeInvalidIdentityTokenException "InvalidIdentityToken"
 //   The web identity token that was passed could not be validated by AWS. Get
 //   a new identity token from the identity provider and then retry the request.
 //
-//   * ExpiredTokenException
+//   * ErrCodeExpiredTokenException "ExpiredTokenException"
 //   The web identity token that was passed is expired or is not valid. Get a
 //   new identity token from the identity provider and then retry the request.
 //
-//   * RegionDisabledException
+//   * ErrCodeRegionDisabledException "RegionDisabledException"
 //   STS is not activated in the requested region for the account that is being
 //   asked to generate credentials. The account administrator must use the IAM
 //   console to activate STS in that region. For more information, see Activating
 //   and Deactivating AWS STS in an AWS Region (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html)
 //   in the IAM User Guide.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/AssumeRoleWithSAML
 func (c *STS) AssumeRoleWithSAML(input *AssumeRoleWithSAMLInput) (*AssumeRoleWithSAMLOutput, error) {
 	req, out := c.AssumeRoleWithSAMLRequest(input)
 	err := req.Send()
@@ -359,6 +361,7 @@ const opAssumeRoleWithWebIdentity = "AssumeRoleWithWebIdentity"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/AssumeRoleWithWebIdentity
 func (c *STS) AssumeRoleWithWebIdentityRequest(input *AssumeRoleWithWebIdentityInput) (req *request.Request, output *AssumeRoleWithWebIdentityOutput) {
 	op := &request.Operation{
 		Name:       opAssumeRoleWithWebIdentity,
@@ -370,9 +373,8 @@ func (c *STS) AssumeRoleWithWebIdentityRequest(input *AssumeRoleWithWebIdentityI
 		input = &AssumeRoleWithWebIdentityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssumeRoleWithWebIdentityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -476,44 +478,45 @@ func (c *STS) AssumeRoleWithWebIdentityRequest(input *AssumeRoleWithWebIdentityI
 // API operation AssumeRoleWithWebIdentity for usage and error information.
 //
 // Returned Error Codes:
-//   * MalformedPolicyDocument
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
 //   message describes the specific error.
 //
-//   * PackedPolicyTooLarge
+//   * ErrCodePackedPolicyTooLargeException "PackedPolicyTooLarge"
 //   The request was rejected because the policy document was too large. The error
 //   message describes how big the policy document is, in packed form, as a percentage
 //   of what the API allows.
 //
-//   * IDPRejectedClaim
+//   * ErrCodeIDPRejectedClaimException "IDPRejectedClaim"
 //   The identity provider (IdP) reported that authentication failed. This might
 //   be because the claim is invalid.
 //
 //   If this error is returned for the AssumeRoleWithWebIdentity operation, it
 //   can also mean that the claim has expired or has been explicitly revoked.
 //
-//   * IDPCommunicationError
+//   * ErrCodeIDPCommunicationErrorException "IDPCommunicationError"
 //   The request could not be fulfilled because the non-AWS identity provider
 //   (IDP) that was asked to verify the incoming identity token could not be reached.
 //   This is often a transient error caused by network conditions. Retry the request
 //   a limited number of times so that you don't exceed the request rate. If the
 //   error persists, the non-AWS identity provider might be down or not responding.
 //
-//   * InvalidIdentityToken
+//   * ErrCodeInvalidIdentityTokenException "InvalidIdentityToken"
 //   The web identity token that was passed could not be validated by AWS. Get
 //   a new identity token from the identity provider and then retry the request.
 //
-//   * ExpiredTokenException
+//   * ErrCodeExpiredTokenException "ExpiredTokenException"
 //   The web identity token that was passed is expired or is not valid. Get a
 //   new identity token from the identity provider and then retry the request.
 //
-//   * RegionDisabledException
+//   * ErrCodeRegionDisabledException "RegionDisabledException"
 //   STS is not activated in the requested region for the account that is being
 //   asked to generate credentials. The account administrator must use the IAM
 //   console to activate STS in that region. For more information, see Activating
 //   and Deactivating AWS STS in an AWS Region (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html)
 //   in the IAM User Guide.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/AssumeRoleWithWebIdentity
 func (c *STS) AssumeRoleWithWebIdentity(input *AssumeRoleWithWebIdentityInput) (*AssumeRoleWithWebIdentityOutput, error) {
 	req, out := c.AssumeRoleWithWebIdentityRequest(input)
 	err := req.Send()
@@ -546,6 +549,7 @@ const opDecodeAuthorizationMessage = "DecodeAuthorizationMessage"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/DecodeAuthorizationMessage
 func (c *STS) DecodeAuthorizationMessageRequest(input *DecodeAuthorizationMessageInput) (req *request.Request, output *DecodeAuthorizationMessageOutput) {
 	op := &request.Operation{
 		Name:       opDecodeAuthorizationMessage,
@@ -557,9 +561,8 @@ func (c *STS) DecodeAuthorizationMessageRequest(input *DecodeAuthorizationMessag
 		input = &DecodeAuthorizationMessageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DecodeAuthorizationMessageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -606,11 +609,12 @@ func (c *STS) DecodeAuthorizationMessageRequest(input *DecodeAuthorizationMessag
 // API operation DecodeAuthorizationMessage for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidAuthorizationMessageException
+//   * ErrCodeInvalidAuthorizationMessageException "InvalidAuthorizationMessageException"
 //   The error returned if the message passed to DecodeAuthorizationMessage was
 //   invalid. This can happen if the token contains invalid characters, such as
 //   linebreaks.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/DecodeAuthorizationMessage
 func (c *STS) DecodeAuthorizationMessage(input *DecodeAuthorizationMessageInput) (*DecodeAuthorizationMessageOutput, error) {
 	req, out := c.DecodeAuthorizationMessageRequest(input)
 	err := req.Send()
@@ -643,6 +647,7 @@ const opGetCallerIdentity = "GetCallerIdentity"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/GetCallerIdentity
 func (c *STS) GetCallerIdentityRequest(input *GetCallerIdentityInput) (req *request.Request, output *GetCallerIdentityOutput) {
 	op := &request.Operation{
 		Name:       opGetCallerIdentity,
@@ -654,9 +659,8 @@ func (c *STS) GetCallerIdentityRequest(input *GetCallerIdentityInput) (req *requ
 		input = &GetCallerIdentityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetCallerIdentityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -671,6 +675,7 @@ func (c *STS) GetCallerIdentityRequest(input *GetCallerIdentityInput) (req *requ
 //
 // See the AWS API reference guide for AWS Security Token Service's
 // API operation GetCallerIdentity for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/GetCallerIdentity
 func (c *STS) GetCallerIdentity(input *GetCallerIdentityInput) (*GetCallerIdentityOutput, error) {
 	req, out := c.GetCallerIdentityRequest(input)
 	err := req.Send()
@@ -703,6 +708,7 @@ const opGetFederationToken = "GetFederationToken"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/GetFederationToken
 func (c *STS) GetFederationTokenRequest(input *GetFederationTokenInput) (req *request.Request, output *GetFederationTokenOutput) {
 	op := &request.Operation{
 		Name:       opGetFederationToken,
@@ -714,9 +720,8 @@ func (c *STS) GetFederationTokenRequest(input *GetFederationTokenInput) (req *re
 		input = &GetFederationTokenInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetFederationTokenOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -809,22 +814,23 @@ func (c *STS) GetFederationTokenRequest(input *GetFederationTokenInput) (req *re
 // API operation GetFederationToken for usage and error information.
 //
 // Returned Error Codes:
-//   * MalformedPolicyDocument
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
 //   message describes the specific error.
 //
-//   * PackedPolicyTooLarge
+//   * ErrCodePackedPolicyTooLargeException "PackedPolicyTooLarge"
 //   The request was rejected because the policy document was too large. The error
 //   message describes how big the policy document is, in packed form, as a percentage
 //   of what the API allows.
 //
-//   * RegionDisabledException
+//   * ErrCodeRegionDisabledException "RegionDisabledException"
 //   STS is not activated in the requested region for the account that is being
 //   asked to generate credentials. The account administrator must use the IAM
 //   console to activate STS in that region. For more information, see Activating
 //   and Deactivating AWS STS in an AWS Region (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html)
 //   in the IAM User Guide.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/GetFederationToken
 func (c *STS) GetFederationToken(input *GetFederationTokenInput) (*GetFederationTokenOutput, error) {
 	req, out := c.GetFederationTokenRequest(input)
 	err := req.Send()
@@ -857,6 +863,7 @@ const opGetSessionToken = "GetSessionToken"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/GetSessionToken
 func (c *STS) GetSessionTokenRequest(input *GetSessionTokenInput) (req *request.Request, output *GetSessionTokenOutput) {
 	op := &request.Operation{
 		Name:       opGetSessionToken,
@@ -868,9 +875,8 @@ func (c *STS) GetSessionTokenRequest(input *GetSessionTokenInput) (req *request.
 		input = &GetSessionTokenInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSessionTokenOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -931,19 +937,21 @@ func (c *STS) GetSessionTokenRequest(input *GetSessionTokenInput) (req *request.
 // API operation GetSessionToken for usage and error information.
 //
 // Returned Error Codes:
-//   * RegionDisabledException
+//   * ErrCodeRegionDisabledException "RegionDisabledException"
 //   STS is not activated in the requested region for the account that is being
 //   asked to generate credentials. The account administrator must use the IAM
 //   console to activate STS in that region. For more information, see Activating
 //   and Deactivating AWS STS in an AWS Region (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html)
 //   in the IAM User Guide.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/GetSessionToken
 func (c *STS) GetSessionToken(input *GetSessionTokenInput) (*GetSessionTokenOutput, error) {
 	req, out := c.GetSessionTokenRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/AssumeRoleRequest
 type AssumeRoleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1135,6 +1143,7 @@ func (s *AssumeRoleInput) SetTokenCode(v string) *AssumeRoleInput {
 
 // Contains the response to a successful AssumeRole request, including temporary
 // AWS credentials that can be used to make AWS requests.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/AssumeRoleResponse
 type AssumeRoleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1188,6 +1197,7 @@ func (s *AssumeRoleOutput) SetPackedPolicySize(v int64) *AssumeRoleOutput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/AssumeRoleWithSAMLRequest
 type AssumeRoleWithSAMLInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1328,6 +1338,7 @@ func (s *AssumeRoleWithSAMLInput) SetSAMLAssertion(v string) *AssumeRoleWithSAML
 
 // Contains the response to a successful AssumeRoleWithSAML request, including
 // temporary AWS credentials that can be used to make AWS requests.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/AssumeRoleWithSAMLResponse
 type AssumeRoleWithSAMLOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1439,6 +1450,7 @@ func (s *AssumeRoleWithSAMLOutput) SetSubjectType(v string) *AssumeRoleWithSAMLO
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/AssumeRoleWithWebIdentityRequest
 type AssumeRoleWithWebIdentityInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1601,6 +1613,7 @@ func (s *AssumeRoleWithWebIdentityInput) SetWebIdentityToken(v string) *AssumeRo
 
 // Contains the response to a successful AssumeRoleWithWebIdentity request,
 // including temporary AWS credentials that can be used to make AWS requests.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/AssumeRoleWithWebIdentityResponse
 type AssumeRoleWithWebIdentityOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1693,6 +1706,7 @@ func (s *AssumeRoleWithWebIdentityOutput) SetSubjectFromWebIdentityToken(v strin
 
 // The identifiers for the temporary security credentials that the operation
 // returns.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/AssumedRoleUser
 type AssumedRoleUser struct {
 	_ struct{} `type:"structure"`
 
@@ -1735,6 +1749,7 @@ func (s *AssumedRoleUser) SetAssumedRoleId(v string) *AssumedRoleUser {
 }
 
 // AWS credentials for API authentication.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/Credentials
 type Credentials struct {
 	_ struct{} `type:"structure"`
 
@@ -1793,6 +1808,7 @@ func (s *Credentials) SetSessionToken(v string) *Credentials {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/DecodeAuthorizationMessageRequest
 type DecodeAuthorizationMessageInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1837,6 +1853,7 @@ func (s *DecodeAuthorizationMessageInput) SetEncodedMessage(v string) *DecodeAut
 // A document that contains additional information about the authorization status
 // of a request from an encoded message that is returned in response to an AWS
 // request.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/DecodeAuthorizationMessageResponse
 type DecodeAuthorizationMessageOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1861,6 +1878,7 @@ func (s *DecodeAuthorizationMessageOutput) SetDecodedMessage(v string) *DecodeAu
 }
 
 // Identifiers for the federated user that is associated with the credentials.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/FederatedUser
 type FederatedUser struct {
 	_ struct{} `type:"structure"`
 
@@ -1901,6 +1919,7 @@ func (s *FederatedUser) SetFederatedUserId(v string) *FederatedUser {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/GetCallerIdentityRequest
 type GetCallerIdentityInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1917,6 +1936,7 @@ func (s GetCallerIdentityInput) GoString() string {
 
 // Contains the response to a successful GetCallerIdentity request, including
 // information about the entity making the request.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/GetCallerIdentityResponse
 type GetCallerIdentityOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1962,6 +1982,7 @@ func (s *GetCallerIdentityOutput) SetUserId(v string) *GetCallerIdentityOutput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/GetFederationTokenRequest
 type GetFederationTokenInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2070,6 +2091,7 @@ func (s *GetFederationTokenInput) SetPolicy(v string) *GetFederationTokenInput {
 
 // Contains the response to a successful GetFederationToken request, including
 // temporary AWS credentials that can be used to make AWS requests.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/GetFederationTokenResponse
 type GetFederationTokenOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2122,6 +2144,7 @@ func (s *GetFederationTokenOutput) SetPackedPolicySize(v int64) *GetFederationTo
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/GetSessionTokenRequest
 type GetSessionTokenInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2206,6 +2229,7 @@ func (s *GetSessionTokenInput) SetTokenCode(v string) *GetSessionTokenInput {
 
 // Contains the response to a successful GetSessionToken request, including
 // temporary AWS credentials that can be used to make AWS requests.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/sts-2011-06-15/GetSessionTokenResponse
 type GetSessionTokenOutput struct {
 	_ struct{} `type:"structure"`
 

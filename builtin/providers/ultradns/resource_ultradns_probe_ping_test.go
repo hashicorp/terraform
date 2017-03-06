@@ -28,7 +28,7 @@ func TestAccUltradnsProbePing(t *testing.T) {
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "agents.0", "DALLAS"),
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "agents.1", "AMSTERDAM"),
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "interval", "ONE_MINUTE"),
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "threshold", "1"),
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "threshold", "2"),
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.packets", "15"),
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.packet_size", "56"),
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.#", "2"),
@@ -56,7 +56,7 @@ func TestAccUltradnsProbePing(t *testing.T) {
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "agents.0", "DALLAS"),
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "agents.1", "AMSTERDAM"),
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "interval", "ONE_MINUTE"),
-					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "threshold", "1"),
+					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "threshold", "2"),
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.packets", "15"),
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.packet_size", "56"),
 					resource.TestCheckResourceAttr("ultradns_probe_ping.it", "ping_probe.0.limit.#", "2"),
@@ -124,7 +124,7 @@ resource "ultradns_probe_ping" "it" {
   agents = ["DALLAS", "AMSTERDAM"]
 
   interval  = "ONE_MINUTE"
-  threshold = 1
+  threshold = 2
 
   ping_probe {
     packets    = 15
@@ -193,7 +193,7 @@ resource "ultradns_probe_ping" "it" {
   agents = ["DALLAS", "AMSTERDAM"]
 
   interval  = "ONE_MINUTE"
-  threshold = 1
+  threshold = 2
 
   ping_probe {
     packets    = 15

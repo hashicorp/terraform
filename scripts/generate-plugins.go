@@ -91,7 +91,7 @@ func makeProviderMap(items []plugin) string {
 func makeProvisionerMap(items []plugin) string {
 	output := ""
 	for _, item := range items {
-		output += fmt.Sprintf("\t\"%s\": func() terraform.ResourceProvisioner { return new(%s.%s) },\n", item.PluginName, item.ImportName, item.TypeName)
+		output += fmt.Sprintf("\t\"%s\":   %s.%s,\n", item.PluginName, item.ImportName, item.TypeName)
 	}
 	return output
 }
@@ -254,8 +254,8 @@ func discoverProviders() ([]plugin, error) {
 
 func discoverProvisioners() ([]plugin, error) {
 	path := "./builtin/provisioners"
-	typeID := "ResourceProvisioner"
-	typeName := ""
+	typeID := "terraform.ResourceProvisioner"
+	typeName := "Provisioner"
 	return discoverTypesInPath(path, typeID, typeName)
 }
 
@@ -270,6 +270,9 @@ import (
 IMPORTS
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
+
+	// Legacy, will remove once it conforms with new structure
+	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
@@ -278,6 +281,12 @@ PROVIDERS
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
 PROVISIONERS
+}
+
+func init() {
+	// Legacy provisioners that don't match our heuristics for auto-finding
+	// built-in provisioners.
+	InternalProvisioners["chef"] = func() terraform.ResourceProvisioner { return new(chefprovisioner.ResourceProvisioner) }
 }
 
 `

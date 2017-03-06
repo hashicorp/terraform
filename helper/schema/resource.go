@@ -3,6 +3,7 @@ package schema
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -94,6 +95,15 @@ type Resource struct {
 	// This is a private interface for now, for use by DataSourceResourceShim,
 	// and not for general use. (But maybe later...)
 	deprecationMessage string
+
+	// Timeouts allow users to specify specific time durations in which an
+	// operation should time out, to allow them to extend an action to suit their
+	// usage. For example, a user may specify a large Creation timeout for their
+	// AWS RDS Instance due to it's size, or restoring from a snapshot.
+	// Resource implementors must enable Timeout support by adding the allowed
+	// actions (Create, Read, Update, Delete, Default) to the Resource struct, and
+	// accessing them in the matching methods.
+	Timeouts *ResourceTimeout
 }
 
 // See Resource documentation.
@@ -125,6 +135,18 @@ func (r *Resource) Apply(
 		return s, err
 	}
 
+	// Instance Diff shoould have the timeout info, need to copy it over to the
+	// ResourceData meta
+	rt := ResourceTimeout{}
+	if _, ok := d.Meta[TimeoutKey]; ok {
+		if err := rt.DiffDecode(d); err != nil {
+			log.Printf("[ERR] Error decoding ResourceTimeout: %s", err)
+		}
+	} else {
+		log.Printf("[DEBUG] No meta timeoutkey found in Apply()")
+	}
+	data.timeouts = &rt
+
 	if s == nil {
 		// The Terraform API dictates that this should never happen, but
 		// it doesn't hurt to be safe in this case.
@@ -150,6 +172,8 @@ func (r *Resource) Apply(
 
 		// Reset the data to be stateless since we just destroyed
 		data, err = schemaMap(r.Schema).Data(nil, d)
+		// data was reset, need to re-apply the parsed timeouts
+		data.timeouts = &rt
 		if err != nil {
 			return nil, err
 		}
@@ -176,7 +200,28 @@ func (r *Resource) Apply(
 func (r *Resource) Diff(
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-	return schemaMap(r.Schema).Diff(s, c)
+
+	t := &ResourceTimeout{}
+	err := t.ConfigDecode(r, c)
+
+	if err != nil {
+		return nil, fmt.Errorf("[ERR] Error decoding timeout: %s", err)
+	}
+
+	instanceDiff, err := schemaMap(r.Schema).Diff(s, c)
+	if err != nil {
+		return instanceDiff, err
+	}
+
+	if instanceDiff != nil {
+		if err := t.DiffEncode(instanceDiff); err != nil {
+			log.Printf("[ERR] Error encoding timeout to instance diff: %s", err)
+		}
+	} else {
+		log.Printf("[DEBUG] Instance Diff is nil in Diff()")
+	}
+
+	return instanceDiff, err
 }
 
 // Validate validates the resource configuration against the schema.
@@ -226,10 +271,19 @@ func (r *Resource) Refresh(
 		return nil, nil
 	}
 
+	rt := ResourceTimeout{}
+	if _, ok := s.Meta[TimeoutKey]; ok {
+		if err := rt.StateDecode(s); err != nil {
+			log.Printf("[ERR] Error decoding ResourceTimeout: %s", err)
+		}
+	}
+
 	if r.Exists != nil {
 		// Make a copy of data so that if it is modified it doesn't
 		// affect our Read later.
 		data, err := schemaMap(r.Schema).Data(s, nil)
+		data.timeouts = &rt
+
 		if err != nil {
 			return s, err
 		}
@@ -252,6 +306,7 @@ func (r *Resource) Refresh(
 	}
 
 	data, err := schemaMap(r.Schema).Data(s, nil)
+	data.timeouts = &rt
 	if err != nil {
 		return s, err
 	}
@@ -353,7 +408,7 @@ func (r *Resource) Data(s *terraform.InstanceState) *ResourceData {
 	}
 
 	// Set the schema version to latest by default
-	result.meta = map[string]string{
+	result.meta = map[string]interface{}{
 		"schema_version": strconv.Itoa(r.SchemaVersion),
 	}
 
@@ -378,7 +433,22 @@ func (r *Resource) isTopLevel() bool {
 // Determines if a given InstanceState needs to be migrated by checking the
 // stored version number with the current SchemaVersion
 func (r *Resource) checkSchemaVersion(is *terraform.InstanceState) (bool, int) {
-	stateSchemaVersion, _ := strconv.Atoi(is.Meta["schema_version"])
+	// Get the raw interface{} value for the schema version. If it doesn't
+	// exist or is nil then set it to zero.
+	raw := is.Meta["schema_version"]
+	if raw == nil {
+		raw = "0"
+	}
+
+	// Try to convert it to a string. If it isn't a string then we pretend
+	// that it isn't set at all. It should never not be a string unless it
+	// was manually tampered with.
+	rawString, ok := raw.(string)
+	if !ok {
+		rawString = "0"
+	}
+
+	stateSchemaVersion, _ := strconv.Atoi(rawString)
 	return stateSchemaVersion < r.SchemaVersion, stateSchemaVersion
 }
 
@@ -386,7 +456,7 @@ func (r *Resource) recordCurrentSchemaVersion(
 	state *terraform.InstanceState) *terraform.InstanceState {
 	if state != nil && r.SchemaVersion > 0 {
 		if state.Meta == nil {
-			state.Meta = make(map[string]string)
+			state.Meta = make(map[string]interface{})
 		}
 		state.Meta["schema_version"] = strconv.Itoa(r.SchemaVersion)
 	}

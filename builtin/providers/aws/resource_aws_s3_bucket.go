@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -32,6 +34,11 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+
+			"bucket_domain_name": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"arn": {
@@ -408,6 +415,10 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if err := validateS3BucketName(bucket, awsRegion); err != nil {
+		return fmt.Errorf("Error validating S3 bucket name: %s", err)
+	}
+
 	err := resource.Retry(5*time.Minute, func() *resource.RetryError {
 		log.Printf("[DEBUG] Trying to create new S3 bucket: %q", bucket)
 		_, err := s3conn.CreateBucket(req)
@@ -439,7 +450,7 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 	if err := setTagsS3(s3conn, d); err != nil {
-		return err
+		return fmt.Errorf("%q: %s", d.Get("bucket").(string), err)
 	}
 
 	if d.HasChange("policy") {
@@ -527,6 +538,8 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	if _, ok := d.GetOk("bucket"); !ok {
 		d.Set("bucket", d.Id())
 	}
+
+	d.Set("bucket_domain_name", bucketDomainName(d.Get("bucket").(string)))
 
 	// Read the policy
 	if _, ok := d.GetOk("policy"); ok {
@@ -899,7 +912,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	d.Set("arn", fmt.Sprint("arn:aws:s3:::", d.Id()))
+	d.Set("arn", fmt.Sprintf("arn:%s:s3:::%s", meta.(*AWSClient).partition, d.Id()))
 
 	return nil
 }
@@ -967,7 +980,7 @@ func resourceAwsS3BucketDelete(d *schema.ResourceData, meta interface{}) error {
 				return resourceAwsS3BucketDelete(d, meta)
 			}
 		}
-		return fmt.Errorf("Error deleting S3 Bucket: %s", err)
+		return fmt.Errorf("Error deleting S3 Bucket: %s %q", err, d.Get("bucket").(string))
 	}
 	return nil
 }
@@ -1201,6 +1214,10 @@ func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (*S3Website, error) 
 	return WebsiteEndpoint(bucket, region), nil
 }
 
+func bucketDomainName(bucket string) string {
+	return fmt.Sprintf("%s.s3.amazonaws.com", bucket)
+}
+
 func WebsiteEndpoint(bucket string, region string) *S3Website {
 	domain := WebsiteDomainUrl(region)
 	return &S3Website{Endpoint: fmt.Sprintf("%s.%s", bucket, domain), Domain: domain}
@@ -1428,12 +1445,11 @@ func resourceAwsS3BucketReplicationConfigurationUpdate(s3conn *s3.S3, d *schema.
 			bd := dest[0].(map[string]interface{})
 			ruleDestination.Bucket = aws.String(bd["bucket"].(string))
 
-			if storageClass, ok := bd["storage_class"]; ok {
+			if storageClass, ok := bd["storage_class"]; ok && storageClass != "" {
 				ruleDestination.StorageClass = aws.String(storageClass.(string))
 			}
 		}
 		rcRule.Destination = ruleDestination
-
 		rules = append(rules, rcRule)
 	}
 
@@ -1727,6 +1743,40 @@ func validateS3BucketRequestPayerType(v interface{}, k string) (ws []string, err
 			k, value, s3.PayerRequester, s3.PayerBucketOwner))
 	}
 	return
+}
+
+// validateS3BucketName validates any S3 bucket name that is not inside the us-east-1 region.
+// Buckets outside of this region have to be DNS-compliant. After the same restrictions are
+// applied to buckets in the us-east-1 region, this function can be refactored as a SchemaValidateFunc
+func validateS3BucketName(value string, region string) error {
+	if region != "us-east-1" {
+		if (len(value) < 3) || (len(value) > 63) {
+			return fmt.Errorf("%q must contain from 3 to 63 characters", value)
+		}
+		if !regexp.MustCompile(`^[0-9a-z-.]+$`).MatchString(value) {
+			return fmt.Errorf("only lowercase alphanumeric characters and hyphens allowed in %q", value)
+		}
+		if regexp.MustCompile(`^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$`).MatchString(value) {
+			return fmt.Errorf("%q must not be formatted as an IP address", value)
+		}
+		if strings.HasPrefix(value, `.`) {
+			return fmt.Errorf("%q cannot start with a period", value)
+		}
+		if strings.HasSuffix(value, `.`) {
+			return fmt.Errorf("%q cannot end with a period", value)
+		}
+		if strings.Contains(value, `..`) {
+			return fmt.Errorf("%q can be only one period between labels", value)
+		}
+	} else {
+		if len(value) > 255 {
+			return fmt.Errorf("%q must contain less than 256 characters", value)
+		}
+		if !regexp.MustCompile(`^[0-9a-zA-Z-._]+$`).MatchString(value) {
+			return fmt.Errorf("only alphanumeric characters, hyphens, periods, and underscores allowed in %q", value)
+		}
+	}
+	return nil
 }
 
 func expirationHash(v interface{}) int {

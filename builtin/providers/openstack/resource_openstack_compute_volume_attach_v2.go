@@ -78,6 +78,19 @@ func resourceComputeVolumeAttachV2Create(d *schema.ResourceData, meta interface{
 		return err
 	}
 
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ATTACHING"},
+		Target:     []string{"ATTACHED"},
+		Refresh:    resourceComputeVolumeAttachV2AttachFunc(computeClient, instanceId, attachment.ID),
+		Timeout:    10 * time.Minute,
+		Delay:      30 * time.Second,
+		MinTimeout: 15 * time.Second,
+	}
+
+	if _, err = stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error attaching OpenStack volume: %s", err)
+	}
+
 	log.Printf("[DEBUG] Created volume attachment: %#v", attachment)
 
 	// Use the instance ID and attachment ID as the resource ID.
@@ -131,7 +144,7 @@ func resourceComputeVolumeAttachV2Delete(d *schema.ResourceData, meta interface{
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{""},
 		Target:     []string{"DETACHED"},
-		Refresh:    volumeDetachRefreshFunc(computeClient, instanceId, attachmentId),
+		Refresh:    resourceComputeVolumeAttachV2DetachFunc(computeClient, instanceId, attachmentId),
 		Timeout:    10 * time.Minute,
 		Delay:      15 * time.Second,
 		MinTimeout: 15 * time.Second,
@@ -144,9 +157,26 @@ func resourceComputeVolumeAttachV2Delete(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func volumeDetachRefreshFunc(computeClient *gophercloud.ServiceClient, instanceId, attachmentId string) resource.StateRefreshFunc {
+func resourceComputeVolumeAttachV2AttachFunc(
+	computeClient *gophercloud.ServiceClient, instanceId, attachmentId string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		log.Printf("[DEBUG] Attempting to detach OpenStack volume %s from instance %s", attachmentId, instanceId)
+		va, err := volumeattach.Get(computeClient, instanceId, attachmentId).Extract()
+		if err != nil {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
+				return va, "ATTACHING", nil
+			}
+			return va, "", err
+		}
+
+		return va, "ATTACHED", nil
+	}
+}
+
+func resourceComputeVolumeAttachV2DetachFunc(
+	computeClient *gophercloud.ServiceClient, instanceId, attachmentId string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		log.Printf("[DEBUG] Attempting to detach OpenStack volume %s from instance %s",
+			attachmentId, instanceId)
 
 		va, err := volumeattach.Get(computeClient, instanceId, attachmentId).Extract()
 		if err != nil {

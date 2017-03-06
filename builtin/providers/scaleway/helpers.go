@@ -48,21 +48,7 @@ func deleteRunningServer(scaleway *api.ScalewayAPI, server *api.ScalewayServer) 
 		return err
 	}
 
-	return resource.Retry(20*time.Minute, func() *resource.RetryError {
-		_, err := scaleway.GetServer(server.Identifier)
-
-		if err == nil {
-			return resource.RetryableError(fmt.Errorf("Waiting for server %q to be deleted", server.Identifier))
-		}
-
-		if serr, ok := err.(api.ScalewayAPIError); ok {
-			if serr.StatusCode == 404 {
-				return nil
-			}
-		}
-
-		return resource.RetryableError(err)
-	})
+	return waitForServerState(scaleway, server.Identifier, "stopped")
 }
 
 // deleteStoppedServer needs to cleanup attached root volumes. this is not done
@@ -83,20 +69,37 @@ func deleteStoppedServer(scaleway *api.ScalewayAPI, server *api.ScalewayServer) 
 // NOTE copied from github.com/scaleway/scaleway-cli/pkg/api/helpers.go
 // the helpers.go file pulls in quite a lot dependencies, and they're just convenience wrappers anyway
 
+var allStates = []string{"starting", "running", "stopping", "stopped"}
+
 func waitForServerState(scaleway *api.ScalewayAPI, serverID, targetState string) error {
-	return resource.Retry(60*time.Minute, func() *resource.RetryError {
-		scaleway.ClearCache()
-
-		s, err := scaleway.GetServer(serverID)
-
-		if err != nil {
-			return resource.NonRetryableError(err)
+	pending := []string{}
+	for _, state := range allStates {
+		if state != targetState {
+			pending = append(pending, state)
 		}
+	}
+	stateConf := &resource.StateChangeConf{
+		Pending: pending,
+		Target:  []string{targetState},
+		Refresh: func() (interface{}, string, error) {
+			s, err := scaleway.GetServer(serverID)
 
-		if s.State != targetState {
-			return resource.RetryableError(fmt.Errorf("Waiting for server to enter %q state", targetState))
-		}
+			if err == nil {
+				return 42, s.State, nil
+			}
 
-		return nil
-	})
+			if serr, ok := err.(api.ScalewayAPIError); ok {
+				if serr.StatusCode == 404 {
+					return 42, "stopped", nil
+				}
+			}
+
+			return 42, s.State, err
+		},
+		Timeout:    60 * time.Minute,
+		MinTimeout: 5 * time.Second,
+		Delay:      5 * time.Second,
+	}
+	_, err := stateConf.WaitForState()
+	return err
 }

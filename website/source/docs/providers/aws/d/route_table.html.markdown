@@ -11,7 +11,7 @@ description: |-
 `aws_route_table` provides details about a specific Route Table.
 
 This resource can prove useful when a module accepts a Subnet id as
-an input variable and needs to, for example, add a route in 
+an input variable and needs to, for example, add a route in
 the Route Table.
 
 ## Example Usage
@@ -27,8 +27,8 @@ data "aws_route_table" "selected" {
 }
 
 resource "aws_route" "route" {
-  route_table_id = "${data.aws_route_table.selected.id}"
-  destination_cidr_block = "10.0.1.0/22"
+  route_table_id            = "${data.aws_route_table.selected.id}"
+  destination_cidr_block    = "10.0.1.0/22"
   vpc_peering_connection_id = "pcx-45ff3dc1"
 }
 ```
@@ -42,7 +42,7 @@ Route Table whose data will be exported as attributes.
 
 * `filter` - (Optional) Custom filter block as described below.
 
-* `id` - (Optional) The id of the specific Route Table to retrieve.
+* `route_table_id` - (Optional) The id of the specific Route Table to retrieve.
 
 * `tags` - (Optional) A mapping of tags, each pair of which must exactly match
   a pair on the desired Route Table.
@@ -55,7 +55,7 @@ More complex filters can be expressed using one or more `filter` sub-blocks,
 which take the following arguments:
 
 * `name` - (Required) The name of the field to filter by, as defined by
-  [the underlying AWS API](http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSecurityGroups.html).
+  [the underlying AWS API](http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeRouteTables.html).
 
 * `values` - (Required) Set of values that are accepted for the given field.
   A Route Table will be selected if any one of the given values matches.

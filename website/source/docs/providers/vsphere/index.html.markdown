@@ -28,6 +28,7 @@ provider "vsphere" {
   user           = "${var.vsphere_user}"
   password       = "${var.vsphere_password}"
   vsphere_server = "${var.vsphere_server}"
+
   # if you have a self-signed cert
   allow_unverified_ssl = true
 }
@@ -39,17 +40,17 @@ resource "vsphere_folder" "frontend" {
 
 # Create a file
 resource "vsphere_file" "ubuntu_disk" {
-  datastore = "local"
-  source_file = "/home/ubuntu/my_disks/custom_ubuntu.vmdk"
+  datastore        = "local"
+  source_file      = "/home/ubuntu/my_disks/custom_ubuntu.vmdk"
   destination_file = "/my_path/disks/custom_ubuntu.vmdk"
 }
 
 # Create a disk image
 resource "vsphere_virtual_disk" "extraStorage" {
-    size = 2
-    vmdk_path = "myDisk.vmdk"
-    datacenter = "Datacenter"
-    datastore = "local"
+  size       = 2
+  vmdk_path  = "myDisk.vmdk"
+  datacenter = "Datacenter"
+  datastore  = "local"
 }
 
 # Create a virtual machine within the folder
@@ -87,11 +88,11 @@ The following arguments are used to configure the VMware vSphere Provider:
   environment variable.
 * `client_debug` - (Optional) Boolean to set the govomomi api to log soap calls
    to disk.  The log files are logged to `${HOME}/.govc`, the same path used by
-  `govc`.  Can also be specified with the `VSPHERE_CLIENT_DEBUG` environment 
+  `govc`.  Can also be specified with the `VSPHERE_CLIENT_DEBUG` environment
    variable.
-* `client_debug_path` - (Optional) Override the default log path. Can also 
+* `client_debug_path` - (Optional) Override the default log path. Can also
    be specified with the `VSPHERE_CLIENT_DEBUG_PATH` environment variable.
-* `client_debug_path_run` - (Optional) Client debug file path for a single run. Can also 
+* `client_debug_path_run` - (Optional) Client debug file path for a single run. Can also
    be specified with the `VSPHERE_CLIENT_DEBUG_PATH_RUN` environment variable.
 
 ## Required Privileges
@@ -150,7 +151,7 @@ create the virtual machine, but fail with the following error message:
 Customization of the guest operating system 'debian6_64Guest' is not
 supported in this configuration. Microsoft Vista (TM) and Linux guests with
 Logical Volume Manager are supported only for recent ESX host and VMware Tools
-versions. Refer to vCenter documentation for supported configurations.  ```
+versions. Refer to vCenter documentation for supported configurations.
 ```
 
 In order to skip the customization step for unsupported operating systems, use

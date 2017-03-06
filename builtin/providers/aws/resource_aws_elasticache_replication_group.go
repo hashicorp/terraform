@@ -152,7 +152,7 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 
 	d.SetId(*resp.ReplicationGroup.ReplicationGroupId)
 
-	pending := []string{"creating", "modifying", "restoring"}
+	pending := []string{"creating", "modifying", "restoring", "snapshotting"}
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     []string{"available"},
@@ -305,8 +305,8 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 		}
 	}
 
-	if d.HasChange("preferred_maintenance_window") {
-		params.PreferredMaintenanceWindow = aws.String(d.Get("preferred_maintenance_window").(string))
+	if d.HasChange("maintenance_window") {
+		params.PreferredMaintenanceWindow = aws.String(d.Get("maintenance_window").(string))
 		requestUpdate = true
 	}
 

@@ -37,12 +37,11 @@ func resourceArmPublicIp() *schema.Resource {
 			},
 
 			"public_ip_address_allocation": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validatePublicIpAllocation,
-				StateFunc: func(val interface{}) string {
-					return strings.ToLower(val.(string))
-				},
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateFunc:     validatePublicIpAllocation,
+				StateFunc:        ignoreCaseStateFunc,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"idle_timeout_in_minutes": {

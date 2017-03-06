@@ -6,11 +6,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func TestS3Client_impl(t *testing.T) {
 	var _ Client = new(S3Client)
+	var _ ClientLocker = new(S3Client)
 }
 
 func TestS3Factory(t *testing.T) {
@@ -123,9 +126,113 @@ func TestS3Client(t *testing.T) {
 
 		_, err := nativeClient.DeleteBucket(deleteBucketReq)
 		if err != nil {
-			t.Logf("WARNING: Failed to delete the test S3 bucket. It has been left in your AWS account and may incur storage charges. (error was %s)", err)
+			t.Logf("WARNING: Failed to delete the test S3 bucket. It may have been left in your AWS account and may incur storage charges. (error was %s)", err)
 		}
 	}()
 
 	testClient(t, client)
+}
+
+func TestS3ClientLocks(t *testing.T) {
+	// This test creates a DynamoDB table.
+	// It may incur costs, so it will only run if AWS credential environment
+	// variables are present.
+
+	accessKeyId := os.Getenv("AWS_ACCESS_KEY_ID")
+	if accessKeyId == "" {
+		t.Skipf("skipping; AWS_ACCESS_KEY_ID must be set")
+	}
+
+	regionName := os.Getenv("AWS_DEFAULT_REGION")
+	if regionName == "" {
+		regionName = "us-west-2"
+	}
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-lock-%x", time.Now().Unix())
+	keyName := "testState"
+
+	config := make(map[string]string)
+	config["region"] = regionName
+	config["bucket"] = bucketName
+	config["key"] = keyName
+	config["encrypt"] = "1"
+	config["lock_table"] = bucketName
+
+	client, err := s3Factory(config)
+	if err != nil {
+		t.Fatalf("Error for valid config")
+	}
+
+	s3Client := client.(*S3Client)
+
+	// set this up before we try to crate the table, in case we timeout creating it.
+	defer deleteDynaboDBTable(t, s3Client, bucketName)
+
+	createDynamoDBTable(t, s3Client, bucketName)
+
+	TestRemoteLocks(t, client, client)
+}
+
+// create the dynamoDB table, and wait until we can query it.
+func createDynamoDBTable(t *testing.T, c *S3Client, tableName string) {
+	createInput := &dynamodb.CreateTableInput{
+		AttributeDefinitions: []*dynamodb.AttributeDefinition{
+			{
+				AttributeName: aws.String("LockID"),
+				AttributeType: aws.String("S"),
+			},
+		},
+		KeySchema: []*dynamodb.KeySchemaElement{
+			{
+				AttributeName: aws.String("LockID"),
+				KeyType:       aws.String("HASH"),
+			},
+		},
+		ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+			ReadCapacityUnits:  aws.Int64(5),
+			WriteCapacityUnits: aws.Int64(5),
+		},
+		TableName: aws.String(tableName),
+	}
+
+	_, err := c.dynClient.CreateTable(createInput)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// now wait until it's ACTIVE
+	start := time.Now()
+	time.Sleep(time.Second)
+
+	describeInput := &dynamodb.DescribeTableInput{
+		TableName: aws.String(tableName),
+	}
+
+	for {
+		resp, err := c.dynClient.DescribeTable(describeInput)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if *resp.Table.TableStatus == "ACTIVE" {
+			return
+		}
+
+		if time.Since(start) > time.Minute {
+			t.Fatalf("timed out creating DynamoDB table %s", tableName)
+		}
+
+		time.Sleep(3 * time.Second)
+	}
+
+}
+
+func deleteDynaboDBTable(t *testing.T, c *S3Client, tableName string) {
+	params := &dynamodb.DeleteTableInput{
+		TableName: aws.String(tableName),
+	}
+	_, err := c.dynClient.DeleteTable(params)
+	if err != nil {
+		t.Logf("WARNING: Failed to delete the test DynamoDB table %q. It has been left in your AWS account and may incur charges. (error was %s)", tableName, err)
+	}
 }

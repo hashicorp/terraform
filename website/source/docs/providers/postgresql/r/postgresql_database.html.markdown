@@ -8,22 +8,22 @@ description: |-
 
 # postgresql\_database
 
-The ``postgresql_database`` resource creates and manages a database instance on
-a PostgreSQL server.
+The ``postgresql_database`` resource creates and manages [database
+objects](https://www.postgresql.org/docs/current/static/managing-databases.html)
+within a PostgreSQL server instance.
 
 
 ## Usage
 
 ```
 resource "postgresql_database" "my_db" {
-   name = "my_db"
-   owner = "my_role"
-   template = "template0"
-   collation = "C"
-   connection_limit = -1
-   allow_connections = true
+  name              = "my_db"
+  owner             = "my_role"
+  template          = "template0"
+  collation         = "C"
+  connection_limit  = -1
+  allow_connections = true
 }
-
 ```
 
 ## Argument Reference

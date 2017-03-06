@@ -69,8 +69,44 @@ func init() {
 			}, nil
 		},
 
+		"env": func() (cli.Command, error) {
+			return &command.EnvCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"env list": func() (cli.Command, error) {
+			return &command.EnvListCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"env select": func() (cli.Command, error) {
+			return &command.EnvSelectCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"env new": func() (cli.Command, error) {
+			return &command.EnvNewCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"env delete": func() (cli.Command, error) {
+			return &command.EnvDeleteCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"fmt": func() (cli.Command, error) {
 			return &command.FmtCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"force-unlock": func() (cli.Command, error) {
+			return &command.UnlockCommand{
 				Meta: meta,
 			}, nil
 		},
@@ -129,12 +165,6 @@ func init() {
 			}, nil
 		},
 
-		"remote": func() (cli.Command, error) {
-			return &command.RemoteCommand{
-				Meta: meta,
-			}, nil
-		},
-
 		"show": func() (cli.Command, error) {
 			return &command.ShowCommand{
 				Meta: meta,
@@ -186,9 +216,7 @@ func init() {
 		},
 
 		"state": func() (cli.Command, error) {
-			return &command.StateCommand{
-				Meta: meta,
-			}, nil
+			return &command.StateCommand{}, nil
 		},
 
 		"state list": func() (cli.Command, error) {
@@ -205,6 +233,18 @@ func init() {
 
 		"state mv": func() (cli.Command, error) {
 			return &command.StateMvCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state pull": func() (cli.Command, error) {
+			return &command.StatePullCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state push": func() (cli.Command, error) {
+			return &command.StatePushCommand{
 				Meta: meta,
 			}, nil
 		},

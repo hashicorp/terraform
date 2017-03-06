@@ -45,7 +45,7 @@ type keysRoot struct {
 }
 
 type keyRoot struct {
-	SSHKey Key `json:"ssh_key"`
+	SSHKey *Key `json:"ssh_key"`
 }
 
 func (s Key) String() string {
@@ -96,7 +96,7 @@ func (s *KeysServiceOp) get(path string) (*Key, *Response, error) {
 		return nil, resp, err
 	}
 
-	return &root.SSHKey, resp, err
+	return root.SSHKey, resp, err
 }
 
 // GetByID gets a Key by id
@@ -136,7 +136,7 @@ func (s *KeysServiceOp) Create(createRequest *KeyCreateRequest) (*Key, *Response
 		return nil, resp, err
 	}
 
-	return &root.SSHKey, resp, err
+	return root.SSHKey, resp, err
 }
 
 // UpdateByID updates a key name by ID.
@@ -161,7 +161,7 @@ func (s *KeysServiceOp) UpdateByID(keyID int, updateRequest *KeyUpdateRequest) (
 		return nil, resp, err
 	}
 
-	return &root.SSHKey, resp, err
+	return root.SSHKey, resp, err
 }
 
 // UpdateByFingerprint updates a key name by fingerprint.
@@ -186,7 +186,7 @@ func (s *KeysServiceOp) UpdateByFingerprint(fingerprint string, updateRequest *K
 		return nil, resp, err
 	}
 
-	return &root.SSHKey, resp, err
+	return root.SSHKey, resp, err
 }
 
 // Delete key using a path

@@ -18,8 +18,8 @@ resource "cloudstack_firewall" "default" {
 
   rule {
     cidr_list = ["10.0.0.0/8"]
-    protocol = "tcp"
-    ports = ["80", "1000-2000"]
+    protocol  = "tcp"
+    ports     = ["80", "1000-2000"]
   }
 }
 ```
@@ -40,7 +40,7 @@ The following arguments are supported:
 
 * `parallelism` (Optional) Specifies how much rules will be created or deleted
     concurrently. (defaults 2)
-    
+
 The `rule` block supports:
 
 * `cidr_list` - (Required) A CIDR list to allow access to the given ports.

@@ -50,6 +50,51 @@ test_instance.foo:
 	testStateOutput(t, statePath, expected)
 }
 
+func TestUntaint_lockedState(t *testing.T) {
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID:      "bar",
+							Tainted: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	statePath := testStateFile(t, state)
+	unlock, err := testLockState("./testdata", statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+
+	ui := new(cli.MockUi)
+	c := &UntaintCommand{
+		Meta: Meta{
+			Ui: ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("expected error")
+	}
+
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, "lock") {
+		t.Fatal("command output does not look like a lock error:", output)
+	}
+}
+
 func TestUntaint_backup(t *testing.T) {
 	// Get a temp cwd
 	tmp, cwd := testCwd(t)

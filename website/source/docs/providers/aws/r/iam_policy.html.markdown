@@ -12,10 +12,11 @@ Provides an IAM policy.
 
 ```
 resource "aws_iam_policy" "policy" {
-    name = "test_policy"
-    path = "/"
-    description = "My test policy"
-    policy = <<EOF
+  name        = "test_policy"
+  path        = "/"
+  description = "My test policy"
+
+  policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -56,3 +57,11 @@ The following attributes are exported:
 * `name` - The name of the policy.
 * `path` - The path of the policy in IAM.
 * `policy` - The policy document.
+
+## Import
+
+IAM Policies can be imported using the `arn`, e.g.
+
+```
+$ terraform import aws_iam_policy.administrator arn:aws:iam::123456789012:policy/UsersManageOwnCredentials
+```

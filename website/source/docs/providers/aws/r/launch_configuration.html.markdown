@@ -15,21 +15,24 @@ Provides a resource to create a new launch configuration, used for autoscaling g
 ```
 data "aws_ami" "ubuntu" {
   most_recent = true
+
   filter {
-    name = "name"
+    name   = "name"
     values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
   }
+
   filter {
-    name = "virtualization-type"
+    name   = "virtualization-type"
     values = ["hvm"]
   }
+
   owners = ["099720109477"] # Canonical
 }
 
 resource "aws_launch_configuration" "as_conf" {
-    name = "web_config"
-    image_id = "${data.aws_ami.ubuntu.id}"
-    instance_type = "t2.micro"
+  name          = "web_config"
+  image_id      = "${data.aws_ami.ubuntu.id}"
+  instance_type = "t2.micro"
 }
 ```
 
@@ -46,34 +49,37 @@ with `name_prefix`.  Example:
 ```
 data "aws_ami" "ubuntu" {
   most_recent = true
+
   filter {
-    name = "name"
+    name   = "name"
     values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
   }
+
   filter {
-    name = "virtualization-type"
+    name   = "virtualization-type"
     values = ["hvm"]
   }
+
   owners = ["099720109477"] # Canonical
 }
 
 resource "aws_launch_configuration" "as_conf" {
-    name_prefix = "terraform-lc-example-"
-    image_id = "${data.aws_ami.ubuntu.id}"
-    instance_type = "t2.micro"
+  name_prefix   = "terraform-lc-example-"
+  image_id      = "${data.aws_ami.ubuntu.id}"
+  instance_type = "t2.micro"
 
-    lifecycle {
-      create_before_destroy = true
-    }
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_autoscaling_group" "bar" {
-    name = "terraform-asg-example"
-    launch_configuration = "${aws_launch_configuration.as_conf.name}"
+  name                 = "terraform-asg-example"
+  launch_configuration = "${aws_launch_configuration.as_conf.name}"
 
-    lifecycle {
-      create_before_destroy = true
-    }
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 ```
 
@@ -93,29 +99,33 @@ for more information or how to launch [Spot Instances][3] with Terraform.
 ```
 data "aws_ami" "ubuntu" {
   most_recent = true
+
   filter {
-    name = "name"
+    name   = "name"
     values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
   }
+
   filter {
-    name = "virtualization-type"
+    name   = "virtualization-type"
     values = ["hvm"]
   }
+
   owners = ["099720109477"] # Canonical
 }
 
 resource "aws_launch_configuration" "as_conf" {
-    image_id = "${data.aws_ami.ubuntu.id}"
-    instance_type = "m4.large"
-    spot_price = "0.001"
-    lifecycle {
-      create_before_destroy = true
-    }
+  image_id      = "${data.aws_ami.ubuntu.id}"
+  instance_type = "m4.large"
+  spot_price    = "0.001"
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_autoscaling_group" "bar" {
-    name = "terraform-asg-example"
-    launch_configuration = "${aws_launch_configuration.as_conf.name}"
+  name                 = "terraform-asg-example"
+  launch_configuration = "${aws_launch_configuration.as_conf.name}"
 }
 ```
 
@@ -218,7 +228,7 @@ The following attributes are exported:
 
 ## Import
 
-Launch configurations can be imported using the `name`, e.g. 
+Launch configurations can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_launch_configuration.as_conf terraform-lg-123456

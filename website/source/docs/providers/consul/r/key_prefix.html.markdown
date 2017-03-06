@@ -35,21 +35,21 @@ those keys were created outside of Terraform.
 
 ```
 resource "consul_key_prefix" "myapp_config" {
-    datacenter = "nyc1"
-    token = "abcd"
+  datacenter = "nyc1"
+  token      = "abcd"
 
-    # Prefix to add to prepend to all of the subkey names below.
-    path_prefix = "myapp/config/"
+  # Prefix to add to prepend to all of the subkey names below.
+  path_prefix = "myapp/config/"
 
-    subkeys = {
-        "elb_cname" = "${aws_elb.app.dns_name}"
-        "s3_bucket_name" = "${aws_s3_bucket.app.bucket}"
-        "database/hostname" = "${aws_db_instance.app.address}"
-        "database/port" = "${aws_db_instance.app.port}"
-        "database/username" = "${aws_db_instance.app.username}"
-        "database/password" = "${aws_db_instance.app.password}"
-        "database/name" = "${aws_db_instance.app.name}"
-    }
+  subkeys = {
+    "elb_cname"         = "${aws_elb.app.dns_name}"
+    "s3_bucket_name"    = "${aws_s3_bucket.app.bucket}"
+    "database/hostname" = "${aws_db_instance.app.address}"
+    "database/port"     = "${aws_db_instance.app.port}"
+    "database/username" = "${aws_db_instance.app.username}"
+    "database/password" = "${aws_db_instance.app.password}"
+    "database/name"     = "${aws_db_instance.app.name}"
+  }
 }
 ```
 

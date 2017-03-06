@@ -21,7 +21,7 @@ func TestAccAWSLBSSLNegotiationPolicy_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccSslNegotiationPolicyConfig(
-					fmt.Sprintf("tf-acctest-%s", acctest.RandString(10))),
+					fmt.Sprintf("tf-acctest-%s", acctest.RandString(10)), fmt.Sprintf("tf-test-lb-%s", acctest.RandString(5))),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLBSSLNegotiationPolicy(
 						"aws_elb.lb",
@@ -30,6 +30,44 @@ func TestAccAWSLBSSLNegotiationPolicy_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_lb_ssl_negotiation_policy.foo", "attribute.#", "7"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAWSLBSSLNegotiationPolicy_missingLB(t *testing.T) {
+	lbName := fmt.Sprintf("tf-test-lb-%s", acctest.RandString(5))
+
+	// check that we can destroy the policy if the LB is missing
+	removeLB := func() {
+		conn := testAccProvider.Meta().(*AWSClient).elbconn
+		deleteElbOpts := elb.DeleteLoadBalancerInput{
+			LoadBalancerName: aws.String(lbName),
+		}
+		if _, err := conn.DeleteLoadBalancer(&deleteElbOpts); err != nil {
+			t.Fatalf("Error deleting ELB: %s", err)
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLBSSLNegotiationPolicyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccSslNegotiationPolicyConfig(fmt.Sprintf("tf-acctest-%s", acctest.RandString(10)), lbName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckLBSSLNegotiationPolicy(
+						"aws_elb.lb",
+						"aws_lb_ssl_negotiation_policy.foo",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_lb_ssl_negotiation_policy.foo", "attribute.#", "7"),
+				),
+			},
+			resource.TestStep{
+				PreConfig: removeLB,
+				Config:    testAccSslNegotiationPolicyConfig(fmt.Sprintf("tf-acctest-%s", acctest.RandString(10)), lbName),
 			},
 		},
 	})
@@ -155,7 +193,7 @@ func policyAttributesToMap(attributes *[]*elb.PolicyAttributeDescription) map[st
 // Sets the SSL Negotiation policy with attributes.
 // The IAM Server Cert config is lifted from
 // builtin/providers/aws/resource_aws_iam_server_certificate_test.go
-func testAccSslNegotiationPolicyConfig(certName string) string {
+func testAccSslNegotiationPolicyConfig(certName string, lbName string) string {
 	return fmt.Sprintf(`
 resource "aws_iam_server_certificate" "test_cert" {
   name = "%s"
@@ -216,14 +254,14 @@ wbEcTx10meJdinnhawqW7L0bhifeiTaPxbaCBXv/wiiL
 EOF
 }
 resource "aws_elb" "lb" {
-  name = "test-lb"
-    availability_zones = ["us-west-2a"]
-    listener {
-      instance_port = 8000
-      instance_protocol = "https"
-      lb_port = 443
-      lb_protocol = "https"
-      ssl_certificate_id = "${aws_iam_server_certificate.test_cert.arn}"
+	name = "%s"
+	availability_zones = ["us-west-2a"]
+	listener {
+		instance_port = 8000
+		instance_protocol = "https"
+		lb_port = 443
+		lb_protocol = "https"
+		ssl_certificate_id = "${aws_iam_server_certificate.test_cert.arn}"
 	}
 }
 resource "aws_lb_ssl_negotiation_policy" "foo" {
@@ -236,8 +274,8 @@ resource "aws_lb_ssl_negotiation_policy" "foo" {
     }
     attribute {
         name = "Protocol-TLSv1.1"
-        value = "false" 
-    }       
+        value = "false"
+    }
     attribute {
         name = "Protocol-TLSv1.2"
         value = "true"
@@ -245,7 +283,7 @@ resource "aws_lb_ssl_negotiation_policy" "foo" {
     attribute {
         name = "Server-Defined-Cipher-Order"
         value = "true"
-    }       
+    }
     attribute {
         name = "ECDHE-RSA-AES128-GCM-SHA256"
         value = "true"
@@ -259,5 +297,5 @@ resource "aws_lb_ssl_negotiation_policy" "foo" {
         value = "false"
     }
 }
-`, certName)
+`, certName, lbName)
 }

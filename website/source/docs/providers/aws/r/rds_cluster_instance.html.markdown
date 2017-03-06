@@ -33,7 +33,7 @@ resource "aws_rds_cluster_instance" "cluster_instances" {
 
 resource "aws_rds_cluster" "default" {
   cluster_identifier = "aurora-cluster-demo"
-  availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
   database_name      = "mydb"
   master_username    = "foo"
   master_password    = "barbut8chars"
@@ -53,6 +53,7 @@ string. If omitted, a unique identifier will be generated.
 * `instance_class` - (Required) The instance class to use. For details on CPU
 and memory, see [Scaling Aurora DB Instances][4]. Aurora currently
   supports the below instance classes.
+  - db.t2.medium
   - db.r3.large
   - db.r3.xlarge
   - db.r3.2xlarge

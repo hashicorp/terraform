@@ -20,14 +20,14 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Cobbler provider
 provider "cobbler" {
-    username = "${var.cobbler_username}"
-    password = "${var.cobbler_password}"
-    url = "${var.cobbler_url}"
+  username = "${var.cobbler_username}"
+  password = "${var.cobbler_password}"
+  url      = "${var.cobbler_url}"
 }
 
 # Create a Cobbler Distro
 resource "cobbler_distro" "ubuntu-1404-x86_64" {
-    ...
+  # ...
 }
 ```
 
