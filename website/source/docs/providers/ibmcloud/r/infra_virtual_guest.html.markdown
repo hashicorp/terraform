@@ -3,17 +3,18 @@ layout: "ibmcloud"
 page_title: "IBM Cloud: infra_virtual_guest"
 sidebar_current: "docs-ibmcloud-resource-infra-virtual-guest"
 description: |-
-  Manages IBM Cloud infrastructure Virtual Guests.
+  Manages IBM Cloud infrastructure virtual guests.
 ---
 
 # ibmcloud\_infra_virtual_guest
 
-Provides virtual guest resource. This allows virtual guests to be created, updated
-and deleted. For additional details please refer to [API documentation](http://sldn.softlayer.com/reference/services/SoftLayer_Virtual_Guest).
+Provides a resource for virtual guests. This allows virtual guests to be created, updated, and deleted. 
+
+For additional details, see the [SoftLayer API docs](http://sldn.softlayer.com/reference/services/SoftLayer_Virtual_Guest).
 
 ## Example Usage
 
-Create a new virtual guest using the "Debian" image.
+In the following example, you can create a virtual guest using a Debian image.
 
 ```hcl
 resource "ibmcloud_infra_virtual_guest" "twc_terraform_sample" {
@@ -35,7 +36,7 @@ resource "ibmcloud_infra_virtual_guest" "twc_terraform_sample" {
 }
 ```
 
-Create a new virtual guest using block device template.
+In the following example, you can create a virtual guest using a block device template.
 
 ```hcl
 resource "ibmcloud_infra_virtual_guest" "terraform-sample-BDTGroup" {
@@ -64,43 +65,44 @@ The following arguments are supported:
 *   `hostname` - (Optional) Hostname for the computing instance.
 *   `domain` - (Required)  Domain for the computing instance.
 *   `cores` - (Required) The number of CPU cores to allocate.
-*   `memory` - (Required) The amount of memory to allocate in megabytes.
-*   `datacenter` -  (Required) Specifies which datacenter the instance is to be provisioned in.
-*   `hourly_billing` - (Optional, Default:true)Specifies the billing type for the instance. When true the computing instance will be billed on hourly usage, otherwise it will be billed on a monthly basis.
-*   `local_disk`- (Optional, Default:true) Specifies the disk type for the instance. When true the disks for the computing instance will be provisioned on the host which it runs, otherwise SAN disks will be provisioned.
-*   `dedicated_acct_host_only` - (Optional, Default:false) Specifies whether or not the instance must only run on hosts with instances from the same account
-*   `os_reference_code` - (Optional) An operating system reference code that will be used to provision the computing instance. [Get a complete list of the os reference codes available](https://api.softlayer.com/rest/v3/SoftLayer_Virtual_Guest_Block_Device_Template_Group/getVhdImportSoftwareDescriptions.json?objectMask=referenceCode) (use your api key as the password). Conflicts with`image_id`.
-*   `image_id` - (Optional) The image template id to be used to provision the computing instance. Note this is not the global identifier (uuid), but the image template group id that should point to a valid global identifier. You can get the image template id by navigating on the portal to _Devices > Manage > Images_, clicking on the desired image, and taking note of the id number in the browser URL location. Conflicts with `os_reference_code`.
-**Note:** Don't know the ID(s) for your image templates? [You can reference them by name, too](https://github.com/softlayer/terraform-provider-softlayer/blob/master/docs/datasources/softlayer_image_template.md).
-*   `network_speed` - (Optional, Default:100) Specifies the connection speed (in Mbps) for the instance's network components.
-*   `private_network_only` - (Optional, Default:false) Specifies whether or not the instance only has access to the private network. When true this flag specifies that a compute instance is to only have access to the private network.
-*   `public_vlan_id` - (Optional) Public VLAN id which is to be used for the public network interface of the instance. Accepted values can be found [here](https://control.softlayer.com/network/vlans). Click on the desired VLAN and note the ID on the resulting URL. Or, you can also [refer to a VLAN by name using a data source](https://github.com/softlayer/terraform-provider-softlayer/blob/master/docs/datasources/softlayer_vlan.md).
-*   `private_vlan_id` - (Optional) Private VLAN id which is to be used for the private network interface of the instance. Accepted values can be found [here](https://control.softlayer.com/network/vlans). Click on the desired VLAN and note the ID on the resulting URL. Or, you can also [refer to a VLAN by name using a data source](https://github.com/softlayer/terraform-provider-softlayer/blob/master/docs/datasources/softlayer_vlan.md).
+*   `memory` - (Required) The amount of memory to allocate, expressed in megabytes.
+*   `datacenter` -  (Required) Specify which data center the instance is to be provisioned in.
+*   `hourly_billing` - (Optional) Specify the billing type for the instance. When set to `true`, the computing instance is billed on hourly usage, otherwise it is billed on a monthly basis. Default value: `true`.
+*   `local_disk`- (Optional) Specify the disk type for the instance. When set to `true`, the disks for the computing instance are provisioned on the host that it runs, otherwise SAN disks are provisioned. Default value: `true`.
+*   `dedicated_acct_host_only` - (Optional) Specify whether or not the instance must only run on hosts with instances from the same account. Default value: `false`.
+*   `os_reference_code` - (Optional) An operating system reference code that is used to provision the computing instance. [Get a complete list of the OS reference codes available](https://api.softlayer.com/rest/v3/SoftLayer_Virtual_Guest_Block_Device_Template_Group/getVhdImportSoftwareDescriptions.json?objectMask=referenceCode) (use your API key as the password). 
 
-*   `public_subnet` - (Optional) Public subnet which is to be used for the public network interface of the instance. Accepted values are primary public networks and can be found [here](https://control.softlayer.com/network/subnets).
-*   `private_subnet` - (Optional) Private subnet which is to be used for the private network interface of the instance. Accepted values are primary private networks and can be found [here](https://control.softlayer.com/network/subnets).
-*   `disks` - (Optional) An *array* of numeric disk sizes (in GBs).Block device and disk image settings for the computing instance. Defaults to the smallest available capacity for the primary disk will be used. If an image template is specified the disk capacity will be be provided by the template.
-*   `user_metadata` - (Optional) Arbitrary data to be made available to the computing instance.
-*   `ssh_key_ids` - (Optional) An *array* of numbers. SSH key ids to install on the computing instance upon provisioning.
-    **Note:** Don't know the ID(s) for your SSH keys? See [here](https://github.com/softlayer/terraform-provider-softlayer/blob/master/docs/datasources/softlayer_ssh_key.md) for a way to reference your SSH keys by their labels.
+    **NOTE**: Conflicts with`image_id`.
+*   `image_id` - (Optional) The image template ID to be used to provision the computing instance. Note this is not the global identifier (UUID), but the image template group ID that should point to a valid global identifier. You can get the image template ID in the SoftLayer by navigating to **Devices > Manage > Images**. Clicking the desired image and take note of the ID number in the browser URL location. 
 
-*   `post_install_script_uri` - (Optional)  As defined in the [SoftLayer_Virtual_Guest_SupplementalCreateObjectOptions](https://sldn.softlayer.com/reference/datatypes/SoftLayer_Virtual_Guest_SupplementalCreateObjectOptions).
-*   `tags` - (Optional) An *array* of strings. Set tags on this virtual guest. The characters permitted are A-Z, 0-9, whitespace, _ (underscore), - (hyphen), . (period), and : (colon). All other characters will be stripped away.
-*   `ipv6_enabled` - (Optional, Default:false) Provides a primary public IPv6 address.
-*   `secondary_ip_count` - (Optional) Provides secondary public IPv4 addresses. Acceptable values are 4 and 8. 
-*   `wait_time_minutes` - (Optional, Default:90) Wait this many minutes for the virtual guest to become available before declaring it as created. It is also the same amount of time waited for no active transactions before proceeding with an update or deletion.
+    **NOTE**: Conflicts with `os_reference_code`. If you don't know the ID(s) for your image templates, [you can reference them by name](https://github.com/softlayer/terraform-provider-softlayer/blob/master/docs/datasources/softlayer_image_template.md).
+*   `network_speed` - (Optional) Specify the connection speed (in Mbps) for the instance's network components. Default value: `100`.
+*   `private_network_only` - (Optional) Specify whether or not the instance only has access to the private network. When set to `true`, this flag specifies that a compute instance only has access to the private network. Default value: `false`.
+*   `public_vlan_id` - (Optional) Public VLAN ID which is to be used for the public network interface of the instance. Accepted values can be found [here](https://control.softlayer.com/network/vlans). Click the desired VLAN and note the ID on the resulting URL. You can also [refer to a VLAN by name using a data source](https://github.com/softlayer/terraform-provider-softlayer/blob/master/docs/datasources/softlayer_vlan.md).
+* `private_vlan_id` - (Optional) Private VLAN ID which is to be used for the private network interface of the instance. Accepted values can be found [here](https://control.softlayer.com/network/vlans). Click the desired VLAN and note the ID on the resulting URL. You can also [refer to a VLAN by name using a data source](https://github.com/softlayer/terraform-provider-softlayer/blob/master/docs/datasources/softlayer_vlan.md).
+* `public_subnet` - (Optional) Public subnet which is to be used for the public network interface of the instance. Accepted values are primary public networks and can be found [here](https://control.softlayer.com/network/subnets).
+* `private_subnet` - (Optional) Private subnet which is to be used for the private network interface of the instance. Accepted values are primary private networks and can be found [here](https://control.softlayer.com/network/subnets).
+* `disks` - (Optional) An array of numeric disk sizes in GBs. Block device and disk image settings for the computing instance. Defaults to the smallest available capacity for the primary disk are used. If an image template is specified, the disk capacity is provided by the template.
+* `user_metadata` - (Optional) Arbitrary data to be made available to the computing instance.
+* `ssh_key_ids` - (Optional) An array of numbers. SSH key IDs to install on the computing instance upon provisioning.
+    **NOTE**: If you don't know the ID(s) for your SSH keys, [you can reference your SSH keys by their labels](https://github.com/softlayer/terraform-provider-softlayer/blob/master/docs/datasources/softlayer_ssh_key.md).
+* `post_install_script_uri` - (Optional)  As defined in the [SoftLayer_Virtual_Guest_SupplementalCreateObjectOptions](https://sldn.softlayer.com/reference/datatypes/SoftLayer_Virtual_Guest_SupplementalCreateObjectOptions).
+* `tags` - (Optional) An array of strings. Set tags on the virtual guest. Permitted characters include: A-Z, 0-9, whitespace, _ (underscore), - (hyphen), . (period), and : (colon). All other characters are removed.
+* `ipv6_enabled` - (Optional) Provides a primary public IPv6 address. Default value: `false`.
+*  `secondary_ip_count` - (Optional) Provides secondary public IPv4 addresses. Accepted values are `4` and `8`. 
+*  `wait_time_minutes` - (Optional) The duration, expressed in minutes, to wait for the virtual guest to become available before declaring it as created. It is also the same amount of time waited for no active transactions before proceeding with an update or deletion. Default value: `90`.
 
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `id` - id of the virtual guest.
+* `id` - ID of the virtual guest.
 * `ipv4_address` - Public IPv4 address of the virtual guest.
-* `ip_address_id_private` - Unique ID for the private IPv4 address assigned to the virtual_guest.
+* `ip_address_id_private` - Unique ID for the private IPv4 address assigned to the virtual guest.
 * `ipv4_address_private` - Private IPv4 address of the virtual guest.
-* `ip_address_id` - Unique ID for the public IPv4 address assigned to the virtual_guest.
-* `ipv6_address` - Public IPv6 address of the virtual guest. It is provided when `ipv6_enabled` is `true`.
-* `ipv6_address_id` - Unique ID for the public IPv6 address assigned to the virtual_guest. It is provided when `ipv6_enabled` is `true`.
-* `public_ipv6_subnet` - Public IPv6 subnet. It is provided when `ipv6_enabled` is `true`.
+* `ip_address_id` - Unique ID for the public IPv4 address assigned to the virtual guest.
+* `ipv6_address` - Public IPv6 address of the virtual guest. It is provided when `ipv6_enabled` is set to `true`.
+* `ipv6_address_id` - Unique ID for the public IPv6 address assigned to the virtual_guest. It is provided when `ipv6_enabled` is set to `true`.
+* `public_ipv6_subnet` - Public IPv6 subnet. It is provided when `ipv6_enabled` is set to `true`.
 * `secondary_ip_addresses` - Public secondary IPv4 addresses of the virtual guest.
