@@ -130,20 +130,20 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 
 	if v, ok := d.GetOk("snapshot"); ok {
 		snapshotName := v.(string)
-		match, _ := regexp.MatchString("^https://www.googleapis.com/compute", snapshotName) 
+		match, _ := regexp.MatchString("^https://www.googleapis.com/compute", snapshotName)
 		if match {
-		  disk.SourceSnapshot = snapshotName
+			disk.SourceSnapshot = snapshotName
 		} else {
-		  log.Printf("[DEBUG] Loading snapshot: %s", snapshotName)
-		  snapshotData, err := config.clientCompute.Snapshots.Get(
-		    project, snapshotName).Do()
+			log.Printf("[DEBUG] Loading snapshot: %s", snapshotName)
+			snapshotData, err := config.clientCompute.Snapshots.Get(
+				project, snapshotName).Do()
 
-		  if err != nil {
-		    return fmt.Errorf(
-		      "Error loading snapshot '%s': %s",
-		      snapshotName, err)
-		  }
-		  disk.SourceSnapshot = snapshotData.SelfLink
+			if err != nil {
+				return fmt.Errorf(
+					"Error loading snapshot '%s': %s",
+					snapshotName, err)
+			}
+			disk.SourceSnapshot = snapshotData.SelfLink
 		}
 	}
 
