@@ -17,7 +17,8 @@ body {
 
 // add margin-left to the Mega Nav button
 // this will be fixed and removed later
-.mega-nav-sandbox.mega-nav-sandbox.mega-nav-sandbox.mega-nav-sandbox .mega-nav-ctrl { margin-left: 5px;}
+.mega-nav-sandbox .mega-nav-ctrl { margin-left: 5px;}
+.mega-nav-sandbox .mega-nav-tagline { font-family: $font-family-klavika; font-weight: 300; }
 
 
 h1, h2, h3, h4, h5 {
