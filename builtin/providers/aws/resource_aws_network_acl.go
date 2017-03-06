@@ -193,7 +193,10 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	networkAcl := resp.NetworkAcls[0]
+	return awsNetworkAclAttributes(d, resp.NetworkAcls[0])
+}
+
+func awsNetworkAclAttributes(d *schema.ResourceData, networkAcl *ec2.NetworkAcl) error {
 	var ingressEntries []*ec2.NetworkAclEntry
 	var egressEntries []*ec2.NetworkAclEntry
 

@@ -178,6 +178,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_instance":                 dataSourceAwsInstance(),
 			"aws_ip_ranges":                dataSourceAwsIPRanges(),
 			"aws_kms_secret":               dataSourceAwsKmsSecret(),
+			"aws_network_acl":              dataSourceAwsNetworkAcl(),
 			"aws_partition":                dataSourceAwsPartition(),
 			"aws_prefix_list":              dataSourceAwsPrefixList(),
 			"aws_redshift_service_account": dataSourceAwsRedshiftServiceAccount(),

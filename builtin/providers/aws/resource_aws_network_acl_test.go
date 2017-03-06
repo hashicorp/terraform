@@ -1,3 +1,4 @@
+// make testacc TEST=./builtin/providers/aws/ TESTARGS='-run=TestAccAWSNetworkAcl_'
 package aws
 
 import (
