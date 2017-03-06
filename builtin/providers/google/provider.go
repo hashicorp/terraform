@@ -241,7 +241,7 @@ func getNetworkName(d *schema.ResourceData, field string) (string, error) {
 	return "", nil
 }
 
-func getNetworkNameFromString(network string) (string, error) {
+func getNetworkNameFromSelfLink(network string) (string, error) {
 	if strings.HasPrefix(network, "https://www.googleapis.com/compute/") {
 		// extract the network name from SelfLink URL
 		networkName := network[strings.LastIndex(network, "/")+1:]
