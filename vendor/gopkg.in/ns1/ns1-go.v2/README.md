@@ -2,7 +2,7 @@
 
 # NS1 Golang SDK
 
-The golang client for the NS1 API: https://api.nsone.net/
+The golang client for the NS1 API: https://ns1.com/api/
 
 # Installing
 

@@ -190,7 +190,7 @@ resource "aws_subnet" "test_subnet" {
 }
 
 resource "aws_iam_role" "test_role" {
-    name = "test_role"
+    name = "tf_test_%s"
     assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -222,5 +222,5 @@ resource "aws_flow_log" "test_flow_log_subnet" {
         subnet_id = "${aws_subnet.test_subnet.id}"
         traffic_type = "ALL"
 }
-`, fln)
+`, fln, fln)
 }
