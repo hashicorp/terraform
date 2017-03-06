@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -17,14 +18,14 @@ func TestAccGithubTeamRepository_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamRepositoryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubTeamRepositoryConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamRepositoryExists("github_team_repository.test_team_test_repo", &repository),
 					testAccCheckGithubTeamRepositoryRoleState("pull", &repository),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccGithubTeamRepositoryUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamRepositoryExists("github_team_repository.test_team_test_repo", &repository),
@@ -41,10 +42,10 @@ func TestAccGithubTeamRepository_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamRepositoryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubTeamRepositoryConfig,
 			},
-			resource.TestStep{
+			{
 				ResourceName:      "github_team_repository.test_team_test_repo",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -108,7 +109,8 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 		conn := testAccProvider.Meta().(*Organization).client
 		t, r := parseTwoPartID(rs.Primary.ID)
 
-		repo, _, err := conn.Organizations.IsTeamRepo(toGithubID(t),
+		repo, _, err := conn.Organizations.IsTeamRepo(context.TODO(),
+			toGithubID(t),
 			testAccProvider.Meta().(*Organization).name, r)
 
 		if err != nil {
@@ -128,7 +130,8 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 		}
 		t, r := parseTwoPartID(rs.Primary.ID)
 
-		repo, resp, err := conn.Organizations.IsTeamRepo(toGithubID(t),
+		repo, resp, err := conn.Organizations.IsTeamRepo(context.TODO(),
+			toGithubID(t),
 			testAccProvider.Meta().(*Organization).name, r)
 
 		if err == nil {

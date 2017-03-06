@@ -1,6 +1,8 @@
 package github
 
 import (
+	"context"
+
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -16,17 +18,17 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"username": &schema.Schema{
+			"username": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"repository": &schema.Schema{
+			"repository": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"permission": &schema.Schema{
+			"permission": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
@@ -43,7 +45,7 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 	r := d.Get("repository").(string)
 	p := d.Get("permission").(string)
 
-	_, err := client.Repositories.AddCollaborator(meta.(*Organization).name, r, u,
+	_, err := client.Repositories.AddCollaborator(context.TODO(), meta.(*Organization).name, r, u,
 		&github.RepositoryAddCollaboratorOptions{Permission: p})
 
 	if err != nil {
@@ -59,14 +61,14 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 	client := meta.(*Organization).client
 	r, u := parseTwoPartID(d.Id())
 
-	isCollaborator, _, err := client.Repositories.IsCollaborator(meta.(*Organization).name, r, u)
+	isCollaborator, _, err := client.Repositories.IsCollaborator(context.TODO(), meta.(*Organization).name, r, u)
 
 	if !isCollaborator || err != nil {
 		d.SetId("")
 		return nil
 	}
 
-	collaborators, _, err := client.Repositories.ListCollaborators(meta.(*Organization).name, r,
+	collaborators, _, err := client.Repositories.ListCollaborators(context.TODO(), meta.(*Organization).name, r,
 		&github.ListOptions{})
 
 	if err != nil {
@@ -97,7 +99,7 @@ func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta int
 	u := d.Get("username").(string)
 	r := d.Get("repository").(string)
 
-	_, err := client.Repositories.RemoveCollaborator(meta.(*Organization).name, r, u)
+	_, err := client.Repositories.RemoveCollaborator(context.TODO(), meta.(*Organization).name, r, u)
 
 	return err
 }

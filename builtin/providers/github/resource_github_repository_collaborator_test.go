@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -17,7 +18,7 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubRepositoryCollaboratorConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryCollaboratorExists("github_repository_collaborator.test_repo_collaborator"),
@@ -34,10 +35,10 @@ func TestAccGithubRepositoryCollaborator_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubRepositoryCollaboratorConfig,
 			},
-			resource.TestStep{
+			{
 				ResourceName:      "github_repository_collaborator.test_repo_collaborator",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -56,7 +57,7 @@ func testAccCheckGithubRepositoryCollaboratorDestroy(s *terraform.State) error {
 
 		o := testAccProvider.Meta().(*Organization).name
 		r, u := parseTwoPartID(rs.Primary.ID)
-		isCollaborator, _, err := conn.Repositories.IsCollaborator(o, r, u)
+		isCollaborator, _, err := conn.Repositories.IsCollaborator(context.TODO(), o, r, u)
 
 		if err != nil {
 			return err
@@ -87,7 +88,7 @@ func testAccCheckGithubRepositoryCollaboratorExists(n string) resource.TestCheck
 		o := testAccProvider.Meta().(*Organization).name
 		r, u := parseTwoPartID(rs.Primary.ID)
 
-		isCollaborator, _, err := conn.Repositories.IsCollaborator(o, r, u)
+		isCollaborator, _, err := conn.Repositories.IsCollaborator(context.TODO(), o, r, u)
 
 		if err != nil {
 			return err
@@ -116,7 +117,7 @@ func testAccCheckGithubRepositoryCollaboratorPermission(n string) resource.TestC
 		o := testAccProvider.Meta().(*Organization).name
 		r, u := parseTwoPartID(rs.Primary.ID)
 
-		collaborators, _, err := conn.Repositories.ListCollaborators(o, r, &github.ListOptions{})
+		collaborators, _, err := conn.Repositories.ListCollaborators(context.TODO(), o, r, &github.ListOptions{})
 
 		if err != nil {
 			return err

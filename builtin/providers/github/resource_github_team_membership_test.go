@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -35,14 +36,14 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubTeamMembershipConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
 					testAccCheckGithubTeamMembershipRoleState("github_team_membership.test_team_membership", "member", &membership),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccGithubTeamMembershipUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
@@ -59,10 +60,10 @@ func TestAccGithubTeamMembership_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubTeamMembershipConfig,
 			},
-			resource.TestStep{
+			{
 				ResourceName:      "github_team_membership.test_team_membership",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -80,7 +81,7 @@ func testAccCheckGithubTeamMembershipDestroy(s *terraform.State) error {
 		}
 
 		t, u := parseTwoPartID(rs.Primary.ID)
-		membership, resp, err := conn.Organizations.GetTeamMembership(toGithubID(t), u)
+		membership, resp, err := conn.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), u)
 		if err == nil {
 			if membership != nil {
 				return fmt.Errorf("Team membership still exists")
@@ -108,7 +109,7 @@ func testAccCheckGithubTeamMembershipExists(n string, membership *github.Members
 		conn := testAccProvider.Meta().(*Organization).client
 		t, u := parseTwoPartID(rs.Primary.ID)
 
-		teamMembership, _, err := conn.Organizations.GetTeamMembership(toGithubID(t), u)
+		teamMembership, _, err := conn.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), u)
 
 		if err != nil {
 			return err
@@ -132,7 +133,7 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 		conn := testAccProvider.Meta().(*Organization).client
 		t, u := parseTwoPartID(rs.Primary.ID)
 
-		teamMembership, _, err := conn.Organizations.GetTeamMembership(toGithubID(t), u)
+		teamMembership, _, err := conn.Organizations.GetTeamMembership(context.TODO(), toGithubID(t), u)
 		if err != nil {
 			return err
 		}

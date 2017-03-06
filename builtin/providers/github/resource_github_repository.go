@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"log"
 
 	"github.com/google/go-github/github"
@@ -19,61 +20,61 @@ func resourceGithubRepository() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"homepage_url": &schema.Schema{
+			"homepage_url": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"private": &schema.Schema{
+			"private": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"has_issues": &schema.Schema{
+			"has_issues": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"has_wiki": &schema.Schema{
+			"has_wiki": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"has_downloads": &schema.Schema{
+			"has_downloads": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"auto_init": &schema.Schema{
+			"auto_init": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"full_name": &schema.Schema{
+			"full_name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"default_branch": &schema.Schema{
+			"default_branch": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"ssh_clone_url": &schema.Schema{
+			"ssh_clone_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"svn_url": &schema.Schema{
+			"svn_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"git_clone_url": &schema.Schema{
+			"git_clone_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"http_clone_url": &schema.Schema{
+			"http_clone_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -110,7 +111,7 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 
 	repoReq := resourceGithubRepositoryObject(d)
 	log.Printf("[DEBUG] create github repository %s/%s", meta.(*Organization).name, *repoReq.Name)
-	repo, _, err := client.Repositories.Create(meta.(*Organization).name, repoReq)
+	repo, _, err := client.Repositories.Create(context.TODO(), meta.(*Organization).name, repoReq)
 	if err != nil {
 		return err
 	}
@@ -124,7 +125,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	repoName := d.Id()
 
 	log.Printf("[DEBUG] read github repository %s/%s", meta.(*Organization).name, repoName)
-	repo, resp, err := client.Repositories.Get(meta.(*Organization).name, repoName)
+	repo, resp, err := client.Repositories.Get(context.TODO(), meta.(*Organization).name, repoName)
 	if err != nil {
 		if resp.StatusCode == 404 {
 			log.Printf(
@@ -158,7 +159,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	repoReq := resourceGithubRepositoryObject(d)
 	repoName := d.Id()
 	log.Printf("[DEBUG] update github repository %s/%s", meta.(*Organization).name, repoName)
-	repo, _, err := client.Repositories.Edit(meta.(*Organization).name, repoName, repoReq)
+	repo, _, err := client.Repositories.Edit(context.TODO(), meta.(*Organization).name, repoName, repoReq)
 	if err != nil {
 		return err
 	}
@@ -171,6 +172,6 @@ func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Organization).client
 	repoName := d.Id()
 	log.Printf("[DEBUG] delete github repository %s/%s", meta.(*Organization).name, repoName)
-	_, err := client.Repositories.Delete(meta.(*Organization).name, repoName)
+	_, err := client.Repositories.Delete(context.TODO(), meta.(*Organization).name, repoName)
 	return err
 }
