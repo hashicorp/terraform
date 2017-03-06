@@ -7,11 +7,10 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
+	"github.com/Azure/azure-sdk-for-go/arm/disk"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"os"
-	"github.com/Azure/azure-sdk-for-go/arm/disk"
 )
 
 func TestAccAzureRMVirtualMachine_basicLinuxMachine(t *testing.T) {
@@ -358,7 +357,7 @@ func TestAccAzureRMVirtualMachine_deleteManagedDiskOptOut(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Destroy: false,
-				Config: preConfig,
+				Config:  preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 					testLookupAzureRMVirtualMachineManagedDiskID(&vm, "myosdisk1", &osd),
@@ -404,7 +403,6 @@ func TestAccAzureRMVirtualMachine_deleteVHDOptIn(t *testing.T) {
 }
 
 func TestAccAzureRMVirtualMachine_deleteManagedDiskOptIn(t *testing.T) {
-	os.Setenv("TF_ACC", "1")
 	var vm compute.VirtualMachine
 	var osd string
 	var dtd string
@@ -418,7 +416,7 @@ func TestAccAzureRMVirtualMachine_deleteManagedDiskOptIn(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Destroy: false,
-				Config: preConfig,
+				Config:  preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
 					testLookupAzureRMVirtualMachineManagedDiskID(&vm, "myosdisk1", &osd),
