@@ -9,20 +9,20 @@ import (
 
 func TestIngnitionGroup(t *testing.T) {
 	testIgnition(t, `
-		resource "ignition_group" "foo" {
+		data "ignition_group" "foo" {
 			name = "foo"
 			password_hash = "password"
 			gid = 42
 		}
 
-		resource "ignition_group" "qux" {
+		data "ignition_group" "qux" {
 			name = "qux"
-		}		
-		
-		resource "ignition_config" "test" {
+		}
+
+		data "ignition_config" "test" {
 			groups = [
-				"${ignition_group.foo.id}",
-				"${ignition_group.qux.id}",
+				"${data.ignition_group.foo.id}",
+				"${data.ignition_group.qux.id}",
 			]
 		}
 	`, func(c *types.Config) error {
