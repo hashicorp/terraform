@@ -86,4 +86,8 @@ func TestProvider_getRegionFromZone(t *testing.T) {
 	if expected != actual {
 		t.Fatalf("Region (%s) did not match expected value: %s", actual, expected)
 	}
+
+	if v := os.Getenv("GOOGLE_GCLOUD_TESTS"); v == "" {
+		os.Setenv("GOOGLE_GCLOUD_TESTS", "FALSE")
+	}
 }
