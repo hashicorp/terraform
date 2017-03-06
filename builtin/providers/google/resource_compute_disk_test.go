@@ -2,6 +2,7 @@ package google
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -21,6 +22,26 @@ func TestAccComputeDisk_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccComputeDisk_basic(diskName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeDiskExists(
+						"google_compute_disk.foobar", &disk),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeDisk_from_snapshot_uri(t *testing.T) {
+	diskName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	var disk compute.Disk
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeDiskDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeDisk_from_snapshot_uri(diskName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeDiskExists(
 						"google_compute_disk.foobar", &disk),
@@ -128,6 +149,17 @@ resource "google_compute_disk" "foobar" {
 	type = "pd-ssd"
 	zone = "us-central1-a"
 }`, diskName)
+}
+
+func testAccComputeDisk_from_snapshot_uri(diskName string) string {
+	uri := os.Getenv("GOOGLE_COMPUTE_DISK_SNAPSHOT_URI")
+	return fmt.Sprintf(`
+resource "google_compute_disk" "foobar" {
+	name = "%s"
+	snapshot = "%s"
+	type = "pd-ssd"
+	zone = "us-central1-a"
+}`, diskName, uri)
 }
 
 func testAccComputeDisk_encryption(diskName string) string {
