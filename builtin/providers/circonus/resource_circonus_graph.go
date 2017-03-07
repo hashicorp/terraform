@@ -94,6 +94,7 @@ var graphMetricClusterDescriptions = attrDescrs{
 	graphMetricClusterActiveAttr:    "",
 	graphMetricClusterAggregateAttr: "",
 	graphMetricClusterAxisAttr:      "",
+	graphMetricClusterColorAttr:     "",
 	graphMetricClusterQueryAttr:     "",
 	graphMetricClusterHumanNameAttr: "",
 }
