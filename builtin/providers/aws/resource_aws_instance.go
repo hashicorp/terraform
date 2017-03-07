@@ -1034,10 +1034,15 @@ func readBlockDeviceMappingsFromConfig(
 
 			if v, ok := bd["volume_type"].(string); ok && v != "" {
 				ebs.VolumeType = aws.String(v)
-			}
-
-			if v, ok := bd["iops"].(int); ok && v > 0 {
-				ebs.Iops = aws.Int64(int64(v))
+				if "io1" == strings.ToLower(v) {
+					// Condition: This parameter is required for requests to create io1
+					// volumes; it is not used in requests to create gp2, st1, sc1, or
+					// standard volumes.
+					// See: http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_EbsBlockDevice.html
+					if v, ok := bd["iops"].(int); ok && v > 0 {
+						ebs.Iops = aws.Int64(int64(v))
+					}
+				}
 			}
 
 			blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
