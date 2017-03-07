@@ -22,6 +22,12 @@ import (
 
 const TestEnvVar = "TF_ACC"
 
+// TestProvider is implemented by scheme.Provider to allow resetting the
+// provider state between tests.
+type TestProvider interface {
+	TestReset() error
+}
+
 // TestCheckFunc is the callback type used with acceptance tests to check
 // the state of a resource. The state passed in is the latest state known,
 // or in the case of being after a destroy, it is the last known state when
@@ -216,13 +222,9 @@ func Test(t TestT, c TestCase) {
 		c.PreCheck()
 	}
 
-	// Build our context options that we can
-	ctxProviders := c.ProviderFactories
-	if ctxProviders == nil {
-		ctxProviders = make(map[string]terraform.ResourceProviderFactory)
-		for k, p := range c.Providers {
-			ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
-		}
+	ctxProviders, err := testProviderFactories(c)
+	if err != nil {
+		t.Fatal(err)
 	}
 	opts := terraform.ContextOpts{Providers: ctxProviders}
 
@@ -331,6 +333,43 @@ func Test(t TestT, c TestCase) {
 	} else {
 		log.Printf("[WARN] Skipping destroy test since there is no state.")
 	}
+}
+
+// testProviderFactories is a helper to build the ResourceProviderFactory map
+// with pre instantiated ResourceProviders, so that we can reset them for the
+// test, while only calling the factory function once.
+// Any errors are stored so that they can be returned by the factory in
+// terraform to match non-test behavior.
+func testProviderFactories(c TestCase) (map[string]terraform.ResourceProviderFactory, error) {
+	ctxProviders := make(map[string]terraform.ResourceProviderFactory)
+
+	// add any fixed providers
+	for k, p := range c.Providers {
+		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
+	}
+
+	// call any factory functions and store the result.
+	for k, pf := range c.ProviderFactories {
+		p, err := pf()
+		ctxProviders[k] = func() (terraform.ResourceProvider, error) {
+			return p, err
+		}
+	}
+
+	// reset the providers if needed
+	for k, pf := range ctxProviders {
+		// we can ignore any errors here, if we don't have a provider to reset
+		// the error will be handled later
+		p, _ := pf()
+		if p, ok := p.(TestProvider); ok {
+			err := p.TestReset()
+			if err != nil {
+				return nil, fmt.Errorf("[ERROR] failed to reset provider %q: %s", k, err)
+			}
+		}
+	}
+
+	return ctxProviders, nil
 }
 
 // UnitTest is a helper to force the acceptance testing harness to run in the
