@@ -56,6 +56,8 @@ type MockResourceProvider struct {
 	ReadDataDiffFn                 func(*InstanceInfo, *ResourceConfig) (*InstanceDiff, error)
 	ReadDataDiffReturn             *InstanceDiff
 	ReadDataDiffReturnError        error
+	TestResetCalled                bool
+	TestResetError                 error
 	StopCalled                     bool
 	StopFn                         func() error
 	StopReturnError                error
@@ -142,6 +144,14 @@ func (p *MockResourceProvider) Configure(c *ResourceConfig) error {
 	}
 
 	return p.ConfigureReturnError
+}
+
+func (p *MockResourceProvider) TestReset() error {
+	p.Lock()
+	defer p.Unlock()
+
+	p.TestResetCalled = true
+	return p.TestResetError
 }
 
 func (p *MockResourceProvider) Stop() error {
