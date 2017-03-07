@@ -548,7 +548,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if err := d.Set("ipv6_addresses", ipv6Addresses); err != nil {
-		log.Printf("[WARN] Error setting ipv6_addresses for AWS Instance (%d): %s", d.Id(), err)
+		log.Printf("[WARN] Error setting ipv6_addresses for AWS Instance (%s): %s", d.Id(), err)
 	}
 
 	d.Set("ebs_optimized", instance.EbsOptimized)
