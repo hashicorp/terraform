@@ -324,7 +324,9 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	o := datadog.Options{
-		NotifyNoData: datadog.Bool(d.Get("notify_no_data").(bool)),
+		NotifyNoData:      datadog.Bool(d.Get("notify_no_data").(bool)),
+		RequireFullWindow: datadog.Bool(d.Get("require_full_window").(bool)),
+		IncludeTags:       datadog.Bool(d.Get("include_tags").(bool)),
 	}
 	if attr, ok := d.GetOk("thresholds"); ok {
 		thresholds := attr.(map[string]interface{})
@@ -340,9 +342,6 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
-	if attr, ok := d.GetOk("notify_no_data"); ok {
-		o.SetNotifyNoData(attr.(bool))
-	}
 	if attr, ok := d.GetOk("new_host_delay"); ok {
 		o.SetNewHostDelay(attr.(int))
 	}
@@ -368,12 +367,6 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 			s[k], _ = strconv.Atoi(v.(string))
 		}
 		o.Silenced = s
-	}
-	if attr, ok := d.GetOk("include_tags"); ok {
-		o.SetIncludeTags(attr.(bool))
-	}
-	if attr, ok := d.GetOk("require_full_window"); ok {
-		o.SetRequireFullWindow(attr.(bool))
 	}
 	if attr, ok := d.GetOk("locked"); ok {
 		o.SetLocked(attr.(bool))
