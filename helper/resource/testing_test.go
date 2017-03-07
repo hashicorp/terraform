@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -94,6 +95,9 @@ func TestTest(t *testing.T) {
 	}
 	if !checkDestroy {
 		t.Fatal("didn't call check for destroy")
+	}
+	if !mp.TestResetCalled {
+		t.Fatal("didn't call TestReset")
 	}
 }
 
@@ -352,6 +356,51 @@ func TestTest_stepError(t *testing.T) {
 
 	if !checkDestroy {
 		t.Fatal("didn't call check for destroy")
+	}
+}
+
+func TestTest_factoryError(t *testing.T) {
+	resourceFactoryError := fmt.Errorf("resource factory error")
+
+	factory := func() (terraform.ResourceProvider, error) {
+		return nil, resourceFactoryError
+	}
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		ProviderFactories: map[string]terraform.ResourceProviderFactory{
+			"test": factory,
+		},
+		Steps: []TestStep{
+			TestStep{
+				ExpectError: regexp.MustCompile("resource factory error"),
+			},
+		},
+	})
+
+	if !mt.failed() {
+		t.Fatal("test should've failed")
+	}
+}
+
+func TestTest_resetError(t *testing.T) {
+	mp := testProvider()
+	mp.TestResetError = fmt.Errorf("provider reset error")
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		Providers: map[string]terraform.ResourceProvider{
+			"test": mp,
+		},
+		Steps: []TestStep{
+			TestStep{
+				ExpectError: regexp.MustCompile("provider reset error"),
+			},
+		},
+	})
+
+	if !mt.failed() {
+		t.Fatal("test should've failed")
 	}
 }
 
