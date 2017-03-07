@@ -103,9 +103,10 @@ func resourceAwsLBCookieStickinessPolicyRead(d *schema.ResourceData, meta interf
 
 	getResp, err := elbconn.DescribeLoadBalancerPolicies(request)
 	if err != nil {
-		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "PolicyNotFound" {
-			// The policy is gone.
-			d.SetId("")
+		if ec2err, ok := err.(awserr.Error); ok {
+			if ec2err.Code() == "PolicyNotFound" || ec2err.Code() == "LoadBalancerNotFound" {
+				d.SetId("")
+			}
 			return nil
 		}
 		return fmt.Errorf("Error retrieving policy: %s", err)

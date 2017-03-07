@@ -16,9 +16,9 @@ Basic usage:
 
 ```
 resource "cloudstack_nic" "test" {
-    network_id = "6eb22f91-7454-4107-89f4-36afcdf33021"
-    ip_address = "192.168.1.1"
-    virtual_machine_id = "f8141e2f-4e7e-4c63-9362-986c908b7ea7"
+  network_id         = "6eb22f91-7454-4107-89f4-36afcdf33021"
+  ip_address         = "192.168.1.1"
+  virtual_machine_id = "f8141e2f-4e7e-4c63-9362-986c908b7ea7"
 }
 ```
 

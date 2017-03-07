@@ -51,11 +51,10 @@ func (c *IAM) AddClientIDToOpenIDConnectProviderRequest(input *AddClientIDToOpen
 		input = &AddClientIDToOpenIDConnectProviderInput{}
 	}
 
+	output = &AddClientIDToOpenIDConnectProviderOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddClientIDToOpenIDConnectProviderOutput{}
-	req.Data = output
 	return
 }
 
@@ -75,19 +74,19 @@ func (c *IAM) AddClientIDToOpenIDConnectProviderRequest(input *AddClientIDToOpen
 // API operation AddClientIDToOpenIDConnectProvider for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -136,11 +135,10 @@ func (c *IAM) AddRoleToInstanceProfileRequest(input *AddRoleToInstanceProfileInp
 		input = &AddRoleToInstanceProfileInput{}
 	}
 
+	output = &AddRoleToInstanceProfileOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddRoleToInstanceProfileOutput{}
-	req.Data = output
 	return
 }
 
@@ -163,19 +161,19 @@ func (c *IAM) AddRoleToInstanceProfileRequest(input *AddRoleToInstanceProfileInp
 // API operation AddRoleToInstanceProfile for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -224,11 +222,10 @@ func (c *IAM) AddUserToGroupRequest(input *AddUserToGroupInput) (req *request.Re
 		input = &AddUserToGroupInput{}
 	}
 
+	output = &AddUserToGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddUserToGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -244,15 +241,15 @@ func (c *IAM) AddUserToGroupRequest(input *AddUserToGroupInput) (req *request.Re
 // API operation AddUserToGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -301,11 +298,10 @@ func (c *IAM) AttachGroupPolicyRequest(input *AttachGroupPolicyInput) (req *requ
 		input = &AttachGroupPolicyInput{}
 	}
 
+	output = &AttachGroupPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AttachGroupPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -328,19 +324,19 @@ func (c *IAM) AttachGroupPolicyRequest(input *AttachGroupPolicyInput) (req *requ
 // API operation AttachGroupPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -389,11 +385,10 @@ func (c *IAM) AttachRolePolicyRequest(input *AttachRolePolicyInput) (req *reques
 		input = &AttachRolePolicyInput{}
 	}
 
+	output = &AttachRolePolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AttachRolePolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -420,19 +415,19 @@ func (c *IAM) AttachRolePolicyRequest(input *AttachRolePolicyInput) (req *reques
 // API operation AttachRolePolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -481,11 +476,10 @@ func (c *IAM) AttachUserPolicyRequest(input *AttachUserPolicyInput) (req *reques
 		input = &AttachUserPolicyInput{}
 	}
 
+	output = &AttachUserPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AttachUserPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -508,19 +502,19 @@ func (c *IAM) AttachUserPolicyRequest(input *AttachUserPolicyInput) (req *reques
 // API operation AttachUserPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -569,11 +563,10 @@ func (c *IAM) ChangePasswordRequest(input *ChangePasswordInput) (req *request.Re
 		input = &ChangePasswordInput{}
 	}
 
+	output = &ChangePasswordOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ChangePasswordOutput{}
-	req.Data = output
 	return
 }
 
@@ -594,29 +587,29 @@ func (c *IAM) ChangePasswordRequest(input *ChangePasswordInput) (req *request.Re
 // API operation ChangePassword for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * InvalidUserType
+//   * ErrCodeInvalidUserTypeException "InvalidUserType"
 //   The request was rejected because the type of user for the transaction was
 //   incorrect.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * EntityTemporarilyUnmodifiable
+//   * ErrCodeEntityTemporarilyUnmodifiableException "EntityTemporarilyUnmodifiable"
 //   The request was rejected because it referenced an entity that is temporarily
 //   unmodifiable, such as a user name that was deleted and then recreated. The
 //   error indicates that the request is likely to succeed if you try again after
 //   waiting several minutes. The error message describes the entity.
 //
-//   * PasswordPolicyViolation
+//   * ErrCodePasswordPolicyViolationException "PasswordPolicyViolation"
 //   The request was rejected because the provided password did not meet the requirements
 //   imposed by the account password policy.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -665,9 +658,8 @@ func (c *IAM) CreateAccessKeyRequest(input *CreateAccessKeyInput) (req *request.
 		input = &CreateAccessKeyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateAccessKeyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -699,15 +691,15 @@ func (c *IAM) CreateAccessKeyRequest(input *CreateAccessKeyInput) (req *request.
 // API operation CreateAccessKey for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -756,11 +748,10 @@ func (c *IAM) CreateAccountAliasRequest(input *CreateAccountAliasInput) (req *re
 		input = &CreateAccountAliasInput{}
 	}
 
+	output = &CreateAccountAliasOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateAccountAliasOutput{}
-	req.Data = output
 	return
 }
 
@@ -778,15 +769,15 @@ func (c *IAM) CreateAccountAliasRequest(input *CreateAccountAliasInput) (req *re
 // API operation CreateAccountAlias for usage and error information.
 //
 // Returned Error Codes:
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -835,9 +826,8 @@ func (c *IAM) CreateGroupRequest(input *CreateGroupInput) (req *request.Request,
 		input = &CreateGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -857,19 +847,19 @@ func (c *IAM) CreateGroupRequest(input *CreateGroupInput) (req *request.Request,
 // API operation CreateGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -918,9 +908,8 @@ func (c *IAM) CreateInstanceProfileRequest(input *CreateInstanceProfileInput) (r
 		input = &CreateInstanceProfileInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateInstanceProfileOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -941,15 +930,15 @@ func (c *IAM) CreateInstanceProfileRequest(input *CreateInstanceProfileInput) (r
 // API operation CreateInstanceProfile for usage and error information.
 //
 // Returned Error Codes:
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -998,9 +987,8 @@ func (c *IAM) CreateLoginProfileRequest(input *CreateLoginProfileInput) (req *re
 		input = &CreateLoginProfileInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateLoginProfileOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1019,23 +1007,23 @@ func (c *IAM) CreateLoginProfileRequest(input *CreateLoginProfileInput) (req *re
 // API operation CreateLoginProfile for usage and error information.
 //
 // Returned Error Codes:
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * PasswordPolicyViolation
+//   * ErrCodePasswordPolicyViolationException "PasswordPolicyViolation"
 //   The request was rejected because the provided password did not meet the requirements
 //   imposed by the account password policy.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -1084,9 +1072,8 @@ func (c *IAM) CreateOpenIDConnectProviderRequest(input *CreateOpenIDConnectProvi
 		input = &CreateOpenIDConnectProviderInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateOpenIDConnectProviderOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1118,19 +1105,19 @@ func (c *IAM) CreateOpenIDConnectProviderRequest(input *CreateOpenIDConnectProvi
 // API operation CreateOpenIDConnectProvider for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -1179,9 +1166,8 @@ func (c *IAM) CreatePolicyRequest(input *CreatePolicyInput) (req *request.Reques
 		input = &CreatePolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreatePolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1206,23 +1192,23 @@ func (c *IAM) CreatePolicyRequest(input *CreatePolicyInput) (req *request.Reques
 // API operation CreatePolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * MalformedPolicyDocument
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
 //   message describes the specific error.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -1271,9 +1257,8 @@ func (c *IAM) CreatePolicyVersionRequest(input *CreatePolicyVersionInput) (req *
 		input = &CreatePolicyVersionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreatePolicyVersionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1300,23 +1285,23 @@ func (c *IAM) CreatePolicyVersionRequest(input *CreatePolicyVersionInput) (req *
 // API operation CreatePolicyVersion for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * MalformedPolicyDocument
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
 //   message describes the specific error.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -1365,9 +1350,8 @@ func (c *IAM) CreateRoleRequest(input *CreateRoleInput) (req *request.Request, o
 		input = &CreateRoleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateRoleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1387,19 +1371,19 @@ func (c *IAM) CreateRoleRequest(input *CreateRoleInput) (req *request.Request, o
 // API operation CreateRole for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * MalformedPolicyDocument
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
 //   message describes the specific error.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -1448,9 +1432,8 @@ func (c *IAM) CreateSAMLProviderRequest(input *CreateSAMLProviderInput) (req *re
 		input = &CreateSAMLProviderInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSAMLProviderOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1487,19 +1470,19 @@ func (c *IAM) CreateSAMLProviderRequest(input *CreateSAMLProviderInput) (req *re
 // API operation CreateSAMLProvider for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -1548,9 +1531,8 @@ func (c *IAM) CreateServiceSpecificCredentialRequest(input *CreateServiceSpecifi
 		input = &CreateServiceSpecificCredentialInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateServiceSpecificCredentialOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1579,15 +1561,15 @@ func (c *IAM) CreateServiceSpecificCredentialRequest(input *CreateServiceSpecifi
 // API operation CreateServiceSpecificCredential for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * NotSupportedService
+//   * ErrCodeServiceNotSupportedException "NotSupportedService"
 //   The specified service does not support service-specific credentials.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/CreateServiceSpecificCredential
@@ -1635,9 +1617,8 @@ func (c *IAM) CreateUserRequest(input *CreateUserInput) (req *request.Request, o
 		input = &CreateUserInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateUserOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1657,19 +1638,19 @@ func (c *IAM) CreateUserRequest(input *CreateUserInput) (req *request.Request, o
 // API operation CreateUser for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -1718,9 +1699,8 @@ func (c *IAM) CreateVirtualMFADeviceRequest(input *CreateVirtualMFADeviceInput) 
 		input = &CreateVirtualMFADeviceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVirtualMFADeviceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1749,15 +1729,15 @@ func (c *IAM) CreateVirtualMFADeviceRequest(input *CreateVirtualMFADeviceInput) 
 // API operation CreateVirtualMFADevice for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -1806,11 +1786,10 @@ func (c *IAM) DeactivateMFADeviceRequest(input *DeactivateMFADeviceInput) (req *
 		input = &DeactivateMFADeviceInput{}
 	}
 
+	output = &DeactivateMFADeviceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeactivateMFADeviceOutput{}
-	req.Data = output
 	return
 }
 
@@ -1831,21 +1810,21 @@ func (c *IAM) DeactivateMFADeviceRequest(input *DeactivateMFADeviceInput) (req *
 // API operation DeactivateMFADevice for usage and error information.
 //
 // Returned Error Codes:
-//   * EntityTemporarilyUnmodifiable
+//   * ErrCodeEntityTemporarilyUnmodifiableException "EntityTemporarilyUnmodifiable"
 //   The request was rejected because it referenced an entity that is temporarily
 //   unmodifiable, such as a user name that was deleted and then recreated. The
 //   error indicates that the request is likely to succeed if you try again after
 //   waiting several minutes. The error message describes the entity.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -1894,11 +1873,10 @@ func (c *IAM) DeleteAccessKeyRequest(input *DeleteAccessKeyInput) (req *request.
 		input = &DeleteAccessKeyInput{}
 	}
 
+	output = &DeleteAccessKeyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteAccessKeyOutput{}
-	req.Data = output
 	return
 }
 
@@ -1919,15 +1897,15 @@ func (c *IAM) DeleteAccessKeyRequest(input *DeleteAccessKeyInput) (req *request.
 // API operation DeleteAccessKey for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -1976,11 +1954,10 @@ func (c *IAM) DeleteAccountAliasRequest(input *DeleteAccountAliasInput) (req *re
 		input = &DeleteAccountAliasInput{}
 	}
 
+	output = &DeleteAccountAliasOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteAccountAliasOutput{}
-	req.Data = output
 	return
 }
 
@@ -1998,15 +1975,15 @@ func (c *IAM) DeleteAccountAliasRequest(input *DeleteAccountAliasInput) (req *re
 // API operation DeleteAccountAlias for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -2055,11 +2032,10 @@ func (c *IAM) DeleteAccountPasswordPolicyRequest(input *DeleteAccountPasswordPol
 		input = &DeleteAccountPasswordPolicyInput{}
 	}
 
+	output = &DeleteAccountPasswordPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteAccountPasswordPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -2075,15 +2051,15 @@ func (c *IAM) DeleteAccountPasswordPolicyRequest(input *DeleteAccountPasswordPol
 // API operation DeleteAccountPasswordPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -2132,11 +2108,10 @@ func (c *IAM) DeleteGroupRequest(input *DeleteGroupInput) (req *request.Request,
 		input = &DeleteGroupInput{}
 	}
 
+	output = &DeleteGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -2153,19 +2128,19 @@ func (c *IAM) DeleteGroupRequest(input *DeleteGroupInput) (req *request.Request,
 // API operation DeleteGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * DeleteConflict
+//   * ErrCodeDeleteConflictException "DeleteConflict"
 //   The request was rejected because it attempted to delete a resource that has
 //   attached subordinate entities. The error message describes these entities.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -2214,11 +2189,10 @@ func (c *IAM) DeleteGroupPolicyRequest(input *DeleteGroupPolicyInput) (req *requ
 		input = &DeleteGroupPolicyInput{}
 	}
 
+	output = &DeleteGroupPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteGroupPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -2240,15 +2214,15 @@ func (c *IAM) DeleteGroupPolicyRequest(input *DeleteGroupPolicyInput) (req *requ
 // API operation DeleteGroupPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -2297,11 +2271,10 @@ func (c *IAM) DeleteInstanceProfileRequest(input *DeleteInstanceProfileInput) (r
 		input = &DeleteInstanceProfileInput{}
 	}
 
+	output = &DeleteInstanceProfileOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteInstanceProfileOutput{}
-	req.Data = output
 	return
 }
 
@@ -2326,19 +2299,19 @@ func (c *IAM) DeleteInstanceProfileRequest(input *DeleteInstanceProfileInput) (r
 // API operation DeleteInstanceProfile for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * DeleteConflict
+//   * ErrCodeDeleteConflictException "DeleteConflict"
 //   The request was rejected because it attempted to delete a resource that has
 //   attached subordinate entities. The error message describes these entities.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -2387,11 +2360,10 @@ func (c *IAM) DeleteLoginProfileRequest(input *DeleteLoginProfileInput) (req *re
 		input = &DeleteLoginProfileInput{}
 	}
 
+	output = &DeleteLoginProfileOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteLoginProfileOutput{}
-	req.Data = output
 	return
 }
 
@@ -2413,21 +2385,21 @@ func (c *IAM) DeleteLoginProfileRequest(input *DeleteLoginProfileInput) (req *re
 // API operation DeleteLoginProfile for usage and error information.
 //
 // Returned Error Codes:
-//   * EntityTemporarilyUnmodifiable
+//   * ErrCodeEntityTemporarilyUnmodifiableException "EntityTemporarilyUnmodifiable"
 //   The request was rejected because it referenced an entity that is temporarily
 //   unmodifiable, such as a user name that was deleted and then recreated. The
 //   error indicates that the request is likely to succeed if you try again after
 //   waiting several minutes. The error message describes the entity.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -2476,11 +2448,10 @@ func (c *IAM) DeleteOpenIDConnectProviderRequest(input *DeleteOpenIDConnectProvi
 		input = &DeleteOpenIDConnectProviderInput{}
 	}
 
+	output = &DeleteOpenIDConnectProviderOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteOpenIDConnectProviderOutput{}
-	req.Data = output
 	return
 }
 
@@ -2503,15 +2474,15 @@ func (c *IAM) DeleteOpenIDConnectProviderRequest(input *DeleteOpenIDConnectProvi
 // API operation DeleteOpenIDConnectProvider for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -2560,11 +2531,10 @@ func (c *IAM) DeletePolicyRequest(input *DeletePolicyInput) (req *request.Reques
 		input = &DeletePolicyInput{}
 	}
 
+	output = &DeletePolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeletePolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -2602,23 +2572,23 @@ func (c *IAM) DeletePolicyRequest(input *DeletePolicyInput) (req *request.Reques
 // API operation DeletePolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * DeleteConflict
+//   * ErrCodeDeleteConflictException "DeleteConflict"
 //   The request was rejected because it attempted to delete a resource that has
 //   attached subordinate entities. The error message describes these entities.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -2667,11 +2637,10 @@ func (c *IAM) DeletePolicyVersionRequest(input *DeletePolicyVersionInput) (req *
 		input = &DeletePolicyVersionInput{}
 	}
 
+	output = &DeletePolicyVersionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeletePolicyVersionOutput{}
-	req.Data = output
 	return
 }
 
@@ -2695,23 +2664,23 @@ func (c *IAM) DeletePolicyVersionRequest(input *DeletePolicyVersionInput) (req *
 // API operation DeletePolicyVersion for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * DeleteConflict
+//   * ErrCodeDeleteConflictException "DeleteConflict"
 //   The request was rejected because it attempted to delete a resource that has
 //   attached subordinate entities. The error message describes these entities.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -2760,11 +2729,10 @@ func (c *IAM) DeleteRoleRequest(input *DeleteRoleInput) (req *request.Request, o
 		input = &DeleteRoleInput{}
 	}
 
+	output = &DeleteRoleOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteRoleOutput{}
-	req.Data = output
 	return
 }
 
@@ -2785,19 +2753,19 @@ func (c *IAM) DeleteRoleRequest(input *DeleteRoleInput) (req *request.Request, o
 // API operation DeleteRole for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * DeleteConflict
+//   * ErrCodeDeleteConflictException "DeleteConflict"
 //   The request was rejected because it attempted to delete a resource that has
 //   attached subordinate entities. The error message describes these entities.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -2846,11 +2814,10 @@ func (c *IAM) DeleteRolePolicyRequest(input *DeleteRolePolicyInput) (req *reques
 		input = &DeleteRolePolicyInput{}
 	}
 
+	output = &DeleteRolePolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteRolePolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -2872,15 +2839,15 @@ func (c *IAM) DeleteRolePolicyRequest(input *DeleteRolePolicyInput) (req *reques
 // API operation DeleteRolePolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -2929,11 +2896,10 @@ func (c *IAM) DeleteSAMLProviderRequest(input *DeleteSAMLProviderInput) (req *re
 		input = &DeleteSAMLProviderInput{}
 	}
 
+	output = &DeleteSAMLProviderOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSAMLProviderOutput{}
-	req.Data = output
 	return
 }
 
@@ -2956,19 +2922,19 @@ func (c *IAM) DeleteSAMLProviderRequest(input *DeleteSAMLProviderInput) (req *re
 // API operation DeleteSAMLProvider for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -3017,11 +2983,10 @@ func (c *IAM) DeleteSSHPublicKeyRequest(input *DeleteSSHPublicKeyInput) (req *re
 		input = &DeleteSSHPublicKeyInput{}
 	}
 
+	output = &DeleteSSHPublicKeyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSSHPublicKeyOutput{}
-	req.Data = output
 	return
 }
 
@@ -3043,7 +3008,7 @@ func (c *IAM) DeleteSSHPublicKeyRequest(input *DeleteSSHPublicKeyInput) (req *re
 // API operation DeleteSSHPublicKey for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
@@ -3092,11 +3057,10 @@ func (c *IAM) DeleteServerCertificateRequest(input *DeleteServerCertificateInput
 		input = &DeleteServerCertificateInput{}
 	}
 
+	output = &DeleteServerCertificateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteServerCertificateOutput{}
-	req.Data = output
 	return
 }
 
@@ -3127,19 +3091,19 @@ func (c *IAM) DeleteServerCertificateRequest(input *DeleteServerCertificateInput
 // API operation DeleteServerCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * DeleteConflict
+//   * ErrCodeDeleteConflictException "DeleteConflict"
 //   The request was rejected because it attempted to delete a resource that has
 //   attached subordinate entities. The error message describes these entities.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -3188,11 +3152,10 @@ func (c *IAM) DeleteServiceSpecificCredentialRequest(input *DeleteServiceSpecifi
 		input = &DeleteServiceSpecificCredentialInput{}
 	}
 
+	output = &DeleteServiceSpecificCredentialOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteServiceSpecificCredentialOutput{}
-	req.Data = output
 	return
 }
 
@@ -3208,7 +3171,7 @@ func (c *IAM) DeleteServiceSpecificCredentialRequest(input *DeleteServiceSpecifi
 // API operation DeleteServiceSpecificCredential for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
@@ -3257,11 +3220,10 @@ func (c *IAM) DeleteSigningCertificateRequest(input *DeleteSigningCertificateInp
 		input = &DeleteSigningCertificateInput{}
 	}
 
+	output = &DeleteSigningCertificateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSigningCertificateOutput{}
-	req.Data = output
 	return
 }
 
@@ -3282,15 +3244,15 @@ func (c *IAM) DeleteSigningCertificateRequest(input *DeleteSigningCertificateInp
 // API operation DeleteSigningCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -3339,11 +3301,10 @@ func (c *IAM) DeleteUserRequest(input *DeleteUserInput) (req *request.Request, o
 		input = &DeleteUserInput{}
 	}
 
+	output = &DeleteUserOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteUserOutput{}
-	req.Data = output
 	return
 }
 
@@ -3360,19 +3321,19 @@ func (c *IAM) DeleteUserRequest(input *DeleteUserInput) (req *request.Request, o
 // API operation DeleteUser for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * DeleteConflict
+//   * ErrCodeDeleteConflictException "DeleteConflict"
 //   The request was rejected because it attempted to delete a resource that has
 //   attached subordinate entities. The error message describes these entities.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -3421,11 +3382,10 @@ func (c *IAM) DeleteUserPolicyRequest(input *DeleteUserPolicyInput) (req *reques
 		input = &DeleteUserPolicyInput{}
 	}
 
+	output = &DeleteUserPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteUserPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -3447,15 +3407,15 @@ func (c *IAM) DeleteUserPolicyRequest(input *DeleteUserPolicyInput) (req *reques
 // API operation DeleteUserPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -3504,11 +3464,10 @@ func (c *IAM) DeleteVirtualMFADeviceRequest(input *DeleteVirtualMFADeviceInput) 
 		input = &DeleteVirtualMFADeviceInput{}
 	}
 
+	output = &DeleteVirtualMFADeviceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVirtualMFADeviceOutput{}
-	req.Data = output
 	return
 }
 
@@ -3527,19 +3486,19 @@ func (c *IAM) DeleteVirtualMFADeviceRequest(input *DeleteVirtualMFADeviceInput) 
 // API operation DeleteVirtualMFADevice for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * DeleteConflict
+//   * ErrCodeDeleteConflictException "DeleteConflict"
 //   The request was rejected because it attempted to delete a resource that has
 //   attached subordinate entities. The error message describes these entities.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -3588,11 +3547,10 @@ func (c *IAM) DetachGroupPolicyRequest(input *DetachGroupPolicyInput) (req *requ
 		input = &DetachGroupPolicyInput{}
 	}
 
+	output = &DetachGroupPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DetachGroupPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -3613,19 +3571,19 @@ func (c *IAM) DetachGroupPolicyRequest(input *DetachGroupPolicyInput) (req *requ
 // API operation DetachGroupPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -3674,11 +3632,10 @@ func (c *IAM) DetachRolePolicyRequest(input *DetachRolePolicyInput) (req *reques
 		input = &DetachRolePolicyInput{}
 	}
 
+	output = &DetachRolePolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DetachRolePolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -3699,19 +3656,19 @@ func (c *IAM) DetachRolePolicyRequest(input *DetachRolePolicyInput) (req *reques
 // API operation DetachRolePolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -3760,11 +3717,10 @@ func (c *IAM) DetachUserPolicyRequest(input *DetachUserPolicyInput) (req *reques
 		input = &DetachUserPolicyInput{}
 	}
 
+	output = &DetachUserPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DetachUserPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -3785,19 +3741,19 @@ func (c *IAM) DetachUserPolicyRequest(input *DetachUserPolicyInput) (req *reques
 // API operation DetachUserPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -3846,11 +3802,10 @@ func (c *IAM) EnableMFADeviceRequest(input *EnableMFADeviceInput) (req *request.
 		input = &EnableMFADeviceInput{}
 	}
 
+	output = &EnableMFADeviceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &EnableMFADeviceOutput{}
-	req.Data = output
 	return
 }
 
@@ -3868,29 +3823,29 @@ func (c *IAM) EnableMFADeviceRequest(input *EnableMFADeviceInput) (req *request.
 // API operation EnableMFADevice for usage and error information.
 //
 // Returned Error Codes:
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * EntityTemporarilyUnmodifiable
+//   * ErrCodeEntityTemporarilyUnmodifiableException "EntityTemporarilyUnmodifiable"
 //   The request was rejected because it referenced an entity that is temporarily
 //   unmodifiable, such as a user name that was deleted and then recreated. The
 //   error indicates that the request is likely to succeed if you try again after
 //   waiting several minutes. The error message describes the entity.
 //
-//   * InvalidAuthenticationCode
+//   * ErrCodeInvalidAuthenticationCodeException "InvalidAuthenticationCode"
 //   The request was rejected because the authentication code was not recognized.
 //   The error message describes the specific error.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -3939,9 +3894,8 @@ func (c *IAM) GenerateCredentialReportRequest(input *GenerateCredentialReportInp
 		input = &GenerateCredentialReportInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GenerateCredentialReportOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3959,11 +3913,11 @@ func (c *IAM) GenerateCredentialReportRequest(input *GenerateCredentialReportInp
 // API operation GenerateCredentialReport for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -4012,9 +3966,8 @@ func (c *IAM) GetAccessKeyLastUsedRequest(input *GetAccessKeyLastUsedInput) (req
 		input = &GetAccessKeyLastUsedInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetAccessKeyLastUsedOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4033,7 +3986,7 @@ func (c *IAM) GetAccessKeyLastUsedRequest(input *GetAccessKeyLastUsedInput) (req
 // API operation GetAccessKeyLastUsed for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
@@ -4088,9 +4041,8 @@ func (c *IAM) GetAccountAuthorizationDetailsRequest(input *GetAccountAuthorizati
 		input = &GetAccountAuthorizationDetailsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetAccountAuthorizationDetailsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4112,7 +4064,7 @@ func (c *IAM) GetAccountAuthorizationDetailsRequest(input *GetAccountAuthorizati
 // API operation GetAccountAuthorizationDetails for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -4186,9 +4138,8 @@ func (c *IAM) GetAccountPasswordPolicyRequest(input *GetAccountPasswordPolicyInp
 		input = &GetAccountPasswordPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetAccountPasswordPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4205,11 +4156,11 @@ func (c *IAM) GetAccountPasswordPolicyRequest(input *GetAccountPasswordPolicyInp
 // API operation GetAccountPasswordPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -4258,9 +4209,8 @@ func (c *IAM) GetAccountSummaryRequest(input *GetAccountSummaryInput) (req *requ
 		input = &GetAccountSummaryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetAccountSummaryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4280,7 +4230,7 @@ func (c *IAM) GetAccountSummaryRequest(input *GetAccountSummaryInput) (req *requ
 // API operation GetAccountSummary for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -4329,9 +4279,8 @@ func (c *IAM) GetContextKeysForCustomPolicyRequest(input *GetContextKeysForCusto
 		input = &GetContextKeysForCustomPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetContextKeysForPolicyResponse{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4356,7 +4305,7 @@ func (c *IAM) GetContextKeysForCustomPolicyRequest(input *GetContextKeysForCusto
 // API operation GetContextKeysForCustomPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
@@ -4405,9 +4354,8 @@ func (c *IAM) GetContextKeysForPrincipalPolicyRequest(input *GetContextKeysForPr
 		input = &GetContextKeysForPrincipalPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetContextKeysForPolicyResponse{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4439,11 +4387,11 @@ func (c *IAM) GetContextKeysForPrincipalPolicyRequest(input *GetContextKeysForPr
 // API operation GetContextKeysForPrincipalPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
@@ -4492,9 +4440,8 @@ func (c *IAM) GetCredentialReportRequest(input *GetCredentialReportInput) (req *
 		input = &GetCredentialReportInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetCredentialReportOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4512,21 +4459,21 @@ func (c *IAM) GetCredentialReportRequest(input *GetCredentialReportInput) (req *
 // API operation GetCredentialReport for usage and error information.
 //
 // Returned Error Codes:
-//   * ReportNotPresent
+//   * ErrCodeCredentialReportNotPresentException "ReportNotPresent"
 //   The request was rejected because the credential report does not exist. To
 //   generate a credential report, use GenerateCredentialReport.
 //
-//   * ReportExpired
+//   * ErrCodeCredentialReportExpiredException "ReportExpired"
 //   The request was rejected because the most recent credential report has expired.
 //   To generate a new credential report, use GenerateCredentialReport. For more
 //   information about credential report expiration, see Getting Credential Reports
 //   (http://docs.aws.amazon.com/IAM/latest/UserGuide/credential-reports.html)
 //   in the IAM User Guide.
 //
-//   * ReportInProgress
+//   * ErrCodeCredentialReportNotReadyException "ReportInProgress"
 //   The request was rejected because the credential report is still being generated.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -4581,9 +4528,8 @@ func (c *IAM) GetGroupRequest(input *GetGroupInput) (req *request.Request, outpu
 		input = &GetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4600,11 +4546,11 @@ func (c *IAM) GetGroupRequest(input *GetGroupInput) (req *request.Request, outpu
 // API operation GetGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -4678,9 +4624,8 @@ func (c *IAM) GetGroupPolicyRequest(input *GetGroupPolicyInput) (req *request.Re
 		input = &GetGroupPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetGroupPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4712,11 +4657,11 @@ func (c *IAM) GetGroupPolicyRequest(input *GetGroupPolicyInput) (req *request.Re
 // API operation GetGroupPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -4765,9 +4710,8 @@ func (c *IAM) GetInstanceProfileRequest(input *GetInstanceProfileInput) (req *re
 		input = &GetInstanceProfileInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetInstanceProfileOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4786,11 +4730,11 @@ func (c *IAM) GetInstanceProfileRequest(input *GetInstanceProfileInput) (req *re
 // API operation GetInstanceProfile for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -4839,9 +4783,8 @@ func (c *IAM) GetLoginProfileRequest(input *GetLoginProfileInput) (req *request.
 		input = &GetLoginProfileInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetLoginProfileOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4859,11 +4802,11 @@ func (c *IAM) GetLoginProfileRequest(input *GetLoginProfileInput) (req *request.
 // API operation GetLoginProfile for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -4912,9 +4855,8 @@ func (c *IAM) GetOpenIDConnectProviderRequest(input *GetOpenIDConnectProviderInp
 		input = &GetOpenIDConnectProviderInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetOpenIDConnectProviderOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4931,15 +4873,15 @@ func (c *IAM) GetOpenIDConnectProviderRequest(input *GetOpenIDConnectProviderInp
 // API operation GetOpenIDConnectProvider for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -4988,9 +4930,8 @@ func (c *IAM) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, out
 		input = &GetPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5019,15 +4960,15 @@ func (c *IAM) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, out
 // API operation GetPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -5076,9 +5017,8 @@ func (c *IAM) GetPolicyVersionRequest(input *GetPolicyVersionInput) (req *reques
 		input = &GetPolicyVersionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetPolicyVersionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5115,15 +5055,15 @@ func (c *IAM) GetPolicyVersionRequest(input *GetPolicyVersionInput) (req *reques
 // API operation GetPolicyVersion for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -5172,9 +5112,8 @@ func (c *IAM) GetRoleRequest(input *GetRoleInput) (req *request.Request, output 
 		input = &GetRoleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetRoleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5198,11 +5137,11 @@ func (c *IAM) GetRoleRequest(input *GetRoleInput) (req *request.Request, output 
 // API operation GetRole for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -5251,9 +5190,8 @@ func (c *IAM) GetRolePolicyRequest(input *GetRolePolicyInput) (req *request.Requ
 		input = &GetRolePolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetRolePolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5288,11 +5226,11 @@ func (c *IAM) GetRolePolicyRequest(input *GetRolePolicyInput) (req *request.Requ
 // API operation GetRolePolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -5341,9 +5279,8 @@ func (c *IAM) GetSAMLProviderRequest(input *GetSAMLProviderInput) (req *request.
 		input = &GetSAMLProviderInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSAMLProviderOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5362,15 +5299,15 @@ func (c *IAM) GetSAMLProviderRequest(input *GetSAMLProviderInput) (req *request.
 // API operation GetSAMLProvider for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -5419,9 +5356,8 @@ func (c *IAM) GetSSHPublicKeyRequest(input *GetSSHPublicKeyInput) (req *request.
 		input = &GetSSHPublicKeyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSSHPublicKeyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5443,11 +5379,11 @@ func (c *IAM) GetSSHPublicKeyRequest(input *GetSSHPublicKeyInput) (req *request.
 // API operation GetSSHPublicKey for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * UnrecognizedPublicKeyEncoding
+//   * ErrCodeUnrecognizedPublicKeyEncodingException "UnrecognizedPublicKeyEncoding"
 //   The request was rejected because the public key encoding format is unsupported
 //   or unrecognized.
 //
@@ -5496,9 +5432,8 @@ func (c *IAM) GetServerCertificateRequest(input *GetServerCertificateInput) (req
 		input = &GetServerCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetServerCertificateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5519,11 +5454,11 @@ func (c *IAM) GetServerCertificateRequest(input *GetServerCertificateInput) (req
 // API operation GetServerCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -5572,9 +5507,8 @@ func (c *IAM) GetUserRequest(input *GetUserInput) (req *request.Request, output 
 		input = &GetUserInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetUserOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5594,11 +5528,11 @@ func (c *IAM) GetUserRequest(input *GetUserInput) (req *request.Request, output 
 // API operation GetUser for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -5647,9 +5581,8 @@ func (c *IAM) GetUserPolicyRequest(input *GetUserPolicyInput) (req *request.Requ
 		input = &GetUserPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetUserPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5681,11 +5614,11 @@ func (c *IAM) GetUserPolicyRequest(input *GetUserPolicyInput) (req *request.Requ
 // API operation GetUserPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -5740,9 +5673,8 @@ func (c *IAM) ListAccessKeysRequest(input *ListAccessKeysInput) (req *request.Re
 		input = &ListAccessKeysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListAccessKeysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5770,11 +5702,11 @@ func (c *IAM) ListAccessKeysRequest(input *ListAccessKeysInput) (req *request.Re
 // API operation ListAccessKeys for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -5854,9 +5786,8 @@ func (c *IAM) ListAccountAliasesRequest(input *ListAccountAliasesInput) (req *re
 		input = &ListAccountAliasesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListAccountAliasesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5875,7 +5806,7 @@ func (c *IAM) ListAccountAliasesRequest(input *ListAccountAliasesInput) (req *re
 // API operation ListAccountAliases for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -5955,9 +5886,8 @@ func (c *IAM) ListAttachedGroupPoliciesRequest(input *ListAttachedGroupPoliciesI
 		input = &ListAttachedGroupPoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListAttachedGroupPoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5984,15 +5914,15 @@ func (c *IAM) ListAttachedGroupPoliciesRequest(input *ListAttachedGroupPoliciesI
 // API operation ListAttachedGroupPolicies for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -6072,9 +6002,8 @@ func (c *IAM) ListAttachedRolePoliciesRequest(input *ListAttachedRolePoliciesInp
 		input = &ListAttachedRolePoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListAttachedRolePoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6101,15 +6030,15 @@ func (c *IAM) ListAttachedRolePoliciesRequest(input *ListAttachedRolePoliciesInp
 // API operation ListAttachedRolePolicies for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -6189,9 +6118,8 @@ func (c *IAM) ListAttachedUserPoliciesRequest(input *ListAttachedUserPoliciesInp
 		input = &ListAttachedUserPoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListAttachedUserPoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6218,15 +6146,15 @@ func (c *IAM) ListAttachedUserPoliciesRequest(input *ListAttachedUserPoliciesInp
 // API operation ListAttachedUserPolicies for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -6306,9 +6234,8 @@ func (c *IAM) ListEntitiesForPolicyRequest(input *ListEntitiesForPolicyInput) (r
 		input = &ListEntitiesForPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListEntitiesForPolicyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6332,15 +6259,15 @@ func (c *IAM) ListEntitiesForPolicyRequest(input *ListEntitiesForPolicyInput) (r
 // API operation ListEntitiesForPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -6420,9 +6347,8 @@ func (c *IAM) ListGroupPoliciesRequest(input *ListGroupPoliciesInput) (req *requ
 		input = &ListGroupPoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListGroupPoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6449,11 +6375,11 @@ func (c *IAM) ListGroupPoliciesRequest(input *ListGroupPoliciesInput) (req *requ
 // API operation ListGroupPolicies for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -6533,9 +6459,8 @@ func (c *IAM) ListGroupsRequest(input *ListGroupsInput) (req *request.Request, o
 		input = &ListGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6553,7 +6478,7 @@ func (c *IAM) ListGroupsRequest(input *ListGroupsInput) (req *request.Request, o
 // API operation ListGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -6633,9 +6558,8 @@ func (c *IAM) ListGroupsForUserRequest(input *ListGroupsForUserInput) (req *requ
 		input = &ListGroupsForUserInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListGroupsForUserOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6653,11 +6577,11 @@ func (c *IAM) ListGroupsForUserRequest(input *ListGroupsForUserInput) (req *requ
 // API operation ListGroupsForUser for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -6737,9 +6661,8 @@ func (c *IAM) ListInstanceProfilesRequest(input *ListInstanceProfilesInput) (req
 		input = &ListInstanceProfilesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListInstanceProfilesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6759,7 +6682,7 @@ func (c *IAM) ListInstanceProfilesRequest(input *ListInstanceProfilesInput) (req
 // API operation ListInstanceProfiles for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -6839,9 +6762,8 @@ func (c *IAM) ListInstanceProfilesForRoleRequest(input *ListInstanceProfilesForR
 		input = &ListInstanceProfilesForRoleInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListInstanceProfilesForRoleOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6861,11 +6783,11 @@ func (c *IAM) ListInstanceProfilesForRoleRequest(input *ListInstanceProfilesForR
 // API operation ListInstanceProfilesForRole for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -6945,9 +6867,8 @@ func (c *IAM) ListMFADevicesRequest(input *ListMFADevicesInput) (req *request.Re
 		input = &ListMFADevicesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListMFADevicesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6968,11 +6889,11 @@ func (c *IAM) ListMFADevicesRequest(input *ListMFADevicesInput) (req *request.Re
 // API operation ListMFADevices for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -7046,9 +6967,8 @@ func (c *IAM) ListOpenIDConnectProvidersRequest(input *ListOpenIDConnectProvider
 		input = &ListOpenIDConnectProvidersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListOpenIDConnectProvidersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7065,7 +6985,7 @@ func (c *IAM) ListOpenIDConnectProvidersRequest(input *ListOpenIDConnectProvider
 // API operation ListOpenIDConnectProviders for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -7120,9 +7040,8 @@ func (c *IAM) ListPoliciesRequest(input *ListPoliciesInput) (req *request.Reques
 		input = &ListPoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListPoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7150,7 +7069,7 @@ func (c *IAM) ListPoliciesRequest(input *ListPoliciesInput) (req *request.Reques
 // API operation ListPolicies for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -7230,9 +7149,8 @@ func (c *IAM) ListPolicyVersionsRequest(input *ListPolicyVersionsInput) (req *re
 		input = &ListPolicyVersionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListPolicyVersionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7253,15 +7171,15 @@ func (c *IAM) ListPolicyVersionsRequest(input *ListPolicyVersionsInput) (req *re
 // API operation ListPolicyVersions for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -7341,9 +7259,8 @@ func (c *IAM) ListRolePoliciesRequest(input *ListRolePoliciesInput) (req *reques
 		input = &ListRolePoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListRolePoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7369,11 +7286,11 @@ func (c *IAM) ListRolePoliciesRequest(input *ListRolePoliciesInput) (req *reques
 // API operation ListRolePolicies for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -7453,9 +7370,8 @@ func (c *IAM) ListRolesRequest(input *ListRolesInput) (req *request.Request, out
 		input = &ListRolesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListRolesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7475,7 +7391,7 @@ func (c *IAM) ListRolesRequest(input *ListRolesInput) (req *request.Request, out
 // API operation ListRoles for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -7549,9 +7465,8 @@ func (c *IAM) ListSAMLProvidersRequest(input *ListSAMLProvidersInput) (req *requ
 		input = &ListSAMLProvidersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListSAMLProvidersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7569,7 +7484,7 @@ func (c *IAM) ListSAMLProvidersRequest(input *ListSAMLProvidersInput) (req *requ
 // API operation ListSAMLProviders for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -7624,9 +7539,8 @@ func (c *IAM) ListSSHPublicKeysRequest(input *ListSSHPublicKeysInput) (req *requ
 		input = &ListSSHPublicKeysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListSSHPublicKeysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7652,7 +7566,7 @@ func (c *IAM) ListSSHPublicKeysRequest(input *ListSSHPublicKeysInput) (req *requ
 // API operation ListSSHPublicKeys for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
@@ -7732,9 +7646,8 @@ func (c *IAM) ListServerCertificatesRequest(input *ListServerCertificatesInput) 
 		input = &ListServerCertificatesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListServerCertificatesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7758,7 +7671,7 @@ func (c *IAM) ListServerCertificatesRequest(input *ListServerCertificatesInput) 
 // API operation ListServerCertificates for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -7832,9 +7745,8 @@ func (c *IAM) ListServiceSpecificCredentialsRequest(input *ListServiceSpecificCr
 		input = &ListServiceSpecificCredentialsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListServiceSpecificCredentialsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7856,11 +7768,11 @@ func (c *IAM) ListServiceSpecificCredentialsRequest(input *ListServiceSpecificCr
 // API operation ListServiceSpecificCredentials for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * NotSupportedService
+//   * ErrCodeServiceNotSupportedException "NotSupportedService"
 //   The specified service does not support service-specific credentials.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServiceSpecificCredentials
@@ -7914,9 +7826,8 @@ func (c *IAM) ListSigningCertificatesRequest(input *ListSigningCertificatesInput
 		input = &ListSigningCertificatesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListSigningCertificatesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7942,11 +7853,11 @@ func (c *IAM) ListSigningCertificatesRequest(input *ListSigningCertificatesInput
 // API operation ListSigningCertificates for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -8026,9 +7937,8 @@ func (c *IAM) ListUserPoliciesRequest(input *ListUserPoliciesInput) (req *reques
 		input = &ListUserPoliciesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListUserPoliciesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8053,11 +7963,11 @@ func (c *IAM) ListUserPoliciesRequest(input *ListUserPoliciesInput) (req *reques
 // API operation ListUserPolicies for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -8137,9 +8047,8 @@ func (c *IAM) ListUsersRequest(input *ListUsersInput) (req *request.Request, out
 		input = &ListUsersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListUsersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8159,7 +8068,7 @@ func (c *IAM) ListUsersRequest(input *ListUsersInput) (req *request.Request, out
 // API operation ListUsers for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -8239,9 +8148,8 @@ func (c *IAM) ListVirtualMFADevicesRequest(input *ListVirtualMFADevicesInput) (r
 		input = &ListVirtualMFADevicesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListVirtualMFADevicesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8330,11 +8238,10 @@ func (c *IAM) PutGroupPolicyRequest(input *PutGroupPolicyInput) (req *request.Re
 		input = &PutGroupPolicyInput{}
 	}
 
+	output = &PutGroupPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &PutGroupPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -8366,19 +8273,19 @@ func (c *IAM) PutGroupPolicyRequest(input *PutGroupPolicyInput) (req *request.Re
 // API operation PutGroupPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * MalformedPolicyDocument
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
 //   message describes the specific error.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -8427,11 +8334,10 @@ func (c *IAM) PutRolePolicyRequest(input *PutRolePolicyInput) (req *request.Requ
 		input = &PutRolePolicyInput{}
 	}
 
+	output = &PutRolePolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &PutRolePolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -8469,19 +8375,19 @@ func (c *IAM) PutRolePolicyRequest(input *PutRolePolicyInput) (req *request.Requ
 // API operation PutRolePolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * MalformedPolicyDocument
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
 //   message describes the specific error.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -8530,11 +8436,10 @@ func (c *IAM) PutUserPolicyRequest(input *PutUserPolicyInput) (req *request.Requ
 		input = &PutUserPolicyInput{}
 	}
 
+	output = &PutUserPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &PutUserPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -8566,19 +8471,19 @@ func (c *IAM) PutUserPolicyRequest(input *PutUserPolicyInput) (req *request.Requ
 // API operation PutUserPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * MalformedPolicyDocument
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
 //   message describes the specific error.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -8627,11 +8532,10 @@ func (c *IAM) RemoveClientIDFromOpenIDConnectProviderRequest(input *RemoveClient
 		input = &RemoveClientIDFromOpenIDConnectProviderInput{}
 	}
 
+	output = &RemoveClientIDFromOpenIDConnectProviderOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemoveClientIDFromOpenIDConnectProviderOutput{}
-	req.Data = output
 	return
 }
 
@@ -8652,15 +8556,15 @@ func (c *IAM) RemoveClientIDFromOpenIDConnectProviderRequest(input *RemoveClient
 // API operation RemoveClientIDFromOpenIDConnectProvider for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -8709,11 +8613,10 @@ func (c *IAM) RemoveRoleFromInstanceProfileRequest(input *RemoveRoleFromInstance
 		input = &RemoveRoleFromInstanceProfileInput{}
 	}
 
+	output = &RemoveRoleFromInstanceProfileOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemoveRoleFromInstanceProfileOutput{}
-	req.Data = output
 	return
 }
 
@@ -8738,15 +8641,15 @@ func (c *IAM) RemoveRoleFromInstanceProfileRequest(input *RemoveRoleFromInstance
 // API operation RemoveRoleFromInstanceProfile for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -8795,11 +8698,10 @@ func (c *IAM) RemoveUserFromGroupRequest(input *RemoveUserFromGroupInput) (req *
 		input = &RemoveUserFromGroupInput{}
 	}
 
+	output = &RemoveUserFromGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemoveUserFromGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -8815,15 +8717,15 @@ func (c *IAM) RemoveUserFromGroupRequest(input *RemoveUserFromGroupInput) (req *
 // API operation RemoveUserFromGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -8872,9 +8774,8 @@ func (c *IAM) ResetServiceSpecificCredentialRequest(input *ResetServiceSpecificC
 		input = &ResetServiceSpecificCredentialInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ResetServiceSpecificCredentialOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8893,7 +8794,7 @@ func (c *IAM) ResetServiceSpecificCredentialRequest(input *ResetServiceSpecificC
 // API operation ResetServiceSpecificCredential for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
@@ -8942,11 +8843,10 @@ func (c *IAM) ResyncMFADeviceRequest(input *ResyncMFADeviceInput) (req *request.
 		input = &ResyncMFADeviceInput{}
 	}
 
+	output = &ResyncMFADeviceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ResyncMFADeviceOutput{}
-	req.Data = output
 	return
 }
 
@@ -8967,19 +8867,19 @@ func (c *IAM) ResyncMFADeviceRequest(input *ResyncMFADeviceInput) (req *request.
 // API operation ResyncMFADevice for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidAuthenticationCode
+//   * ErrCodeInvalidAuthenticationCodeException "InvalidAuthenticationCode"
 //   The request was rejected because the authentication code was not recognized.
 //   The error message describes the specific error.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -9028,11 +8928,10 @@ func (c *IAM) SetDefaultPolicyVersionRequest(input *SetDefaultPolicyVersionInput
 		input = &SetDefaultPolicyVersionInput{}
 	}
 
+	output = &SetDefaultPolicyVersionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetDefaultPolicyVersionOutput{}
-	req.Data = output
 	return
 }
 
@@ -9057,19 +8956,19 @@ func (c *IAM) SetDefaultPolicyVersionRequest(input *SetDefaultPolicyVersionInput
 // API operation SetDefaultPolicyVersion for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -9124,9 +9023,8 @@ func (c *IAM) SimulateCustomPolicyRequest(input *SimulateCustomPolicyInput) (req
 		input = &SimulateCustomPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SimulatePolicyResponse{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9158,11 +9056,11 @@ func (c *IAM) SimulateCustomPolicyRequest(input *SimulateCustomPolicyInput) (req
 // API operation SimulateCustomPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * PolicyEvaluation
+//   * ErrCodePolicyEvaluationException "PolicyEvaluation"
 //   The request failed because a provided policy could not be successfully evaluated.
 //   An additional detail message indicates the source of the failure.
 //
@@ -9242,9 +9140,8 @@ func (c *IAM) SimulatePrincipalPolicyRequest(input *SimulatePrincipalPolicyInput
 		input = &SimulatePrincipalPolicyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SimulatePolicyResponse{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9286,15 +9183,15 @@ func (c *IAM) SimulatePrincipalPolicyRequest(input *SimulatePrincipalPolicyInput
 // API operation SimulatePrincipalPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * PolicyEvaluation
+//   * ErrCodePolicyEvaluationException "PolicyEvaluation"
 //   The request failed because a provided policy could not be successfully evaluated.
 //   An additional detail message indicates the source of the failure.
 //
@@ -9368,11 +9265,10 @@ func (c *IAM) UpdateAccessKeyRequest(input *UpdateAccessKeyInput) (req *request.
 		input = &UpdateAccessKeyInput{}
 	}
 
+	output = &UpdateAccessKeyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateAccessKeyOutput{}
-	req.Data = output
 	return
 }
 
@@ -9398,15 +9294,15 @@ func (c *IAM) UpdateAccessKeyRequest(input *UpdateAccessKeyInput) (req *request.
 // API operation UpdateAccessKey for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -9455,11 +9351,10 @@ func (c *IAM) UpdateAccountPasswordPolicyRequest(input *UpdateAccountPasswordPol
 		input = &UpdateAccountPasswordPolicyInput{}
 	}
 
+	output = &UpdateAccountPasswordPolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateAccountPasswordPolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -9484,19 +9379,19 @@ func (c *IAM) UpdateAccountPasswordPolicyRequest(input *UpdateAccountPasswordPol
 // API operation UpdateAccountPasswordPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * MalformedPolicyDocument
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
 //   message describes the specific error.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -9545,11 +9440,10 @@ func (c *IAM) UpdateAssumeRolePolicyRequest(input *UpdateAssumeRolePolicyInput) 
 		input = &UpdateAssumeRolePolicyInput{}
 	}
 
+	output = &UpdateAssumeRolePolicyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateAssumeRolePolicyOutput{}
-	req.Data = output
 	return
 }
 
@@ -9568,19 +9462,19 @@ func (c *IAM) UpdateAssumeRolePolicyRequest(input *UpdateAssumeRolePolicyInput) 
 // API operation UpdateAssumeRolePolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * MalformedPolicyDocument
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
 //   message describes the specific error.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -9629,11 +9523,10 @@ func (c *IAM) UpdateGroupRequest(input *UpdateGroupInput) (req *request.Request,
 		input = &UpdateGroupInput{}
 	}
 
+	output = &UpdateGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -9659,19 +9552,19 @@ func (c *IAM) UpdateGroupRequest(input *UpdateGroupInput) (req *request.Request,
 // API operation UpdateGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -9720,11 +9613,10 @@ func (c *IAM) UpdateLoginProfileRequest(input *UpdateLoginProfileInput) (req *re
 		input = &UpdateLoginProfileInput{}
 	}
 
+	output = &UpdateLoginProfileOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateLoginProfileOutput{}
-	req.Data = output
 	return
 }
 
@@ -9744,25 +9636,25 @@ func (c *IAM) UpdateLoginProfileRequest(input *UpdateLoginProfileInput) (req *re
 // API operation UpdateLoginProfile for usage and error information.
 //
 // Returned Error Codes:
-//   * EntityTemporarilyUnmodifiable
+//   * ErrCodeEntityTemporarilyUnmodifiableException "EntityTemporarilyUnmodifiable"
 //   The request was rejected because it referenced an entity that is temporarily
 //   unmodifiable, such as a user name that was deleted and then recreated. The
 //   error indicates that the request is likely to succeed if you try again after
 //   waiting several minutes. The error message describes the entity.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * PasswordPolicyViolation
+//   * ErrCodePasswordPolicyViolationException "PasswordPolicyViolation"
 //   The request was rejected because the provided password did not meet the requirements
 //   imposed by the account password policy.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -9811,11 +9703,10 @@ func (c *IAM) UpdateOpenIDConnectProviderThumbprintRequest(input *UpdateOpenIDCo
 		input = &UpdateOpenIDConnectProviderThumbprintInput{}
 	}
 
+	output = &UpdateOpenIDConnectProviderThumbprintOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateOpenIDConnectProviderThumbprintOutput{}
-	req.Data = output
 	return
 }
 
@@ -9845,15 +9736,15 @@ func (c *IAM) UpdateOpenIDConnectProviderThumbprintRequest(input *UpdateOpenIDCo
 // API operation UpdateOpenIDConnectProviderThumbprint for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -9902,9 +9793,8 @@ func (c *IAM) UpdateSAMLProviderRequest(input *UpdateSAMLProviderInput) (req *re
 		input = &UpdateSAMLProviderInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateSAMLProviderOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9922,19 +9812,19 @@ func (c *IAM) UpdateSAMLProviderRequest(input *UpdateSAMLProviderInput) (req *re
 // API operation UpdateSAMLProvider for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * InvalidInput
+//   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
 //   for an input parameter.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -9983,11 +9873,10 @@ func (c *IAM) UpdateSSHPublicKeyRequest(input *UpdateSSHPublicKeyInput) (req *re
 		input = &UpdateSSHPublicKeyInput{}
 	}
 
+	output = &UpdateSSHPublicKeyOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateSSHPublicKeyOutput{}
-	req.Data = output
 	return
 }
 
@@ -10012,7 +9901,7 @@ func (c *IAM) UpdateSSHPublicKeyRequest(input *UpdateSSHPublicKeyInput) (req *re
 // API operation UpdateSSHPublicKey for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
@@ -10061,11 +9950,10 @@ func (c *IAM) UpdateServerCertificateRequest(input *UpdateServerCertificateInput
 		input = &UpdateServerCertificateInput{}
 	}
 
+	output = &UpdateServerCertificateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateServerCertificateOutput{}
-	req.Data = output
 	return
 }
 
@@ -10099,19 +9987,19 @@ func (c *IAM) UpdateServerCertificateRequest(input *UpdateServerCertificateInput
 // API operation UpdateServerCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -10160,11 +10048,10 @@ func (c *IAM) UpdateServiceSpecificCredentialRequest(input *UpdateServiceSpecifi
 		input = &UpdateServiceSpecificCredentialInput{}
 	}
 
+	output = &UpdateServiceSpecificCredentialOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateServiceSpecificCredentialOutput{}
-	req.Data = output
 	return
 }
 
@@ -10183,7 +10070,7 @@ func (c *IAM) UpdateServiceSpecificCredentialRequest(input *UpdateServiceSpecifi
 // API operation UpdateServiceSpecificCredential for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
@@ -10232,11 +10119,10 @@ func (c *IAM) UpdateSigningCertificateRequest(input *UpdateSigningCertificateInp
 		input = &UpdateSigningCertificateInput{}
 	}
 
+	output = &UpdateSigningCertificateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateSigningCertificateOutput{}
-	req.Data = output
 	return
 }
 
@@ -10259,15 +10145,15 @@ func (c *IAM) UpdateSigningCertificateRequest(input *UpdateSigningCertificateInp
 // API operation UpdateSigningCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -10316,11 +10202,10 @@ func (c *IAM) UpdateUserRequest(input *UpdateUserInput) (req *request.Request, o
 		input = &UpdateUserInput{}
 	}
 
+	output = &UpdateUserOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UpdateUserOutput{}
-	req.Data = output
 	return
 }
 
@@ -10347,25 +10232,25 @@ func (c *IAM) UpdateUserRequest(input *UpdateUserInput) (req *request.Request, o
 // API operation UpdateUser for usage and error information.
 //
 // Returned Error Codes:
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * EntityTemporarilyUnmodifiable
+//   * ErrCodeEntityTemporarilyUnmodifiableException "EntityTemporarilyUnmodifiable"
 //   The request was rejected because it referenced an entity that is temporarily
 //   unmodifiable, such as a user name that was deleted and then recreated. The
 //   error indicates that the request is likely to succeed if you try again after
 //   waiting several minutes. The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -10414,9 +10299,8 @@ func (c *IAM) UploadSSHPublicKeyRequest(input *UploadSSHPublicKeyInput) (req *re
 		input = &UploadSSHPublicKeyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UploadSSHPublicKeyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10438,23 +10322,23 @@ func (c *IAM) UploadSSHPublicKeyRequest(input *UploadSSHPublicKeyInput) (req *re
 // API operation UploadSSHPublicKey for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * InvalidPublicKey
+//   * ErrCodeInvalidPublicKeyException "InvalidPublicKey"
 //   The request was rejected because the public key is malformed or otherwise
 //   invalid.
 //
-//   * DuplicateSSHPublicKey
+//   * ErrCodeDuplicateSSHPublicKeyException "DuplicateSSHPublicKey"
 //   The request was rejected because the SSH public key is already associated
 //   with the specified IAM user.
 //
-//   * UnrecognizedPublicKeyEncoding
+//   * ErrCodeUnrecognizedPublicKeyEncodingException "UnrecognizedPublicKeyEncoding"
 //   The request was rejected because the public key encoding format is unsupported
 //   or unrecognized.
 //
@@ -10503,9 +10387,8 @@ func (c *IAM) UploadServerCertificateRequest(input *UploadServerCertificateInput
 		input = &UploadServerCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UploadServerCertificateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10514,6 +10397,12 @@ func (c *IAM) UploadServerCertificateRequest(input *UploadServerCertificateInput
 // Uploads a server certificate entity for the AWS account. The server certificate
 // entity includes a public key certificate, a private key, and an optional
 // certificate chain, which should all be PEM-encoded.
+//
+// We recommend that you use AWS Certificate Manager (https://aws.amazon.com/certificate-manager/)
+// to provision, manage, and deploy your server certificates. With ACM you can
+// request a certificate, deploy it to AWS resources, and let ACM handle certificate
+// renewals for you. Certificates provided by ACM are free. For more information
+// about using ACM, see the AWS Certificate Manager User Guide (http://docs.aws.amazon.com/acm/latest/userguide/).
 //
 // For more information about working with server certificates, including a
 // list of AWS services that can use the server certificates that you manage
@@ -10540,23 +10429,23 @@ func (c *IAM) UploadServerCertificateRequest(input *UploadServerCertificateInput
 // API operation UploadServerCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * MalformedCertificate
+//   * ErrCodeMalformedCertificateException "MalformedCertificate"
 //   The request was rejected because the certificate was malformed or expired.
 //   The error message describes the specific error.
 //
-//   * KeyPairMismatch
+//   * ErrCodeKeyPairMismatchException "KeyPairMismatch"
 //   The request was rejected because the public key certificate and the private
 //   key do not match.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -10605,9 +10494,8 @@ func (c *IAM) UploadSigningCertificateRequest(input *UploadSigningCertificateInp
 		input = &UploadSigningCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UploadSigningCertificateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10639,30 +10527,30 @@ func (c *IAM) UploadSigningCertificateRequest(input *UploadSigningCertificateInp
 // API operation UploadSigningCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
 //   the current AWS account limits. The error message describes the limit exceeded.
 //
-//   * EntityAlreadyExists
+//   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * MalformedCertificate
+//   * ErrCodeMalformedCertificateException "MalformedCertificate"
 //   The request was rejected because the certificate was malformed or expired.
 //   The error message describes the specific error.
 //
-//   * InvalidCertificate
+//   * ErrCodeInvalidCertificateException "InvalidCertificate"
 //   The request was rejected because the certificate is invalid.
 //
-//   * DuplicateCertificate
+//   * ErrCodeDuplicateCertificateException "DuplicateCertificate"
 //   The request was rejected because the same certificate is associated with
 //   an IAM user in the account.
 //
-//   * NoSuchEntity
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced an entity that does not exist.
 //   The error message describes the entity.
 //
-//   * ServiceFailure
+//   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
 //   or failure.
 //
@@ -11426,14 +11314,14 @@ type ChangePasswordInput struct {
 	// The new password. The new password must conform to the AWS account's password
 	// policy, if one exists.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of almost any printable ASCII character
-	// from the space (\u0020) through the end of the ASCII character range (\u00FF).
-	// You can also include the tab (\u0009), line feed (\u000A), and carriage return
-	// (\u000D) characters. Although any of these characters are valid in a password,
-	// note that many tools, such as the AWS Management Console, might restrict
-	// the ability to enter certain characters because they have special meaning
-	// within that tool.
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of almost any printable ASCII
+	// character from the space (\u0020) through the end of the ASCII character
+	// range (\u00FF). You can also include the tab (\u0009), line feed (\u000A),
+	// and carriage return (\u000D) characters. Although any of these characters
+	// are valid in a password, note that many tools, such as the AWS Management
+	// Console, might restrict the ability to enter certain characters because they
+	// have special meaning within that tool.
 	//
 	// NewPassword is a required field
 	NewPassword *string `min:"1" type:"string" required:"true"`
@@ -11899,14 +11787,14 @@ type CreateLoginProfileInput struct {
 
 	// The new password for the user.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of almost any printable ASCII character
-	// from the space (\u0020) through the end of the ASCII character range (\u00FF).
-	// You can also include the tab (\u0009), line feed (\u000A), and carriage return
-	// (\u000D) characters. Although any of these characters are valid in a password,
-	// note that many tools, such as the AWS Management Console, might restrict
-	// the ability to enter certain characters because they have special meaning
-	// within that tool.
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of almost any printable ASCII
+	// character from the space (\u0020) through the end of the ASCII character
+	// range (\u00FF). You can also include the tab (\u0009), line feed (\u000A),
+	// and carriage return (\u000D) characters. Although any of these characters
+	// are valid in a password, note that many tools, such as the AWS Management
+	// Console, might restrict the ability to enter certain characters because they
+	// have special meaning within that tool.
 	//
 	// Password is a required field
 	Password *string `min:"1" type:"string" required:"true"`
@@ -12160,11 +12048,12 @@ type CreatePolicyInput struct {
 	// The JSON policy document that you want to use as the content for the new
 	// policy.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	//
 	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
@@ -12277,11 +12166,12 @@ type CreatePolicyVersionInput struct {
 	// The JSON policy document that you want to use as the content for this new
 	// version of the policy.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	//
 	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
@@ -12380,11 +12270,12 @@ type CreateRoleInput struct {
 	// The trust relationship policy document that grants an entity permission to
 	// assume the role.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	//
 	// AssumeRolePolicyDocument is a required field
 	AssumeRolePolicyDocument *string `min:"1" type:"string" required:"true"`
@@ -14719,6 +14610,11 @@ type EvaluationResult struct {
 	// call GetContextKeysForCustomPolicy or GetContextKeysForPrincipalPolicy.
 	MissingContextValues []*string `type:"list"`
 
+	// A structure that details how AWS Organizations and its service control policies
+	// affect the results of the simulation. Only applies if the simulated user's
+	// account is part of an organization.
+	OrganizationsDecisionDetail *OrganizationsDecisionDetail `type:"structure"`
+
 	// The individual results of the simulation of the API action specified in EvalActionName
 	// on each resource.
 	ResourceSpecificResults []*ResourceSpecificResult `type:"list"`
@@ -14767,6 +14663,12 @@ func (s *EvaluationResult) SetMatchedStatements(v []*Statement) *EvaluationResul
 // SetMissingContextValues sets the MissingContextValues field's value.
 func (s *EvaluationResult) SetMissingContextValues(v []*string) *EvaluationResult {
 	s.MissingContextValues = v
+	return s
+}
+
+// SetOrganizationsDecisionDetail sets the OrganizationsDecisionDetail field's value.
+func (s *EvaluationResult) SetOrganizationsDecisionDetail(v *OrganizationsDecisionDetail) *EvaluationResult {
+	s.OrganizationsDecisionDetail = v
 	return s
 }
 
@@ -15149,11 +15051,12 @@ type GetContextKeysForCustomPolicyInput struct {
 	// in those policies. Each document is specified as a string containing the
 	// complete, valid JSON text of an IAM policy.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	//
 	// PolicyInputList is a required field
 	PolicyInputList []*string `type:"list" required:"true"`
@@ -15221,11 +15124,12 @@ type GetContextKeysForPrincipalPolicyInput struct {
 	// An optional list of additional policies for which you want the list of context
 	// keys that are referenced.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	PolicyInputList []*string `type:"list"`
 
 	// The ARN of a user, group, or role whose policies contain the context keys
@@ -20339,6 +20243,32 @@ func (s *OpenIDConnectProviderListEntry) SetArn(v string) *OpenIDConnectProvider
 	return s
 }
 
+// Contains information about AWS Organizations's affect on a policy simulation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/OrganizationsDecisionDetail
+type OrganizationsDecisionDetail struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies whether the simulated action is allowed by the AWS Organizations
+	// service control policies that impact the simulated user's account.
+	AllowedByOrganizations *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s OrganizationsDecisionDetail) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OrganizationsDecisionDetail) GoString() string {
+	return s.String()
+}
+
+// SetAllowedByOrganizations sets the AllowedByOrganizations field's value.
+func (s *OrganizationsDecisionDetail) SetAllowedByOrganizations(v bool) *OrganizationsDecisionDetail {
+	s.AllowedByOrganizations = &v
+	return s
+}
+
 // Contains information about the account password policy.
 //
 // This data type is used as a response element in the GetAccountPasswordPolicy
@@ -20872,11 +20802,12 @@ type PutGroupPolicyInput struct {
 
 	// The policy document.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	//
 	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
@@ -20968,11 +20899,12 @@ type PutRolePolicyInput struct {
 
 	// The policy document.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	//
 	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
@@ -21073,11 +21005,12 @@ type PutUserPolicyInput struct {
 
 	// The policy document.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	//
 	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
@@ -22636,11 +22569,12 @@ type SimulateCustomPolicyInput struct {
 	// or one of the AssumeRole (http://docs.aws.amazon.com/IAM/latest/APIReference/API_AssumeRole.html)
 	// APIs to restrict what a user can do while using the temporary credentials.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	//
 	// PolicyInputList is a required field
 	PolicyInputList []*string `type:"list" required:"true"`
@@ -22719,11 +22653,12 @@ type SimulateCustomPolicyInput struct {
 	// Each resource in the simulation is treated as if it had this policy attached.
 	// You can include only one resource-based policy in a simulation.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	ResourcePolicy *string `min:"1" type:"string"`
 }
 
@@ -22947,11 +22882,12 @@ type SimulatePrincipalPolicyInput struct {
 	// Each document is specified as a string containing the complete, valid JSON
 	// text of an IAM policy.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	PolicyInputList []*string `type:"list"`
 
 	// The Amazon Resource Name (ARN) of a user, group, or role whose policies you
@@ -23038,11 +22974,12 @@ type SimulatePrincipalPolicyInput struct {
 	// Each resource in the simulation is treated as if it had this policy attached.
 	// You can include only one resource-based policy in a simulation.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	ResourcePolicy *string `min:"1" type:"string"`
 }
 
@@ -23484,11 +23421,12 @@ type UpdateAssumeRolePolicyInput struct {
 
 	// The policy that grants an entity permission to assume the role.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	//
 	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
@@ -23664,13 +23602,14 @@ type UpdateLoginProfileInput struct {
 
 	// The new password for the specified IAM user.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D). However, the format can be further
-	// restricted by the account administrator by setting a password policy on the
-	// AWS account. For more information, see UpdateAccountPasswordPolicy.
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D). However,
+	// the format can be further restricted by the account administrator by setting
+	// a password policy on the AWS account. For more information, see UpdateAccountPasswordPolicy.
 	Password *string `min:"1" type:"string"`
 
 	// Allows this new password to be used only once by requiring the specified
@@ -24406,11 +24345,12 @@ type UploadSSHPublicKeyInput struct {
 	// The SSH public key. The public key must be encoded in ssh-rsa format or PEM
 	// format.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	//
 	// SSHPublicKeyBody is a required field
 	SSHPublicKeyBody *string `min:"1" type:"string" required:"true"`
@@ -24500,11 +24440,12 @@ type UploadServerCertificateInput struct {
 
 	// The contents of the public key certificate in PEM-encoded format.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	//
 	// CertificateBody is a required field
 	CertificateBody *string `min:"1" type:"string" required:"true"`
@@ -24512,11 +24453,12 @@ type UploadServerCertificateInput struct {
 	// The contents of the certificate chain. This is typically a concatenation
 	// of the PEM-encoded public key certificates of the chain.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	CertificateChain *string `min:"1" type:"string"`
 
 	// The path for the server certificate. For more information about paths, see
@@ -24538,11 +24480,12 @@ type UploadServerCertificateInput struct {
 
 	// The contents of the private key in PEM-encoded format.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	//
 	// PrivateKey is a required field
 	PrivateKey *string `min:"1" type:"string" required:"true"`
@@ -24664,11 +24607,12 @@ type UploadSigningCertificateInput struct {
 
 	// The contents of the signing certificate.
 	//
-	// This parameter allows (per its regex pattern (http://wikipedia.org/wiki/regex))
-	// a string of characters consisting of any printable ASCII character ranging
-	// from the space character (\u0020) through end of the ASCII character range
-	// (\u00FF). It also includes the special characters tab (\u0009), line feed
-	// (\u000A), and carriage return (\u000D).
+	// The regex pattern (http://wikipedia.org/wiki/regex) used to validate this
+	// parameter is a string of characters consisting of any printable ASCII character
+	// ranging from the space character (\u0020) through end of the ASCII character
+	// range as well as the printable characters in the Basic Latin and Latin-1
+	// Supplement character set (through \u00FF). It also includes the special characters
+	// tab (\u0009), line feed (\u000A), and carriage return (\u000D).
 	//
 	// CertificateBody is a required field
 	CertificateBody *string `min:"1" type:"string" required:"true"`
@@ -24965,7 +24909,7 @@ func (s *UserDetail) SetUserPolicyList(v []*PolicyDetail) *UserDetail {
 type VirtualMFADevice struct {
 	_ struct{} `type:"structure"`
 
-	// The Base32 seed defined as specified in RFC3548 (http://www.ietf.org/rfc/rfc3548.txt).
+	// The Base32 seed defined as specified in RFC3548 (https://tools.ietf.org/html/rfc3548.txt).
 	// The Base32StringSeed is Base64-encoded.
 	//
 	// Base32StringSeed is automatically base64 encoded/decoded by the SDK.

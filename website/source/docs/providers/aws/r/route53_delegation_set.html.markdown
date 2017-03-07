@@ -14,17 +14,17 @@ Provides a [Route53 Delegation Set](https://docs.aws.amazon.com/Route53/latest/A
 
 ```
 resource "aws_route53_delegation_set" "main" {
-    reference_name = "DynDNS"
+  reference_name = "DynDNS"
 }
 
 resource "aws_route53_zone" "primary" {
-    name = "hashicorp.com"
-    delegation_set_id = "${aws_route53_delegation_set.main.id}"
+  name              = "hashicorp.com"
+  delegation_set_id = "${aws_route53_delegation_set.main.id}"
 }
 
 resource "aws_route53_zone" "secondary" {
-    name = "terraform.io"
-    delegation_set_id = "${aws_route53_delegation_set.main.id}"
+  name              = "terraform.io"
+  delegation_set_id = "${aws_route53_delegation_set.main.id}"
 }
 ```
 
@@ -47,7 +47,7 @@ The following attributes are exported:
 
 ## Import
 
-Route53 Delegation Sets can be imported using the `delegation set id`, e.g. 
+Route53 Delegation Sets can be imported using the `delegation set id`, e.g.
 
 ```
 $ terraform import aws_route53_delegation_set.set1 N1PA6795SAMPLE

@@ -5,9 +5,7 @@ import (
 	"log"
 	"net"
 	"regexp"
-	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/googleapi"
@@ -90,6 +88,14 @@ func resourceContainerCluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+
+			"additional_zones": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			"cluster_ipv4_cidr": &schema.Schema{
@@ -282,6 +288,20 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 		cluster.InitialClusterVersion = v.(string)
 	}
 
+	if v, ok := d.GetOk("additional_zones"); ok {
+		locationsList := v.([]interface{})
+		locations := []string{}
+		for _, v := range locationsList {
+			location := v.(string)
+			locations = append(locations, location)
+			if location == zoneName {
+				return fmt.Errorf("additional_zones should not contain the original 'zone'.")
+			}
+		}
+		locations = append(locations, zoneName)
+		cluster.Locations = locations
+	}
+
 	if v, ok := d.GetOk("cluster_ipv4_cidr"); ok {
 		cluster.ClusterIpv4Cidr = v.(string)
 	}
@@ -367,23 +387,11 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	// Wait until it's created
-	wait := resource.StateChangeConf{
-		Pending:    []string{"PENDING", "RUNNING"},
-		Target:     []string{"DONE"},
-		Timeout:    30 * time.Minute,
-		MinTimeout: 3 * time.Second,
-		Refresh: func() (interface{}, string, error) {
-			resp, err := config.clientContainer.Projects.Zones.Operations.Get(
-				project, zoneName, op.Name).Do()
-			log.Printf("[DEBUG] Progress of creating GKE cluster %s: %s",
-				clusterName, resp.Status)
-			return resp, resp.Status, err
-		},
-	}
-
-	_, err = wait.WaitForState()
-	if err != nil {
-		return err
+	waitErr := containerOperationWait(config, op, project, zoneName, "creating GKE cluster", 30, 3)
+	if waitErr != nil {
+		// The resource didn't actually create
+		d.SetId("")
+		return waitErr
 	}
 
 	log.Printf("[INFO] GKE cluster %s has been created", clusterName)
@@ -419,6 +427,17 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 
 	d.Set("name", cluster.Name)
 	d.Set("zone", cluster.Zone)
+
+	locations := []string{}
+	if len(cluster.Locations) > 1 {
+		for _, location := range cluster.Locations {
+			if location != cluster.Zone {
+				locations = append(locations, location)
+			}
+		}
+	}
+	d.Set("additional_zones", locations)
+
 	d.Set("endpoint", cluster.Endpoint)
 
 	masterAuth := []map[string]interface{}{
@@ -470,24 +489,9 @@ func resourceContainerClusterUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	// Wait until it's updated
-	wait := resource.StateChangeConf{
-		Pending:    []string{"PENDING", "RUNNING"},
-		Target:     []string{"DONE"},
-		Timeout:    10 * time.Minute,
-		MinTimeout: 2 * time.Second,
-		Refresh: func() (interface{}, string, error) {
-			log.Printf("[DEBUG] Checking if GKE cluster %s is updated", clusterName)
-			resp, err := config.clientContainer.Projects.Zones.Operations.Get(
-				project, zoneName, op.Name).Do()
-			log.Printf("[DEBUG] Progress of updating GKE cluster %s: %s",
-				clusterName, resp.Status)
-			return resp, resp.Status, err
-		},
-	}
-
-	_, err = wait.WaitForState()
-	if err != nil {
-		return err
+	waitErr := containerOperationWait(config, op, project, zoneName, "updating GKE cluster", 10, 2)
+	if waitErr != nil {
+		return waitErr
 	}
 
 	log.Printf("[INFO] GKE cluster %s has been updated to %s", d.Id(),
@@ -515,24 +519,9 @@ func resourceContainerClusterDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	// Wait until it's deleted
-	wait := resource.StateChangeConf{
-		Pending:    []string{"PENDING", "RUNNING"},
-		Target:     []string{"DONE"},
-		Timeout:    10 * time.Minute,
-		MinTimeout: 3 * time.Second,
-		Refresh: func() (interface{}, string, error) {
-			log.Printf("[DEBUG] Checking if GKE cluster %s is deleted", clusterName)
-			resp, err := config.clientContainer.Projects.Zones.Operations.Get(
-				project, zoneName, op.Name).Do()
-			log.Printf("[DEBUG] Progress of deleting GKE cluster %s: %s",
-				clusterName, resp.Status)
-			return resp, resp.Status, err
-		},
-	}
-
-	_, err = wait.WaitForState()
-	if err != nil {
-		return err
+	waitErr := containerOperationWait(config, op, project, zoneName, "deleting GKE cluster", 10, 3)
+	if waitErr != nil {
+		return waitErr
 	}
 
 	log.Printf("[INFO] GKE cluster %s has been deleted", d.Id())

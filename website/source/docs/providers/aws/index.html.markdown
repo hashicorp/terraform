@@ -19,14 +19,14 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the AWS Provider
 provider "aws" {
-    access_key = "${var.aws_access_key}"
-    secret_key = "${var.aws_secret_key}"
-    region = "us-east-1"
+  access_key = "${var.aws_access_key}"
+  secret_key = "${var.aws_secret_key}"
+  region     = "us-east-1"
 }
 
 # Create a web server
 resource "aws_instance" "web" {
-    ...
+  # ...
 }
 ```
 
@@ -93,9 +93,9 @@ Usage:
 
 ```
 provider "aws" {
-  region                   = "us-west-2"
-  shared_credentials_file  = "/Users/tf_user/.aws/creds"
-  profile                  = "customprofile"
+  region                  = "us-west-2"
+  shared_credentials_file = "/Users/tf_user/.aws/creds"
+  profile                 = "customprofile"
 }
 ```
 
@@ -123,9 +123,9 @@ Usage:
 ```
 provider "aws" {
   assume_role {
-    role_arn = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
+    role_arn     = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
     session_name = "SESSION_NAME"
-    external_id = "EXTERNAL_ID"
+    external_id  = "EXTERNAL_ID"
   }
 }
 ```
@@ -188,6 +188,10 @@ The following arguments are supported in the `provider` block:
   validation via the STS API. Useful for AWS API implementations that do
   not have STS available or implemented.
 
+* `skip_region_validation` - (Optional) Skip validation of provided region name.
+  Useful for AWS-like implementations that use their own region names
+  or to bypass the validation for regions that aren't publicly available yet.
+
 * `skip_requesting_account_id` - (Optional) Skip requesting the account
   ID.  Useful for AWS API implementations that do not have the IAM, STS
   API, or metadata API.  When set to `true`, prevents you from managing
@@ -226,6 +230,11 @@ The nested `assume_role` block supports the following:
 
 * `external_id` - (Optional) The external ID to use when making the
   AssumeRole call.
+
+* `policy` - (Optional) A more restrictive policy to apply to the temporary credentials.
+This gives you a way to further restrict the permissions for the resulting temporary
+security credentials. You cannot use the passed policy to grant permissions that are
+in excess of those allowed by the access policy of the role that is being assumed.
 
 Nested `endpoints` block supports the following:
 

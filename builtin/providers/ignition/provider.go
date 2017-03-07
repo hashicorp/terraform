@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/url"
 	"sync"
 
@@ -18,7 +17,7 @@ import (
 
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
-		ResourcesMap: map[string]*schema.Resource{
+		DataSourcesMap: map[string]*schema.Resource{
 			"ignition_config":        resourceConfig(),
 			"ignition_disk":          resourceDisk(),
 			"ignition_raid":          resourceRaid(),
@@ -28,6 +27,44 @@ func Provider() terraform.ResourceProvider {
 			"ignition_networkd_unit": resourceNetworkdUnit(),
 			"ignition_user":          resourceUser(),
 			"ignition_group":         resourceGroup(),
+		},
+		ResourcesMap: map[string]*schema.Resource{
+			"ignition_config": schema.DataSourceResourceShim(
+				"ignition_config",
+				resourceConfig(),
+			),
+			"ignition_disk": schema.DataSourceResourceShim(
+				"ignition_disk",
+				resourceDisk(),
+			),
+			"ignition_raid": schema.DataSourceResourceShim(
+				"ignition_raid",
+				resourceRaid(),
+			),
+			"ignition_filesystem": schema.DataSourceResourceShim(
+				"ignition_filesystem",
+				resourceFilesystem(),
+			),
+			"ignition_file": schema.DataSourceResourceShim(
+				"ignition_file",
+				resourceFile(),
+			),
+			"ignition_systemd_unit": schema.DataSourceResourceShim(
+				"ignition_systemd_unit",
+				resourceSystemdUnit(),
+			),
+			"ignition_networkd_unit": schema.DataSourceResourceShim(
+				"ignition_networkd_unit",
+				resourceNetworkdUnit(),
+			),
+			"ignition_user": schema.DataSourceResourceShim(
+				"ignition_user",
+				resourceUser(),
+			),
+			"ignition_group": schema.DataSourceResourceShim(
+				"ignition_group",
+				resourceGroup(),
+			),
 		},
 		ConfigureFunc: func(*schema.ResourceData) (interface{}, error) {
 			return &cache{
@@ -166,23 +203,20 @@ func getUInt(d *schema.ResourceData, key string) *uint {
 	return uid
 }
 
-func validateUnit(content string) error {
-	r := bytes.NewBuffer([]byte(content))
+var errEmptyUnit = fmt.Errorf("invalid or empty unit content")
 
-	u, err := unit.Deserialize(r)
-	if len(u) == 0 {
-		return fmt.Errorf("invalid or empty unit content")
+func validateUnitContent(content string) error {
+	c := bytes.NewBufferString(content)
+	unit, err := unit.Deserialize(c)
+	if err != nil {
+		return fmt.Errorf("invalid unit content: %s", err)
 	}
 
-	if err == nil {
-		return nil
+	if len(unit) == 0 {
+		return errEmptyUnit
 	}
 
-	if err == io.EOF {
-		return fmt.Errorf("unexpected EOF reading unit content")
-	}
-
-	return err
+	return nil
 }
 
 func buildURL(raw string) (types.Url, error) {

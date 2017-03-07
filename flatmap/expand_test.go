@@ -3,6 +3,8 @@ package flatmap
 import (
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/hil"
 )
 
 func TestExpand(t *testing.T) {
@@ -104,6 +106,45 @@ func TestExpand(t *testing.T) {
 			Output: map[string]interface{}{
 				"list1": []interface{}{"a", "b"},
 				"list2": []interface{}{"c"},
+			},
+		},
+
+		{
+			Map: map[string]string{
+				"set.#":    "3",
+				"set.1234": "a",
+				"set.1235": "b",
+				"set.1236": "c",
+			},
+			Key:    "set",
+			Output: []interface{}{"a", "b", "c"},
+		},
+
+		{
+			Map: map[string]string{
+				"computed_set.#":       "1",
+				"computed_set.~1234.a": "a",
+				"computed_set.~1234.b": "b",
+				"computed_set.~1234.c": "c",
+			},
+			Key: "computed_set",
+			Output: []interface{}{
+				map[string]interface{}{"a": "a", "b": "b", "c": "c"},
+			},
+		},
+
+		{
+			Map: map[string]string{
+				"struct.#":         "1",
+				"struct.0.name":    "hello",
+				"struct.0.rules.#": hil.UnknownValue,
+			},
+			Key: "struct",
+			Output: []interface{}{
+				map[string]interface{}{
+					"name":  "hello",
+					"rules": hil.UnknownValue,
+				},
 			},
 		},
 	}

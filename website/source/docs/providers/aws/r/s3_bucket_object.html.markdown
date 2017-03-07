@@ -16,10 +16,10 @@ Provides a S3 bucket object resource.
 
 ```
 resource "aws_s3_bucket_object" "object" {
-	bucket = "your_bucket_name"
-	key = "new_object_key"
-	source = "path/to/file"
-	etag = "${md5(file("path/to/file"))}"
+  bucket = "your_bucket_name"
+  key    = "new_object_key"
+  source = "path/to/file"
+  etag   = "${md5(file("path/to/file"))}"
 }
 ```
 
@@ -44,6 +44,22 @@ resource "aws_s3_bucket_object" "examplebucket_object" {
 }
 ```
 
+### Server Side Encryption with S3 Default Master Key
+
+```
+resource "aws_s3_bucket" "examplebucket" {
+  bucket = "examplebuckettftest"
+  acl    = "private"
+}
+
+resource "aws_s3_bucket_object" "examplebucket_object" {
+  key                    = "someobject"
+  bucket                 = "${aws_s3_bucket.examplebucket.bucket}"
+  source                 = "index.html"
+  server_side_encryption = "aws:kms"
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -62,10 +78,12 @@ The following arguments are supported:
 for the object. Can be either "`STANDARD`", "`REDUCED_REDUNDANCY`", or "`STANDARD_IA`". Defaults to "`STANDARD`".
 * `etag` - (Optional) Used to trigger updates. The only meaningful value is `${md5(file("path/to/file"))}`.
 This attribute is not compatible with `kms_key_id`.
+* `server_side_encryption` - (Optional) Specifies server-side encryption of the object in S3. Valid values are "`AES256`" and "`aws:kms`".
 * `kms_key_id` - (Optional) Specifies the AWS KMS Key ARN to use for object encryption.
 This value is a fully qualified **ARN** of the KMS Key. If using `aws_kms_key`,
-use the exported `arn` attribute:  
+use the exported `arn` attribute:
       `kms_key_id = "${aws_kms_key.foo.arn}"`
+* `tags` - (Optional) A mapping of tags to assign to the object.
 
 Either `source` or `content` must be provided to specify the bucket content.
 These two arguments are mutually-exclusive.

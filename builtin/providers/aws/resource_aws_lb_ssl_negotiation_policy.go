@@ -127,6 +127,10 @@ func resourceAwsLBSSLNegotiationPolicyRead(d *schema.ResourceData, meta interfac
 			// The policy is gone.
 			d.SetId("")
 			return nil
+		} else if isLoadBalancerNotFound(err) {
+			// The ELB is gone now, so just remove it from the state
+			d.SetId("")
+			return nil
 		}
 		return fmt.Errorf("Error retrieving policy: %s", err)
 	}

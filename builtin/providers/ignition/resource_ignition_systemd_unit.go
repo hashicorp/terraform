@@ -7,44 +7,42 @@ import (
 
 func resourceSystemdUnit() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceSystemdUnitCreate,
-		Delete: resourceSystemdUnitDelete,
 		Exists: resourceSystemdUnitExists,
 		Read:   resourceSystemdUnitRead,
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"enable": &schema.Schema{
+			"enable": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 				ForceNew: true,
 			},
-			"mask": &schema.Schema{
+			"mask": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
-			"content": &schema.Schema{
+			"content": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
-			"dropin": &schema.Schema{
+			"dropin": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
-						"content": &schema.Schema{
+						"content": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
@@ -56,18 +54,13 @@ func resourceSystemdUnit() *schema.Resource {
 	}
 }
 
-func resourceSystemdUnitCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceSystemdUnitRead(d *schema.ResourceData, meta interface{}) error {
 	id, err := buildSystemdUnit(d, meta.(*cache))
 	if err != nil {
 		return err
 	}
 
 	d.SetId(id)
-	return nil
-}
-
-func resourceSystemdUnitDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
 	return nil
 }
 
@@ -80,20 +73,12 @@ func resourceSystemdUnitExists(d *schema.ResourceData, meta interface{}) (bool, 
 	return id == d.Id(), nil
 }
 
-func resourceSystemdUnitRead(d *schema.ResourceData, meta interface{}) error {
-	return nil
-}
-
 func buildSystemdUnit(d *schema.ResourceData, c *cache) (string, error) {
-	if err := validateUnit(d.Get("content").(string)); err != nil {
-		return "", err
-	}
-
 	var dropins []types.SystemdUnitDropIn
 	for _, raw := range d.Get("dropin").([]interface{}) {
 		value := raw.(map[string]interface{})
 
-		if err := validateUnit(value["content"].(string)); err != nil {
+		if err := validateUnitContent(value["content"].(string)); err != nil {
 			return "", err
 		}
 
@@ -101,6 +86,12 @@ func buildSystemdUnit(d *schema.ResourceData, c *cache) (string, error) {
 			Name:     types.SystemdUnitDropInName(value["name"].(string)),
 			Contents: value["content"].(string),
 		})
+	}
+
+	if err := validateUnitContent(d.Get("content").(string)); err != nil {
+		if err != errEmptyUnit {
+			return "", err
+		}
 	}
 
 	return c.addSystemdUnit(&types.SystemdUnit{

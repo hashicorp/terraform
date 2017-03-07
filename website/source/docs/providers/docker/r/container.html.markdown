@@ -15,7 +15,7 @@ Manages the lifecycle of a Docker container.
 ```
 # Start a container
 resource "docker_container" "ubuntu" {
-  name = "foo"
+  name  = "foo"
   image = "${docker_image.ubuntu.latest}"
 }
 

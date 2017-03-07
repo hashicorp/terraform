@@ -57,7 +57,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"google_iam_policy": dataSourceGoogleIamPolicy(),
+			"google_iam_policy":    dataSourceGoogleIamPolicy(),
+			"google_compute_zones": dataSourceGoogleComputeZones(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -90,12 +91,15 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_vpn_gateway":            resourceComputeVpnGateway(),
 			"google_compute_vpn_tunnel":             resourceComputeVpnTunnel(),
 			"google_container_cluster":              resourceContainerCluster(),
+			"google_container_node_pool":            resourceContainerNodePool(),
 			"google_dns_managed_zone":               resourceDnsManagedZone(),
 			"google_dns_record_set":                 resourceDnsRecordSet(),
 			"google_sql_database":                   resourceSqlDatabase(),
 			"google_sql_database_instance":          resourceSqlDatabaseInstance(),
 			"google_sql_user":                       resourceSqlUser(),
 			"google_project":                        resourceGoogleProject(),
+			"google_project_iam_policy":             resourceGoogleProjectIamPolicy(),
+			"google_project_services":               resourceGoogleProjectServices(),
 			"google_pubsub_topic":                   resourcePubsubTopic(),
 			"google_pubsub_subscription":            resourcePubsubSubscription(),
 			"google_service_account":                resourceGoogleServiceAccount(),

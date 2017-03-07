@@ -51,11 +51,10 @@ func (c *CloudWatch) DeleteAlarmsRequest(input *DeleteAlarmsInput) (req *request
 		input = &DeleteAlarmsInput{}
 	}
 
+	output = &DeleteAlarmsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteAlarmsOutput{}
-	req.Data = output
 	return
 }
 
@@ -71,7 +70,7 @@ func (c *CloudWatch) DeleteAlarmsRequest(input *DeleteAlarmsInput) (req *request
 // API operation DeleteAlarms for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFound
+//   * ErrCodeResourceNotFound "ResourceNotFound"
 //   The named resource does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DeleteAlarms
@@ -125,9 +124,8 @@ func (c *CloudWatch) DescribeAlarmHistoryRequest(input *DescribeAlarmHistoryInpu
 		input = &DescribeAlarmHistoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAlarmHistoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -148,7 +146,7 @@ func (c *CloudWatch) DescribeAlarmHistoryRequest(input *DescribeAlarmHistoryInpu
 // API operation DescribeAlarmHistory for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidNextToken
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
 //   The next token specified is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarmHistory
@@ -227,9 +225,8 @@ func (c *CloudWatch) DescribeAlarmsRequest(input *DescribeAlarmsInput) (req *req
 		input = &DescribeAlarmsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAlarmsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -247,7 +244,7 @@ func (c *CloudWatch) DescribeAlarmsRequest(input *DescribeAlarmsInput) (req *req
 // API operation DescribeAlarms for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidNextToken
+//   * ErrCodeInvalidNextToken "InvalidNextToken"
 //   The next token specified is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/DescribeAlarms
@@ -320,9 +317,8 @@ func (c *CloudWatch) DescribeAlarmsForMetricRequest(input *DescribeAlarmsForMetr
 		input = &DescribeAlarmsForMetricInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAlarmsForMetricOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -382,11 +378,10 @@ func (c *CloudWatch) DisableAlarmActionsRequest(input *DisableAlarmActionsInput)
 		input = &DisableAlarmActionsInput{}
 	}
 
+	output = &DisableAlarmActionsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DisableAlarmActionsOutput{}
-	req.Data = output
 	return
 }
 
@@ -446,11 +441,10 @@ func (c *CloudWatch) EnableAlarmActionsRequest(input *EnableAlarmActionsInput) (
 		input = &EnableAlarmActionsInput{}
 	}
 
+	output = &EnableAlarmActionsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &EnableAlarmActionsOutput{}
-	req.Data = output
 	return
 }
 
@@ -509,9 +503,8 @@ func (c *CloudWatch) GetMetricStatisticsRequest(input *GetMetricStatisticsInput)
 		input = &GetMetricStatisticsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetMetricStatisticsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -558,16 +551,16 @@ func (c *CloudWatch) GetMetricStatisticsRequest(input *GetMetricStatisticsInput)
 // API operation GetMetricStatistics for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValue
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValue"
 //   The value of an input parameter is bad or out-of-range.
 //
-//   * MissingParameter
+//   * ErrCodeMissingRequiredParameterException "MissingParameter"
 //   An input parameter that is required is missing.
 //
-//   * InvalidParameterCombination
+//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombination"
 //   Parameters that cannot be used together were used together.
 //
-//   * InternalServiceError
+//   * ErrCodeInternalServiceFault "InternalServiceError"
 //   Request processing has failed due to some unknown error, exception, or failure.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/GetMetricStatistics
@@ -621,9 +614,8 @@ func (c *CloudWatch) ListMetricsRequest(input *ListMetricsInput) (req *request.R
 		input = &ListMetricsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListMetricsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -647,10 +639,10 @@ func (c *CloudWatch) ListMetricsRequest(input *ListMetricsInput) (req *request.R
 // API operation ListMetrics for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServiceError
+//   * ErrCodeInternalServiceFault "InternalServiceError"
 //   Request processing has failed due to some unknown error, exception, or failure.
 //
-//   * InvalidParameterValue
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValue"
 //   The value of an input parameter is bad or out-of-range.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/ListMetrics
@@ -723,11 +715,10 @@ func (c *CloudWatch) PutMetricAlarmRequest(input *PutMetricAlarmInput) (req *req
 		input = &PutMetricAlarmInput{}
 	}
 
+	output = &PutMetricAlarmOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &PutMetricAlarmOutput{}
-	req.Data = output
 	return
 }
 
@@ -784,7 +775,7 @@ func (c *CloudWatch) PutMetricAlarmRequest(input *PutMetricAlarmInput) (req *req
 // API operation PutMetricAlarm for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceeded
+//   * ErrCodeLimitExceededFault "LimitExceeded"
 //   The quota for alarms for this customer has already been reached.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutMetricAlarm
@@ -832,11 +823,10 @@ func (c *CloudWatch) PutMetricDataRequest(input *PutMetricDataInput) (req *reque
 		input = &PutMetricDataInput{}
 	}
 
+	output = &PutMetricDataOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &PutMetricDataOutput{}
-	req.Data = output
 	return
 }
 
@@ -869,16 +859,16 @@ func (c *CloudWatch) PutMetricDataRequest(input *PutMetricDataInput) (req *reque
 // API operation PutMetricData for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameterValue
+//   * ErrCodeInvalidParameterValueException "InvalidParameterValue"
 //   The value of an input parameter is bad or out-of-range.
 //
-//   * MissingParameter
+//   * ErrCodeMissingRequiredParameterException "MissingParameter"
 //   An input parameter that is required is missing.
 //
-//   * InvalidParameterCombination
+//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombination"
 //   Parameters that cannot be used together were used together.
 //
-//   * InternalServiceError
+//   * ErrCodeInternalServiceFault "InternalServiceError"
 //   Request processing has failed due to some unknown error, exception, or failure.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/PutMetricData
@@ -926,11 +916,10 @@ func (c *CloudWatch) SetAlarmStateRequest(input *SetAlarmStateInput) (req *reque
 		input = &SetAlarmStateInput{}
 	}
 
+	output = &SetAlarmStateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetAlarmStateOutput{}
-	req.Data = output
 	return
 }
 
@@ -953,10 +942,10 @@ func (c *CloudWatch) SetAlarmStateRequest(input *SetAlarmStateInput) (req *reque
 // API operation SetAlarmState for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFound
+//   * ErrCodeResourceNotFound "ResourceNotFound"
 //   The named resource does not exist.
 //
-//   * InvalidFormat
+//   * ErrCodeInvalidFormatFault "InvalidFormat"
 //   Data was not syntactically valid JSON.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/monitoring-2010-08-01/SetAlarmState

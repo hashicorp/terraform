@@ -47,7 +47,10 @@ func resourceRancherEnvironment() *schema.Resource {
 
 func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Creating Environment: %s", d.Id())
-	client := meta.(*Config)
+	client, err := meta.(*Config).GlobalClient()
+	if err != nil {
+		return err
+	}
 
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
@@ -87,24 +90,42 @@ func resourceRancherEnvironmentCreate(d *schema.ResourceData, meta interface{}) 
 
 func resourceRancherEnvironmentRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Refreshing Environment: %s", d.Id())
-	client := meta.(*Config)
+	client, err := meta.(*Config).GlobalClient()
+	if err != nil {
+		return err
+	}
 
 	env, err := client.Project.ById(d.Id())
 	if err != nil {
 		return err
 	}
 
+	if env == nil {
+		log.Printf("[INFO] Environment %s not found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	if removed(env.State) {
+		log.Printf("[INFO] Environment %s was removed on %v", d.Id(), env.Removed)
+		d.SetId("")
+		return nil
+	}
+
 	log.Printf("[INFO] Environment Name: %s", env.Name)
 
 	d.Set("description", env.Description)
 	d.Set("name", env.Name)
-	d.Set("orchestration", GetActiveOrchestration(env))
+	d.Set("orchestration", getActiveOrchestration(env))
 
 	return nil
 }
 
 func resourceRancherEnvironmentUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Config)
+	client, err := meta.(*Config).GlobalClient()
+	if err != nil {
+		return err
+	}
 
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
@@ -133,7 +154,10 @@ func resourceRancherEnvironmentUpdate(d *schema.ResourceData, meta interface{}) 
 func resourceRancherEnvironmentDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting Environment: %s", d.Id())
 	id := d.Id()
-	client := meta.(*Config)
+	client, err := meta.(*Config).GlobalClient()
+	if err != nil {
+		return err
+	}
 
 	env, err := client.Project.ById(id)
 	if err != nil {
@@ -181,7 +205,7 @@ func setOrchestrationFields(orchestration string, data map[string]interface{}) {
 
 // EnvironmentStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // a Rancher Environment.
-func EnvironmentStateRefreshFunc(client *Config, environmentID string) resource.StateRefreshFunc {
+func EnvironmentStateRefreshFunc(client *rancherClient.RancherClient, environmentID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		env, err := client.Project.ById(environmentID)
 

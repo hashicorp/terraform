@@ -50,11 +50,10 @@ func (c *SQS) AddPermissionRequest(input *AddPermissionInput) (req *request.Requ
 		input = &AddPermissionInput{}
 	}
 
+	output = &AddPermissionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddPermissionOutput{}
-	req.Data = output
 	return
 }
 
@@ -89,7 +88,7 @@ func (c *SQS) AddPermissionRequest(input *AddPermissionInput) (req *request.Requ
 // API operation AddPermission for usage and error information.
 //
 // Returned Error Codes:
-//   * OverLimit
+//   * ErrCodeOverLimit "OverLimit"
 //   The action that you requested would violate a limit. For example, ReceiveMessage
 //   returns this error if the maximum number of inflight messages is reached.
 //   AddPermission returns this error if the maximum number of permissions for
@@ -140,11 +139,10 @@ func (c *SQS) ChangeMessageVisibilityRequest(input *ChangeMessageVisibilityInput
 		input = &ChangeMessageVisibilityInput{}
 	}
 
+	output = &ChangeMessageVisibilityOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ChangeMessageVisibilityOutput{}
-	req.Data = output
 	return
 }
 
@@ -196,10 +194,10 @@ func (c *SQS) ChangeMessageVisibilityRequest(input *ChangeMessageVisibilityInput
 // API operation ChangeMessageVisibility for usage and error information.
 //
 // Returned Error Codes:
-//   * AWS.SimpleQueueService.MessageNotInflight
+//   * ErrCodeMessageNotInflight "AWS.SimpleQueueService.MessageNotInflight"
 //   The message referred to isn't in flight.
 //
-//   * ReceiptHandleIsInvalid
+//   * ErrCodeReceiptHandleIsInvalid "ReceiptHandleIsInvalid"
 //   The receipt handle provided isn't valid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sqs-2012-11-05/ChangeMessageVisibility
@@ -247,9 +245,8 @@ func (c *SQS) ChangeMessageVisibilityBatchRequest(input *ChangeMessageVisibility
 		input = &ChangeMessageVisibilityBatchInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ChangeMessageVisibilityBatchOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -280,16 +277,16 @@ func (c *SQS) ChangeMessageVisibilityBatchRequest(input *ChangeMessageVisibility
 // API operation ChangeMessageVisibilityBatch for usage and error information.
 //
 // Returned Error Codes:
-//   * AWS.SimpleQueueService.TooManyEntriesInBatchRequest
+//   * ErrCodeTooManyEntriesInBatchRequest "AWS.SimpleQueueService.TooManyEntriesInBatchRequest"
 //   The batch request contains more entries than permissible.
 //
-//   * AWS.SimpleQueueService.EmptyBatchRequest
+//   * ErrCodeEmptyBatchRequest "AWS.SimpleQueueService.EmptyBatchRequest"
 //   The batch request doesn't contain any entries.
 //
-//   * AWS.SimpleQueueService.BatchEntryIdsNotDistinct
+//   * ErrCodeBatchEntryIdsNotDistinct "AWS.SimpleQueueService.BatchEntryIdsNotDistinct"
 //   Two or more batch entries in the request have the same Id.
 //
-//   * AWS.SimpleQueueService.InvalidBatchEntryId
+//   * ErrCodeInvalidBatchEntryId "AWS.SimpleQueueService.InvalidBatchEntryId"
 //   The Id of a batch entry in a batch request doesn't abide by the specification.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sqs-2012-11-05/ChangeMessageVisibilityBatch
@@ -337,9 +334,8 @@ func (c *SQS) CreateQueueRequest(input *CreateQueueInput) (req *request.Request,
 		input = &CreateQueueInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateQueueOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -395,11 +391,11 @@ func (c *SQS) CreateQueueRequest(input *CreateQueueInput) (req *request.Request,
 // API operation CreateQueue for usage and error information.
 //
 // Returned Error Codes:
-//   * AWS.SimpleQueueService.QueueDeletedRecently
+//   * ErrCodeQueueDeletedRecently "AWS.SimpleQueueService.QueueDeletedRecently"
 //   You must wait 60 seconds after deleting a queue before you can create another
 //   one with the same name.
 //
-//   * QueueAlreadyExists
+//   * ErrCodeQueueNameExists "QueueAlreadyExists"
 //   A queue already exists with this name. Amazon SQS returns this error only
 //   if the request includes attributes whose values differ from those of the
 //   existing queue.
@@ -449,11 +445,10 @@ func (c *SQS) DeleteMessageRequest(input *DeleteMessageInput) (req *request.Requ
 		input = &DeleteMessageInput{}
 	}
 
+	output = &DeleteMessageOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteMessageOutput{}
-	req.Data = output
 	return
 }
 
@@ -488,10 +483,10 @@ func (c *SQS) DeleteMessageRequest(input *DeleteMessageInput) (req *request.Requ
 // API operation DeleteMessage for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidIdFormat
+//   * ErrCodeInvalidIdFormat "InvalidIdFormat"
 //   The receipt handle isn't valid for the current version.
 //
-//   * ReceiptHandleIsInvalid
+//   * ErrCodeReceiptHandleIsInvalid "ReceiptHandleIsInvalid"
 //   The receipt handle provided isn't valid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sqs-2012-11-05/DeleteMessage
@@ -539,9 +534,8 @@ func (c *SQS) DeleteMessageBatchRequest(input *DeleteMessageBatchInput) (req *re
 		input = &DeleteMessageBatchInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteMessageBatchOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -571,16 +565,16 @@ func (c *SQS) DeleteMessageBatchRequest(input *DeleteMessageBatchInput) (req *re
 // API operation DeleteMessageBatch for usage and error information.
 //
 // Returned Error Codes:
-//   * AWS.SimpleQueueService.TooManyEntriesInBatchRequest
+//   * ErrCodeTooManyEntriesInBatchRequest "AWS.SimpleQueueService.TooManyEntriesInBatchRequest"
 //   The batch request contains more entries than permissible.
 //
-//   * AWS.SimpleQueueService.EmptyBatchRequest
+//   * ErrCodeEmptyBatchRequest "AWS.SimpleQueueService.EmptyBatchRequest"
 //   The batch request doesn't contain any entries.
 //
-//   * AWS.SimpleQueueService.BatchEntryIdsNotDistinct
+//   * ErrCodeBatchEntryIdsNotDistinct "AWS.SimpleQueueService.BatchEntryIdsNotDistinct"
 //   Two or more batch entries in the request have the same Id.
 //
-//   * AWS.SimpleQueueService.InvalidBatchEntryId
+//   * ErrCodeInvalidBatchEntryId "AWS.SimpleQueueService.InvalidBatchEntryId"
 //   The Id of a batch entry in a batch request doesn't abide by the specification.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sqs-2012-11-05/DeleteMessageBatch
@@ -628,11 +622,10 @@ func (c *SQS) DeleteQueueRequest(input *DeleteQueueInput) (req *request.Request,
 		input = &DeleteQueueInput{}
 	}
 
+	output = &DeleteQueueOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteQueueOutput{}
-	req.Data = output
 	return
 }
 
@@ -703,9 +696,8 @@ func (c *SQS) GetQueueAttributesRequest(input *GetQueueAttributesInput) (req *re
 		input = &GetQueueAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetQueueAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -729,7 +721,7 @@ func (c *SQS) GetQueueAttributesRequest(input *GetQueueAttributesInput) (req *re
 // API operation GetQueueAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidAttributeName
+//   * ErrCodeInvalidAttributeName "InvalidAttributeName"
 //   The attribute referred to doesn't exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sqs-2012-11-05/GetQueueAttributes
@@ -777,9 +769,8 @@ func (c *SQS) GetQueueUrlRequest(input *GetQueueUrlInput) (req *request.Request,
 		input = &GetQueueUrlInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetQueueUrlOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -802,7 +793,7 @@ func (c *SQS) GetQueueUrlRequest(input *GetQueueUrlInput) (req *request.Request,
 // API operation GetQueueUrl for usage and error information.
 //
 // Returned Error Codes:
-//   * AWS.SimpleQueueService.NonExistentQueue
+//   * ErrCodeQueueDoesNotExist "AWS.SimpleQueueService.NonExistentQueue"
 //   The queue referred to doesn't exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sqs-2012-11-05/GetQueueUrl
@@ -850,9 +841,8 @@ func (c *SQS) ListDeadLetterSourceQueuesRequest(input *ListDeadLetterSourceQueue
 		input = &ListDeadLetterSourceQueuesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListDeadLetterSourceQueuesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -873,7 +863,7 @@ func (c *SQS) ListDeadLetterSourceQueuesRequest(input *ListDeadLetterSourceQueue
 // API operation ListDeadLetterSourceQueues for usage and error information.
 //
 // Returned Error Codes:
-//   * AWS.SimpleQueueService.NonExistentQueue
+//   * ErrCodeQueueDoesNotExist "AWS.SimpleQueueService.NonExistentQueue"
 //   The queue referred to doesn't exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sqs-2012-11-05/ListDeadLetterSourceQueues
@@ -921,9 +911,8 @@ func (c *SQS) ListQueuesRequest(input *ListQueuesInput) (req *request.Request, o
 		input = &ListQueuesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListQueuesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -984,11 +973,10 @@ func (c *SQS) PurgeQueueRequest(input *PurgeQueueInput) (req *request.Request, o
 		input = &PurgeQueueInput{}
 	}
 
+	output = &PurgeQueueOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &PurgeQueueOutput{}
-	req.Data = output
 	return
 }
 
@@ -1013,10 +1001,10 @@ func (c *SQS) PurgeQueueRequest(input *PurgeQueueInput) (req *request.Request, o
 // API operation PurgeQueue for usage and error information.
 //
 // Returned Error Codes:
-//   * AWS.SimpleQueueService.NonExistentQueue
+//   * ErrCodeQueueDoesNotExist "AWS.SimpleQueueService.NonExistentQueue"
 //   The queue referred to doesn't exist.
 //
-//   * AWS.SimpleQueueService.PurgeQueueInProgress
+//   * ErrCodePurgeQueueInProgress "AWS.SimpleQueueService.PurgeQueueInProgress"
 //   Indicates that the specified queue previously received a PurgeQueue request
 //   within the last 60 seconds (the time it can take to delete the messages in
 //   the queue).
@@ -1066,9 +1054,8 @@ func (c *SQS) ReceiveMessageRequest(input *ReceiveMessageInput) (req *request.Re
 		input = &ReceiveMessageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReceiveMessageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1130,7 +1117,7 @@ func (c *SQS) ReceiveMessageRequest(input *ReceiveMessageInput) (req *request.Re
 // API operation ReceiveMessage for usage and error information.
 //
 // Returned Error Codes:
-//   * OverLimit
+//   * ErrCodeOverLimit "OverLimit"
 //   The action that you requested would violate a limit. For example, ReceiveMessage
 //   returns this error if the maximum number of inflight messages is reached.
 //   AddPermission returns this error if the maximum number of permissions for
@@ -1181,11 +1168,10 @@ func (c *SQS) RemovePermissionRequest(input *RemovePermissionInput) (req *reques
 		input = &RemovePermissionInput{}
 	}
 
+	output = &RemovePermissionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemovePermissionOutput{}
-	req.Data = output
 	return
 }
 
@@ -1245,9 +1231,8 @@ func (c *SQS) SendMessageRequest(input *SendMessageInput) (req *request.Request,
 		input = &SendMessageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SendMessageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1282,10 +1267,10 @@ func (c *SQS) SendMessageRequest(input *SendMessageInput) (req *request.Request,
 // API operation SendMessage for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidMessageContents
+//   * ErrCodeInvalidMessageContents "InvalidMessageContents"
 //   The message contains characters outside the allowed set.
 //
-//   * AWS.SimpleQueueService.UnsupportedOperation
+//   * ErrCodeUnsupportedOperation "AWS.SimpleQueueService.UnsupportedOperation"
 //   Error code 400. Unsupported operation.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sqs-2012-11-05/SendMessage
@@ -1333,9 +1318,8 @@ func (c *SQS) SendMessageBatchRequest(input *SendMessageBatchInput) (req *reques
 		input = &SendMessageBatchInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SendMessageBatchOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1392,22 +1376,22 @@ func (c *SQS) SendMessageBatchRequest(input *SendMessageBatchInput) (req *reques
 // API operation SendMessageBatch for usage and error information.
 //
 // Returned Error Codes:
-//   * AWS.SimpleQueueService.TooManyEntriesInBatchRequest
+//   * ErrCodeTooManyEntriesInBatchRequest "AWS.SimpleQueueService.TooManyEntriesInBatchRequest"
 //   The batch request contains more entries than permissible.
 //
-//   * AWS.SimpleQueueService.EmptyBatchRequest
+//   * ErrCodeEmptyBatchRequest "AWS.SimpleQueueService.EmptyBatchRequest"
 //   The batch request doesn't contain any entries.
 //
-//   * AWS.SimpleQueueService.BatchEntryIdsNotDistinct
+//   * ErrCodeBatchEntryIdsNotDistinct "AWS.SimpleQueueService.BatchEntryIdsNotDistinct"
 //   Two or more batch entries in the request have the same Id.
 //
-//   * AWS.SimpleQueueService.BatchRequestTooLong
+//   * ErrCodeBatchRequestTooLong "AWS.SimpleQueueService.BatchRequestTooLong"
 //   The length of all the messages put together is more than the limit.
 //
-//   * AWS.SimpleQueueService.InvalidBatchEntryId
+//   * ErrCodeInvalidBatchEntryId "AWS.SimpleQueueService.InvalidBatchEntryId"
 //   The Id of a batch entry in a batch request doesn't abide by the specification.
 //
-//   * AWS.SimpleQueueService.UnsupportedOperation
+//   * ErrCodeUnsupportedOperation "AWS.SimpleQueueService.UnsupportedOperation"
 //   Error code 400. Unsupported operation.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sqs-2012-11-05/SendMessageBatch
@@ -1455,11 +1439,10 @@ func (c *SQS) SetQueueAttributesRequest(input *SetQueueAttributesInput) (req *re
 		input = &SetQueueAttributesInput{}
 	}
 
+	output = &SetQueueAttributesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetQueueAttributesOutput{}
-	req.Data = output
 	return
 }
 
@@ -1482,7 +1465,7 @@ func (c *SQS) SetQueueAttributesRequest(input *SetQueueAttributesInput) (req *re
 // API operation SetQueueAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidAttributeName
+//   * ErrCodeInvalidAttributeName "InvalidAttributeName"
 //   The attribute referred to doesn't exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sqs-2012-11-05/SetQueueAttributes

@@ -25,9 +25,9 @@ Without these prerequisites, your provisioning execution will fail.
 ```
 # Start a initial chef run on a resource
 resource "aws_instance" "web" {
-    ...
-    provisioner "chef"  {
-        attributes_json = <<-EOF
+  # ...
+  provisioner "chef" {
+    attributes_json = <<-EOF
         {
             "key": "value",
             "app": {
@@ -40,16 +40,17 @@ resource "aws_instance" "web" {
             }
         }
         EOF
-        environment = "_default"
-        run_list = ["cookbook::recipe"]
-        node_name = "webserver1"
-        secret_key = "${file("../encrypted_data_bag_secret")}"
-        server_url = "https://chef.company.com/organizations/org1"
-        recreate_client = true
-        user_name = "bork"
-        user_key = "${file("../bork.pem")}"
-        version = "12.4.1"
-    }
+
+    environment     = "_default"
+    run_list        = ["cookbook::recipe"]
+    node_name       = "webserver1"
+    secret_key      = "${file("../encrypted_data_bag_secret")}"
+    server_url      = "https://chef.company.com/organizations/org1"
+    recreate_client = true
+    user_name       = "bork"
+    user_key        = "${file("../bork.pem")}"
+    version         = "12.4.1"
+  }
 }
 ```
 
@@ -95,6 +96,10 @@ The following arguments are supported:
 
 * `https_proxy (string)` - (Optional) The proxy server for Chef Client HTTPS connections.
 
+* `named_run_list (string)` - (Optional) The name of an alternate run-list to invoke during the
+  initial Chef Client run. The run-list must already exist in the Policyfile that defines
+  `policy_name`. Only applies when `use_policyfile` is `true`.
+
 * `no_proxy (array)` - (Optional) A list of URLs that should bypass the proxy.
 
 * `node_name (string)` - (Required) The name of the node to register with the Chef Server.
@@ -113,9 +118,10 @@ The following arguments are supported:
 * `recreate_client (boolean)` - (Optional) If `true`, first delete any existing Chef Node and
   Client before registering the new Chef Client.
 
-* `run_list (array)` - (Required) A list with recipes that will be invoked during the initial
+* `run_list (array)` - (Optional) A list with recipes that will be invoked during the initial
   Chef Client run. The run-list will also be saved to the Chef Server after a successful
-  initial run.
+  initial run. Required if `use_policyfile` is `false`; ignored when `use_policyfile` is `true`
+  (see `named_run_list` to specify a run-list defined in a Policyfile).
 
 * `secret_key (string)` - (Optional) The contents of the secret key that is used
   by the Chef Client to decrypt data bags on the Chef Server. The key will be uploaded to the remote

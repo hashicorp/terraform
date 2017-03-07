@@ -14,8 +14,8 @@ Creates a new DNS server definition to be used internally in Azure.
 
 ```
 resource "azure_dns_server" "google-dns" {
-    name = "google"
-    dns_address = "8.8.8.8"
+  name        = "google"
+  dns_address = "8.8.8.8"
 }
 ```
 

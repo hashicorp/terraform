@@ -3,32 +3,19 @@ package escape
 import "strings"
 
 var (
-	Codes = map[byte][]byte{
-		',': []byte(`\,`),
-		'"': []byte(`\"`),
-		' ': []byte(`\ `),
-		'=': []byte(`\=`),
-	}
-
-	codesStr = map[string]string{}
+	escaper   = strings.NewReplacer(`,`, `\,`, `"`, `\"`, ` `, `\ `, `=`, `\=`)
+	unescaper = strings.NewReplacer(`\,`, `,`, `\"`, `"`, `\ `, ` `, `\=`, `=`)
 )
 
-func init() {
-	for k, v := range Codes {
-		codesStr[string(k)] = string(v)
-	}
-}
-
+// UnescapeString returns unescaped version of in.
 func UnescapeString(in string) string {
-	for b, esc := range codesStr {
-		in = strings.Replace(in, esc, b, -1)
+	if strings.IndexByte(in, '\\') == -1 {
+		return in
 	}
-	return in
+	return unescaper.Replace(in)
 }
 
+// String returns the escaped version of in.
 func String(in string) string {
-	for b, esc := range codesStr {
-		in = strings.Replace(in, b, esc, -1)
-	}
-	return in
+	return escaper.Replace(in)
 }

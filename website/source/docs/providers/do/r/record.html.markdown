@@ -13,18 +13,18 @@ Provides a DigitalOcean DNS record resource.
 ## Example Usage
 
 ```
-# Create a new domain 
+# Create a new domain
 resource "digitalocean_domain" "default" {
-    name = "www.example.com"
-    ip_address = "${digitalocean_droplet.foo.ipv4_address}"
+  name       = "www.example.com"
+  ip_address = "${digitalocean_droplet.foo.ipv4_address}"
 }
 
 # Add a record to the domain
 resource "digitalocean_record" "foobar" {
-    domain = "${digitalocean_domain.default.name}"
-    type = "A"
-    name = "foobar"
-    value = "192.168.0.11"
+  domain = "${digitalocean_domain.default.name}"
+  type   = "A"
+  name   = "foobar"
+  value  = "192.168.0.11"
 }
 ```
 

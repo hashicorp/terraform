@@ -498,7 +498,7 @@ MISSING:
 	//
 	// For an input walk, computed values are okay to return because we're only
 	// looking for missing variables to prompt the user for.
-	if i.Operation == walkRefresh || i.Operation == walkPlanDestroy || i.Operation == walkDestroy || i.Operation == walkInput {
+	if i.Operation == walkRefresh || i.Operation == walkPlanDestroy || i.Operation == walkInput {
 		return &unknownVariable, nil
 	}
 
@@ -698,6 +698,10 @@ func (i *Interpolater) resourceCountMax(
 	// from the state. Plan and so on may not have any state yet so
 	// we do a full interpolation.
 	if i.Operation != walkApply {
+		if cr == nil {
+			return 0, nil
+		}
+
 		count, err := cr.Count()
 		if err != nil {
 			return 0, err

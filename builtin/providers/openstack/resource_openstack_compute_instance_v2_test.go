@@ -591,6 +591,35 @@ func TestAccComputeV2Instance_stopBeforeDestroy(t *testing.T) {
 	})
 }
 
+func TestAccComputeV2Instance_metadataRemove(t *testing.T) {
+	var instance servers.Server
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_metadataRemove_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_1", &instance),
+					testAccCheckComputeV2InstanceMetadata(&instance, "foo", "bar"),
+					testAccCheckComputeV2InstanceMetadata(&instance, "abc", "def"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeV2Instance_metadataRemove_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_1", &instance),
+					testAccCheckComputeV2InstanceMetadata(&instance, "foo", "bar"),
+					testAccCheckComputeV2InstanceMetadata(&instance, "ghi", "jkl"),
+					testAccCheckComputeV2InstanceNoMetadataKey(&instance, "abc"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeV2InstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	computeClient, err := config.computeV2Client(OS_REGION_NAME)
@@ -684,6 +713,23 @@ func testAccCheckComputeV2InstanceMetadata(
 		}
 
 		return fmt.Errorf("Metadata not found: %s", k)
+	}
+}
+
+func testAccCheckComputeV2InstanceNoMetadataKey(
+	instance *servers.Server, k string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if instance.Metadata == nil {
+			return nil
+		}
+
+		for key, _ := range instance.Metadata {
+			if k == key {
+				return fmt.Errorf("Metadata found: %s", k)
+			}
+		}
+
+		return nil
 	}
 }
 
@@ -1443,5 +1489,27 @@ resource "openstack_compute_instance_v2" "instance_1" {
   name = "instance_1"
   security_groups = ["default"]
   stop_before_destroy = true
+}
+`
+
+const testAccComputeV2Instance_metadataRemove_1 = `
+resource "openstack_compute_instance_v2" "instance_1" {
+  name = "instance_1"
+  security_groups = ["default"]
+  metadata {
+    foo = "bar"
+    abc = "def"
+  }
+}
+`
+
+const testAccComputeV2Instance_metadataRemove_2 = `
+resource "openstack_compute_instance_v2" "instance_1" {
+  name = "instance_1"
+  security_groups = ["default"]
+  metadata {
+    foo = "bar"
+    ghi = "jkl"
+  }
 }
 `

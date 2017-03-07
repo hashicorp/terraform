@@ -17,9 +17,9 @@ resource "cloudstack_port_forward" "default" {
   ip_address_id = "30b21801-d4b3-4174-852b-0c0f30bdbbfb"
 
   forward {
-    protocol = "tcp"
-    private_port = 80
-    public_port = 8080
+    protocol           = "tcp"
+    private_port       = 80
+    public_port        = 8080
     virtual_machine_id = "f8141e2f-4e7e-4c63-9362-986c908b7ea7"
   }
 }

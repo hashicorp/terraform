@@ -12,6 +12,29 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestAccAWSOpsworksInstance_importBasic(t *testing.T) {
+	stackName := fmt.Sprintf("tf-%d", acctest.RandInt())
+	resourceName := "aws_opsworks_instance.tf-acc"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAwsOpsworksInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAwsOpsworksInstanceConfigCreate(stackName),
+			},
+
+			{
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"state"}, //state is something we pass to the API and get back as status :(
+			},
+		},
+	})
+}
+
 func TestAccAWSOpsworksInstance(t *testing.T) {
 	stackName := fmt.Sprintf("tf-%d", acctest.RandInt())
 	var opsinst opsworks.Instance
@@ -20,7 +43,7 @@ func TestAccAWSOpsworksInstance(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksInstanceConfigCreate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksInstanceExists(
@@ -58,7 +81,7 @@ func TestAccAWSOpsworksInstance(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksInstanceConfigUpdate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksInstanceExists(

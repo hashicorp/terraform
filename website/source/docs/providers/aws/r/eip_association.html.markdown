@@ -18,14 +18,15 @@ pre-existing or distributed to customers or users and therefore cannot be change
 
 ```
 resource "aws_eip_association" "eip_assoc" {
-  instance_id = "${aws_instance.web.id}"
+  instance_id   = "${aws_instance.web.id}"
   allocation_id = "${aws_eip.example.id}"
 }
 
 resource "aws_instance" "web" {
-  ami = "ami-21f78e11"
+  ami               = "ami-21f78e11"
   availability_zone = "us-west-2a"
-  instance_type = "t1.micro"
+  instance_type     = "t1.micro"
+
   tags {
     Name = "HelloWorld"
   }
@@ -46,7 +47,7 @@ be re-associated. Defaults to `true` in VPC.
 * `instance_id` - (Optional) The ID of the instance. This is required for
 EC2-Classic. For EC2-VPC, you can specify either the instance ID or the
 network interface ID, but not both. The operation fails if you specify an
-instance ID unless exactly one network interface is attached. 
+instance ID unless exactly one network interface is attached.
 * `network_interface_id` - (Optional) The ID of the network interface. If the
 instance has more than one network interface, you must specify a network
 interface ID.

@@ -50,9 +50,8 @@ func (c *Redshift) AuthorizeClusterSecurityGroupIngressRequest(input *AuthorizeC
 		input = &AuthorizeClusterSecurityGroupIngressInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AuthorizeClusterSecurityGroupIngressOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -87,18 +86,18 @@ func (c *Redshift) AuthorizeClusterSecurityGroupIngressRequest(input *AuthorizeC
 // API operation AuthorizeClusterSecurityGroupIngress for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterSecurityGroupNotFound
+//   * ErrCodeClusterSecurityGroupNotFoundFault "ClusterSecurityGroupNotFound"
 //   The cluster security group name does not refer to an existing cluster security
 //   group.
 //
-//   * InvalidClusterSecurityGroupState
+//   * ErrCodeInvalidClusterSecurityGroupStateFault "InvalidClusterSecurityGroupState"
 //   The state of the cluster security group is not available.
 //
-//   * AuthorizationAlreadyExists
+//   * ErrCodeAuthorizationAlreadyExistsFault "AuthorizationAlreadyExists"
 //   The specified CIDR block or EC2 security group is already authorized for
 //   the specified cluster security group.
 //
-//   * AuthorizationQuotaExceeded
+//   * ErrCodeAuthorizationQuotaExceededFault "AuthorizationQuotaExceeded"
 //   The authorization quota for the cluster security group has been reached.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/AuthorizeClusterSecurityGroupIngress
@@ -146,9 +145,8 @@ func (c *Redshift) AuthorizeSnapshotAccessRequest(input *AuthorizeSnapshotAccess
 		input = &AuthorizeSnapshotAccessInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AuthorizeSnapshotAccessOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -168,25 +166,25 @@ func (c *Redshift) AuthorizeSnapshotAccessRequest(input *AuthorizeSnapshotAccess
 // API operation AuthorizeSnapshotAccess for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterSnapshotNotFound
+//   * ErrCodeClusterSnapshotNotFoundFault "ClusterSnapshotNotFound"
 //   The snapshot identifier does not refer to an existing cluster snapshot.
 //
-//   * AuthorizationAlreadyExists
+//   * ErrCodeAuthorizationAlreadyExistsFault "AuthorizationAlreadyExists"
 //   The specified CIDR block or EC2 security group is already authorized for
 //   the specified cluster security group.
 //
-//   * AuthorizationQuotaExceeded
+//   * ErrCodeAuthorizationQuotaExceededFault "AuthorizationQuotaExceeded"
 //   The authorization quota for the cluster security group has been reached.
 //
-//   * DependentServiceRequestThrottlingFault
+//   * ErrCodeDependentServiceRequestThrottlingFault "DependentServiceRequestThrottlingFault"
 //   The request cannot be completed because a dependent service is throttling
 //   requests made by Amazon Redshift on your behalf. Wait and retry the request.
 //
-//   * InvalidClusterSnapshotState
+//   * ErrCodeInvalidClusterSnapshotStateFault "InvalidClusterSnapshotState"
 //   The specified cluster snapshot is not in the available state, or other accounts
 //   are authorized to access the snapshot.
 //
-//   * LimitExceededFault
+//   * ErrCodeLimitExceededFault "LimitExceededFault"
 //   The encryption key has exceeded its grant limit in AWS KMS.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/AuthorizeSnapshotAccess
@@ -234,9 +232,8 @@ func (c *Redshift) CopyClusterSnapshotRequest(input *CopyClusterSnapshotInput) (
 		input = &CopyClusterSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CopyClusterSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -264,18 +261,18 @@ func (c *Redshift) CopyClusterSnapshotRequest(input *CopyClusterSnapshotInput) (
 // API operation CopyClusterSnapshot for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterSnapshotAlreadyExists
+//   * ErrCodeClusterSnapshotAlreadyExistsFault "ClusterSnapshotAlreadyExists"
 //   The value specified as a snapshot identifier is already used by an existing
 //   snapshot.
 //
-//   * ClusterSnapshotNotFound
+//   * ErrCodeClusterSnapshotNotFoundFault "ClusterSnapshotNotFound"
 //   The snapshot identifier does not refer to an existing cluster snapshot.
 //
-//   * InvalidClusterSnapshotState
+//   * ErrCodeInvalidClusterSnapshotStateFault "InvalidClusterSnapshotState"
 //   The specified cluster snapshot is not in the available state, or other accounts
 //   are authorized to access the snapshot.
 //
-//   * ClusterSnapshotQuotaExceeded
+//   * ErrCodeClusterSnapshotQuotaExceededFault "ClusterSnapshotQuotaExceeded"
 //   The request would result in the user exceeding the allowed number of cluster
 //   snapshots.
 //
@@ -324,9 +321,8 @@ func (c *Redshift) CreateClusterRequest(input *CreateClusterInput) (req *request
 		input = &CreateClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -348,70 +344,70 @@ func (c *Redshift) CreateClusterRequest(input *CreateClusterInput) (req *request
 // API operation CreateCluster for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterAlreadyExists
+//   * ErrCodeClusterAlreadyExistsFault "ClusterAlreadyExists"
 //   The account already has a cluster with the given identifier.
 //
-//   * InsufficientClusterCapacity
+//   * ErrCodeInsufficientClusterCapacityFault "InsufficientClusterCapacity"
 //   The number of nodes specified exceeds the allotted capacity of the cluster.
 //
-//   * ClusterParameterGroupNotFound
+//   * ErrCodeClusterParameterGroupNotFoundFault "ClusterParameterGroupNotFound"
 //   The parameter group name does not refer to an existing parameter group.
 //
-//   * ClusterSecurityGroupNotFound
+//   * ErrCodeClusterSecurityGroupNotFoundFault "ClusterSecurityGroupNotFound"
 //   The cluster security group name does not refer to an existing cluster security
 //   group.
 //
-//   * ClusterQuotaExceeded
+//   * ErrCodeClusterQuotaExceededFault "ClusterQuotaExceeded"
 //   The request would exceed the allowed number of cluster instances for this
 //   account. For information about increasing your quota, go to Limits in Amazon
 //   Redshift (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
 //
-//   * NumberOfNodesQuotaExceeded
+//   * ErrCodeNumberOfNodesQuotaExceededFault "NumberOfNodesQuotaExceeded"
 //   The operation would exceed the number of nodes allotted to the account. For
 //   information about increasing your quota, go to Limits in Amazon Redshift
 //   (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
 //
-//   * NumberOfNodesPerClusterLimitExceeded
+//   * ErrCodeNumberOfNodesPerClusterLimitExceededFault "NumberOfNodesPerClusterLimitExceeded"
 //   The operation would exceed the number of nodes allowed for a cluster.
 //
-//   * ClusterSubnetGroupNotFoundFault
+//   * ErrCodeClusterSubnetGroupNotFoundFault "ClusterSubnetGroupNotFoundFault"
 //   The cluster subnet group name does not refer to an existing cluster subnet
 //   group.
 //
-//   * InvalidVPCNetworkStateFault
+//   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
 //   The cluster subnet group does not cover all Availability Zones.
 //
-//   * InvalidClusterSubnetGroupStateFault
+//   * ErrCodeInvalidClusterSubnetGroupStateFault "InvalidClusterSubnetGroupStateFault"
 //   The cluster subnet group cannot be deleted because it is in use.
 //
-//   * InvalidSubnet
+//   * ErrCodeInvalidSubnet "InvalidSubnet"
 //   The requested subnet is not valid, or not all of the subnets are in the same
 //   VPC.
 //
-//   * UnauthorizedOperation
+//   * ErrCodeUnauthorizedOperation "UnauthorizedOperation"
 //   Your account is not authorized to perform the requested operation.
 //
-//   * HsmClientCertificateNotFoundFault
+//   * ErrCodeHsmClientCertificateNotFoundFault "HsmClientCertificateNotFoundFault"
 //   There is no Amazon Redshift HSM client certificate with the specified identifier.
 //
-//   * HsmConfigurationNotFoundFault
+//   * ErrCodeHsmConfigurationNotFoundFault "HsmConfigurationNotFoundFault"
 //   There is no Amazon Redshift HSM configuration with the specified identifier.
 //
-//   * InvalidElasticIpFault
+//   * ErrCodeInvalidElasticIpFault "InvalidElasticIpFault"
 //   The Elastic IP (EIP) is invalid or cannot be found.
 //
-//   * TagLimitExceededFault
+//   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
 //   The request exceeds the limit of 10 tags for the resource.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
-//   * LimitExceededFault
+//   * ErrCodeLimitExceededFault "LimitExceededFault"
 //   The encryption key has exceeded its grant limit in AWS KMS.
 //
-//   * DependentServiceRequestThrottlingFault
+//   * ErrCodeDependentServiceRequestThrottlingFault "DependentServiceRequestThrottlingFault"
 //   The request cannot be completed because a dependent service is throttling
 //   requests made by Amazon Redshift on your behalf. Wait and retry the request.
 //
@@ -460,9 +456,8 @@ func (c *Redshift) CreateClusterParameterGroupRequest(input *CreateClusterParame
 		input = &CreateClusterParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateClusterParameterGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -488,19 +483,19 @@ func (c *Redshift) CreateClusterParameterGroupRequest(input *CreateClusterParame
 // API operation CreateClusterParameterGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterParameterGroupQuotaExceeded
+//   * ErrCodeClusterParameterGroupQuotaExceededFault "ClusterParameterGroupQuotaExceeded"
 //   The request would result in the user exceeding the allowed number of cluster
 //   parameter groups. For information about increasing your quota, go to Limits
 //   in Amazon Redshift (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
 //
-//   * ClusterParameterGroupAlreadyExists
+//   * ErrCodeClusterParameterGroupAlreadyExistsFault "ClusterParameterGroupAlreadyExists"
 //   A cluster parameter group with the same name already exists.
 //
-//   * TagLimitExceededFault
+//   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
 //   The request exceeds the limit of 10 tags for the resource.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/CreateClusterParameterGroup
@@ -548,9 +543,8 @@ func (c *Redshift) CreateClusterSecurityGroupRequest(input *CreateClusterSecurit
 		input = &CreateClusterSecurityGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateClusterSecurityGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -571,19 +565,19 @@ func (c *Redshift) CreateClusterSecurityGroupRequest(input *CreateClusterSecurit
 // API operation CreateClusterSecurityGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterSecurityGroupAlreadyExists
+//   * ErrCodeClusterSecurityGroupAlreadyExistsFault "ClusterSecurityGroupAlreadyExists"
 //   A cluster security group with the same name already exists.
 //
-//   * QuotaExceeded.ClusterSecurityGroup
+//   * ErrCodeClusterSecurityGroupQuotaExceededFault "QuotaExceeded.ClusterSecurityGroup"
 //   The request would result in the user exceeding the allowed number of cluster
 //   security groups. For information about increasing your quota, go to Limits
 //   in Amazon Redshift (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
 //
-//   * TagLimitExceededFault
+//   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
 //   The request exceeds the limit of 10 tags for the resource.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/CreateClusterSecurityGroup
@@ -631,9 +625,8 @@ func (c *Redshift) CreateClusterSnapshotRequest(input *CreateClusterSnapshotInpu
 		input = &CreateClusterSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateClusterSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -654,24 +647,24 @@ func (c *Redshift) CreateClusterSnapshotRequest(input *CreateClusterSnapshotInpu
 // API operation CreateClusterSnapshot for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterSnapshotAlreadyExists
+//   * ErrCodeClusterSnapshotAlreadyExistsFault "ClusterSnapshotAlreadyExists"
 //   The value specified as a snapshot identifier is already used by an existing
 //   snapshot.
 //
-//   * InvalidClusterState
+//   * ErrCodeInvalidClusterStateFault "InvalidClusterState"
 //   The specified cluster is not in the available state.
 //
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
-//   * ClusterSnapshotQuotaExceeded
+//   * ErrCodeClusterSnapshotQuotaExceededFault "ClusterSnapshotQuotaExceeded"
 //   The request would result in the user exceeding the allowed number of cluster
 //   snapshots.
 //
-//   * TagLimitExceededFault
+//   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
 //   The request exceeds the limit of 10 tags for the resource.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/CreateClusterSnapshot
@@ -719,9 +712,8 @@ func (c *Redshift) CreateClusterSubnetGroupRequest(input *CreateClusterSubnetGro
 		input = &CreateClusterSubnetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateClusterSubnetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -743,35 +735,35 @@ func (c *Redshift) CreateClusterSubnetGroupRequest(input *CreateClusterSubnetGro
 // API operation CreateClusterSubnetGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterSubnetGroupAlreadyExists
+//   * ErrCodeClusterSubnetGroupAlreadyExistsFault "ClusterSubnetGroupAlreadyExists"
 //   A ClusterSubnetGroupName is already used by an existing cluster subnet group.
 //
-//   * ClusterSubnetGroupQuotaExceeded
+//   * ErrCodeClusterSubnetGroupQuotaExceededFault "ClusterSubnetGroupQuotaExceeded"
 //   The request would result in user exceeding the allowed number of cluster
 //   subnet groups. For information about increasing your quota, go to Limits
 //   in Amazon Redshift (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
 //
-//   * ClusterSubnetQuotaExceededFault
+//   * ErrCodeClusterSubnetQuotaExceededFault "ClusterSubnetQuotaExceededFault"
 //   The request would result in user exceeding the allowed number of subnets
 //   in a cluster subnet groups. For information about increasing your quota,
 //   go to Limits in Amazon Redshift (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
 //
-//   * InvalidSubnet
+//   * ErrCodeInvalidSubnet "InvalidSubnet"
 //   The requested subnet is not valid, or not all of the subnets are in the same
 //   VPC.
 //
-//   * UnauthorizedOperation
+//   * ErrCodeUnauthorizedOperation "UnauthorizedOperation"
 //   Your account is not authorized to perform the requested operation.
 //
-//   * TagLimitExceededFault
+//   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
 //   The request exceeds the limit of 10 tags for the resource.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
-//   * DependentServiceRequestThrottlingFault
+//   * ErrCodeDependentServiceRequestThrottlingFault "DependentServiceRequestThrottlingFault"
 //   The request cannot be completed because a dependent service is throttling
 //   requests made by Amazon Redshift on your behalf. Wait and retry the request.
 //
@@ -820,9 +812,8 @@ func (c *Redshift) CreateEventSubscriptionRequest(input *CreateEventSubscription
 		input = &CreateEventSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateEventSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -859,47 +850,47 @@ func (c *Redshift) CreateEventSubscriptionRequest(input *CreateEventSubscription
 // API operation CreateEventSubscription for usage and error information.
 //
 // Returned Error Codes:
-//   * EventSubscriptionQuotaExceeded
+//   * ErrCodeEventSubscriptionQuotaExceededFault "EventSubscriptionQuotaExceeded"
 //   The request would exceed the allowed number of event subscriptions for this
 //   account. For information about increasing your quota, go to Limits in Amazon
 //   Redshift (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
 //
-//   * SubscriptionAlreadyExist
+//   * ErrCodeSubscriptionAlreadyExistFault "SubscriptionAlreadyExist"
 //   There is already an existing event notification subscription with the specified
 //   name.
 //
-//   * SNSInvalidTopic
+//   * ErrCodeSNSInvalidTopicFault "SNSInvalidTopic"
 //   Amazon SNS has responded that there is a problem with the specified Amazon
 //   SNS topic.
 //
-//   * SNSNoAuthorization
+//   * ErrCodeSNSNoAuthorizationFault "SNSNoAuthorization"
 //   You do not have permission to publish to the specified Amazon SNS topic.
 //
-//   * SNSTopicArnNotFound
+//   * ErrCodeSNSTopicArnNotFoundFault "SNSTopicArnNotFound"
 //   An Amazon SNS topic with the specified Amazon Resource Name (ARN) does not
 //   exist.
 //
-//   * SubscriptionEventIdNotFound
+//   * ErrCodeSubscriptionEventIdNotFoundFault "SubscriptionEventIdNotFound"
 //   An Amazon Redshift event with the specified event ID does not exist.
 //
-//   * SubscriptionCategoryNotFound
+//   * ErrCodeSubscriptionCategoryNotFoundFault "SubscriptionCategoryNotFound"
 //   The value specified for the event category was not one of the allowed values,
 //   or it specified a category that does not apply to the specified source type.
 //   The allowed values are Configuration, Management, Monitoring, and Security.
 //
-//   * SubscriptionSeverityNotFound
+//   * ErrCodeSubscriptionSeverityNotFoundFault "SubscriptionSeverityNotFound"
 //   The value specified for the event severity was not one of the allowed values,
 //   or it specified a severity that does not apply to the specified source type.
 //   The allowed values are ERROR and INFO.
 //
-//   * SourceNotFound
+//   * ErrCodeSourceNotFoundFault "SourceNotFound"
 //   The specified Amazon Redshift event source could not be found.
 //
-//   * TagLimitExceededFault
+//   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
 //   The request exceeds the limit of 10 tags for the resource.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/CreateEventSubscription
@@ -947,9 +938,8 @@ func (c *Redshift) CreateHsmClientCertificateRequest(input *CreateHsmClientCerti
 		input = &CreateHsmClientCertificateInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateHsmClientCertificateOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -973,19 +963,19 @@ func (c *Redshift) CreateHsmClientCertificateRequest(input *CreateHsmClientCerti
 // API operation CreateHsmClientCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * HsmClientCertificateAlreadyExistsFault
+//   * ErrCodeHsmClientCertificateAlreadyExistsFault "HsmClientCertificateAlreadyExistsFault"
 //   There is already an existing Amazon Redshift HSM client certificate with
 //   the specified identifier.
 //
-//   * HsmClientCertificateQuotaExceededFault
+//   * ErrCodeHsmClientCertificateQuotaExceededFault "HsmClientCertificateQuotaExceededFault"
 //   The quota for HSM client certificates has been reached. For information about
 //   increasing your quota, go to Limits in Amazon Redshift (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
 //
-//   * TagLimitExceededFault
+//   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
 //   The request exceeds the limit of 10 tags for the resource.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/CreateHsmClientCertificate
@@ -1033,9 +1023,8 @@ func (c *Redshift) CreateHsmConfigurationRequest(input *CreateHsmConfigurationIn
 		input = &CreateHsmConfigurationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateHsmConfigurationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1060,19 +1049,19 @@ func (c *Redshift) CreateHsmConfigurationRequest(input *CreateHsmConfigurationIn
 // API operation CreateHsmConfiguration for usage and error information.
 //
 // Returned Error Codes:
-//   * HsmConfigurationAlreadyExistsFault
+//   * ErrCodeHsmConfigurationAlreadyExistsFault "HsmConfigurationAlreadyExistsFault"
 //   There is already an existing Amazon Redshift HSM configuration with the specified
 //   identifier.
 //
-//   * HsmConfigurationQuotaExceededFault
+//   * ErrCodeHsmConfigurationQuotaExceededFault "HsmConfigurationQuotaExceededFault"
 //   The quota for HSM configurations has been reached. For information about
 //   increasing your quota, go to Limits in Amazon Redshift (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
 //
-//   * TagLimitExceededFault
+//   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
 //   The request exceeds the limit of 10 tags for the resource.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/CreateHsmConfiguration
@@ -1120,9 +1109,8 @@ func (c *Redshift) CreateSnapshotCopyGrantRequest(input *CreateSnapshotCopyGrant
 		input = &CreateSnapshotCopyGrantInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSnapshotCopyGrantOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1144,24 +1132,24 @@ func (c *Redshift) CreateSnapshotCopyGrantRequest(input *CreateSnapshotCopyGrant
 // API operation CreateSnapshotCopyGrant for usage and error information.
 //
 // Returned Error Codes:
-//   * SnapshotCopyGrantAlreadyExistsFault
+//   * ErrCodeSnapshotCopyGrantAlreadyExistsFault "SnapshotCopyGrantAlreadyExistsFault"
 //   The snapshot copy grant can't be created because a grant with the same name
 //   already exists.
 //
-//   * SnapshotCopyGrantQuotaExceededFault
+//   * ErrCodeSnapshotCopyGrantQuotaExceededFault "SnapshotCopyGrantQuotaExceededFault"
 //   The AWS account has exceeded the maximum number of snapshot copy grants in
 //   this region.
 //
-//   * LimitExceededFault
+//   * ErrCodeLimitExceededFault "LimitExceededFault"
 //   The encryption key has exceeded its grant limit in AWS KMS.
 //
-//   * TagLimitExceededFault
+//   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
 //   The request exceeds the limit of 10 tags for the resource.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
-//   * DependentServiceRequestThrottlingFault
+//   * ErrCodeDependentServiceRequestThrottlingFault "DependentServiceRequestThrottlingFault"
 //   The request cannot be completed because a dependent service is throttling
 //   requests made by Amazon Redshift on your behalf. Wait and retry the request.
 //
@@ -1210,11 +1198,10 @@ func (c *Redshift) CreateTagsRequest(input *CreateTagsInput) (req *request.Reque
 		input = &CreateTagsInput{}
 	}
 
+	output = &CreateTagsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateTagsOutput{}
-	req.Data = output
 	return
 }
 
@@ -1236,13 +1223,13 @@ func (c *Redshift) CreateTagsRequest(input *CreateTagsInput) (req *request.Reque
 // API operation CreateTags for usage and error information.
 //
 // Returned Error Codes:
-//   * TagLimitExceededFault
+//   * ErrCodeTagLimitExceededFault "TagLimitExceededFault"
 //   The request exceeds the limit of 10 tags for the resource.
 //
-//   * ResourceNotFoundFault
+//   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/CreateTags
@@ -1290,9 +1277,8 @@ func (c *Redshift) DeleteClusterRequest(input *DeleteClusterInput) (req *request
 		input = &DeleteClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1324,17 +1310,17 @@ func (c *Redshift) DeleteClusterRequest(input *DeleteClusterInput) (req *request
 // API operation DeleteCluster for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
-//   * InvalidClusterState
+//   * ErrCodeInvalidClusterStateFault "InvalidClusterState"
 //   The specified cluster is not in the available state.
 //
-//   * ClusterSnapshotAlreadyExists
+//   * ErrCodeClusterSnapshotAlreadyExistsFault "ClusterSnapshotAlreadyExists"
 //   The value specified as a snapshot identifier is already used by an existing
 //   snapshot.
 //
-//   * ClusterSnapshotQuotaExceeded
+//   * ErrCodeClusterSnapshotQuotaExceededFault "ClusterSnapshotQuotaExceeded"
 //   The request would result in the user exceeding the allowed number of cluster
 //   snapshots.
 //
@@ -1383,11 +1369,10 @@ func (c *Redshift) DeleteClusterParameterGroupRequest(input *DeleteClusterParame
 		input = &DeleteClusterParameterGroupInput{}
 	}
 
+	output = &DeleteClusterParameterGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteClusterParameterGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -1405,12 +1390,12 @@ func (c *Redshift) DeleteClusterParameterGroupRequest(input *DeleteClusterParame
 // API operation DeleteClusterParameterGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidClusterParameterGroupState
+//   * ErrCodeInvalidClusterParameterGroupStateFault "InvalidClusterParameterGroupState"
 //   The cluster parameter group action can not be completed because another task
 //   is in progress that involves the parameter group. Wait a few moments and
 //   try the operation again.
 //
-//   * ClusterParameterGroupNotFound
+//   * ErrCodeClusterParameterGroupNotFoundFault "ClusterParameterGroupNotFound"
 //   The parameter group name does not refer to an existing parameter group.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DeleteClusterParameterGroup
@@ -1458,11 +1443,10 @@ func (c *Redshift) DeleteClusterSecurityGroupRequest(input *DeleteClusterSecurit
 		input = &DeleteClusterSecurityGroupInput{}
 	}
 
+	output = &DeleteClusterSecurityGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteClusterSecurityGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -1485,10 +1469,10 @@ func (c *Redshift) DeleteClusterSecurityGroupRequest(input *DeleteClusterSecurit
 // API operation DeleteClusterSecurityGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidClusterSecurityGroupState
+//   * ErrCodeInvalidClusterSecurityGroupStateFault "InvalidClusterSecurityGroupState"
 //   The state of the cluster security group is not available.
 //
-//   * ClusterSecurityGroupNotFound
+//   * ErrCodeClusterSecurityGroupNotFoundFault "ClusterSecurityGroupNotFound"
 //   The cluster security group name does not refer to an existing cluster security
 //   group.
 //
@@ -1537,9 +1521,8 @@ func (c *Redshift) DeleteClusterSnapshotRequest(input *DeleteClusterSnapshotInpu
 		input = &DeleteClusterSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteClusterSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1562,11 +1545,11 @@ func (c *Redshift) DeleteClusterSnapshotRequest(input *DeleteClusterSnapshotInpu
 // API operation DeleteClusterSnapshot for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidClusterSnapshotState
+//   * ErrCodeInvalidClusterSnapshotStateFault "InvalidClusterSnapshotState"
 //   The specified cluster snapshot is not in the available state, or other accounts
 //   are authorized to access the snapshot.
 //
-//   * ClusterSnapshotNotFound
+//   * ErrCodeClusterSnapshotNotFoundFault "ClusterSnapshotNotFound"
 //   The snapshot identifier does not refer to an existing cluster snapshot.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DeleteClusterSnapshot
@@ -1614,11 +1597,10 @@ func (c *Redshift) DeleteClusterSubnetGroupRequest(input *DeleteClusterSubnetGro
 		input = &DeleteClusterSubnetGroupInput{}
 	}
 
+	output = &DeleteClusterSubnetGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteClusterSubnetGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -1634,13 +1616,13 @@ func (c *Redshift) DeleteClusterSubnetGroupRequest(input *DeleteClusterSubnetGro
 // API operation DeleteClusterSubnetGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidClusterSubnetGroupStateFault
+//   * ErrCodeInvalidClusterSubnetGroupStateFault "InvalidClusterSubnetGroupStateFault"
 //   The cluster subnet group cannot be deleted because it is in use.
 //
-//   * InvalidClusterSubnetStateFault
+//   * ErrCodeInvalidClusterSubnetStateFault "InvalidClusterSubnetStateFault"
 //   The state of the subnet is invalid.
 //
-//   * ClusterSubnetGroupNotFoundFault
+//   * ErrCodeClusterSubnetGroupNotFoundFault "ClusterSubnetGroupNotFoundFault"
 //   The cluster subnet group name does not refer to an existing cluster subnet
 //   group.
 //
@@ -1689,11 +1671,10 @@ func (c *Redshift) DeleteEventSubscriptionRequest(input *DeleteEventSubscription
 		input = &DeleteEventSubscriptionInput{}
 	}
 
+	output = &DeleteEventSubscriptionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteEventSubscriptionOutput{}
-	req.Data = output
 	return
 }
 
@@ -1709,11 +1690,11 @@ func (c *Redshift) DeleteEventSubscriptionRequest(input *DeleteEventSubscription
 // API operation DeleteEventSubscription for usage and error information.
 //
 // Returned Error Codes:
-//   * SubscriptionNotFound
+//   * ErrCodeSubscriptionNotFoundFault "SubscriptionNotFound"
 //   An Amazon Redshift event notification subscription with the specified name
 //   does not exist.
 //
-//   * InvalidSubscriptionStateFault
+//   * ErrCodeInvalidSubscriptionStateFault "InvalidSubscriptionStateFault"
 //   The subscription request is invalid because it is a duplicate request. This
 //   subscription request is already in progress.
 //
@@ -1762,11 +1743,10 @@ func (c *Redshift) DeleteHsmClientCertificateRequest(input *DeleteHsmClientCerti
 		input = &DeleteHsmClientCertificateInput{}
 	}
 
+	output = &DeleteHsmClientCertificateOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteHsmClientCertificateOutput{}
-	req.Data = output
 	return
 }
 
@@ -1782,11 +1762,11 @@ func (c *Redshift) DeleteHsmClientCertificateRequest(input *DeleteHsmClientCerti
 // API operation DeleteHsmClientCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidHsmClientCertificateStateFault
+//   * ErrCodeInvalidHsmClientCertificateStateFault "InvalidHsmClientCertificateStateFault"
 //   The specified HSM client certificate is not in the available state, or it
 //   is still in use by one or more Amazon Redshift clusters.
 //
-//   * HsmClientCertificateNotFoundFault
+//   * ErrCodeHsmClientCertificateNotFoundFault "HsmClientCertificateNotFoundFault"
 //   There is no Amazon Redshift HSM client certificate with the specified identifier.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DeleteHsmClientCertificate
@@ -1834,11 +1814,10 @@ func (c *Redshift) DeleteHsmConfigurationRequest(input *DeleteHsmConfigurationIn
 		input = &DeleteHsmConfigurationInput{}
 	}
 
+	output = &DeleteHsmConfigurationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteHsmConfigurationOutput{}
-	req.Data = output
 	return
 }
 
@@ -1854,11 +1833,11 @@ func (c *Redshift) DeleteHsmConfigurationRequest(input *DeleteHsmConfigurationIn
 // API operation DeleteHsmConfiguration for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidHsmConfigurationStateFault
+//   * ErrCodeInvalidHsmConfigurationStateFault "InvalidHsmConfigurationStateFault"
 //   The specified HSM configuration is not in the available state, or it is still
 //   in use by one or more Amazon Redshift clusters.
 //
-//   * HsmConfigurationNotFoundFault
+//   * ErrCodeHsmConfigurationNotFoundFault "HsmConfigurationNotFoundFault"
 //   There is no Amazon Redshift HSM configuration with the specified identifier.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DeleteHsmConfiguration
@@ -1906,11 +1885,10 @@ func (c *Redshift) DeleteSnapshotCopyGrantRequest(input *DeleteSnapshotCopyGrant
 		input = &DeleteSnapshotCopyGrantInput{}
 	}
 
+	output = &DeleteSnapshotCopyGrantOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSnapshotCopyGrantOutput{}
-	req.Data = output
 	return
 }
 
@@ -1926,11 +1904,11 @@ func (c *Redshift) DeleteSnapshotCopyGrantRequest(input *DeleteSnapshotCopyGrant
 // API operation DeleteSnapshotCopyGrant for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidSnapshotCopyGrantStateFault
+//   * ErrCodeInvalidSnapshotCopyGrantStateFault "InvalidSnapshotCopyGrantStateFault"
 //   The snapshot copy grant can't be deleted because it is used by one or more
 //   clusters.
 //
-//   * SnapshotCopyGrantNotFoundFault
+//   * ErrCodeSnapshotCopyGrantNotFoundFault "SnapshotCopyGrantNotFoundFault"
 //   The specified snapshot copy grant can't be found. Make sure that the name
 //   is typed correctly and that the grant exists in the destination region.
 //
@@ -1979,11 +1957,10 @@ func (c *Redshift) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Reque
 		input = &DeleteTagsInput{}
 	}
 
+	output = &DeleteTagsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteTagsOutput{}
-	req.Data = output
 	return
 }
 
@@ -2000,10 +1977,10 @@ func (c *Redshift) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Reque
 // API operation DeleteTags for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundFault
+//   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DeleteTags
@@ -2057,9 +2034,8 @@ func (c *Redshift) DescribeClusterParameterGroupsRequest(input *DescribeClusterP
 		input = &DescribeClusterParameterGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClusterParameterGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2093,10 +2069,10 @@ func (c *Redshift) DescribeClusterParameterGroupsRequest(input *DescribeClusterP
 // API operation DescribeClusterParameterGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterParameterGroupNotFound
+//   * ErrCodeClusterParameterGroupNotFoundFault "ClusterParameterGroupNotFound"
 //   The parameter group name does not refer to an existing parameter group.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeClusterParameterGroups
@@ -2175,9 +2151,8 @@ func (c *Redshift) DescribeClusterParametersRequest(input *DescribeClusterParame
 		input = &DescribeClusterParametersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClusterParametersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2204,7 +2179,7 @@ func (c *Redshift) DescribeClusterParametersRequest(input *DescribeClusterParame
 // API operation DescribeClusterParameters for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterParameterGroupNotFound
+//   * ErrCodeClusterParameterGroupNotFoundFault "ClusterParameterGroupNotFound"
 //   The parameter group name does not refer to an existing parameter group.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeClusterParameters
@@ -2283,9 +2258,8 @@ func (c *Redshift) DescribeClusterSecurityGroupsRequest(input *DescribeClusterSe
 		input = &DescribeClusterSecurityGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClusterSecurityGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2317,11 +2291,11 @@ func (c *Redshift) DescribeClusterSecurityGroupsRequest(input *DescribeClusterSe
 // API operation DescribeClusterSecurityGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterSecurityGroupNotFound
+//   * ErrCodeClusterSecurityGroupNotFoundFault "ClusterSecurityGroupNotFound"
 //   The cluster security group name does not refer to an existing cluster security
 //   group.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeClusterSecurityGroups
@@ -2400,9 +2374,8 @@ func (c *Redshift) DescribeClusterSnapshotsRequest(input *DescribeClusterSnapsho
 		input = &DescribeClusterSnapshotsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClusterSnapshotsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2432,10 +2405,10 @@ func (c *Redshift) DescribeClusterSnapshotsRequest(input *DescribeClusterSnapsho
 // API operation DescribeClusterSnapshots for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterSnapshotNotFound
+//   * ErrCodeClusterSnapshotNotFoundFault "ClusterSnapshotNotFound"
 //   The snapshot identifier does not refer to an existing cluster snapshot.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeClusterSnapshots
@@ -2514,9 +2487,8 @@ func (c *Redshift) DescribeClusterSubnetGroupsRequest(input *DescribeClusterSubn
 		input = &DescribeClusterSubnetGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClusterSubnetGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2544,11 +2516,11 @@ func (c *Redshift) DescribeClusterSubnetGroupsRequest(input *DescribeClusterSubn
 // API operation DescribeClusterSubnetGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterSubnetGroupNotFoundFault
+//   * ErrCodeClusterSubnetGroupNotFoundFault "ClusterSubnetGroupNotFoundFault"
 //   The cluster subnet group name does not refer to an existing cluster subnet
 //   group.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeClusterSubnetGroups
@@ -2627,9 +2599,8 @@ func (c *Redshift) DescribeClusterVersionsRequest(input *DescribeClusterVersions
 		input = &DescribeClusterVersionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClusterVersionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2723,9 +2694,8 @@ func (c *Redshift) DescribeClustersRequest(input *DescribeClustersInput) (req *r
 		input = &DescribeClustersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClustersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2754,10 +2724,10 @@ func (c *Redshift) DescribeClustersRequest(input *DescribeClustersInput) (req *r
 // API operation DescribeClusters for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeClusters
@@ -2836,9 +2806,8 @@ func (c *Redshift) DescribeDefaultClusterParametersRequest(input *DescribeDefaul
 		input = &DescribeDefaultClusterParametersInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDefaultClusterParametersOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2926,9 +2895,8 @@ func (c *Redshift) DescribeEventCategoriesRequest(input *DescribeEventCategories
 		input = &DescribeEventCategoriesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEventCategoriesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2995,9 +2963,8 @@ func (c *Redshift) DescribeEventSubscriptionsRequest(input *DescribeEventSubscri
 		input = &DescribeEventSubscriptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEventSubscriptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3015,7 +2982,7 @@ func (c *Redshift) DescribeEventSubscriptionsRequest(input *DescribeEventSubscri
 // API operation DescribeEventSubscriptions for usage and error information.
 //
 // Returned Error Codes:
-//   * SubscriptionNotFound
+//   * ErrCodeSubscriptionNotFoundFault "SubscriptionNotFound"
 //   An Amazon Redshift event notification subscription with the specified name
 //   does not exist.
 //
@@ -3095,9 +3062,8 @@ func (c *Redshift) DescribeEventsRequest(input *DescribeEventsInput) (req *reque
 		input = &DescribeEventsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEventsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3190,9 +3156,8 @@ func (c *Redshift) DescribeHsmClientCertificatesRequest(input *DescribeHsmClient
 		input = &DescribeHsmClientCertificatesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeHsmClientCertificatesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3220,10 +3185,10 @@ func (c *Redshift) DescribeHsmClientCertificatesRequest(input *DescribeHsmClient
 // API operation DescribeHsmClientCertificates for usage and error information.
 //
 // Returned Error Codes:
-//   * HsmClientCertificateNotFoundFault
+//   * ErrCodeHsmClientCertificateNotFoundFault "HsmClientCertificateNotFoundFault"
 //   There is no Amazon Redshift HSM client certificate with the specified identifier.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeHsmClientCertificates
@@ -3302,9 +3267,8 @@ func (c *Redshift) DescribeHsmConfigurationsRequest(input *DescribeHsmConfigurat
 		input = &DescribeHsmConfigurationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeHsmConfigurationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3332,10 +3296,10 @@ func (c *Redshift) DescribeHsmConfigurationsRequest(input *DescribeHsmConfigurat
 // API operation DescribeHsmConfigurations for usage and error information.
 //
 // Returned Error Codes:
-//   * HsmConfigurationNotFoundFault
+//   * ErrCodeHsmConfigurationNotFoundFault "HsmConfigurationNotFoundFault"
 //   There is no Amazon Redshift HSM configuration with the specified identifier.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeHsmConfigurations
@@ -3408,9 +3372,8 @@ func (c *Redshift) DescribeLoggingStatusRequest(input *DescribeLoggingStatusInpu
 		input = &DescribeLoggingStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &LoggingStatus{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3427,7 +3390,7 @@ func (c *Redshift) DescribeLoggingStatusRequest(input *DescribeLoggingStatusInpu
 // API operation DescribeLoggingStatus for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeLoggingStatus
@@ -3481,9 +3444,8 @@ func (c *Redshift) DescribeOrderableClusterOptionsRequest(input *DescribeOrderab
 		input = &DescribeOrderableClusterOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeOrderableClusterOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3581,9 +3543,8 @@ func (c *Redshift) DescribeReservedNodeOfferingsRequest(input *DescribeReservedN
 		input = &DescribeReservedNodeOfferingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedNodeOfferingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3608,10 +3569,10 @@ func (c *Redshift) DescribeReservedNodeOfferingsRequest(input *DescribeReservedN
 // API operation DescribeReservedNodeOfferings for usage and error information.
 //
 // Returned Error Codes:
-//   * ReservedNodeOfferingNotFound
+//   * ErrCodeReservedNodeOfferingNotFoundFault "ReservedNodeOfferingNotFound"
 //   Specified offering does not exist.
 //
-//   * UnsupportedOperation
+//   * ErrCodeUnsupportedOperationFault "UnsupportedOperation"
 //   The requested operation isn't supported.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeReservedNodeOfferings
@@ -3690,9 +3651,8 @@ func (c *Redshift) DescribeReservedNodesRequest(input *DescribeReservedNodesInpu
 		input = &DescribeReservedNodesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedNodesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3708,7 +3668,7 @@ func (c *Redshift) DescribeReservedNodesRequest(input *DescribeReservedNodesInpu
 // API operation DescribeReservedNodes for usage and error information.
 //
 // Returned Error Codes:
-//   * ReservedNodeNotFound
+//   * ErrCodeReservedNodeNotFoundFault "ReservedNodeNotFound"
 //   The specified reserved compute node not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeReservedNodes
@@ -3781,9 +3741,8 @@ func (c *Redshift) DescribeResizeRequest(input *DescribeResizeInput) (req *reque
 		input = &DescribeResizeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeResizeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3805,10 +3764,10 @@ func (c *Redshift) DescribeResizeRequest(input *DescribeResizeInput) (req *reque
 // API operation DescribeResize for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
-//   * ResizeNotFound
+//   * ErrCodeResizeNotFoundFault "ResizeNotFound"
 //   A resize operation for the specified cluster is not found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeResize
@@ -3856,9 +3815,8 @@ func (c *Redshift) DescribeSnapshotCopyGrantsRequest(input *DescribeSnapshotCopy
 		input = &DescribeSnapshotCopyGrantsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSnapshotCopyGrantsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3879,11 +3837,11 @@ func (c *Redshift) DescribeSnapshotCopyGrantsRequest(input *DescribeSnapshotCopy
 // API operation DescribeSnapshotCopyGrants for usage and error information.
 //
 // Returned Error Codes:
-//   * SnapshotCopyGrantNotFoundFault
+//   * ErrCodeSnapshotCopyGrantNotFoundFault "SnapshotCopyGrantNotFoundFault"
 //   The specified snapshot copy grant can't be found. Make sure that the name
 //   is typed correctly and that the grant exists in the destination region.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeSnapshotCopyGrants
@@ -3931,9 +3889,8 @@ func (c *Redshift) DescribeTableRestoreStatusRequest(input *DescribeTableRestore
 		input = &DescribeTableRestoreStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTableRestoreStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3953,10 +3910,10 @@ func (c *Redshift) DescribeTableRestoreStatusRequest(input *DescribeTableRestore
 // API operation DescribeTableRestoreStatus for usage and error information.
 //
 // Returned Error Codes:
-//   * TableRestoreNotFoundFault
+//   * ErrCodeTableRestoreNotFoundFault "TableRestoreNotFoundFault"
 //   The specified TableRestoreRequestId value was not found.
 //
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeTableRestoreStatus
@@ -4004,9 +3961,8 @@ func (c *Redshift) DescribeTagsRequest(input *DescribeTagsInput) (req *request.R
 		input = &DescribeTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4044,10 +4000,10 @@ func (c *Redshift) DescribeTagsRequest(input *DescribeTagsInput) (req *request.R
 // API operation DescribeTags for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundFault
+//   * ErrCodeResourceNotFoundFault "ResourceNotFoundFault"
 //   The resource could not be found.
 //
-//   * InvalidTagFault
+//   * ErrCodeInvalidTagFault "InvalidTagFault"
 //   The tag is invalid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DescribeTags
@@ -4095,9 +4051,8 @@ func (c *Redshift) DisableLoggingRequest(input *DisableLoggingInput) (req *reque
 		input = &DisableLoggingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &LoggingStatus{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4114,7 +4069,7 @@ func (c *Redshift) DisableLoggingRequest(input *DisableLoggingInput) (req *reque
 // API operation DisableLogging for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DisableLogging
@@ -4162,9 +4117,8 @@ func (c *Redshift) DisableSnapshotCopyRequest(input *DisableSnapshotCopyInput) (
 		input = &DisableSnapshotCopyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisableSnapshotCopyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4185,16 +4139,16 @@ func (c *Redshift) DisableSnapshotCopyRequest(input *DisableSnapshotCopyInput) (
 // API operation DisableSnapshotCopy for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
-//   * SnapshotCopyAlreadyDisabledFault
+//   * ErrCodeSnapshotCopyAlreadyDisabledFault "SnapshotCopyAlreadyDisabledFault"
 //   The cluster already has cross-region snapshot copy disabled.
 //
-//   * InvalidClusterState
+//   * ErrCodeInvalidClusterStateFault "InvalidClusterState"
 //   The specified cluster is not in the available state.
 //
-//   * UnauthorizedOperation
+//   * ErrCodeUnauthorizedOperation "UnauthorizedOperation"
 //   Your account is not authorized to perform the requested operation.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/DisableSnapshotCopy
@@ -4242,9 +4196,8 @@ func (c *Redshift) EnableLoggingRequest(input *EnableLoggingInput) (req *request
 		input = &EnableLoggingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &LoggingStatus{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4261,21 +4214,21 @@ func (c *Redshift) EnableLoggingRequest(input *EnableLoggingInput) (req *request
 // API operation EnableLogging for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
-//   * BucketNotFoundFault
+//   * ErrCodeBucketNotFoundFault "BucketNotFoundFault"
 //   Could not find the specified S3 bucket.
 //
-//   * InsufficientS3BucketPolicyFault
+//   * ErrCodeInsufficientS3BucketPolicyFault "InsufficientS3BucketPolicyFault"
 //   The cluster does not have read bucket or put object permissions on the S3
 //   bucket specified when enabling logging.
 //
-//   * InvalidS3KeyPrefixFault
+//   * ErrCodeInvalidS3KeyPrefixFault "InvalidS3KeyPrefixFault"
 //   The string specified for the logging S3 key prefix does not comply with the
 //   documented constraints.
 //
-//   * InvalidS3BucketNameFault
+//   * ErrCodeInvalidS3BucketNameFault "InvalidS3BucketNameFault"
 //   The S3 bucket name is invalid. For more information about naming rules, go
 //   to Bucket Restrictions and Limitations (http://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html)
 //   in the Amazon Simple Storage Service (S3) Developer Guide.
@@ -4325,9 +4278,8 @@ func (c *Redshift) EnableSnapshotCopyRequest(input *EnableSnapshotCopyInput) (re
 		input = &EnableSnapshotCopyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnableSnapshotCopyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4344,35 +4296,35 @@ func (c *Redshift) EnableSnapshotCopyRequest(input *EnableSnapshotCopyInput) (re
 // API operation EnableSnapshotCopy for usage and error information.
 //
 // Returned Error Codes:
-//   * IncompatibleOrderableOptions
+//   * ErrCodeIncompatibleOrderableOptions "IncompatibleOrderableOptions"
 //   The specified options are incompatible.
 //
-//   * InvalidClusterState
+//   * ErrCodeInvalidClusterStateFault "InvalidClusterState"
 //   The specified cluster is not in the available state.
 //
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
-//   * CopyToRegionDisabledFault
+//   * ErrCodeCopyToRegionDisabledFault "CopyToRegionDisabledFault"
 //   Cross-region snapshot copy was temporarily disabled. Try your request again.
 //
-//   * SnapshotCopyAlreadyEnabledFault
+//   * ErrCodeSnapshotCopyAlreadyEnabledFault "SnapshotCopyAlreadyEnabledFault"
 //   The cluster already has cross-region snapshot copy enabled.
 //
-//   * UnknownSnapshotCopyRegionFault
+//   * ErrCodeUnknownSnapshotCopyRegionFault "UnknownSnapshotCopyRegionFault"
 //   The specified region is incorrect or does not exist.
 //
-//   * UnauthorizedOperation
+//   * ErrCodeUnauthorizedOperation "UnauthorizedOperation"
 //   Your account is not authorized to perform the requested operation.
 //
-//   * SnapshotCopyGrantNotFoundFault
+//   * ErrCodeSnapshotCopyGrantNotFoundFault "SnapshotCopyGrantNotFoundFault"
 //   The specified snapshot copy grant can't be found. Make sure that the name
 //   is typed correctly and that the grant exists in the destination region.
 //
-//   * LimitExceededFault
+//   * ErrCodeLimitExceededFault "LimitExceededFault"
 //   The encryption key has exceeded its grant limit in AWS KMS.
 //
-//   * DependentServiceRequestThrottlingFault
+//   * ErrCodeDependentServiceRequestThrottlingFault "DependentServiceRequestThrottlingFault"
 //   The request cannot be completed because a dependent service is throttling
 //   requests made by Amazon Redshift on your behalf. Wait and retry the request.
 //
@@ -4421,9 +4373,8 @@ func (c *Redshift) ModifyClusterRequest(input *ModifyClusterInput) (req *request
 		input = &ModifyClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4449,54 +4400,54 @@ func (c *Redshift) ModifyClusterRequest(input *ModifyClusterInput) (req *request
 // API operation ModifyCluster for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidClusterState
+//   * ErrCodeInvalidClusterStateFault "InvalidClusterState"
 //   The specified cluster is not in the available state.
 //
-//   * InvalidClusterSecurityGroupState
+//   * ErrCodeInvalidClusterSecurityGroupStateFault "InvalidClusterSecurityGroupState"
 //   The state of the cluster security group is not available.
 //
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
-//   * NumberOfNodesQuotaExceeded
+//   * ErrCodeNumberOfNodesQuotaExceededFault "NumberOfNodesQuotaExceeded"
 //   The operation would exceed the number of nodes allotted to the account. For
 //   information about increasing your quota, go to Limits in Amazon Redshift
 //   (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
 //
-//   * ClusterSecurityGroupNotFound
+//   * ErrCodeClusterSecurityGroupNotFoundFault "ClusterSecurityGroupNotFound"
 //   The cluster security group name does not refer to an existing cluster security
 //   group.
 //
-//   * ClusterParameterGroupNotFound
+//   * ErrCodeClusterParameterGroupNotFoundFault "ClusterParameterGroupNotFound"
 //   The parameter group name does not refer to an existing parameter group.
 //
-//   * InsufficientClusterCapacity
+//   * ErrCodeInsufficientClusterCapacityFault "InsufficientClusterCapacity"
 //   The number of nodes specified exceeds the allotted capacity of the cluster.
 //
-//   * UnsupportedOptionFault
+//   * ErrCodeUnsupportedOptionFault "UnsupportedOptionFault"
 //   A request option was specified that is not supported.
 //
-//   * UnauthorizedOperation
+//   * ErrCodeUnauthorizedOperation "UnauthorizedOperation"
 //   Your account is not authorized to perform the requested operation.
 //
-//   * HsmClientCertificateNotFoundFault
+//   * ErrCodeHsmClientCertificateNotFoundFault "HsmClientCertificateNotFoundFault"
 //   There is no Amazon Redshift HSM client certificate with the specified identifier.
 //
-//   * HsmConfigurationNotFoundFault
+//   * ErrCodeHsmConfigurationNotFoundFault "HsmConfigurationNotFoundFault"
 //   There is no Amazon Redshift HSM configuration with the specified identifier.
 //
-//   * ClusterAlreadyExists
+//   * ErrCodeClusterAlreadyExistsFault "ClusterAlreadyExists"
 //   The account already has a cluster with the given identifier.
 //
-//   * LimitExceededFault
+//   * ErrCodeLimitExceededFault "LimitExceededFault"
 //   The encryption key has exceeded its grant limit in AWS KMS.
 //
-//   * DependentServiceRequestThrottlingFault
+//   * ErrCodeDependentServiceRequestThrottlingFault "DependentServiceRequestThrottlingFault"
 //   The request cannot be completed because a dependent service is throttling
 //   requests made by Amazon Redshift on your behalf. Wait and retry the request.
 //
-//   * InvalidElasticIpFault
+//   * ErrCodeInvalidElasticIpFault "InvalidElasticIpFault"
 //   The Elastic IP (EIP) is invalid or cannot be found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/ModifyCluster
@@ -4544,9 +4495,8 @@ func (c *Redshift) ModifyClusterIamRolesRequest(input *ModifyClusterIamRolesInpu
 		input = &ModifyClusterIamRolesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyClusterIamRolesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4565,10 +4515,10 @@ func (c *Redshift) ModifyClusterIamRolesRequest(input *ModifyClusterIamRolesInpu
 // API operation ModifyClusterIamRoles for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidClusterState
+//   * ErrCodeInvalidClusterStateFault "InvalidClusterState"
 //   The specified cluster is not in the available state.
 //
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/ModifyClusterIamRoles
@@ -4616,9 +4566,8 @@ func (c *Redshift) ModifyClusterParameterGroupRequest(input *ModifyClusterParame
 		input = &ModifyClusterParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ClusterParameterGroupNameMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4638,10 +4587,10 @@ func (c *Redshift) ModifyClusterParameterGroupRequest(input *ModifyClusterParame
 // API operation ModifyClusterParameterGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterParameterGroupNotFound
+//   * ErrCodeClusterParameterGroupNotFoundFault "ClusterParameterGroupNotFound"
 //   The parameter group name does not refer to an existing parameter group.
 //
-//   * InvalidClusterParameterGroupState
+//   * ErrCodeInvalidClusterParameterGroupStateFault "InvalidClusterParameterGroupState"
 //   The cluster parameter group action can not be completed because another task
 //   is in progress that involves the parameter group. Wait a few moments and
 //   try the operation again.
@@ -4691,9 +4640,8 @@ func (c *Redshift) ModifyClusterSubnetGroupRequest(input *ModifyClusterSubnetGro
 		input = &ModifyClusterSubnetGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyClusterSubnetGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4711,27 +4659,27 @@ func (c *Redshift) ModifyClusterSubnetGroupRequest(input *ModifyClusterSubnetGro
 // API operation ModifyClusterSubnetGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterSubnetGroupNotFoundFault
+//   * ErrCodeClusterSubnetGroupNotFoundFault "ClusterSubnetGroupNotFoundFault"
 //   The cluster subnet group name does not refer to an existing cluster subnet
 //   group.
 //
-//   * ClusterSubnetQuotaExceededFault
+//   * ErrCodeClusterSubnetQuotaExceededFault "ClusterSubnetQuotaExceededFault"
 //   The request would result in user exceeding the allowed number of subnets
 //   in a cluster subnet groups. For information about increasing your quota,
 //   go to Limits in Amazon Redshift (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
 //
-//   * SubnetAlreadyInUse
+//   * ErrCodeSubnetAlreadyInUse "SubnetAlreadyInUse"
 //   A specified subnet is already in use by another cluster.
 //
-//   * InvalidSubnet
+//   * ErrCodeInvalidSubnet "InvalidSubnet"
 //   The requested subnet is not valid, or not all of the subnets are in the same
 //   VPC.
 //
-//   * UnauthorizedOperation
+//   * ErrCodeUnauthorizedOperation "UnauthorizedOperation"
 //   Your account is not authorized to perform the requested operation.
 //
-//   * DependentServiceRequestThrottlingFault
+//   * ErrCodeDependentServiceRequestThrottlingFault "DependentServiceRequestThrottlingFault"
 //   The request cannot be completed because a dependent service is throttling
 //   requests made by Amazon Redshift on your behalf. Wait and retry the request.
 //
@@ -4780,9 +4728,8 @@ func (c *Redshift) ModifyEventSubscriptionRequest(input *ModifyEventSubscription
 		input = &ModifyEventSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyEventSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4798,38 +4745,38 @@ func (c *Redshift) ModifyEventSubscriptionRequest(input *ModifyEventSubscription
 // API operation ModifyEventSubscription for usage and error information.
 //
 // Returned Error Codes:
-//   * SubscriptionNotFound
+//   * ErrCodeSubscriptionNotFoundFault "SubscriptionNotFound"
 //   An Amazon Redshift event notification subscription with the specified name
 //   does not exist.
 //
-//   * SNSInvalidTopic
+//   * ErrCodeSNSInvalidTopicFault "SNSInvalidTopic"
 //   Amazon SNS has responded that there is a problem with the specified Amazon
 //   SNS topic.
 //
-//   * SNSNoAuthorization
+//   * ErrCodeSNSNoAuthorizationFault "SNSNoAuthorization"
 //   You do not have permission to publish to the specified Amazon SNS topic.
 //
-//   * SNSTopicArnNotFound
+//   * ErrCodeSNSTopicArnNotFoundFault "SNSTopicArnNotFound"
 //   An Amazon SNS topic with the specified Amazon Resource Name (ARN) does not
 //   exist.
 //
-//   * SubscriptionEventIdNotFound
+//   * ErrCodeSubscriptionEventIdNotFoundFault "SubscriptionEventIdNotFound"
 //   An Amazon Redshift event with the specified event ID does not exist.
 //
-//   * SubscriptionCategoryNotFound
+//   * ErrCodeSubscriptionCategoryNotFoundFault "SubscriptionCategoryNotFound"
 //   The value specified for the event category was not one of the allowed values,
 //   or it specified a category that does not apply to the specified source type.
 //   The allowed values are Configuration, Management, Monitoring, and Security.
 //
-//   * SubscriptionSeverityNotFound
+//   * ErrCodeSubscriptionSeverityNotFoundFault "SubscriptionSeverityNotFound"
 //   The value specified for the event severity was not one of the allowed values,
 //   or it specified a severity that does not apply to the specified source type.
 //   The allowed values are ERROR and INFO.
 //
-//   * SourceNotFound
+//   * ErrCodeSourceNotFoundFault "SourceNotFound"
 //   The specified Amazon Redshift event source could not be found.
 //
-//   * InvalidSubscriptionStateFault
+//   * ErrCodeInvalidSubscriptionStateFault "InvalidSubscriptionStateFault"
 //   The subscription request is invalid because it is a duplicate request. This
 //   subscription request is already in progress.
 //
@@ -4878,9 +4825,8 @@ func (c *Redshift) ModifySnapshotCopyRetentionPeriodRequest(input *ModifySnapsho
 		input = &ModifySnapshotCopyRetentionPeriodInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifySnapshotCopyRetentionPeriodOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4897,16 +4843,16 @@ func (c *Redshift) ModifySnapshotCopyRetentionPeriodRequest(input *ModifySnapsho
 // API operation ModifySnapshotCopyRetentionPeriod for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
-//   * SnapshotCopyDisabledFault
+//   * ErrCodeSnapshotCopyDisabledFault "SnapshotCopyDisabledFault"
 //   Cross-region snapshot copy was temporarily disabled. Try your request again.
 //
-//   * UnauthorizedOperation
+//   * ErrCodeUnauthorizedOperation "UnauthorizedOperation"
 //   Your account is not authorized to perform the requested operation.
 //
-//   * InvalidClusterState
+//   * ErrCodeInvalidClusterStateFault "InvalidClusterState"
 //   The specified cluster is not in the available state.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/ModifySnapshotCopyRetentionPeriod
@@ -4954,9 +4900,8 @@ func (c *Redshift) PurchaseReservedNodeOfferingRequest(input *PurchaseReservedNo
 		input = &PurchaseReservedNodeOfferingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseReservedNodeOfferingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4980,18 +4925,18 @@ func (c *Redshift) PurchaseReservedNodeOfferingRequest(input *PurchaseReservedNo
 // API operation PurchaseReservedNodeOffering for usage and error information.
 //
 // Returned Error Codes:
-//   * ReservedNodeOfferingNotFound
+//   * ErrCodeReservedNodeOfferingNotFoundFault "ReservedNodeOfferingNotFound"
 //   Specified offering does not exist.
 //
-//   * ReservedNodeAlreadyExists
+//   * ErrCodeReservedNodeAlreadyExistsFault "ReservedNodeAlreadyExists"
 //   User already has a reservation with the given identifier.
 //
-//   * ReservedNodeQuotaExceeded
+//   * ErrCodeReservedNodeQuotaExceededFault "ReservedNodeQuotaExceeded"
 //   Request would exceed the user's compute node quota. For information about
 //   increasing your quota, go to Limits in Amazon Redshift (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
 //
-//   * UnsupportedOperation
+//   * ErrCodeUnsupportedOperationFault "UnsupportedOperation"
 //   The requested operation isn't supported.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/PurchaseReservedNodeOffering
@@ -5039,9 +4984,8 @@ func (c *Redshift) RebootClusterRequest(input *RebootClusterInput) (req *request
 		input = &RebootClusterInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RebootClusterOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5063,10 +5007,10 @@ func (c *Redshift) RebootClusterRequest(input *RebootClusterInput) (req *request
 // API operation RebootCluster for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidClusterState
+//   * ErrCodeInvalidClusterStateFault "InvalidClusterState"
 //   The specified cluster is not in the available state.
 //
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/RebootCluster
@@ -5114,9 +5058,8 @@ func (c *Redshift) ResetClusterParameterGroupRequest(input *ResetClusterParamete
 		input = &ResetClusterParameterGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ClusterParameterGroupNameMessage{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5135,12 +5078,12 @@ func (c *Redshift) ResetClusterParameterGroupRequest(input *ResetClusterParamete
 // API operation ResetClusterParameterGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidClusterParameterGroupState
+//   * ErrCodeInvalidClusterParameterGroupStateFault "InvalidClusterParameterGroupState"
 //   The cluster parameter group action can not be completed because another task
 //   is in progress that involves the parameter group. Wait a few moments and
 //   try the operation again.
 //
-//   * ClusterParameterGroupNotFound
+//   * ErrCodeClusterParameterGroupNotFoundFault "ClusterParameterGroupNotFound"
 //   The parameter group name does not refer to an existing parameter group.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/ResetClusterParameterGroup
@@ -5188,9 +5131,8 @@ func (c *Redshift) RestoreFromClusterSnapshotRequest(input *RestoreFromClusterSn
 		input = &RestoreFromClusterSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestoreFromClusterSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5220,78 +5162,78 @@ func (c *Redshift) RestoreFromClusterSnapshotRequest(input *RestoreFromClusterSn
 // API operation RestoreFromClusterSnapshot for usage and error information.
 //
 // Returned Error Codes:
-//   * AccessToSnapshotDenied
+//   * ErrCodeAccessToSnapshotDeniedFault "AccessToSnapshotDenied"
 //   The owner of the specified snapshot has not authorized your account to access
 //   the snapshot.
 //
-//   * ClusterAlreadyExists
+//   * ErrCodeClusterAlreadyExistsFault "ClusterAlreadyExists"
 //   The account already has a cluster with the given identifier.
 //
-//   * ClusterSnapshotNotFound
+//   * ErrCodeClusterSnapshotNotFoundFault "ClusterSnapshotNotFound"
 //   The snapshot identifier does not refer to an existing cluster snapshot.
 //
-//   * ClusterQuotaExceeded
+//   * ErrCodeClusterQuotaExceededFault "ClusterQuotaExceeded"
 //   The request would exceed the allowed number of cluster instances for this
 //   account. For information about increasing your quota, go to Limits in Amazon
 //   Redshift (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
 //
-//   * InsufficientClusterCapacity
+//   * ErrCodeInsufficientClusterCapacityFault "InsufficientClusterCapacity"
 //   The number of nodes specified exceeds the allotted capacity of the cluster.
 //
-//   * InvalidClusterSnapshotState
+//   * ErrCodeInvalidClusterSnapshotStateFault "InvalidClusterSnapshotState"
 //   The specified cluster snapshot is not in the available state, or other accounts
 //   are authorized to access the snapshot.
 //
-//   * InvalidRestore
+//   * ErrCodeInvalidRestoreFault "InvalidRestore"
 //   The restore is invalid.
 //
-//   * NumberOfNodesQuotaExceeded
+//   * ErrCodeNumberOfNodesQuotaExceededFault "NumberOfNodesQuotaExceeded"
 //   The operation would exceed the number of nodes allotted to the account. For
 //   information about increasing your quota, go to Limits in Amazon Redshift
 //   (http://docs.aws.amazon.com/redshift/latest/mgmt/amazon-redshift-limits.html)
 //   in the Amazon Redshift Cluster Management Guide.
 //
-//   * NumberOfNodesPerClusterLimitExceeded
+//   * ErrCodeNumberOfNodesPerClusterLimitExceededFault "NumberOfNodesPerClusterLimitExceeded"
 //   The operation would exceed the number of nodes allowed for a cluster.
 //
-//   * InvalidVPCNetworkStateFault
+//   * ErrCodeInvalidVPCNetworkStateFault "InvalidVPCNetworkStateFault"
 //   The cluster subnet group does not cover all Availability Zones.
 //
-//   * InvalidClusterSubnetGroupStateFault
+//   * ErrCodeInvalidClusterSubnetGroupStateFault "InvalidClusterSubnetGroupStateFault"
 //   The cluster subnet group cannot be deleted because it is in use.
 //
-//   * InvalidSubnet
+//   * ErrCodeInvalidSubnet "InvalidSubnet"
 //   The requested subnet is not valid, or not all of the subnets are in the same
 //   VPC.
 //
-//   * ClusterSubnetGroupNotFoundFault
+//   * ErrCodeClusterSubnetGroupNotFoundFault "ClusterSubnetGroupNotFoundFault"
 //   The cluster subnet group name does not refer to an existing cluster subnet
 //   group.
 //
-//   * UnauthorizedOperation
+//   * ErrCodeUnauthorizedOperation "UnauthorizedOperation"
 //   Your account is not authorized to perform the requested operation.
 //
-//   * HsmClientCertificateNotFoundFault
+//   * ErrCodeHsmClientCertificateNotFoundFault "HsmClientCertificateNotFoundFault"
 //   There is no Amazon Redshift HSM client certificate with the specified identifier.
 //
-//   * HsmConfigurationNotFoundFault
+//   * ErrCodeHsmConfigurationNotFoundFault "HsmConfigurationNotFoundFault"
 //   There is no Amazon Redshift HSM configuration with the specified identifier.
 //
-//   * InvalidElasticIpFault
+//   * ErrCodeInvalidElasticIpFault "InvalidElasticIpFault"
 //   The Elastic IP (EIP) is invalid or cannot be found.
 //
-//   * ClusterParameterGroupNotFound
+//   * ErrCodeClusterParameterGroupNotFoundFault "ClusterParameterGroupNotFound"
 //   The parameter group name does not refer to an existing parameter group.
 //
-//   * ClusterSecurityGroupNotFound
+//   * ErrCodeClusterSecurityGroupNotFoundFault "ClusterSecurityGroupNotFound"
 //   The cluster security group name does not refer to an existing cluster security
 //   group.
 //
-//   * LimitExceededFault
+//   * ErrCodeLimitExceededFault "LimitExceededFault"
 //   The encryption key has exceeded its grant limit in AWS KMS.
 //
-//   * DependentServiceRequestThrottlingFault
+//   * ErrCodeDependentServiceRequestThrottlingFault "DependentServiceRequestThrottlingFault"
 //   The request cannot be completed because a dependent service is throttling
 //   requests made by Amazon Redshift on your behalf. Wait and retry the request.
 //
@@ -5340,9 +5282,8 @@ func (c *Redshift) RestoreTableFromClusterSnapshotRequest(input *RestoreTableFro
 		input = &RestoreTableFromClusterSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestoreTableFromClusterSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5370,28 +5311,28 @@ func (c *Redshift) RestoreTableFromClusterSnapshotRequest(input *RestoreTableFro
 // API operation RestoreTableFromClusterSnapshot for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterSnapshotNotFound
+//   * ErrCodeClusterSnapshotNotFoundFault "ClusterSnapshotNotFound"
 //   The snapshot identifier does not refer to an existing cluster snapshot.
 //
-//   * InProgressTableRestoreQuotaExceededFault
+//   * ErrCodeInProgressTableRestoreQuotaExceededFault "InProgressTableRestoreQuotaExceededFault"
 //   You have exceeded the allowed number of table restore requests. Wait for
 //   your current table restore requests to complete before making a new request.
 //
-//   * InvalidClusterSnapshotState
+//   * ErrCodeInvalidClusterSnapshotStateFault "InvalidClusterSnapshotState"
 //   The specified cluster snapshot is not in the available state, or other accounts
 //   are authorized to access the snapshot.
 //
-//   * InvalidTableRestoreArgument
+//   * ErrCodeInvalidTableRestoreArgumentFault "InvalidTableRestoreArgument"
 //   The value specified for the sourceDatabaseName, sourceSchemaName, or sourceTableName
 //   parameter, or a combination of these, doesn't exist in the snapshot.
 //
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
-//   * InvalidClusterState
+//   * ErrCodeInvalidClusterStateFault "InvalidClusterState"
 //   The specified cluster is not in the available state.
 //
-//   * UnsupportedOperation
+//   * ErrCodeUnsupportedOperationFault "UnsupportedOperation"
 //   The requested operation isn't supported.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/RestoreTableFromClusterSnapshot
@@ -5439,9 +5380,8 @@ func (c *Redshift) RevokeClusterSecurityGroupIngressRequest(input *RevokeCluster
 		input = &RevokeClusterSecurityGroupIngressInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RevokeClusterSecurityGroupIngressOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5461,15 +5401,15 @@ func (c *Redshift) RevokeClusterSecurityGroupIngressRequest(input *RevokeCluster
 // API operation RevokeClusterSecurityGroupIngress for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterSecurityGroupNotFound
+//   * ErrCodeClusterSecurityGroupNotFoundFault "ClusterSecurityGroupNotFound"
 //   The cluster security group name does not refer to an existing cluster security
 //   group.
 //
-//   * AuthorizationNotFound
+//   * ErrCodeAuthorizationNotFoundFault "AuthorizationNotFound"
 //   The specified CIDR IP range or EC2 security group is not authorized for the
 //   specified cluster security group.
 //
-//   * InvalidClusterSecurityGroupState
+//   * ErrCodeInvalidClusterSecurityGroupStateFault "InvalidClusterSecurityGroupState"
 //   The state of the cluster security group is not available.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/RevokeClusterSecurityGroupIngress
@@ -5517,9 +5457,8 @@ func (c *Redshift) RevokeSnapshotAccessRequest(input *RevokeSnapshotAccessInput)
 		input = &RevokeSnapshotAccessInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RevokeSnapshotAccessOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5541,15 +5480,15 @@ func (c *Redshift) RevokeSnapshotAccessRequest(input *RevokeSnapshotAccessInput)
 // API operation RevokeSnapshotAccess for usage and error information.
 //
 // Returned Error Codes:
-//   * AccessToSnapshotDenied
+//   * ErrCodeAccessToSnapshotDeniedFault "AccessToSnapshotDenied"
 //   The owner of the specified snapshot has not authorized your account to access
 //   the snapshot.
 //
-//   * AuthorizationNotFound
+//   * ErrCodeAuthorizationNotFoundFault "AuthorizationNotFound"
 //   The specified CIDR IP range or EC2 security group is not authorized for the
 //   specified cluster security group.
 //
-//   * ClusterSnapshotNotFound
+//   * ErrCodeClusterSnapshotNotFoundFault "ClusterSnapshotNotFound"
 //   The snapshot identifier does not refer to an existing cluster snapshot.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/redshift-2012-12-01/RevokeSnapshotAccess
@@ -5597,9 +5536,8 @@ func (c *Redshift) RotateEncryptionKeyRequest(input *RotateEncryptionKeyInput) (
 		input = &RotateEncryptionKeyInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RotateEncryptionKeyOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5615,13 +5553,13 @@ func (c *Redshift) RotateEncryptionKeyRequest(input *RotateEncryptionKeyInput) (
 // API operation RotateEncryptionKey for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterNotFound
+//   * ErrCodeClusterNotFoundFault "ClusterNotFound"
 //   The ClusterIdentifier parameter does not refer to an existing cluster.
 //
-//   * InvalidClusterState
+//   * ErrCodeInvalidClusterStateFault "InvalidClusterState"
 //   The specified cluster is not in the available state.
 //
-//   * DependentServiceRequestThrottlingFault
+//   * ErrCodeDependentServiceRequestThrottlingFault "DependentServiceRequestThrottlingFault"
 //   The request cannot be completed because a dependent service is throttling
 //   requests made by Amazon Redshift on your behalf. Wait and retry the request.
 //

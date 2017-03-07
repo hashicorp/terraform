@@ -15,21 +15,21 @@ Provides a Heroku SSL certificate resource. It allows to set a given certificate
 ```
 # Create a new Heroku app
 resource "heroku_app" "default" {
-    name = "test-app"
+  name = "test-app"
 }
 
 # Add-on SSL to application
 resource "heroku_addon" "ssl" {
-    app = "${heroku_app.default.name}"
-    plan = "ssl"
+  app  = "${heroku_app.default.name}"
+  plan = "ssl"
 }
 
 # Establish certificate for a given application
 resource "heroku_cert" "ssl_certificate" {
-    app = "${heroku_app.default.name}"
-    certificate_chain = "${file("server.crt")}"
-    private_key = "${file("server.key")}"
-    depends_on = "heroku_addon.ssl"
+  app               = "${heroku_app.default.name}"
+  certificate_chain = "${file("server.crt")}"
+  private_key       = "${file("server.key")}"
+  depends_on        = "heroku_addon.ssl"
 }
 ```
 

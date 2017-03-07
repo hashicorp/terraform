@@ -16,10 +16,11 @@ See [backendServices](https://cloud.google.com/compute/docs/reference/latest/bac
 
 ```tf
 resource "google_compute_region_backend_service" "foobar" {
-  name                  = "blablah"
-  description           = "Hello World 1234"
-  protocol              = "TCP"
-  timeout_sec           = 10
+  name             = "blablah"
+  description      = "Hello World 1234"
+  protocol         = "TCP"
+  timeout_sec      = 10
+  session_affinity = "CLIENT_IP"
 
   backend {
     group = "${google_compute_instance_group_manager.foo.instance_group}"
@@ -56,6 +57,7 @@ resource "google_compute_health_check" "default" {
   check_interval_sec = 1
   timeout_sec        = 1
   type               = "TCP"
+
   tcp_health_check {
     port = "80"
   }
@@ -83,6 +85,10 @@ The following arguments are supported:
 
 * `protocol` - (Optional) The protocol for incoming requests. Defaults to
     `HTTP`.
+
+* `session_affinity` - (Optional) How to distribute load. Options are `NONE` (no
+    affinity), `CLIENT_IP`, `CLIENT_IP_PROTO`, or `CLIENT_IP_PORT_PROTO`.
+    Defaults to `NONE`.
 
 * `region` - (Optional) The Region in which the created address should reside.
     If it is not provided, the provider region is used.

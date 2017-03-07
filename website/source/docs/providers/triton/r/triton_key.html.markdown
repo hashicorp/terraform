@@ -3,7 +3,7 @@ layout: "triton"
 page_title: "Triton: triton_key"
 sidebar_current: "docs-triton-firewall"
 description: |-
-    The `triton_key` resource represents an SSH key for a Triton account. 
+    The `triton_key` resource represents an SSH key for a Triton account.
 ---
 
 # triton\_key
@@ -17,10 +17,9 @@ Create a key
 
 ```
 resource "triton_key" "example" {
-    name = "Example Key"
-    key = "${file("keys/id_rsa")}"
+  name = "Example Key"
+  key  = "${file("keys/id_rsa")}"
 }
-                
 ```
 
 ## Argument Reference

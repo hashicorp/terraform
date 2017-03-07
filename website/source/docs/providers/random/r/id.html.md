@@ -60,10 +60,14 @@ The following arguments are supported:
   trigger a new id to be generated. See
   [the main provider documentation](../index.html) for more information.
 
+* `prefix` - (Optional) Arbitrary string to prefix the output value with. This
+  string is supplied as-is, meaning it is not guaranteed to be URL-safe or
+  base64 encoded.
+
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `b64` - The generated id presented in base64, using the URL-friendly character set: case-sensitive letters, digits and the characters `_` and `-`.
 * `hex` - The generated id presented in padded hexadecimal digits. This result will always be twice as long as the requested byte length.
-* `decimal` - The generated id presented in non-padded decimal digits.
+* `dec` - The generated id presented in non-padded decimal digits.

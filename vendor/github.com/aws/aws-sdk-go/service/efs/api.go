@@ -51,9 +51,8 @@ func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *reques
 		input = &CreateFileSystemInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &FileSystemDescription{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -114,18 +113,18 @@ func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *reques
 // API operation CreateFileSystem for usage and error information.
 //
 // Returned Error Codes:
-//   * BadRequest
+//   * ErrCodeBadRequest "BadRequest"
 //   Returned if the request is malformed or contains an error such as an invalid
 //   parameter value or a missing required parameter.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Returned if an error occurred on the server side.
 //
-//   * FileSystemAlreadyExists
+//   * ErrCodeFileSystemAlreadyExists "FileSystemAlreadyExists"
 //   Returned if the file system you are trying to create already exists, with
 //   the creation token you provided.
 //
-//   * FileSystemLimitExceeded
+//   * ErrCodeFileSystemLimitExceeded "FileSystemLimitExceeded"
 //   Returned if the AWS account has already created maximum number of file systems
 //   allowed per account.
 //
@@ -174,9 +173,8 @@ func (c *EFS) CreateMountTargetRequest(input *CreateMountTargetInput) (req *requ
 		input = &CreateMountTargetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &MountTargetDescription{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -245,15 +243,15 @@ func (c *EFS) CreateMountTargetRequest(input *CreateMountTargetInput) (req *requ
 // Sets the requesterManaged property of the network interface to true, and
 //    the requesterId value to EFS.
 //
-// Each Amazon EFS mount target has one corresponding requestor-managed EC2
+// Each Amazon EFS mount target has one corresponding requester-managed EC2
 //    network interface. After the network interface is created, Amazon EFS
 //    sets the NetworkInterfaceId field in the mount target's description to
 //    the network interface ID, and the IpAddress field to its address. If network
 //    interface creation fails, the entire CreateMountTarget operation fails.
 //
 // The CreateMountTarget call returns only after creating the network interface,
-// but while the mount target state is still creating. You can check the mount
-// target creation status by calling the DescribeFileSystems operation, which
+// but while the mount target state is still creating, you can check the mount
+// target creation status by calling the DescribeMountTargets operation, which
 // among other things returns the mount target state.
 //
 // We recommend you create a mount target in each of the Availability Zones.
@@ -286,52 +284,51 @@ func (c *EFS) CreateMountTargetRequest(input *CreateMountTargetInput) (req *requ
 // API operation CreateMountTarget for usage and error information.
 //
 // Returned Error Codes:
-//   * BadRequest
+//   * ErrCodeBadRequest "BadRequest"
 //   Returned if the request is malformed or contains an error such as an invalid
 //   parameter value or a missing required parameter.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Returned if an error occurred on the server side.
 //
-//   * FileSystemNotFound
+//   * ErrCodeFileSystemNotFound "FileSystemNotFound"
 //   Returned if the specified FileSystemId does not exist in the requester's
 //   AWS account.
 //
-//   * IncorrectFileSystemLifeCycleState
+//   * ErrCodeIncorrectFileSystemLifeCycleState "IncorrectFileSystemLifeCycleState"
 //   Returned if the file system's life cycle state is not "created".
 //
-//   * MountTargetConflict
+//   * ErrCodeMountTargetConflict "MountTargetConflict"
 //   Returned if the mount target would violate one of the specified restrictions
 //   based on the file system's existing mount targets.
 //
-//   * SubnetNotFound
+//   * ErrCodeSubnetNotFound "SubnetNotFound"
 //   Returned if there is no subnet with ID SubnetId provided in the request.
 //
-//   * NoFreeAddressesInSubnet
+//   * ErrCodeNoFreeAddressesInSubnet "NoFreeAddressesInSubnet"
 //   Returned if IpAddress was not specified in the request and there are no free
 //   IP addresses in the subnet.
 //
-//   * IpAddressInUse
+//   * ErrCodeIpAddressInUse "IpAddressInUse"
 //   Returned if the request specified an IpAddress that is already in use in
 //   the subnet.
 //
-//   * NetworkInterfaceLimitExceeded
+//   * ErrCodeNetworkInterfaceLimitExceeded "NetworkInterfaceLimitExceeded"
 //   The calling account has reached the ENI limit for the specific AWS region.
 //   Client should try to delete some ENIs or get its account limit raised. For
 //   more information, see Amazon VPC Limits (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Appendix_Limits.html)
 //   in the Amazon Virtual Private Cloud User Guide (see the Network interfaces
 //   per VPC entry in the table).
 //
-//   * SecurityGroupLimitExceeded
+//   * ErrCodeSecurityGroupLimitExceeded "SecurityGroupLimitExceeded"
 //   Returned if the size of SecurityGroups specified in the request is greater
 //   than five.
 //
-//   * SecurityGroupNotFound
+//   * ErrCodeSecurityGroupNotFound "SecurityGroupNotFound"
 //   Returned if one of the specified security groups does not exist in the subnet's
 //   VPC.
 //
-//   * UnsupportedAvailabilityZone
-
+//   * ErrCodeUnsupportedAvailabilityZone "UnsupportedAvailabilityZone"
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/CreateMountTarget
 func (c *EFS) CreateMountTarget(input *CreateMountTargetInput) (*MountTargetDescription, error) {
@@ -378,11 +375,10 @@ func (c *EFS) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, o
 		input = &CreateTagsInput{}
 	}
 
+	output = &CreateTagsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateTagsOutput{}
-	req.Data = output
 	return
 }
 
@@ -404,14 +400,14 @@ func (c *EFS) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, o
 // API operation CreateTags for usage and error information.
 //
 // Returned Error Codes:
-//   * BadRequest
+//   * ErrCodeBadRequest "BadRequest"
 //   Returned if the request is malformed or contains an error such as an invalid
 //   parameter value or a missing required parameter.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Returned if an error occurred on the server side.
 //
-//   * FileSystemNotFound
+//   * ErrCodeFileSystemNotFound "FileSystemNotFound"
 //   Returned if the specified FileSystemId does not exist in the requester's
 //   AWS account.
 //
@@ -460,11 +456,10 @@ func (c *EFS) DeleteFileSystemRequest(input *DeleteFileSystemInput) (req *reques
 		input = &DeleteFileSystemInput{}
 	}
 
+	output = &DeleteFileSystemOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteFileSystemOutput{}
-	req.Data = output
 	return
 }
 
@@ -495,18 +490,18 @@ func (c *EFS) DeleteFileSystemRequest(input *DeleteFileSystemInput) (req *reques
 // API operation DeleteFileSystem for usage and error information.
 //
 // Returned Error Codes:
-//   * BadRequest
+//   * ErrCodeBadRequest "BadRequest"
 //   Returned if the request is malformed or contains an error such as an invalid
 //   parameter value or a missing required parameter.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Returned if an error occurred on the server side.
 //
-//   * FileSystemNotFound
+//   * ErrCodeFileSystemNotFound "FileSystemNotFound"
 //   Returned if the specified FileSystemId does not exist in the requester's
 //   AWS account.
 //
-//   * FileSystemInUse
+//   * ErrCodeFileSystemInUse "FileSystemInUse"
 //   Returned if a file system has mount targets.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DeleteFileSystem
@@ -554,11 +549,10 @@ func (c *EFS) DeleteMountTargetRequest(input *DeleteMountTargetInput) (req *requ
 		input = &DeleteMountTargetInput{}
 	}
 
+	output = &DeleteMountTargetOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteMountTargetOutput{}
-	req.Data = output
 	return
 }
 
@@ -598,18 +592,18 @@ func (c *EFS) DeleteMountTargetRequest(input *DeleteMountTargetInput) (req *requ
 // API operation DeleteMountTarget for usage and error information.
 //
 // Returned Error Codes:
-//   * BadRequest
+//   * ErrCodeBadRequest "BadRequest"
 //   Returned if the request is malformed or contains an error such as an invalid
 //   parameter value or a missing required parameter.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Returned if an error occurred on the server side.
 //
-//   * DependencyTimeout
+//   * ErrCodeDependencyTimeout "DependencyTimeout"
 //   The service timed out trying to fulfill the request, and the client should
 //   try the call again.
 //
-//   * MountTargetNotFound
+//   * ErrCodeMountTargetNotFound "MountTargetNotFound"
 //   Returned if there is no mount target with the specified ID found in the caller's
 //   account.
 //
@@ -658,11 +652,10 @@ func (c *EFS) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, o
 		input = &DeleteTagsInput{}
 	}
 
+	output = &DeleteTagsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteTagsOutput{}
-	req.Data = output
 	return
 }
 
@@ -685,14 +678,14 @@ func (c *EFS) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, o
 // API operation DeleteTags for usage and error information.
 //
 // Returned Error Codes:
-//   * BadRequest
+//   * ErrCodeBadRequest "BadRequest"
 //   Returned if the request is malformed or contains an error such as an invalid
 //   parameter value or a missing required parameter.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Returned if an error occurred on the server side.
 //
-//   * FileSystemNotFound
+//   * ErrCodeFileSystemNotFound "FileSystemNotFound"
 //   Returned if the specified FileSystemId does not exist in the requester's
 //   AWS account.
 //
@@ -741,9 +734,8 @@ func (c *EFS) DescribeFileSystemsRequest(input *DescribeFileSystemsInput) (req *
 		input = &DescribeFileSystemsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeFileSystemsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -784,14 +776,14 @@ func (c *EFS) DescribeFileSystemsRequest(input *DescribeFileSystemsInput) (req *
 // API operation DescribeFileSystems for usage and error information.
 //
 // Returned Error Codes:
-//   * BadRequest
+//   * ErrCodeBadRequest "BadRequest"
 //   Returned if the request is malformed or contains an error such as an invalid
 //   parameter value or a missing required parameter.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Returned if an error occurred on the server side.
 //
-//   * FileSystemNotFound
+//   * ErrCodeFileSystemNotFound "FileSystemNotFound"
 //   Returned if the specified FileSystemId does not exist in the requester's
 //   AWS account.
 //
@@ -840,9 +832,8 @@ func (c *EFS) DescribeMountTargetSecurityGroupsRequest(input *DescribeMountTarge
 		input = &DescribeMountTargetSecurityGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeMountTargetSecurityGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -868,18 +859,18 @@ func (c *EFS) DescribeMountTargetSecurityGroupsRequest(input *DescribeMountTarge
 // API operation DescribeMountTargetSecurityGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * BadRequest
+//   * ErrCodeBadRequest "BadRequest"
 //   Returned if the request is malformed or contains an error such as an invalid
 //   parameter value or a missing required parameter.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Returned if an error occurred on the server side.
 //
-//   * MountTargetNotFound
+//   * ErrCodeMountTargetNotFound "MountTargetNotFound"
 //   Returned if there is no mount target with the specified ID found in the caller's
 //   account.
 //
-//   * IncorrectMountTargetState
+//   * ErrCodeIncorrectMountTargetState "IncorrectMountTargetState"
 //   Returned if the mount target is not in the correct state for the operation.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticfilesystem-2015-02-01/DescribeMountTargetSecurityGroups
@@ -927,9 +918,8 @@ func (c *EFS) DescribeMountTargetsRequest(input *DescribeMountTargetsInput) (req
 		input = &DescribeMountTargetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeMountTargetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -951,18 +941,18 @@ func (c *EFS) DescribeMountTargetsRequest(input *DescribeMountTargetsInput) (req
 // API operation DescribeMountTargets for usage and error information.
 //
 // Returned Error Codes:
-//   * BadRequest
+//   * ErrCodeBadRequest "BadRequest"
 //   Returned if the request is malformed or contains an error such as an invalid
 //   parameter value or a missing required parameter.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Returned if an error occurred on the server side.
 //
-//   * FileSystemNotFound
+//   * ErrCodeFileSystemNotFound "FileSystemNotFound"
 //   Returned if the specified FileSystemId does not exist in the requester's
 //   AWS account.
 //
-//   * MountTargetNotFound
+//   * ErrCodeMountTargetNotFound "MountTargetNotFound"
 //   Returned if there is no mount target with the specified ID found in the caller's
 //   account.
 //
@@ -1011,9 +1001,8 @@ func (c *EFS) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Reques
 		input = &DescribeTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1034,14 +1023,14 @@ func (c *EFS) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Reques
 // API operation DescribeTags for usage and error information.
 //
 // Returned Error Codes:
-//   * BadRequest
+//   * ErrCodeBadRequest "BadRequest"
 //   Returned if the request is malformed or contains an error such as an invalid
 //   parameter value or a missing required parameter.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Returned if an error occurred on the server side.
 //
-//   * FileSystemNotFound
+//   * ErrCodeFileSystemNotFound "FileSystemNotFound"
 //   Returned if the specified FileSystemId does not exist in the requester's
 //   AWS account.
 //
@@ -1090,11 +1079,10 @@ func (c *EFS) ModifyMountTargetSecurityGroupsRequest(input *ModifyMountTargetSec
 		input = &ModifyMountTargetSecurityGroupsInput{}
 	}
 
+	output = &ModifyMountTargetSecurityGroupsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyMountTargetSecurityGroupsOutput{}
-	req.Data = output
 	return
 }
 
@@ -1125,25 +1113,25 @@ func (c *EFS) ModifyMountTargetSecurityGroupsRequest(input *ModifyMountTargetSec
 // API operation ModifyMountTargetSecurityGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * BadRequest
+//   * ErrCodeBadRequest "BadRequest"
 //   Returned if the request is malformed or contains an error such as an invalid
 //   parameter value or a missing required parameter.
 //
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Returned if an error occurred on the server side.
 //
-//   * MountTargetNotFound
+//   * ErrCodeMountTargetNotFound "MountTargetNotFound"
 //   Returned if there is no mount target with the specified ID found in the caller's
 //   account.
 //
-//   * IncorrectMountTargetState
+//   * ErrCodeIncorrectMountTargetState "IncorrectMountTargetState"
 //   Returned if the mount target is not in the correct state for the operation.
 //
-//   * SecurityGroupLimitExceeded
+//   * ErrCodeSecurityGroupLimitExceeded "SecurityGroupLimitExceeded"
 //   Returned if the size of SecurityGroups specified in the request is greater
 //   than five.
 //
-//   * SecurityGroupNotFound
+//   * ErrCodeSecurityGroupNotFound "SecurityGroupNotFound"
 //   Returned if one of the specified security groups does not exist in the subnet's
 //   VPC.
 //

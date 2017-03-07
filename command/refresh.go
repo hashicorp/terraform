@@ -1,12 +1,11 @@
 package command
 
 import (
+	"context"
 	"fmt"
-	"log"
-	"os"
 	"strings"
 
-	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -24,115 +23,56 @@ func (c *RefreshCommand) Run(args []string) int {
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", 0, "parallelism")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
 
-	var configPath string
-	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error("The refresh command expects at most one argument.")
-		cmdFlags.Usage()
-		return 1
-	} else if len(args) == 1 {
-		configPath = args[0]
-	} else {
-		var err error
-		configPath, err = os.Getwd()
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
-		}
-	}
-
-	// Check if remote state is enabled
-	state, err := c.State()
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
-		return 1
-	}
-
-	// Verify that the state path exists. The "ContextArg" function below
-	// will actually do this, but we want to provide a richer error message
-	// if possible.
-	if !state.State().IsRemote() {
-		if _, err := os.Stat(c.Meta.statePath); err != nil {
-			if os.IsNotExist(err) {
-				c.Ui.Error(fmt.Sprintf(
-					"The Terraform state file for your infrastructure does not\n"+
-						"exist. The 'refresh' command only works and only makes sense\n"+
-						"when there is existing state that Terraform is managing. Please\n"+
-						"double-check the value given below and try again. If you\n"+
-						"haven't created infrastructure with Terraform yet, use the\n"+
-						"'terraform apply' command.\n\n"+
-						"Path: %s",
-					c.Meta.statePath))
-				return 1
-			}
-
-			c.Ui.Error(fmt.Sprintf(
-				"There was an error reading the Terraform state that is needed\n"+
-					"for refreshing. The path and error are shown below.\n\n"+
-					"Path: %s\n\nError: %s",
-				c.Meta.statePath,
-				err))
-			return 1
-		}
-	}
-
-	// This is going to keep track of shadow errors
-	var shadowErr error
-
-	// Build the context based on the arguments given
-	ctx, _, err := c.Context(contextOpts{
-		Path:        configPath,
-		StatePath:   c.Meta.statePath,
-		Parallelism: c.Meta.parallelism,
-	})
+	configPath, err := ModulePath(cmdFlags.Args())
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
 
-	if err := ctx.Input(c.InputMode()); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
-		return 1
-	}
-
-	// Record any shadow errors for later
-	if err := ctx.ShadowError(); err != nil {
-		shadowErr = multierror.Append(shadowErr, multierror.Prefix(
-			err, "input operation:"))
-	}
-
-	if !validateContext(ctx, c.Ui) {
-		return 1
-	}
-
-	newState, err := ctx.Refresh()
+	// Load the module
+	mod, err := c.Module(configPath)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
+		c.Ui.Error(fmt.Sprintf("Failed to load root config module: %s", err))
 		return 1
 	}
 
-	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
-	if err := c.Meta.PersistState(newState); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+	// Load the backend
+	b, err := c.Backend(&BackendOpts{ConfigPath: configPath})
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
 	}
 
-	if outputs := outputsAsString(newState, terraform.RootModulePath, ctx.Module().Config().Outputs, true); outputs != "" {
+	// Build the operation
+	opReq := c.Operation()
+	opReq.Type = backend.OperationTypeRefresh
+	opReq.Module = mod
+	opReq.LockState = c.Meta.stateLock
+
+	// Perform the operation
+	op, err := b.Operation(context.Background(), opReq)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error starting operation: %s", err))
+		return 1
+	}
+
+	// Wait for the operation to complete
+	<-op.Done()
+	if err := op.Err; err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+
+	// Output the outputs
+	if outputs := outputsAsString(op.State, terraform.RootModulePath, nil, true); outputs != "" {
 		c.Ui.Output(c.Colorize().Color(outputs))
 	}
-
-	// Record any shadow errors for later
-	if err := ctx.ShadowError(); err != nil {
-		shadowErr = multierror.Append(shadowErr, multierror.Prefix(
-			err, "refresh operation:"))
-	}
-
-	// If we have an error in the shadow graph, let the user know.
-	c.outputShadowError(shadowErr, true)
 
 	return 0
 }
@@ -155,6 +95,8 @@ Options:
                       ".backup" extension. Set to "-" to disable backup.
 
   -input=true         Ask for input for variables if not directly set.
+
+  -lock=true          Lock the state file when locking is supported.
 
   -no-color           If specified, output won't contain any color.
 

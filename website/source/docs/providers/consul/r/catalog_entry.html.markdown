@@ -3,27 +3,28 @@ layout: "consul"
 page_title: "Consul: consul_catalog_entry"
 sidebar_current: "docs-consul-resource-catalog-entry"
 description: |-
-  Provides access to Catalog data in Consul. This can be used to define a node or a service. Currently, defining health checks is not supported.
+  Registers a node or service with the Consul Catalog.  Currently, defining health checks is not supported.
 ---
 
 # consul\_catalog\_entry
 
-Provides access to Catalog data in Consul. This can be used to define a
-node or a service. Currently, defining health checks is not supported.
+Registers a node or service with the [Consul Catalog](https://www.consul.io/docs/agent/http/catalog.html#catalog_register).
+Currently, defining health checks is not supported.
 
 ## Example Usage
 
 ```
 resource "consul_catalog_entry" "app" {
-    address = "192.168.10.10"
-    node = "foobar"
-    service = {
-        address = "127.0.0.1"
-        id = "redis1"
-        name = "redis"
-        port = 8000
-        tags = ["master", "v1"]
-    }
+  address = "192.168.10.10"
+  node    = "foobar"
+
+  service = {
+    address = "127.0.0.1"
+    id      = "redis1"
+    name    = "redis"
+    port    = 8000
+    tags    = ["master", "v1"]
+  }
 }
 ```
 
@@ -39,6 +40,11 @@ The following arguments are supported:
 
 * `service` - (Optional) A service to optionally associated with
   the node. Supported values are documented below.
+
+* `datacenter` - (Optional) The datacenter to use. This overrides the
+  datacenter in the provider setup and the agent's default datacenter.
+
+* `token` - (Optional) ACL token.
 
 The `service` block supports the following:
 

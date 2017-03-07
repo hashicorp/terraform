@@ -50,11 +50,10 @@ func (c *SNS) AddPermissionRequest(input *AddPermissionInput) (req *request.Requ
 		input = &AddPermissionInput{}
 	}
 
+	output = &AddPermissionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AddPermissionOutput{}
-	req.Data = output
 	return
 }
 
@@ -71,16 +70,16 @@ func (c *SNS) AddPermissionRequest(input *AddPermissionInput) (req *request.Requ
 // API operation AddPermission for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/AddPermission
@@ -128,9 +127,8 @@ func (c *SNS) CheckIfPhoneNumberIsOptedOutRequest(input *CheckIfPhoneNumberIsOpt
 		input = &CheckIfPhoneNumberIsOptedOutInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CheckIfPhoneNumberIsOptedOutOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -151,17 +149,17 @@ func (c *SNS) CheckIfPhoneNumberIsOptedOutRequest(input *CheckIfPhoneNumberIsOpt
 // API operation CheckIfPhoneNumberIsOptedOut for usage and error information.
 //
 // Returned Error Codes:
-//   * Throttled
+//   * ErrCodeThrottledException "Throttled"
 //   Indicates that the rate at which requests have been submitted for this action
 //   exceeds the limit for your account.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/CheckIfPhoneNumberIsOptedOut
@@ -209,9 +207,8 @@ func (c *SNS) ConfirmSubscriptionRequest(input *ConfirmSubscriptionInput) (req *
 		input = &ConfirmSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ConfirmSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -231,19 +228,19 @@ func (c *SNS) ConfirmSubscriptionRequest(input *ConfirmSubscriptionInput) (req *
 // API operation ConfirmSubscription for usage and error information.
 //
 // Returned Error Codes:
-//   * SubscriptionLimitExceeded
+//   * ErrCodeSubscriptionLimitExceededException "SubscriptionLimitExceeded"
 //   Indicates that the customer already owns the maximum allowed number of subscriptions.
 //
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/ConfirmSubscription
@@ -291,9 +288,8 @@ func (c *SNS) CreatePlatformApplicationRequest(input *CreatePlatformApplicationI
 		input = &CreatePlatformApplicationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreatePlatformApplicationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -334,13 +330,13 @@ func (c *SNS) CreatePlatformApplicationRequest(input *CreatePlatformApplicationI
 // API operation CreatePlatformApplication for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/CreatePlatformApplication
@@ -388,9 +384,8 @@ func (c *SNS) CreatePlatformEndpointRequest(input *CreatePlatformEndpointInput) 
 		input = &CreatePlatformEndpointInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreatePlatformEndpointOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -419,16 +414,16 @@ func (c *SNS) CreatePlatformEndpointRequest(input *CreatePlatformEndpointInput) 
 // API operation CreatePlatformEndpoint for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/CreatePlatformEndpoint
@@ -476,9 +471,8 @@ func (c *SNS) CreateTopicRequest(input *CreateTopicInput) (req *request.Request,
 		input = &CreateTopicInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateTopicOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -498,16 +492,16 @@ func (c *SNS) CreateTopicRequest(input *CreateTopicInput) (req *request.Request,
 // API operation CreateTopic for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * TopicLimitExceeded
+//   * ErrCodeTopicLimitExceededException "TopicLimitExceeded"
 //   Indicates that the customer already owns the maximum allowed number of topics.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/CreateTopic
@@ -555,11 +549,10 @@ func (c *SNS) DeleteEndpointRequest(input *DeleteEndpointInput) (req *request.Re
 		input = &DeleteEndpointInput{}
 	}
 
+	output = &DeleteEndpointOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteEndpointOutput{}
-	req.Data = output
 	return
 }
 
@@ -580,13 +573,13 @@ func (c *SNS) DeleteEndpointRequest(input *DeleteEndpointInput) (req *request.Re
 // API operation DeleteEndpoint for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/DeleteEndpoint
@@ -634,11 +627,10 @@ func (c *SNS) DeletePlatformApplicationRequest(input *DeletePlatformApplicationI
 		input = &DeletePlatformApplicationInput{}
 	}
 
+	output = &DeletePlatformApplicationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeletePlatformApplicationOutput{}
-	req.Data = output
 	return
 }
 
@@ -656,13 +648,13 @@ func (c *SNS) DeletePlatformApplicationRequest(input *DeletePlatformApplicationI
 // API operation DeletePlatformApplication for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/DeletePlatformApplication
@@ -710,11 +702,10 @@ func (c *SNS) DeleteTopicRequest(input *DeleteTopicInput) (req *request.Request,
 		input = &DeleteTopicInput{}
 	}
 
+	output = &DeleteTopicOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteTopicOutput{}
-	req.Data = output
 	return
 }
 
@@ -733,16 +724,16 @@ func (c *SNS) DeleteTopicRequest(input *DeleteTopicInput) (req *request.Request,
 // API operation DeleteTopic for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/DeleteTopic
@@ -790,9 +781,8 @@ func (c *SNS) GetEndpointAttributesRequest(input *GetEndpointAttributesInput) (r
 		input = &GetEndpointAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetEndpointAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -810,16 +800,16 @@ func (c *SNS) GetEndpointAttributesRequest(input *GetEndpointAttributesInput) (r
 // API operation GetEndpointAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/GetEndpointAttributes
@@ -867,9 +857,8 @@ func (c *SNS) GetPlatformApplicationAttributesRequest(input *GetPlatformApplicat
 		input = &GetPlatformApplicationAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetPlatformApplicationAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -887,16 +876,16 @@ func (c *SNS) GetPlatformApplicationAttributesRequest(input *GetPlatformApplicat
 // API operation GetPlatformApplicationAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/GetPlatformApplicationAttributes
@@ -944,9 +933,8 @@ func (c *SNS) GetSMSAttributesRequest(input *GetSMSAttributesInput) (req *reques
 		input = &GetSMSAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSMSAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -964,17 +952,17 @@ func (c *SNS) GetSMSAttributesRequest(input *GetSMSAttributesInput) (req *reques
 // API operation GetSMSAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * Throttled
+//   * ErrCodeThrottledException "Throttled"
 //   Indicates that the rate at which requests have been submitted for this action
 //   exceeds the limit for your account.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/GetSMSAttributes
@@ -1022,9 +1010,8 @@ func (c *SNS) GetSubscriptionAttributesRequest(input *GetSubscriptionAttributesI
 		input = &GetSubscriptionAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetSubscriptionAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1040,16 +1027,16 @@ func (c *SNS) GetSubscriptionAttributesRequest(input *GetSubscriptionAttributesI
 // API operation GetSubscriptionAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/GetSubscriptionAttributes
@@ -1097,9 +1084,8 @@ func (c *SNS) GetTopicAttributesRequest(input *GetTopicAttributesInput) (req *re
 		input = &GetTopicAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetTopicAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1116,16 +1102,16 @@ func (c *SNS) GetTopicAttributesRequest(input *GetTopicAttributesInput) (req *re
 // API operation GetTopicAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/GetTopicAttributes
@@ -1179,9 +1165,8 @@ func (c *SNS) ListEndpointsByPlatformApplicationRequest(input *ListEndpointsByPl
 		input = &ListEndpointsByPlatformApplicationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListEndpointsByPlatformApplicationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1204,16 +1189,16 @@ func (c *SNS) ListEndpointsByPlatformApplicationRequest(input *ListEndpointsByPl
 // API operation ListEndpointsByPlatformApplication for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/ListEndpointsByPlatformApplication
@@ -1286,9 +1271,8 @@ func (c *SNS) ListPhoneNumbersOptedOutRequest(input *ListPhoneNumbersOptedOutInp
 		input = &ListPhoneNumbersOptedOutInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListPhoneNumbersOptedOutOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1312,17 +1296,17 @@ func (c *SNS) ListPhoneNumbersOptedOutRequest(input *ListPhoneNumbersOptedOutInp
 // API operation ListPhoneNumbersOptedOut for usage and error information.
 //
 // Returned Error Codes:
-//   * Throttled
+//   * ErrCodeThrottledException "Throttled"
 //   Indicates that the rate at which requests have been submitted for this action
 //   exceeds the limit for your account.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/ListPhoneNumbersOptedOut
@@ -1376,9 +1360,8 @@ func (c *SNS) ListPlatformApplicationsRequest(input *ListPlatformApplicationsInp
 		input = &ListPlatformApplicationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListPlatformApplicationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1401,13 +1384,13 @@ func (c *SNS) ListPlatformApplicationsRequest(input *ListPlatformApplicationsInp
 // API operation ListPlatformApplications for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/ListPlatformApplications
@@ -1486,9 +1469,8 @@ func (c *SNS) ListSubscriptionsRequest(input *ListSubscriptionsInput) (req *requ
 		input = &ListSubscriptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListSubscriptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1507,13 +1489,13 @@ func (c *SNS) ListSubscriptionsRequest(input *ListSubscriptionsInput) (req *requ
 // API operation ListSubscriptions for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/ListSubscriptions
@@ -1592,9 +1574,8 @@ func (c *SNS) ListSubscriptionsByTopicRequest(input *ListSubscriptionsByTopicInp
 		input = &ListSubscriptionsByTopicInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListSubscriptionsByTopicOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1613,16 +1594,16 @@ func (c *SNS) ListSubscriptionsByTopicRequest(input *ListSubscriptionsByTopicInp
 // API operation ListSubscriptionsByTopic for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/ListSubscriptionsByTopic
@@ -1701,9 +1682,8 @@ func (c *SNS) ListTopicsRequest(input *ListTopicsInput) (req *request.Request, o
 		input = &ListTopicsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTopicsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1721,13 +1701,13 @@ func (c *SNS) ListTopicsRequest(input *ListTopicsInput) (req *request.Request, o
 // API operation ListTopics for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/ListTopics
@@ -1800,9 +1780,8 @@ func (c *SNS) OptInPhoneNumberRequest(input *OptInPhoneNumberInput) (req *reques
 		input = &OptInPhoneNumberInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &OptInPhoneNumberOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1821,17 +1800,17 @@ func (c *SNS) OptInPhoneNumberRequest(input *OptInPhoneNumberInput) (req *reques
 // API operation OptInPhoneNumber for usage and error information.
 //
 // Returned Error Codes:
-//   * Throttled
+//   * ErrCodeThrottledException "Throttled"
 //   Indicates that the rate at which requests have been submitted for this action
 //   exceeds the limit for your account.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/OptInPhoneNumber
@@ -1879,9 +1858,8 @@ func (c *SNS) PublishRequest(input *PublishInput) (req *request.Request, output 
 		input = &PublishInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PublishOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1908,25 +1886,25 @@ func (c *SNS) PublishRequest(input *PublishInput) (req *request.Request, output 
 // API operation Publish for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * ParameterValueInvalid
+//   * ErrCodeInvalidParameterValueException "ParameterValueInvalid"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
-//   * EndpointDisabled
+//   * ErrCodeEndpointDisabledException "EndpointDisabled"
 //   Exception error indicating endpoint disabled.
 //
-//   * PlatformApplicationDisabled
+//   * ErrCodePlatformApplicationDisabledException "PlatformApplicationDisabled"
 //   Exception error indicating platform application disabled.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/Publish
@@ -1974,11 +1952,10 @@ func (c *SNS) RemovePermissionRequest(input *RemovePermissionInput) (req *reques
 		input = &RemovePermissionInput{}
 	}
 
+	output = &RemovePermissionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RemovePermissionOutput{}
-	req.Data = output
 	return
 }
 
@@ -1994,16 +1971,16 @@ func (c *SNS) RemovePermissionRequest(input *RemovePermissionInput) (req *reques
 // API operation RemovePermission for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/RemovePermission
@@ -2051,11 +2028,10 @@ func (c *SNS) SetEndpointAttributesRequest(input *SetEndpointAttributesInput) (r
 		input = &SetEndpointAttributesInput{}
 	}
 
+	output = &SetEndpointAttributesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetEndpointAttributesOutput{}
-	req.Data = output
 	return
 }
 
@@ -2073,16 +2049,16 @@ func (c *SNS) SetEndpointAttributesRequest(input *SetEndpointAttributesInput) (r
 // API operation SetEndpointAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/SetEndpointAttributes
@@ -2130,11 +2106,10 @@ func (c *SNS) SetPlatformApplicationAttributesRequest(input *SetPlatformApplicat
 		input = &SetPlatformApplicationAttributesInput{}
 	}
 
+	output = &SetPlatformApplicationAttributesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetPlatformApplicationAttributesOutput{}
-	req.Data = output
 	return
 }
 
@@ -2154,16 +2129,16 @@ func (c *SNS) SetPlatformApplicationAttributesRequest(input *SetPlatformApplicat
 // API operation SetPlatformApplicationAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/SetPlatformApplicationAttributes
@@ -2211,9 +2186,8 @@ func (c *SNS) SetSMSAttributesRequest(input *SetSMSAttributesInput) (req *reques
 		input = &SetSMSAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SetSMSAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2235,17 +2209,17 @@ func (c *SNS) SetSMSAttributesRequest(input *SetSMSAttributesInput) (req *reques
 // API operation SetSMSAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * Throttled
+//   * ErrCodeThrottledException "Throttled"
 //   Indicates that the rate at which requests have been submitted for this action
 //   exceeds the limit for your account.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/SetSMSAttributes
@@ -2293,11 +2267,10 @@ func (c *SNS) SetSubscriptionAttributesRequest(input *SetSubscriptionAttributesI
 		input = &SetSubscriptionAttributesInput{}
 	}
 
+	output = &SetSubscriptionAttributesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetSubscriptionAttributesOutput{}
-	req.Data = output
 	return
 }
 
@@ -2313,16 +2286,16 @@ func (c *SNS) SetSubscriptionAttributesRequest(input *SetSubscriptionAttributesI
 // API operation SetSubscriptionAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/SetSubscriptionAttributes
@@ -2370,11 +2343,10 @@ func (c *SNS) SetTopicAttributesRequest(input *SetTopicAttributesInput) (req *re
 		input = &SetTopicAttributesInput{}
 	}
 
+	output = &SetTopicAttributesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &SetTopicAttributesOutput{}
-	req.Data = output
 	return
 }
 
@@ -2390,16 +2362,16 @@ func (c *SNS) SetTopicAttributesRequest(input *SetTopicAttributesInput) (req *re
 // API operation SetTopicAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/SetTopicAttributes
@@ -2447,9 +2419,8 @@ func (c *SNS) SubscribeRequest(input *SubscribeInput) (req *request.Request, out
 		input = &SubscribeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &SubscribeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2468,19 +2439,19 @@ func (c *SNS) SubscribeRequest(input *SubscribeInput) (req *request.Request, out
 // API operation Subscribe for usage and error information.
 //
 // Returned Error Codes:
-//   * SubscriptionLimitExceeded
+//   * ErrCodeSubscriptionLimitExceededException "SubscriptionLimitExceeded"
 //   Indicates that the customer already owns the maximum allowed number of subscriptions.
 //
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/Subscribe
@@ -2528,11 +2499,10 @@ func (c *SNS) UnsubscribeRequest(input *UnsubscribeInput) (req *request.Request,
 		input = &UnsubscribeInput{}
 	}
 
+	output = &UnsubscribeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UnsubscribeOutput{}
-	req.Data = output
 	return
 }
 
@@ -2553,16 +2523,16 @@ func (c *SNS) UnsubscribeRequest(input *UnsubscribeInput) (req *request.Request,
 // API operation Unsubscribe for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidParameter
+//   * ErrCodeInvalidParameterException "InvalidParameter"
 //   Indicates that a request parameter does not comply with the associated constraints.
 //
-//   * InternalError
+//   * ErrCodeInternalErrorException "InternalError"
 //   Indicates an internal service error.
 //
-//   * AuthorizationError
+//   * ErrCodeAuthorizationErrorException "AuthorizationError"
 //   Indicates that the user has been denied access to the requested resource.
 //
-//   * NotFound
+//   * ErrCodeNotFoundException "NotFound"
 //   Indicates that the requested resource does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/sns-2010-03-31/Unsubscribe

@@ -10,6 +10,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/containerregistry"
+	"github.com/Azure/azure-sdk-for-go/arm/containerservice"
 	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
 	"github.com/Azure/azure-sdk-for-go/arm/keyvault"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
@@ -32,13 +33,14 @@ type ArmClient struct {
 	clientId       string
 	tenantId       string
 	subscriptionId string
+	environment    azure.Environment
 
 	StopContext context.Context
 
 	rivieraClient *riviera.Client
 
 	availSetClient         compute.AvailabilitySetsClient
-	usageOpsClient         compute.UsageOperationsClient
+	usageOpsClient         compute.UsageClient
 	vmExtensionImageClient compute.VirtualMachineExtensionImagesClient
 	vmExtensionClient      compute.VirtualMachineExtensionsClient
 	vmScaleSetClient       compute.VirtualMachineScaleSetsClient
@@ -65,6 +67,7 @@ type ArmClient struct {
 	cdnEndpointsClient cdn.EndpointsClient
 
 	containerRegistryClient containerregistry.RegistriesClient
+	containerServicesClient containerservice.ContainerServicesClient
 
 	eventHubClient              eventhub.EventHubsClient
 	eventHubConsumerGroupClient eventhub.ConsumerGroupsClient
@@ -73,7 +76,7 @@ type ArmClient struct {
 	providers           resources.ProvidersClient
 	resourceGroupClient resources.GroupsClient
 	tagsClient          resources.TagsClient
-	resourceFindClient  resources.Client
+	resourceFindClient  resources.GroupClient
 
 	jobsClient            scheduler.JobsClient
 	jobsCollectionsClient scheduler.JobCollectionsClient
@@ -83,7 +86,7 @@ type ArmClient struct {
 
 	deploymentsClient resources.DeploymentsClient
 
-	redisClient redis.Client
+	redisClient redis.GroupClient
 
 	trafficManagerProfilesClient  trafficmanager.ProfilesClient
 	trafficManagerEndpointsClient trafficmanager.EndpointsClient
@@ -131,13 +134,6 @@ func setUserAgent(client *autorest.Client) {
 // getArmClient is a helper method which returns a fully instantiated
 // *ArmClient based on the Config's current settings.
 func (c *Config) getArmClient() (*ArmClient, error) {
-	// client declarations:
-	client := ArmClient{
-		clientId:       c.ClientID,
-		tenantId:       c.TenantID,
-		subscriptionId: c.SubscriptionID,
-	}
-
 	// detect cloud from environment
 	env, envErr := azure.EnvironmentFromName(c.Environment)
 	if envErr != nil {
@@ -147,6 +143,14 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 		if env, innerErr = azure.EnvironmentFromName(wrapped); innerErr != nil {
 			return nil, envErr
 		}
+	}
+
+	// client declarations:
+	client := ArmClient{
+		clientId:       c.ClientID,
+		tenantId:       c.TenantID,
+		subscriptionId: c.SubscriptionID,
+		environment:    env,
 	}
 
 	rivieraClient, err := riviera.NewClient(&riviera.AzureResourceManagerCredentials{
@@ -187,7 +191,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	asc.Sender = autorest.CreateSender(withRequestLogging())
 	client.availSetClient = asc
 
-	uoc := compute.NewUsageOperationsClientWithBaseURI(endpoint, c.SubscriptionID)
+	uoc := compute.NewUsageClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&uoc.Client)
 	uoc.Authorizer = spt
 	uoc.Sender = autorest.CreateSender(withRequestLogging())
@@ -234,6 +238,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	crc.Authorizer = spt
 	crc.Sender = autorest.CreateSender(withRequestLogging())
 	client.containerRegistryClient = crc
+
+	csc := containerservice.NewContainerServicesClientWithBaseURI(endpoint, c.SubscriptionID)
+	setUserAgent(&csc.Client)
+	csc.Authorizer = spt
+	csc.Sender = autorest.CreateSender(withRequestLogging())
+	client.containerServicesClient = csc
 
 	ehc := eventhub.NewEventHubsClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&ehc.Client)
@@ -349,7 +359,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	tc.Sender = autorest.CreateSender(withRequestLogging())
 	client.tagsClient = tc
 
-	rf := resources.NewClientWithBaseURI(endpoint, c.SubscriptionID)
+	rf := resources.NewGroupClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&rf.Client)
 	rf.Authorizer = spt
 	rf.Sender = autorest.CreateSender(withRequestLogging())
@@ -409,7 +419,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	tmec.Sender = autorest.CreateSender(withRequestLogging())
 	client.trafficManagerEndpointsClient = tmec
 
-	rdc := redis.NewClientWithBaseURI(endpoint, c.SubscriptionID)
+	rdc := redis.NewGroupClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&rdc.Client)
 	rdc.Authorizer = spt
 	rdc.Sender = autorest.CreateSender(withRequestLogging())
@@ -470,7 +480,8 @@ func (armClient *ArmClient) getBlobStorageClientForStorageAccount(resourceGroupN
 		return nil, false, nil
 	}
 
-	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	storageClient, err := mainStorage.NewClient(storageAccountName, key, armClient.environment.StorageEndpointSuffix,
+		mainStorage.DefaultAPIVersion, true)
 	if err != nil {
 		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
 	}
@@ -488,7 +499,8 @@ func (armClient *ArmClient) getFileServiceClientForStorageAccount(resourceGroupN
 		return nil, false, nil
 	}
 
-	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	storageClient, err := mainStorage.NewClient(storageAccountName, key, armClient.environment.StorageEndpointSuffix,
+		mainStorage.DefaultAPIVersion, true)
 	if err != nil {
 		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
 	}
@@ -506,7 +518,8 @@ func (armClient *ArmClient) getTableServiceClientForStorageAccount(resourceGroup
 		return nil, false, nil
 	}
 
-	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	storageClient, err := mainStorage.NewClient(storageAccountName, key, armClient.environment.StorageEndpointSuffix,
+		mainStorage.DefaultAPIVersion, true)
 	if err != nil {
 		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
 	}
@@ -524,7 +537,8 @@ func (armClient *ArmClient) getQueueServiceClientForStorageAccount(resourceGroup
 		return nil, false, nil
 	}
 
-	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	storageClient, err := mainStorage.NewClient(storageAccountName, key, armClient.environment.StorageEndpointSuffix,
+		mainStorage.DefaultAPIVersion, true)
 	if err != nil {
 		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
 	}

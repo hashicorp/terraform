@@ -14,21 +14,21 @@ Create an Azure Storage Table.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
-    location = "westus"
+  name     = "acctestrg-%d"
+  location = "westus"
 }
 
 resource "azurerm_storage_account" "test" {
-    name = "acctestacc%s"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
-    account_type = "Standard_LRS"
+  name                = "acctestacc%s"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "westus"
+  account_type        = "Standard_LRS"
 }
 
 resource "azurerm_storage_table" "test" {
-    name = "mysampletable"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    storage_account_name = "${azurerm_storage_account.test.name}"
+  name                 = "mysampletable"
+  resource_group_name  = "${azurerm_resource_group.test.name}"
+  storage_account_name = "${azurerm_storage_account.test.name}"
 }
 ```
 
@@ -36,7 +36,7 @@ resource "azurerm_storage_table" "test" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the storage table. Must be unique within the storage account the table is located. 
+* `name` - (Required) The name of the storage table. Must be unique within the storage account the table is located.
 
 * `resource_group_name` - (Required) The name of the resource group in which to
     create the storage table. Changing this forces a new resource to be created.

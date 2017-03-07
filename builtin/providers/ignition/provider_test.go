@@ -18,15 +18,15 @@ func TestProvider(t *testing.T) {
 }
 
 func TestValidateUnit(t *testing.T) {
-	if err := validateUnit(""); err == nil {
+	if err := validateUnitContent(""); err == nil {
 		t.Fatalf("error not found, expected error")
 	}
 
-	if err := validateUnit("[foo]qux"); err == nil {
+	if err := validateUnitContent("[foo]qux"); err == nil {
 		t.Fatalf("error not found, expected error")
 	}
 
-	if err := validateUnit("[foo]\nqux=foo\nfoo"); err == nil {
+	if err := validateUnitContent("[foo]\nqux=foo\nfoo"); err == nil {
 		t.Fatalf("error not found, expected error")
 	}
 }

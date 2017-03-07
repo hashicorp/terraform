@@ -92,7 +92,7 @@ data "aws_iam_policy_document" "s3_policy" {
 }
 
 resource "aws_s3_bucket" "bucket" {
-  ...
+  # ...
   policy = "${data.aws_iam_policy_document.s3_policy.json}"
 }
 ```
@@ -105,7 +105,7 @@ resource "aws_s3_bucket" "bucket" {
 
 ## Import
 
-Cloudfront Origin Access Identities can be imported using the `id`, e.g. 
+Cloudfront Origin Access Identities can be imported using the `id`, e.g.
 
 ```
 $ terraform import aws_cloudfront_origin_access_identity.origin_access E74FTE3AEXAMPLE

@@ -57,6 +57,26 @@ func TestAccCobblerProfile_change(t *testing.T) {
 	})
 }
 
+func TestAccCobblerProfile_withRepo(t *testing.T) {
+	var distro cobbler.Distro
+	var profile cobbler.Profile
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccCobblerPreCheck(t) },
+		Providers:    testAccCobblerProviders,
+		CheckDestroy: testAccCobblerCheckProfileDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCobblerProfile_withRepo,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCobblerCheckDistroExists(t, "cobbler_distro.foo", &distro),
+					testAccCobblerCheckProfileExists(t, "cobbler_profile.foo", &profile),
+				),
+			},
+		},
+	})
+}
+
 func testAccCobblerCheckProfileDestroy(s *terraform.State) error {
 	config := testAccCobblerProvider.Meta().(*Config)
 
@@ -146,4 +166,21 @@ var testAccCobblerProfile_change_2 = `
 		name = "foo"
 		comment = "I am a profile again"
 		distro = "${cobbler_distro.foo.name}"
+	}`
+
+var testAccCobblerProfile_withRepo = `
+	resource "cobbler_distro" "foo" {
+		name = "foo"
+		breed = "ubuntu"
+		os_version = "trusty"
+		arch = "x86_64"
+		kernel = "/var/www/cobbler/ks_mirror/Ubuntu-14.04/install/netboot/ubuntu-installer/amd64/linux"
+		initrd = "/var/www/cobbler/ks_mirror/Ubuntu-14.04/install/netboot/ubuntu-installer/amd64/initrd.gz"
+	}
+
+	resource "cobbler_profile" "foo" {
+		name = "foo"
+		comment = "I am a profile again"
+		distro = "${cobbler_distro.foo.name}"
+		repos = ["Ubuntu-14.04-x86_64"]
 	}`

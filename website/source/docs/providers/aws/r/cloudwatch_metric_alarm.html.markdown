@@ -13,45 +13,51 @@ Provides a CloudWatch Metric Alarm resource.
 ## Example Usage
 ```
 resource "aws_cloudwatch_metric_alarm" "foobar" {
-    alarm_name = "terraform-test-foobar5"
-    comparison_operator = "GreaterThanOrEqualToThreshold"
-    evaluation_periods = "2"
-    metric_name = "CPUUtilization"
-    namespace = "AWS/EC2"
-    period = "120"
-    statistic = "Average"
-    threshold = "80"
-    alarm_description = "This metric monitor ec2 cpu utilization"
-    insufficient_data_actions = []
+  alarm_name                = "terraform-test-foobar5"
+  comparison_operator       = "GreaterThanOrEqualToThreshold"
+  evaluation_periods        = "2"
+  metric_name               = "CPUUtilization"
+  namespace                 = "AWS/EC2"
+  period                    = "120"
+  statistic                 = "Average"
+  threshold                 = "80"
+  alarm_description         = "This metric monitor ec2 cpu utilization"
+  insufficient_data_actions = []
 }
 ```
 
 ## Example in Conjunction with Scaling Policies
 ```
 resource "aws_autoscaling_policy" "bat" {
-    name = "foobar3-terraform-test"
-    scaling_adjustment = 4
-    adjustment_type = "ChangeInCapacity"
-    cooldown = 300
-    autoscaling_group_name = "${aws_autoscaling_group.bar.name}"
+  name                   = "foobar3-terraform-test"
+  scaling_adjustment     = 4
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  autoscaling_group_name = "${aws_autoscaling_group.bar.name}"
 }
 
 resource "aws_cloudwatch_metric_alarm" "bat" {
-    alarm_name = "terraform-test-foobar5"
-    comparison_operator = "GreaterThanOrEqualToThreshold"
-    evaluation_periods = "2"
-    metric_name = "CPUUtilization"
-    namespace = "AWS/EC2"
-    period = "120"
-    statistic = "Average"
-    threshold = "80"
-    dimensions {
-        AutoScalingGroupName = "${aws_autoscaling_group.bar.name}"
-    }
-    alarm_description = "This metric monitor ec2 cpu utilization"
-    alarm_actions = ["${aws_autoscaling_policy.bat.arn}"]
+  alarm_name          = "terraform-test-foobar5"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = "120"
+  statistic           = "Average"
+  threshold           = "80"
+
+  dimensions {
+    AutoScalingGroupName = "${aws_autoscaling_group.bar.name}"
+  }
+
+  alarm_description = "This metric monitor ec2 cpu utilization"
+  alarm_actions     = ["${aws_autoscaling_policy.bat.arn}"]
 }
 ```
+
+~> **NOTE:**  You cannot create a metric alarm consisting of both `statistic` and `extended_statistic` parameters.
+You must choose one or the other
+
 ## Argument Reference
 
 See [related part of AWS Docs](https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_PutMetricAlarm.html)
@@ -67,7 +73,7 @@ The following arguments are supported:
 * `namespace` - (Required) The namespace for the alarm's associated metric. See docs for the [list of namespaces](https://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/aws-namespaces.html).
   See docs for [supported metrics](https://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/CW_Support_For_AWS.html).
 * `period` - (Required) The period in seconds over which the specified `statistic` is applied.
-* `statistic` - (Required) The statistic to apply to the alarm's associated metric.
+* `statistic` - (Optional) The statistic to apply to the alarm's associated metric.
    Either of the following is supported: `SampleCount`, `Average`, `Sum`, `Minimum`, `Maximum`
 * `threshold` - (Required) The value against which the specified statistic is compared.
 * `actions_enabled` - (Optional) Indicates whether or not actions should be executed during any changes to the alarm's state. Defaults to `true`.
@@ -77,6 +83,7 @@ The following arguments are supported:
 * `insufficient_data_actions` - (Optional) The list of actions to execute when this alarm transitions into an INSUFFICIENT_DATA state from any other state. Each action is specified as an Amazon Resource Number (ARN).
 * `ok_actions` - (Optional) The list of actions to execute when this alarm transitions into an OK state from any other state. Each action is specified as an Amazon Resource Number (ARN).
 * `unit` - (Optional) The unit for the alarm's associated metric.
+* `extended_statistic` - (Optional) The percentile statistic for the metric associated with the alarm. Specify a value between p0.0 and p100.
 
 ## Attributes Reference
 
@@ -85,10 +92,9 @@ The following attributes are exported:
 * `id` - The ID of the health check
 
 
-
 ## Import
 
-Cloud Metric Alarms can be imported using the `alarm_name`, e.g. 
+Cloud Metric Alarms can be imported using the `alarm_name`, e.g.
 
 ```
 $ terraform import aws_cloudwatch_metric_alarm.test alarm-12345

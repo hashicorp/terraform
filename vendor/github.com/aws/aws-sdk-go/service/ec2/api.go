@@ -51,9 +51,8 @@ func (c *EC2) AcceptReservedInstancesExchangeQuoteRequest(input *AcceptReservedI
 		input = &AcceptReservedInstancesExchangeQuoteInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AcceptReservedInstancesExchangeQuoteOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -113,9 +112,8 @@ func (c *EC2) AcceptVpcPeeringConnectionRequest(input *AcceptVpcPeeringConnectio
 		input = &AcceptVpcPeeringConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AcceptVpcPeeringConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -177,9 +175,8 @@ func (c *EC2) AllocateAddressRequest(input *AllocateAddressInput) (req *request.
 		input = &AllocateAddressInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AllocateAddressOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -242,9 +239,8 @@ func (c *EC2) AllocateHostsRequest(input *AllocateHostsInput) (req *request.Requ
 		input = &AllocateHostsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AllocateHostsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -305,9 +301,8 @@ func (c *EC2) AssignIpv6AddressesRequest(input *AssignIpv6AddressesInput) (req *
 		input = &AssignIpv6AddressesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssignIpv6AddressesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -373,11 +368,10 @@ func (c *EC2) AssignPrivateIpAddressesRequest(input *AssignPrivateIpAddressesInp
 		input = &AssignPrivateIpAddressesInput{}
 	}
 
+	output = &AssignPrivateIpAddressesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AssignPrivateIpAddressesOutput{}
-	req.Data = output
 	return
 }
 
@@ -446,9 +440,8 @@ func (c *EC2) AssociateAddressRequest(input *AssociateAddressInput) (req *reques
 		input = &AssociateAddressInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssociateAddressOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -525,11 +518,10 @@ func (c *EC2) AssociateDhcpOptionsRequest(input *AssociateDhcpOptionsInput) (req
 		input = &AssociateDhcpOptionsInput{}
 	}
 
+	output = &AssociateDhcpOptionsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AssociateDhcpOptionsOutput{}
-	req.Data = output
 	return
 }
 
@@ -557,6 +549,67 @@ func (c *EC2) AssociateDhcpOptionsRequest(input *AssociateDhcpOptionsInput) (req
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateDhcpOptions
 func (c *EC2) AssociateDhcpOptions(input *AssociateDhcpOptionsInput) (*AssociateDhcpOptionsOutput, error) {
 	req, out := c.AssociateDhcpOptionsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opAssociateIamInstanceProfile = "AssociateIamInstanceProfile"
+
+// AssociateIamInstanceProfileRequest generates a "aws/request.Request" representing the
+// client's request for the AssociateIamInstanceProfile operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See AssociateIamInstanceProfile for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssociateIamInstanceProfile method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssociateIamInstanceProfileRequest method.
+//    req, resp := client.AssociateIamInstanceProfileRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfile
+func (c *EC2) AssociateIamInstanceProfileRequest(input *AssociateIamInstanceProfileInput) (req *request.Request, output *AssociateIamInstanceProfileOutput) {
+	op := &request.Operation{
+		Name:       opAssociateIamInstanceProfile,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AssociateIamInstanceProfileInput{}
+	}
+
+	output = &AssociateIamInstanceProfileOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// AssociateIamInstanceProfile API operation for Amazon Elastic Compute Cloud.
+//
+// Associates an IAM instance profile with a running or stopped instance. You
+// cannot associate more than one IAM instance profile with an instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AssociateIamInstanceProfile for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfile
+func (c *EC2) AssociateIamInstanceProfile(input *AssociateIamInstanceProfileInput) (*AssociateIamInstanceProfileOutput, error) {
+	req, out := c.AssociateIamInstanceProfileRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -599,9 +652,8 @@ func (c *EC2) AssociateRouteTableRequest(input *AssociateRouteTableInput) (req *
 		input = &AssociateRouteTableInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssociateRouteTableOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -667,9 +719,8 @@ func (c *EC2) AssociateSubnetCidrBlockRequest(input *AssociateSubnetCidrBlockInp
 		input = &AssociateSubnetCidrBlockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssociateSubnetCidrBlockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -730,9 +781,8 @@ func (c *EC2) AssociateVpcCidrBlockRequest(input *AssociateVpcCidrBlockInput) (r
 		input = &AssociateVpcCidrBlockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AssociateVpcCidrBlockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -792,9 +842,8 @@ func (c *EC2) AttachClassicLinkVpcRequest(input *AttachClassicLinkVpcInput) (req
 		input = &AttachClassicLinkVpcInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AttachClassicLinkVpcOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -864,11 +913,10 @@ func (c *EC2) AttachInternetGatewayRequest(input *AttachInternetGatewayInput) (r
 		input = &AttachInternetGatewayInput{}
 	}
 
+	output = &AttachInternetGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AttachInternetGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -929,9 +977,8 @@ func (c *EC2) AttachNetworkInterfaceRequest(input *AttachNetworkInterfaceInput) 
 		input = &AttachNetworkInterfaceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AttachNetworkInterfaceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -990,9 +1037,8 @@ func (c *EC2) AttachVolumeRequest(input *AttachVolumeInput) (req *request.Reques
 		input = &AttachVolumeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &VolumeAttachment{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1080,9 +1126,8 @@ func (c *EC2) AttachVpnGatewayRequest(input *AttachVpnGatewayInput) (req *reques
 		input = &AttachVpnGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AttachVpnGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1143,11 +1188,10 @@ func (c *EC2) AuthorizeSecurityGroupEgressRequest(input *AuthorizeSecurityGroupE
 		input = &AuthorizeSecurityGroupEgressInput{}
 	}
 
+	output = &AuthorizeSecurityGroupEgressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AuthorizeSecurityGroupEgressOutput{}
-	req.Data = output
 	return
 }
 
@@ -1222,11 +1266,10 @@ func (c *EC2) AuthorizeSecurityGroupIngressRequest(input *AuthorizeSecurityGroup
 		input = &AuthorizeSecurityGroupIngressInput{}
 	}
 
+	output = &AuthorizeSecurityGroupIngressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &AuthorizeSecurityGroupIngressOutput{}
-	req.Data = output
 	return
 }
 
@@ -1301,9 +1344,8 @@ func (c *EC2) BundleInstanceRequest(input *BundleInstanceInput) (req *request.Re
 		input = &BundleInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &BundleInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1370,9 +1412,8 @@ func (c *EC2) CancelBundleTaskRequest(input *CancelBundleTaskInput) (req *reques
 		input = &CancelBundleTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelBundleTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1431,11 +1472,10 @@ func (c *EC2) CancelConversionTaskRequest(input *CancelConversionTaskInput) (req
 		input = &CancelConversionTaskInput{}
 	}
 
+	output = &CancelConversionTaskOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CancelConversionTaskOutput{}
-	req.Data = output
 	return
 }
 
@@ -1501,11 +1541,10 @@ func (c *EC2) CancelExportTaskRequest(input *CancelExportTaskInput) (req *reques
 		input = &CancelExportTaskInput{}
 	}
 
+	output = &CancelExportTaskOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CancelExportTaskOutput{}
-	req.Data = output
 	return
 }
 
@@ -1567,9 +1606,8 @@ func (c *EC2) CancelImportTaskRequest(input *CancelImportTaskInput) (req *reques
 		input = &CancelImportTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelImportTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1628,9 +1666,8 @@ func (c *EC2) CancelReservedInstancesListingRequest(input *CancelReservedInstanc
 		input = &CancelReservedInstancesListingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelReservedInstancesListingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1693,9 +1730,8 @@ func (c *EC2) CancelSpotFleetRequestsRequest(input *CancelSpotFleetRequestsInput
 		input = &CancelSpotFleetRequestsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelSpotFleetRequestsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1761,9 +1797,8 @@ func (c *EC2) CancelSpotInstanceRequestsRequest(input *CancelSpotInstanceRequest
 		input = &CancelSpotInstanceRequestsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CancelSpotInstanceRequestsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1830,9 +1865,8 @@ func (c *EC2) ConfirmProductInstanceRequest(input *ConfirmProductInstanceInput) 
 		input = &ConfirmProductInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ConfirmProductInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1894,9 +1928,8 @@ func (c *EC2) CopyImageRequest(input *CopyImageInput) (req *request.Request, out
 		input = &CopyImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CopyImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1960,9 +1993,8 @@ func (c *EC2) CopySnapshotRequest(input *CopySnapshotInput) (req *request.Reques
 		input = &CopySnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CopySnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2040,9 +2072,8 @@ func (c *EC2) CreateCustomerGatewayRequest(input *CreateCustomerGatewayInput) (r
 		input = &CreateCustomerGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateCustomerGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2125,9 +2156,8 @@ func (c *EC2) CreateDhcpOptionsRequest(input *CreateDhcpOptionsInput) (req *requ
 		input = &CreateDhcpOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateDhcpOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2225,9 +2255,8 @@ func (c *EC2) CreateEgressOnlyInternetGatewayRequest(input *CreateEgressOnlyInte
 		input = &CreateEgressOnlyInternetGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateEgressOnlyInternetGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2289,9 +2318,8 @@ func (c *EC2) CreateFlowLogsRequest(input *CreateFlowLogsInput) (req *request.Re
 		input = &CreateFlowLogsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateFlowLogsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2359,9 +2387,8 @@ func (c *EC2) CreateImageRequest(input *CreateImageInput) (req *request.Request,
 		input = &CreateImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2429,9 +2456,8 @@ func (c *EC2) CreateInstanceExportTaskRequest(input *CreateInstanceExportTaskInp
 		input = &CreateInstanceExportTaskInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateInstanceExportTaskOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2495,9 +2521,8 @@ func (c *EC2) CreateInternetGatewayRequest(input *CreateInternetGatewayInput) (r
 		input = &CreateInternetGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateInternetGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2560,9 +2585,8 @@ func (c *EC2) CreateKeyPairRequest(input *CreateKeyPairInput) (req *request.Requ
 		input = &CreateKeyPairInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateKeyPairOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2632,9 +2656,8 @@ func (c *EC2) CreateNatGatewayRequest(input *CreateNatGatewayInput) (req *reques
 		input = &CreateNatGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateNatGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2698,9 +2721,8 @@ func (c *EC2) CreateNetworkAclRequest(input *CreateNetworkAclInput) (req *reques
 		input = &CreateNetworkAclInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateNetworkAclOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2763,11 +2785,10 @@ func (c *EC2) CreateNetworkAclEntryRequest(input *CreateNetworkAclEntryInput) (r
 		input = &CreateNetworkAclEntryInput{}
 	}
 
+	output = &CreateNetworkAclEntryOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateNetworkAclEntryOutput{}
-	req.Data = output
 	return
 }
 
@@ -2842,9 +2863,8 @@ func (c *EC2) CreateNetworkInterfaceRequest(input *CreateNetworkInterfaceInput) 
 		input = &CreateNetworkInterfaceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateNetworkInterfaceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2907,11 +2927,10 @@ func (c *EC2) CreatePlacementGroupRequest(input *CreatePlacementGroupInput) (req
 		input = &CreatePlacementGroupInput{}
 	}
 
+	output = &CreatePlacementGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreatePlacementGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -2975,9 +2994,8 @@ func (c *EC2) CreateReservedInstancesListingRequest(input *CreateReservedInstanc
 		input = &CreateReservedInstancesListingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateReservedInstancesListingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -2987,6 +3005,10 @@ func (c *EC2) CreateReservedInstancesListingRequest(input *CreateReservedInstanc
 // the Reserved Instance Marketplace. You can submit one Standard Reserved Instance
 // listing at a time. To get a list of your Standard Reserved Instances, you
 // can use the DescribeReservedInstances operation.
+//
+// Only Standard Reserved Instances with a capacity reservation can be sold
+// in the Reserved Instance Marketplace. Convertible Reserved Instances and
+// Standard Reserved Instances with a regional benefit cannot be sold.
 //
 // The Reserved Instance Marketplace matches sellers who want to resell Standard
 // Reserved Instance capacity that they no longer need with buyers who want
@@ -3055,9 +3077,8 @@ func (c *EC2) CreateRouteRequest(input *CreateRouteInput) (req *request.Request,
 		input = &CreateRouteInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateRouteOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3135,9 +3156,8 @@ func (c *EC2) CreateRouteTableRequest(input *CreateRouteTableInput) (req *reques
 		input = &CreateRouteTableInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateRouteTableOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3200,9 +3220,8 @@ func (c *EC2) CreateSecurityGroupRequest(input *CreateSecurityGroupInput) (req *
 		input = &CreateSecurityGroupInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSecurityGroupOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3287,9 +3306,8 @@ func (c *EC2) CreateSnapshotRequest(input *CreateSnapshotInput) (req *request.Re
 		input = &CreateSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Snapshot{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3375,9 +3393,8 @@ func (c *EC2) CreateSpotDatafeedSubscriptionRequest(input *CreateSpotDatafeedSub
 		input = &CreateSpotDatafeedSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSpotDatafeedSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3439,9 +3456,8 @@ func (c *EC2) CreateSubnetRequest(input *CreateSubnetInput) (req *request.Reques
 		input = &CreateSubnetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateSubnetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3527,11 +3543,10 @@ func (c *EC2) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, o
 		input = &CreateTagsInput{}
 	}
 
+	output = &CreateTagsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateTagsOutput{}
-	req.Data = output
 	return
 }
 
@@ -3598,9 +3613,8 @@ func (c *EC2) CreateVolumeRequest(input *CreateVolumeInput) (req *request.Reques
 		input = &CreateVolumeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Volume{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3674,9 +3688,8 @@ func (c *EC2) CreateVpcRequest(input *CreateVpcInput) (req *request.Request, out
 		input = &CreateVpcInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpcOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3699,8 +3712,8 @@ func (c *EC2) CreateVpcRequest(input *CreateVpcInput) (req *request.Request, out
 //
 // You can specify the instance tenancy value for the VPC when you create it.
 // You can't change this value for the VPC after you create it. For more information,
-// see Dedicated Instances (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/dedicated-instance.html.html)
-// in the Amazon Virtual Private Cloud User Guide.
+// see Dedicated Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/dedicated-instance.html)
+// in the Amazon Elastic Compute Cloud User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3753,9 +3766,8 @@ func (c *EC2) CreateVpcEndpointRequest(input *CreateVpcEndpointInput) (req *requ
 		input = &CreateVpcEndpointInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpcEndpointOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3767,7 +3779,7 @@ func (c *EC2) CreateVpcEndpointRequest(input *CreateVpcEndpointInput) (req *requ
 // that will control access to the service from your VPC. You can also specify
 // the VPC route tables that use the endpoint.
 //
-// Currently, only endpoints to Amazon S3 are supported.
+// Use DescribeVpcEndpointServices to get a list of supported AWS services.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3820,9 +3832,8 @@ func (c *EC2) CreateVpcPeeringConnectionRequest(input *CreateVpcPeeringConnectio
 		input = &CreateVpcPeeringConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpcPeeringConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3891,9 +3902,8 @@ func (c *EC2) CreateVpnConnectionRequest(input *CreateVpnConnectionInput) (req *
 		input = &CreateVpnConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpnConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -3971,11 +3981,10 @@ func (c *EC2) CreateVpnConnectionRouteRequest(input *CreateVpnConnectionRouteInp
 		input = &CreateVpnConnectionRouteInput{}
 	}
 
+	output = &CreateVpnConnectionRouteOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &CreateVpnConnectionRouteOutput{}
-	req.Data = output
 	return
 }
 
@@ -4041,9 +4050,8 @@ func (c *EC2) CreateVpnGatewayRequest(input *CreateVpnGatewayInput) (req *reques
 		input = &CreateVpnGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateVpnGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4108,11 +4116,10 @@ func (c *EC2) DeleteCustomerGatewayRequest(input *DeleteCustomerGatewayInput) (r
 		input = &DeleteCustomerGatewayInput{}
 	}
 
+	output = &DeleteCustomerGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteCustomerGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -4172,11 +4179,10 @@ func (c *EC2) DeleteDhcpOptionsRequest(input *DeleteDhcpOptionsInput) (req *requ
 		input = &DeleteDhcpOptionsInput{}
 	}
 
+	output = &DeleteDhcpOptionsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteDhcpOptionsOutput{}
-	req.Data = output
 	return
 }
 
@@ -4238,9 +4244,8 @@ func (c *EC2) DeleteEgressOnlyInternetGatewayRequest(input *DeleteEgressOnlyInte
 		input = &DeleteEgressOnlyInternetGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteEgressOnlyInternetGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4299,9 +4304,8 @@ func (c *EC2) DeleteFlowLogsRequest(input *DeleteFlowLogsInput) (req *request.Re
 		input = &DeleteFlowLogsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteFlowLogsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4360,11 +4364,10 @@ func (c *EC2) DeleteInternetGatewayRequest(input *DeleteInternetGatewayInput) (r
 		input = &DeleteInternetGatewayInput{}
 	}
 
+	output = &DeleteInternetGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteInternetGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -4424,11 +4427,10 @@ func (c *EC2) DeleteKeyPairRequest(input *DeleteKeyPairInput) (req *request.Requ
 		input = &DeleteKeyPairInput{}
 	}
 
+	output = &DeleteKeyPairOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteKeyPairOutput{}
-	req.Data = output
 	return
 }
 
@@ -4487,9 +4489,8 @@ func (c *EC2) DeleteNatGatewayRequest(input *DeleteNatGatewayInput) (req *reques
 		input = &DeleteNatGatewayInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteNatGatewayOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -4550,11 +4551,10 @@ func (c *EC2) DeleteNetworkAclRequest(input *DeleteNetworkAclInput) (req *reques
 		input = &DeleteNetworkAclInput{}
 	}
 
+	output = &DeleteNetworkAclOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteNetworkAclOutput{}
-	req.Data = output
 	return
 }
 
@@ -4614,11 +4614,10 @@ func (c *EC2) DeleteNetworkAclEntryRequest(input *DeleteNetworkAclEntryInput) (r
 		input = &DeleteNetworkAclEntryInput{}
 	}
 
+	output = &DeleteNetworkAclEntryOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteNetworkAclEntryOutput{}
-	req.Data = output
 	return
 }
 
@@ -4678,11 +4677,10 @@ func (c *EC2) DeleteNetworkInterfaceRequest(input *DeleteNetworkInterfaceInput) 
 		input = &DeleteNetworkInterfaceInput{}
 	}
 
+	output = &DeleteNetworkInterfaceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteNetworkInterfaceOutput{}
-	req.Data = output
 	return
 }
 
@@ -4742,11 +4740,10 @@ func (c *EC2) DeletePlacementGroupRequest(input *DeletePlacementGroupInput) (req
 		input = &DeletePlacementGroupInput{}
 	}
 
+	output = &DeletePlacementGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeletePlacementGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -4808,11 +4805,10 @@ func (c *EC2) DeleteRouteRequest(input *DeleteRouteInput) (req *request.Request,
 		input = &DeleteRouteInput{}
 	}
 
+	output = &DeleteRouteOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteRouteOutput{}
-	req.Data = output
 	return
 }
 
@@ -4871,11 +4867,10 @@ func (c *EC2) DeleteRouteTableRequest(input *DeleteRouteTableInput) (req *reques
 		input = &DeleteRouteTableInput{}
 	}
 
+	output = &DeleteRouteTableOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteRouteTableOutput{}
-	req.Data = output
 	return
 }
 
@@ -4936,11 +4931,10 @@ func (c *EC2) DeleteSecurityGroupRequest(input *DeleteSecurityGroupInput) (req *
 		input = &DeleteSecurityGroupInput{}
 	}
 
+	output = &DeleteSecurityGroupOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSecurityGroupOutput{}
-	req.Data = output
 	return
 }
 
@@ -5003,11 +4997,10 @@ func (c *EC2) DeleteSnapshotRequest(input *DeleteSnapshotInput) (req *request.Re
 		input = &DeleteSnapshotInput{}
 	}
 
+	output = &DeleteSnapshotOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSnapshotOutput{}
-	req.Data = output
 	return
 }
 
@@ -5080,11 +5073,10 @@ func (c *EC2) DeleteSpotDatafeedSubscriptionRequest(input *DeleteSpotDatafeedSub
 		input = &DeleteSpotDatafeedSubscriptionInput{}
 	}
 
+	output = &DeleteSpotDatafeedSubscriptionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSpotDatafeedSubscriptionOutput{}
-	req.Data = output
 	return
 }
 
@@ -5143,11 +5135,10 @@ func (c *EC2) DeleteSubnetRequest(input *DeleteSubnetInput) (req *request.Reques
 		input = &DeleteSubnetInput{}
 	}
 
+	output = &DeleteSubnetOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteSubnetOutput{}
-	req.Data = output
 	return
 }
 
@@ -5207,11 +5198,10 @@ func (c *EC2) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, o
 		input = &DeleteTagsInput{}
 	}
 
+	output = &DeleteTagsOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteTagsOutput{}
-	req.Data = output
 	return
 }
 
@@ -5274,11 +5264,10 @@ func (c *EC2) DeleteVolumeRequest(input *DeleteVolumeInput) (req *request.Reques
 		input = &DeleteVolumeInput{}
 	}
 
+	output = &DeleteVolumeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVolumeOutput{}
-	req.Data = output
 	return
 }
 
@@ -5343,11 +5332,10 @@ func (c *EC2) DeleteVpcRequest(input *DeleteVpcInput) (req *request.Request, out
 		input = &DeleteVpcInput{}
 	}
 
+	output = &DeleteVpcOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVpcOutput{}
-	req.Data = output
 	return
 }
 
@@ -5410,9 +5398,8 @@ func (c *EC2) DeleteVpcEndpointsRequest(input *DeleteVpcEndpointsInput) (req *re
 		input = &DeleteVpcEndpointsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteVpcEndpointsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5472,9 +5459,8 @@ func (c *EC2) DeleteVpcPeeringConnectionRequest(input *DeleteVpcPeeringConnectio
 		input = &DeleteVpcPeeringConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteVpcPeeringConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5536,11 +5522,10 @@ func (c *EC2) DeleteVpnConnectionRequest(input *DeleteVpnConnectionInput) (req *
 		input = &DeleteVpnConnectionInput{}
 	}
 
+	output = &DeleteVpnConnectionOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVpnConnectionOutput{}
-	req.Data = output
 	return
 }
 
@@ -5608,11 +5593,10 @@ func (c *EC2) DeleteVpnConnectionRouteRequest(input *DeleteVpnConnectionRouteInp
 		input = &DeleteVpnConnectionRouteInput{}
 	}
 
+	output = &DeleteVpnConnectionRouteOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVpnConnectionRouteOutput{}
-	req.Data = output
 	return
 }
 
@@ -5674,11 +5658,10 @@ func (c *EC2) DeleteVpnGatewayRequest(input *DeleteVpnGatewayInput) (req *reques
 		input = &DeleteVpnGatewayInput{}
 	}
 
+	output = &DeleteVpnGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeleteVpnGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -5741,11 +5724,10 @@ func (c *EC2) DeregisterImageRequest(input *DeregisterImageInput) (req *request.
 		input = &DeregisterImageInput{}
 	}
 
+	output = &DeregisterImageOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DeregisterImageOutput{}
-	req.Data = output
 	return
 }
 
@@ -5807,9 +5789,8 @@ func (c *EC2) DescribeAccountAttributesRequest(input *DescribeAccountAttributesI
 		input = &DescribeAccountAttributesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAccountAttributesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5886,9 +5867,8 @@ func (c *EC2) DescribeAddressesRequest(input *DescribeAddressesInput) (req *requ
 		input = &DescribeAddressesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAddressesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -5951,9 +5931,8 @@ func (c *EC2) DescribeAvailabilityZonesRequest(input *DescribeAvailabilityZonesI
 		input = &DescribeAvailabilityZonesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeAvailabilityZonesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6018,9 +5997,8 @@ func (c *EC2) DescribeBundleTasksRequest(input *DescribeBundleTasksInput) (req *
 		input = &DescribeBundleTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeBundleTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6084,9 +6062,8 @@ func (c *EC2) DescribeClassicLinkInstancesRequest(input *DescribeClassicLinkInst
 		input = &DescribeClassicLinkInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeClassicLinkInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6148,9 +6125,8 @@ func (c *EC2) DescribeConversionTasksRequest(input *DescribeConversionTasksInput
 		input = &DescribeConversionTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeConversionTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6213,9 +6189,8 @@ func (c *EC2) DescribeCustomerGatewaysRequest(input *DescribeCustomerGatewaysInp
 		input = &DescribeCustomerGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeCustomerGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6278,9 +6253,8 @@ func (c *EC2) DescribeDhcpOptionsRequest(input *DescribeDhcpOptionsInput) (req *
 		input = &DescribeDhcpOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeDhcpOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6342,9 +6316,8 @@ func (c *EC2) DescribeEgressOnlyInternetGatewaysRequest(input *DescribeEgressOnl
 		input = &DescribeEgressOnlyInternetGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeEgressOnlyInternetGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6403,9 +6376,8 @@ func (c *EC2) DescribeExportTasksRequest(input *DescribeExportTasksInput) (req *
 		input = &DescribeExportTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeExportTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6464,9 +6436,8 @@ func (c *EC2) DescribeFlowLogsRequest(input *DescribeFlowLogsInput) (req *reques
 		input = &DescribeFlowLogsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeFlowLogsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6527,9 +6498,8 @@ func (c *EC2) DescribeHostReservationOfferingsRequest(input *DescribeHostReserva
 		input = &DescribeHostReservationOfferingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeHostReservationOfferingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6596,9 +6566,8 @@ func (c *EC2) DescribeHostReservationsRequest(input *DescribeHostReservationsInp
 		input = &DescribeHostReservationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeHostReservationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6658,9 +6627,8 @@ func (c *EC2) DescribeHostsRequest(input *DescribeHostsInput) (req *request.Requ
 		input = &DescribeHostsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeHostsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6681,6 +6649,66 @@ func (c *EC2) DescribeHostsRequest(input *DescribeHostsInput) (req *request.Requ
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeHosts
 func (c *EC2) DescribeHosts(input *DescribeHostsInput) (*DescribeHostsOutput, error) {
 	req, out := c.DescribeHostsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDescribeIamInstanceProfileAssociations = "DescribeIamInstanceProfileAssociations"
+
+// DescribeIamInstanceProfileAssociationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeIamInstanceProfileAssociations operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeIamInstanceProfileAssociations for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeIamInstanceProfileAssociations method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeIamInstanceProfileAssociationsRequest method.
+//    req, resp := client.DescribeIamInstanceProfileAssociationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociations
+func (c *EC2) DescribeIamInstanceProfileAssociationsRequest(input *DescribeIamInstanceProfileAssociationsInput) (req *request.Request, output *DescribeIamInstanceProfileAssociationsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeIamInstanceProfileAssociations,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeIamInstanceProfileAssociationsInput{}
+	}
+
+	output = &DescribeIamInstanceProfileAssociationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeIamInstanceProfileAssociations API operation for Amazon Elastic Compute Cloud.
+//
+// Describes your IAM instance profile associations.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeIamInstanceProfileAssociations for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociations
+func (c *EC2) DescribeIamInstanceProfileAssociations(input *DescribeIamInstanceProfileAssociationsInput) (*DescribeIamInstanceProfileAssociationsOutput, error) {
+	req, out := c.DescribeIamInstanceProfileAssociationsRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -6723,9 +6751,8 @@ func (c *EC2) DescribeIdFormatRequest(input *DescribeIdFormatInput) (req *reques
 		input = &DescribeIdFormatInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeIdFormatOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6797,9 +6824,8 @@ func (c *EC2) DescribeIdentityIdFormatRequest(input *DescribeIdentityIdFormatInp
 		input = &DescribeIdentityIdFormatInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeIdentityIdFormatOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6869,9 +6895,8 @@ func (c *EC2) DescribeImageAttributeRequest(input *DescribeImageAttributeInput) 
 		input = &DescribeImageAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeImageAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6931,9 +6956,8 @@ func (c *EC2) DescribeImagesRequest(input *DescribeImagesInput) (req *request.Re
 		input = &DescribeImagesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeImagesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -6998,9 +7022,8 @@ func (c *EC2) DescribeImportImageTasksRequest(input *DescribeImportImageTasksInp
 		input = &DescribeImportImageTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeImportImageTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7060,9 +7083,8 @@ func (c *EC2) DescribeImportSnapshotTasksRequest(input *DescribeImportSnapshotTa
 		input = &DescribeImportSnapshotTasksInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeImportSnapshotTasksOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7121,9 +7143,8 @@ func (c *EC2) DescribeInstanceAttributeRequest(input *DescribeInstanceAttributeI
 		input = &DescribeInstanceAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstanceAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7192,9 +7213,8 @@ func (c *EC2) DescribeInstanceStatusRequest(input *DescribeInstanceStatusInput) 
 		input = &DescribeInstanceStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstanceStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7304,9 +7324,8 @@ func (c *EC2) DescribeInstancesRequest(input *DescribeInstancesInput) (req *requ
 		input = &DescribeInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7405,9 +7424,8 @@ func (c *EC2) DescribeInternetGatewaysRequest(input *DescribeInternetGatewaysInp
 		input = &DescribeInternetGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeInternetGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7466,9 +7484,8 @@ func (c *EC2) DescribeKeyPairsRequest(input *DescribeKeyPairsInput) (req *reques
 		input = &DescribeKeyPairsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeKeyPairsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7530,9 +7547,8 @@ func (c *EC2) DescribeMovingAddressesRequest(input *DescribeMovingAddressesInput
 		input = &DescribeMovingAddressesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeMovingAddressesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7587,15 +7603,20 @@ func (c *EC2) DescribeNatGatewaysRequest(input *DescribeNatGatewaysInput) (req *
 		Name:       opDescribeNatGateways,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
 		input = &DescribeNatGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeNatGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7614,6 +7635,31 @@ func (c *EC2) DescribeNatGateways(input *DescribeNatGatewaysInput) (*DescribeNat
 	req, out := c.DescribeNatGatewaysRequest(input)
 	err := req.Send()
 	return out, err
+}
+
+// DescribeNatGatewaysPages iterates over the pages of a DescribeNatGateways operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeNatGateways method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeNatGateways operation.
+//    pageNum := 0
+//    err := client.DescribeNatGatewaysPages(params,
+//        func(page *DescribeNatGatewaysOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *EC2) DescribeNatGatewaysPages(input *DescribeNatGatewaysInput, fn func(p *DescribeNatGatewaysOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.DescribeNatGatewaysRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*DescribeNatGatewaysOutput), lastPage)
+	})
 }
 
 const opDescribeNetworkAcls = "DescribeNetworkAcls"
@@ -7654,9 +7700,8 @@ func (c *EC2) DescribeNetworkAclsRequest(input *DescribeNetworkAclsInput) (req *
 		input = &DescribeNetworkAclsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeNetworkAclsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7718,9 +7763,8 @@ func (c *EC2) DescribeNetworkInterfaceAttributeRequest(input *DescribeNetworkInt
 		input = &DescribeNetworkInterfaceAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeNetworkInterfaceAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7780,9 +7824,8 @@ func (c *EC2) DescribeNetworkInterfacesRequest(input *DescribeNetworkInterfacesI
 		input = &DescribeNetworkInterfacesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeNetworkInterfacesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7841,9 +7884,8 @@ func (c *EC2) DescribePlacementGroupsRequest(input *DescribePlacementGroupsInput
 		input = &DescribePlacementGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribePlacementGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7904,9 +7946,8 @@ func (c *EC2) DescribePrefixListsRequest(input *DescribePrefixListsInput) (req *
 		input = &DescribePrefixListsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribePrefixListsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -7969,9 +8010,8 @@ func (c *EC2) DescribeRegionsRequest(input *DescribeRegionsInput) (req *request.
 		input = &DescribeRegionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeRegionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8033,9 +8073,8 @@ func (c *EC2) DescribeReservedInstancesRequest(input *DescribeReservedInstancesI
 		input = &DescribeReservedInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8097,9 +8136,8 @@ func (c *EC2) DescribeReservedInstancesListingsRequest(input *DescribeReservedIn
 		input = &DescribeReservedInstancesListingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedInstancesListingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8185,9 +8223,8 @@ func (c *EC2) DescribeReservedInstancesModificationsRequest(input *DescribeReser
 		input = &DescribeReservedInstancesModificationsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedInstancesModificationsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8283,9 +8320,8 @@ func (c *EC2) DescribeReservedInstancesOfferingsRequest(input *DescribeReservedI
 		input = &DescribeReservedInstancesOfferingsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeReservedInstancesOfferingsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8380,9 +8416,8 @@ func (c *EC2) DescribeRouteTablesRequest(input *DescribeRouteTablesInput) (req *
 		input = &DescribeRouteTablesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeRouteTablesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8449,9 +8484,8 @@ func (c *EC2) DescribeScheduledInstanceAvailabilityRequest(input *DescribeSchedu
 		input = &DescribeScheduledInstanceAvailabilityInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeScheduledInstanceAvailabilityOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8518,9 +8552,8 @@ func (c *EC2) DescribeScheduledInstancesRequest(input *DescribeScheduledInstance
 		input = &DescribeScheduledInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeScheduledInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8579,9 +8612,8 @@ func (c *EC2) DescribeSecurityGroupReferencesRequest(input *DescribeSecurityGrou
 		input = &DescribeSecurityGroupReferencesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSecurityGroupReferencesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8641,9 +8673,8 @@ func (c *EC2) DescribeSecurityGroupsRequest(input *DescribeSecurityGroupsInput) 
 		input = &DescribeSecurityGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSecurityGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8709,9 +8740,8 @@ func (c *EC2) DescribeSnapshotAttributeRequest(input *DescribeSnapshotAttributeI
 		input = &DescribeSnapshotAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSnapshotAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8780,9 +8810,8 @@ func (c *EC2) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (req *requ
 		input = &DescribeSnapshotsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSnapshotsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8911,9 +8940,8 @@ func (c *EC2) DescribeSpotDatafeedSubscriptionRequest(input *DescribeSpotDatafee
 		input = &DescribeSpotDatafeedSubscriptionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotDatafeedSubscriptionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -8974,9 +9002,8 @@ func (c *EC2) DescribeSpotFleetInstancesRequest(input *DescribeSpotFleetInstance
 		input = &DescribeSpotFleetInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotFleetInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9035,9 +9062,8 @@ func (c *EC2) DescribeSpotFleetRequestHistoryRequest(input *DescribeSpotFleetReq
 		input = &DescribeSpotFleetRequestHistoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotFleetRequestHistoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9107,9 +9133,8 @@ func (c *EC2) DescribeSpotFleetRequestsRequest(input *DescribeSpotFleetRequestsI
 		input = &DescribeSpotFleetRequestsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotFleetRequestsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9196,9 +9221,8 @@ func (c *EC2) DescribeSpotInstanceRequestsRequest(input *DescribeSpotInstanceReq
 		input = &DescribeSpotInstanceRequestsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotInstanceRequestsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9277,9 +9301,8 @@ func (c *EC2) DescribeSpotPriceHistoryRequest(input *DescribeSpotPriceHistoryInp
 		input = &DescribeSpotPriceHistoryInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSpotPriceHistoryOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9370,9 +9393,8 @@ func (c *EC2) DescribeStaleSecurityGroupsRequest(input *DescribeStaleSecurityGro
 		input = &DescribeStaleSecurityGroupsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeStaleSecurityGroupsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9434,9 +9456,8 @@ func (c *EC2) DescribeSubnetsRequest(input *DescribeSubnetsInput) (req *request.
 		input = &DescribeSubnetsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeSubnetsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9504,9 +9525,8 @@ func (c *EC2) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Reques
 		input = &DescribeTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9593,9 +9613,8 @@ func (c *EC2) DescribeVolumeAttributeRequest(input *DescribeVolumeAttributeInput
 		input = &DescribeVolumeAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVolumeAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9664,9 +9683,8 @@ func (c *EC2) DescribeVolumeStatusRequest(input *DescribeVolumeStatusInput) (req
 		input = &DescribeVolumeStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVolumeStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9790,9 +9808,8 @@ func (c *EC2) DescribeVolumesRequest(input *DescribeVolumesInput) (req *request.
 		input = &DescribeVolumesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVolumesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9848,6 +9865,78 @@ func (c *EC2) DescribeVolumesPages(input *DescribeVolumesInput, fn func(p *Descr
 	})
 }
 
+const opDescribeVolumesModifications = "DescribeVolumesModifications"
+
+// DescribeVolumesModificationsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeVolumesModifications operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeVolumesModifications for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeVolumesModifications method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeVolumesModificationsRequest method.
+//    req, resp := client.DescribeVolumesModificationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumesModifications
+func (c *EC2) DescribeVolumesModificationsRequest(input *DescribeVolumesModificationsInput) (req *request.Request, output *DescribeVolumesModificationsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeVolumesModifications,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeVolumesModificationsInput{}
+	}
+
+	output = &DescribeVolumesModificationsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeVolumesModifications API operation for Amazon Elastic Compute Cloud.
+//
+// Reports the current modification status of EBS volumes.
+//
+// Current-generation EBS volumes support modification of attributes including
+// type, size, and (for io1 volumes) IOPS provisioning while either attached
+// to or detached from an instance. Following an action from the API or the
+// console to modify a volume, the status of the modification may be modifying,
+// optimizing, completed, or failed. If a volume has never been modified, then
+// certain elements of the returned VolumeModification objects are null.
+//
+// You can also use CloudWatch Events to check the status of a modification
+// to an EBS volume. For information about CloudWatch Events, see the Amazon
+// CloudWatch Events User Guide (http://docs.aws.amazon.com/AmazonCloudWatch/latest/events/).
+// For more information, see Monitoring Volume Modifications" (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html#monitoring_mods).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVolumesModifications for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumesModifications
+func (c *EC2) DescribeVolumesModifications(input *DescribeVolumesModificationsInput) (*DescribeVolumesModificationsOutput, error) {
+	req, out := c.DescribeVolumesModificationsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeVpcAttribute = "DescribeVpcAttribute"
 
 // DescribeVpcAttributeRequest generates a "aws/request.Request" representing the
@@ -9886,9 +9975,8 @@ func (c *EC2) DescribeVpcAttributeRequest(input *DescribeVpcAttributeInput) (req
 		input = &DescribeVpcAttributeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcAttributeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -9948,9 +10036,8 @@ func (c *EC2) DescribeVpcClassicLinkRequest(input *DescribeVpcClassicLinkInput) 
 		input = &DescribeVpcClassicLinkInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcClassicLinkOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10009,9 +10096,8 @@ func (c *EC2) DescribeVpcClassicLinkDnsSupportRequest(input *DescribeVpcClassicL
 		input = &DescribeVpcClassicLinkDnsSupportInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcClassicLinkDnsSupportOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10076,9 +10162,8 @@ func (c *EC2) DescribeVpcEndpointServicesRequest(input *DescribeVpcEndpointServi
 		input = &DescribeVpcEndpointServicesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcEndpointServicesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10138,9 +10223,8 @@ func (c *EC2) DescribeVpcEndpointsRequest(input *DescribeVpcEndpointsInput) (req
 		input = &DescribeVpcEndpointsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcEndpointsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10199,9 +10283,8 @@ func (c *EC2) DescribeVpcPeeringConnectionsRequest(input *DescribeVpcPeeringConn
 		input = &DescribeVpcPeeringConnectionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcPeeringConnectionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10260,9 +10343,8 @@ func (c *EC2) DescribeVpcsRequest(input *DescribeVpcsInput) (req *request.Reques
 		input = &DescribeVpcsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpcsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10321,9 +10403,8 @@ func (c *EC2) DescribeVpnConnectionsRequest(input *DescribeVpnConnectionsInput) 
 		input = &DescribeVpnConnectionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpnConnectionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10386,9 +10467,8 @@ func (c *EC2) DescribeVpnGatewaysRequest(input *DescribeVpnGatewaysInput) (req *
 		input = &DescribeVpnGatewaysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeVpnGatewaysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10451,9 +10531,8 @@ func (c *EC2) DetachClassicLinkVpcRequest(input *DetachClassicLinkVpcInput) (req
 		input = &DetachClassicLinkVpcInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DetachClassicLinkVpcOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10514,11 +10593,10 @@ func (c *EC2) DetachInternetGatewayRequest(input *DetachInternetGatewayInput) (r
 		input = &DetachInternetGatewayInput{}
 	}
 
+	output = &DetachInternetGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DetachInternetGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -10579,11 +10657,10 @@ func (c *EC2) DetachNetworkInterfaceRequest(input *DetachNetworkInterfaceInput) 
 		input = &DetachNetworkInterfaceInput{}
 	}
 
+	output = &DetachNetworkInterfaceOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DetachNetworkInterfaceOutput{}
-	req.Data = output
 	return
 }
 
@@ -10642,9 +10719,8 @@ func (c *EC2) DetachVolumeRequest(input *DetachVolumeInput) (req *request.Reques
 		input = &DetachVolumeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &VolumeAttachment{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10716,11 +10792,10 @@ func (c *EC2) DetachVpnGatewayRequest(input *DetachVpnGatewayInput) (req *reques
 		input = &DetachVpnGatewayInput{}
 	}
 
+	output = &DetachVpnGatewayOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DetachVpnGatewayOutput{}
-	req.Data = output
 	return
 }
 
@@ -10786,11 +10861,10 @@ func (c *EC2) DisableVgwRoutePropagationRequest(input *DisableVgwRoutePropagatio
 		input = &DisableVgwRoutePropagationInput{}
 	}
 
+	output = &DisableVgwRoutePropagationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DisableVgwRoutePropagationOutput{}
-	req.Data = output
 	return
 }
 
@@ -10850,9 +10924,8 @@ func (c *EC2) DisableVpcClassicLinkRequest(input *DisableVpcClassicLinkInput) (r
 		input = &DisableVpcClassicLinkInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisableVpcClassicLinkOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10912,9 +10985,8 @@ func (c *EC2) DisableVpcClassicLinkDnsSupportRequest(input *DisableVpcClassicLin
 		input = &DisableVpcClassicLinkDnsSupportInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisableVpcClassicLinkDnsSupportOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -10977,11 +11049,10 @@ func (c *EC2) DisassociateAddressRequest(input *DisassociateAddressInput) (req *
 		input = &DisassociateAddressInput{}
 	}
 
+	output = &DisassociateAddressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DisassociateAddressOutput{}
-	req.Data = output
 	return
 }
 
@@ -11006,6 +11077,68 @@ func (c *EC2) DisassociateAddressRequest(input *DisassociateAddressInput) (req *
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateAddress
 func (c *EC2) DisassociateAddress(input *DisassociateAddressInput) (*DisassociateAddressOutput, error) {
 	req, out := c.DisassociateAddressRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDisassociateIamInstanceProfile = "DisassociateIamInstanceProfile"
+
+// DisassociateIamInstanceProfileRequest generates a "aws/request.Request" representing the
+// client's request for the DisassociateIamInstanceProfile operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DisassociateIamInstanceProfile for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisassociateIamInstanceProfile method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisassociateIamInstanceProfileRequest method.
+//    req, resp := client.DisassociateIamInstanceProfileRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfile
+func (c *EC2) DisassociateIamInstanceProfileRequest(input *DisassociateIamInstanceProfileInput) (req *request.Request, output *DisassociateIamInstanceProfileOutput) {
+	op := &request.Operation{
+		Name:       opDisassociateIamInstanceProfile,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DisassociateIamInstanceProfileInput{}
+	}
+
+	output = &DisassociateIamInstanceProfileOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DisassociateIamInstanceProfile API operation for Amazon Elastic Compute Cloud.
+//
+// Disassociates an IAM instance profile from a running or stopped instance.
+//
+// Use DescribeIamInstanceProfileAssociations to get the association ID.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DisassociateIamInstanceProfile for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfile
+func (c *EC2) DisassociateIamInstanceProfile(input *DisassociateIamInstanceProfileInput) (*DisassociateIamInstanceProfileOutput, error) {
+	req, out := c.DisassociateIamInstanceProfileRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -11048,11 +11181,10 @@ func (c *EC2) DisassociateRouteTableRequest(input *DisassociateRouteTableInput) 
 		input = &DisassociateRouteTableInput{}
 	}
 
+	output = &DisassociateRouteTableOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &DisassociateRouteTableOutput{}
-	req.Data = output
 	return
 }
 
@@ -11116,9 +11248,8 @@ func (c *EC2) DisassociateSubnetCidrBlockRequest(input *DisassociateSubnetCidrBl
 		input = &DisassociateSubnetCidrBlockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisassociateSubnetCidrBlockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11179,9 +11310,8 @@ func (c *EC2) DisassociateVpcCidrBlockRequest(input *DisassociateVpcCidrBlockInp
 		input = &DisassociateVpcCidrBlockInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DisassociateVpcCidrBlockOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11242,11 +11372,10 @@ func (c *EC2) EnableVgwRoutePropagationRequest(input *EnableVgwRoutePropagationI
 		input = &EnableVgwRoutePropagationInput{}
 	}
 
+	output = &EnableVgwRoutePropagationOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &EnableVgwRoutePropagationOutput{}
-	req.Data = output
 	return
 }
 
@@ -11306,11 +11435,10 @@ func (c *EC2) EnableVolumeIORequest(input *EnableVolumeIOInput) (req *request.Re
 		input = &EnableVolumeIOInput{}
 	}
 
+	output = &EnableVolumeIOOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &EnableVolumeIOOutput{}
-	req.Data = output
 	return
 }
 
@@ -11370,9 +11498,8 @@ func (c *EC2) EnableVpcClassicLinkRequest(input *EnableVpcClassicLinkInput) (req
 		input = &EnableVpcClassicLinkInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnableVpcClassicLinkOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11437,9 +11564,8 @@ func (c *EC2) EnableVpcClassicLinkDnsSupportRequest(input *EnableVpcClassicLinkD
 		input = &EnableVpcClassicLinkDnsSupportInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &EnableVpcClassicLinkDnsSupportOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11504,9 +11630,8 @@ func (c *EC2) GetConsoleOutputRequest(input *GetConsoleOutputInput) (req *reques
 		input = &GetConsoleOutputInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetConsoleOutputOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11582,9 +11707,8 @@ func (c *EC2) GetConsoleScreenshotRequest(input *GetConsoleScreenshotInput) (req
 		input = &GetConsoleScreenshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetConsoleScreenshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11645,9 +11769,8 @@ func (c *EC2) GetHostReservationPurchasePreviewRequest(input *GetHostReservation
 		input = &GetHostReservationPurchasePreviewInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetHostReservationPurchasePreviewOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11711,9 +11834,8 @@ func (c *EC2) GetPasswordDataRequest(input *GetPasswordDataInput) (req *request.
 		input = &GetPasswordDataInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetPasswordDataOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11785,9 +11907,8 @@ func (c *EC2) GetReservedInstancesExchangeQuoteRequest(input *GetReservedInstanc
 		input = &GetReservedInstancesExchangeQuoteInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetReservedInstancesExchangeQuoteOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11848,9 +11969,8 @@ func (c *EC2) ImportImageRequest(input *ImportImageInput) (req *request.Request,
 		input = &ImportImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11912,9 +12032,8 @@ func (c *EC2) ImportInstanceRequest(input *ImportInstanceInput) (req *request.Re
 		input = &ImportInstanceInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportInstanceOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -11979,9 +12098,8 @@ func (c *EC2) ImportKeyPairRequest(input *ImportKeyPairInput) (req *request.Requ
 		input = &ImportKeyPairInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportKeyPairOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12047,9 +12165,8 @@ func (c *EC2) ImportSnapshotRequest(input *ImportSnapshotInput) (req *request.Re
 		input = &ImportSnapshotInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportSnapshotOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12108,9 +12225,8 @@ func (c *EC2) ImportVolumeRequest(input *ImportVolumeInput) (req *request.Reques
 		input = &ImportVolumeInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ImportVolumeOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12173,9 +12289,8 @@ func (c *EC2) ModifyHostsRequest(input *ModifyHostsInput) (req *request.Request,
 		input = &ModifyHostsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyHostsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12240,11 +12355,10 @@ func (c *EC2) ModifyIdFormatRequest(input *ModifyIdFormatInput) (req *request.Re
 		input = &ModifyIdFormatInput{}
 	}
 
+	output = &ModifyIdFormatOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyIdFormatOutput{}
-	req.Data = output
 	return
 }
 
@@ -12317,11 +12431,10 @@ func (c *EC2) ModifyIdentityIdFormatRequest(input *ModifyIdentityIdFormatInput) 
 		input = &ModifyIdentityIdFormatInput{}
 	}
 
+	output = &ModifyIdentityIdFormatOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyIdentityIdFormatOutput{}
-	req.Data = output
 	return
 }
 
@@ -12394,11 +12507,10 @@ func (c *EC2) ModifyImageAttributeRequest(input *ModifyImageAttributeInput) (req
 		input = &ModifyImageAttributeInput{}
 	}
 
+	output = &ModifyImageAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyImageAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12466,11 +12578,10 @@ func (c *EC2) ModifyInstanceAttributeRequest(input *ModifyInstanceAttributeInput
 		input = &ModifyInstanceAttributeInput{}
 	}
 
+	output = &ModifyInstanceAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyInstanceAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12534,9 +12645,8 @@ func (c *EC2) ModifyInstancePlacementRequest(input *ModifyInstancePlacementInput
 		input = &ModifyInstancePlacementInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyInstancePlacementOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12613,11 +12723,10 @@ func (c *EC2) ModifyNetworkInterfaceAttributeRequest(input *ModifyNetworkInterfa
 		input = &ModifyNetworkInterfaceAttributeInput{}
 	}
 
+	output = &ModifyNetworkInterfaceAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyNetworkInterfaceAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12677,9 +12786,8 @@ func (c *EC2) ModifyReservedInstancesRequest(input *ModifyReservedInstancesInput
 		input = &ModifyReservedInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyReservedInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12744,11 +12852,10 @@ func (c *EC2) ModifySnapshotAttributeRequest(input *ModifySnapshotAttributeInput
 		input = &ModifySnapshotAttributeInput{}
 	}
 
+	output = &ModifySnapshotAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifySnapshotAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12819,9 +12926,8 @@ func (c *EC2) ModifySpotFleetRequestRequest(input *ModifySpotFleetRequestInput) 
 		input = &ModifySpotFleetRequestInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifySpotFleetRequestOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -12899,11 +13005,10 @@ func (c *EC2) ModifySubnetAttributeRequest(input *ModifySubnetAttributeInput) (r
 		input = &ModifySubnetAttributeInput{}
 	}
 
+	output = &ModifySubnetAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifySubnetAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -12920,6 +13025,98 @@ func (c *EC2) ModifySubnetAttributeRequest(input *ModifySubnetAttributeInput) (r
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifySubnetAttribute
 func (c *EC2) ModifySubnetAttribute(input *ModifySubnetAttributeInput) (*ModifySubnetAttributeOutput, error) {
 	req, out := c.ModifySubnetAttributeRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opModifyVolume = "ModifyVolume"
+
+// ModifyVolumeRequest generates a "aws/request.Request" representing the
+// client's request for the ModifyVolume operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ModifyVolume for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ModifyVolume method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ModifyVolumeRequest method.
+//    req, resp := client.ModifyVolumeRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolume
+func (c *EC2) ModifyVolumeRequest(input *ModifyVolumeInput) (req *request.Request, output *ModifyVolumeOutput) {
+	op := &request.Operation{
+		Name:       opModifyVolume,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ModifyVolumeInput{}
+	}
+
+	output = &ModifyVolumeOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ModifyVolume API operation for Amazon Elastic Compute Cloud.
+//
+// You can modify several parameters of an existing EBS volume, including volume
+// size, volume type, and IOPS capacity. If your EBS volume is attached to a
+// current-generation EC2 instance type, you may be able to apply these changes
+// without stopping the instance or detaching the volume from it. For more information
+// about modifying an EBS volume running Linux, see Modifying the Size, IOPS,
+// or Type of an EBS Volume on Linux (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html).
+// For more information about modifying an EBS volume running Windows, see Modifying
+// the Size, IOPS, or Type of an EBS Volume on Windows (http://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html).
+//
+// When you complete a resize operation on your volume, you need to extend the
+// volume's file-system size to take advantage of the new storage capacity.
+// For information about extending a Linux file system, see Extending a Linux
+// File System (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html#recognize-expanded-volume-linux).
+// For information about extending a Windows file system, see Extending a Windows
+// File System (http://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html#recognize-expanded-volume-windows).
+//
+// You can use CloudWatch Events to check the status of a modification to an
+// EBS volume. For information about CloudWatch Events, see the Amazon CloudWatch
+// Events User Guide (http://docs.aws.amazon.com/AmazonCloudWatch/latest/events/).
+// You can also track the status of a modification using the DescribeVolumesModifications
+// API. For information about tracking status changes using either method, see
+// Monitoring Volume Modifications (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html#monitoring_mods).
+//
+// With previous-generation instance types, resizing an EBS volume may require
+// detaching and reattaching the volume or stopping and restarting the instance.
+// For more information about modifying an EBS volume running Linux, see Modifying
+// the Size, IOPS, or Type of an EBS Volume on Linux (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-expand-volume.html).
+// For more information about modifying an EBS volume running Windows, see Modifying
+// the Size, IOPS, or Type of an EBS Volume on Windows (http://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/ebs-expand-volume.html).
+//
+// If you reach the maximum volume modification rate per volume limit, you will
+// need to wait at least six hours before applying further modifications to
+// the affected EBS volume.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyVolume for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolume
+func (c *EC2) ModifyVolume(input *ModifyVolumeInput) (*ModifyVolumeOutput, error) {
+	req, out := c.ModifyVolumeRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -12962,11 +13159,10 @@ func (c *EC2) ModifyVolumeAttributeRequest(input *ModifyVolumeAttributeInput) (r
 		input = &ModifyVolumeAttributeInput{}
 	}
 
+	output = &ModifyVolumeAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyVolumeAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -13034,11 +13230,10 @@ func (c *EC2) ModifyVpcAttributeRequest(input *ModifyVpcAttributeInput) (req *re
 		input = &ModifyVpcAttributeInput{}
 	}
 
+	output = &ModifyVpcAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ModifyVpcAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -13097,9 +13292,8 @@ func (c *EC2) ModifyVpcEndpointRequest(input *ModifyVpcEndpointInput) (req *requ
 		input = &ModifyVpcEndpointInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyVpcEndpointOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13160,9 +13354,8 @@ func (c *EC2) ModifyVpcPeeringConnectionOptionsRequest(input *ModifyVpcPeeringCo
 		input = &ModifyVpcPeeringConnectionOptionsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ModifyVpcPeeringConnectionOptionsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13240,9 +13433,8 @@ func (c *EC2) MonitorInstancesRequest(input *MonitorInstancesInput) (req *reques
 		input = &MonitorInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &MonitorInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13306,9 +13498,8 @@ func (c *EC2) MoveAddressToVpcRequest(input *MoveAddressToVpcInput) (req *reques
 		input = &MoveAddressToVpcInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &MoveAddressToVpcOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13373,9 +13564,8 @@ func (c *EC2) PurchaseHostReservationRequest(input *PurchaseHostReservationInput
 		input = &PurchaseHostReservationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseHostReservationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13437,9 +13627,8 @@ func (c *EC2) PurchaseReservedInstancesOfferingRequest(input *PurchaseReservedIn
 		input = &PurchaseReservedInstancesOfferingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseReservedInstancesOfferingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13507,9 +13696,8 @@ func (c *EC2) PurchaseScheduledInstancesRequest(input *PurchaseScheduledInstance
 		input = &PurchaseScheduledInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PurchaseScheduledInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13577,11 +13765,10 @@ func (c *EC2) RebootInstancesRequest(input *RebootInstancesInput) (req *request.
 		input = &RebootInstancesInput{}
 	}
 
+	output = &RebootInstancesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RebootInstancesOutput{}
-	req.Data = output
 	return
 }
 
@@ -13650,9 +13837,8 @@ func (c *EC2) RegisterImageRequest(input *RegisterImageInput) (req *request.Requ
 		input = &RegisterImageInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RegisterImageOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13667,30 +13853,26 @@ func (c *EC2) RegisterImageRequest(input *RegisterImageInput) (req *request.Requ
 // in a single request, so you don't have to register the AMI yourself.
 //
 // You can also use RegisterImage to create an Amazon EBS-backed Linux AMI from
-// a snapshot of a root device volume. For more information, see Launching an
-// Instance from a Snapshot (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_LaunchingInstanceFromSnapshot.html)
+// a snapshot of a root device volume. You specify the snapshot using the block
+// device mapping. For more information, see Launching an Instance from a Snapshot
+// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_LaunchingInstanceFromSnapshot.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
+// You can't register an image where a secondary (non-root) snapshot has AWS
+// Marketplace product codes.
+//
 // Some Linux distributions, such as Red Hat Enterprise Linux (RHEL) and SUSE
-// Linux Enterprise Server (SLES), use the EC2 billingProduct code associated
-// with an AMI to verify subscription status for package updates. Creating an
-// AMI from an EBS snapshot does not maintain this billing code, and subsequent
+// Linux Enterprise Server (SLES), use the EC2 billing product code associated
+// with an AMI to verify the subscription status for package updates. Creating
+// an AMI from an EBS snapshot does not maintain this billing code, and subsequent
 // instances launched from such an AMI will not be able to connect to package
-// update infrastructure.
-//
-// Similarly, although you can create a Windows AMI from a snapshot, you can't
-// successfully launch an instance from the AMI.
-//
-// To create Windows AMIs or to create AMIs for Linux operating systems that
-// must retain AMI billing codes to work properly, see CreateImage.
+// update infrastructure. To create an AMI that must retain billing codes, see
+// CreateImage.
 //
 // If needed, you can deregister an AMI at any time. Any modifications you make
 // to an AMI backed by an instance store volume invalidates its registration.
 // If you make changes to an image, deregister the previous image and register
 // the new image.
-//
-// You can't register an image where a secondary (non-root) snapshot has AWS
-// Marketplace product codes.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -13743,9 +13925,8 @@ func (c *EC2) RejectVpcPeeringConnectionRequest(input *RejectVpcPeeringConnectio
 		input = &RejectVpcPeeringConnectionInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RejectVpcPeeringConnectionOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13808,11 +13989,10 @@ func (c *EC2) ReleaseAddressRequest(input *ReleaseAddressInput) (req *request.Re
 		input = &ReleaseAddressInput{}
 	}
 
+	output = &ReleaseAddressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ReleaseAddressOutput{}
-	req.Data = output
 	return
 }
 
@@ -13885,9 +14065,8 @@ func (c *EC2) ReleaseHostsRequest(input *ReleaseHostsInput) (req *request.Reques
 		input = &ReleaseHostsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReleaseHostsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -13915,6 +14094,71 @@ func (c *EC2) ReleaseHostsRequest(input *ReleaseHostsInput) (req *request.Reques
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReleaseHosts
 func (c *EC2) ReleaseHosts(input *ReleaseHostsInput) (*ReleaseHostsOutput, error) {
 	req, out := c.ReleaseHostsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opReplaceIamInstanceProfileAssociation = "ReplaceIamInstanceProfileAssociation"
+
+// ReplaceIamInstanceProfileAssociationRequest generates a "aws/request.Request" representing the
+// client's request for the ReplaceIamInstanceProfileAssociation operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ReplaceIamInstanceProfileAssociation for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ReplaceIamInstanceProfileAssociation method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ReplaceIamInstanceProfileAssociationRequest method.
+//    req, resp := client.ReplaceIamInstanceProfileAssociationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociation
+func (c *EC2) ReplaceIamInstanceProfileAssociationRequest(input *ReplaceIamInstanceProfileAssociationInput) (req *request.Request, output *ReplaceIamInstanceProfileAssociationOutput) {
+	op := &request.Operation{
+		Name:       opReplaceIamInstanceProfileAssociation,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ReplaceIamInstanceProfileAssociationInput{}
+	}
+
+	output = &ReplaceIamInstanceProfileAssociationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ReplaceIamInstanceProfileAssociation API operation for Amazon Elastic Compute Cloud.
+//
+// Replaces an IAM instance profile for the specified running instance. You
+// can use this action to change the IAM instance profile that's associated
+// with an instance without having to disassociate the existing IAM instance
+// profile first.
+//
+// Use DescribeIamInstanceProfileAssociations to get the association ID.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ReplaceIamInstanceProfileAssociation for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociation
+func (c *EC2) ReplaceIamInstanceProfileAssociation(input *ReplaceIamInstanceProfileAssociationInput) (*ReplaceIamInstanceProfileAssociationOutput, error) {
+	req, out := c.ReplaceIamInstanceProfileAssociationRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -13957,9 +14201,8 @@ func (c *EC2) ReplaceNetworkAclAssociationRequest(input *ReplaceNetworkAclAssoci
 		input = &ReplaceNetworkAclAssociationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReplaceNetworkAclAssociationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14021,11 +14264,10 @@ func (c *EC2) ReplaceNetworkAclEntryRequest(input *ReplaceNetworkAclEntryInput) 
 		input = &ReplaceNetworkAclEntryInput{}
 	}
 
+	output = &ReplaceNetworkAclEntryOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ReplaceNetworkAclEntryOutput{}
-	req.Data = output
 	return
 }
 
@@ -14086,11 +14328,10 @@ func (c *EC2) ReplaceRouteRequest(input *ReplaceRouteInput) (req *request.Reques
 		input = &ReplaceRouteInput{}
 	}
 
+	output = &ReplaceRouteOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ReplaceRouteOutput{}
-	req.Data = output
 	return
 }
 
@@ -14155,9 +14396,8 @@ func (c *EC2) ReplaceRouteTableAssociationRequest(input *ReplaceRouteTableAssoci
 		input = &ReplaceRouteTableAssociationInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ReplaceRouteTableAssociationOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14224,11 +14464,10 @@ func (c *EC2) ReportInstanceStatusRequest(input *ReportInstanceStatusInput) (req
 		input = &ReportInstanceStatusInput{}
 	}
 
+	output = &ReportInstanceStatusOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ReportInstanceStatusOutput{}
-	req.Data = output
 	return
 }
 
@@ -14293,9 +14532,8 @@ func (c *EC2) RequestSpotFleetRequest(input *RequestSpotFleetInput) (req *reques
 		input = &RequestSpotFleetInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RequestSpotFleetOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14370,9 +14608,8 @@ func (c *EC2) RequestSpotInstancesRequest(input *RequestSpotInstancesInput) (req
 		input = &RequestSpotInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RequestSpotInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14436,11 +14673,10 @@ func (c *EC2) ResetImageAttributeRequest(input *ResetImageAttributeInput) (req *
 		input = &ResetImageAttributeInput{}
 	}
 
+	output = &ResetImageAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ResetImageAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -14501,11 +14737,10 @@ func (c *EC2) ResetInstanceAttributeRequest(input *ResetInstanceAttributeInput) 
 		input = &ResetInstanceAttributeInput{}
 	}
 
+	output = &ResetInstanceAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ResetInstanceAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -14572,11 +14807,10 @@ func (c *EC2) ResetNetworkInterfaceAttributeRequest(input *ResetNetworkInterface
 		input = &ResetNetworkInterfaceAttributeInput{}
 	}
 
+	output = &ResetNetworkInterfaceAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ResetNetworkInterfaceAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -14636,11 +14870,10 @@ func (c *EC2) ResetSnapshotAttributeRequest(input *ResetSnapshotAttributeInput) 
 		input = &ResetSnapshotAttributeInput{}
 	}
 
+	output = &ResetSnapshotAttributeOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &ResetSnapshotAttributeOutput{}
-	req.Data = output
 	return
 }
 
@@ -14703,9 +14936,8 @@ func (c *EC2) RestoreAddressToClassicRequest(input *RestoreAddressToClassicInput
 		input = &RestoreAddressToClassicInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RestoreAddressToClassicOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14767,11 +14999,10 @@ func (c *EC2) RevokeSecurityGroupEgressRequest(input *RevokeSecurityGroupEgressI
 		input = &RevokeSecurityGroupEgressInput{}
 	}
 
+	output = &RevokeSecurityGroupEgressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RevokeSecurityGroupEgressOutput{}
-	req.Data = output
 	return
 }
 
@@ -14841,11 +15072,10 @@ func (c *EC2) RevokeSecurityGroupIngressRequest(input *RevokeSecurityGroupIngres
 		input = &RevokeSecurityGroupIngressInput{}
 	}
 
+	output = &RevokeSecurityGroupIngressOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &RevokeSecurityGroupIngressOutput{}
-	req.Data = output
 	return
 }
 
@@ -14914,9 +15144,8 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 		input = &RunInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &Reservation{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -14944,7 +15173,7 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 //    IPv4 range of your subnet.
 //
 //    * Not all instance types support IPv6 addresses. For more information,
-//    see Amazon EC2 Instance Types (http://aws.amazon.com/ec2/instance-types/).
+//    see Instance Types (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html).
 //
 //    * If you don't specify a security group ID, we use the default security
 //    group. For more information, see Security Groups (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html).
@@ -15023,9 +15252,8 @@ func (c *EC2) RunScheduledInstancesRequest(input *RunScheduledInstancesInput) (r
 		input = &RunScheduledInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RunScheduledInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -15094,9 +15322,8 @@ func (c *EC2) StartInstancesRequest(input *StartInstancesInput) (req *request.Re
 		input = &StartInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StartInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -15173,9 +15400,8 @@ func (c *EC2) StopInstancesRequest(input *StopInstancesInput) (req *request.Requ
 		input = &StopInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StopInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -15263,9 +15489,8 @@ func (c *EC2) TerminateInstancesRequest(input *TerminateInstancesInput) (req *re
 		input = &TerminateInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &TerminateInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -15348,9 +15573,8 @@ func (c *EC2) UnassignIpv6AddressesRequest(input *UnassignIpv6AddressesInput) (r
 		input = &UnassignIpv6AddressesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UnassignIpv6AddressesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -15409,11 +15633,10 @@ func (c *EC2) UnassignPrivateIpAddressesRequest(input *UnassignPrivateIpAddresse
 		input = &UnassignPrivateIpAddressesInput{}
 	}
 
+	output = &UnassignPrivateIpAddressesOutput{}
 	req = c.newRequest(op, input, output)
 	req.Handlers.Unmarshal.Remove(ec2query.UnmarshalHandler)
 	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
-	output = &UnassignPrivateIpAddressesOutput{}
-	req.Data = output
 	return
 }
 
@@ -15472,9 +15695,8 @@ func (c *EC2) UnmonitorInstancesRequest(input *UnmonitorInstancesInput) (req *re
 		input = &UnmonitorInstancesInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UnmonitorInstancesOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -15721,6 +15943,11 @@ func (s *AccountAttributeValue) SetAttributeValue(v string) *AccountAttributeVal
 type ActiveInstance struct {
 	_ struct{} `type:"structure"`
 
+	// The health status of the instance. If the status of both the instance status
+	// check and the system status check is impaired, the health status of the instance
+	// is unhealthy. Otherwise, the health status is healthy.
+	InstanceHealth *string `locationName:"instanceHealth" type:"string" enum:"InstanceHealthStatus"`
+
 	// The ID of the instance.
 	InstanceId *string `locationName:"instanceId" type:"string"`
 
@@ -15739,6 +15966,12 @@ func (s ActiveInstance) String() string {
 // GoString returns the string representation
 func (s ActiveInstance) GoString() string {
 	return s.String()
+}
+
+// SetInstanceHealth sets the InstanceHealth field's value.
+func (s *ActiveInstance) SetInstanceHealth(v string) *ActiveInstance {
+	s.InstanceHealth = &v
+	return s
 }
 
 // SetInstanceId sets the InstanceId field's value.
@@ -16435,6 +16668,83 @@ func (s AssociateDhcpOptionsOutput) String() string {
 // GoString returns the string representation
 func (s AssociateDhcpOptionsOutput) GoString() string {
 	return s.String()
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfileRequest
+type AssociateIamInstanceProfileInput struct {
+	_ struct{} `type:"structure"`
+
+	// The IAM instance profile.
+	//
+	// IamInstanceProfile is a required field
+	IamInstanceProfile *IamInstanceProfileSpecification `type:"structure" required:"true"`
+
+	// The ID of the instance.
+	//
+	// InstanceId is a required field
+	InstanceId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AssociateIamInstanceProfileInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateIamInstanceProfileInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateIamInstanceProfileInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateIamInstanceProfileInput"}
+	if s.IamInstanceProfile == nil {
+		invalidParams.Add(request.NewErrParamRequired("IamInstanceProfile"))
+	}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetIamInstanceProfile sets the IamInstanceProfile field's value.
+func (s *AssociateIamInstanceProfileInput) SetIamInstanceProfile(v *IamInstanceProfileSpecification) *AssociateIamInstanceProfileInput {
+	s.IamInstanceProfile = v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *AssociateIamInstanceProfileInput) SetInstanceId(v string) *AssociateIamInstanceProfileInput {
+	s.InstanceId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/AssociateIamInstanceProfileResult
+type AssociateIamInstanceProfileOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IAM instance profile association.
+	IamInstanceProfileAssociation *IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociation" type:"structure"`
+}
+
+// String returns the string representation
+func (s AssociateIamInstanceProfileOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateIamInstanceProfileOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociation sets the IamInstanceProfileAssociation field's value.
+func (s *AssociateIamInstanceProfileOutput) SetIamInstanceProfileAssociation(v *IamInstanceProfileAssociation) *AssociateIamInstanceProfileOutput {
+	s.IamInstanceProfileAssociation = v
+	return s
 }
 
 // Contains the parameters for AssociateRouteTable.
@@ -24693,6 +25003,9 @@ type DescribeCustomerGatewaysInput struct {
 	//    is ipsec.1.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -24785,6 +25098,9 @@ type DescribeDhcpOptionsInput struct {
 	//    * value - The value for one of the options.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -25101,8 +25417,7 @@ type DescribeHostReservationOfferingsInput struct {
 	//
 	//    * instance-family - The instance family of the offering (e.g., m4).
 	//
-	//    * payment-option - The payment option (No Upfront | Partial Upfront |
-	//    All Upfront).
+	//    * payment-option - The payment option (NoUpfront | PartialUpfront | AllUpfront).
 	Filter []*Filter `locationNameList:"Filter" type:"list"`
 
 	// This is the maximum duration of the reservation you'd like to purchase, specified
@@ -25220,8 +25535,7 @@ type DescribeHostReservationsInput struct {
 	//
 	//    * instance-family - The instance family (e.g., m4).
 	//
-	//    * payment-option - The payment option (No Upfront | Partial Upfront |
-	//    All Upfront).
+	//    * payment-option - The payment option (NoUpfront | PartialUpfront | AllUpfront).
 	//
 	//    * state - The state of the reservation (payment-pending | payment-failed
 	//    | active | retired).
@@ -25411,6 +25725,113 @@ func (s *DescribeHostsOutput) SetHosts(v []*Host) *DescribeHostsOutput {
 
 // SetNextToken sets the NextToken field's value.
 func (s *DescribeHostsOutput) SetNextToken(v string) *DescribeHostsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociationsRequest
+type DescribeIamInstanceProfileAssociationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// One or more IAM instance profile associations.
+	AssociationIds []*string `locationName:"AssociationId" locationNameList:"AssociationId" type:"list"`
+
+	// One or more filters.
+	//
+	//    * instance-id - The ID of the instance.
+	//
+	//    * state - The state of the association (associating | associated | disassociating
+	//    | disassociated).
+	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
+
+	// The maximum number of results to return in a single call. To retrieve the
+	// remaining results, make another call with the returned NextToken value.
+	MaxResults *int64 `min:"5" type:"integer"`
+
+	// The token to request the next page of results.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeIamInstanceProfileAssociationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeIamInstanceProfileAssociationsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeIamInstanceProfileAssociationsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeIamInstanceProfileAssociationsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 5 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 5))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationIds sets the AssociationIds field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetAssociationIds(v []*string) *DescribeIamInstanceProfileAssociationsInput {
+	s.AssociationIds = v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetFilters(v []*Filter) *DescribeIamInstanceProfileAssociationsInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetMaxResults(v int64) *DescribeIamInstanceProfileAssociationsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeIamInstanceProfileAssociationsInput) SetNextToken(v string) *DescribeIamInstanceProfileAssociationsInput {
+	s.NextToken = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeIamInstanceProfileAssociationsResult
+type DescribeIamInstanceProfileAssociationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about one or more IAM instance profile associations.
+	IamInstanceProfileAssociations []*IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociationSet" locationNameList:"item" type:"list"`
+
+	// The token to use to retrieve the next page of results. This value is null
+	// when there are no more results to return.
+	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeIamInstanceProfileAssociationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeIamInstanceProfileAssociationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociations sets the IamInstanceProfileAssociations field's value.
+func (s *DescribeIamInstanceProfileAssociationsOutput) SetIamInstanceProfileAssociations(v []*IamInstanceProfileAssociation) *DescribeIamInstanceProfileAssociationsOutput {
+	s.IamInstanceProfileAssociations = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeIamInstanceProfileAssociationsOutput) SetNextToken(v string) *DescribeIamInstanceProfileAssociationsOutput {
 	s.NextToken = &v
 	return s
 }
@@ -25778,6 +26199,9 @@ type DescribeImagesInput struct {
 	//    * state-reason-message - The message for the state change.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -26678,8 +27102,10 @@ type DescribeInstancesInput struct {
 	//
 	//    * subnet-id - The ID of the subnet for the instance.
 	//
-	//    * tag:key=value - The key/value combination of a tag assigned to the resource,
-	//    where tag:key is the tag's key.
+	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -26811,6 +27237,9 @@ type DescribeInternetGatewaysInput struct {
 	//    * internet-gateway-id - The ID of the Internet gateway.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -27218,6 +27647,9 @@ type DescribeNetworkAclsInput struct {
 	//    * network-acl-id - The ID of the network ACL.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -27520,6 +27952,9 @@ type DescribeNetworkInterfacesInput struct {
 	//    * subnet-id - The ID of the subnet for the network interface.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -27905,6 +28340,9 @@ type DescribeReservedInstancesInput struct {
 	//    | payment-failed | retired).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -28490,6 +28928,9 @@ type DescribeRouteTablesInput struct {
 	//    specified in a route in the table.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -29193,6 +29634,9 @@ type DescribeSnapshotsInput struct {
 	//    * status - The status of the snapshot (pending | completed | error).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -29867,6 +30311,9 @@ type DescribeSpotInstanceRequestsInput struct {
 	//    request.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -30254,6 +30701,9 @@ type DescribeSubnetsInput struct {
 	//    * subnet-id - The ID of the subnet.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -30717,6 +31167,9 @@ type DescribeVolumesInput struct {
 	//    | deleted | error).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -30741,10 +31194,10 @@ type DescribeVolumesInput struct {
 	// results in a single page along with a NextToken response element. The remaining
 	// results of the initial request can be seen by sending another DescribeVolumes
 	// request with the returned NextToken value. This value can be between 5 and
-	// 1000; if MaxResults is given a value larger than 1000, only 1000 results
-	// are returned. If this parameter is not used, then DescribeVolumes returns
-	// all results. You cannot specify this parameter and the volume IDs parameter
-	// in the same request.
+	// 500; if MaxResults is given a value larger than 500, only 500 results are
+	// returned. If this parameter is not used, then DescribeVolumes returns all
+	// results. You cannot specify this parameter and the volume IDs parameter in
+	// the same request.
 	MaxResults *int64 `locationName:"maxResults" type:"integer"`
 
 	// The NextToken value returned from a previous paginated DescribeVolumes request
@@ -30794,6 +31247,105 @@ func (s *DescribeVolumesInput) SetNextToken(v string) *DescribeVolumesInput {
 // SetVolumeIds sets the VolumeIds field's value.
 func (s *DescribeVolumesInput) SetVolumeIds(v []*string) *DescribeVolumesInput {
 	s.VolumeIds = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumesModificationsRequest
+type DescribeVolumesModificationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// One or more filters. Supported filters: volume-id, modification-state, target-size,
+	// target-iops, target-volume-type, original-size, original-iops, original-volume-type,
+	// start-time.
+	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
+
+	// The maximum number of results (up to a limit of 500) to be returned in a
+	// paginated request.
+	MaxResults *int64 `type:"integer"`
+
+	// The nextToken value returned by a previous paginated request.
+	NextToken *string `type:"string"`
+
+	// One or more volume IDs for which in-progress modifications will be described.
+	VolumeIds []*string `locationName:"VolumeId" locationNameList:"VolumeId" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeVolumesModificationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeVolumesModificationsInput) GoString() string {
+	return s.String()
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *DescribeVolumesModificationsInput) SetDryRun(v bool) *DescribeVolumesModificationsInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeVolumesModificationsInput) SetFilters(v []*Filter) *DescribeVolumesModificationsInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeVolumesModificationsInput) SetMaxResults(v int64) *DescribeVolumesModificationsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeVolumesModificationsInput) SetNextToken(v string) *DescribeVolumesModificationsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetVolumeIds sets the VolumeIds field's value.
+func (s *DescribeVolumesModificationsInput) SetVolumeIds(v []*string) *DescribeVolumesModificationsInput {
+	s.VolumeIds = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DescribeVolumesModificationsResult
+type DescribeVolumesModificationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Token for pagination, null if there are no more results
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// A list of returned VolumeModification objects.
+	VolumesModifications []*VolumeModification `locationName:"volumeModificationSet" locationNameList:"item" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeVolumesModificationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeVolumesModificationsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeVolumesModificationsOutput) SetNextToken(v string) *DescribeVolumesModificationsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetVolumesModifications sets the VolumesModifications field's value.
+func (s *DescribeVolumesModificationsOutput) SetVolumesModifications(v []*VolumeModification) *DescribeVolumesModificationsOutput {
+	s.VolumesModifications = v
 	return s
 }
 
@@ -31060,6 +31612,9 @@ type DescribeVpcClassicLinkInput struct {
 	//    (true | false).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -31366,6 +31921,9 @@ type DescribeVpcPeeringConnectionsInput struct {
 	//    status of the VPC peering connection, if applicable.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -31474,6 +32032,9 @@ type DescribeVpcsInput struct {
 	//    * state - The state of the VPC (pending | available).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -31581,6 +32142,9 @@ type DescribeVpnConnectionsInput struct {
 	//    device.
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -31686,6 +32250,9 @@ type DescribeVpnGatewaysInput struct {
 	//    | deleting | deleted).
 	//
 	//    * tag:key=value - The key/value combination of a tag assigned to the resource.
+	//    Specify the key of the tag in the filter name and the value of the tag
+	//    in the filter value. For example, for the tag Purpose=X, specify tag:Purpose
+	//    for the filter name and X for the filter value.
 	//
 	//    * tag-key - The key of a tag assigned to the resource. This filter is
 	//    independent of the tag-value filter. For example, if you use both the
@@ -32509,6 +33076,69 @@ func (s DisassociateAddressOutput) String() string {
 // GoString returns the string representation
 func (s DisassociateAddressOutput) GoString() string {
 	return s.String()
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfileRequest
+type DisassociateIamInstanceProfileInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the IAM instance profile association.
+	//
+	// AssociationId is a required field
+	AssociationId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DisassociateIamInstanceProfileInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateIamInstanceProfileInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisassociateIamInstanceProfileInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisassociateIamInstanceProfileInput"}
+	if s.AssociationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *DisassociateIamInstanceProfileInput) SetAssociationId(v string) *DisassociateIamInstanceProfileInput {
+	s.AssociationId = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/DisassociateIamInstanceProfileResult
+type DisassociateIamInstanceProfileOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IAM instance profile association.
+	IamInstanceProfileAssociation *IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociation" type:"structure"`
+}
+
+// String returns the string representation
+func (s DisassociateIamInstanceProfileOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateIamInstanceProfileOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociation sets the IamInstanceProfileAssociation field's value.
+func (s *DisassociateIamInstanceProfileOutput) SetIamInstanceProfileAssociation(v *IamInstanceProfileAssociation) *DisassociateIamInstanceProfileOutput {
+	s.IamInstanceProfileAssociation = v
+	return s
 }
 
 // Contains the parameters for DisassociateRouteTable.
@@ -34939,6 +35569,67 @@ func (s *IamInstanceProfile) SetArn(v string) *IamInstanceProfile {
 // SetId sets the Id field's value.
 func (s *IamInstanceProfile) SetId(v string) *IamInstanceProfile {
 	s.Id = &v
+	return s
+}
+
+// Describes an association between an IAM instance profile and an instance.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/IamInstanceProfileAssociation
+type IamInstanceProfileAssociation struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the association.
+	AssociationId *string `locationName:"associationId" type:"string"`
+
+	// The IAM instance profile.
+	IamInstanceProfile *IamInstanceProfile `locationName:"iamInstanceProfile" type:"structure"`
+
+	// The ID of the instance.
+	InstanceId *string `locationName:"instanceId" type:"string"`
+
+	// The state of the association.
+	State *string `locationName:"state" type:"string" enum:"IamInstanceProfileAssociationState"`
+
+	// The time the IAM instance profile was associated with the instance.
+	Timestamp *time.Time `locationName:"timestamp" type:"timestamp" timestampFormat:"iso8601"`
+}
+
+// String returns the string representation
+func (s IamInstanceProfileAssociation) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IamInstanceProfileAssociation) GoString() string {
+	return s.String()
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *IamInstanceProfileAssociation) SetAssociationId(v string) *IamInstanceProfileAssociation {
+	s.AssociationId = &v
+	return s
+}
+
+// SetIamInstanceProfile sets the IamInstanceProfile field's value.
+func (s *IamInstanceProfileAssociation) SetIamInstanceProfile(v *IamInstanceProfile) *IamInstanceProfileAssociation {
+	s.IamInstanceProfile = v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *IamInstanceProfileAssociation) SetInstanceId(v string) *IamInstanceProfileAssociation {
+	s.InstanceId = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *IamInstanceProfileAssociation) SetState(v string) *IamInstanceProfileAssociation {
+	s.State = &v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *IamInstanceProfileAssociation) SetTimestamp(v time.Time) *IamInstanceProfileAssociation {
+	s.Timestamp = &v
 	return s
 }
 
@@ -39606,6 +40297,10 @@ type ModifySubnetAttributeInput struct {
 	// subnet should be assigned an IPv6 address. This includes a network interface
 	// that's created when launching an instance into the subnet (the instance therefore
 	// receives an IPv6 address).
+	//
+	// If you enable the IPv6 addressing feature for your subnet, your network interface
+	// or instance only receives an IPv6 address if it's created using version 2016-11-15
+	// or later of the Amazon EC2 API.
 	AssignIpv6AddressOnCreation *AttributeBooleanValue `type:"structure"`
 
 	// Specify true to indicate that network interfaces created in the specified
@@ -39750,6 +40445,122 @@ func (s ModifyVolumeAttributeOutput) String() string {
 // GoString returns the string representation
 func (s ModifyVolumeAttributeOutput) GoString() string {
 	return s.String()
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolumeRequest
+type ModifyVolumeInput struct {
+	_ struct{} `type:"structure"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// Target IOPS rate of the volume to be modified.
+	//
+	// Only valid for Provisioned IOPS SSD (io1) volumes. For more information about
+	// io1 IOPS configuration, see http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html#EBSVolumeTypes_piops
+	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html#EBSVolumeTypes_piops).
+	//
+	// Default: If no IOPS value is specified, the existing value is retained.
+	Iops *int64 `type:"integer"`
+
+	// Target size in GiB of the volume to be modified. Target volume size must
+	// be greater than or equal to than the existing size of the volume. For information
+	// about available EBS volume sizes, see http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html
+	// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html).
+	//
+	// Default: If no size is specified, the existing size is retained.
+	Size *int64 `type:"integer"`
+
+	// VolumeId is a required field
+	VolumeId *string `type:"string" required:"true"`
+
+	// Target EBS volume type of the volume to be modified
+	//
+	// The API does not support modifications for volume type standard. You also
+	// cannot change the type of a volume to standard.
+	//
+	// Default: If no type is specified, the existing type is retained.
+	VolumeType *string `type:"string" enum:"VolumeType"`
+}
+
+// String returns the string representation
+func (s ModifyVolumeInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyVolumeInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ModifyVolumeInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ModifyVolumeInput"}
+	if s.VolumeId == nil {
+		invalidParams.Add(request.NewErrParamRequired("VolumeId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *ModifyVolumeInput) SetDryRun(v bool) *ModifyVolumeInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetIops sets the Iops field's value.
+func (s *ModifyVolumeInput) SetIops(v int64) *ModifyVolumeInput {
+	s.Iops = &v
+	return s
+}
+
+// SetSize sets the Size field's value.
+func (s *ModifyVolumeInput) SetSize(v int64) *ModifyVolumeInput {
+	s.Size = &v
+	return s
+}
+
+// SetVolumeId sets the VolumeId field's value.
+func (s *ModifyVolumeInput) SetVolumeId(v string) *ModifyVolumeInput {
+	s.VolumeId = &v
+	return s
+}
+
+// SetVolumeType sets the VolumeType field's value.
+func (s *ModifyVolumeInput) SetVolumeType(v string) *ModifyVolumeInput {
+	s.VolumeType = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ModifyVolumeResult
+type ModifyVolumeOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A VolumeModification object.
+	VolumeModification *VolumeModification `locationName:"volumeModification" type:"structure"`
+}
+
+// String returns the string representation
+func (s ModifyVolumeOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ModifyVolumeOutput) GoString() string {
+	return s.String()
+}
+
+// SetVolumeModification sets the VolumeModification field's value.
+func (s *ModifyVolumeOutput) SetVolumeModification(v *VolumeModification) *ModifyVolumeOutput {
+	s.VolumeModification = v
+	return s
 }
 
 // Contains the parameters for ModifyVpcAttribute.
@@ -41269,8 +42080,8 @@ type Placement struct {
 	// The name of the placement group the instance is in (for cluster compute instances).
 	GroupName *string `locationName:"groupName" type:"string"`
 
-	// The ID of the Dedicted host on which the instance resides. This parameter
-	// is not support for the ImportInstance command.
+	// The ID of the Dedicated Host on which the instance resides. This parameter
+	// is not supported for the ImportInstance command.
 	HostId *string `locationName:"hostId" type:"string"`
 
 	// The tenancy of the instance (if the instance is running in a VPC). An instance
@@ -42434,6 +43245,9 @@ type RegisterImageInput struct {
 	// the architecture specified in the manifest file.
 	Architecture *string `locationName:"architecture" type:"string" enum:"ArchitectureValues"`
 
+	// The billing product codes.
+	BillingProducts []*string `locationName:"BillingProduct" locationNameList:"item" type:"list"`
+
 	// One or more block device mapping entries.
 	BlockDeviceMappings []*BlockDeviceMapping `locationName:"BlockDeviceMapping" locationNameList:"BlockDeviceMapping" type:"list"`
 
@@ -42516,6 +43330,12 @@ func (s *RegisterImageInput) Validate() error {
 // SetArchitecture sets the Architecture field's value.
 func (s *RegisterImageInput) SetArchitecture(v string) *RegisterImageInput {
 	s.Architecture = &v
+	return s
+}
+
+// SetBillingProducts sets the BillingProducts field's value.
+func (s *RegisterImageInput) SetBillingProducts(v []*string) *RegisterImageInput {
+	s.BillingProducts = v
 	return s
 }
 
@@ -42820,6 +43640,83 @@ func (s *ReleaseHostsOutput) SetSuccessful(v []*string) *ReleaseHostsOutput {
 // SetUnsuccessful sets the Unsuccessful field's value.
 func (s *ReleaseHostsOutput) SetUnsuccessful(v []*UnsuccessfulItem) *ReleaseHostsOutput {
 	s.Unsuccessful = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociationRequest
+type ReplaceIamInstanceProfileAssociationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the existing IAM instance profile association.
+	//
+	// AssociationId is a required field
+	AssociationId *string `type:"string" required:"true"`
+
+	// The IAM instance profile.
+	//
+	// IamInstanceProfile is a required field
+	IamInstanceProfile *IamInstanceProfileSpecification `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s ReplaceIamInstanceProfileAssociationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReplaceIamInstanceProfileAssociationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ReplaceIamInstanceProfileAssociationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ReplaceIamInstanceProfileAssociationInput"}
+	if s.AssociationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
+	}
+	if s.IamInstanceProfile == nil {
+		invalidParams.Add(request.NewErrParamRequired("IamInstanceProfile"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *ReplaceIamInstanceProfileAssociationInput) SetAssociationId(v string) *ReplaceIamInstanceProfileAssociationInput {
+	s.AssociationId = &v
+	return s
+}
+
+// SetIamInstanceProfile sets the IamInstanceProfile field's value.
+func (s *ReplaceIamInstanceProfileAssociationInput) SetIamInstanceProfile(v *IamInstanceProfileSpecification) *ReplaceIamInstanceProfileAssociationInput {
+	s.IamInstanceProfile = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/ReplaceIamInstanceProfileAssociationResult
+type ReplaceIamInstanceProfileAssociationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IAM instance profile association.
+	IamInstanceProfileAssociation *IamInstanceProfileAssociation `locationName:"iamInstanceProfileAssociation" type:"structure"`
+}
+
+// String returns the string representation
+func (s ReplaceIamInstanceProfileAssociationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReplaceIamInstanceProfileAssociationOutput) GoString() string {
+	return s.String()
+}
+
+// SetIamInstanceProfileAssociation sets the IamInstanceProfileAssociation field's value.
+func (s *ReplaceIamInstanceProfileAssociationOutput) SetIamInstanceProfileAssociation(v *IamInstanceProfileAssociation) *ReplaceIamInstanceProfileAssociationOutput {
+	s.IamInstanceProfileAssociation = v
 	return s
 }
 
@@ -48395,6 +49292,9 @@ type SpotFleetRequestConfigData struct {
 	// LaunchSpecifications is a required field
 	LaunchSpecifications []*SpotFleetLaunchSpecification `locationName:"launchSpecifications" locationNameList:"item" min:"1" type:"list" required:"true"`
 
+	// Indicates whether Spot fleet should replace unhealthy instances.
+	ReplaceUnhealthyInstances *bool `locationName:"replaceUnhealthyInstances" type:"boolean"`
+
 	// The bid price per unit hour.
 	//
 	// SpotPrice is a required field
@@ -48509,6 +49409,12 @@ func (s *SpotFleetRequestConfigData) SetIamFleetRole(v string) *SpotFleetRequest
 // SetLaunchSpecifications sets the LaunchSpecifications field's value.
 func (s *SpotFleetRequestConfigData) SetLaunchSpecifications(v []*SpotFleetLaunchSpecification) *SpotFleetRequestConfigData {
 	s.LaunchSpecifications = v
+	return s
+}
+
+// SetReplaceUnhealthyInstances sets the ReplaceUnhealthyInstances field's value.
+func (s *SpotFleetRequestConfigData) SetReplaceUnhealthyInstances(v bool) *SpotFleetRequestConfigData {
+	s.ReplaceUnhealthyInstances = &v
 	return s
 }
 
@@ -48832,6 +49738,11 @@ type SpotPlacement struct {
 
 	// The name of the placement group (for cluster instances).
 	GroupName *string `locationName:"groupName" type:"string"`
+
+	// The tenancy of the instance (if the instance is running in a VPC). An instance
+	// with a tenancy of dedicated runs on single-tenant hardware. The host tenancy
+	// is not supported for Spot instances.
+	Tenancy *string `locationName:"tenancy" type:"string" enum:"Tenancy"`
 }
 
 // String returns the string representation
@@ -48853,6 +49764,12 @@ func (s *SpotPlacement) SetAvailabilityZone(v string) *SpotPlacement {
 // SetGroupName sets the GroupName field's value.
 func (s *SpotPlacement) SetGroupName(v string) *SpotPlacement {
 	s.GroupName = &v
+	return s
+}
+
+// SetTenancy sets the Tenancy field's value.
+func (s *SpotPlacement) SetTenancy(v string) *SpotPlacement {
+	s.Tenancy = &v
 	return s
 }
 
@@ -49161,14 +50078,16 @@ type StateReason struct {
 
 	// The message for the state change.
 	//
-	//    * Server.SpotInstanceTermination: A Spot instance was terminated due to
-	//    an increase in the market price.
+	//    * Server.InsufficientInstanceCapacity: There was insufficient instance
+	//    capacity to satisfy the launch request.
 	//
 	//    * Server.InternalError: An internal error occurred during instance launch,
 	//    resulting in termination.
 	//
-	//    * Server.InsufficientInstanceCapacity: There was insufficient instance
-	//    capacity to satisfy the launch request.
+	//    * Server.ScheduledStop: The instance was stopped due to a scheduled retirement.
+	//
+	//    * Server.SpotInstanceTermination: A Spot instance was terminated due to
+	//    an increase in the market price.
 	//
 	//    * Client.InternalError: A client error caused the instance to terminate
 	//    on launch.
@@ -50604,6 +51523,133 @@ func (s *VolumeDetail) SetSize(v int64) *VolumeDetail {
 	return s
 }
 
+// Describes the modification status of an EBS volume.
+//
+// If the volume has never been modified, some element values will be null.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VolumeModification
+type VolumeModification struct {
+	_ struct{} `type:"structure"`
+
+	// Modification completion or failure time.
+	EndTime *time.Time `locationName:"endTime" type:"timestamp" timestampFormat:"iso8601"`
+
+	// Current state of modification. Modification state is null for unmodified
+	// volumes.
+	ModificationState *string `locationName:"modificationState" type:"string" enum:"VolumeModificationState"`
+
+	// Original IOPS rate of the volume being modified.
+	OriginalIops *int64 `locationName:"originalIops" type:"integer"`
+
+	// Original size of the volume being modified.
+	OriginalSize *int64 `locationName:"originalSize" type:"integer"`
+
+	// Original EBS volume type of the volume being modified.
+	OriginalVolumeType *string `locationName:"originalVolumeType" type:"string" enum:"VolumeType"`
+
+	// Modification progress from 0 to 100%.
+	Progress *int64 `locationName:"progress" type:"long"`
+
+	// Modification start time
+	StartTime *time.Time `locationName:"startTime" type:"timestamp" timestampFormat:"iso8601"`
+
+	// Generic status message on modification progress or failure.
+	StatusMessage *string `locationName:"statusMessage" type:"string"`
+
+	// Target IOPS rate of the volume being modified.
+	TargetIops *int64 `locationName:"targetIops" type:"integer"`
+
+	// Target size of the volume being modified.
+	TargetSize *int64 `locationName:"targetSize" type:"integer"`
+
+	// Target EBS volume type of the volume being modified.
+	TargetVolumeType *string `locationName:"targetVolumeType" type:"string" enum:"VolumeType"`
+
+	// ID of the volume being modified.
+	VolumeId *string `locationName:"volumeId" type:"string"`
+}
+
+// String returns the string representation
+func (s VolumeModification) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s VolumeModification) GoString() string {
+	return s.String()
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *VolumeModification) SetEndTime(v time.Time) *VolumeModification {
+	s.EndTime = &v
+	return s
+}
+
+// SetModificationState sets the ModificationState field's value.
+func (s *VolumeModification) SetModificationState(v string) *VolumeModification {
+	s.ModificationState = &v
+	return s
+}
+
+// SetOriginalIops sets the OriginalIops field's value.
+func (s *VolumeModification) SetOriginalIops(v int64) *VolumeModification {
+	s.OriginalIops = &v
+	return s
+}
+
+// SetOriginalSize sets the OriginalSize field's value.
+func (s *VolumeModification) SetOriginalSize(v int64) *VolumeModification {
+	s.OriginalSize = &v
+	return s
+}
+
+// SetOriginalVolumeType sets the OriginalVolumeType field's value.
+func (s *VolumeModification) SetOriginalVolumeType(v string) *VolumeModification {
+	s.OriginalVolumeType = &v
+	return s
+}
+
+// SetProgress sets the Progress field's value.
+func (s *VolumeModification) SetProgress(v int64) *VolumeModification {
+	s.Progress = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *VolumeModification) SetStartTime(v time.Time) *VolumeModification {
+	s.StartTime = &v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *VolumeModification) SetStatusMessage(v string) *VolumeModification {
+	s.StatusMessage = &v
+	return s
+}
+
+// SetTargetIops sets the TargetIops field's value.
+func (s *VolumeModification) SetTargetIops(v int64) *VolumeModification {
+	s.TargetIops = &v
+	return s
+}
+
+// SetTargetSize sets the TargetSize field's value.
+func (s *VolumeModification) SetTargetSize(v int64) *VolumeModification {
+	s.TargetSize = &v
+	return s
+}
+
+// SetTargetVolumeType sets the TargetVolumeType field's value.
+func (s *VolumeModification) SetTargetVolumeType(v string) *VolumeModification {
+	s.TargetVolumeType = &v
+	return s
+}
+
+// SetVolumeId sets the VolumeId field's value.
+func (s *VolumeModification) SetVolumeId(v string) *VolumeModification {
+	s.VolumeId = &v
+	return s
+}
+
 // Describes a volume status operation code.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/VolumeStatusAction
 type VolumeStatusAction struct {
@@ -51994,6 +53040,20 @@ const (
 )
 
 const (
+	// IamInstanceProfileAssociationStateAssociating is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateAssociating = "associating"
+
+	// IamInstanceProfileAssociationStateAssociated is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateAssociated = "associated"
+
+	// IamInstanceProfileAssociationStateDisassociating is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateDisassociating = "disassociating"
+
+	// IamInstanceProfileAssociationStateDisassociated is a IamInstanceProfileAssociationState enum value
+	IamInstanceProfileAssociationStateDisassociated = "disassociated"
+)
+
+const (
 	// ImageAttributeNameDescription is a ImageAttributeName enum value
 	ImageAttributeNameDescription = "description"
 
@@ -52092,6 +53152,14 @@ const (
 
 	// InstanceAttributeNameEnaSupport is a InstanceAttributeName enum value
 	InstanceAttributeNameEnaSupport = "enaSupport"
+)
+
+const (
+	// InstanceHealthStatusHealthy is a InstanceHealthStatus enum value
+	InstanceHealthStatusHealthy = "healthy"
+
+	// InstanceHealthStatusUnhealthy is a InstanceHealthStatus enum value
+	InstanceHealthStatusUnhealthy = "unhealthy"
 )
 
 const (
@@ -52251,6 +53319,24 @@ const (
 
 	// InstanceTypeI28xlarge is a InstanceType enum value
 	InstanceTypeI28xlarge = "i2.8xlarge"
+
+	// InstanceTypeI3Large is a InstanceType enum value
+	InstanceTypeI3Large = "i3.large"
+
+	// InstanceTypeI3Xlarge is a InstanceType enum value
+	InstanceTypeI3Xlarge = "i3.xlarge"
+
+	// InstanceTypeI32xlarge is a InstanceType enum value
+	InstanceTypeI32xlarge = "i3.2xlarge"
+
+	// InstanceTypeI34xlarge is a InstanceType enum value
+	InstanceTypeI34xlarge = "i3.4xlarge"
+
+	// InstanceTypeI38xlarge is a InstanceType enum value
+	InstanceTypeI38xlarge = "i3.8xlarge"
+
+	// InstanceTypeI316xlarge is a InstanceType enum value
+	InstanceTypeI316xlarge = "i3.16xlarge"
 
 	// InstanceTypeHi14xlarge is a InstanceType enum value
 	InstanceTypeHi14xlarge = "hi1.4xlarge"
@@ -52892,6 +53978,20 @@ const (
 
 	// VolumeAttributeNameProductCodes is a VolumeAttributeName enum value
 	VolumeAttributeNameProductCodes = "productCodes"
+)
+
+const (
+	// VolumeModificationStateModifying is a VolumeModificationState enum value
+	VolumeModificationStateModifying = "modifying"
+
+	// VolumeModificationStateOptimizing is a VolumeModificationState enum value
+	VolumeModificationStateOptimizing = "optimizing"
+
+	// VolumeModificationStateCompleted is a VolumeModificationState enum value
+	VolumeModificationStateCompleted = "completed"
+
+	// VolumeModificationStateFailed is a VolumeModificationState enum value
+	VolumeModificationStateFailed = "failed"
 )
 
 const (

@@ -78,6 +78,7 @@ func TestValidateCloudWatchEventRuleName(t *testing.T) {
 func TestValidateLambdaFunctionName(t *testing.T) {
 	validNames := []string{
 		"arn:aws:lambda:us-west-2:123456789012:function:ThumbNail",
+		"arn:aws-us-gov:lambda:us-west-2:123456789012:function:ThumbNail",
 		"FunctionName",
 		"function-name",
 	}
@@ -110,6 +111,8 @@ func TestValidateLambdaQualifier(t *testing.T) {
 		"prod",
 		"PROD",
 		"MyTestEnv",
+		"contains-dashes",
+		"contains_underscores",
 		"$LATEST",
 	}
 	for _, v := range validNames {
@@ -203,6 +206,7 @@ func TestValidateArn(t *testing.T) {
 		"arn:aws:events:us-east-1:319201112229:rule/rule_name",                             // CloudWatch Rule
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction",                  // Lambda function
 		"arn:aws:lambda:eu-west-1:319201112229:function:myCustomFunction:Qualifier",        // Lambda func qualifier
+		"arn:aws-us-gov:s3:::corp_bucket/object.png",                                       // GovCloud ARN
 	}
 	for _, v := range validNames {
 		_, errors := validateArn(v, "arn")
@@ -759,6 +763,49 @@ func TestValidateJsonString(t *testing.T) {
 	}
 }
 
+func TestValidateCloudFormationTemplate(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    `{"abc":"`,
+			ErrCount: 1,
+		},
+		{
+			Value:    "abc: [",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateCloudFormationTemplate(tc.Value, "template")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    `{"abc":"1"}`,
+			ErrCount: 0,
+		},
+		{
+			Value:    `abc: 1`,
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateCloudFormationTemplate(tc.Value, "template")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
 func TestValidateApiGatewayIntegrationType(t *testing.T) {
 	type testCases struct {
 		Value    string
@@ -920,6 +967,586 @@ func TestValidateSecurityRuleType(t *testing.T) {
 	for _, v := range invalidTypes {
 		if _, errors := validateSecurityRuleType(v, "type"); len(errors) == 0 {
 			t.Fatalf("%q should be an invalid Security Group Rule type: %v", v, errors)
+		}
+	}
+}
+
+func TestValidateOnceAWeekWindowFormat(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			// once a day window format
+			Value:    "04:00-05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid day of week
+			Value:    "san:04:00-san:05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid hour
+			Value:    "sun:24:00-san:25:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid min
+			Value:    "sun:04:00-sun:04:60",
+			ErrCount: 1,
+		},
+		{
+			// valid format
+			Value:    "sun:04:00-sun:05:00",
+			ErrCount: 0,
+		},
+		{
+			// "Sun" can also be used
+			Value:    "Sun:04:00-Sun:05:00",
+			ErrCount: 0,
+		},
+		{
+			// valid format
+			Value:    "",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateOnceAWeekWindowFormat(tc.Value, "maintenance_window")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d validation errors, But got %d errors for \"%s\"", tc.ErrCount, len(errors), tc.Value)
+		}
+	}
+}
+
+func TestValidateOnceADayWindowFormat(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			// once a week window format
+			Value:    "sun:04:00-sun:05:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid hour
+			Value:    "24:00-25:00",
+			ErrCount: 1,
+		},
+		{
+			// invalid min
+			Value:    "04:00-04:60",
+			ErrCount: 1,
+		},
+		{
+			// valid format
+			Value:    "04:00-05:00",
+			ErrCount: 0,
+		},
+		{
+			// valid format
+			Value:    "",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateOnceADayWindowFormat(tc.Value, "backup_window")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d validation errors, But got %d errors for \"%s\"", tc.ErrCount, len(errors), tc.Value)
+		}
+	}
+}
+
+func TestValidateRoute53RecordType(t *testing.T) {
+	validTypes := []string{
+		"AAAA",
+		"SOA",
+		"A",
+		"TXT",
+		"CNAME",
+		"MX",
+		"NAPTR",
+		"PTR",
+		"SPF",
+		"SRV",
+		"NS",
+	}
+
+	invalidTypes := []string{
+		"a",
+		"alias",
+		"SpF",
+		"Txt",
+		"AaAA",
+	}
+
+	for _, v := range validTypes {
+		_, errors := validateRoute53RecordType(v, "route53_record")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Route53 record type: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidTypes {
+		_, errors := validateRoute53RecordType(v, "route53_record")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Route53 record type", v)
+		}
+	}
+}
+
+func TestValidateEcsPlacementConstraint(t *testing.T) {
+	cases := []struct {
+		constType string
+		constExpr string
+		Err       bool
+	}{
+		{
+			constType: "distinctInstance",
+			constExpr: "",
+			Err:       false,
+		},
+		{
+			constType: "memberOf",
+			constExpr: "",
+			Err:       true,
+		},
+		{
+			constType: "distinctInstance",
+			constExpr: "expression",
+			Err:       false,
+		},
+		{
+			constType: "memberOf",
+			constExpr: "expression",
+			Err:       false,
+		},
+	}
+
+	for _, tc := range cases {
+		if err := validateAwsEcsPlacementConstraint(tc.constType, tc.constExpr); err != nil && !tc.Err {
+			t.Fatalf("Unexpected validation error for \"%s:%s\": %s",
+				tc.constType, tc.constExpr, err)
+		}
+
+	}
+}
+
+func TestValidateEcsPlacementStrategy(t *testing.T) {
+	cases := []struct {
+		stratType  string
+		stratField string
+		Err        bool
+	}{
+		{
+			stratType:  "random",
+			stratField: "",
+			Err:        false,
+		},
+		{
+			stratType:  "spread",
+			stratField: "instanceID",
+			Err:        false,
+		},
+		{
+			stratType:  "binpack",
+			stratField: "cpu",
+			Err:        false,
+		},
+		{
+			stratType:  "binpack",
+			stratField: "memory",
+			Err:        false,
+		},
+		{
+			stratType:  "binpack",
+			stratField: "disk",
+			Err:        true,
+		},
+		{
+			stratType:  "fakeType",
+			stratField: "",
+			Err:        true,
+		},
+	}
+
+	for _, tc := range cases {
+		if err := validateAwsEcsPlacementStrategy(tc.stratType, tc.stratField); err != nil && !tc.Err {
+			t.Fatalf("Unexpected validation error for \"%s:%s\": %s",
+				tc.stratType, tc.stratField, err)
+		}
+	}
+}
+
+func TestValidateStepFunctionActivityName(t *testing.T) {
+	validTypes := []string{
+		"foo",
+		"FooBar123",
+	}
+
+	invalidTypes := []string{
+		strings.Repeat("W", 81), // length > 80
+	}
+
+	for _, v := range validTypes {
+		_, errors := validateSfnActivityName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Step Function Activity name: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidTypes {
+		_, errors := validateSfnActivityName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Step Function Activity name", v)
+		}
+	}
+}
+
+func TestValidateStepFunctionStateMachineDefinition(t *testing.T) {
+	validDefinitions := []string{
+		"foobar",
+		strings.Repeat("W", 1048576),
+	}
+
+	invalidDefinitions := []string{
+		strings.Repeat("W", 1048577), // length > 1048576
+	}
+
+	for _, v := range validDefinitions {
+		_, errors := validateSfnStateMachineDefinition(v, "definition")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Step Function State Machine definition: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidDefinitions {
+		_, errors := validateSfnStateMachineDefinition(v, "definition")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Step Function State Machine definition", v)
+		}
+	}
+}
+
+func TestValidateStepFunctionStateMachineName(t *testing.T) {
+	validTypes := []string{
+		"foo",
+		"BAR",
+		"FooBar123",
+		"FooBar123Baz-_",
+	}
+
+	invalidTypes := []string{
+		"foo bar",
+		"foo<bar>",
+		"foo{bar}",
+		"foo[bar]",
+		"foo*bar",
+		"foo?bar",
+		"foo#bar",
+		"foo%bar",
+		"foo\bar",
+		"foo^bar",
+		"foo|bar",
+		"foo~bar",
+		"foo$bar",
+		"foo&bar",
+		"foo,bar",
+		"foo:bar",
+		"foo;bar",
+		"foo/bar",
+		strings.Repeat("W", 81), // length > 80
+	}
+
+	for _, v := range validTypes {
+		_, errors := validateSfnStateMachineName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Step Function State Machine name: %v", v, errors)
+		}
+	}
+
+	for _, v := range invalidTypes {
+		_, errors := validateSfnStateMachineName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid Step Function State Machine name", v)
+		}
+	}
+}
+
+func TestValidateEmrEbsVolumeType(t *testing.T) {
+	cases := []struct {
+		VolType  string
+		ErrCount int
+	}{
+		{
+			VolType:  "gp2",
+			ErrCount: 0,
+		},
+		{
+			VolType:  "io1",
+			ErrCount: 0,
+		},
+		{
+			VolType:  "standard",
+			ErrCount: 0,
+		},
+		{
+			VolType:  "stand",
+			ErrCount: 1,
+		},
+		{
+			VolType:  "io",
+			ErrCount: 1,
+		},
+		{
+			VolType:  "gp1",
+			ErrCount: 1,
+		},
+		{
+			VolType:  "fast-disk",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAwsEmrEbsVolumeType(tc.VolType, "volume")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %d errors, got %d: %s", tc.ErrCount, len(errors), errors)
+		}
+	}
+}
+
+func TestValidateAppautoscalingScalableDimension(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "ecs:service:DesiredCount",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ec2:spot-fleet-request:TargetCapacity",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ec2:service:DesiredCount",
+			ErrCount: 1,
+		},
+		{
+			Value:    "ecs:spot-fleet-request:TargetCapacity",
+			ErrCount: 1,
+		},
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAppautoscalingScalableDimension(tc.Value, "scalable_dimension")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Scalable Dimension validation failed for value %q: %q", tc.Value, errors)
+		}
+	}
+}
+
+func TestValidateAppautoscalingServiceNamespace(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "ecs",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ec2",
+			ErrCount: 0,
+		},
+		{
+			Value:    "autoscaling",
+			ErrCount: 1,
+		},
+		{
+			Value:    "s3",
+			ErrCount: 1,
+		},
+		{
+			Value:    "es",
+			ErrCount: 1,
+		},
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAppautoscalingServiceNamespace(tc.Value, "service_namespace")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Service Namespace validation failed for value %q: %q", tc.Value, errors)
+		}
+	}
+}
+
+func TestValidateDmsEndpointId(t *testing.T) {
+	validIds := []string{
+		"tf-test-endpoint-1",
+		"tfTestEndpoint",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsEndpointId(s, "endpoint_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid endpoint id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"tf_test_endpoint_1",
+		"tf.test.endpoint.1",
+		"tf test endpoint 1",
+		"tf-test-endpoint-1!",
+		"tf-test-endpoint-1-",
+		"tf-test-endpoint--1",
+		"tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsEndpointId(s, "endpoint_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid endpoint id: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateDmsCertificateId(t *testing.T) {
+	validIds := []string{
+		"tf-test-certificate-1",
+		"tfTestEndpoint",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsCertificateId(s, "certificate_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid certificate id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"tf_test_certificate_1",
+		"tf.test.certificate.1",
+		"tf test certificate 1",
+		"tf-test-certificate-1!",
+		"tf-test-certificate-1-",
+		"tf-test-certificate--1",
+		"tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsEndpointId(s, "certificate_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid certificate id: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateDmsReplicationInstanceId(t *testing.T) {
+	validIds := []string{
+		"tf-test-replication-instance-1",
+		"tfTestReplicaitonInstance",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsReplicationInstanceId(s, "replicaiton_instance_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid replication instance id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"tf_test_replication-instance_1",
+		"tf.test.replication.instance.1",
+		"tf test replication instance 1",
+		"tf-test-replication-instance-1!",
+		"tf-test-replication-instance-1-",
+		"tf-test-replication-instance--1",
+		"tf-test-replication-instance-1tf-test-replication-instance-1tf-test-replication-instance-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsReplicationInstanceId(s, "replication_instance_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid replication instance id: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateDmsReplicationSubnetGroupId(t *testing.T) {
+	validIds := []string{
+		"tf-test-replication-subnet-group-1",
+		"tf_test_replication_subnet_group_1",
+		"tf.test.replication.subnet.group.1",
+		"tf test replication subnet group 1",
+		"tfTestReplicationSubnetGroup",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsReplicationSubnetGroupId(s, "replication_subnet_group_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid replication subnet group id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"default",
+		"tf-test-replication-subnet-group-1!",
+		"tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsReplicationSubnetGroupId(s, "replication_subnet_group_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid replication subnet group id: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateDmsReplicationTaskId(t *testing.T) {
+	validIds := []string{
+		"tf-test-replication-task-1",
+		"tfTestReplicationTask",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsReplicationTaskId(s, "replication_task_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid replication task id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"tf_test_replication_task_1",
+		"tf.test.replication.task.1",
+		"tf test replication task 1",
+		"tf-test-replication-task-1!",
+		"tf-test-replication-task-1-",
+		"tf-test-replication-task--1",
+		"tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsReplicationTaskId(s, "replication_task_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid replication task id: %v", s, errors)
 		}
 	}
 }

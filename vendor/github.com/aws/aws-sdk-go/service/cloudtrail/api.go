@@ -49,9 +49,8 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 		input = &AddTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &AddTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -72,24 +71,24 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 // API operation AddTags for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   This exception is thrown when the specified resource is not found.
 //
-//   * ARNInvalidException
+//   * ErrCodeARNInvalidException "ARNInvalidException"
 //   This exception is thrown when an operation is called with an invalid trail
 //   ARN. The format of a trail ARN is:
 //
 //   arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 //
-//   * ResourceTypeNotSupportedException
+//   * ErrCodeResourceTypeNotSupportedException "ResourceTypeNotSupportedException"
 //   This exception is thrown when the specified resource type is not supported
 //   by CloudTrail.
 //
-//   * TagsLimitExceededException
+//   * ErrCodeTagsLimitExceededException "TagsLimitExceededException"
 //   The number of tags per trail has exceeded the permitted amount. Currently,
 //   the limit is 50.
 //
-//   * InvalidTrailNameException
+//   * ErrCodeInvalidTrailNameException "InvalidTrailNameException"
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
@@ -105,14 +104,14 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 //
 //      * Not be in IP address format (for example, 192.168.5.4)
 //
-//   * InvalidTagParameterException
+//   * ErrCodeInvalidTagParameterException "InvalidTagParameterException"
 //   This exception is thrown when the key or value specified for the tag does
 //   not match the regular expression ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$.
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   This exception is thrown when the requested operation is not supported.
 //
-//   * OperationNotPermittedException
+//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
 //   This exception is thrown when the requested operation is not permitted.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/AddTags
@@ -160,9 +159,8 @@ func (c *CloudTrail) CreateTrailRequest(input *CreateTrailInput) (req *request.R
 		input = &CreateTrailInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &CreateTrailOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -180,38 +178,38 @@ func (c *CloudTrail) CreateTrailRequest(input *CreateTrailInput) (req *request.R
 // API operation CreateTrail for usage and error information.
 //
 // Returned Error Codes:
-//   * MaximumNumberOfTrailsExceededException
+//   * ErrCodeMaximumNumberOfTrailsExceededException "MaximumNumberOfTrailsExceededException"
 //   This exception is thrown when the maximum number of trails is reached.
 //
-//   * TrailAlreadyExistsException
+//   * ErrCodeTrailAlreadyExistsException "TrailAlreadyExistsException"
 //   This exception is thrown when the specified trail already exists.
 //
-//   * S3BucketDoesNotExistException
+//   * ErrCodeS3BucketDoesNotExistException "S3BucketDoesNotExistException"
 //   This exception is thrown when the specified S3 bucket does not exist.
 //
-//   * InsufficientS3BucketPolicyException
+//   * ErrCodeInsufficientS3BucketPolicyException "InsufficientS3BucketPolicyException"
 //   This exception is thrown when the policy on the S3 bucket is not sufficient.
 //
-//   * InsufficientSnsTopicPolicyException
+//   * ErrCodeInsufficientSnsTopicPolicyException "InsufficientSnsTopicPolicyException"
 //   This exception is thrown when the policy on the SNS topic is not sufficient.
 //
-//   * InsufficientEncryptionPolicyException
+//   * ErrCodeInsufficientEncryptionPolicyException "InsufficientEncryptionPolicyException"
 //   This exception is thrown when the policy on the S3 bucket or KMS key is not
 //   sufficient.
 //
-//   * InvalidS3BucketNameException
+//   * ErrCodeInvalidS3BucketNameException "InvalidS3BucketNameException"
 //   This exception is thrown when the provided S3 bucket name is not valid.
 //
-//   * InvalidS3PrefixException
+//   * ErrCodeInvalidS3PrefixException "InvalidS3PrefixException"
 //   This exception is thrown when the provided S3 prefix is not valid.
 //
-//   * InvalidSnsTopicNameException
+//   * ErrCodeInvalidSnsTopicNameException "InvalidSnsTopicNameException"
 //   This exception is thrown when the provided SNS topic name is not valid.
 //
-//   * InvalidKmsKeyIdException
+//   * ErrCodeInvalidKmsKeyIdException "InvalidKmsKeyIdException"
 //   This exception is thrown when the KMS key ARN is invalid.
 //
-//   * InvalidTrailNameException
+//   * ErrCodeInvalidTrailNameException "InvalidTrailNameException"
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
@@ -227,37 +225,37 @@ func (c *CloudTrail) CreateTrailRequest(input *CreateTrailInput) (req *request.R
 //
 //      * Not be in IP address format (for example, 192.168.5.4)
 //
-//   * TrailNotProvidedException
+//   * ErrCodeTrailNotProvidedException "TrailNotProvidedException"
 //   This exception is deprecated.
 //
-//   * InvalidParameterCombinationException
+//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombinationException"
 //   This exception is thrown when the combination of parameters provided is not
 //   valid.
 //
-//   * KmsKeyNotFoundException
+//   * ErrCodeKmsKeyNotFoundException "KmsKeyNotFoundException"
 //   This exception is thrown when the KMS key does not exist, or when the S3
 //   bucket and the KMS key are not in the same region.
 //
-//   * KmsKeyDisabledException
+//   * ErrCodeKmsKeyDisabledException "KmsKeyDisabledException"
 //   This exception is deprecated.
 //
-//   * KmsException
+//   * ErrCodeKmsException "KmsException"
 //   This exception is thrown when there is an issue with the specified KMS key
 //   and the trail can’t be updated.
 //
-//   * InvalidCloudWatchLogsLogGroupArnException
+//   * ErrCodeInvalidCloudWatchLogsLogGroupArnException "InvalidCloudWatchLogsLogGroupArnException"
 //   This exception is thrown when the provided CloudWatch log group is not valid.
 //
-//   * InvalidCloudWatchLogsRoleArnException
+//   * ErrCodeInvalidCloudWatchLogsRoleArnException "InvalidCloudWatchLogsRoleArnException"
 //   This exception is thrown when the provided role is not valid.
 //
-//   * CloudWatchLogsDeliveryUnavailableException
+//   * ErrCodeCloudWatchLogsDeliveryUnavailableException "CloudWatchLogsDeliveryUnavailableException"
 //   Cannot set a CloudWatch Logs delivery for this region.
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   This exception is thrown when the requested operation is not supported.
 //
-//   * OperationNotPermittedException
+//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
 //   This exception is thrown when the requested operation is not permitted.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/CreateTrail
@@ -305,9 +303,8 @@ func (c *CloudTrail) DeleteTrailRequest(input *DeleteTrailInput) (req *request.R
 		input = &DeleteTrailInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DeleteTrailOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -325,10 +322,10 @@ func (c *CloudTrail) DeleteTrailRequest(input *DeleteTrailInput) (req *request.R
 // API operation DeleteTrail for usage and error information.
 //
 // Returned Error Codes:
-//   * TrailNotFoundException
+//   * ErrCodeTrailNotFoundException "TrailNotFoundException"
 //   This exception is thrown when the trail with the given name is not found.
 //
-//   * InvalidTrailNameException
+//   * ErrCodeInvalidTrailNameException "InvalidTrailNameException"
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
@@ -344,7 +341,7 @@ func (c *CloudTrail) DeleteTrailRequest(input *DeleteTrailInput) (req *request.R
 //
 //      * Not be in IP address format (for example, 192.168.5.4)
 //
-//   * InvalidHomeRegionException
+//   * ErrCodeInvalidHomeRegionException "InvalidHomeRegionException"
 //   This exception is thrown when an operation is called on a trail from a region
 //   other than the region in which the trail was created.
 //
@@ -393,9 +390,8 @@ func (c *CloudTrail) DescribeTrailsRequest(input *DescribeTrailsInput) (req *req
 		input = &DescribeTrailsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &DescribeTrailsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -412,10 +408,10 @@ func (c *CloudTrail) DescribeTrailsRequest(input *DescribeTrailsInput) (req *req
 // API operation DescribeTrails for usage and error information.
 //
 // Returned Error Codes:
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   This exception is thrown when the requested operation is not supported.
 //
-//   * OperationNotPermittedException
+//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
 //   This exception is thrown when the requested operation is not permitted.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/DescribeTrails
@@ -463,9 +459,8 @@ func (c *CloudTrail) GetEventSelectorsRequest(input *GetEventSelectorsInput) (re
 		input = &GetEventSelectorsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetEventSelectorsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -492,10 +487,10 @@ func (c *CloudTrail) GetEventSelectorsRequest(input *GetEventSelectorsInput) (re
 // API operation GetEventSelectors for usage and error information.
 //
 // Returned Error Codes:
-//   * TrailNotFoundException
+//   * ErrCodeTrailNotFoundException "TrailNotFoundException"
 //   This exception is thrown when the trail with the given name is not found.
 //
-//   * InvalidTrailNameException
+//   * ErrCodeInvalidTrailNameException "InvalidTrailNameException"
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
@@ -511,10 +506,10 @@ func (c *CloudTrail) GetEventSelectorsRequest(input *GetEventSelectorsInput) (re
 //
 //      * Not be in IP address format (for example, 192.168.5.4)
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   This exception is thrown when the requested operation is not supported.
 //
-//   * OperationNotPermittedException
+//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
 //   This exception is thrown when the requested operation is not permitted.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/GetEventSelectors
@@ -562,9 +557,8 @@ func (c *CloudTrail) GetTrailStatusRequest(input *GetTrailStatusInput) (req *req
 		input = &GetTrailStatusInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &GetTrailStatusOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -584,10 +578,10 @@ func (c *CloudTrail) GetTrailStatusRequest(input *GetTrailStatusInput) (req *req
 // API operation GetTrailStatus for usage and error information.
 //
 // Returned Error Codes:
-//   * TrailNotFoundException
+//   * ErrCodeTrailNotFoundException "TrailNotFoundException"
 //   This exception is thrown when the trail with the given name is not found.
 //
-//   * InvalidTrailNameException
+//   * ErrCodeInvalidTrailNameException "InvalidTrailNameException"
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
@@ -648,9 +642,8 @@ func (c *CloudTrail) ListPublicKeysRequest(input *ListPublicKeysInput) (req *req
 		input = &ListPublicKeysInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListPublicKeysOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -673,17 +666,17 @@ func (c *CloudTrail) ListPublicKeysRequest(input *ListPublicKeysInput) (req *req
 // API operation ListPublicKeys for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidTimeRangeException
+//   * ErrCodeInvalidTimeRangeException "InvalidTimeRangeException"
 //   Occurs if the timestamp values are invalid. Either the start time occurs
 //   after the end time or the time range is outside the range of possible values.
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   This exception is thrown when the requested operation is not supported.
 //
-//   * OperationNotPermittedException
+//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
 //   This exception is thrown when the requested operation is not permitted.
 //
-//   * InvalidTokenException
+//   * ErrCodeInvalidTokenException "InvalidTokenException"
 //   Reserved for future use.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/ListPublicKeys
@@ -731,9 +724,8 @@ func (c *CloudTrail) ListTagsRequest(input *ListTagsInput) (req *request.Request
 		input = &ListTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &ListTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -749,20 +741,20 @@ func (c *CloudTrail) ListTagsRequest(input *ListTagsInput) (req *request.Request
 // API operation ListTags for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   This exception is thrown when the specified resource is not found.
 //
-//   * ARNInvalidException
+//   * ErrCodeARNInvalidException "ARNInvalidException"
 //   This exception is thrown when an operation is called with an invalid trail
 //   ARN. The format of a trail ARN is:
 //
 //   arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 //
-//   * ResourceTypeNotSupportedException
+//   * ErrCodeResourceTypeNotSupportedException "ResourceTypeNotSupportedException"
 //   This exception is thrown when the specified resource type is not supported
 //   by CloudTrail.
 //
-//   * InvalidTrailNameException
+//   * ErrCodeInvalidTrailNameException "InvalidTrailNameException"
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
@@ -778,13 +770,13 @@ func (c *CloudTrail) ListTagsRequest(input *ListTagsInput) (req *request.Request
 //
 //      * Not be in IP address format (for example, 192.168.5.4)
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   This exception is thrown when the requested operation is not supported.
 //
-//   * OperationNotPermittedException
+//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
 //   This exception is thrown when the requested operation is not permitted.
 //
-//   * InvalidTokenException
+//   * ErrCodeInvalidTokenException "InvalidTokenException"
 //   Reserved for future use.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/ListTags
@@ -838,9 +830,8 @@ func (c *CloudTrail) LookupEventsRequest(input *LookupEventsInput) (req *request
 		input = &LookupEventsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &LookupEventsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -879,17 +870,17 @@ func (c *CloudTrail) LookupEventsRequest(input *LookupEventsInput) (req *request
 // API operation LookupEvents for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidLookupAttributesException
+//   * ErrCodeInvalidLookupAttributesException "InvalidLookupAttributesException"
 //   Occurs when an invalid lookup attribute is specified.
 //
-//   * InvalidTimeRangeException
+//   * ErrCodeInvalidTimeRangeException "InvalidTimeRangeException"
 //   Occurs if the timestamp values are invalid. Either the start time occurs
 //   after the end time or the time range is outside the range of possible values.
 //
-//   * InvalidMaxResultsException
+//   * ErrCodeInvalidMaxResultsException "InvalidMaxResultsException"
 //   This exception is thrown if the limit specified is invalid.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   Invalid token or token that was previously used in a request with different
 //   parameters. This exception is thrown if the token is invalid.
 //
@@ -963,9 +954,8 @@ func (c *CloudTrail) PutEventSelectorsRequest(input *PutEventSelectorsInput) (re
 		input = &PutEventSelectorsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &PutEventSelectorsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1008,10 +998,10 @@ func (c *CloudTrail) PutEventSelectorsRequest(input *PutEventSelectorsInput) (re
 // API operation PutEventSelectors for usage and error information.
 //
 // Returned Error Codes:
-//   * TrailNotFoundException
+//   * ErrCodeTrailNotFoundException "TrailNotFoundException"
 //   This exception is thrown when the trail with the given name is not found.
 //
-//   * InvalidTrailNameException
+//   * ErrCodeInvalidTrailNameException "InvalidTrailNameException"
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
@@ -1027,11 +1017,11 @@ func (c *CloudTrail) PutEventSelectorsRequest(input *PutEventSelectorsInput) (re
 //
 //      * Not be in IP address format (for example, 192.168.5.4)
 //
-//   * InvalidHomeRegionException
+//   * ErrCodeInvalidHomeRegionException "InvalidHomeRegionException"
 //   This exception is thrown when an operation is called on a trail from a region
 //   other than the region in which the trail was created.
 //
-//   * InvalidEventSelectorsException
+//   * ErrCodeInvalidEventSelectorsException "InvalidEventSelectorsException"
 //   This exception is thrown when the PutEventSelectors operation is called with
 //   an invalid number of event selectors, data resources, or an invalid value
 //   for a parameter:
@@ -1043,10 +1033,10 @@ func (c *CloudTrail) PutEventSelectorsRequest(input *PutEventSelectorsInput) (re
 //      * Specify a valid value for a parameter. For example, specifying the ReadWriteType
 //      parameter with a value of read-only is invalid.
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   This exception is thrown when the requested operation is not supported.
 //
-//   * OperationNotPermittedException
+//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
 //   This exception is thrown when the requested operation is not permitted.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/PutEventSelectors
@@ -1094,9 +1084,8 @@ func (c *CloudTrail) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Req
 		input = &RemoveTagsInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &RemoveTagsOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1112,20 +1101,20 @@ func (c *CloudTrail) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Req
 // API operation RemoveTags for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   This exception is thrown when the specified resource is not found.
 //
-//   * ARNInvalidException
+//   * ErrCodeARNInvalidException "ARNInvalidException"
 //   This exception is thrown when an operation is called with an invalid trail
 //   ARN. The format of a trail ARN is:
 //
 //   arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 //
-//   * ResourceTypeNotSupportedException
+//   * ErrCodeResourceTypeNotSupportedException "ResourceTypeNotSupportedException"
 //   This exception is thrown when the specified resource type is not supported
 //   by CloudTrail.
 //
-//   * InvalidTrailNameException
+//   * ErrCodeInvalidTrailNameException "InvalidTrailNameException"
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
@@ -1141,14 +1130,14 @@ func (c *CloudTrail) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Req
 //
 //      * Not be in IP address format (for example, 192.168.5.4)
 //
-//   * InvalidTagParameterException
+//   * ErrCodeInvalidTagParameterException "InvalidTagParameterException"
 //   This exception is thrown when the key or value specified for the tag does
 //   not match the regular expression ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$.
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   This exception is thrown when the requested operation is not supported.
 //
-//   * OperationNotPermittedException
+//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
 //   This exception is thrown when the requested operation is not permitted.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/RemoveTags
@@ -1196,9 +1185,8 @@ func (c *CloudTrail) StartLoggingRequest(input *StartLoggingInput) (req *request
 		input = &StartLoggingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StartLoggingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1218,10 +1206,10 @@ func (c *CloudTrail) StartLoggingRequest(input *StartLoggingInput) (req *request
 // API operation StartLogging for usage and error information.
 //
 // Returned Error Codes:
-//   * TrailNotFoundException
+//   * ErrCodeTrailNotFoundException "TrailNotFoundException"
 //   This exception is thrown when the trail with the given name is not found.
 //
-//   * InvalidTrailNameException
+//   * ErrCodeInvalidTrailNameException "InvalidTrailNameException"
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
@@ -1237,7 +1225,7 @@ func (c *CloudTrail) StartLoggingRequest(input *StartLoggingInput) (req *request
 //
 //      * Not be in IP address format (for example, 192.168.5.4)
 //
-//   * InvalidHomeRegionException
+//   * ErrCodeInvalidHomeRegionException "InvalidHomeRegionException"
 //   This exception is thrown when an operation is called on a trail from a region
 //   other than the region in which the trail was created.
 //
@@ -1286,9 +1274,8 @@ func (c *CloudTrail) StopLoggingRequest(input *StopLoggingInput) (req *request.R
 		input = &StopLoggingInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &StopLoggingOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1310,10 +1297,10 @@ func (c *CloudTrail) StopLoggingRequest(input *StopLoggingInput) (req *request.R
 // API operation StopLogging for usage and error information.
 //
 // Returned Error Codes:
-//   * TrailNotFoundException
+//   * ErrCodeTrailNotFoundException "TrailNotFoundException"
 //   This exception is thrown when the trail with the given name is not found.
 //
-//   * InvalidTrailNameException
+//   * ErrCodeInvalidTrailNameException "InvalidTrailNameException"
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
@@ -1329,7 +1316,7 @@ func (c *CloudTrail) StopLoggingRequest(input *StopLoggingInput) (req *request.R
 //
 //      * Not be in IP address format (for example, 192.168.5.4)
 //
-//   * InvalidHomeRegionException
+//   * ErrCodeInvalidHomeRegionException "InvalidHomeRegionException"
 //   This exception is thrown when an operation is called on a trail from a region
 //   other than the region in which the trail was created.
 //
@@ -1378,9 +1365,8 @@ func (c *CloudTrail) UpdateTrailRequest(input *UpdateTrailInput) (req *request.R
 		input = &UpdateTrailInput{}
 	}
 
-	req = c.newRequest(op, input, output)
 	output = &UpdateTrailOutput{}
-	req.Data = output
+	req = c.newRequest(op, input, output)
 	return
 }
 
@@ -1401,35 +1387,35 @@ func (c *CloudTrail) UpdateTrailRequest(input *UpdateTrailInput) (req *request.R
 // API operation UpdateTrail for usage and error information.
 //
 // Returned Error Codes:
-//   * S3BucketDoesNotExistException
+//   * ErrCodeS3BucketDoesNotExistException "S3BucketDoesNotExistException"
 //   This exception is thrown when the specified S3 bucket does not exist.
 //
-//   * InsufficientS3BucketPolicyException
+//   * ErrCodeInsufficientS3BucketPolicyException "InsufficientS3BucketPolicyException"
 //   This exception is thrown when the policy on the S3 bucket is not sufficient.
 //
-//   * InsufficientSnsTopicPolicyException
+//   * ErrCodeInsufficientSnsTopicPolicyException "InsufficientSnsTopicPolicyException"
 //   This exception is thrown when the policy on the SNS topic is not sufficient.
 //
-//   * InsufficientEncryptionPolicyException
+//   * ErrCodeInsufficientEncryptionPolicyException "InsufficientEncryptionPolicyException"
 //   This exception is thrown when the policy on the S3 bucket or KMS key is not
 //   sufficient.
 //
-//   * TrailNotFoundException
+//   * ErrCodeTrailNotFoundException "TrailNotFoundException"
 //   This exception is thrown when the trail with the given name is not found.
 //
-//   * InvalidS3BucketNameException
+//   * ErrCodeInvalidS3BucketNameException "InvalidS3BucketNameException"
 //   This exception is thrown when the provided S3 bucket name is not valid.
 //
-//   * InvalidS3PrefixException
+//   * ErrCodeInvalidS3PrefixException "InvalidS3PrefixException"
 //   This exception is thrown when the provided S3 prefix is not valid.
 //
-//   * InvalidSnsTopicNameException
+//   * ErrCodeInvalidSnsTopicNameException "InvalidSnsTopicNameException"
 //   This exception is thrown when the provided SNS topic name is not valid.
 //
-//   * InvalidKmsKeyIdException
+//   * ErrCodeInvalidKmsKeyIdException "InvalidKmsKeyIdException"
 //   This exception is thrown when the KMS key ARN is invalid.
 //
-//   * InvalidTrailNameException
+//   * ErrCodeInvalidTrailNameException "InvalidTrailNameException"
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
@@ -1445,41 +1431,41 @@ func (c *CloudTrail) UpdateTrailRequest(input *UpdateTrailInput) (req *request.R
 //
 //      * Not be in IP address format (for example, 192.168.5.4)
 //
-//   * TrailNotProvidedException
+//   * ErrCodeTrailNotProvidedException "TrailNotProvidedException"
 //   This exception is deprecated.
 //
-//   * InvalidParameterCombinationException
+//   * ErrCodeInvalidParameterCombinationException "InvalidParameterCombinationException"
 //   This exception is thrown when the combination of parameters provided is not
 //   valid.
 //
-//   * InvalidHomeRegionException
+//   * ErrCodeInvalidHomeRegionException "InvalidHomeRegionException"
 //   This exception is thrown when an operation is called on a trail from a region
 //   other than the region in which the trail was created.
 //
-//   * KmsKeyNotFoundException
+//   * ErrCodeKmsKeyNotFoundException "KmsKeyNotFoundException"
 //   This exception is thrown when the KMS key does not exist, or when the S3
 //   bucket and the KMS key are not in the same region.
 //
-//   * KmsKeyDisabledException
+//   * ErrCodeKmsKeyDisabledException "KmsKeyDisabledException"
 //   This exception is deprecated.
 //
-//   * KmsException
+//   * ErrCodeKmsException "KmsException"
 //   This exception is thrown when there is an issue with the specified KMS key
 //   and the trail can’t be updated.
 //
-//   * InvalidCloudWatchLogsLogGroupArnException
+//   * ErrCodeInvalidCloudWatchLogsLogGroupArnException "InvalidCloudWatchLogsLogGroupArnException"
 //   This exception is thrown when the provided CloudWatch log group is not valid.
 //
-//   * InvalidCloudWatchLogsRoleArnException
+//   * ErrCodeInvalidCloudWatchLogsRoleArnException "InvalidCloudWatchLogsRoleArnException"
 //   This exception is thrown when the provided role is not valid.
 //
-//   * CloudWatchLogsDeliveryUnavailableException
+//   * ErrCodeCloudWatchLogsDeliveryUnavailableException "CloudWatchLogsDeliveryUnavailableException"
 //   Cannot set a CloudWatch Logs delivery for this region.
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   This exception is thrown when the requested operation is not supported.
 //
-//   * OperationNotPermittedException
+//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
 //   This exception is thrown when the requested operation is not permitted.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/UpdateTrail

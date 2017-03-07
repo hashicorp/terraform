@@ -14,20 +14,21 @@ Enables you to manage DNS AAAA Records within Azure DNS.
 
 ```
 resource "azurerm_resource_group" "test" {
-   name = "acceptanceTestResourceGroup1"
-   location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
+
 resource "azurerm_dns_zone" "test" {
-   name = "mydomain.com"
-   resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "mydomain.com"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
 resource "azurerm_dns_aaaa_record" "test" {
-   name = "test"
-   zone_name = "${azurerm_dns_zone.test.name}"
-   resource_group_name = "${azurerm_resource_group.test.name}"
-   ttl = "300"
-   records = ["2607:f8b0:4009:1803::1005"]
+  name                = "test"
+  zone_name           = "${azurerm_dns_zone.test.name}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  ttl                 = "300"
+  records             = ["2607:f8b0:4009:1803::1005"]
 }
 ```
 ## Argument Reference
@@ -44,7 +45,7 @@ The following arguments are supported:
 
 * `records` - (Required) List of IPv6 Addresses.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 
@@ -54,7 +55,7 @@ The following attributes are exported:
 
 ## Import
 
-AAAA records can be imported using the `resource id`, e.g. 
+AAAA records can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_dns_aaaa_record.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/dnsZones/zone1/AAAA/myrecord1

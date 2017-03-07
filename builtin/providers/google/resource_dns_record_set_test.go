@@ -138,12 +138,12 @@ func testAccDnsRecordSet_basic(zoneName string, addr2 string, ttl int) string {
 	return fmt.Sprintf(`
 	resource "google_dns_managed_zone" "parent-zone" {
 		name = "%s"
-		dns_name = "terraform.test."
+		dns_name = "hashicorptest.com."
 		description = "Test Description"
 	}
 	resource "google_dns_record_set" "foobar" {
 		managed_zone = "${google_dns_managed_zone.parent-zone.name}"
-		name = "test-record.terraform.test."
+		name = "test-record.hashicorptest.com."
 		type = "A"
 		rrdatas = ["127.0.0.1", "%s"]
 		ttl = %d
@@ -155,12 +155,12 @@ func testAccDnsRecordSet_bigChange(zoneName string, ttl int) string {
 	return fmt.Sprintf(`
 	resource "google_dns_managed_zone" "parent-zone" {
 		name = "%s"
-		dns_name = "terraform.test."
+		dns_name = "hashicorptest.com."
 		description = "Test Description"
 	}
 	resource "google_dns_record_set" "foobar" {
 		managed_zone = "${google_dns_managed_zone.parent-zone.name}"
-		name = "test-record.terraform.test."
+		name = "test-record.hashicorptest.com."
 		type = "CNAME"
 		rrdatas = ["www.terraform.io."]
 		ttl = %d
