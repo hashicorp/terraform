@@ -19,6 +19,7 @@ BUG FIXES:
  * provider/aws: Only send iops when creating io1 devices [GH-12392]
  * provider/aws: Fix spurious aws_spot_fleet_request diffs [GH-12437]
  * provider/aws: Changing volumes in ECS task definition should force new revision [GH-11403]
+ * provider/aws: Ignore whitespace in json diff for aws_dms_replication_task options [GH-12380]
  * provider/mysql: Avoid crash on un-interpolated provider cfg [GH-12391]
  * provider/openstack: Handle cases where volumes are disabled [GH-12374]
  * provider/openstack: Toggle Creation of Default Security Group Rules [GH-12119]
