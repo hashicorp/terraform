@@ -17,6 +17,7 @@ BUG FIXES:
  * provider/aws: Fixes issue for aws_lb_ssl_negotiation_policy of already deleted ELB [GH-12360]
  * provider/aws: Populate the iam_instance_profile uniqueId [GH-12449]
  * provider/aws: Only send iops when creating io1 devices [GH-12392]
+ * provider/aws: Fix spurious aws_spot_fleet_request diffs [GH-12437]
  * provider/mysql: Avoid crash on un-interpolated provider cfg [GH-12391]
  * provider/openstack: Handle cases where volumes are disabled [GH-12374]
  * provider/openstack: Toggle Creation of Default Security Group Rules [GH-12119]
