@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"testing"
 
+	"strconv"
+
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"strconv"
 )
 
 func TestAccContainerCluster_basic(t *testing.T) {
@@ -110,6 +111,23 @@ func TestAccContainerCluster_network(t *testing.T) {
 						"google_container_cluster.with_net_ref_by_url"),
 					testAccCheckContainerClusterExists(
 						"google_container_cluster.with_net_ref_by_name"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainerCluster_backend(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_backendRef,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerClusterExists(
+						"google_container_cluster.primary"),
 				),
 			},
 		},
@@ -296,3 +314,49 @@ resource "google_container_cluster" "with_net_ref_by_name" {
 
 	network = "${google_compute_network.container_network.name}"
 }`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
+
+var testAccContainerCluster_backendRef = fmt.Sprintf(`
+resource "google_compute_backend_service" "my-backend-service" {
+  name      = "terraform-test-%s"
+  port_name = "http"
+  protocol  = "HTTP"
+
+  backend {
+    group = "${element(google_container_cluster.primary.instance_group_urls, 1)}"
+  }
+
+  health_checks = ["${google_compute_http_health_check.default.self_link}"]
+}
+
+resource "google_compute_http_health_check" "default" {
+  name               = "terraform-test-%s"
+  request_path       = "/"
+  check_interval_sec = 1
+  timeout_sec        = 1
+}
+
+resource "google_container_cluster" "primary" {
+  name               = "terraform-test-%s"
+  zone               = "us-central1-a"
+  initial_node_count = 3
+
+  additional_zones = [
+    "us-central1-b",
+    "us-central1-c",
+  ]
+
+  master_auth {
+    username = "mr.yoda"
+    password = "adoy.rm"
+  }
+
+  node_config {
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/compute",
+      "https://www.googleapis.com/auth/devstorage.read_only",
+      "https://www.googleapis.com/auth/logging.write",
+      "https://www.googleapis.com/auth/monitoring",
+    ]
+  }
+}
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
