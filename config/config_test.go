@@ -204,8 +204,8 @@ func TestConfigValidate_table(t *testing.T) {
 		{
 			"nested types in variable default",
 			"validate-var-nested",
-			true,
-			"ERROR",
+			false,
+			"",
 		},
 	}
 
