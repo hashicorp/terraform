@@ -9,6 +9,7 @@ FEATURES:
 IMPROVEMENTS:
 
  * provider/aws: Return errors from Elastic Beanstalk [GH-12425]
+ * provider/docker: added support for linux capabilities [GH-12045]
  * provider/ignition: Migrate all of the igition resources to data sources [GH-11851]
 
 
