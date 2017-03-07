@@ -128,6 +128,22 @@ func TestAccDockerContainer_customized(t *testing.T) {
 			return fmt.Errorf("Container has wrong dns search setting: %v", c.HostConfig.DNS[0])
 		}
 
+		if len(c.HostConfig.CapAdd) != 1 {
+			return fmt.Errorf("Container does not have the correct number of Capabilities in ADD: %d", len(c.HostConfig.CapAdd))
+		}
+
+		if c.HostConfig.CapAdd[0] != "ALL" {
+			return fmt.Errorf("Container has wrong CapAdd setting: %v", c.HostConfig.CapAdd[0])
+		}
+
+		if len(c.HostConfig.CapDrop) != 1 {
+			return fmt.Errorf("Container does not have the correct number of Capabilities in Drop: %d", len(c.HostConfig.CapDrop))
+		}
+
+		if c.HostConfig.CapDrop[0] != "SYS_ADMIN" {
+			return fmt.Errorf("Container has wrong CapDrop setting: %v", c.HostConfig.CapDrop[0])
+		}
+
 		if c.HostConfig.CPUShares != 32 {
 			return fmt.Errorf("Container has wrong cpu shares setting: %d", c.HostConfig.CPUShares)
 		}
@@ -311,6 +327,12 @@ resource "docker_container" "foo" {
 	memory = 512
 	memory_swap = 2048
 	cpu_shares = 32
+
+	capabilities {
+		add= ["ALL"]
+		drop = ["SYS_ADMIN"]
+	}
+
 	dns = ["8.8.8.8"]
 	dns_opts = ["rotate"]
 	dns_search = ["example.com"]
