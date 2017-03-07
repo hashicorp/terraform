@@ -115,3 +115,4 @@ The following arguments are supported in the `provider` block:
 * `softlayer_timeout` - (Optional) This is the timeout, expressed in seconds, for the SoftLayer API key. It can also be sourced from the `SL_TIMEOUT`  or `SOFTLAYER_TIMEOUT` environment variable. The former variable has higher precedence. The default value is `60 seconds`.
 
 * `softlayer_account_number` - (Optional) This is the SoftLayer account number. It can also be sourced from the `SL_ACCOUNT_NUMBER`  or `SOFTLAYER_ACCOUNT_NUMBER` environment variable. The former variable has higher precedence.
+Currently the provider accepts only those account numbers for which 2FA is not enabled.

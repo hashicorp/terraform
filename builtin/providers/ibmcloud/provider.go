@@ -39,7 +39,7 @@ func Provider() terraform.ResourceProvider {
 			"softlayer_account_number": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The SoftLayer IMS account number.",
+				Description: "The SoftLayer IMS account number linked with IBM ID.",
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"SL_ACCOUNT_NUMBER", "SOFTLAYER_ACCOUNT_NUMBER"}, ""),
 			},
 		},
