@@ -237,6 +237,7 @@ resource "aws_emr_cluster" "tf-test-cluster" {
   depends_on = ["aws_main_route_table_association.a"]
 
   service_role = "${aws_iam_role.iam_emr_default_role.arn}"
+  autoscaling_role = "${aws_iam_role.emr-autoscaling-role.arn}"
 }
 
 resource "aws_security_group" "allow_all" {
@@ -473,6 +474,29 @@ resource "aws_iam_policy" "iam_emr_profile_policy" {
     }]
 }
 EOT
+}
+
+# IAM Role for autoscaling
+resource "aws_iam_role" "emr-autoscaling-role" {
+  name               = "EMR_AutoScaling_DefaultRole"
+  assume_role_policy = "${data.aws_iam_policy_document.emr-autoscaling-role-policy.json}"
+}
+
+data "aws_iam_policy_document" "emr-autoscaling-role-policy" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+ 
+    principals = {
+      type        = "Service"
+      identifiers = ["elasticmapreduce.amazonaws.com","application-autoscaling.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "emr-autoscaling-role" {
+  role       = "${aws_iam_role.emr-autoscaling-role.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforAutoScalingRole"
 }
 `, r, r, r, r, r, r)
 }
@@ -520,6 +544,7 @@ resource "aws_emr_cluster" "tf-test-cluster" {
   depends_on = ["aws_main_route_table_association.a"]
 
   service_role = "${aws_iam_role.iam_emr_default_role.arn}"
+  autoscaling_role = "${aws_iam_role.emr-autoscaling-role.arn}"
 }
 
 resource "aws_security_group" "allow_all" {
@@ -756,6 +781,29 @@ resource "aws_iam_policy" "iam_emr_profile_policy" {
     }]
 }
 EOT
+}
+
+# IAM Role for autoscaling
+resource "aws_iam_role" "emr-autoscaling-role" {
+  name               = "EMR_AutoScaling_DefaultRole"
+  assume_role_policy = "${data.aws_iam_policy_document.emr-autoscaling-role-policy.json}"
+}
+
+data "aws_iam_policy_document" "emr-autoscaling-role-policy" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+ 
+    principals = {
+      type        = "Service"
+      identifiers = ["elasticmapreduce.amazonaws.com","application-autoscaling.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "emr-autoscaling-role" {
+  role       = "${aws_iam_role.emr-autoscaling-role.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforAutoScalingRole"
 }
 `, r, r, r, r, r, r)
 }
@@ -803,6 +851,7 @@ resource "aws_emr_cluster" "tf-test-cluster" {
   depends_on = ["aws_main_route_table_association.a"]
 
   service_role = "${aws_iam_role.iam_emr_default_role.arn}"
+  autoscaling_role = "${aws_iam_role.emr-autoscaling-role.arn}"
 }
 
 resource "aws_security_group" "allow_all" {
@@ -1039,6 +1088,29 @@ resource "aws_iam_policy" "iam_emr_profile_policy" {
     }]
 }
 EOT
+}
+
+# IAM Role for autoscaling
+resource "aws_iam_role" "emr-autoscaling-role" {
+  name               = "EMR_AutoScaling_DefaultRole"
+  assume_role_policy = "${data.aws_iam_policy_document.emr-autoscaling-role-policy.json}"
+}
+
+data "aws_iam_policy_document" "emr-autoscaling-role-policy" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+ 
+    principals = {
+      type        = "Service"
+      identifiers = ["elasticmapreduce.amazonaws.com","application-autoscaling.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "emr-autoscaling-role" {
+  role       = "${aws_iam_role.emr-autoscaling-role.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforAutoScalingRole"
 }
 `, r, r, r, r, r, r)
 }
@@ -1085,6 +1157,7 @@ resource "aws_emr_cluster" "tf-test-cluster" {
   depends_on = ["aws_main_route_table_association.a"]
 
   service_role = "${aws_iam_role.iam_emr_default_role.arn}"
+  autoscaling_role = "${aws_iam_role.emr-autoscaling-role.arn}"
 }
 
 resource "aws_security_group" "allow_all" {
@@ -1321,6 +1394,29 @@ resource "aws_iam_policy" "iam_emr_profile_policy" {
     }]
 }
 EOT
+}
+
+# IAM Role for autoscaling
+resource "aws_iam_role" "emr-autoscaling-role" {
+  name               = "EMR_AutoScaling_DefaultRole"
+  assume_role_policy = "${data.aws_iam_policy_document.emr-autoscaling-role-policy.json}"
+}
+
+data "aws_iam_policy_document" "emr-autoscaling-role-policy" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+ 
+    principals = {
+      type        = "Service"
+      identifiers = ["elasticmapreduce.amazonaws.com","application-autoscaling.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "emr-autoscaling-role" {
+  role       = "${aws_iam_role.emr-autoscaling-role.name}"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforAutoScalingRole"
 }
 `, r, r, r, r, r, r)
 }
