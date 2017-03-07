@@ -23,13 +23,12 @@ import (
 	datadogprovider "github.com/hashicorp/terraform/builtin/providers/datadog"
 	digitaloceanprovider "github.com/hashicorp/terraform/builtin/providers/digitalocean"
 	dmeprovider "github.com/hashicorp/terraform/builtin/providers/dme"
-	dnsimpleprovider "github.com/hashicorp/terraform/builtin/providers/dnsimple"
 	dnsprovider "github.com/hashicorp/terraform/builtin/providers/dns"
+	dnsimpleprovider "github.com/hashicorp/terraform/builtin/providers/dnsimple"
 	dockerprovider "github.com/hashicorp/terraform/builtin/providers/docker"
 	dynprovider "github.com/hashicorp/terraform/builtin/providers/dyn"
 	externalprovider "github.com/hashicorp/terraform/builtin/providers/external"
 	fastlyprovider "github.com/hashicorp/terraform/builtin/providers/fastly"
-	fileprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
 	githubprovider "github.com/hashicorp/terraform/builtin/providers/github"
 	googleprovider "github.com/hashicorp/terraform/builtin/providers/google"
 	grafanaprovider "github.com/hashicorp/terraform/builtin/providers/grafana"
@@ -38,7 +37,6 @@ import (
 	ignitionprovider "github.com/hashicorp/terraform/builtin/providers/ignition"
 	influxdbprovider "github.com/hashicorp/terraform/builtin/providers/influxdb"
 	libratoprovider "github.com/hashicorp/terraform/builtin/providers/librato"
-	localexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
 	logentriesprovider "github.com/hashicorp/terraform/builtin/providers/logentries"
 	mailgunprovider "github.com/hashicorp/terraform/builtin/providers/mailgun"
 	mysqlprovider "github.com/hashicorp/terraform/builtin/providers/mysql"
@@ -56,7 +54,6 @@ import (
 	rabbitmqprovider "github.com/hashicorp/terraform/builtin/providers/rabbitmq"
 	rancherprovider "github.com/hashicorp/terraform/builtin/providers/rancher"
 	randomprovider "github.com/hashicorp/terraform/builtin/providers/random"
-	remoteexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
 	rundeckprovider "github.com/hashicorp/terraform/builtin/providers/rundeck"
 	scalewayprovider "github.com/hashicorp/terraform/builtin/providers/scaleway"
 	softlayerprovider "github.com/hashicorp/terraform/builtin/providers/softlayer"
@@ -71,6 +68,9 @@ import (
 	vaultprovider "github.com/hashicorp/terraform/builtin/providers/vault"
 	vcdprovider "github.com/hashicorp/terraform/builtin/providers/vcd"
 	vsphereprovider "github.com/hashicorp/terraform/builtin/providers/vsphere"
+	fileprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
+	localexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
+	remoteexecprovisioner "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
 
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
@@ -80,76 +80,74 @@ import (
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
-	"alicloud":   alicloudprovider.Provider,
-	"archive":   archiveprovider.Provider,
-	"arukas":   arukasprovider.Provider,
-	"atlas":   atlasprovider.Provider,
-	"aws":   awsprovider.Provider,
-	"azure":   azureprovider.Provider,
-	"azurerm":   azurermprovider.Provider,
-	"bitbucket":   bitbucketprovider.Provider,
-	"chef":   chefprovider.Provider,
-	"clc":   clcprovider.Provider,
+	"alicloud":     alicloudprovider.Provider,
+	"archive":      archiveprovider.Provider,
+	"arukas":       arukasprovider.Provider,
+	"atlas":        atlasprovider.Provider,
+	"aws":          awsprovider.Provider,
+	"azure":        azureprovider.Provider,
+	"azurerm":      azurermprovider.Provider,
+	"bitbucket":    bitbucketprovider.Provider,
+	"chef":         chefprovider.Provider,
+	"clc":          clcprovider.Provider,
 	"cloudflare":   cloudflareprovider.Provider,
 	"cloudstack":   cloudstackprovider.Provider,
-	"cobbler":   cobblerprovider.Provider,
-	"consul":   consulprovider.Provider,
-	"datadog":   datadogprovider.Provider,
-	"digitalocean":   digitaloceanprovider.Provider,
-	"dme":   dmeprovider.Provider,
-	"dns":   dnsprovider.Provider,
-	"dnsimple":   dnsimpleprovider.Provider,
-	"docker":   dockerprovider.Provider,
-	"dyn":   dynprovider.Provider,
-	"external":   externalprovider.Provider,
-	"fastly":   fastlyprovider.Provider,
-	"github":   githubprovider.Provider,
-	"google":   googleprovider.Provider,
-	"grafana":   grafanaprovider.Provider,
-	"heroku":   herokuprovider.Provider,
-	"icinga2":   icinga2provider.Provider,
-	"ignition":   ignitionprovider.Provider,
-	"influxdb":   influxdbprovider.Provider,
-	"librato":   libratoprovider.Provider,
+	"cobbler":      cobblerprovider.Provider,
+	"consul":       consulprovider.Provider,
+	"datadog":      datadogprovider.Provider,
+	"digitalocean": digitaloceanprovider.Provider,
+	"dme":          dmeprovider.Provider,
+	"dns":          dnsprovider.Provider,
+	"dnsimple":     dnsimpleprovider.Provider,
+	"docker":       dockerprovider.Provider,
+	"dyn":          dynprovider.Provider,
+	"external":     externalprovider.Provider,
+	"fastly":       fastlyprovider.Provider,
+	"github":       githubprovider.Provider,
+	"google":       googleprovider.Provider,
+	"grafana":      grafanaprovider.Provider,
+	"heroku":       herokuprovider.Provider,
+	"icinga2":      icinga2provider.Provider,
+	"ignition":     ignitionprovider.Provider,
+	"influxdb":     influxdbprovider.Provider,
+	"librato":      libratoprovider.Provider,
 	"logentries":   logentriesprovider.Provider,
-	"mailgun":   mailgunprovider.Provider,
-	"mysql":   mysqlprovider.Provider,
-	"newrelic":   newrelicprovider.Provider,
-	"nomad":   nomadprovider.Provider,
-	"ns1":   ns1provider.Provider,
-	"null":   nullprovider.Provider,
-	"openstack":   openstackprovider.Provider,
-	"opsgenie":   opsgenieprovider.Provider,
-	"packet":   packetprovider.Provider,
-	"pagerduty":   pagerdutyprovider.Provider,
+	"mailgun":      mailgunprovider.Provider,
+	"mysql":        mysqlprovider.Provider,
+	"newrelic":     newrelicprovider.Provider,
+	"nomad":        nomadprovider.Provider,
+	"ns1":          ns1provider.Provider,
+	"null":         nullprovider.Provider,
+	"openstack":    openstackprovider.Provider,
+	"opsgenie":     opsgenieprovider.Provider,
+	"packet":       packetprovider.Provider,
+	"pagerduty":    pagerdutyprovider.Provider,
 	"postgresql":   postgresqlprovider.Provider,
-	"powerdns":   powerdnsprovider.Provider,
-	"profitbricks":   profitbricksprovider.Provider,
-	"rabbitmq":   rabbitmqprovider.Provider,
-	"rancher":   rancherprovider.Provider,
-	"random":   randomprovider.Provider,
-	"rundeck":   rundeckprovider.Provider,
-	"scaleway":   scalewayprovider.Provider,
-	"softlayer":   softlayerprovider.Provider,
-	"spotinst":   spotinstprovider.Provider,
+	"powerdns":     powerdnsprovider.Provider,
+	"profitbricks": profitbricksprovider.Provider,
+	"rabbitmq":     rabbitmqprovider.Provider,
+	"rancher":      rancherprovider.Provider,
+	"random":       randomprovider.Provider,
+	"rundeck":      rundeckprovider.Provider,
+	"scaleway":     scalewayprovider.Provider,
+	"softlayer":    softlayerprovider.Provider,
+	"spotinst":     spotinstprovider.Provider,
 	"statuscake":   statuscakeprovider.Provider,
-	"template":   templateprovider.Provider,
-	"terraform":   terraformprovider.Provider,
-	"test":   testprovider.Provider,
-	"tls":   tlsprovider.Provider,
-	"triton":   tritonprovider.Provider,
-	"ultradns":   ultradnsprovider.Provider,
-	"vault":   vaultprovider.Provider,
-	"vcd":   vcdprovider.Provider,
-	"vsphere":   vsphereprovider.Provider,
-
+	"template":     templateprovider.Provider,
+	"terraform":    terraformprovider.Provider,
+	"test":         testprovider.Provider,
+	"tls":          tlsprovider.Provider,
+	"triton":       tritonprovider.Provider,
+	"ultradns":     ultradnsprovider.Provider,
+	"vault":        vaultprovider.Provider,
+	"vcd":          vcdprovider.Provider,
+	"vsphere":      vsphereprovider.Provider,
 }
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
-	"file":   fileprovisioner.Provisioner,
-	"local-exec":   localexecprovisioner.Provisioner,
-	"remote-exec":   remoteexecprovisioner.Provisioner,
-
+	"file":        fileprovisioner.Provisioner,
+	"local-exec":  localexecprovisioner.Provisioner,
+	"remote-exec": remoteexecprovisioner.Provisioner,
 }
 
 func init() {
@@ -157,4 +155,3 @@ func init() {
 	// built-in provisioners.
 	InternalProvisioners["chef"] = func() terraform.ResourceProvisioner { return new(chefprovisioner.ResourceProvisioner) }
 }
-
