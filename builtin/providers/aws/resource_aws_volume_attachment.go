@@ -77,6 +77,25 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 
 	vols, err := conn.DescribeVolumes(request)
 	if (err != nil) || (len(vols.Volumes) == 0) {
+		// This handles the situation where the instance is created by
+		// a spot request and whilst the request has been fulfilled the
+		// instance is not running yet
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"pending"},
+			Target:     []string{"running"},
+			Refresh:    InstanceStateRefreshFunc(conn, iID),
+			Timeout:    10 * time.Minute,
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf(
+				"Error waiting for instance (%s) to become ready: %s",
+				iID, err)
+		}
+
 		// not attached
 		opts := &ec2.AttachVolumeInput{
 			Device:     aws.String(name),
