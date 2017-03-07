@@ -2,9 +2,6 @@ package aws
 
 import (
 	"bytes"
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"strconv"
@@ -168,6 +165,7 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 						"ebs_optimized": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  false,
 						},
 						"iam_instance_profile": &schema.Schema{
 							Type:     schema.TypeString,
@@ -194,6 +192,7 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 						"monitoring": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  false,
 						},
 						"placement_group": &schema.Schema{
 							Type:     schema.TypeString,
@@ -213,8 +212,7 @@ func resourceAwsSpotFleetRequest() *schema.Resource {
 							StateFunc: func(v interface{}) string {
 								switch v.(type) {
 								case string:
-									hash := sha1.Sum([]byte(v.(string)))
-									return hex.EncodeToString(hash[:])
+									return userDataHashSum(v.(string))
 								default:
 									return ""
 								}
@@ -323,8 +321,7 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 	}
 
 	if v, ok := d["user_data"]; ok {
-		opts.UserData = aws.String(
-			base64Encode([]byte(v.(string))))
+		opts.UserData = aws.String(base64Encode([]byte(v.(string))))
 	}
 
 	if v, ok := d["key_name"]; ok {
@@ -339,21 +336,11 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 		opts.WeightedCapacity = aws.Float64(wc)
 	}
 
-	var groups []*string
-	if v, ok := d["security_groups"]; ok {
-		sgs := v.(*schema.Set).List()
-		for _, v := range sgs {
-			str := v.(string)
-			groups = append(groups, aws.String(str))
-		}
-	}
-
-	var groupIds []*string
+	var securityGroupIds []*string
 	if v, ok := d["vpc_security_group_ids"]; ok {
 		if s := v.(*schema.Set); s.Len() > 0 {
 			for _, v := range s.List() {
-				opts.SecurityGroups = append(opts.SecurityGroups, &ec2.GroupIdentifier{GroupId: aws.String(v.(string))})
-				groupIds = append(groupIds, aws.String(v.(string)))
+				securityGroupIds = append(securityGroupIds, aws.String(v.(string)))
 			}
 		}
 	}
@@ -378,11 +365,15 @@ func buildSpotFleetLaunchSpecification(d map[string]interface{}, meta interface{
 			DeleteOnTermination:      aws.Bool(true),
 			DeviceIndex:              aws.Int64(int64(0)),
 			SubnetId:                 aws.String(subnetId.(string)),
-			Groups:                   groupIds,
+			Groups:                   securityGroupIds,
 		}
 
 		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
 		opts.SubnetId = aws.String("")
+	} else {
+		for _, id := range securityGroupIds {
+			opts.SecurityGroups = append(opts.SecurityGroups, &ec2.GroupIdentifier{GroupId: id})
+		}
 	}
 
 	blockDevices, err := readSpotFleetBlockDeviceMappingsFromConfig(d, conn)
@@ -730,24 +721,20 @@ func resourceAwsSpotFleetRequestRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func launchSpecsToSet(ls []*ec2.SpotFleetLaunchSpecification, conn *ec2.EC2) *schema.Set {
-	specs := &schema.Set{F: hashLaunchSpecification}
-	for _, val := range ls {
-		dn, err := fetchRootDeviceName(aws.StringValue(val.ImageId), conn)
+func launchSpecsToSet(launchSpecs []*ec2.SpotFleetLaunchSpecification, conn *ec2.EC2) *schema.Set {
+	specSet := &schema.Set{F: hashLaunchSpecification}
+	for _, spec := range launchSpecs {
+		rootDeviceName, err := fetchRootDeviceName(aws.StringValue(spec.ImageId), conn)
 		if err != nil {
 			log.Panic(err)
-		} else {
-			ls := launchSpecToMap(val, dn)
-			specs.Add(ls)
 		}
+
+		specSet.Add(launchSpecToMap(spec, rootDeviceName))
 	}
-	return specs
+	return specSet
 }
 
-func launchSpecToMap(
-	l *ec2.SpotFleetLaunchSpecification,
-	rootDevName *string,
-) map[string]interface{} {
+func launchSpecToMap(l *ec2.SpotFleetLaunchSpecification, rootDevName *string) map[string]interface{} {
 	m := make(map[string]interface{})
 
 	m["root_block_device"] = rootBlockDeviceToSet(l.BlockDeviceMappings, rootDevName)
@@ -779,10 +766,7 @@ func launchSpecToMap(
 	}
 
 	if l.UserData != nil {
-		ud_dec, err := base64.StdEncoding.DecodeString(aws.StringValue(l.UserData))
-		if err == nil {
-			m["user_data"] = string(ud_dec)
-		}
+		m["user_data"] = userDataHashSum(aws.StringValue(l.UserData))
 	}
 
 	if l.KeyName != nil {
@@ -797,11 +781,23 @@ func launchSpecToMap(
 		m["subnet_id"] = aws.StringValue(l.SubnetId)
 	}
 
+	securityGroupIds := &schema.Set{F: schema.HashString}
+	if len(l.NetworkInterfaces) > 0 {
+		// This resource auto-creates one network interface when associate_public_ip_address is true
+		for _, group := range l.NetworkInterfaces[0].Groups {
+			securityGroupIds.Add(aws.StringValue(group))
+		}
+	} else {
+		for _, group := range l.SecurityGroups {
+			securityGroupIds.Add(aws.StringValue(group.GroupId))
+		}
+	}
+	m["vpc_security_group_ids"] = securityGroupIds
+
 	if l.WeightedCapacity != nil {
 		m["weighted_capacity"] = strconv.FormatFloat(*l.WeightedCapacity, 'f', 0, 64)
 	}
 
-	// m["security_groups"] = securityGroupsToSet(l.SecutiryGroups)
 	return m
 }
 
@@ -1009,7 +1005,6 @@ func hashLaunchSpecification(v interface{}) int {
 	}
 	buf.WriteString(fmt.Sprintf("%s-", m["instance_type"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["spot_price"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["user_data"].(string)))
 	return hashcode.String(buf.String())
 }
 
