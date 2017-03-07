@@ -360,8 +360,8 @@ func validateTags(v interface{}, k string) (ws []string, errors []error) {
 		if len(value.(string)) > 255 {
 			errors = append(errors, fmt.Errorf("tag %q value %q cannot be longer than '255' characters", key, value.(string)))
 		}
-		if !regexp.MustCompile(`^[0-9A-Za-z+-=._:\@]+$`).MatchString(value.(string)) {
-			errors = append(errors, fmt.Errorf("tag %q value %q contains invalid characters (^[0-9A-Za-z+-=._:\\@]+$)", k, value.(string)))
+		if !regexp.MustCompile(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$`).MatchString(value.(string)) {
+			errors = append(errors, fmt.Errorf("tag %q value %q contains invalid characters (must match this regex ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$)", k, value.(string)))
 		}
 	}
 	return
