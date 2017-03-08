@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/directconnect"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -20,6 +19,7 @@ func resourceAwsDirectConnectPublicVirtualInterfaceConfirm() *schema.Resource {
 
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				d.Set("allow_down_state", false)
 				d.Set("virtual_interface_id", d.Id())
 				return []*schema.ResourceData{d}, nil
 			},
@@ -88,15 +88,20 @@ func resourceAwsDirectConnectPublicVirtualInterfaceConfirm() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"auth_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"route_filter_prefixes": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 		},
 	}
@@ -187,6 +192,14 @@ func resourceAwsDirectConnectPublicVirtualInterfaceConfirmRead(d *schema.Resourc
 	d.Set("amazon_address", virtualInterface.AmazonAddress)
 	d.Set("customer_address", virtualInterface.CustomerAddress)
 	d.Set("owner_account_id", virtualInterface.OwnerAccount)
+	d.Set("auth_key", virtualInterface.AuthKey)
+
+	set := &schema.Set{F: schema.HashString}
+	for _, val := range virtualInterface.RouteFilterPrefixes {
+		set.Add(*val.Cidr)
+	}
+	d.Set("route_filter_prefixes", set)
+
 	d.SetId(*virtualInterface.VirtualInterfaceId)
 
 	return nil
