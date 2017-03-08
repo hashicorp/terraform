@@ -1218,3 +1218,76 @@ func validateAwsKmsName(v interface{}, k string) (ws []string, es []error) {
 	}
 	return
 }
+
+func validateCognitoIdentityPoolName(v interface{}, k string) (ws []string, errors []error) {
+	val := v.(string)
+	if !regexp.MustCompile("^[\\w _]+$").MatchString(val) {
+		errors = append(errors, fmt.Errorf("%q must contain only alphanumeric caracters and spaces", k))
+	}
+
+	return
+}
+
+func validateCognitoProviderDeveloperName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 100 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 100 caracters", k))
+	}
+
+	if !regexp.MustCompile("^[\\w._-]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must contain only alphanumeric caracters, dots, underscores and hyphens", k))
+	}
+
+	return
+}
+
+func validateCognitoSupportedLoginProviders(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) < 1 {
+		errors = append(errors, fmt.Errorf("%q cannot be less than 1 character", k))
+	}
+
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 128 caracters", k))
+	}
+
+	if !regexp.MustCompile("^[\\w.;_/-]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must contain only alphanumeric caracters, dots, semicolons, underscores, slashes and hyphens", k))
+	}
+
+	return
+}
+
+func validateCognitoIdentityProvidersClientId(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) < 1 {
+		errors = append(errors, fmt.Errorf("%q cannot be less than 1 character", k))
+	}
+
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 128 caracters", k))
+	}
+
+	if !regexp.MustCompile("^[\\w_]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must contain only alphanumeric caracters and underscores", k))
+	}
+
+	return
+}
+
+func validateCognitoIdentityProvidersProviderName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) < 1 {
+		errors = append(errors, fmt.Errorf("%q cannot be less than 1 character", k))
+	}
+
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 128 caracters", k))
+	}
+
+	if !regexp.MustCompile("^[\\w._:/-]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must contain only alphanumeric caracters, dots, underscores, colons, slashes and hyphens", k))
+	}
+
+	return
+}
