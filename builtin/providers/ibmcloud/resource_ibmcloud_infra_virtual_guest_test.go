@@ -19,7 +19,7 @@ func init() {
 	imageID := os.Getenv("IBMCLOUD_VIRTUAL_GUEST_IMAGE_ID")
 	if imageID == "" {
 		fmt.Println("[WARN] Set the environment variable IBMCLOUD_VIRTUAL_GUEST_IMAGE_ID for testing " +
-			"the ibmcloud_infra_virtual_guest resource. Some tests for that resource will fail if this is not set correctly")
+			"the ibmcloud_infra_virtual_guest resource. The image should be replicated in the Washington 4 datacenter. Some tests for that resource will fail if this is not set correctly")
 	}
 }
 func TestAccIBMCloudInfraVirtualGuest_basic(t *testing.T) {
@@ -39,6 +39,7 @@ func TestAccIBMCloudInfraVirtualGuest_basic(t *testing.T) {
 	userMetadata1Unquoted, _ := strconv.Unquote(`"` + userMetadata1 + `"`)
 	userMetadata2 := "updated"
 
+	terraformConfigInstance := "ibmcloud_infra_virtual_guest.terraform-acceptance-test-1"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -48,51 +49,51 @@ func TestAccIBMCloudInfraVirtualGuest_basic(t *testing.T) {
 				Config:  testAccIBMCloudInfraVirtualGuestConfigBasic(hostname, domain, networkSpeed1, cores1, memory1, userMetadata1, tags1),
 				Destroy: false,
 				Check: resource.ComposeTestCheckFunc(
-					testAccIBMCloudInfraVirtualGuestExists("ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", &guest),
+					testAccIBMCloudInfraVirtualGuestExists(terraformConfigInstance, &guest),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "hostname", hostname),
+						terraformConfigInstance, "hostname", hostname),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "domain", domain),
+						terraformConfigInstance, "domain", domain),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "datacenter", "wdc04"),
+						terraformConfigInstance, "datacenter", "wdc04"),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "network_speed", networkSpeed1),
+						terraformConfigInstance, "network_speed", networkSpeed1),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "hourly_billing", "true"),
+						terraformConfigInstance, "hourly_billing", "true"),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "private_network_only", "false"),
+						terraformConfigInstance, "private_network_only", "false"),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "cores", cores1),
+						terraformConfigInstance, "cores", cores1),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "memory", memory1),
+						terraformConfigInstance, "memory", memory1),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "disks.0", "25"),
+						terraformConfigInstance, "disks.0", "25"),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "disks.1", "10"),
+						terraformConfigInstance, "disks.1", "10"),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "disks.2", "20"),
+						terraformConfigInstance, "disks.2", "20"),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "user_metadata", userMetadata1Unquoted),
+						terraformConfigInstance, "user_metadata", userMetadata1Unquoted),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "local_disk", "false"),
+						terraformConfigInstance, "local_disk", "false"),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "dedicated_acct_host_only", "true"),
+						terraformConfigInstance, "dedicated_acct_host_only", "true"),
 					CheckStringSet(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1",
+						terraformConfigInstance,
 						"tags", []string{tags1},
 					),
 					resource.TestCheckResourceAttrSet(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "ipv6_enabled"),
+						terraformConfigInstance, "ipv6_enabled"),
 					resource.TestCheckResourceAttrSet(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "ipv6_address"),
+						terraformConfigInstance, "ipv6_address"),
 					resource.TestCheckResourceAttrSet(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "ipv6_address_id"),
+						terraformConfigInstance, "ipv6_address_id"),
 					resource.TestCheckResourceAttrSet(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "public_ipv6_subnet"),
+						terraformConfigInstance, "public_ipv6_subnet"),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "secondary_ip_count", "4"),
+						terraformConfigInstance, "secondary_ip_count", "4"),
 					resource.TestCheckResourceAttrSet(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "secondary_ip_addresses.3"),
+						terraformConfigInstance, "secondary_ip_addresses.3"),
 				),
 			},
 
@@ -100,11 +101,11 @@ func TestAccIBMCloudInfraVirtualGuest_basic(t *testing.T) {
 				Config:  testAccIBMCloudInfraVirtualGuestConfigBasic(hostname, domain, networkSpeed1, cores1, memory1, userMetadata2, tags2),
 				Destroy: false,
 				Check: resource.ComposeTestCheckFunc(
-					testAccIBMCloudInfraVirtualGuestExists("ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", &guest),
+					testAccIBMCloudInfraVirtualGuestExists(terraformConfigInstance, &guest),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "user_metadata", userMetadata2),
+						terraformConfigInstance, "user_metadata", userMetadata2),
 					CheckStringSet(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1",
+						terraformConfigInstance,
 						"tags", []string{tags2},
 					),
 				),
@@ -113,13 +114,13 @@ func TestAccIBMCloudInfraVirtualGuest_basic(t *testing.T) {
 			{
 				Config: testAccIBMCloudInfraVirtualGuestConfigBasic(hostname, domain, networkSpeed2, cores2, memory2, userMetadata2, tags2),
 				Check: resource.ComposeTestCheckFunc(
-					testAccIBMCloudInfraVirtualGuestExists("ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", &guest),
+					testAccIBMCloudInfraVirtualGuestExists(terraformConfigInstance, &guest),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "cores", cores2),
+						terraformConfigInstance, "cores", cores2),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "memory", memory2),
+						terraformConfigInstance, "memory", memory2),
 					resource.TestCheckResourceAttr(
-						"ibmcloud_infra_virtual_guest.terraform-acceptance-test-1", "network_speed", networkSpeed2),
+						terraformConfigInstance, "network_speed", networkSpeed2),
 				),
 			},
 		},

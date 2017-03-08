@@ -19,7 +19,22 @@ import (
 	"github.com/softlayer/softlayer-go/helpers/product"
 	"github.com/softlayer/softlayer-go/helpers/virtual"
 	"github.com/softlayer/softlayer-go/services"
+	"github.com/softlayer/softlayer-go/session"
 	"github.com/softlayer/softlayer-go/sl"
+)
+
+const (
+	staticIPRouted = "STATIC_IP_ROUTED"
+
+	upgradeTransaction = "UPGRADE"
+	pendingUpgrade     = "pending_upgrade"
+	inProgressUpgrade  = "upgrade_started"
+
+	activeTransaction = "active"
+	idleTransaction   = "idle"
+
+	virtualGuestAvailable    = "available"
+	virtualGuestProvisioning = "provisioning"
 )
 
 func resourceIBMCloudInfraVirtualGuest() *schema.Resource {
@@ -97,7 +112,7 @@ func resourceIBMCloudInfraVirtualGuest() *schema.Resource {
 					if remaining > 0 {
 						suggested := math.Ceil(memoryInMB/1024) * 1024
 						errors = append(errors, fmt.Errorf(
-							"Invalid 'ram' value %d megabytes, must be a multiple of 1024 (e.g. use %d)", int(memoryInMB), int(suggested)))
+							"Invalid 'memory' value %d megabytes, must be a multiple of 1024 (e.g. use %d)", int(memoryInMB), int(suggested)))
 					}
 
 					return
@@ -579,9 +594,13 @@ func resourceIBMCloudInfraVirtualGuestCreate(d *schema.ResourceData, meta interf
 	log.Printf("[INFO] Virtual Machine ID: %s", d.Id())
 
 	// Set tags
-	err = setGuestTags(id, d, meta)
-	if err != nil {
-		return err
+	tags := getTags(d)
+	if tags != "" {
+		//Try setting only when it is non empty as we are creating virtual guest
+		err = setGuestTags(id, tags, meta)
+		if err != nil {
+			return err
+		}
 	}
 
 	// wait for machine availability
@@ -729,7 +748,7 @@ func resourceIBMCloudInfraVirtualGuestRead(d *schema.ResourceData, meta interfac
 		secondaryIps := make([]string, 0)
 		for _, subnet := range secondarySubnetResult {
 			// Count static secondary ip addresses.
-			if *subnet.SubnetType == "STATIC_IP_ROUTED" {
+			if *subnet.SubnetType == staticIPRouted {
 				for _, ipAddressObj := range subnet.IpAddresses {
 					secondaryIps = append(secondaryIps, *ipAddressObj.IpAddress)
 				}
@@ -781,7 +800,8 @@ func resourceIBMCloudInfraVirtualGuestUpdate(d *schema.ResourceData, meta interf
 
 	// Update tags
 	if d.HasChange("tags") {
-		err := setGuestTags(id, d, meta)
+		tags := getTags(d)
+		err := setGuestTags(id, tags, meta)
 		if err != nil {
 			return err
 		}
@@ -871,17 +891,15 @@ func genID() (interface{}, error) {
 
 // WaitForUpgradeTransactionsToAppear Wait for upgrade transactions
 func WaitForUpgradeTransactionsToAppear(d *schema.ResourceData, meta interface{}) (interface{}, error) {
-
 	log.Printf("Waiting for server (%s) to have upgrade transactions", d.Id())
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return nil, fmt.Errorf("The instance ID %s must be numeric", d.Id())
 	}
-
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"retry", "pending_upgrade"},
-		Target:  []string{"upgrade_started"},
+		Pending: []string{"retry", pendingUpgrade},
+		Target:  []string{inProgressUpgrade},
 		Refresh: func() (interface{}, string, error) {
 			service := services.GetVirtualGuestService(meta.(ClientSession).SoftLayerSession())
 			transactions, err := service.Id(id).GetActiveTransactions()
@@ -889,17 +907,14 @@ func WaitForUpgradeTransactionsToAppear(d *schema.ResourceData, meta interface{}
 				if apiErr, ok := err.(sl.Error); ok && apiErr.StatusCode == 404 {
 					return nil, "", fmt.Errorf("Couldn't fetch active transactions: %s", err)
 				}
-
 				return false, "retry", nil
 			}
-
 			for _, transaction := range transactions {
-				if strings.Contains(*transaction.TransactionStatus.Name, "UPGRADE") {
-					return transactions, "upgrade_started", nil
+				if strings.Contains(*transaction.TransactionStatus.Name, upgradeTransaction) {
+					return transactions, inProgressUpgrade, nil
 				}
 			}
-
-			return transactions, "pending_upgrade", nil
+			return transactions, pendingUpgrade, nil
 		},
 		Timeout:    10 * time.Minute,
 		Delay:      5 * time.Second,
@@ -916,10 +931,9 @@ func WaitForNoActiveTransactions(d *schema.ResourceData, meta interface{}) (inte
 	if err != nil {
 		return nil, fmt.Errorf("The instance ID %s must be numeric", d.Id())
 	}
-
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"retry", "active"},
-		Target:  []string{"idle"},
+		Pending: []string{"retry", activeTransaction},
+		Target:  []string{idleTransaction},
 		Refresh: func() (interface{}, string, error) {
 			service := services.GetVirtualGuestService(meta.(ClientSession).SoftLayerSession())
 			transactions, err := service.Id(id).GetActiveTransactions()
@@ -927,15 +941,12 @@ func WaitForNoActiveTransactions(d *schema.ResourceData, meta interface{}) (inte
 				if apiErr, ok := err.(sl.Error); ok && apiErr.StatusCode == 404 {
 					return nil, "", fmt.Errorf("Couldn't get active transactions: %s", err)
 				}
-
 				return false, "retry", nil
 			}
-
 			if len(transactions) == 0 {
-				return transactions, "idle", nil
+				return transactions, idleTransaction, nil
 			}
-
-			return transactions, "active", nil
+			return transactions, activeTransaction, nil
 		},
 		Timeout:    time.Duration(d.Get("wait_time_minutes").(int)) * time.Minute,
 		Delay:      10 * time.Second,
@@ -952,63 +963,65 @@ func WaitForVirtualGuestAvailable(d *schema.ResourceData, meta interface{}) (int
 	if err != nil {
 		return nil, fmt.Errorf("The instance ID %s must be numeric", d.Id())
 	}
-
-	publicNetwork := !d.Get("private_network_only").(bool)
-
+	sess := meta.(ClientSession).SoftLayerSession()
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"retry", "provisioning"},
-		Target:  []string{"available"},
-		Refresh: func() (interface{}, string, error) {
-			// Check active transactions
-			service := services.GetVirtualGuestService(meta.(ClientSession).SoftLayerSession())
-			result, err := service.Id(id).Mask("activeTransaction").GetObject()
-			if err != nil {
-				if apiErr, ok := err.(sl.Error); ok && apiErr.StatusCode == 404 {
-					return nil, "", fmt.Errorf("Error retrieving virtual guest: %s", err)
-				}
-				return false, "retry", nil
-			}
-
-			// Check active transactions
-			log.Println("Checking active transactions.")
-			if result.ActiveTransaction != nil {
-				return result, "provisioning", nil
-			}
-
-			// Check Primary IP address availability.
-			log.Println("Checking primary backend IP address.")
-			if result.PrimaryBackendIpAddress == nil {
-				return result, "provisioning", nil
-			}
-
-			log.Println("Checking primary IP address.")
-			if publicNetwork && result.PrimaryIpAddress == nil {
-				return result, "provisioning", nil
-			}
-
-			// Check Secondary IP address availability.
-			if d.Get("secondary_ip_count").(int) > 0 {
-				log.Println("Refreshing secondary IPs state.")
-				secondarySubnetResult, err := services.GetAccountService(meta.(ClientSession).SoftLayerSession()).
-					Mask("ipAddresses[id,ipAddress]").
-					Filter(filter.Build(filter.Path("publicSubnets.endPointIpAddress.virtualGuest.id").Eq(d.Id()))).
-					GetPublicSubnets()
-				if err != nil {
-					return nil, "", fmt.Errorf("Error retrieving secondary ip address: %s", err)
-				}
-				if len(secondarySubnetResult) == 0 {
-					return result, "provisioning", nil
-				}
-			}
-
-			return result, "available", nil
-		},
+		Pending:    []string{"retry", virtualGuestProvisioning},
+		Target:     []string{virtualGuestAvailable},
+		Refresh:    virtualGuestStateRefreshFunc(sess, id, d),
 		Timeout:    time.Duration(d.Get("wait_time_minutes").(int)) * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 10 * time.Second,
 	}
 
 	return stateConf.WaitForState()
+}
+
+func virtualGuestStateRefreshFunc(sess *session.Session, instanceID int, d *schema.ResourceData) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		// Check active transactions
+		publicNetwork := !d.Get("private_network_only").(bool)
+		service := services.GetVirtualGuestService(sess)
+		result, err := service.Id(instanceID).Mask("activeTransaction,primaryBackendIpAddress,primaryIpAddress").GetObject()
+		if err != nil {
+			if apiErr, ok := err.(sl.Error); ok && apiErr.StatusCode == 404 {
+				return nil, "", fmt.Errorf("Error retrieving virtual guest: %s", err)
+			}
+			return false, "retry", nil
+		}
+		// Check active transactions
+		log.Println("Checking active transactions.")
+		if result.ActiveTransaction != nil {
+			return result, virtualGuestProvisioning, nil
+		}
+
+		// Check Primary IP address availability.
+		log.Println("Checking primary backend IP address.")
+		if result.PrimaryBackendIpAddress == nil {
+			return result, virtualGuestProvisioning, nil
+		}
+
+		log.Println("Checking primary IP address.")
+		if publicNetwork && result.PrimaryIpAddress == nil {
+			return result, virtualGuestProvisioning, nil
+		}
+
+		// Check Secondary IP address availability.
+		if d.Get("secondary_ip_count").(int) > 0 {
+			log.Println("Refreshing secondary IPs state.")
+			secondarySubnetResult, err := services.GetAccountService(sess).
+				Mask("ipAddresses[id,ipAddress]").
+				Filter(filter.Build(filter.Path("publicSubnets.endPointIpAddress.virtualGuest.id").Eq(d.Id()))).
+				GetPublicSubnets()
+			if err != nil {
+				return nil, "", fmt.Errorf("Error retrieving secondary ip address: %s", err)
+			}
+			if len(secondarySubnetResult) == 0 {
+				return result, virtualGuestProvisioning, nil
+			}
+		}
+
+		return result, virtualGuestAvailable, nil
+	}
 }
 
 func resourceIBMCloudInfraVirtualGuestExists(d *schema.ResourceData, meta interface{}) (bool, error) {
@@ -1046,16 +1059,11 @@ func getTags(d *schema.ResourceData) string {
 	return strings.Join(tags, ",")
 }
 
-func setGuestTags(id int, d *schema.ResourceData, meta interface{}) error {
+func setGuestTags(id int, tags string, meta interface{}) error {
 	service := services.GetVirtualGuestService(meta.(ClientSession).SoftLayerSession())
-
-	tags := getTags(d)
-	if tags != "" {
-		_, err := service.Id(id).SetTags(sl.String(tags))
-		if err != nil {
-			return fmt.Errorf("Could not set tags on virtual guest %d", id)
-		}
+	_, err := service.Id(id).SetTags(sl.String(tags))
+	if err != nil {
+		return fmt.Errorf("Could not set tags on virtual guest %d", id)
 	}
-
 	return nil
 }
