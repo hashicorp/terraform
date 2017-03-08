@@ -1,8 +1,31 @@
+Release v1.7.5 (2017-03-08)
+===
+
+Service Client Updates
+---
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/rds`: Updates service API and documentation
+  * Add support to using encrypted clusters as cross-region replication masters. Update CopyDBClusterSnapshot API to support encrypted cross region copy of Aurora cluster snapshots.
+
+Release v1.7.4 (2017-03-06)
+===
+
+Service Client Updates
+---
+* `service/budgets`: Updates service API and paginators
+  * When creating or editing a budget via the AWS Budgets API you can define notifications that are sent to subscribers when the actual or forecasted value for cost or usage exceeds the notificationThreshold associated with the budget notification object. Starting today, the maximum allowed value for the notificationThreshold was raised from 100 to 300. This change was made to give you more flexibility when setting budget notifications.
+* `service/cloudtrail`: Updates service documentation and paginators
+  * Doc-only update for AWSCloudTrail: Updated links/descriptions
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/opsworkscm`: Updates service API, documentation, and paginators
+  * OpsWorks for Chef Automate has added a new field "AssociatePublicIpAddress" to the CreateServer request, "CloudFormationStackArn" to the Server model and "TERMINATED" server state.
+
 
 Release v1.7.3 (2017-02-28)
 ===
 
 Service Client Updates
+---
 * `service/mturk`: Renaming service
   * service/mechanicalturkrequesterservice was renamed to service/mturk. Be sure to change any references of the old client to the new.
 
