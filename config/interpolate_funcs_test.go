@@ -615,6 +615,33 @@ func TestInterpolateFuncCoalesce(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncCoalesceList(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${coalescelist(list("first"), list("second"), list("third"))}`,
+				[]interface{}{"first"},
+				false,
+			},
+			{
+				`${coalescelist(list(), list("second"), list("third"))}`,
+				[]interface{}{"second"},
+				false,
+			},
+			{
+				`${coalescelist(list(), list(), list())}`,
+				[]interface{}{},
+				false,
+			},
+			{
+				`${coalescelist(list("foo"))}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncConcat(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
