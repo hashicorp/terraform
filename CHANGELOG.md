@@ -24,6 +24,7 @@ BUG FIXES:
  * provider/aws: Check spot instance is running before trying to attach volumes [GH-12459]
  * provider/azurerm: bug fix to prevent crashes during azurerm_container_service provisioning [GH-12516]
  * provider/datadog: Update to datadog_monitor to use default values [GH-12497]
+ * provider/google: Minor correction : "Deleting disk" message in Delete method [GH-12521]
  * provider/mysql: Avoid crash on un-interpolated provider cfg [GH-12391]
  * provider/openstack: Handle cases where volumes are disabled [GH-12374]
  * provider/openstack: Toggle Creation of Default Security Group Rules [GH-12119]
