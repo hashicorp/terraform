@@ -13,7 +13,6 @@ IMPROVEMENTS:
  * provider/docker: added support for linux capabilities [GH-12045]
  * provider/ignition: Migrate all of the igition resources to data sources [GH-11851]
 
-
 BUG FIXES:
 
  * provider/aws: Fixes issue for aws_lb_ssl_negotiation_policy of already deleted ELB [GH-12360]
@@ -25,6 +24,7 @@ BUG FIXES:
  * provider/aws: Check spot instance is running before trying to attach volumes [GH-12459]
  * provider/aws: Add the IPV6 cidr block to the vpc datasource [GH-12529]
  * provider/aws: Error on trying to recreate an existing customer gateway [GH-12501]
+ * provider/aws: Prevent aws_dms_replication_task panic [GH-12539]
  * provider/azurerm: bug fix to prevent crashes during azurerm_container_service provisioning [GH-12516]
  * provider/datadog: Update to datadog_monitor to use default values [GH-12497]
  * provider/google: Minor correction : "Deleting disk" message in Delete method [GH-12521]
