@@ -9,12 +9,12 @@ import (
 
 func TestIngnitionFilesystem(t *testing.T) {
 	testIgnition(t, `
-		resource "ignition_filesystem" "foo" {
+		data "ignition_filesystem" "foo" {
 			name = "foo"
 			path = "/foo"
 		}
 
-		resource "ignition_filesystem" "qux" {
+		data "ignition_filesystem" "qux" {
 			name = "qux"
 			mount {
 				device = "/qux"
@@ -22,7 +22,7 @@ func TestIngnitionFilesystem(t *testing.T) {
 			}
 		}
 
-		resource "ignition_filesystem" "bar" {
+		data "ignition_filesystem" "bar" {
 			name = "bar"
 			mount {
 				device = "/bar"
@@ -32,11 +32,11 @@ func TestIngnitionFilesystem(t *testing.T) {
 			}
 		}
 
-		resource "ignition_config" "test" {
+		data "ignition_config" "test" {
 			filesystems = [
-				"${ignition_filesystem.foo.id}",
-				"${ignition_filesystem.qux.id}",
-				"${ignition_filesystem.bar.id}",
+				"${data.ignition_filesystem.foo.id}",
+				"${data.ignition_filesystem.qux.id}",
+				"${data.ignition_filesystem.bar.id}",
 			]
 		}
 	`, func(c *types.Config) error {

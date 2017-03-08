@@ -1,7 +1,7 @@
 ---
 layout: "ignition"
 page_title: "Ignition: ignition_networkd_unit"
-sidebar_current: "docs-ignition-resource-networkd-unit"
+sidebar_current: "docs-ignition-datasource-networkd-unit"
 description: |-
   Describes the desired state of the networkd units.
 ---
@@ -13,7 +13,7 @@ Describes the desired state of the networkd units.
 ## Example Usage
 
 ```
-resource "ignition_networkd_unit" "example" {
+data "ignition_networkd_unit" "example" {
 	name = "00-eth0.network"
 	content = "[Match]\nName=eth0\n\n[Network]\nAddress=10.0.1.7"
 }

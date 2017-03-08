@@ -1,7 +1,7 @@
 ---
 layout: "ignition"
 page_title: "Ignition: ignition_disk"
-sidebar_current: "docs-ignition-resource-disk"
+sidebar_current: "docs-ignition-datasource-disk"
 description: |-
   Describes the desired state of a system’s disk.
 ---
@@ -13,7 +13,7 @@ Describes the desired state of a system’s disk.
 ## Example Usage
 
 ```
-resource "ignition_disk" "foo" {
+data "ignition_disk" "foo" {
 	device = "/dev/sda"
 	partition {
 		start = 2048
