@@ -214,7 +214,7 @@ func resourceComputeDiskDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	zone := d.Get("zone").(string)
-	err = computeOperationWaitZone(config, op, project, zone, "Creating Disk")
+	err = computeOperationWaitZone(config, op, project, zone, "Deleting Disk")
 	if err != nil {
 		return err
 	}
