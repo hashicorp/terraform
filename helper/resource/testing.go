@@ -22,8 +22,9 @@ import (
 
 const TestEnvVar = "TF_ACC"
 
-// TestProvider is implemented by scheme.Provider to allow resetting the
-// provider state between tests.
+// TestProvider can be implemented by any ResourceProvider to provide custom
+// reset functionality at the start of an acceptance test.
+// The helper/schema Provider implements this interface.
 type TestProvider interface {
 	TestReset() error
 }
