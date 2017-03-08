@@ -29,7 +29,10 @@ func (c *PushCommand) Run(args []string) int {
 	var archiveVCS, moduleUpload bool
 	var name string
 	var overwrite []string
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 	cmdFlags := c.Meta.flagSet("push")
 	cmdFlags.StringVar(&atlasAddress, "atlas-address", "", "")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")

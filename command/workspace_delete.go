@@ -16,7 +16,10 @@ type WorkspaceDeleteCommand struct {
 }
 
 func (c *WorkspaceDeleteCommand) Run(args []string) int {
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	envCommandShowWarning(c.Ui, c.LegacyName)
 

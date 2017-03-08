@@ -17,7 +17,10 @@ type StatePushCommand struct {
 }
 
 func (c *StatePushCommand) Run(args []string) int {
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	var flagForce bool
 	cmdFlags := c.Meta.flagSet("state push")

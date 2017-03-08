@@ -9,7 +9,10 @@ type WorkspaceShowCommand struct {
 }
 
 func (c *WorkspaceShowCommand) Run(args []string) int {
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := c.Meta.flagSet("workspace show")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }

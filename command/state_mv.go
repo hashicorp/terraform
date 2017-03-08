@@ -15,7 +15,10 @@ type StateMvCommand struct {
 }
 
 func (c *StateMvCommand) Run(args []string) int {
-	args = c.Meta.process(args, true)
+	args, err := c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	// We create two metas to track the two states
 	var meta1, meta2 Meta
