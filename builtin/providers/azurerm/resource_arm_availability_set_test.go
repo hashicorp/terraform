@@ -245,8 +245,8 @@ resource "azurerm_availability_set" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     tags {
-	environment = "Production"
-	cost_center = "MSFT"
+       environment = "Production"
+       cost_center = "MSFT"
     }
 }
 `
@@ -262,7 +262,7 @@ resource "azurerm_availability_set" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
 
     tags {
-	environment = "staging"
+       environment = "staging"
     }
 }
 `
@@ -292,6 +292,6 @@ resource "azurerm_availability_set" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     platform_update_domain_count = 10
     platform_fault_domain_count = 1
-	managed = true
+    managed = true
 }
 `
