@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -26,8 +27,26 @@ func init() {
 	}
 }
 
+// wrap the mock provider to implement TestProvider
+type resetProvider struct {
+	*terraform.MockResourceProvider
+	mu              sync.Mutex
+	TestResetCalled bool
+	TestResetError  error
+}
+
+func (p *resetProvider) TestReset() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.TestResetCalled = true
+	return p.TestResetError
+}
+
 func TestTest(t *testing.T) {
-	mp := testProvider()
+	mp := &resetProvider{
+		MockResourceProvider: testProvider(),
+	}
+
 	mp.DiffReturn = nil
 
 	mp.ApplyFn = func(
@@ -384,8 +403,10 @@ func TestTest_factoryError(t *testing.T) {
 }
 
 func TestTest_resetError(t *testing.T) {
-	mp := testProvider()
-	mp.TestResetError = fmt.Errorf("provider reset error")
+	mp := &resetProvider{
+		MockResourceProvider: testProvider(),
+		TestResetError:       fmt.Errorf("provider reset error"),
+	}
 
 	mt := new(mockT)
 	Test(mt, TestCase{
