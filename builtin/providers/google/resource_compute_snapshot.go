@@ -90,15 +90,6 @@ func resourceComputeSnapshotCreate(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	// Get the zone
-	log.Printf("[DEBUG] Loading zone: %s", d.Get("zone").(string))
-	/* zone, err := config.clientCompute.Zones.Get(
-		project, d.Get("zone").(string)).Do()
-	if err != nil {
-		return fmt.Errorf(
-			"Error loading zone '%s': %s", d.Get("zone").(string), err)
-	} */
-
 	// Build the snapshot parameter
 	snapshot := &compute.Snapshot{
 		Name: d.Get("name").(string),
@@ -179,7 +170,7 @@ func resourceComputeSnapshotDelete(d *schema.ResourceData, meta interface{}) err
 	}
 
 	zone := d.Get("zone").(string)
-	err = computeOperationWaitZone(config, op, project, zone, "Creating Snapshot")
+	err = computeOperationWaitZone(config, op, project, zone, "Deleting Snapshot")
 	if err != nil {
 		return err
 	}
