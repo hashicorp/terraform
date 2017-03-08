@@ -65,6 +65,7 @@ The following arguments are supported:
 * `policy_url` - (Optional) Location of a file containing the stack policy.
   Conflicts w/ `policy_body`.
 * `tags` - (Optional) A list of tags to associate with this stack.
+* `iam_role_arn` - (Optional) The ARN of an IAM role that AWS CloudFormation assumes to create the stack. If you don't specify a value, AWS CloudFormation uses the role that was previously associated with the stack. If no role is available, AWS CloudFormation uses a temporary session that is generated from your user credentials.
 * `timeout_in_minutes` - (Optional) The amount of time that can pass before the stack status becomes `CREATE_FAILED`.
 
 ## Attributes Reference
