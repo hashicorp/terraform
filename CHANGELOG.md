@@ -9,6 +9,7 @@ FEATURES:
 IMPROVEMENTS:
 
  * provider/aws: Return errors from Elastic Beanstalk [GH-12425]
+ * provider/azurerm: Add support for managed availability sets. [GH-12532]
  * provider/docker: added support for linux capabilities [GH-12045]
  * provider/ignition: Migrate all of the igition resources to data sources [GH-11851]
 
