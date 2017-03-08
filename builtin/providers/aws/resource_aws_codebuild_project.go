@@ -169,6 +169,7 @@ func resourceAwsCodeBuildProject() *schema.Resource {
 			"build_timeout": {
 				Type:         schema.TypeInt,
 				Optional:     true,
+				Default:      "60",
 				ValidateFunc: validateAwsCodeBuildTimeout,
 			},
 			"tags": tagsSchema(),
