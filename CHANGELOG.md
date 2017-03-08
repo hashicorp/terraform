@@ -26,13 +26,13 @@ BUG FIXES:
  * provider/aws: Error on trying to recreate an existing customer gateway [GH-12501]
  * provider/aws: Prevent aws_dms_replication_task panic [GH-12539]
  * provider/azurerm: bug fix to prevent crashes during azurerm_container_service provisioning [GH-12516]
+ * provider/cobbler: Fix Profile Repos [GH-12452]
  * provider/datadog: Update to datadog_monitor to use default values [GH-12497]
  * provider/google: Minor correction : "Deleting disk" message in Delete method [GH-12521]
  * provider/mysql: Avoid crash on un-interpolated provider cfg [GH-12391]
  * provider/openstack: Handle cases where volumes are disabled [GH-12374]
  * provider/openstack: Toggle Creation of Default Security Group Rules [GH-12119]
  * provider/rancher: Apply the set value for finish_upgrade to set to prevent recurring plans [GH-12545]
- * provider/cobbler: Fix Profile Repos [GH-12452]
  * provider/statuscake: use default status code list when updating test [GH-12375]
 
 
