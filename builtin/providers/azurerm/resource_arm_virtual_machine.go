@@ -2,7 +2,6 @@ package azurerm
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
@@ -332,9 +331,10 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 
 						"custom_data": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
+							Type:      schema.TypeString,
+							Optional:  true,
+							Computed:  true,
+							StateFunc: userDataStateFunc,
 						},
 					},
 				},
@@ -955,14 +955,7 @@ func flattenAzureRmVirtualMachineOsProfile(osProfile *compute.OSProfile) []inter
 	result["computer_name"] = *osProfile.ComputerName
 	result["admin_username"] = *osProfile.AdminUsername
 	if osProfile.CustomData != nil {
-		var data string
-		if isBase64Encoded(*osProfile.CustomData) {
-			decodedData, _ := base64.StdEncoding.DecodeString(*osProfile.CustomData)
-			data = string(decodedData)
-		} else {
-			data = *osProfile.CustomData
-		}
-		result["custom_data"] = data
+		result["custom_data"] = *osProfile.CustomData
 	}
 
 	return []interface{}{result}
@@ -1121,12 +1114,7 @@ func expandAzureRmVirtualMachineOsProfile(d *schema.ResourceData) (*compute.OSPr
 	}
 
 	if v := osProfile["custom_data"].(string); v != "" {
-		if isBase64Encoded(v) {
-			log.Printf("[WARN] Future Versions of Terraform will automatically base64encode custom_data")
-		} else {
-			v = base64Encode(v)
-		}
-
+		v = base64Encode(v)
 		profile.CustomData = &v
 	}
 

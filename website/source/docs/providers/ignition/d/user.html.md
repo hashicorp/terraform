@@ -1,7 +1,7 @@
 ---
 layout: "ignition"
 page_title: "Ignition: ignition_user"
-sidebar_current: "docs-ignition-resource-user"
+sidebar_current: "docs-ignition-datasource-user"
 description: |-
   Describes the desired user additions to the passwd database.
 ---
@@ -13,7 +13,7 @@ Describes the desired user additions to the passwd database.
 ## Example Usage
 
 ```
-resource "ignition_user" "foo" {
+data "ignition_user" "foo" {
 	name = "foo"
 	home_dir = "/home/foo/"
 	shell = "/bin/bash"

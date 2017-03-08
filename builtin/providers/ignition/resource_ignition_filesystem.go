@@ -9,8 +9,6 @@ import (
 
 func resourceFilesystem() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceFilesystemCreate,
-		Delete: resourceFilesystemDelete,
 		Exists: resourceFilesystemExists,
 		Read:   resourceFilesystemRead,
 		Schema: map[string]*schema.Schema{
@@ -59,18 +57,13 @@ func resourceFilesystem() *schema.Resource {
 	}
 }
 
-func resourceFilesystemCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceFilesystemRead(d *schema.ResourceData, meta interface{}) error {
 	id, err := buildFilesystem(d, meta.(*cache))
 	if err != nil {
 		return err
 	}
 
 	d.SetId(id)
-	return nil
-}
-
-func resourceFilesystemDelete(d *schema.ResourceData, meta interface{}) error {
-	d.SetId("")
 	return nil
 }
 
@@ -81,10 +74,6 @@ func resourceFilesystemExists(d *schema.ResourceData, meta interface{}) (bool, e
 	}
 
 	return id == d.Id(), nil
-}
-
-func resourceFilesystemRead(d *schema.ResourceData, meta interface{}) error {
-	return nil
 }
 
 func buildFilesystem(d *schema.ResourceData, c *cache) (string, error) {

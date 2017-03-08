@@ -27,7 +27,7 @@ func resourceAwsDmsReplicationTask() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"cdc_start_time": {
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Optional: true,
 				// Requires a Unix timestamp in seconds. Example 1484346880
 			},
@@ -57,9 +57,10 @@ func resourceAwsDmsReplicationTask() *schema.Resource {
 				ValidateFunc: validateDmsReplicationTaskId,
 			},
 			"replication_task_settings": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validateJsonString,
+				Type:             schema.TypeString,
+				Optional:         true,
+				ValidateFunc:     validateJsonString,
+				DiffSuppressFunc: suppressEquivalentJsonDiffs,
 			},
 			"source_endpoint_arn": {
 				Type:         schema.TypeString,
@@ -68,9 +69,10 @@ func resourceAwsDmsReplicationTask() *schema.Resource {
 				ValidateFunc: validateArn,
 			},
 			"table_mappings": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateJsonString,
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateFunc:     validateJsonString,
+				DiffSuppressFunc: suppressEquivalentJsonDiffs,
 			},
 			"tags": {
 				Type:     schema.TypeMap,
