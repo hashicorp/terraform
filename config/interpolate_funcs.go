@@ -60,6 +60,7 @@ func Funcs() map[string]ast.Function {
 		"cidrnetmask":  interpolationFuncCidrNetmask(),
 		"cidrsubnet":   interpolationFuncCidrSubnet(),
 		"coalesce":     interpolationFuncCoalesce(),
+		"coalescelist": interpolationFuncCoalesceList(),
 		"compact":      interpolationFuncCompact(),
 		"concat":       interpolationFuncConcat(),
 		"distinct":     interpolationFuncDistinct(),
@@ -314,6 +315,30 @@ func interpolationFuncCoalesce() ast.Function {
 				}
 			}
 			return "", nil
+		},
+	}
+}
+
+// interpolationFuncCoalesceList implements the "coalescelist" function that
+// returns the first non empty list from the provided input
+func interpolationFuncCoalesceList() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeList},
+		ReturnType:   ast.TypeList,
+		Variadic:     true,
+		VariadicType: ast.TypeList,
+		Callback: func(args []interface{}) (interface{}, error) {
+			if len(args) < 2 {
+				return nil, fmt.Errorf("must provide at least two arguments")
+			}
+			for _, arg := range args {
+				argument := arg.([]ast.Variable)
+
+				if len(argument) > 0 {
+					return argument, nil
+				}
+			}
+			return make([]ast.Variable, 0), nil
 		},
 	}
 }
