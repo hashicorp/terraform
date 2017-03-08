@@ -38,7 +38,7 @@ plugin-dev: generate
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 
 # test runs the unit tests
-test:# fmtcheck errcheck generate
+test: fmtcheck errcheck generate
 	go test -i $(TEST) || exit 1
 	echo $(TEST) | \
 		xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4
