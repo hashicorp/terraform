@@ -60,7 +60,7 @@ func (t *ResourceTimeout) ConfigDecode(s *Resource, c *terraform.ResourceConfig)
 		*t = *raw.(*ResourceTimeout)
 	}
 
-	if raw, ok := c.Config["timeout"]; ok {
+	if raw, ok := c.Config["timeouts"]; ok {
 		if configTimeouts, ok := raw.([]map[string]interface{}); ok {
 			for _, timeoutValues := range configTimeouts {
 				// loop through each Timeout given in the configuration and validate they
