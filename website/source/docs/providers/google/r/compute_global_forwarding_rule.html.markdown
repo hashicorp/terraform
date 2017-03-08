@@ -10,7 +10,7 @@ description: |-
 
 Manages a Global Forwarding Rule within GCE. This binds an ip and port to a target HTTP(s) proxy. For more
 information see [the official
-documentation](https://cloud.google.com/compute/docs/load-balancing/network/forwarding-rules) and
+documentation](https://cloud.google.com/compute/docs/load-balancing/http/global-forwarding-rules) and
 [API](https://cloud.google.com/compute/docs/reference/latest/globalForwardingRules).
 
 ## Example Usage
