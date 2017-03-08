@@ -476,7 +476,8 @@ func (c *CloudTrail) GetEventSelectorsRequest(input *GetEventSelectorsInput) (re
 //    * If your event selector includes read-only events, write-only events,
 //    or all.
 //
-// For more information, see Configuring Event Selectors for Trails (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/create-event-selectors-for-a-trail.html)
+// For more information, see Logging Data and Management Events for Trails
+// (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/logging-management-and-data-events-with-cloudtrail.html)
 // in the AWS CloudTrail User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -846,6 +847,8 @@ func (c *CloudTrail) LookupEventsRequest(input *LookupEventsInput) (req *request
 //
 //    * Event name
 //
+//    * Event source
+//
 //    * Resource name
 //
 //    * Resource type
@@ -962,11 +965,11 @@ func (c *CloudTrail) PutEventSelectorsRequest(input *PutEventSelectorsInput) (re
 // PutEventSelectors API operation for AWS CloudTrail.
 //
 // Configures an event selector for your trail. Use event selectors to specify
-// the type of events that you want your trail to log. When an event occurs
-// in your account, CloudTrail evaluates the event selectors in all trails.
-// For each trail, if the event matches any event selector, the trail processes
-// and logs the event. If the event doesn't match any event selector, the trail
-// doesn't log the event.
+// whether you want your trail to log management and/or data events. When an
+// event occurs in your account, CloudTrail evaluates the event selectors in
+// all trails. For each trail, if the event matches any event selector, the
+// trail processes and logs the event. If the event doesn't match any event
+// selector, the trail doesn't log the event.
 //
 // Example
 //
@@ -987,7 +990,7 @@ func (c *CloudTrail) PutEventSelectorsRequest(input *PutEventSelectorsInput) (re
 // trail was created; otherwise, an InvalidHomeRegionException is thrown.
 //
 // You can configure up to five event selectors for each trail. For more information,
-// see Configuring Event Selectors for Trails (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/create-event-selectors-for-a-trail.html)
+// see Logging Data and Management Events for Trails  (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/logging-management-and-data-events-with-cloudtrail.html)
 // in the AWS CloudTrail User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1028,7 +1031,7 @@ func (c *CloudTrail) PutEventSelectorsRequest(input *PutEventSelectorsInput) (re
 //
 //      * Specify a valid number of event selectors (1 to 5) for a trail.
 //
-//      * Specify a valid number of data resources (1 to 50) for an event selector.
+//      * Specify a valid number of data resources (1 to 250) for an event selector.
 //
 //      * Specify a valid value for a parameter. For example, specifying the ReadWriteType
 //      parameter with a value of read-only is invalid.
@@ -1590,8 +1593,8 @@ type CreateTrailInput struct {
 	IsMultiRegionTrail *bool `type:"boolean"`
 
 	// Specifies the KMS key ID to use to encrypt the logs delivered by CloudTrail.
-	// The value can be a an alias name prefixed by "alias/", a fully specified
-	// ARN to an alias, a fully specified ARN to a key, or a globally unique identifier.
+	// The value can be an alias name prefixed by "alias/", a fully specified ARN
+	// to an alias, a fully specified ARN to a key, or a globally unique identifier.
 	//
 	// Examples:
 	//
@@ -1865,9 +1868,9 @@ func (s *CreateTrailOutput) SetTrailARN(v string) *CreateTrailOutput {
 }
 
 // The Amazon S3 objects that you specify in your event selectors for your trail
-// to log data events. Data events are object level API operations that access
+// to log data events. Data events are object-level API operations that access
 // S3 objects, such as GetObject, DeleteObject, and PutObject. You can specify
-// up to 50 S3 buckets and object prefixes for an event selector.
+// up to 250 S3 buckets and object prefixes for a trail.
 //
 // Example
 //
@@ -2144,11 +2147,11 @@ func (s *Event) SetUsername(v string) *Event {
 	return s
 }
 
-// Use event selectors to specify the types of events that you want your trail
-// to log. When an event occurs in your account, CloudTrail evaluates the event
-// selector for all trails. For each trail, if the event matches any event selector,
-// the trail processes and logs the event. If the event doesn't match any event
-// selector, the trail doesn't log the event.
+// Use event selectors to specify whether you want your trail to log management
+// and/or data events. When an event occurs in your account, CloudTrail evaluates
+// the event selector for all trails. For each trail, if the event matches any
+// event selector, the trail processes and logs the event. If the event doesn't
+// match any event selector, the trail doesn't log the event.
 //
 // You can configure up to five event selectors for a trail.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudtrail-2013-11-01/EventSelector
@@ -2156,16 +2159,16 @@ type EventSelector struct {
 	_ struct{} `type:"structure"`
 
 	// CloudTrail supports logging only data events for S3 objects. You can specify
-	// up to 50 S3 buckets and object prefixes for an event selector.
+	// up to 250 S3 buckets and object prefixes for a trail.
 	//
-	// For more information, see Data Events (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/create-event-selectors-for-a-trail.html#data-events-resources)
+	// For more information, see Data Events (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/logging-management-and-data-events-with-cloudtrail.html#logging-data-events)
 	// in the AWS CloudTrail User Guide.
 	DataResources []*DataResource `type:"list"`
 
 	// Specify if you want your event selector to include management events for
 	// your trail.
 	//
-	// For more information, see Management Events (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/create-event-selectors-for-a-trail.html#event-selector-for-management-events)
+	// For more information, see Management Events (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/logging-management-and-data-events-with-cloudtrail.html#logging-management-events)
 	// in the AWS CloudTrail User Guide.
 	//
 	// By default, the value is true.
@@ -3541,8 +3544,8 @@ type UpdateTrailInput struct {
 	IsMultiRegionTrail *bool `type:"boolean"`
 
 	// Specifies the KMS key ID to use to encrypt the logs delivered by CloudTrail.
-	// The value can be a an alias name prefixed by "alias/", a fully specified
-	// ARN to an alias, a fully specified ARN to a key, or a globally unique identifier.
+	// The value can be an alias name prefixed by "alias/", a fully specified ARN
+	// to an alias, a fully specified ARN to a key, or a globally unique identifier.
 	//
 	// Examples:
 	//
