@@ -1901,13 +1901,14 @@ func flattenDomains(list []*gofastly.Domain) []map[string]interface{} {
 }
 
 func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
+	log.Printf("[DEBUG] Entered flattenBackends")
 	var bl []map[string]interface{}
 	for _, b := range backendList {
 		// Convert Backend to a map for saving to state.
 		nb := map[string]interface{}{
 			"name":                  b.Name,
 			"address":               b.Address,
-			"auto_loadbalance":      gofastly.CBool(b.AutoLoadbalance),
+			"auto_loadbalance":      b.AutoLoadbalance,
 			"between_bytes_timeout": int(b.BetweenBytesTimeout),
 			"connect_timeout":       int(b.ConnectTimeout),
 			"error_threshold":       int(b.ErrorThreshold),
@@ -1915,7 +1916,7 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 			"max_conn":              int(b.MaxConn),
 			"port":                  int(b.Port),
 			"shield":                b.Shield,
-			"ssl_check_cert":        gofastly.CBool(b.SSLCheckCert),
+			"ssl_check_cert":        b.SSLCheckCert,
 			"ssl_hostname":          b.SSLHostname,
 			"weight":                int(b.Weight),
 			"request_condition":     b.RequestCondition,
