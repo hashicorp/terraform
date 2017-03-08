@@ -335,7 +335,6 @@ resource "aws_instance" "foo" {
 	root_block_device {
 		volume_type = "gp2"
 		volume_size = 11
-		iops = 330
 	}
 }
 
