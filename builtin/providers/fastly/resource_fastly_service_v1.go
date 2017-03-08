@@ -1901,7 +1901,6 @@ func flattenDomains(list []*gofastly.Domain) []map[string]interface{} {
 }
 
 func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
-	log.Printf("[DEBUG] Entered flattenBackends")
 	var bl []map[string]interface{}
 	for _, b := range backendList {
 		// Convert Backend to a map for saving to state.
