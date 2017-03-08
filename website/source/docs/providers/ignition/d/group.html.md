@@ -1,7 +1,7 @@
 ---
 layout: "ignition"
 page_title: "Ignition: ignition_group"
-sidebar_current: "docs-ignition-resource-group"
+sidebar_current: "docs-ignition-datasource-group"
 description: |-
   Describes the desired group additions to the passwd database.
 ---
@@ -13,7 +13,7 @@ Describes the desired group additions to the passwd database.
 ## Example Usage
 
 ```
-resource "ignition_group" "foo" {
+data "ignition_group" "foo" {
 	name = "foo"
 }
 ```

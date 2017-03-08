@@ -108,15 +108,15 @@ resource "aws_s3_bucket_object" "default" {
 }
 
 resource "aws_elastic_beanstalk_application" "default" {
-  name = "tf-test-name"
+  name = "tf-test-name-%d"
   description = "tf-test-desc"
 }
 
 resource "aws_elastic_beanstalk_application_version" "default" {
-  application = "tf-test-name"
+  application = "tf-test-name-%d"
   name = "tf-test-version-label"
   bucket = "${aws_s3_bucket.default.id}"
   key = "${aws_s3_bucket_object.default.id}"
  }
- `, randInt)
+ `, randInt, randInt, randInt)
 }

@@ -1,19 +1,19 @@
 ---
 layout: "ignition"
 page_title: "Ignition: ignition_filesystem"
-sidebar_current: "docs-ignition-resource-filesystem"
+sidebar_current: "docs-ignition-datasource-filesystem"
 description: |-
   Describes the desired state of a system’s filesystem.
 ---
 
 # ignition\_filesystem
 
-Describes the desired state of a the system’s filesystems to be configured and/or used with the _ignition\_file_ resource. 
+Describes the desired state of a the system’s filesystems to be configured and/or used with the _ignition\_file_ resource.
 
 ## Example Usage
 
 ```
-resource "ignition_filesystem" "foo" {
+data "ignition_filesystem" "foo" {
 	name = "root"
 	mount {
 		device = "/dev/disk/by-label/ROOT"

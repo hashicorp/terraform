@@ -126,6 +126,15 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		hostConfig.VolumesFrom = volumesFrom
 	}
 
+	if v, ok := d.GetOk("capabilities"); ok {
+		for _, capInt := range v.(*schema.Set).List() {
+			capa := capInt.(map[string]interface{})
+			hostConfig.CapAdd = stringSetToStringSlice(capa["add"].(*schema.Set))
+			hostConfig.CapDrop = stringSetToStringSlice(capa["drop"].(*schema.Set))
+			break
+		}
+	}
+
 	if v, ok := d.GetOk("dns"); ok {
 		hostConfig.DNS = stringSetToStringSlice(v.(*schema.Set))
 	}
