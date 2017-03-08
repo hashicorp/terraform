@@ -21,7 +21,10 @@ func TestMetaColorize(t *testing.T) {
 	m.Color = true
 	args = []string{"foo", "bar"}
 	args2 = []string{"foo", "bar"}
-	args = m.process(args, false)
+	args, err := m.process(args, false)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if !reflect.DeepEqual(args, args2) {
 		t.Fatalf("bad: %#v", args)
 	}
@@ -33,7 +36,10 @@ func TestMetaColorize(t *testing.T) {
 	m = new(Meta)
 	args = []string{"foo", "bar"}
 	args2 = []string{"foo", "bar"}
-	args = m.process(args, false)
+	args, err = m.process(args, false)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if !reflect.DeepEqual(args, args2) {
 		t.Fatalf("bad: %#v", args)
 	}
@@ -46,7 +52,10 @@ func TestMetaColorize(t *testing.T) {
 	m.Color = true
 	args = []string{"foo", "-no-color", "bar"}
 	args2 = []string{"foo", "bar"}
-	args = m.process(args, false)
+	args, err = m.process(args, false)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if !reflect.DeepEqual(args, args2) {
 		t.Fatalf("bad: %#v", args)
 	}
@@ -152,7 +161,10 @@ func TestMetaInputMode_defaultVars(t *testing.T) {
 
 	m := new(Meta)
 	args := []string{}
-	args = m.process(args, true)
+	args, err = m.process(args, false)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	fs := m.flagSet("foo")
 	if err := fs.Parse(args); err != nil {
@@ -305,5 +317,62 @@ func TestMeta_Env(t *testing.T) {
 	env = m.Workspace()
 	if env != backend.DefaultStateName {
 		t.Fatalf("expected env %q, got env %q", backend.DefaultStateName, env)
+	}
+}
+
+func TestMeta_process(t *testing.T) {
+	test = false
+	defer func() { test = true }()
+
+	// Create a temporary directory for our cwd
+	d := tempDir(t)
+	if err := os.MkdirAll(d, 0755); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(d); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	// Create two vars files
+	file1 := "file1.tfvars"
+	err = ioutil.WriteFile(
+		filepath.Join(d, file1),
+		[]byte(""),
+		0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	file2 := "file2.tfvars"
+	err = ioutil.WriteFile(
+		filepath.Join(d, file2),
+		[]byte(""),
+		0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	m := new(Meta)
+	args := []string{}
+	args, err = m.process(args, true)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if args[0] != "-var-file-default" {
+		t.Fatalf("expected %q, got %q", "-var-file-default", args[0])
+	}
+	if args[1] != file1 {
+		t.Fatalf("expected %q, got %q", file1, args[1])
+	}
+	if args[2] != "-var-file-default" {
+		t.Fatalf("expected %q, got %q", "-var-file-default", args[0])
+	}
+	if args[3] != file2 {
+		t.Fatalf("expected %q, got %q", file2, args[3])
 	}
 }

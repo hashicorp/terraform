@@ -256,10 +256,9 @@ $ TF_VAR_somemap='{foo = "bar", baz = "qux"}' terraform plan
 Variables can be collected in files and passed all at once using the
 `-var-file=foo.tfvars` flag.
 
-If a file named `terraform.tfvars` is present in the current directory,
-Terraform automatically loads it to populate variables. If the file is named
-something else, you can pass the path to the file using the `-var-file`
-flag.
+For all files which match `*.tfvars` present in the current directory,
+Terraform automatically loads it to populate variables. If the file is located
+somewhere else, you can pass the path to the file using the `-var-file` flag.
 
 Variables files use HCL or JSON to define variable values. Strings, lists or
 maps may be set in the same manner as the default value in a `variable` block
@@ -338,11 +337,18 @@ _bar.tfvars_
 baz = "bar"
 ```
 
-When they are passed in the following order:
+When they are read directly from the working directory, the files are evaluated
+in alphabetical order. The result will be that baz contains the value `foo`
+because `foo.tfvars` has the last definition loaded.
+
+When they are passed manually in the following order:
 
 ```shell
-$ terraform apply -var-file=foo.tfvars -var-file=bar.tfvars
+$ terraform apply -var-file=path/to/foo.tfvars -var-file=path/to/bar.tfvars
 ```
 
 The result will be that `baz` will contain the value `bar` because `bar.tfvars`
 has the last definition loaded.
+
+Definitions passed using the `-var-file` flag will always be evaluated after
+those in the working directory.

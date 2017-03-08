@@ -24,7 +24,10 @@ func (c *GraphCommand) Run(args []string) int {
 	var drawCycles bool
 	var graphTypeStr string
 
-	args = c.Meta.process(args, false)
+	args, err := c.Meta.process(args, false)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := flag.NewFlagSet("graph", flag.ContinueOnError)
 	c.addModuleDepthFlag(cmdFlags, &moduleDepth)

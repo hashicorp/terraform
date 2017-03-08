@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
@@ -348,7 +349,7 @@ func (m *Meta) moduleStorage(root string) getter.Storage {
 // slice.
 //
 // vars says whether or not we support variables.
-func (m *Meta) process(args []string, vars bool) []string {
+func (m *Meta) process(args []string, vars bool) ([]string, error) {
 	// We do this so that we retain the ability to technically call
 	// process multiple times, even if we have no plans to do so
 	if m.oldUi != nil {
@@ -381,24 +382,49 @@ func (m *Meta) process(args []string, vars bool) []string {
 	// the args...
 	m.autoKey = ""
 	if vars {
-		if _, err := os.Stat(DefaultVarsFilename); err == nil {
-			m.autoKey = "var-file-default"
-			args = append(args, "", "")
-			copy(args[2:], args[0:])
-			args[0] = "-" + m.autoKey
-			args[1] = DefaultVarsFilename
+		wd, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+		f, err := os.Open(wd)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+
+		fi, err := f.Stat()
+		if err != nil {
+			return nil, err
+		}
+		if !fi.IsDir() {
+			return nil, err
 		}
 
-		if _, err := os.Stat(DefaultVarsFilename + ".json"); err == nil {
-			m.autoKey = "var-file-default"
-			args = append(args, "", "")
-			copy(args[2:], args[0:])
-			args[0] = "-" + m.autoKey
-			args[1] = DefaultVarsFilename + ".json"
+		err = nil
+		var preArgs []string
+		for err != io.EOF {
+			var fis []os.FileInfo
+			fis, err = f.Readdir(128)
+			if err != nil && err != io.EOF {
+				return nil, err
+			}
+
+			for _, fi := range fis {
+				name := fi.Name()
+				// Ignore directories, non-var-files, and ignored files
+				if fi.IsDir() || !isVarFile(name) || config.IsIgnoredFile(name) {
+					continue
+				}
+
+				m.autoKey = "var-file-default"
+				preArgs = append(preArgs, "-"+m.autoKey, name)
+			}
 		}
+
+		args = append(preArgs, args...)
 	}
 
-	return args
+	return args, nil
 }
 
 // uiHook returns the UiHook to use with the context.
@@ -542,4 +568,10 @@ func (m *Meta) SetWorkspace(name string) error {
 		return err
 	}
 	return nil
+}
+
+// isVarFile determines if the file ends with .tfvars or .tfvars.json
+func isVarFile(path string) bool {
+	return strings.HasSuffix(path, ".tfvars") ||
+		strings.HasSuffix(path, ".tfvars.json")
 }

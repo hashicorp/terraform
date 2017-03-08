@@ -27,7 +27,10 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	var configPath string
-	args = c.Meta.process(args, true)
+	args, err = c.Meta.process(args, true)
+	if err != nil {
+		return 1
+	}
 
 	cmdFlags := c.Meta.flagSet("import")
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", 0, "parallelism")

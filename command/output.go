@@ -16,7 +16,10 @@ type OutputCommand struct {
 }
 
 func (c *OutputCommand) Run(args []string) int {
-	args = c.Meta.process(args, false)
+	args, err := c.Meta.process(args, false)
+	if err != nil {
+		return 1
+	}
 
 	var module string
 	var jsonOutput bool
