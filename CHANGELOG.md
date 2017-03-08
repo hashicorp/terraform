@@ -22,6 +22,7 @@ BUG FIXES:
  * provider/aws: Changing volumes in ECS task definition should force new revision [GH-11403]
  * provider/aws: Ignore whitespace in json diff for aws_dms_replication_task options [GH-12380]
  * provider/aws: Check spot instance is running before trying to attach volumes [GH-12459]
+ * provider/aws: Add the IPV6 cidr block to the vpc datasource [GH-12529]
  * provider/azurerm: bug fix to prevent crashes during azurerm_container_service provisioning [GH-12516]
  * provider/datadog: Update to datadog_monitor to use default values [GH-12497]
  * provider/google: Minor correction : "Deleting disk" message in Delete method [GH-12521]
