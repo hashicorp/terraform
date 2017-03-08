@@ -192,7 +192,7 @@ resource "azurerm_container_service" "test" {
 var testAccAzureRMContainerService_kubernetesBasic = `
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG-%d"
-  location = "West US"
+  location = "East US"
 }
 
 resource "azurerm_container_service" "test" {
