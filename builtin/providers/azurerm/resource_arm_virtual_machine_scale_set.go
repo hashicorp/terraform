@@ -2,7 +2,6 @@ package azurerm
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
@@ -93,8 +92,9 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 						},
 
 						"custom_data": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Type:      schema.TypeString,
+							Optional:  true,
+							StateFunc: userDataStateFunc,
 						},
 					},
 				},
@@ -652,14 +652,7 @@ func flattenAzureRMVirtualMachineScaleSetOsProfile(profile *compute.VirtualMachi
 	result["admin_username"] = *profile.AdminUsername
 
 	if profile.CustomData != nil {
-		var data string
-		if isBase64Encoded(*profile.CustomData) {
-			decodedData, _ := base64.StdEncoding.DecodeString(*profile.CustomData)
-			data = string(decodedData)
-		} else {
-			data = *profile.CustomData
-		}
-		result["custom_data"] = data
+		result["custom_data"] = *profile.CustomData
 	}
 
 	return []interface{}{result}
@@ -861,15 +854,6 @@ func expandAzureRmVirtualMachineScaleSetNetworkProfile(d *schema.ResourceData) *
 	}
 }
 
-func base64Encode(data string) string {
-	return base64.StdEncoding.EncodeToString([]byte(data))
-}
-
-func isBase64Encoded(data string) bool {
-	_, err := base64.StdEncoding.DecodeString(data)
-	return err == nil
-}
-
 func expandAzureRMVirtualMachineScaleSetsOsProfile(d *schema.ResourceData) (*compute.VirtualMachineScaleSetOSProfile, error) {
 	osProfileConfigs := d.Get("os_profile").(*schema.Set).List()
 
@@ -889,11 +873,7 @@ func expandAzureRMVirtualMachineScaleSetsOsProfile(d *schema.ResourceData) (*com
 	}
 
 	if customData != "" {
-		if isBase64Encoded(customData) {
-			log.Printf("[WARN] Future Versions of Terraform will automatically base64encode custom_data")
-		} else {
-			customData = base64Encode(customData)
-		}
+		customData = base64Encode(customData)
 		osProfile.CustomData = &customData
 	}
 
