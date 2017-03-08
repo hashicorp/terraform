@@ -9,7 +9,9 @@ import (
 )
 
 func ListActions() (ActionListResponse, error) {
+
 	url := "audit/" + auditSubsystemVersion + "/action/"
+
 	request := "GET"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -78,7 +80,9 @@ func GetAction(uuid string) (Action, error) {
 }
 
 func (self *Action) GetLogs(c chan Logs) {
+
 	endpoint := "audit/" + auditSubsystemVersion + "/action/" + self.Uuid + "/logs/?user=" + User + "&token=" + ApiKey
+
 	url := StreamUrl + endpoint
 
 	header := http.Header{}

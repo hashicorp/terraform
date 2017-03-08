@@ -4,7 +4,12 @@ import "encoding/json"
 
 func ListNodeClusters() (NodeClusterListResponse, error) {
 
-	url := "infra/" + infraSubsytemVersion + "/nodecluster/"
+	url := ""
+	if Namespace != "" {
+		url = "infra/" + infraSubsytemVersion + "/" + Namespace + "/nodecluster/"
+	} else {
+		url = "infra/" + infraSubsytemVersion + "/nodecluster/"
+	}
 	request := "GET"
 
 	//Empty Body Request
@@ -53,7 +58,11 @@ func GetNodeCluster(uuid string) (NodeCluster, error) {
 	if string(uuid[0]) == "/" {
 		url = uuid[5:] + "/"
 	} else {
-		url = "infra/" + infraSubsytemVersion + "/nodecluster/" + uuid + "/"
+		if Namespace != "" {
+			url = "infra/" + infraSubsytemVersion + "/" + Namespace + "/nodecluster/" + uuid + "/"
+		} else {
+			url = "infra/" + infraSubsytemVersion + "/nodecluster/" + uuid + "/"
+		}
 	}
 
 	request := "GET"
@@ -76,7 +85,13 @@ func GetNodeCluster(uuid string) (NodeCluster, error) {
 
 func CreateNodeCluster(createRequest NodeCreateRequest) (NodeCluster, error) {
 
-	url := "infra/" + infraSubsytemVersion + "/nodecluster/"
+	url := ""
+	if Namespace != "" {
+		url = "infra/" + infraSubsytemVersion + "/" + Namespace + "/nodecluster/"
+	} else {
+		url = "infra/" + infraSubsytemVersion + "/nodecluster/"
+	}
+
 	request := "POST"
 	var response NodeCluster
 
@@ -100,7 +115,12 @@ func CreateNodeCluster(createRequest NodeCreateRequest) (NodeCluster, error) {
 
 func (self *NodeCluster) Deploy() error {
 
-	url := "infra/" + infraSubsytemVersion + "/nodecluster/" + self.Uuid + "/deploy/"
+	url := ""
+	if Namespace != "" {
+		url = "infra/" + infraSubsytemVersion + "/" + Namespace + "/nodecluster/" + self.Uuid + "/deploy/"
+	} else {
+		url = "infra/" + infraSubsytemVersion + "/nodecluster/" + self.Uuid + "/deploy/"
+	}
 	request := "POST"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -115,7 +135,12 @@ func (self *NodeCluster) Deploy() error {
 
 func (self *NodeCluster) Update(createRequest NodeCreateRequest) error {
 
-	url := "infra/" + infraSubsytemVersion + "/nodecluster/" + self.Uuid + "/"
+	url := ""
+	if Namespace != "" {
+		url = "infra/" + infraSubsytemVersion + "/" + Namespace + "/nodecluster/" + self.Uuid + "/"
+	} else {
+		url = "infra/" + infraSubsytemVersion + "/nodecluster/" + self.Uuid + "/"
+	}
 	request := "PATCH"
 
 	updatedNodeCluster, err := json.Marshal(createRequest)
@@ -133,7 +158,12 @@ func (self *NodeCluster) Update(createRequest NodeCreateRequest) error {
 
 func (self *NodeCluster) Upgrade() error {
 
-	url := "infra/" + infraSubsytemVersion + "/nodecluster/" + self.Uuid + "/docker-upgrade/"
+	url := ""
+	if Namespace != "" {
+		url = "infra/" + infraSubsytemVersion + "/" + Namespace + "/nodecluster/" + self.Uuid + "/docker-upgrade/"
+	} else {
+		url = "infra/" + infraSubsytemVersion + "/nodecluster/" + self.Uuid + "/docker-upgrade/"
+	}
 	request := "POST"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -148,7 +178,12 @@ func (self *NodeCluster) Upgrade() error {
 
 func (self *NodeCluster) Terminate() error {
 
-	url := "infra/" + infraSubsytemVersion + "/nodecluster/" + self.Uuid + "/"
+	url := ""
+	if Namespace != "" {
+		url = "infra/" + infraSubsytemVersion + "/" + Namespace + "/nodecluster/" + self.Uuid + "/"
+	} else {
+		url = "infra/" + infraSubsytemVersion + "/nodecluster/" + self.Uuid + "/"
+	}
 	request := "DELETE"
 	//Empty Body Request
 	body := []byte(`{}`)

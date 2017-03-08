@@ -1384,6 +1384,12 @@
 			"revisionTime": "2017-02-24T10:46:12Z"
 		},
 		{
+			"checksumSHA1": "U24k60Xw2T/fw3BsyyTpyP89pZo=",
+			"path": "github.com/docker/go-dockercloud/dockercloud",
+			"revision": "a7c28f4f0a9d569a0d42603d38eb3d2f1e80495b",
+			"revisionTime": "2016-06-22T14:10:42Z"
+		},
+		{
 			"checksumSHA1": "zkENTbOfU8YoxPfFwVAhTz516Dg=",
 			"path": "github.com/dustin/go-humanize",
 			"revision": "7a41df006ff9af79a29f0ffa9c5f21fbe6314a2d",

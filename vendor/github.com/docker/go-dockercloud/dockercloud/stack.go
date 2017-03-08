@@ -6,7 +6,15 @@ import (
 )
 
 func ListStacks() (StackListResponse, error) {
-	url := "app/" + appSubsystemVersion + "/stack/"
+
+	url := ""
+
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/stack/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/stack/"
+	}
+
 	request := "GET"
 
 	//Empty Body Request
@@ -55,7 +63,11 @@ func GetStack(uuid string) (Stack, error) {
 	if string(uuid[0]) == "/" {
 		url = uuid[5:]
 	} else {
-		url = "app/" + appSubsystemVersion + "/stack/" + uuid + "/"
+		if Namespace != "" {
+			url = "app/" + appSubsystemVersion + "/" + Namespace + "/stack/" + uuid + "/"
+		} else {
+			url = "app/" + appSubsystemVersion + "/stack/" + uuid + "/"
+		}
 	}
 
 	request := "GET"
@@ -78,7 +90,13 @@ func GetStack(uuid string) (Stack, error) {
 
 func (self *Stack) ExportStack() (string, error) {
 
-	url := "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/export/"
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/stack/" + self.Uuid + "/export/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/export/"
+	}
+
 	request := "GET"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -94,7 +112,14 @@ func (self *Stack) ExportStack() (string, error) {
 }
 
 func CreateStack(createRequest StackCreateRequest) (Stack, error) {
-	url := "app/" + appSubsystemVersion + "/stack/"
+
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/stack/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/stack/"
+	}
+
 	request := "POST"
 	var response Stack
 
@@ -120,7 +145,13 @@ func CreateStack(createRequest StackCreateRequest) (Stack, error) {
 
 func (self *Stack) Update(createRequest StackCreateRequest) error {
 
-	url := "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/"
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/stack/" + self.Uuid + "/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/"
+	}
+
 	request := "PATCH"
 
 	updatedStack, err := json.Marshal(createRequest)
@@ -140,7 +171,13 @@ func (self *Stack) Update(createRequest StackCreateRequest) error {
 
 func (self *Stack) Start() error {
 
-	url := "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/start/"
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/stack/" + self.Uuid + "/start/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/start/"
+	}
+
 	request := "POST"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -155,7 +192,14 @@ func (self *Stack) Start() error {
 
 func (self *Stack) Stop() error {
 
-	url := "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/stop/"
+	url := ""
+
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/stack/" + self.Uuid + "/stop/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/stop/"
+	}
+
 	request := "POST"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -172,9 +216,17 @@ func (self *Stack) Redeploy(reuse_volume ReuseVolumesOption) error {
 
 	url := ""
 	if reuse_volume.Reuse != true {
-		url = "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/redeploy/?reuse_volumes=false"
+		if Namespace != "" {
+			url = "app/" + appSubsystemVersion + "/" + Namespace + "/stack/" + self.Uuid + "/redeploy/?reuse_volumes=false"
+		} else {
+			url = "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/redeploy/?reuse_volumes=false"
+		}
 	} else {
-		url = "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/redeploy/"
+		if Namespace != "" {
+			url = "app/" + appSubsystemVersion + "/" + Namespace + "/stack/" + self.Uuid + "/redeploy/"
+		} else {
+			url = "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/redeploy/"
+		}
 	}
 
 	request := "POST"
@@ -191,7 +243,13 @@ func (self *Stack) Redeploy(reuse_volume ReuseVolumesOption) error {
 
 func (self *Stack) Terminate() error {
 
-	url := "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/"
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/stack/" + self.Uuid + "/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/stack/" + self.Uuid + "/"
+	}
+
 	request := "DELETE"
 	//Empty Body Request
 	body := []byte(`{}`)

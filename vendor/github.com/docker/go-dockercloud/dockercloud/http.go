@@ -2,7 +2,6 @@ package dockercloud
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -29,6 +28,7 @@ func SetBaseUrl() string {
 
 func init() {
 	BaseUrl = SetBaseUrl()
+	maybeSetNamespace()
 	jar, _ = cookiejar.New(nil)
 }
 
@@ -58,7 +58,7 @@ func DockerCloudCall(url string, requestType string, requestBody []byte) ([]byte
 	}
 
 	if response.StatusCode > 300 {
-		return nil, fmt.Errorf("Failed API call: %s", response.Status)
+		return nil, HttpError{Status: response.Status, StatusCode: response.StatusCode}
 	}
 
 	jar.SetCookies(req.URL, response.Cookies())

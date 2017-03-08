@@ -12,7 +12,13 @@ import (
 
 func ListContainers() (CListResponse, error) {
 
-	url := "app/" + appSubsystemVersion + "/container/"
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/container/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/container/"
+	}
+
 	request := "GET"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -59,6 +65,8 @@ func GetContainer(uuid string) (Container, error) {
 	url := ""
 	if string(uuid[0]) == "/" {
 		url = uuid[5:]
+	} else if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/container/" + uuid + "/"
 	} else {
 		url = "app/" + appSubsystemVersion + "/container/" + uuid + "/"
 	}
@@ -83,7 +91,12 @@ func GetContainer(uuid string) (Container, error) {
 
 func (self *Container) Logs(c chan Logs) {
 
-	endpoint := "api/app/" + appSubsystemVersion + "/container/" + self.Uuid + "/logs/"
+	endpoint := ""
+	if Namespace != "" {
+		endpoint = "api/app/" + appSubsystemVersion + "/" + Namespace + "/container/" + self.Uuid + "/logs/"
+	} else {
+		endpoint = "api/app/" + appSubsystemVersion + "/container/" + self.Uuid + "/logs/"
+	}
 	url := StreamUrl + endpoint
 
 	header := http.Header{}
@@ -123,7 +136,13 @@ Loop:
 
 func (self *Container) Run(command string, c chan Exec) {
 
-	endpoint := "app/" + appSubsystemVersion + "/container/" + self.Uuid + "/exec/?user=" + User + "&token=" + ApiKey + "&command=" + url.QueryEscape(command)
+	endpoint := ""
+
+	if Namespace != "" {
+		endpoint = "app/" + appSubsystemVersion + "/" + Namespace + "/container/" + self.Uuid + "/exec/?user=" + User + "&token=" + ApiKey + "&command=" + url.QueryEscape(command)
+	} else {
+		endpoint = "app/" + appSubsystemVersion + "/container/" + self.Uuid + "/exec/?user=" + User + "&token=" + ApiKey + "&command=" + url.QueryEscape(command)
+	}
 	url := StreamUrl + endpoint
 
 	header := http.Header{}
@@ -150,7 +169,12 @@ func (self *Container) Run(command string, c chan Exec) {
 
 func (self *Container) Start() error {
 
-	url := "app/" + appSubsystemVersion + "/container/" + self.Uuid + "/start/"
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/container/" + self.Uuid + "/start/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/container/" + self.Uuid + "/start/"
+	}
 	request := "POST"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -171,7 +195,13 @@ func (self *Container) Start() error {
 
 func (self *Container) Stop() error {
 
-	url := "app/" + appSubsystemVersion + "/container/" + self.Uuid + "/stop/"
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/container/" + self.Uuid + "/stop/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/container/" + self.Uuid + "/stop/"
+	}
+
 	request := "POST"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -188,9 +218,17 @@ func (self *Container) Redeploy(reuse_volume ReuseVolumesOption) error {
 
 	url := ""
 	if reuse_volume.Reuse != true {
-		url = "app/" + appSubsystemVersion + "/container/" + self.Uuid + "/redeploy/?reuse_volumes=false"
+		if Namespace != "" {
+			url = "app/" + appSubsystemVersion + "/" + Namespace + "/container/" + self.Uuid + "/redeploy/?reuse_volumes=false"
+		} else {
+			url = "app/" + appSubsystemVersion + "/container/" + self.Uuid + "/redeploy/?reuse_volumes=false"
+		}
 	} else {
-		url = "app/" + appSubsystemVersion + "/container/" + self.Uuid + "/redeploy/"
+		if Namespace != "" {
+			url = "app/" + appSubsystemVersion + "/" + Namespace + "/container/" + self.Uuid + "/redeploy/"
+		} else {
+			url = "app/" + appSubsystemVersion + "/container/" + self.Uuid + "/redeploy/"
+		}
 	}
 
 	request := "POST"
@@ -207,7 +245,13 @@ func (self *Container) Redeploy(reuse_volume ReuseVolumesOption) error {
 
 func (self *Container) Terminate() error {
 
-	url := "app/" + appSubsystemVersion + "/container/" + self.Uuid + "/"
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/container/" + self.Uuid + "/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/container/" + self.Uuid + "/"
+	}
+
 	request := "DELETE"
 	//Empty Body Request
 	body := []byte(`{}`)

@@ -27,6 +27,7 @@ import (
 	dnsprovider "github.com/hashicorp/terraform/builtin/providers/dns"
 	dnsimpleprovider "github.com/hashicorp/terraform/builtin/providers/dnsimple"
 	dockerprovider "github.com/hashicorp/terraform/builtin/providers/docker"
+	dockercloudprovider "github.com/hashicorp/terraform/builtin/providers/dockercloud"
 	dynprovider "github.com/hashicorp/terraform/builtin/providers/dyn"
 	externalprovider "github.com/hashicorp/terraform/builtin/providers/external"
 	fastlyprovider "github.com/hashicorp/terraform/builtin/providers/fastly"
@@ -102,6 +103,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"dns":          dnsprovider.Provider,
 	"dnsimple":     dnsimpleprovider.Provider,
 	"docker":       dockerprovider.Provider,
+	"dockercloud":  dockercloudprovider.Provider,
 	"dyn":          dynprovider.Provider,
 	"external":     externalprovider.Provider,
 	"fastly":       fastlyprovider.Provider,

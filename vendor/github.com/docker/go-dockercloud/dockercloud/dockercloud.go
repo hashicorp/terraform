@@ -20,6 +20,7 @@ const (
 
 var (
 	User       string
+	Namespace  string
 	Password   string
 	ApiKey     string
 	BasicAuth  string
@@ -27,7 +28,7 @@ var (
 	Debug      = false
 	BaseUrl    = "https://cloud.docker.com/api/"
 	StreamUrl  = "wss://ws.cloud.docker.com/"
-	version    = "0.21.0"
+	version    = "1.0.8"
 )
 
 type AuthConfig struct {
@@ -86,6 +87,12 @@ func LoadAuth() error {
 		}
 	}
 	return fmt.Errorf("Couldn't find any DockerCloud credentials in ~/.docker/config.json or environment variables DOCKERCLOUD_USER and DOCKERCLOUD_APIKEY")
+}
+
+func maybeSetNamespace() {
+	if os.Getenv("DOCKERCLOUD_NAMESPACE") != "" {
+		Namespace = os.Getenv("DOCKERCLOUD_NAMESPACE")
+	}
 }
 
 func IsAuthenticated() bool {

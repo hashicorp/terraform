@@ -10,7 +10,12 @@ import (
 
 func ListNodes() (NodeListResponse, error) {
 
-	url := "infra/" + infraSubsytemVersion + "/node/"
+	url := ""
+	if Namespace != "" {
+		url = "infra/" + infraSubsytemVersion + "/" + Namespace + "/node/"
+	} else {
+		url = "infra/" + infraSubsytemVersion + "/node/"
+	}
 	request := "GET"
 
 	//Empty Body Request
@@ -59,7 +64,11 @@ func GetNode(uuid string) (Node, error) {
 	if string(uuid[0]) == "/" {
 		url = uuid[5:]
 	} else {
-		url = "infra/" + infraSubsytemVersion + "/node/" + uuid + "/"
+		if Namespace != "" {
+			url = "infra/" + infraSubsytemVersion + "/" + Namespace + "/node/" + uuid + "/"
+		} else {
+			url = "infra/" + infraSubsytemVersion + "/node/" + uuid + "/"
+		}
 	}
 	request := "GET"
 	body := []byte(`{}`)
@@ -80,7 +89,13 @@ func GetNode(uuid string) (Node, error) {
 
 func (self *Node) Update(createRequest Node) error {
 
-	url := "infra/" + infraSubsytemVersion + "/node/" + self.Uuid + "/"
+	url := ""
+	if Namespace != "" {
+		url = "infra/" + infraSubsytemVersion + "/" + Namespace + "/node/" + self.Uuid + "/"
+	} else {
+		url = "infra/" + infraSubsytemVersion + "/node/" + self.Uuid + "/"
+	}
+
 	request := "PATCH"
 
 	updatedNode, err := json.Marshal(createRequest)
@@ -98,7 +113,13 @@ func (self *Node) Update(createRequest Node) error {
 
 func (self *Node) Upgrade() error {
 
-	url := "infra/" + infraSubsytemVersion + "/node/" + self.Uuid + "/docker-upgrade/"
+	url := ""
+	if Namespace != "" {
+		url = "infra/" + infraSubsytemVersion + "/" + Namespace + "/node/" + self.Uuid + "/docker-upgrade/"
+	} else {
+		url = "infra/" + infraSubsytemVersion + "/node/" + self.Uuid + "/docker-upgrade/"
+	}
+
 	request := "POST"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -113,7 +134,14 @@ func (self *Node) Upgrade() error {
 
 func (self *Node) Terminate() error {
 
-	url := "infra/" + infraSubsytemVersion + "/node/" + self.Uuid + "/"
+	url := ""
+
+	if Namespace != "" {
+		url = "infra/" + infraSubsytemVersion + "/" + Namespace + "/node/" + self.Uuid + "/"
+	} else {
+		url = "infra/" + infraSubsytemVersion + "/node/" + self.Uuid + "/"
+	}
+
 	request := "DELETE"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -127,7 +155,14 @@ func (self *Node) Terminate() error {
 }
 
 func (self *Node) Events(c chan NodeEvent) {
-	endpoint := "infra/" + infraSubsytemVersion + "/node/" + self.Uuid + "/events/?user=" + User + "&token=" + ApiKey
+
+	endpoint := ""
+	if Namespace != "" {
+		endpoint = "infra/" + infraSubsytemVersion + "/" + Namespace + "/node/" + self.Uuid + "/events/?user=" + User + "&token=" + ApiKey
+	} else {
+		endpoint = "infra/" + infraSubsytemVersion + "/node/" + self.Uuid + "/events/?user=" + User + "&token=" + ApiKey
+	}
+
 	url := StreamUrl + endpoint
 
 	header := http.Header{}

@@ -21,7 +21,7 @@ const (
 	PING_PERIOD = PONG_WAIT / 2
 )
 
-func dial() (*websocket.Conn, error) {
+func dial() (*websocket.Conn, *http.Response, error) {
 	if os.Getenv("DOCKERCLOUD_STREAM_HOST") != "" {
 		u, _ := url.Parse(os.Getenv("DOCKERCLOUD_STREAM_HOST"))
 		_, port, _ := net.SplitHostPort(u.Host)
@@ -38,19 +38,19 @@ func dial() (*websocket.Conn, error) {
 		StreamUrl = u.Scheme + "://" + u.Host + "/"
 	}
 
-	Url := StreamUrl + "api/audit/" + auditSubsystemVersion + "/events/"
+	Url := ""
+	if Namespace != "" {
+		Url = StreamUrl + "api/audit/" + auditSubsystemVersion + "/" + Namespace + "/events/"
+	} else {
+		Url = StreamUrl + "api/audit/" + auditSubsystemVersion + "/events/"
+	}
 
 	header := http.Header{}
 	header.Add("Authorization", AuthHeader)
 	header.Add("User-Agent", customUserAgent)
 
 	var Dialer websocket.Dialer
-	ws, _, err := Dialer.Dial(Url, header)
-	if err != nil {
-		return nil, err
-	}
-
-	return ws, nil
+	return Dialer.Dial(Url, header)
 }
 
 func dialHandler(e chan error) (*websocket.Conn, error) {
@@ -64,10 +64,13 @@ func dialHandler(e chan error) (*websocket.Conn, error) {
 
 	tries := 0
 	for {
-		ws, err := dial()
+		ws, resp, err := dial()
 		if err != nil {
 			tries++
 			time.Sleep(3 * time.Second)
+			if resp.StatusCode == 401 {
+				return nil, HttpError{Status: resp.Status, StatusCode: resp.StatusCode}
+			}
 			if tries > 3 {
 				log.Println("[DIAL ERROR]: " + err.Error())
 				e <- err
@@ -107,6 +110,7 @@ func Events(c chan Event, e chan error) {
 	ticker := time.NewTicker(PING_PERIOD)
 	ws, err := dialHandler(e)
 	if err != nil {
+		e <- err
 		return
 	}
 	e2 := make(chan error)

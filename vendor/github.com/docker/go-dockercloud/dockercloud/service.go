@@ -9,7 +9,14 @@ import (
 )
 
 func ListServices() (SListResponse, error) {
-	url := "app/" + appSubsystemVersion + "/service/"
+
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/service/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/service/"
+	}
+
 	request := "GET"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -58,6 +65,8 @@ func GetService(uuid string) (Service, error) {
 	url := ""
 	if string(uuid[0]) == "/" {
 		url = uuid[5:]
+	} else if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/service/" + uuid + "/"
 	} else {
 		url = "app/" + appSubsystemVersion + "/service/" + uuid + "/"
 	}
@@ -83,7 +92,13 @@ func GetService(uuid string) (Service, error) {
 
 func CreateService(createRequest ServiceCreateRequest) (Service, error) {
 
-	url := "app/" + appSubsystemVersion + "/service/"
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/service/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/service/"
+	}
+
 	request := "POST"
 	var response Service
 
@@ -107,7 +122,13 @@ func CreateService(createRequest ServiceCreateRequest) (Service, error) {
 
 func (self *Service) Logs(c chan Logs) {
 
-	endpoint := "api/app/" + appSubsystemVersion + "/service/" + self.Uuid + "/logs/"
+	endpoint := ""
+	if Namespace != "" {
+		endpoint = "api/app/" + appSubsystemVersion + "/" + Namespace + "/service/" + self.Uuid + "/logs/"
+	} else {
+		endpoint = "api/app/" + appSubsystemVersion + "/service/" + self.Uuid + "/logs/"
+	}
+
 	url := StreamUrl + endpoint
 
 	header := http.Header{}
@@ -132,7 +153,13 @@ func (self *Service) Logs(c chan Logs) {
 
 func (self *Service) Scale() error {
 
-	url := "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/scale/"
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/service/" + self.Uuid + "/scale/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/scale/"
+	}
+
 	request := "POST"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -152,7 +179,14 @@ func (self *Service) Scale() error {
 }
 
 func (self *Service) Update(createRequest ServiceCreateRequest) error {
-	url := "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/"
+
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/service/" + self.Uuid + "/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/"
+	}
+
 	request := "PATCH"
 
 	updatedService, err := json.Marshal(createRequest)
@@ -169,7 +203,14 @@ func (self *Service) Update(createRequest ServiceCreateRequest) error {
 }
 
 func (self *Service) Start() error {
-	url := "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/start/"
+
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/service/" + self.Uuid + "/start/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/start/"
+	}
+
 	request := "POST"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -183,7 +224,13 @@ func (self *Service) Start() error {
 
 func (self *Service) StopService() error {
 
-	url := "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/stop/"
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/service/" + self.Uuid + "/stop/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/stop/"
+	}
+
 	request := "POST"
 	//Empty Body Request
 	body := []byte(`{}`)
@@ -199,9 +246,17 @@ func (self *Service) Redeploy(reuse_volume ReuseVolumesOption) error {
 
 	url := ""
 	if reuse_volume.Reuse != true {
-		url = "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/redeploy/?reuse_volumes=false"
+		if Namespace != "" {
+			url = "app/" + appSubsystemVersion + "/" + Namespace + "/service/" + self.Uuid + "/redeploy/?reuse_volumes=false"
+		} else {
+			url = "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/redeploy/?reuse_volumes=false"
+		}
 	} else {
-		url = "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/redeploy/"
+		if Namespace != "" {
+			url = "app/" + appSubsystemVersion + "/" + Namespace + "/service/" + self.Uuid + "/redeploy/"
+		} else {
+			url = "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/redeploy/"
+		}
 	}
 
 	request := "POST"
@@ -217,7 +272,14 @@ func (self *Service) Redeploy(reuse_volume ReuseVolumesOption) error {
 }
 
 func (self *Service) TerminateService() error {
-	url := "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/"
+
+	url := ""
+	if Namespace != "" {
+		url = "app/" + appSubsystemVersion + "/" + Namespace + "/service/" + self.Uuid + "/"
+	} else {
+		url = "app/" + appSubsystemVersion + "/service/" + self.Uuid + "/"
+	}
+
 	request := "DELETE"
 	//Empty Body Request
 	body := []byte(`{}`)
