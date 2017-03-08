@@ -183,6 +183,7 @@ func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("start_on_create", stack.StartOnCreate)
+	d.Set("finish_upgrade", d.Get("finish_upgrade").(bool))
 
 	return nil
 }
