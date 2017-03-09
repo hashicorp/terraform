@@ -91,24 +91,11 @@ const testAccCheckDockercloudStackConfig_basic = `
 resource "dockercloud_node_cluster" "foobar" {
     name = "foobar-test-terraform"
     node_provider = "aws"
-    size = "t2.micro"
+    size = "t2.nano"
     region = "us-east-1"
 }
 
 resource "dockercloud_stack" "foobar" {
     name = "foobar-test-terraform"
-
-    services {
-        name = "foobar-test-service-one"
-        image = "python:3.2"
-        entrypoint = "python -m http.server"
-    }
-
-    services {
-        name = "foobar-test-service-two"
-      	image = "python:3.2"
-      	entrypoint = "python -m http.server"
-    }
-
     depends_on = ["dockercloud_node_cluster.foobar"]
 }`

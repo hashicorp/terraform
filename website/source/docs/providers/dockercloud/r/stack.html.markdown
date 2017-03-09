@@ -23,12 +23,7 @@ resource "dockercloud_node_cluster" "default" {
 
 # Create a sample web stack
 resource "dockercloud_stack" "web" {
-    services {
-        name = "web_server"
-        image = "python:3.2"
-        entrypoint = "python -m http.server"
-    }
-
+    name = "foostack"
     # Explicitly set dependency on the node cluster
     depends_on = ["dockercloud_node_cluster.default"]
 }
@@ -39,72 +34,7 @@ resource "dockercloud_stack" "web" {
 The following arguments are supported:
 
 * `name` - (Required, string) The name of the stack (cannot contain underscores).
-* `services` - (Optional) Services deployed in the stack. See [Services](#services) block below.
-* `redeploy_on_change` - (Optional, bool) When a non-destructive config update is applied to the stack, redeploy the running containers with the new configuration (default: `false`).
 * `reuse_existing_volumes` - (Optional, bool) Reuse container volumes when redeploying.
-
-<a id="services"></a>
-### Services
-
-Similar to the `dockercloud_service` resource, this block can be repeated to define multiple services in the stack.
-
-The following parameters are supported:
-
-* `name` - (Required) The name of the service (cannot contain underscores).
-* `image` - (Required) The image to start the container with.
-* `entrypoint` - (Optional) The entrypoint used at container startup.
-* `command` - (Optional) The command used at container startup.
-* `workdir` - (Optional) The directory to start from at container startup.
-* `pid` - (Optional) The process ID to run the command as (either `none` or `host`).
-* `net` - (Optional) The networking type of the container (either `bridge` or `host`).
-* `deployment_strategy` - (Optional) Container distribution among nodes. Must be one of `EMPTIEST_NODE`, `HIGH_AVAILABILITY` or `EVERY_NODE`.
-* `autorestart` - (Optional) Whether the containers for this service should be restarted if they stop. Must be one of `OFF`, `ON_FAILURE` or `ALWAYS`.
-* `autodestroy` - (Optional) Whether the containers should be terminated if they stop. Must be one of `OFF`, `ON_SUCCESS` or `ALWAYS`.
-* `autoredeploy` - (Optional, bool) Whether to redeploy the containers of the service when its image is updated in Docker Cloud registry.
-* `privileged` - (Optional, bool) Run container in privileged mode.
-* `sequential_deployment` - (Optional, bool) Whether the containers should be launched and scaled in sequence.
-* `container_count` - (Optional) Number of containers to start. When `deployment_strategy` is set to anything other than `EMPTIEST_NODE`, `container_count` cannot be set.
-* `roles` - (Optional) List of Docker Cloud API roles to grant the service. Currently, only `global` is supported.
-* `tags` - (Optional) List of tags to be used to deploy the service.
-* `bindings` - (Optional, block) Bindings this service has to mount. See [Bindings](#bindgins) below for details.
-* `env` - (Optional, block) Environment variables to be added in the containers on launch. See [Env](#env) below for details.
-* `links` - (Optional, block) Other services to link this service to. See [Links](#links) below for details.
-* `ports` - (Optional, block) Port information to be published in the containers for this service. See [Ports](#ports) below for details.
-
-<a id="bindings"></a>
-#### Bindings
-
-`bindings` is a block within the configuration that can be repeated to specify mount points in the container. Each `bindings` block supports the following:
-
-* `container_path` - (Optional, string) The container path where the volume is mounted.
-* `host_path` - (Optional, string) The host path of the volume.
-* `rewritable` - (Optional, bool) Grant the volume writable permissions.
-* `volumes_from` - (Optional, string) The resource URI of the service to mount volumes from.
-
-<a id="env"></a>
-#### Env
-
-`env` is a block within the configuration that can be repeated to specify environment variables to be injected into each service container. Each `env` block supports the following:
-
-* `key` - (Required, string) Name of the environment variable.
-* `value` - (Required, string) Value of the environment variable.
-
-<a id="links"></a>
-#### Links
-
-`links` is a block within the configuration that can be repeated to specify other containers to link this service to. Each `links` block supports the following:
-
-* `to` - (Required, string) Name of the service to link to.
-* `name` - (Optional, string) Override the default name with this value.
-
-<a id="ports"></a>
-#### Ports
-
-`ports` is a block within the configuration that can be repeated to specify the port mappings of the container. Each `ports` block supports the following:
-
-* `internal` - (Required, int) Port within the container.
-* `external` - (Required, int) Port exposed out of the container.
-* `protocol` - (Optional, string) Protocol that can be used over this port, defaults to TCP.
 
 ## Attributes Reference
 

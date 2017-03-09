@@ -9,34 +9,34 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccCheckDockercloudService_Basic(t *testing.T) {
+func TestAccCheckDockercloudStackService_Basic(t *testing.T) {
 	var service dockercloud.Service
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDockercloudServiceDestroy,
+		CheckDestroy: testAccCheckDockercloudStackServiceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckDockercloudServiceConfig_basic,
+				Config: testAccCheckDockercloudStackServiceConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDockercloudServiceExists("dockercloud_service.foobar", &service),
-					testAccCheckDockercloudServiceAttributes(&service),
+					testAccCheckDockercloudStackServiceExists("dockercloud_stack_service.foobar", &service),
+					testAccCheckDockercloudStackServiceAttributes(&service),
 					resource.TestCheckResourceAttr(
-						"dockercloud_service.foobar", "name", "foobar-test-terraform"),
+						"dockercloud_stack_service.foobar", "name", "foobar-test-terraform"),
 					resource.TestCheckResourceAttr(
-						"dockercloud_service.foobar", "image", "python:3.2"),
+						"dockercloud_stack_service.foobar", "image", "python:3.2"),
 					resource.TestCheckResourceAttr(
-						"dockercloud_service.foobar", "entrypoint", "python -m http.server"),
+						"dockercloud_stack_service.foobar", "entrypoint", "python -m http.server"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckDockercloudServiceDestroy(s *terraform.State) error {
+func testAccCheckDockercloudStackServiceDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "dockercloud_service" {
+		if rs.Type != "dockercloud_stack_service" {
 			continue
 		}
 
@@ -53,7 +53,7 @@ func testAccCheckDockercloudServiceDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckDockercloudServiceExists(n string, service *dockercloud.Service) resource.TestCheckFunc {
+func testAccCheckDockercloudStackServiceExists(n string, service *dockercloud.Service) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -80,7 +80,7 @@ func testAccCheckDockercloudServiceExists(n string, service *dockercloud.Service
 	}
 }
 
-func testAccCheckDockercloudServiceAttributes(service *dockercloud.Service) resource.TestCheckFunc {
+func testAccCheckDockercloudStackServiceAttributes(service *dockercloud.Service) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if service.Name != "foobar-test-terraform" {
@@ -99,7 +99,7 @@ func testAccCheckDockercloudServiceAttributes(service *dockercloud.Service) reso
 	}
 }
 
-const testAccCheckDockercloudServiceConfig_basic = `
+const testAccCheckDockercloudStackServiceConfig_basic = `
 resource "dockercloud_node_cluster" "foobar" {
     name = "foobar-test-terraform"
     node_provider = "aws"
@@ -107,7 +107,13 @@ resource "dockercloud_node_cluster" "foobar" {
     region = "us-east-1"
 }
 
-resource "dockercloud_service" "foobar" {
+resource "dockercloud_stack" "foobar" {
+    name = "foobar-test-terraform"
+    depends_on = ["dockercloud_node_cluster.foobar"]
+}
+
+resource "dockercloud_stack_service" "foobar" {
+	  stack_uri = "${dockercloud_stack.foobar.uri}"
     name = "foobar-test-terraform"
     image = "python:3.2"
     entrypoint = "python -m http.server"

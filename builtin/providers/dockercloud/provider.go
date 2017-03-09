@@ -30,9 +30,10 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"dockercloud_node_cluster": resourceDockercloudNodeCluster(),
-			"dockercloud_service":      resourceDockercloudService(),
-			"dockercloud_stack":        resourceDockercloudStack(),
+			"dockercloud_node_cluster":  resourceDockercloudNodeCluster(),
+			"dockercloud_service":       resourceDockercloudService(),
+			"dockercloud_stack":         resourceDockercloudStack(),
+			"dockercloud_stack_service": resourceDockercloudStackService(),
 		},
 
 		ConfigureFunc: providerConfigure,

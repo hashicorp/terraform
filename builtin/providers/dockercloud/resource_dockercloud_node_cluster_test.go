@@ -27,7 +27,7 @@ func TestAccCheckDockercloudNodeCluster_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"dockercloud_node_cluster.foobar", "node_provider", "aws"),
 					resource.TestCheckResourceAttr(
-						"dockercloud_node_cluster.foobar", "size", "t2.micro"),
+						"dockercloud_node_cluster.foobar", "size", "t2.nano"),
 					resource.TestCheckResourceAttr(
 						"dockercloud_node_cluster.foobar", "region", "us-east-1"),
 				),
@@ -93,7 +93,7 @@ func testAccCheckDockercloudNodeClusterAttributes(nodeCluster *dockercloud.NodeC
 			return fmt.Errorf("Bad region: %s", nodeCluster.Region)
 		}
 
-		if nodeCluster.NodeType != "/api/infra/v1/nodetype/aws/t2.micro/" {
+		if nodeCluster.NodeType != "/api/infra/v1/nodetype/aws/t2.nano/" {
 			return fmt.Errorf("Bad nodetype: %s", nodeCluster.NodeType)
 		}
 
