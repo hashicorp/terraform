@@ -882,7 +882,14 @@ func resourceArmVirtualMachineScaleSetOsProfileLWindowsConfigHash(v interface{})
 func resourceArmVirtualMachineScaleSetExtensionHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s", m["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["publisher"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["type"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["type_handler_version"].(string)))
+	if m["auto_upgrade_minor_version"] != nil {
+		buf.WriteString(fmt.Sprintf("%t-", m["auto_upgrade_minor_version"].(bool)))
+	}
+
 	return hashcode.String(buf.String())
 }
 
