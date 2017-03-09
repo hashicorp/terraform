@@ -385,10 +385,10 @@
 			"revisionTime": "2016-11-03T18:56:17Z"
 		},
 		{
-			"checksumSHA1": "ibs+ylGiQibNx5GeZlCKx7A/zH8=",
+			"checksumSHA1": "iysTPYhDNP3x2reGLTMgNHw+iL0=",
 			"path": "github.com/PagerDuty/go-pagerduty",
-			"revision": "fcea06d066d768bf90755d1071dd444c6abff524",
-			"revisionTime": "2017-03-01T18:59:23Z"
+			"revision": "cc53abe550274c2dec666e7f44cefc9ee10e429d",
+			"revisionTime": "2017-03-09T00:45:39Z"
 		},
 		{
 			"checksumSHA1": "NX4v3cbkXAJxFlrncqT9yEUBuoA=",
