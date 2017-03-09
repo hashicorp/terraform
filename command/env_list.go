@@ -19,6 +19,7 @@ func (c *EnvListCommand) Run(args []string) int {
 		return 1
 	}
 
+	args = cmdFlags.Args()
 	configPath, err := ModulePath(args)
 	if err != nil {
 		c.Ui.Error(err.Error())
