@@ -292,6 +292,9 @@ func resourceArmVirtualMachine() *schema.Resource {
 						"admin_password": {
 							Type:     schema.TypeString,
 							Required: true,
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								return true
+							},
 						},
 
 						"custom_data": {
