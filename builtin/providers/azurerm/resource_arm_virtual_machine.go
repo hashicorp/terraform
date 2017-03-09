@@ -295,10 +295,8 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 
 						"custom_data": {
-							Type:      schema.TypeString,
-							Optional:  true,
-							Computed:  true,
-							StateFunc: userDataStateFunc,
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
