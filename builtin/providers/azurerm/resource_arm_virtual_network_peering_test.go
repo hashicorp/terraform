@@ -15,9 +15,9 @@ func TestAccAzureRMVirtualNetworkPeering_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMVirtualNetworkPeering_basic, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMVirtualNetworkPeeringDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMVirtualNetworkPeeringDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -39,9 +39,9 @@ func TestAccAzureRMVirtualNetworkPeering_disappears(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMVirtualNetworkPeering_basic, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMVirtualNetworkPeeringDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMVirtualNetworkPeeringDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -66,9 +66,9 @@ func TestAccAzureRMVirtualNetworkPeering_update(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMVirtualNetworkPeering_basicUpdate, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMVirtualNetworkPeeringDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMVirtualNetworkPeeringDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,

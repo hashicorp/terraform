@@ -15,9 +15,9 @@ func TestAccAzureRMEventHubAuthorizationRule_listen(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMEventHubAuthorizationRule_listen, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMEventHubAuthorizationRuleDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMEventHubAuthorizationRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -34,9 +34,9 @@ func TestAccAzureRMEventHubAuthorizationRule_send(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMEventHubAuthorizationRule_send, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMEventHubAuthorizationRuleDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMEventHubAuthorizationRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -53,9 +53,9 @@ func TestAccAzureRMEventHubAuthorizationRule_readwrite(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMEventHubAuthorizationRule_readwrite, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMEventHubAuthorizationRuleDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMEventHubAuthorizationRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -72,9 +72,9 @@ func TestAccAzureRMEventHubAuthorizationRule_manage(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMEventHubAuthorizationRule_manage, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMEventHubAuthorizationRuleDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMEventHubAuthorizationRuleDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

@@ -138,6 +138,13 @@ func (p *Provider) Stop() error {
 	return nil
 }
 
+// StopTestReset resets tha StopContext for tests.
+// This should not be called outside of unit tests, and not while any other
+// test are being executed.
+func (p *Provider) StopContextTestReset() {
+	p.stopInit()
+}
+
 // Input implementation of terraform.ResourceProvider interface.
 func (p *Provider) Input(
 	input terraform.UIInput,

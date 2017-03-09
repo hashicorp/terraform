@@ -15,9 +15,9 @@ func TestAccAzureRMDnsNsRecord_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMDnsNsRecord_basic, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMDnsNsRecordDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMDnsNsRecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -35,9 +35,9 @@ func TestAccAzureRMDnsNsRecord_updateRecords(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMDnsNsRecord_updateRecords, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMDnsNsRecordDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMDnsNsRecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,
@@ -66,9 +66,9 @@ func TestAccAzureRMDnsNsRecord_withTags(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMDnsNsRecord_withTagsUpdate, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMDnsNsRecordDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMDnsNsRecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,

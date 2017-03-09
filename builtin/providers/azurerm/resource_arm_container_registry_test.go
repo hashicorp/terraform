@@ -72,9 +72,9 @@ func TestAccAzureRMContainerRegistry_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMContainerRegistry_basic, ri, rs, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMContainerRegistryDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMContainerRegistryDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -92,9 +92,9 @@ func TestAccAzureRMContainerRegistry_complete(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMContainerRegistry_complete, ri, rs, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMContainerRegistryDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMContainerRegistryDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

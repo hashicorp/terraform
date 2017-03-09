@@ -15,9 +15,9 @@ func TestAccAzureRMDnsCNameRecord_importBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMDnsCNameRecord_basic, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMDnsCNameRecordDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMDnsCNameRecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

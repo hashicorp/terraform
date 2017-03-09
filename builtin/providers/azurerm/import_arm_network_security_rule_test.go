@@ -12,9 +12,9 @@ func TestAccAzureRMNetworkSecurityRule_importBasic(t *testing.T) {
 	resourceName := "azurerm_network_security_rule.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMNetworkSecurityRuleDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMNetworkSecurityRuleDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAzureRMNetworkSecurityRule_basic(rInt),

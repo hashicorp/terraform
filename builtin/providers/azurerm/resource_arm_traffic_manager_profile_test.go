@@ -18,9 +18,9 @@ func TestAccAzureRMTrafficManagerProfile_weighted(t *testing.T) {
 	fqdn := fmt.Sprintf("acctesttmp%d.trafficmanager.net", ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTrafficManagerProfileDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTrafficManagerProfileDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -41,9 +41,9 @@ func TestAccAzureRMTrafficManagerProfile_performance(t *testing.T) {
 	fqdn := fmt.Sprintf("acctesttmp%d.trafficmanager.net", ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTrafficManagerProfileDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTrafficManagerProfileDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -64,9 +64,9 @@ func TestAccAzureRMTrafficManagerProfile_priority(t *testing.T) {
 	fqdn := fmt.Sprintf("acctesttmp%d.trafficmanager.net", ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTrafficManagerProfileDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTrafficManagerProfileDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -86,9 +86,9 @@ func TestAccAzureRMTrafficManagerProfile_withTags(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMTrafficManagerProfile_withTagsUpdated, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTrafficManagerProfileDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTrafficManagerProfileDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,

@@ -16,9 +16,9 @@ func TestAccAzureRMAvailabilitySet_importBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMVAvailabilitySet_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMAvailabilitySetDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMAvailabilitySetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

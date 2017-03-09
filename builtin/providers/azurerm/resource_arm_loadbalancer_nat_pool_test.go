@@ -22,9 +22,9 @@ func TestAccAzureRMLoadBalancerNatPool_basic(t *testing.T) {
 		subscriptionID, ri, ri, natPoolName)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMLoadBalancerNatPool_basic(ri, natPoolName),
@@ -45,9 +45,9 @@ func TestAccAzureRMLoadBalancerNatPool_removal(t *testing.T) {
 	natPoolName := fmt.Sprintf("NatPool-%d", ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMLoadBalancerNatPool_basic(ri, natPoolName),
@@ -74,9 +74,9 @@ func TestAccAzureRMLoadBalancerNatPool_update(t *testing.T) {
 	natPool2Name := fmt.Sprintf("NatPool-%d", acctest.RandInt())
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMLoadBalancerNatPool_multiplePools(ri, natPoolName, natPool2Name),
@@ -110,9 +110,9 @@ func TestAccAzureRMLoadBalancerNatPool_reapply(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMLoadBalancerNatPool_basic(ri, natPoolName),
@@ -140,9 +140,9 @@ func TestAccAzureRMLoadBalancerNatPool_disappears(t *testing.T) {
 	natPoolName := fmt.Sprintf("NatPool-%d", ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMLoadBalancerNatPool_basic(ri, natPoolName),

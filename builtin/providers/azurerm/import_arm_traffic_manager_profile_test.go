@@ -15,9 +15,9 @@ func TestAccAzureRMTrafficManagerProfile_importBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMTrafficManagerProfile_performance, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMTrafficManagerProfileDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMTrafficManagerProfileDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

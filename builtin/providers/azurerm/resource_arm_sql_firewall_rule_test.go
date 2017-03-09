@@ -16,9 +16,9 @@ func TestAccAzureRMSqlFirewallRule_basic(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMSqlFirewallRule_withUpdates, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMSqlFirewallRuleDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMSqlFirewallRuleDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,

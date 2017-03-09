@@ -56,9 +56,9 @@ func TestAccAzureRMCdnProfile_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMCdnProfile_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMCdnProfileDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMCdnProfileDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -77,9 +77,9 @@ func TestAccAzureRMCdnProfile_withTags(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMCdnProfile_withTagsUpdate, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMCdnProfileDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMCdnProfileDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,

@@ -15,9 +15,9 @@ func TestAccAzureRMSqlServer_importBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMSqlServer_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMSqlServerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMSqlServerDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

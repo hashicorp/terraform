@@ -13,9 +13,9 @@ import (
 func TestAccAzureRMNetworkSecurityGroup_basic(t *testing.T) {
 	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMNetworkSecurityGroup_basic(rInt),
@@ -30,9 +30,9 @@ func TestAccAzureRMNetworkSecurityGroup_basic(t *testing.T) {
 func TestAccAzureRMNetworkSecurityGroup_disappears(t *testing.T) {
 	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMNetworkSecurityGroup_basic(rInt),
@@ -49,9 +49,9 @@ func TestAccAzureRMNetworkSecurityGroup_disappears(t *testing.T) {
 func TestAccAzureRMNetworkSecurityGroup_withTags(t *testing.T) {
 	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMNetworkSecurityGroup_withTags(rInt),
@@ -83,9 +83,9 @@ func TestAccAzureRMNetworkSecurityGroup_withTags(t *testing.T) {
 func TestAccAzureRMNetworkSecurityGroup_addingExtraRules(t *testing.T) {
 	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMNetworkSecurityGroupDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMNetworkSecurityGroup_basic(rInt),

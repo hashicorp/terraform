@@ -15,9 +15,9 @@ func TestAccAzureRMDnsZone_importBasic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMDnsZone_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMDnsZoneDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMDnsZoneDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

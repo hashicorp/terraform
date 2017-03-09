@@ -85,9 +85,9 @@ func TestAccAzureRMEventHubNamespace_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMEventHubNamespace_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMEventHubNamespaceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMEventHubNamespaceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -105,9 +105,9 @@ func TestAccAzureRMEventHubNamespace_standard(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMEventHubNamespace_standard, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMEventHubNamespaceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMEventHubNamespaceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -124,9 +124,9 @@ func TestAccAzureRMEventHubNamespace_readDefaultKeys(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMEventHubNamespace_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMEventHubNamespaceDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMEventHubNamespaceDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

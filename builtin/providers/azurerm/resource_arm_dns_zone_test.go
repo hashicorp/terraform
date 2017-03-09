@@ -15,9 +15,9 @@ func TestAccAzureRMDnsZone_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMDnsZone_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMDnsZoneDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMDnsZoneDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
@@ -35,9 +35,9 @@ func TestAccAzureRMDnsZone_withTags(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMDnsZone_withTagsUupdate, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMDnsZoneDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMDnsZoneDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: preConfig,

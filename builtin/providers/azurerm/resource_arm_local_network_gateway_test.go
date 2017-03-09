@@ -13,9 +13,9 @@ func TestAccAzureRMLocalNetworkGateway_basic(t *testing.T) {
 	name := "azurerm_local_network_gateway.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLocalNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLocalNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMLocalNetworkGatewayConfig_basic,
@@ -33,9 +33,9 @@ func TestAccAzureRMLocalNetworkGateway_disappears(t *testing.T) {
 	name := "azurerm_local_network_gateway.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLocalNetworkGatewayDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLocalNetworkGatewayDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMLocalNetworkGatewayConfig_basic,

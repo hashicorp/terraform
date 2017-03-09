@@ -16,9 +16,9 @@ func TestAccAzureRMRoute_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMRoute_basic, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMRouteDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMRouteDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -36,9 +36,9 @@ func TestAccAzureRMRoute_disappears(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMRoute_basic, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMRouteDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMRouteDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -59,9 +59,9 @@ func TestAccAzureRMRoute_multipleRoutes(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMRoute_multipleRoutes, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMRouteDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMRouteDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,

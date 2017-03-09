@@ -8,13 +8,25 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-var testAccProviders map[string]terraform.ResourceProvider
-var testAccProvider *schema.Provider
+var testAccProviders map[string]terraform.ResourceProviderFactory
+var testAccProvider = Provider().(*schema.Provider)
 
 func init() {
-	testAccProvider = Provider().(*schema.Provider)
-	testAccProviders = map[string]terraform.ResourceProvider{
-		"azurerm": testAccProvider,
+	testAccProviders = map[string]terraform.ResourceProviderFactory{
+		"azurerm": func() (terraform.ResourceProvider, error) {
+			// The StopContext needs to be replaced if it was used in a test.
+
+			// Reset the Context in the schema.Provider.
+			testAccProvider.StopContextTestReset()
+
+			// get the configured client and replace its copy of the Context
+			m := testAccProvider.Meta()
+			if m != nil {
+				m.(*ArmClient).StopContext = testAccProvider.StopContext()
+				testAccProvider.SetMeta(m)
+			}
+			return testAccProvider, nil
+		},
 	}
 }
 

@@ -22,9 +22,9 @@ func TestAccAzureRMLoadBalancerBackEndAddressPool_basic(t *testing.T) {
 		subscriptionID, ri, ri, addressPoolName)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMLoadBalancerBackEndAddressPool_basic(ri, addressPoolName),
@@ -45,9 +45,9 @@ func TestAccAzureRMLoadBalancerBackEndAddressPool_removal(t *testing.T) {
 	addressPoolName := fmt.Sprintf("%d-address-pool", ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMLoadBalancerBackEndAddressPool_removal(ri),
@@ -70,9 +70,9 @@ func TestAccAzureRMLoadBalancerBackEndAddressPool_reapply(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMLoadBalancerBackEndAddressPool_basic(ri, addressPoolName),
@@ -100,9 +100,9 @@ func TestAccAzureRMLoadBalancerBackEndAddressPool_disappears(t *testing.T) {
 	addressPoolName := fmt.Sprintf("%d-address-pool", ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAzureRMLoadBalancerBackEndAddressPool_basic(ri, addressPoolName),

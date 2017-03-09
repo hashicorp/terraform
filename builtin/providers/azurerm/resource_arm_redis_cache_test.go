@@ -114,9 +114,9 @@ func TestAccAzureRMRedisCache_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMRedisCache_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMRedisCacheDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMRedisCacheDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -133,9 +133,9 @@ func TestAccAzureRMRedisCache_standard(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMRedisCache_standard, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMRedisCacheDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMRedisCacheDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -152,9 +152,9 @@ func TestAccAzureRMRedisCache_premium(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMRedisCache_premium, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMRedisCacheDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMRedisCacheDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -171,9 +171,9 @@ func TestAccAzureRMRedisCache_premiumSharded(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMRedisCache_premiumSharded, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMRedisCacheDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMRedisCacheDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,

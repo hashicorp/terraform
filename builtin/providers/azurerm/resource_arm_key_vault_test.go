@@ -15,9 +15,9 @@ func TestAccAzureRMKeyVault_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMKeyVault_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMKeyVaultDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMKeyVaultDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -35,9 +35,9 @@ func TestAccAzureRMKeyVault_update(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMKeyVault_update, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMKeyVaultDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMKeyVaultDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,

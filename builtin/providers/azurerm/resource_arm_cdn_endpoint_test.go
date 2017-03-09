@@ -15,9 +15,9 @@ func TestAccAzureRMCdnEndpoint_basic(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMCdnEndpoint_basic, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMCdnEndpointDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMCdnEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -34,9 +34,9 @@ func TestAccAzureRMCdnEndpoint_disappears(t *testing.T) {
 	config := fmt.Sprintf(testAccAzureRMCdnEndpoint_basic, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMCdnEndpointDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMCdnEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: config,
@@ -56,9 +56,9 @@ func TestAccAzureRMCdnEndpoint_withTags(t *testing.T) {
 	postConfig := fmt.Sprintf(testAccAzureRMCdnEndpoint_withTagsUpdate, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMCdnEndpointDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviders,
+		CheckDestroy:      testCheckAzureRMCdnEndpointDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: preConfig,
