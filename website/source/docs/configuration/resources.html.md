@@ -102,7 +102,7 @@ wildcard (e.g. `"rout*"`) is **not** supported.
 
 ### Timeouts
 
-Individual Resources may provide a `timeout` block to enable users to configure the
+Individual Resources may provide a `timeouts` block to enable users to configure the
 amount of time a specific operation is allowed to take before being considered
 an error. For example, the 
 [aws_db_instance](/docs/providers/aws/r/db_instance.html#timeouts) 
@@ -122,7 +122,7 @@ resource "aws_db_instance" "timeout_example" {
   name                 = "mydb"
   [...]
 
-  timeout {
+  timeouts {
     create = "60m"
     delete = "2h"
   }
