@@ -4785,7 +4785,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Config: map[string]interface{}{
-				"timeouts": "bar",
+				TimeoutsConfigKey: "bar",
 			},
 
 			Err: false,
