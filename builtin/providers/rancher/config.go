@@ -2,6 +2,7 @@ package rancher
 
 import (
 	"log"
+	"time"
 
 	rancherClient "github.com/rancher/go-rancher/client"
 	"github.com/raphink/go-rancher/catalog"
@@ -12,14 +13,17 @@ type Config struct {
 	APIURL    string
 	AccessKey string
 	SecretKey string
+	Timeout   time.Duration
 }
 
 // GlobalClient creates a Rancher client scoped to the global API
 func (c *Config) GlobalClient() (*rancherClient.RancherClient, error) {
+
 	client, err := rancherClient.NewRancherClient(&rancherClient.ClientOpts{
 		Url:       c.APIURL,
 		AccessKey: c.AccessKey,
 		SecretKey: c.SecretKey,
+		Timeout:   c.Timeout,
 	})
 	if err != nil {
 		return nil, err
@@ -38,6 +42,7 @@ func (c *Config) EnvironmentClient(env string) (*rancherClient.RancherClient, er
 		Url:       url,
 		AccessKey: c.AccessKey,
 		SecretKey: c.SecretKey,
+		Timeout:   c.Timeout,
 	})
 	if err != nil {
 		return nil, err
@@ -70,6 +75,7 @@ func (c *Config) CatalogClient() (*catalog.RancherClient, error) {
 		Url:       url,
 		AccessKey: c.AccessKey,
 		SecretKey: c.SecretKey,
+		Timeout:   c.Timeout,
 	})
 	if err != nil {
 		return nil, err
