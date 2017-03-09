@@ -77,7 +77,7 @@ GEM
       rack (>= 1.4.5, < 2.0)
       thor (>= 0.15.2, < 2.0)
       tilt (~> 1.4.1, < 2.0)
-    middleman-hashicorp (0.3.12)
+    middleman-hashicorp (0.3.13)
       bootstrap-sass (~> 3.3)
       builder (~> 3.2)
       middleman (~> 3.4)
@@ -151,7 +151,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  middleman-hashicorp (= 0.3.12)
+  middleman-hashicorp (= 0.3.13)
 
 BUNDLED WITH
    1.14.6
