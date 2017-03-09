@@ -310,32 +310,3 @@
     }
   }
 }
-
-@media (max-width: 414px) {
-  #header {
-    .navbar-toggle{
-      padding-top: 10px;
-      height: $header-mobile-height;
-    }
-
-    .navbar-brand {
-      height: $header-mobile-height;
-
-      .logo{
-        height: $header-mobile-height;
-        line-height: $header-mobile-height;
-      }
-      .by-hashicorp{
-        height: $header-mobile-height;
-        line-height: $header-mobile-height;
-        padding-top: 0;
-      }
-    }
-    .main-links,
-    .external-links {
-      li > a {
-        line-height: $header-mobile-height;
-      }
-    }
-  }
-}
