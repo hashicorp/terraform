@@ -1038,7 +1038,6 @@ func expandAzureRmVirtualMachineOsProfile(d *schema.ResourceData) (*compute.OSPr
 	}
 
 	if v := osProfile["custom_data"].(string); v != "" {
-		v = base64Encode(v)
 		profile.CustomData = &v
 	}
 

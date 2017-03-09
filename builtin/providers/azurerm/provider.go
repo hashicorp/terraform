@@ -1,9 +1,6 @@
 package azurerm
 
 import (
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"reflect"
