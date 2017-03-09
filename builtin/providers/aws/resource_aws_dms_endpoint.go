@@ -1,15 +1,16 @@
 package aws
 
 import (
-	"log"
-	"strings"
-
+	"crypto/sha256"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/private/waiter"
 	dms "github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
+	"log"
+	"strings"
 )
 
 func resourceAwsDmsEndpoint() *schema.Resource {
@@ -82,6 +83,7 @@ func resourceAwsDmsEndpoint() *schema.Resource {
 				Type:      schema.TypeString,
 				Required:  true,
 				Sensitive: true,
+				StateFunc: hashSum,
 			},
 			"port": {
 				Type:     schema.TypeInt,
@@ -342,4 +344,8 @@ func waitForEndpointDelete(client *dms.DatabaseMigrationService, endpointId stri
 	}
 
 	return w.Wait()
+}
+
+func hashSum(contents interface{}) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(contents.(string))))
 }
