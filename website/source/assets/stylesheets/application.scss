@@ -3,6 +3,9 @@
 
 @import url("//fonts.googleapis.com/css?family=Open+Sans:300,400,600");
 
+// Mega Nav
+@import 'hashicorp/mega-nav';
+
 // Core variables and mixins
 @import '_variables';
 
@@ -19,7 +22,6 @@
 @import 'hashicorp-shared/_hashicorp-sidebar';
 
 // Components
-@import '_announcement-bnr';
 @import '_header';
 @import '_footer';
 @import '_jumbotron';

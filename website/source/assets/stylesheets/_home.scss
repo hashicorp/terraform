@@ -31,6 +31,25 @@ body.page-home {
 		z-index: 0;
 	}
 
+	.announcement {
+		margin-top: 60px;
+		border: 1px solid rgba(255,255,255,.3);
+		padding: 25px 10px;
+
+		p {
+			color: $gray;
+			line-height: 1.2;
+			margin-bottom: 0;
+
+			a {
+				color: $purple;
+				text-decoration: underline;
+				// inline-block ensures links doesn't text-wrap;
+				display: inline-block;
+			}
+		}
+	}
+
 	#customer-logos{
 		position: relative;
 		width: 100%;
