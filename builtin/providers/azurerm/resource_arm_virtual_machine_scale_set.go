@@ -544,9 +544,11 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 	}
 
 	if properties.VirtualMachineProfile.ExtensionProfile != nil {
-		if err := d.Set("extension", flattenAzureRmVirtualMachineScaleSetExtensionProfile(properties.VirtualMachineProfile.ExtensionProfile)); err != nil {
+		extension, err := flattenAzureRmVirtualMachineScaleSetExtensionProfile(properties.VirtualMachineProfile.ExtensionProfile)
+		if err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set Extension Profile error: %#v", err)
 		}
+		d.Set("extension", extension)
 	}
 
 	flattenAndSetTags(d, resp.Tags)
@@ -770,9 +772,9 @@ func flattenAzureRmVirtualMachineScaleSetSku(sku *compute.Sku) []interface{} {
 	return []interface{}{result}
 }
 
-func flattenAzureRmVirtualMachineScaleSetExtensionProfile(profile *compute.VirtualMachineScaleSetExtensionProfile) []map[string]interface{} {
+func flattenAzureRmVirtualMachineScaleSetExtensionProfile(profile *compute.VirtualMachineScaleSetExtensionProfile) ([]map[string]interface{}, error) {
 	if profile.Extensions == nil {
-		return nil
+		return nil, nil
 	}
 
 	result := make([]map[string]interface{}, 0, len(*profile.Extensions))
@@ -790,16 +792,17 @@ func flattenAzureRmVirtualMachineScaleSetExtensionProfile(profile *compute.Virtu
 
 			if properties.Settings != nil {
 				settings, err := flattenArmVirtualMachineExtensionSettings(*properties.Settings)
-				if err == nil {
-					e["settings"] = settings
+				if err != nil {
+					return nil, err
 				}
+				e["settings"] = settings
 			}
 		}
 
 		result = append(result, e)
 	}
 
-	return result
+	return result, nil
 }
 
 func resourceArmVirtualMachineScaleSetStorageProfileImageReferenceHash(v interface{}) int {
