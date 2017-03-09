@@ -206,6 +206,12 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 }
 
 func (w *interpolationWalker) replaceCurrent(v reflect.Value) {
+	// if we don't have at least 2 values, we're not going to find a map, but
+	// we could panic.
+	if len(w.cs) < 2 {
+		return
+	}
+
 	c := w.cs[len(w.cs)-2]
 	switch c.Kind() {
 	case reflect.Map:
