@@ -9,13 +9,13 @@ import (
 // MaintenanceWindow is used to temporarily disable one or more services for a set period of time.
 type MaintenanceWindow struct {
 	APIObject
-	SequenceNumber uint   `json:"sequence_number,omitempty"`
-	StartTime      string `json:"start_time"`
-	EndTime        string `json:"end_time"`
-	Description    string
-	Services       []APIObject
-	Teams          []APIListObject
-	CreatedBy      APIListObject `json:"created_by"`
+	SequenceNumber uint            `json:"sequence_number,omitempty"`
+	StartTime      string          `json:"start_time"`
+	EndTime        string          `json:"end_time"`
+	Description    string          `json:"description"`
+	Services       []APIObject     `json:"services"`
+	Teams          []APIListObject `json:"teams"`
+	CreatedBy      APIListObject   `json:"created_by"`
 }
 
 // ListMaintenanceWindowsResponse is the data structur returned from calling the ListMaintenanceWindows API endpoint.
