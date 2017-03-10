@@ -1654,6 +1654,57 @@ func TestInterpolateFuncKeyValOrder(t *testing.T) {
 	})
 }
 
+// Confirm that keys return in original order, and values return in their original
+// order which depends upon key ordering being unchanged
+func TestInterpolateFuncKeyValUnsortedOrder(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.foo": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"D": ast.Variable{
+						Value: "2",
+						Type:  ast.TypeString,
+					},
+					"C": ast.Variable{
+						Value: "Y",
+						Type:  ast.TypeString,
+					},
+					"A": ast.Variable{
+						Value: "X",
+						Type:  ast.TypeString,
+					},
+					"10": ast.Variable{
+						Value: "Z",
+						Type:  ast.TypeString,
+					},
+					"1": ast.Variable{
+						Value: "4",
+						Type:  ast.TypeString,
+					},
+					"3": ast.Variable{
+						Value: "W",
+						Type:  ast.TypeString,
+					},
+				},
+			},
+		},
+		Cases: []testFunctionCase{
+			{
+				`${keys(var.foo, "false")}`,
+				[]interface{}{"D", "C", "A", "10", "1", "3"},
+				false,
+			},
+
+			{
+				`${values(var.foo, "false")}`,
+				[]interface{}{"2", "Y", "X", "Z", "4", "W"},
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncValues(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{

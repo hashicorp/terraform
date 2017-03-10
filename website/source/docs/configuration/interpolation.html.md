@@ -230,7 +230,8 @@ The supported built-in functions are:
     Note that if the item is a string, the return value includes the double
     quotes.
 
-  * `keys(map)` - Returns a lexically sorted list of the map keys.
+  * `keys(map, [sort])` - Returns a list of the map keys, lexically sorted by default.
+      The `sort` parameter can be set to "false" to disable sorting.
 
   * `length(list)` - Returns the number of members in a given list or map, or the number of characters in a given string.
       * `${length(split(",", "a,b,c"))}` = 3
@@ -324,9 +325,10 @@ The supported built-in functions are:
 
   * `uuid()` - Returns a UUID string in RFC 4122 v4 format. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
 
-  * `values(map)` - Returns a list of the map values, in the order of the keys
-    returned by the `keys` function. This function only works on flat maps and
-    will return an error for maps that include nested lists or maps.
+  * `values(map, [sort])` - Returns a list of the map values, by default in the order of the keys
+    returned by the `keys` function. If the `sort` parameters is set to "false", the values will be
+    in the order of the keys returned by the `keys` function when the associated `sort` parameter is set to "false".
+    This function only works on flat maps and will return an error for maps that include nested lists or maps.
 
   * `zipmap(list, list)` - Creates a map from a list of keys and a list of
       values. The keys must all be of type string, and the length of the lists
