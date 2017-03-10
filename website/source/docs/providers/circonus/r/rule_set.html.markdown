@@ -19,7 +19,7 @@ variable "myapp-tags" {
   default = [ "app:myapp", "owner:myteam" ]
 }
 
-resource "circonus_rule_set" "myapp-cert-ttl-alarm" {
+resource "circonus_rule_set" "myapp-cert-ttl-alert" {
   check = "${circonus_check.myapp-https.checks[0]}"
   metric_name = "cert_end_in"
   link = "https://wiki.example.org/playbook/how-to-renew-cert"
@@ -71,7 +71,7 @@ resource "circonus_rule_set" "myapp-cert-ttl-alarm" {
   tags = [ "${var.myapp-tags}" ]
 }
 
-resource "circonus_rule_set" "myapp-healthy-alarm" {
+resource "circonus_rule_set" "myapp-healthy-alert" {
   check = "${circonus_check.myapp-https.checks[0]}"
   metric_name = "duration"
   link = "https://wiki.example.org/playbook/debug-down-app"
@@ -227,7 +227,7 @@ resource "circonus_metric" "myapp-duration" {
 
 * `parent` - (Optional) A Circonus Metric ID that, if specified and active with
   a severity 1 alert, will silence this rule set until all of the severity 1
-  alarms on the parent clear.  This value must match the format
+  alerts on the parent clear.  This value must match the format
   `${check_id}_${metric_name}`.
 
 * `metric_name` - (Required) The name of the metric stream within a given check
@@ -332,7 +332,7 @@ Terraform (and that the referenced [`circonus_metric`](metric.html)
 and [`circonus_check`](check.html) have already been imported):
 
 ```
-resource "circonus_rule_set" "icmp-latency-alarm" {
+resource "circonus_rule_set" "icmp-latency-alert" {
   check = "${circonus_check.api_latency.checks[0]}"
   metric_name = "maximum"
 
@@ -372,6 +372,6 @@ $ terraform import circonus_rule_set.usage ID
 ```
 
 Where `ID` is the `_cid` or Circonus ID of the Rule Set
-(e.g. `/rule_set/201285_maximum`) and `circonus_rule_set.icmp-latency-alarm` is
+(e.g. `/rule_set/201285_maximum`) and `circonus_rule_set.icmp-latency-alert` is
 the name of the resource whose state will be populated as a result of the
 command.
