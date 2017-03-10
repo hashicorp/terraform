@@ -970,7 +970,7 @@ func interpolationFuncKeys(vs map[string]ast.Variable) ast.Function {
 }
 
 // interpolationFuncValues implements the "values" function that yields a list of
-// keys of map types within a Terraform configuration.
+// values of map types within a Terraform configuration.
 func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
 	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeMap},
@@ -984,6 +984,60 @@ func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
 			}
 
 			sort.Strings(keys)
+
+			values := make([]string, len(keys))
+			for index, key := range keys {
+				if value, ok := mapVar[key].Value.(string); ok {
+					values[index] = value
+				} else {
+					return "", fmt.Errorf("values(): %q has element with bad type %s",
+						key, mapVar[key].Type)
+				}
+			}
+
+			variable, err := hil.InterfaceToVariable(values)
+			if err != nil {
+				return nil, err
+			}
+
+			return variable.Value, nil
+		},
+	}
+}
+
+// interpolationFuncUnsortedKeys implements the "unsortedkeys" function that yields a list of
+// keys of map types within a Terraform configuration without lexically sorting them.
+func interpolationFuncUnsortedKeys(vs map[string]ast.Variable) ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeMap},
+		ReturnType: ast.TypeList,
+		Callback: func(args []interface{}) (interface{}, error) {
+			mapVar := args[0].(map[string]ast.Variable)
+			keys := make([]string, 0)
+
+			for k, _ := range mapVar {
+				keys = append(keys, k)
+			}
+
+			// Keys are guaranteed to be strings
+			return stringSliceToVariableValue(keys), nil
+		},
+	}
+}
+
+// interpolationFuncUnsortedValues implements the "unsortedvalues" function that yields a list of
+// values of map types within a Terraform configuration without sorting them by their respective keys.
+func interpolationFuncUnsortedValues(vs map[string]ast.Variable) ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeMap},
+		ReturnType: ast.TypeList,
+		Callback: func(args []interface{}) (interface{}, error) {
+			mapVar := args[0].(map[string]ast.Variable)
+			keys := make([]string, 0)
+
+			for k, _ := range mapVar {
+				keys = append(keys, k)
+			}
 
 			values := make([]string, len(keys))
 			for index, key := range keys {
