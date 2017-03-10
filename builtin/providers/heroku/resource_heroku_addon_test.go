@@ -1,6 +1,7 @@
 package heroku
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -11,7 +12,7 @@ import (
 )
 
 func TestAccHerokuAddon_Basic(t *testing.T) {
-	var addon heroku.Addon
+	var addon heroku.AddOnInfoResult
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
@@ -19,7 +20,7 @@ func TestAccHerokuAddon_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckHerokuAddonDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuAddonConfig_basic(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),
@@ -38,7 +39,7 @@ func TestAccHerokuAddon_Basic(t *testing.T) {
 
 // GH-198
 func TestAccHerokuAddon_noPlan(t *testing.T) {
-	var addon heroku.Addon
+	var addon heroku.AddOnInfoResult
 	appName := fmt.Sprintf("tftest-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
@@ -46,7 +47,7 @@ func TestAccHerokuAddon_noPlan(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckHerokuAddonDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuAddonConfig_no_plan(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),
@@ -57,7 +58,7 @@ func TestAccHerokuAddon_noPlan(t *testing.T) {
 						"heroku_addon.foobar", "plan", "memcachier"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuAddonConfig_no_plan(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),
@@ -80,7 +81,7 @@ func testAccCheckHerokuAddonDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := client.AddonInfo(rs.Primary.Attributes["app"], rs.Primary.ID)
+		_, err := client.AddOnInfo(context.TODO(), rs.Primary.Attributes["app"], rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Addon still exists")
@@ -90,7 +91,7 @@ func testAccCheckHerokuAddonDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckHerokuAddonAttributes(addon *heroku.Addon, n string) resource.TestCheckFunc {
+func testAccCheckHerokuAddonAttributes(addon *heroku.AddOnInfoResult, n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if addon.Plan.Name != n {
@@ -101,7 +102,7 @@ func testAccCheckHerokuAddonAttributes(addon *heroku.Addon, n string) resource.T
 	}
 }
 
-func testAccCheckHerokuAddonExists(n string, addon *heroku.Addon) resource.TestCheckFunc {
+func testAccCheckHerokuAddonExists(n string, addon *heroku.AddOnInfoResult) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -115,7 +116,7 @@ func testAccCheckHerokuAddonExists(n string, addon *heroku.Addon) resource.TestC
 
 		client := testAccProvider.Meta().(*heroku.Service)
 
-		foundAddon, err := client.AddonInfo(rs.Primary.Attributes["app"], rs.Primary.ID)
+		foundAddon, err := client.AddOnInfo(context.TODO(), rs.Primary.Attributes["app"], rs.Primary.ID)
 
 		if err != nil {
 			return err

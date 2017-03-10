@@ -1,6 +1,7 @@
 package heroku
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -23,18 +24,18 @@ func resourceHerokuAddon() *schema.Resource {
 		Delete: resourceHerokuAddonDelete,
 
 		Schema: map[string]*schema.Schema{
-			"app": &schema.Schema{
+			"app": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"plan": &schema.Schema{
+			"plan": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"config": &schema.Schema{
+			"config": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
@@ -43,12 +44,12 @@ func resourceHerokuAddon() *schema.Resource {
 				},
 			},
 
-			"provider_id": &schema.Schema{
+			"provider_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"config_vars": &schema.Schema{
+			"config_vars": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Schema{
@@ -66,7 +67,7 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
-	opts := heroku.AddonCreateOpts{Plan: d.Get("plan").(string)}
+	opts := heroku.AddOnCreateOpts{Plan: d.Get("plan").(string)}
 
 	if v := d.Get("config"); v != nil {
 		config := make(map[string]string)
@@ -80,7 +81,7 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] Addon create configuration: %#v, %#v", app, opts)
-	a, err := client.AddonCreate(app, opts)
+	a, err := client.AddOnCreate(context.TODO(), app, opts)
 	if err != nil {
 		return err
 	}
@@ -129,8 +130,8 @@ func resourceHerokuAddonUpdate(d *schema.ResourceData, meta interface{}) error {
 	app := d.Get("app").(string)
 
 	if d.HasChange("plan") {
-		ad, err := client.AddonUpdate(
-			app, d.Id(), heroku.AddonUpdateOpts{Plan: d.Get("plan").(string)})
+		ad, err := client.AddOnUpdate(
+			context.TODO(), app, d.Id(), heroku.AddOnUpdateOpts{Plan: d.Get("plan").(string)})
 		if err != nil {
 			return err
 		}
@@ -148,7 +149,7 @@ func resourceHerokuAddonDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting Addon: %s", d.Id())
 
 	// Destroy the app
-	err := client.AddonDelete(d.Get("app").(string), d.Id())
+	_, err := client.AddOnDelete(context.TODO(), d.Get("app").(string), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting addon: %s", err)
 	}
@@ -157,8 +158,8 @@ func resourceHerokuAddonDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceHerokuAddonRetrieve(app string, id string, client *heroku.Service) (*heroku.Addon, error) {
-	addon, err := client.AddonInfo(app, id)
+func resourceHerokuAddonRetrieve(app string, id string, client *heroku.Service) (*heroku.AddOnInfoResult, error) {
+	addon, err := client.AddOnInfo(context.TODO(), app, id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving addon: %s", err)
