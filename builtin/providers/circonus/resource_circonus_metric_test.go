@@ -4,20 +4,25 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccCirconusMetric_basic(t *testing.T) {
+	metricAvgName := fmt.Sprintf("Average Ping Time - %s", acctest.RandString(5))
+	metricMaxName := fmt.Sprintf("Maximum Ping Time - %s", acctest.RandString(5))
+	metricMinName := fmt.Sprintf("Minimum Ping Time - %s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDestroyMetric,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCirconusMetricConfig,
+				Config: fmt.Sprintf(testAccCirconusMetricConfigFmt, metricAvgName, metricMaxName, metricMinName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "name", "Average Ping Time"),
+					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "name", metricAvgName),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "active", "false"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "tags.#", "2"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "tags.2087084518", "author:terraform"),
@@ -26,7 +31,7 @@ func TestAccCirconusMetric_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "type", "numeric"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_average", "unit", "seconds"),
 
-					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "name", "Maximum Ping Time"),
+					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "name", metricMaxName),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "active", "true"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "tags.#", "2"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "tags.2087084518", "author:terraform"),
@@ -34,7 +39,7 @@ func TestAccCirconusMetric_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "type", "numeric"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_maximum", "unit", "seconds"),
 
-					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_minimum", "name", "Minimum Ping Time"),
+					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_minimum", "name", metricMinName),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_minimum", "active", "true"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_minimum", "tags.#", "0"),
 					resource.TestCheckResourceAttr("circonus_metric.icmp_ping_minimum", "type", "numeric"),
@@ -46,32 +51,34 @@ func TestAccCirconusMetric_basic(t *testing.T) {
 }
 
 func TestAccCirconusMetric_tagsets(t *testing.T) {
+	metricName := fmt.Sprintf("foo - %s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDestroyMetric,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCirconusMetricTags0,
+				Config: fmt.Sprintf(testAccCirconusMetricTagsFmt0, metricName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("circonus_metric.t", "name", "foo"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "name", metricName),
 					resource.TestCheckResourceAttr("circonus_metric.t", "type", "numeric"),
 					resource.TestCheckResourceAttr("circonus_metric.t", "tags.#", "0"),
 				),
 			},
 			{
-				Config: testAccCirconusMetricTags1,
+				Config: fmt.Sprintf(testAccCirconusMetricTagsFmt1, metricName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("circonus_metric.t", "name", "foo"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "name", metricName),
 					resource.TestCheckResourceAttr("circonus_metric.t", "type", "numeric"),
 					resource.TestCheckResourceAttr("circonus_metric.t", "tags.#", "1"),
 					resource.TestCheckResourceAttr("circonus_metric.t", "tags.1750285118", "foo:bar"),
 				),
 			},
 			{
-				Config: testAccCirconusMetricTags2,
+				Config: fmt.Sprintf(testAccCirconusMetricTagsFmt2, metricName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("circonus_metric.t", "name", "foo"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "name", metricName),
 					resource.TestCheckResourceAttr("circonus_metric.t", "type", "numeric"),
 					resource.TestCheckResourceAttr("circonus_metric.t", "tags.#", "2"),
 					resource.TestCheckResourceAttr("circonus_metric.t", "tags.1750285118", "foo:bar"),
@@ -79,9 +86,9 @@ func TestAccCirconusMetric_tagsets(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCirconusMetricTags3,
+				Config: fmt.Sprintf(testAccCirconusMetricTagsFmt3, metricName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("circonus_metric.t", "name", "foo"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "name", metricName),
 					resource.TestCheckResourceAttr("circonus_metric.t", "type", "numeric"),
 					resource.TestCheckResourceAttr("circonus_metric.t", "tags.#", "3"),
 					resource.TestCheckResourceAttr("circonus_metric.t", "tags.1750285118", "foo:bar"),
@@ -90,9 +97,9 @@ func TestAccCirconusMetric_tagsets(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCirconusMetricTags4,
+				Config: fmt.Sprintf(testAccCirconusMetricTagsFmt4, metricName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("circonus_metric.t", "name", "foo"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "name", metricName),
 					resource.TestCheckResourceAttr("circonus_metric.t", "type", "numeric"),
 					resource.TestCheckResourceAttr("circonus_metric.t", "tags.#", "4"),
 					resource.TestCheckResourceAttr("circonus_metric.t", "tags.1750285118", "foo:bar"),
@@ -102,9 +109,9 @@ func TestAccCirconusMetric_tagsets(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCirconusMetricTags5,
+				Config: fmt.Sprintf(testAccCirconusMetricTagsFmt5, metricName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("circonus_metric.t", "name", "foo"),
+					resource.TestCheckResourceAttr("circonus_metric.t", "name", metricName),
 					resource.TestCheckResourceAttr("circonus_metric.t", "type", "numeric"),
 					resource.TestCheckResourceAttr("circonus_metric.t", "tags.#", "3"),
 					resource.TestCheckResourceAttr("circonus_metric.t", "tags.1750285118", "foo:bar"),
@@ -135,9 +142,9 @@ func testAccCheckDestroyMetric(s *terraform.State) error {
 	return nil
 }
 
-const testAccCirconusMetricConfig = `
+const testAccCirconusMetricConfigFmt = `
 resource "circonus_metric" "icmp_ping_average" {
-  name = "Average Ping Time"
+  name = "%s"
   active = false
   type = "numeric"
   unit = "seconds"
@@ -149,7 +156,7 @@ resource "circonus_metric" "icmp_ping_average" {
 }
 
 resource "circonus_metric" "icmp_ping_maximum" {
-  name = "Maximum Ping Time"
+  name = "%s"
   active = true
   type = "numeric"
   unit = "seconds"
@@ -161,14 +168,14 @@ resource "circonus_metric" "icmp_ping_maximum" {
 }
 
 resource "circonus_metric" "icmp_ping_minimum" {
-  name = "Minimum Ping Time"
+  name = "%s"
   type = "numeric"
 }
 `
 
-const testAccCirconusMetricTags0 = `
+const testAccCirconusMetricTagsFmt0 = `
 resource "circonus_metric" "t" {
-  name = "foo"
+  name = "%s"
 # tags = [
 #    "foo:bar",
 #    "foo:baz",
@@ -179,9 +186,9 @@ resource "circonus_metric" "t" {
 }
 `
 
-const testAccCirconusMetricTags1 = `
+const testAccCirconusMetricTagsFmt1 = `
 resource "circonus_metric" "t" {
-  name = "foo"
+  name = "%s"
   tags = [
     "foo:bar",
 #    "foo:baz",
@@ -192,9 +199,9 @@ resource "circonus_metric" "t" {
 }
 `
 
-const testAccCirconusMetricTags2 = `
+const testAccCirconusMetricTagsFmt2 = `
 resource "circonus_metric" "t" {
-  name = "foo"
+  name = "%s"
   tags = [
     "foo:bar",
     "foo:baz",
@@ -205,9 +212,9 @@ resource "circonus_metric" "t" {
 }
 `
 
-const testAccCirconusMetricTags3 = `
+const testAccCirconusMetricTagsFmt3 = `
 resource "circonus_metric" "t" {
-  name = "foo"
+  name = "%s"
   tags = [
     "foo:bar",
     "foo:baz",
@@ -218,9 +225,9 @@ resource "circonus_metric" "t" {
 }
 `
 
-const testAccCirconusMetricTags4 = `
+const testAccCirconusMetricTagsFmt4 = `
 resource "circonus_metric" "t" {
-  name = "foo"
+  name = "%s"
   tags = [
     "foo:bar",
     "foo:baz",
@@ -231,9 +238,9 @@ resource "circonus_metric" "t" {
 }
 `
 
-const testAccCirconusMetricTags5 = `
+const testAccCirconusMetricTagsFmt5 = `
 resource "circonus_metric" "t" {
-  name = "foo"
+  name = "%s"
   tags = [
     "foo:bar",
 #    "foo:baz",

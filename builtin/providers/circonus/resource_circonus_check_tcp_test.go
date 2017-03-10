@@ -1,19 +1,23 @@
 package circonus
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccCirconusCheckTCP_basic(t *testing.T) {
+	checkName := fmt.Sprintf("Terraform test: TCP+TLS check - %s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDestroyCirconusCheckBundle,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCirconusCheckTCPConfig,
+				Config: fmt.Sprintf(testAccCirconusCheckTCPConfigFmt, checkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("circonus_check.tls_cert", "active", "true"),
 					resource.TestCheckResourceAttr("circonus_check.tls_cert", "collector.#", "1"),
@@ -26,7 +30,7 @@ func TestAccCirconusCheckTCP_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.tls_cert", "tcp.453641246.host", "127.0.0.1"),
 					// resource.TestCheckResourceAttr("circonus_check.tls_cert", "tcp.453641246.key_file", ""),
 					resource.TestCheckResourceAttr("circonus_check.tls_cert", "tcp.453641246.port", "443"),
-					resource.TestCheckResourceAttr("circonus_check.tls_cert", "name", "Terraform test: TCP+TLS check"),
+					resource.TestCheckResourceAttr("circonus_check.tls_cert", "name", checkName),
 					resource.TestCheckResourceAttr("circonus_check.tls_cert", "notes", "Check to harvest cert expiration information"),
 					resource.TestCheckResourceAttr("circonus_check.tls_cert", "period", "60s"),
 					resource.TestCheckResourceAttr("circonus_check.tls_cert", "metric.#", "9"),
@@ -134,7 +138,7 @@ func TestAccCirconusCheckTCP_basic(t *testing.T) {
 	})
 }
 
-const testAccCirconusCheckTCPConfig = `
+const testAccCirconusCheckTCPConfigFmt = `
 variable "tcp_check_tags" {
   type = "list"
   default = [ "app:circonus", "app:tls_cert", "lifecycle:unittests", "source:fastly" ]
@@ -142,7 +146,7 @@ variable "tcp_check_tags" {
 
 resource "circonus_check" "tls_cert" {
   active = true
-  name = "Terraform test: TCP+TLS check"
+  name = "%s"
   notes = "Check to harvest cert expiration information"
   period = "60s"
 

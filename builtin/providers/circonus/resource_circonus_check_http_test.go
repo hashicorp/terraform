@@ -1,19 +1,23 @@
 package circonus
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccCirconusCheckHTTP_basic(t *testing.T) {
+	checkName := fmt.Sprintf("Terraform test: noit's jezebel availability check - %s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDestroyCirconusCheckBundle,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCirconusCheckHTTPConfig,
+				Config: fmt.Sprintf(testAccCirconusCheckHTTPConfigFmt, checkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("circonus_check.jezebel", "active", "true"),
 					resource.TestCheckResourceAttr("circonus_check.jezebel", "collector.#", "1"),
@@ -36,7 +40,7 @@ func TestAccCirconusCheckHTTP_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.jezebel", "http.4213422905.method", "GET"),
 					resource.TestCheckResourceAttr("circonus_check.jezebel", "http.4213422905.read_limit", "1048576"),
 					resource.TestCheckResourceAttr("circonus_check.jezebel", "http.4213422905.url", "http://127.0.0.1:8083/resmon"),
-					resource.TestCheckResourceAttr("circonus_check.jezebel", "name", "Terraform test: noit's jezebel availability check"),
+					resource.TestCheckResourceAttr("circonus_check.jezebel", "name", checkName),
 					resource.TestCheckResourceAttr("circonus_check.jezebel", "notes", "Check to make sure jezebel is working as expected"),
 					resource.TestCheckResourceAttr("circonus_check.jezebel", "period", "60s"),
 					resource.TestCheckResourceAttr("circonus_check.jezebel", "metric.#", "4"),
@@ -93,7 +97,7 @@ func TestAccCirconusCheckHTTP_basic(t *testing.T) {
 	})
 }
 
-const testAccCirconusCheckHTTPConfig = `
+const testAccCirconusCheckHTTPConfigFmt = `
 variable "http_check_tags" {
   type = "list"
   default = [ "app:circonus", "app:jezebel", "lifecycle:unittests", "source:circonus" ]
@@ -128,7 +132,7 @@ resource "circonus_metric" "request_ttfb" {
 
 resource "circonus_check" "jezebel" {
   active = true
-  name = "Terraform test: noit's jezebel availability check"
+  name = "%s"
   notes = "Check to make sure jezebel is working as expected"
   period = "60s"
 

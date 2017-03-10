@@ -1,19 +1,23 @@
 package circonus
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccCirconusCheckICMPPing_basic(t *testing.T) {
+	checkName := fmt.Sprintf("ICMP Ping check - %s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDestroyCirconusCheckBundle,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCirconusCheckICMPPingConfig,
+				Config: fmt.Sprintf(testAccCirconusCheckICMPPingConfigFmt, checkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "active", "true"),
 					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "collector.#", "1"),
@@ -22,7 +26,7 @@ func TestAccCirconusCheckICMPPing_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "icmp_ping.979664239.availability", "100"),
 					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "icmp_ping.979664239.count", "5"),
 					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "icmp_ping.979664239.interval", "500ms"),
-					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "name", "ICMP Ping check"),
+					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "name", checkName),
 					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "period", "300s"),
 					resource.TestCheckResourceAttr("circonus_check.loopback_latency", "metric.#", "5"),
 
@@ -72,14 +76,14 @@ func TestAccCirconusCheckICMPPing_basic(t *testing.T) {
 	})
 }
 
-const testAccCirconusCheckICMPPingConfig = `
+const testAccCirconusCheckICMPPingConfigFmt = `
 variable "test_tags" {
   type = "list"
   default = [ "author:terraform", "lifecycle:unittest" ]
 }
 resource "circonus_check" "loopback_latency" {
   active = true
-  name = "ICMP Ping check"
+  name = "%s"
   period = "300s"
 
   collector {
@@ -96,7 +100,7 @@ resource "circonus_check" "loopback_latency" {
     name = "available"
     tags = [ "${var.test_tags}" ]
     type = "numeric"
-    unit = "%"
+    unit = "%%"
   }
 
   metric {

@@ -6,18 +6,22 @@ import (
 	"testing"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccCirconusRuleSet_basic(t *testing.T) {
+	checkName := fmt.Sprintf("ICMP Ping check - %s", acctest.RandString(5))
+	contactGroupName := fmt.Sprintf("ops-staging-sev3 - %s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDestroyCirconusRuleSet,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCirconusRuleSetConfig,
+				Config: fmt.Sprintf(testAccCirconusRuleSetConfigFmt, contactGroupName, checkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("circonus_rule_set.icmp-latency-alarm", "check"),
 					resource.TestCheckResourceAttr("circonus_rule_set.icmp-latency-alarm", "metric_name", "maximum"),
@@ -116,20 +120,20 @@ func checkRuleSetExists(c *providerContext, ruleSetCID api.CIDType) (bool, error
 	return false, nil
 }
 
-const testAccCirconusRuleSetConfig = `
+const testAccCirconusRuleSetConfigFmt = `
 variable "test_tags" {
   type = "list"
   default = [ "author:terraform", "lifecycle:unittest" ]
 }
 
 resource "circonus_contact_group" "test-trigger" {
-  name = "ops-staging-sev3"
+  name = "%s"
   tags = [ "${var.test_tags}" ]
 }
 
 resource "circonus_check" "api_latency" {
   active = true
-  name = "ICMP Ping check"
+  name = "%s"
   period = "60s"
 
   collector {

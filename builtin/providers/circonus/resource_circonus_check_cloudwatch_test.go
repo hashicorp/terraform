@@ -1,19 +1,23 @@
 package circonus
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccCirconusCheckCloudWatch_basic(t *testing.T) {
+	checkName := fmt.Sprintf("Terraform test: RDS Metrics via CloudWatch - %s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDestroyCirconusCheckBundle,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCirconusCheckCloudWatchConfig,
+				Config: fmt.Sprintf(testAccCirconusCheckCloudWatchConfigFmt, checkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("circonus_check.rds_metrics", "active", "true"),
 					resource.TestCheckResourceAttr("circonus_check.rds_metrics", "collector.#", "1"),
@@ -44,7 +48,7 @@ func TestAccCirconusCheckCloudWatch_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.rds_metrics", "cloudwatch.2270818665.namespace", "AWS/RDS"),
 					resource.TestCheckResourceAttr("circonus_check.rds_metrics", "cloudwatch.2270818665.version", "2010-08-01"),
 					resource.TestCheckResourceAttr("circonus_check.rds_metrics", "cloudwatch.2270818665.url", "https://monitoring.us-east-1.amazonaws.com"),
-					resource.TestCheckResourceAttr("circonus_check.rds_metrics", "name", "Terraform test: RDS Metrics via CloudWatch"),
+					resource.TestCheckResourceAttr("circonus_check.rds_metrics", "name", checkName),
 					resource.TestCheckResourceAttr("circonus_check.rds_metrics", "notes", "Collect all the things exposed"),
 					resource.TestCheckResourceAttr("circonus_check.rds_metrics", "period", "60s"),
 					resource.TestCheckResourceAttr("circonus_check.rds_metrics", "metric.#", "17"),
@@ -216,7 +220,7 @@ func TestAccCirconusCheckCloudWatch_basic(t *testing.T) {
 	})
 }
 
-const testAccCirconusCheckCloudWatchConfig = `
+const testAccCirconusCheckCloudWatchConfigFmt = `
 variable "cloudwatch_rds_tags" {
   type = "list"
   default = [
@@ -229,7 +233,7 @@ variable "cloudwatch_rds_tags" {
 
 resource "circonus_check" "rds_metrics" {
   active = true
-  name = "Terraform test: RDS Metrics via CloudWatch"
+  name = "%s"
   notes = "Collect all the things exposed"
   period = "60s"
 
@@ -270,7 +274,7 @@ resource "circonus_check" "rds_metrics" {
     name = "CPUUtilization"
     tags = [ "${var.cloudwatch_rds_tags}" ]
     type = "numeric"
-    unit = "%"
+    unit = "%%"
   }
 
   metric {

@@ -1,19 +1,23 @@
 package circonus
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccCirconusCheckPostgreSQL_basic(t *testing.T) {
+	checkName := fmt.Sprintf("PostgreSQL ops per table check - %s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDestroyCirconusCheckBundle,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCirconusCheckPostgreSQLConfig,
+				Config: fmt.Sprintf(testAccCirconusCheckPostgreSQLConfigFmt, checkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("circonus_check.table_ops", "active", "true"),
 					resource.TestCheckResourceAttr("circonus_check.table_ops", "collector.#", "1"),
@@ -21,7 +25,7 @@ func TestAccCirconusCheckPostgreSQL_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.table_ops", "postgresql.#", "1"),
 					resource.TestCheckResourceAttr("circonus_check.table_ops", "postgresql.1831600166.dsn", "user=postgres host=pg1.example.org port=5432 password=12345 sslmode=require"),
 					resource.TestCheckResourceAttr("circonus_check.table_ops", "postgresql.1831600166.query", `SELECT 'tables', sum(n_tup_ins) as inserts, sum(n_tup_upd) as updates, sum(n_tup_del) as deletes, sum(idx_scan)  as index_scans, sum(seq_scan) as seq_scans, sum(idx_tup_fetch) as index_tup_fetch, sum(seq_tup_read) as seq_tup_read from pg_stat_all_tables`),
-					resource.TestCheckResourceAttr("circonus_check.table_ops", "name", "PostgreSQL ops per table check"),
+					resource.TestCheckResourceAttr("circonus_check.table_ops", "name", checkName),
 					resource.TestCheckResourceAttr("circonus_check.table_ops", "period", "300s"),
 					resource.TestCheckResourceAttr("circonus_check.table_ops", "metric.#", "7"),
 
@@ -78,14 +82,14 @@ func TestAccCirconusCheckPostgreSQL_basic(t *testing.T) {
 	})
 }
 
-const testAccCirconusCheckPostgreSQLConfig = `
+const testAccCirconusCheckPostgreSQLConfigFmt = `
 variable "test_tags" {
   type = "list"
   default = [ "author:terraform", "lifecycle:unittest" ]
 }
 resource "circonus_check" "table_ops" {
   active = true
-  name = "PostgreSQL ops per table check"
+  name = "%s"
   period = "300s"
 
   collector {

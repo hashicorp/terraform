@@ -1,19 +1,23 @@
 package circonus
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccCirconusCheckHTTPTrap_basic(t *testing.T) {
+	checkName := fmt.Sprintf("Terraform test: consul server httptrap check- %s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDestroyCirconusCheckBundle,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCirconusCheckHTTPTrapConfig,
+				Config: fmt.Sprintf(testAccCirconusCheckHTTPTrapConfigFmt, checkName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("circonus_check.consul", "active", "true"),
 					resource.TestCheckResourceAttr("circonus_check.consul", "collector.#", "1"),
@@ -21,7 +25,7 @@ func TestAccCirconusCheckHTTPTrap_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.consul", "httptrap.#", "1"),
 					resource.TestCheckResourceAttr("circonus_check.consul", "httptrap.2067899660.async_metrics", "false"),
 					resource.TestCheckResourceAttr("circonus_check.consul", "httptrap.2067899660.secret", "12345"),
-					resource.TestCheckResourceAttr("circonus_check.consul", "name", "Terraform test: consul server httptrap check"),
+					resource.TestCheckResourceAttr("circonus_check.consul", "name", checkName),
 					resource.TestCheckResourceAttr("circonus_check.consul", "notes", "Check to receive consul server telemetry"),
 					resource.TestCheckResourceAttr("circonus_check.consul", "period", "60s"),
 					resource.TestCheckResourceAttr("circonus_check.consul", "metric.#", "3"),
@@ -64,7 +68,7 @@ func TestAccCirconusCheckHTTPTrap_basic(t *testing.T) {
 	})
 }
 
-const testAccCirconusCheckHTTPTrapConfig = `
+const testAccCirconusCheckHTTPTrapConfigFmt = `
 variable "httptrap_check_tags" {
   type = "list"
   default = [ "app:consul", "lifecycle:unittests", "source:consul" ]
@@ -77,7 +81,7 @@ variable "consul_hostname" {
 
 resource "circonus_check" "consul" {
   active = true
-  name = "Terraform test: consul server httptrap check"
+  name = "%s"
   notes = "Check to receive consul server telemetry"
   period = "60s"
 

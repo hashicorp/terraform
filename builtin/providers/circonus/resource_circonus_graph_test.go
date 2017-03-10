@@ -6,20 +6,24 @@ import (
 	"testing"
 
 	"github.com/circonus-labs/circonus-gometrics/api"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccCirconusGraph_basic(t *testing.T) {
+	graphName := fmt.Sprintf("Test Graph - %s", acctest.RandString(5))
+	checkName := fmt.Sprintf("ICMP Ping check - %s", acctest.RandString(5))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDestroyCirconusGraph,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCirconusGraphConfig,
+				Config: fmt.Sprintf(testAccCirconusGraphConfigFmt, checkName, graphName),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "name", "test graph"),
+					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "name", graphName),
 					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "description", "Terraform Test: mixed graph"),
 					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "notes", "test notes"),
 					resource.TestCheckResourceAttr("circonus_graph.mixed-points", "graph_style", "line"),
@@ -103,7 +107,7 @@ func checkGraphExists(c *providerContext, graphID api.CIDType) (bool, error) {
 	return false, nil
 }
 
-const testAccCirconusGraphConfig = `
+const testAccCirconusGraphConfigFmt = `
 variable "test_tags" {
   type = "list"
   default = [ "author:terraform", "lifecycle:unittest" ]
@@ -111,7 +115,7 @@ variable "test_tags" {
 
 resource "circonus_check" "api_latency" {
   active = true
-  name = "ICMP Ping check"
+  name = "%s"
   period = "60s"
 
   collector {
@@ -141,7 +145,7 @@ resource "circonus_check" "api_latency" {
 }
 
 resource "circonus_graph" "mixed-points" {
-  name = "test graph"
+  name = "%s"
   description = "Terraform Test: mixed graph"
   notes = "test notes"
   graph_style = "line"
