@@ -61,12 +61,15 @@ Both `egress` and `ingress` support the following keys:
 * `action` - (Required) The action to take.
 * `protocol` - (Required) The protocol to match. If using the -1 'all'
 protocol, you must specify a from and to port of 0.
+
+~> Note: You can use the protocol name or number. For more information, see here: http://www.iana.org/assignments/protocol-numbers
+
 * `cidr_block` - (Optional) The CIDR block to match. This must be a
 valid network mask.
 * `icmp_type` - (Optional) The ICMP type to be used. Default 0.
 * `icmp_code` - (Optional) The ICMP type code to be used. Default 0.
 
-~> Note: For more information on ICMP types and codes, see here: http://www.nthelp.com/icmp.html
+~> Note: For ICMP, `from_port` and `to_port` should always be 0. For more information on ICMP types and codes, see here: http://www.nthelp.com/icmp.html
 
 ## Attributes Reference
 

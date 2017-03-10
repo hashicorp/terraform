@@ -99,7 +99,7 @@ func TestAccAWSNetworkAcl_OnlyIngressRules_update(t *testing.T) {
 				Config: testAccAWSNetworkAclIngressConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSNetworkAclExists("aws_network_acl.foos", &networkAcl),
-					testIngressRuleLength(&networkAcl, 2),
+					testRuleLength(&networkAcl, false, 2),
 					resource.TestCheckResourceAttr(
 						"aws_network_acl.foos", "ingress.2048097841.protocol", "6"),
 					resource.TestCheckResourceAttr(
@@ -122,7 +122,7 @@ func TestAccAWSNetworkAcl_OnlyIngressRules_update(t *testing.T) {
 				Config: testAccAWSNetworkAclIngressConfigChange,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSNetworkAclExists("aws_network_acl.foos", &networkAcl),
-					testIngressRuleLength(&networkAcl, 1),
+					testRuleLength(&networkAcl, false, 1),
 					resource.TestCheckResourceAttr(
 						"aws_network_acl.foos", "ingress.2048097841.protocol", "6"),
 					resource.TestCheckResourceAttr(
@@ -155,6 +155,62 @@ func TestAccAWSNetworkAcl_OnlyEgressRules(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSNetworkAclExists("aws_network_acl.bond", &networkAcl),
 					testAccCheckTags(&networkAcl.Tags, "foo", "bar"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSNetworkAcl_IcmpRules(t *testing.T) {
+	var networkAcl ec2.NetworkAcl
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSNetworkAclDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSNetworkAclIcmpConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSNetworkAclExists("aws_network_acl.foos", &networkAcl),
+					testRuleLength(&networkAcl, false, 2),
+					testRuleLength(&networkAcl, true, 1),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.716364269.rule_no", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.716364269.protocol", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.2189002010.rule_no", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.2189002010.protocol", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.2189002010.from_port", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.2189002010.to_port", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.2189002010.icmp_type", "8"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.2189002010.icmp_code", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.2189002010.action", "deny"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.2189002010.cidr_block", "10.4.0.0/18"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "egress.63033256.rule_no", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "egress.63033256.protocol", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "egress.63033256.icmp_type", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "egress.63033256.icmp_code", "-1"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "egress.63033256.icmp_type", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "egress.63033256.icmp_code", "-1"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "egress.63033256.action", "allow"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "egress.63033256.cidr_block", "0.0.0.0/0"),
 				),
 			},
 		},
@@ -310,18 +366,18 @@ func testAccCheckAWSNetworkAclExists(n string, networkAcl *ec2.NetworkAcl) resou
 	}
 }
 
-func testIngressRuleLength(networkAcl *ec2.NetworkAcl, length int) resource.TestCheckFunc {
+func testRuleLength(networkAcl *ec2.NetworkAcl, egress bool, length int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		var ingressEntries []*ec2.NetworkAclEntry
+		var entries []*ec2.NetworkAclEntry
 		for _, e := range networkAcl.Entries {
-			if *e.Egress == false {
-				ingressEntries = append(ingressEntries, e)
+			if *e.Egress == egress {
+				entries = append(entries, e)
 			}
 		}
 		// There is always a default rule (ALL Traffic ... DENY)
 		// so we have to increase the length by 1
-		if len(ingressEntries) != length+1 {
-			return fmt.Errorf("Invalid number of ingress entries found; count = %d", len(ingressEntries))
+		if len(entries) != length+1 {
+			return fmt.Errorf("Invalid number of ingress entries found; count = %d", len(entries))
 		}
 		return nil
 	}
@@ -528,6 +584,46 @@ resource "aws_network_acl" "bar" {
 	}
 }
 `
+
+const testAccAWSNetworkAclIcmpConfig = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+resource "aws_network_acl" "foos" {
+	vpc_id = "${aws_vpc.foo.id}"
+	ingress = {
+		protocol = "1"
+		rule_no = 1
+		action = "deny"
+		cidr_block =  "10.2.0.0/18"
+		from_port = 0
+		to_port = 0
+		icmp_type = -1
+		icmp_code = -1
+	}
+	ingress = {
+		protocol = "icmp"
+		rule_no = 2
+		action = "deny"
+		cidr_block =  "10.4.0.0/18"
+		from_port = 0
+		to_port = 0
+		icmp_type = 8
+		icmp_code = 0
+	}
+	egress = {
+		protocol = "icmp"
+		rule_no = 1
+		action = "allow"
+		cidr_block =  "0.0.0.0/0"
+		from_port = 0
+		to_port = 0
+		icmp_type = 0
+		icmp_code = -1
+	}
+}
+`
+
 const testAccAWSNetworkAclSubnetConfig = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"

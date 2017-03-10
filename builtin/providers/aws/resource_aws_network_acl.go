@@ -503,23 +503,31 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 
 func resourceAwsNetworkAclEntryHash(v interface{}) int {
 	var buf bytes.Buffer
+	var protocolNumString string
+
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["rule_no"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["action"].(string)))
 
 	// The AWS network ACL API only speaks protocol numbers, and that's
 	// all we store. Never hash a protocol name.
 	protocol := m["protocol"].(string)
 	if _, err := strconv.Atoi(m["protocol"].(string)); err != nil {
 		// We're a protocol name. Look up the number.
-		buf.WriteString(fmt.Sprintf("%d-", protocolIntegers()[protocol]))
+		protocolNumString = fmt.Sprintf("%d", protocolIntegers()[protocol])
 	} else {
 		// We're a protocol number. Pass the value through.
-		buf.WriteString(fmt.Sprintf("%s-", protocol))
+		protocolNumString = fmt.Sprintf("%s", protocol)
 	}
 
+	if protocolNumString == "1" {
+		buf.WriteString("0-0-")
+	} else {
+		buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
+		buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
+	}
+
+	buf.WriteString(fmt.Sprintf("%d-", m["rule_no"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["action"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", protocolNumString))
 	buf.WriteString(fmt.Sprintf("%s-", m["cidr_block"].(string)))
 
 	if v, ok := m["ssl_certificate_id"]; ok {
