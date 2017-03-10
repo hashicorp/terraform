@@ -12,18 +12,20 @@ import (
 
 func TestAccDataSourceAwsVpc_basic(t *testing.T) {
 	rand.Seed(time.Now().UTC().UnixNano())
-	cidr := fmt.Sprintf("172.%d.0.0/16", rand.Intn(16))
+	rInt := rand.Intn(16)
+	cidr := fmt.Sprintf("172.%d.0.0/16", rInt)
+	tag := fmt.Sprintf("terraform-testacc-vpc-data-source-%d", rInt)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDataSourceAwsVpcConfig(cidr),
+				Config: testAccDataSourceAwsVpcConfig(cidr, tag),
 				Check: resource.ComposeTestCheckFunc(
-					testAccDataSourceAwsVpcCheck("data.aws_vpc.by_id", cidr),
-					testAccDataSourceAwsVpcCheck("data.aws_vpc.by_cidr", cidr),
-					testAccDataSourceAwsVpcCheck("data.aws_vpc.by_tag", cidr),
-					testAccDataSourceAwsVpcCheck("data.aws_vpc.by_filter", cidr),
+					testAccDataSourceAwsVpcCheck("data.aws_vpc.by_id", cidr, tag),
+					testAccDataSourceAwsVpcCheck("data.aws_vpc.by_cidr", cidr, tag),
+					testAccDataSourceAwsVpcCheck("data.aws_vpc.by_tag", cidr, tag),
+					testAccDataSourceAwsVpcCheck("data.aws_vpc.by_filter", cidr, tag),
 				),
 			},
 		},
@@ -32,15 +34,17 @@ func TestAccDataSourceAwsVpc_basic(t *testing.T) {
 
 func TestAccDataSourceAwsVpc_ipv6Associated(t *testing.T) {
 	rand.Seed(time.Now().UTC().UnixNano())
-	cidr := fmt.Sprintf("172.%d.0.0/16", rand.Intn(16))
+	rInt := rand.Intn(16)
+	cidr := fmt.Sprintf("172.%d.0.0/16", rInt)
+	tag := fmt.Sprintf("terraform-testacc-vpc-data-source-%d", rInt)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDataSourceAwsVpcConfigIpv6(cidr),
+				Config: testAccDataSourceAwsVpcConfigIpv6(cidr, tag),
 				Check: resource.ComposeTestCheckFunc(
-					testAccDataSourceAwsVpcCheck("data.aws_vpc.by_id", cidr),
+					testAccDataSourceAwsVpcCheck("data.aws_vpc.by_id", cidr, tag),
 					resource.TestCheckResourceAttrSet(
 						"data.aws_vpc.by_id", "ipv6_association_id"),
 					resource.TestCheckResourceAttrSet(
@@ -51,7 +55,7 @@ func TestAccDataSourceAwsVpc_ipv6Associated(t *testing.T) {
 	})
 }
 
-func testAccDataSourceAwsVpcCheck(name, cidr string) resource.TestCheckFunc {
+func testAccDataSourceAwsVpcCheck(name, cidr, tag string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -76,7 +80,7 @@ func testAccDataSourceAwsVpcCheck(name, cidr string) resource.TestCheckFunc {
 		if attr["cidr_block"] != cidr {
 			return fmt.Errorf("bad cidr_block %s, expected: %s", attr["cidr_block"], cidr)
 		}
-		if attr["tags.Name"] != "terraform-testacc-vpc-data-source" {
+		if attr["tags.Name"] != tag {
 			return fmt.Errorf("bad Name tag %s", attr["tags.Name"])
 		}
 
@@ -84,7 +88,7 @@ func testAccDataSourceAwsVpcCheck(name, cidr string) resource.TestCheckFunc {
 	}
 }
 
-func testAccDataSourceAwsVpcConfigIpv6(cidr string) string {
+func testAccDataSourceAwsVpcConfigIpv6(cidr, tag string) string {
 	return fmt.Sprintf(`
 provider "aws" {
   region = "us-west-2"
@@ -95,16 +99,16 @@ resource "aws_vpc" "test" {
   assign_generated_ipv6_cidr_block = true
 
   tags {
-    Name = "terraform-testacc-vpc-data-source"
+    Name = "terraform-testacc-vpc-data-source-%d"
   }
 }
 
 data "aws_vpc" "by_id" {
   id = "${aws_vpc.test.id}"
-}`, cidr)
+}`, cidr, tag)
 }
 
-func testAccDataSourceAwsVpcConfig(cidr string) string {
+func testAccDataSourceAwsVpcConfig(cidr, tag string) string {
 	return fmt.Sprintf(`
 provider "aws" {
   region = "us-west-2"
@@ -114,7 +118,7 @@ resource "aws_vpc" "test" {
   cidr_block = "%s"
 
   tags {
-    Name = "terraform-testacc-vpc-data-source"
+    Name = "%s"
   }
 }
 
@@ -137,5 +141,5 @@ data "aws_vpc" "by_filter" {
     name = "cidr"
     values = ["${aws_vpc.test.cidr_block}"]
   }
-}`, cidr)
+}`, cidr, tag)
 }
