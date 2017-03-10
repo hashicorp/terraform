@@ -10,7 +10,7 @@ import "fmt"
 // ListHooks lists all Hooks for the specified organization.
 //
 // GitHub API docs: https://developer.github.com/v3/orgs/hooks/#list-hooks
-func (s *OrganizationsService) ListHooks(org string, opt *ListOptions) ([]Hook, *Response, error) {
+func (s *OrganizationsService) ListHooks(org string, opt *ListOptions) ([]*Hook, *Response, error) {
 	u := fmt.Sprintf("orgs/%v/hooks", org)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -22,7 +22,7 @@ func (s *OrganizationsService) ListHooks(org string, opt *ListOptions) ([]Hook, 
 		return nil, nil, err
 	}
 
-	hooks := new([]Hook)
+	hooks := new([]*Hook)
 	resp, err := s.client.Do(req, hooks)
 	if err != nil {
 		return nil, resp, err

@@ -14,9 +14,7 @@ import (
 // in the GitHub API.
 //
 // GitHub API docs: http://developer.github.com/v3/orgs/
-type OrganizationsService struct {
-	client *Client
-}
+type OrganizationsService service
 
 // Organization represents a GitHub organization account.
 type Organization struct {
@@ -29,6 +27,7 @@ type Organization struct {
 	Blog              *string    `json:"blog,omitempty"`
 	Location          *string    `json:"location,omitempty"`
 	Email             *string    `json:"email,omitempty"`
+	Description       *string    `json:"description,omitempty"`
 	PublicRepos       *int       `json:"public_repos,omitempty"`
 	PublicGists       *int       `json:"public_gists,omitempty"`
 	Followers         *int       `json:"followers,omitempty"`
@@ -47,6 +46,8 @@ type Organization struct {
 	// API URLs
 	URL              *string `json:"url,omitempty"`
 	EventsURL        *string `json:"events_url,omitempty"`
+	HooksURL         *string `json:"hooks_url,omitempty"`
+	IssuesURL        *string `json:"issues_url,omitempty"`
 	MembersURL       *string `json:"members_url,omitempty"`
 	PublicMembersURL *string `json:"public_members_url,omitempty"`
 	ReposURL         *string `json:"repos_url,omitempty"`
@@ -68,11 +69,46 @@ func (p Plan) String() string {
 	return Stringify(p)
 }
 
+// OrganizationsListOptions specifies the optional parameters to the
+// OrganizationsService.ListAll method.
+type OrganizationsListOptions struct {
+	// Since filters Organizations by ID.
+	Since int `url:"since,omitempty"`
+
+	ListOptions
+}
+
+// ListAll lists all organizations, in the order that they were created on GitHub.
+//
+// Note: Pagination is powered exclusively by the since parameter. To continue
+// listing the next set of organizations, use the ID of the last-returned organization
+// as the opts.Since parameter for the next call.
+//
+// GitHub API docs: https://developer.github.com/v3/orgs/#list-all-organizations
+func (s *OrganizationsService) ListAll(opt *OrganizationsListOptions) ([]*Organization, *Response, error) {
+	u, err := addOptions("organizations", opt)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, err := s.client.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	orgs := []*Organization{}
+	resp, err := s.client.Do(req, &orgs)
+	if err != nil {
+		return nil, resp, err
+	}
+	return orgs, resp, err
+}
+
 // List the organizations for a user.  Passing the empty string will list
 // organizations for the authenticated user.
 //
 // GitHub API docs: http://developer.github.com/v3/orgs/#list-user-organizations
-func (s *OrganizationsService) List(user string, opt *ListOptions) ([]Organization, *Response, error) {
+func (s *OrganizationsService) List(user string, opt *ListOptions) ([]*Organization, *Response, error) {
 	var u string
 	if user != "" {
 		u = fmt.Sprintf("users/%v/orgs", user)
@@ -89,7 +125,7 @@ func (s *OrganizationsService) List(user string, opt *ListOptions) ([]Organizati
 		return nil, nil, err
 	}
 
-	orgs := new([]Organization)
+	orgs := new([]*Organization)
 	resp, err := s.client.Do(req, orgs)
 	if err != nil {
 		return nil, resp, err

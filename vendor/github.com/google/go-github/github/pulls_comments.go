@@ -13,6 +13,7 @@ import (
 // PullRequestComment represents a comment left on a pull request.
 type PullRequestComment struct {
 	ID               *int       `json:"id,omitempty"`
+	InReplyTo        *int       `json:"in_reply_to,omitempty"`
 	Body             *string    `json:"body,omitempty"`
 	Path             *string    `json:"path,omitempty"`
 	DiffHunk         *string    `json:"diff_hunk,omitempty"`
@@ -21,6 +22,7 @@ type PullRequestComment struct {
 	CommitID         *string    `json:"commit_id,omitempty"`
 	OriginalCommitID *string    `json:"original_commit_id,omitempty"`
 	User             *User      `json:"user,omitempty"`
+	Reactions        *Reactions `json:"reactions,omitempty"`
 	CreatedAt        *time.Time `json:"created_at,omitempty"`
 	UpdatedAt        *time.Time `json:"updated_at,omitempty"`
 	URL              *string    `json:"url,omitempty"`
@@ -52,7 +54,7 @@ type PullRequestListCommentsOptions struct {
 // the repository.
 //
 // GitHub API docs: https://developer.github.com/v3/pulls/comments/#list-comments-on-a-pull-request
-func (s *PullRequestsService) ListComments(owner string, repo string, number int, opt *PullRequestListCommentsOptions) ([]PullRequestComment, *Response, error) {
+func (s *PullRequestsService) ListComments(owner string, repo string, number int, opt *PullRequestListCommentsOptions) ([]*PullRequestComment, *Response, error) {
 	var u string
 	if number == 0 {
 		u = fmt.Sprintf("repos/%v/%v/pulls/comments", owner, repo)
@@ -69,7 +71,10 @@ func (s *PullRequestsService) ListComments(owner string, repo string, number int
 		return nil, nil, err
 	}
 
-	comments := new([]PullRequestComment)
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeReactionsPreview)
+
+	comments := new([]*PullRequestComment)
 	resp, err := s.client.Do(req, comments)
 	if err != nil {
 		return nil, resp, err
@@ -87,6 +92,9 @@ func (s *PullRequestsService) GetComment(owner string, repo string, number int) 
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeReactionsPreview)
 
 	comment := new(PullRequestComment)
 	resp, err := s.client.Do(req, comment)

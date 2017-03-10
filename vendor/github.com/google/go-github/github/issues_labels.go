@@ -21,7 +21,7 @@ func (l Label) String() string {
 // ListLabels lists all labels for a repository.
 //
 // GitHub API docs: http://developer.github.com/v3/issues/labels/#list-all-labels-for-this-repository
-func (s *IssuesService) ListLabels(owner string, repo string, opt *ListOptions) ([]Label, *Response, error) {
+func (s *IssuesService) ListLabels(owner string, repo string, opt *ListOptions) ([]*Label, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/labels", owner, repo)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -33,7 +33,7 @@ func (s *IssuesService) ListLabels(owner string, repo string, opt *ListOptions) 
 		return nil, nil, err
 	}
 
-	labels := new([]Label)
+	labels := new([]*Label)
 	resp, err := s.client.Do(req, labels)
 	if err != nil {
 		return nil, resp, err
@@ -114,7 +114,7 @@ func (s *IssuesService) DeleteLabel(owner string, repo string, name string) (*Re
 // ListLabelsByIssue lists all labels for an issue.
 //
 // GitHub API docs: http://developer.github.com/v3/issues/labels/#list-all-labels-for-this-repository
-func (s *IssuesService) ListLabelsByIssue(owner string, repo string, number int, opt *ListOptions) ([]Label, *Response, error) {
+func (s *IssuesService) ListLabelsByIssue(owner string, repo string, number int, opt *ListOptions) ([]*Label, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/issues/%d/labels", owner, repo, number)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -126,7 +126,7 @@ func (s *IssuesService) ListLabelsByIssue(owner string, repo string, number int,
 		return nil, nil, err
 	}
 
-	labels := new([]Label)
+	labels := new([]*Label)
 	resp, err := s.client.Do(req, labels)
 	if err != nil {
 		return nil, resp, err
@@ -138,14 +138,14 @@ func (s *IssuesService) ListLabelsByIssue(owner string, repo string, number int,
 // AddLabelsToIssue adds labels to an issue.
 //
 // GitHub API docs: http://developer.github.com/v3/issues/labels/#list-all-labels-for-this-repository
-func (s *IssuesService) AddLabelsToIssue(owner string, repo string, number int, labels []string) ([]Label, *Response, error) {
+func (s *IssuesService) AddLabelsToIssue(owner string, repo string, number int, labels []string) ([]*Label, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/issues/%d/labels", owner, repo, number)
 	req, err := s.client.NewRequest("POST", u, labels)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	l := new([]Label)
+	l := new([]*Label)
 	resp, err := s.client.Do(req, l)
 	if err != nil {
 		return nil, resp, err
@@ -169,14 +169,14 @@ func (s *IssuesService) RemoveLabelForIssue(owner string, repo string, number in
 // ReplaceLabelsForIssue replaces all labels for an issue.
 //
 // GitHub API docs: http://developer.github.com/v3/issues/labels/#replace-all-labels-for-an-issue
-func (s *IssuesService) ReplaceLabelsForIssue(owner string, repo string, number int, labels []string) ([]Label, *Response, error) {
+func (s *IssuesService) ReplaceLabelsForIssue(owner string, repo string, number int, labels []string) ([]*Label, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/issues/%d/labels", owner, repo, number)
 	req, err := s.client.NewRequest("PUT", u, labels)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	l := new([]Label)
+	l := new([]*Label)
 	resp, err := s.client.Do(req, l)
 	if err != nil {
 		return nil, resp, err
@@ -200,7 +200,7 @@ func (s *IssuesService) RemoveLabelsForIssue(owner string, repo string, number i
 // ListLabelsForMilestone lists labels for every issue in a milestone.
 //
 // GitHub API docs: http://developer.github.com/v3/issues/labels/#get-labels-for-every-issue-in-a-milestone
-func (s *IssuesService) ListLabelsForMilestone(owner string, repo string, number int, opt *ListOptions) ([]Label, *Response, error) {
+func (s *IssuesService) ListLabelsForMilestone(owner string, repo string, number int, opt *ListOptions) ([]*Label, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/milestones/%d/labels", owner, repo, number)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -212,7 +212,7 @@ func (s *IssuesService) ListLabelsForMilestone(owner string, repo string, number
 		return nil, nil, err
 	}
 
-	labels := new([]Label)
+	labels := new([]*Label)
 	resp, err := s.client.Do(req, labels)
 	if err != nil {
 		return nil, resp, err

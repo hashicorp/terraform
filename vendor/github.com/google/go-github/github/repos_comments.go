@@ -17,6 +17,7 @@ type RepositoryComment struct {
 	ID        *int       `json:"id,omitempty"`
 	CommitID  *string    `json:"commit_id,omitempty"`
 	User      *User      `json:"user,omitempty"`
+	Reactions *Reactions `json:"reactions,omitempty"`
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 
@@ -34,7 +35,7 @@ func (r RepositoryComment) String() string {
 // ListComments lists all the comments for the repository.
 //
 // GitHub API docs: http://developer.github.com/v3/repos/comments/#list-commit-comments-for-a-repository
-func (s *RepositoriesService) ListComments(owner, repo string, opt *ListOptions) ([]RepositoryComment, *Response, error) {
+func (s *RepositoriesService) ListComments(owner, repo string, opt *ListOptions) ([]*RepositoryComment, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/comments", owner, repo)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -46,7 +47,10 @@ func (s *RepositoriesService) ListComments(owner, repo string, opt *ListOptions)
 		return nil, nil, err
 	}
 
-	comments := new([]RepositoryComment)
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeReactionsPreview)
+
+	comments := new([]*RepositoryComment)
 	resp, err := s.client.Do(req, comments)
 	if err != nil {
 		return nil, resp, err
@@ -58,7 +62,7 @@ func (s *RepositoriesService) ListComments(owner, repo string, opt *ListOptions)
 // ListCommitComments lists all the comments for a given commit SHA.
 //
 // GitHub API docs: http://developer.github.com/v3/repos/comments/#list-comments-for-a-single-commit
-func (s *RepositoriesService) ListCommitComments(owner, repo, sha string, opt *ListOptions) ([]RepositoryComment, *Response, error) {
+func (s *RepositoriesService) ListCommitComments(owner, repo, sha string, opt *ListOptions) ([]*RepositoryComment, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/commits/%v/comments", owner, repo, sha)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -70,7 +74,10 @@ func (s *RepositoriesService) ListCommitComments(owner, repo, sha string, opt *L
 		return nil, nil, err
 	}
 
-	comments := new([]RepositoryComment)
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeReactionsPreview)
+
+	comments := new([]*RepositoryComment)
 	resp, err := s.client.Do(req, comments)
 	if err != nil {
 		return nil, resp, err
@@ -108,6 +115,9 @@ func (s *RepositoriesService) GetComment(owner, repo string, id int) (*Repositor
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeReactionsPreview)
 
 	c := new(RepositoryComment)
 	resp, err := s.client.Do(req, c)

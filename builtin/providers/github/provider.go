@@ -38,6 +38,8 @@ func Provider() terraform.ResourceProvider {
 			"github_membership":              resourceGithubMembership(),
 			"github_repository":              resourceGithubRepository(),
 			"github_repository_collaborator": resourceGithubRepositoryCollaborator(),
+			"github_repository_release":      resourceGithubRepositoryRelease(),
+			"github_repository_tag":          resourceGithubRepositoryTag(),
 			"github_issue_label":             resourceGithubIssueLabel(),
 		},
 

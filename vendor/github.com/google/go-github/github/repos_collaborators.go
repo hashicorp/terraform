@@ -10,7 +10,7 @@ import "fmt"
 // ListCollaborators lists the Github users that have access to the repository.
 //
 // GitHub API docs: http://developer.github.com/v3/repos/collaborators/#list
-func (s *RepositoriesService) ListCollaborators(owner, repo string, opt *ListOptions) ([]User, *Response, error) {
+func (s *RepositoriesService) ListCollaborators(owner, repo string, opt *ListOptions) ([]*User, *Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/collaborators", owner, repo)
 	u, err := addOptions(u, opt)
 	if err != nil {
@@ -22,9 +22,7 @@ func (s *RepositoriesService) ListCollaborators(owner, repo string, opt *ListOpt
 		return nil, nil, err
 	}
 
-	req.Header.Set("Accept", mediaTypeOrgPermissionPreview)
-
-	users := new([]User)
+	users := new([]*User)
 	resp, err := s.client.Do(req, users)
 	if err != nil {
 		return nil, resp, err
@@ -60,13 +58,13 @@ type RepositoryAddCollaboratorOptions struct {
 	//     push - team members can pull and push, but not administer this repository
 	//     admin - team members can pull, push and administer this repository
 	//
-	// Default value is "pull".  This option is only valid for organization-owned repositories.
+	// Default value is "push".  This option is only valid for organization-owned repositories.
 	Permission string `json:"permission,omitempty"`
 }
 
 // AddCollaborator adds the specified Github user as collaborator to the given repo.
 //
-// GitHub API docs: http://developer.github.com/v3/repos/collaborators/#add-collaborator
+// GitHub API docs: https://developer.github.com/v3/repos/collaborators/#add-user-as-a-collaborator
 func (s *RepositoriesService) AddCollaborator(owner, repo, user string, opt *RepositoryAddCollaboratorOptions) (*Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/collaborators/%v", owner, repo, user)
 	req, err := s.client.NewRequest("PUT", u, opt)
@@ -74,9 +72,8 @@ func (s *RepositoriesService) AddCollaborator(owner, repo, user string, opt *Rep
 		return nil, err
 	}
 
-	if opt != nil {
-		req.Header.Set("Accept", mediaTypeOrgPermissionPreview)
-	}
+	// TODO: remove custom Accept header when this API fully launches.
+	req.Header.Set("Accept", mediaTypeRepositoryInvitationsPreview)
 
 	return s.client.Do(req, nil)
 }
