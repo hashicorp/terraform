@@ -786,7 +786,7 @@ func testLookupAzureRMVirtualMachineManagedDiskID(vm *compute.VirtualMachine, di
 			}
 		}
 
-		return fmt.Errorf("Unable to locate disk %s on vm %s", diskName, vm.Name)
+		return fmt.Errorf("Unable to locate disk %s on vm %s", diskName, *vm.Name)
 	}
 }
 
