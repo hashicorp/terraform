@@ -1,3 +1,23 @@
+Release v1.7.7 (2017-03-09)
+===
+
+Service Client Updates
+---
+* `service/apigateway`: Updates service API, documentation, and paginators
+  * API Gateway has added support for ACM certificates on custom domain names. Both Amazon-issued certificates and uploaded third-part certificates are supported.
+* `service/clouddirectory`: Updates service API, documentation, and paginators
+  * Introduces a new Cloud Directory API that enables you to retrieve all available parent paths for any type of object (a node, leaf node, policy node, and index node) in a hierarchy.
+
+Release v1.7.6 (2017-03-09)
+===
+
+Service Client Updates
+---
+* `service/organizations`: Updates service documentation and examples
+  * Doc-only Update for Organizations: Add SDK Code Snippets
+* `service/workdocs`: Adds new service
+  * The Administrative SDKs for Amazon WorkDocs provides full administrator level access to WorkDocs site resources, allowing developers to integrate their applications to manage WorkDocs users, content and permissions programmatically
+
 Release v1.7.5 (2017-03-08)
 ===
 

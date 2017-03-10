@@ -7388,7 +7388,7 @@ func (s *Account) SetThrottleSettings(v *ThrottleSettings) *Account {
 type ApiKey struct {
 	_ struct{} `type:"structure"`
 
-	// The date when the API Key was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm).
+	// The timestamp when the API Key was created.
 	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
 
 	// An AWS Marketplace customer identifier , when integrating with the AWS SaaS
@@ -7404,7 +7404,7 @@ type ApiKey struct {
 	// The identifier of the API Key.
 	Id *string `locationName:"id" type:"string"`
 
-	// When the API Key was last updated, in ISO 8601 format.
+	// The timestamp when the API Key was last updated.
 	LastUpdatedDate *time.Time `locationName:"lastUpdatedDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The name of the API Key.
@@ -7706,13 +7706,13 @@ type ClientCertificate struct {
 	// The identifier of the client certificate.
 	ClientCertificateId *string `locationName:"clientCertificateId" type:"string"`
 
-	// The date when the client certificate was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm).
+	// The timestamp when the client certificate was created.
 	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The description of the client certificate.
 	Description *string `locationName:"description" type:"string"`
 
-	// The date when the client certificate will expire, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm).
+	// The timestamp when the client certificate will expire.
 	ExpirationDate *time.Time `locationName:"expirationDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The PEM-encoded public key of the client certificate, which can be used to
@@ -8299,32 +8299,29 @@ func (s *CreateDocumentationVersionInput) SetStageName(v string) *CreateDocument
 type CreateDomainNameInput struct {
 	_ struct{} `type:"structure"`
 
-	// The body of the server certificate provided by your certificate authority.
-	//
-	// CertificateBody is a required field
-	CertificateBody *string `locationName:"certificateBody" type:"string" required:"true"`
+	// The reference to an AWS-managed certificate. AWS Certificate Manager is the
+	// only supported source.
+	CertificateArn *string `locationName:"certificateArn" type:"string"`
 
-	// The intermediate certificates and optionally the root certificate, one after
-	// the other without any blank lines. If you include the root certificate, your
-	// certificate chain must start with intermediate certificates and end with
-	// the root certificate. Use the intermediate certificates that were provided
+	// [Deprecated] The body of the server certificate provided by your certificate
+	// authority.
+	CertificateBody *string `locationName:"certificateBody" type:"string"`
+
+	// [Deprecated] The intermediate certificates and optionally the root certificate,
+	// one after the other without any blank lines. If you include the root certificate,
+	// your certificate chain must start with intermediate certificates and end
+	// with the root certificate. Use the intermediate certificates that were provided
 	// by your certificate authority. Do not include any intermediaries that are
 	// not in the chain of trust path.
-	//
-	// CertificateChain is a required field
-	CertificateChain *string `locationName:"certificateChain" type:"string" required:"true"`
+	CertificateChain *string `locationName:"certificateChain" type:"string"`
 
-	// The name of the certificate.
-	//
-	// CertificateName is a required field
-	CertificateName *string `locationName:"certificateName" type:"string" required:"true"`
+	// The user-friendly name of the certificate.
+	CertificateName *string `locationName:"certificateName" type:"string"`
 
-	// Your certificate's private key.
-	//
-	// CertificatePrivateKey is a required field
-	CertificatePrivateKey *string `locationName:"certificatePrivateKey" type:"string" required:"true"`
+	// [Deprecated] Your certificate's private key.
+	CertificatePrivateKey *string `locationName:"certificatePrivateKey" type:"string"`
 
-	// The name of the DomainName resource.
+	// (Required) The name of the DomainName resource.
 	//
 	// DomainName is a required field
 	DomainName *string `locationName:"domainName" type:"string" required:"true"`
@@ -8343,18 +8340,6 @@ func (s CreateDomainNameInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateDomainNameInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateDomainNameInput"}
-	if s.CertificateBody == nil {
-		invalidParams.Add(request.NewErrParamRequired("CertificateBody"))
-	}
-	if s.CertificateChain == nil {
-		invalidParams.Add(request.NewErrParamRequired("CertificateChain"))
-	}
-	if s.CertificateName == nil {
-		invalidParams.Add(request.NewErrParamRequired("CertificateName"))
-	}
-	if s.CertificatePrivateKey == nil {
-		invalidParams.Add(request.NewErrParamRequired("CertificatePrivateKey"))
-	}
 	if s.DomainName == nil {
 		invalidParams.Add(request.NewErrParamRequired("DomainName"))
 	}
@@ -8363,6 +8348,12 @@ func (s *CreateDomainNameInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCertificateArn sets the CertificateArn field's value.
+func (s *CreateDomainNameInput) SetCertificateArn(v string) *CreateDomainNameInput {
+	s.CertificateArn = &v
+	return s
 }
 
 // SetCertificateBody sets the CertificateBody field's value.
@@ -10275,7 +10266,8 @@ type DocumentationPartLocation struct {
 	// a valid and required field for API entity types of API, AUTHORIZER, MODEL,
 	// RESOURCE, METHOD, PATH_PARAMETER, QUERY_PARAMETER, REQUEST_HEADER, REQUEST_BODY,
 	// RESPONSE, RESPONSE_HEADER, and RESPONSE_BODY. Content inheritance does not
-	// apply to any entity of the API, AUTHROZER, MODEL, or RESOURCE type.
+	// apply to any entity of the API, AUTHROZER, METHOD, MODEL, REQUEST_BODY, or
+	// RESOURCE type.
 	//
 	// Type is a required field
 	Type *string `locationName:"type" type:"string" required:"true" enum:"DocumentationPartType"`
@@ -10390,10 +10382,14 @@ func (s *DocumentationVersion) SetVersion(v string) *DocumentationVersion {
 type DomainName struct {
 	_ struct{} `type:"structure"`
 
+	// The reference to an AWS-managed certificate. AWS Certificate Manager is the
+	// only supported source.
+	CertificateArn *string `locationName:"certificateArn" type:"string"`
+
 	// The name of the certificate.
 	CertificateName *string `locationName:"certificateName" type:"string"`
 
-	// The date when the certificate was uploaded, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm).
+	// The timestamp when the certificate was uploaded.
 	CertificateUploadDate *time.Time `locationName:"certificateUploadDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The domain name of the Amazon CloudFront distribution. For more information,
@@ -10412,6 +10408,12 @@ func (s DomainName) String() string {
 // GoString returns the string representation
 func (s DomainName) GoString() string {
 	return s.String()
+}
+
+// SetCertificateArn sets the CertificateArn field's value.
+func (s *DomainName) SetCertificateArn(v string) *DomainName {
+	s.CertificateArn = &v
+	return s
 }
 
 // SetCertificateName sets the CertificateName field's value.
@@ -15441,7 +15443,7 @@ type RestApi struct {
 	// RestApi supports only UTF-8-encoded text payloads.
 	BinaryMediaTypes []*string `locationName:"binaryMediaTypes" type:"list"`
 
-	// The date when the API was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm).
+	// The timestamp when the API was created.
 	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The API's description.
@@ -15645,7 +15647,7 @@ type Stage struct {
 	// The identifier of a client certificate for an API stage.
 	ClientCertificateId *string `locationName:"clientCertificateId" type:"string"`
 
-	// The date and time that the stage was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm).
+	// The timestamp when the stage was created.
 	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The identifier of the Deployment that the stage points to.
@@ -15657,8 +15659,7 @@ type Stage struct {
 	// The version of the associated API documentation.
 	DocumentationVersion *string `locationName:"documentationVersion" type:"string"`
 
-	// The date and time that information about the stage was last updated, in ISO
-	// 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm).
+	// The timestamp when the stage last updated.
 	LastUpdatedDate *time.Time `locationName:"lastUpdatedDate" type:"timestamp" timestampFormat:"unix"`
 
 	// A map that defines the method settings for a Stage resource. Keys (designated
