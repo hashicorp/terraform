@@ -855,5 +855,12 @@ func (rs *circonusRuleSet) Validate() error {
 	// For an 'on absence' rule this is the number of seconds the metric must not
 	// have been collected for, and should not be lower than either the period or
 	// timeout of the metric being collected.
+
+	for i, rule := range rs.Rules {
+		if rule.Criteria == "" {
+			return fmt.Errorf("rule %d for check ID %s has an empty criteria", i, rs.CheckCID)
+		}
+	}
+
 	return nil
 }
