@@ -1262,9 +1262,10 @@
 			"revisionTime": "2016-07-14T17:28:59Z"
 		},
 		{
-			"checksumSHA1": "+LNqBN6tG7kPK8t4EIoNxk+VTvg=",
+			"checksumSHA1": "cSJrzeVJLa9x2xoVqrJLz2Y+l0Y=",
 			"path": "github.com/cyberdelia/heroku-go/v3",
-			"revision": "81c5afa1abcf69cc18ccc24fa3716b5a455c9208"
+			"revision": "58deda4c1fb0b4803387b29dc916c21887b81954",
+			"revisionTime": "2017-03-06T18:52:00Z"
 		},
 		{
 			"checksumSHA1": "/5cvgU+J4l7EhMXTK76KaCAfOuU=",
