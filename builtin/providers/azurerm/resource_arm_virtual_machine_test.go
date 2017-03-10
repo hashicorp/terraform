@@ -1306,7 +1306,7 @@ resource "azurerm_virtual_machine" "test" {
     storage_data_disk {
         name          = "mydatadisk1"
         vhd_uri       = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/mydatadisk1.vhd"
-    	disk_size_gb  = "1023"
+    	disk_size_gb  = "1"
     	create_option = "Empty"
     	lun           = 0
     }
@@ -1657,7 +1657,7 @@ resource "azurerm_virtual_machine" "test" {
     storage_data_disk {
         name          = "mydatadisk1"
         vhd_uri       = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/mydatadisk1.vhd"
-    	disk_size_gb  = "1023"
+    	disk_size_gb  = "1"
     	create_option = "Empty"
         caching       = "ReadWrite"
     	lun           = 0
@@ -1735,7 +1735,7 @@ resource "azurerm_virtual_machine" "test" {
 
     storage_data_disk {
         name          = "dtd-%d"
-    	disk_size_gb  = "1023"
+    	disk_size_gb  = "1"
     	create_option = "Empty"
         caching       = "ReadWrite"
     	lun           = 0
