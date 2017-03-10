@@ -35,15 +35,15 @@ const (
 	ruleSetSeverityAttr = "severity"
 
 	// circonus_rule_set.if.value.* resource attribute names
-	ruleSetAbsentAttr   = "absent"   // apiRuleSetAbsent
-	ruleSetChangedAttr  = "changed"  // apiRuleSetChanged
-	ruleSetContainsAttr = "contains" // apiRuleSetContains
-	ruleSetEqualsAttr   = "equals"   // apiRuleSetMatch
-	ruleSetExcludesAttr = "excludes" // apiRuleSetNotMatch
-	ruleSetLessAttr     = "less"     // apiRuleSetMinValue
-	ruleSetMissingAttr  = "missing"  // apiRuleSetNotContains
-	ruleSetMoreAttr     = "more"     // apiRuleSetMaxValue
-	ruleSetOverAttr     = "over"
+	ruleSetAbsentAttr     = "absent"      // apiRuleSetAbsent
+	ruleSetChangedAttr    = "changed"     // apiRuleSetChanged
+	ruleSetContainsAttr   = "contains"    // apiRuleSetContains
+	ruleSetMatchAttr      = "match"       // apiRuleSetMatch
+	ruleSetMaxValueAttr   = "max_value"   // apiRuleSetMaxValue
+	ruleSetMinValueAttr   = "min_value"   // apiRuleSetMinValue
+	ruleSetNotContainAttr = "not_contain" // apiRuleSetNotContains
+	ruleSetNotMatchAttr   = "not_match"   // apiRuleSetNotMatch
+	ruleSetOverAttr       = "over"
 
 	// circonus_rule_set.if.value.over.* resource attribute names
 	ruleSetLastAttr  = "last"
@@ -55,11 +55,11 @@ const (
 	apiRuleSetAbsent      = "on absence"       // ruleSetAbsentAttr
 	apiRuleSetChanged     = "on change"        // ruleSetChangedAttr
 	apiRuleSetContains    = "contains"         // ruleSetContainsAttr
-	apiRuleSetMatch       = "match"            // ruleSetEqualsAttr
-	apiRuleSetMaxValue    = "max value"        // ruleSetMoreAttr
-	apiRuleSetMinValue    = "min value"        // ruleSetLessAttr
-	apiRuleSetNotContains = "does not contain" // ruleSetExcludesAttr
-	apiRuleSetNotMatch    = "does not match"   // ruleSetMissingAttr
+	apiRuleSetMatch       = "match"            // ruleSetMatchAttr
+	apiRuleSetMaxValue    = "max value"        // ruleSetMaxValueAttr
+	apiRuleSetMinValue    = "min value"        // ruleSetMinValueAttr
+	apiRuleSetNotContains = "does not contain" // ruleSetNotContainAttr
+	apiRuleSetNotMatch    = "does not match"   // ruleSetNotMatchAttr
 )
 
 var ruleSetDescriptions = attrDescrs{
@@ -82,16 +82,16 @@ var ruleSetIfDescriptions = attrDescrs{
 
 var ruleSetIfValueDescriptions = attrDescrs{
 	// circonus_rule_set.if.value.* resource attribute names
-	ruleSetAbsentAttr:   "Fire the rule set if there has been no data for the given metric stream over the last duration",
-	ruleSetChangedAttr:  "Boolean indicating the value has changed",
-	ruleSetContainsAttr: "Fire the rule set if the text metric contain the following string",
-	ruleSetEqualsAttr:   "Fire the rule set if the text metric exactly match the following string",
-	ruleSetExcludesAttr: "Fire the rule set if the text metric not match the following string",
-	ruleSetLessAttr:     "Fire the rule set if the numeric value less than the specified value",
-	ruleSetMissingAttr:  "Fire the rule set if the text metric does not contain the following string",
-	ruleSetMoreAttr:     "Fire the rule set if the numeric value is more than the specified value",
-	ruleSetOverAttr:     "Use a derived value using a window",
-	ruleSetThenAttr:     "Action to take when the rule set is active",
+	ruleSetAbsentAttr:     "Fire the rule set if there has been no data for the given metric stream over the last duration",
+	ruleSetChangedAttr:    "Boolean indicating the value has changed",
+	ruleSetContainsAttr:   "Fire the rule set if the text metric contain the following string",
+	ruleSetMatchAttr:      "Fire the rule set if the text metric exactly match the following string",
+	ruleSetNotMatchAttr:   "Fire the rule set if the text metric not match the following string",
+	ruleSetMinValueAttr:   "Fire the rule set if the numeric value less than the specified value",
+	ruleSetNotContainAttr: "Fire the rule set if the text metric does not contain the following string",
+	ruleSetMaxValueAttr:   "Fire the rule set if the numeric value is more than the specified value",
+	ruleSetOverAttr:       "Use a derived value using a window",
+	ruleSetThenAttr:       "Action to take when the rule set is active",
 }
 
 var ruleSetIfValueOverDescriptions = attrDescrs{
@@ -188,48 +188,48 @@ func resourceRuleSet() *schema.Resource {
 										ValidateFunc: validateFuncs(
 											validateDurationMin(ruleSetAbsentAttr, ruleSetAbsentMin),
 										),
-										ConflictsWith: makeConflictsWith(ruleSetChangedAttr, ruleSetContainsAttr, ruleSetEqualsAttr, ruleSetExcludesAttr, ruleSetLessAttr, ruleSetMissingAttr, ruleSetMoreAttr, ruleSetOverAttr),
+										ConflictsWith: makeConflictsWith(ruleSetChangedAttr, ruleSetContainsAttr, ruleSetMatchAttr, ruleSetNotMatchAttr, ruleSetMinValueAttr, ruleSetNotContainAttr, ruleSetMaxValueAttr, ruleSetOverAttr),
 									},
 									ruleSetChangedAttr: &schema.Schema{
 										Type:          schema.TypeBool, // Applies to text or numeric metrics
 										Optional:      true,
-										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetContainsAttr, ruleSetEqualsAttr, ruleSetExcludesAttr, ruleSetLessAttr, ruleSetMissingAttr, ruleSetMoreAttr, ruleSetOverAttr),
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetContainsAttr, ruleSetMatchAttr, ruleSetNotMatchAttr, ruleSetMinValueAttr, ruleSetNotContainAttr, ruleSetMaxValueAttr, ruleSetOverAttr),
 									},
 									ruleSetContainsAttr: &schema.Schema{
 										Type:          schema.TypeString, // Applies to text metrics only
 										Optional:      true,
 										ValidateFunc:  validateRegexp(ruleSetContainsAttr, `.+`),
-										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetEqualsAttr, ruleSetExcludesAttr, ruleSetLessAttr, ruleSetMissingAttr, ruleSetMoreAttr, ruleSetOverAttr),
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetMatchAttr, ruleSetNotMatchAttr, ruleSetMinValueAttr, ruleSetNotContainAttr, ruleSetMaxValueAttr, ruleSetOverAttr),
 									},
-									ruleSetEqualsAttr: &schema.Schema{
+									ruleSetMatchAttr: &schema.Schema{
 										Type:          schema.TypeString, // Applies to text metrics only
 										Optional:      true,
-										ValidateFunc:  validateRegexp(ruleSetEqualsAttr, `.+`),
-										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetExcludesAttr, ruleSetLessAttr, ruleSetMissingAttr, ruleSetMoreAttr, ruleSetOverAttr),
+										ValidateFunc:  validateRegexp(ruleSetMatchAttr, `.+`),
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetNotMatchAttr, ruleSetMinValueAttr, ruleSetNotContainAttr, ruleSetMaxValueAttr, ruleSetOverAttr),
 									},
-									ruleSetExcludesAttr: &schema.Schema{
+									ruleSetNotMatchAttr: &schema.Schema{
 										Type:          schema.TypeString, // Applies to text metrics only
 										Optional:      true,
-										ValidateFunc:  validateRegexp(ruleSetExcludesAttr, `.+`),
-										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetEqualsAttr, ruleSetLessAttr, ruleSetMissingAttr, ruleSetMoreAttr, ruleSetOverAttr),
+										ValidateFunc:  validateRegexp(ruleSetNotMatchAttr, `.+`),
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetMatchAttr, ruleSetMinValueAttr, ruleSetNotContainAttr, ruleSetMaxValueAttr, ruleSetOverAttr),
 									},
-									ruleSetLessAttr: &schema.Schema{
+									ruleSetMinValueAttr: &schema.Schema{
 										Type:          schema.TypeString, // Applies to numeric metrics only
 										Optional:      true,
-										ValidateFunc:  validateRegexp(ruleSetLessAttr, `.+`), // TODO(sean): improve this regexp to match int and float
-										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetEqualsAttr, ruleSetExcludesAttr, ruleSetMissingAttr, ruleSetMoreAttr),
+										ValidateFunc:  validateRegexp(ruleSetMinValueAttr, `.+`), // TODO(sean): improve this regexp to match int and float
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetMatchAttr, ruleSetNotMatchAttr, ruleSetNotContainAttr, ruleSetMaxValueAttr),
 									},
-									ruleSetMissingAttr: &schema.Schema{
+									ruleSetNotContainAttr: &schema.Schema{
 										Type:          schema.TypeString, // Applies to text metrics only
 										Optional:      true,
-										ValidateFunc:  validateRegexp(ruleSetMissingAttr, `.+`),
-										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetEqualsAttr, ruleSetExcludesAttr, ruleSetLessAttr, ruleSetMoreAttr, ruleSetOverAttr),
+										ValidateFunc:  validateRegexp(ruleSetNotContainAttr, `.+`),
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetMatchAttr, ruleSetNotMatchAttr, ruleSetMinValueAttr, ruleSetMaxValueAttr, ruleSetOverAttr),
 									},
-									ruleSetMoreAttr: &schema.Schema{
+									ruleSetMaxValueAttr: &schema.Schema{
 										Type:          schema.TypeString, // Applies to numeric metrics only
 										Optional:      true,
-										ValidateFunc:  validateRegexp(ruleSetMoreAttr, `.+`), // TODO(sean): improve this regexp to match int and float
-										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetEqualsAttr, ruleSetExcludesAttr, ruleSetLessAttr, ruleSetMissingAttr),
+										ValidateFunc:  validateRegexp(ruleSetMaxValueAttr, `.+`), // TODO(sean): improve this regexp to match int and float
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetMatchAttr, ruleSetNotMatchAttr, ruleSetMinValueAttr, ruleSetNotContainAttr),
 									},
 									ruleSetOverAttr: &schema.Schema{
 										Type:     schema.TypeSet,
@@ -238,7 +238,7 @@ func resourceRuleSet() *schema.Resource {
 										// ruleSetOverAttr is only compatible with checks of
 										// numeric type.  NOTE: It may be premature to conflict with
 										// ruleSetChangedAttr.
-										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetEqualsAttr, ruleSetExcludesAttr, ruleSetMissingAttr),
+										ConflictsWith: makeConflictsWith(ruleSetAbsentAttr, ruleSetChangedAttr, ruleSetContainsAttr, ruleSetMatchAttr, ruleSetNotMatchAttr, ruleSetNotContainAttr),
 										Elem: &schema.Resource{
 											Schema: convertToHelperSchema(ruleSetIfValueOverDescriptions, map[schemaAttr]*schema.Schema{
 												ruleSetLastAttr: &schema.Schema{
@@ -363,15 +363,15 @@ func ruleSetRead(d *schema.ResourceData, meta interface{}) error {
 		case apiRuleSetContains:
 			valueAttrs[string(ruleSetContainsAttr)] = rule.Value
 		case apiRuleSetMatch:
-			valueAttrs[string(ruleSetEqualsAttr)] = rule.Value
+			valueAttrs[string(ruleSetMatchAttr)] = rule.Value
 		case apiRuleSetMaxValue:
-			valueAttrs[string(ruleSetMoreAttr)] = rule.Value
+			valueAttrs[string(ruleSetMaxValueAttr)] = rule.Value
 		case apiRuleSetMinValue:
-			valueAttrs[string(ruleSetLessAttr)] = rule.Value
+			valueAttrs[string(ruleSetMinValueAttr)] = rule.Value
 		case apiRuleSetNotContains:
-			valueAttrs[string(ruleSetExcludesAttr)] = rule.Value
+			valueAttrs[string(ruleSetNotMatchAttr)] = rule.Value
 		case apiRuleSetNotMatch:
-			valueAttrs[string(ruleSetMissingAttr)] = rule.Value
+			valueAttrs[string(ruleSetNotContainAttr)] = rule.Value
 		default:
 			return fmt.Errorf("PROVIDER BUG: Unsupported criteria %q", rule.Criteria)
 		}
@@ -565,11 +565,11 @@ func ruleSetValueChecksum(v interface{}) int {
 			writeDuration(valueMap, ruleSetAbsentAttr)
 			writeBool(valueMap, ruleSetChangedAttr)
 			writeString(valueMap, ruleSetContainsAttr)
-			writeString(valueMap, ruleSetEqualsAttr)
-			writeString(valueMap, ruleSetExcludesAttr)
-			writeString(valueMap, ruleSetLessAttr)
-			writeString(valueMap, ruleSetMissingAttr)
-			writeString(valueMap, ruleSetMoreAttr)
+			writeString(valueMap, ruleSetMatchAttr)
+			writeString(valueMap, ruleSetNotMatchAttr)
+			writeString(valueMap, ruleSetMinValueAttr)
+			writeString(valueMap, ruleSetNotContainAttr)
+			writeString(valueMap, ruleSetMaxValueAttr)
 
 			if v, found := valueMap[ruleSetOverAttr]; found {
 				overMap := v.(map[string]interface{})
@@ -716,7 +716,7 @@ func (rs *circonusRuleSet) ParseConfig(d *schema.ResourceData) error {
 							}
 						}
 
-						if v, found := valueAttrs[ruleSetLessAttr]; found {
+						if v, found := valueAttrs[ruleSetMinValueAttr]; found {
 							s := v.(string)
 							if s != "" {
 								rule.Criteria = apiRuleSetMinValue
@@ -725,7 +725,7 @@ func (rs *circonusRuleSet) ParseConfig(d *schema.ResourceData) error {
 							}
 						}
 
-						if v, found := valueAttrs[ruleSetMoreAttr]; found {
+						if v, found := valueAttrs[ruleSetMaxValueAttr]; found {
 							s := v.(string)
 							if s != "" {
 								rule.Criteria = apiRuleSetMaxValue
@@ -761,7 +761,7 @@ func (rs *circonusRuleSet) ParseConfig(d *schema.ResourceData) error {
 							}
 						}
 
-						if v, found := valueAttrs[ruleSetEqualsAttr]; found {
+						if v, found := valueAttrs[ruleSetMatchAttr]; found {
 							s := v.(string)
 							if s != "" {
 								rule.Criteria = apiRuleSetMatch
@@ -770,7 +770,7 @@ func (rs *circonusRuleSet) ParseConfig(d *schema.ResourceData) error {
 							}
 						}
 
-						if v, found := valueAttrs[ruleSetExcludesAttr]; found {
+						if v, found := valueAttrs[ruleSetNotMatchAttr]; found {
 							s := v.(string)
 							if s != "" {
 								rule.Criteria = apiRuleSetNotMatch
@@ -779,7 +779,7 @@ func (rs *circonusRuleSet) ParseConfig(d *schema.ResourceData) error {
 							}
 						}
 
-						if v, found := valueAttrs[ruleSetMissingAttr]; found {
+						if v, found := valueAttrs[ruleSetNotContainAttr]; found {
 							s := v.(string)
 							if s != "" {
 								rule.Criteria = apiRuleSetNotContains

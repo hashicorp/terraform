@@ -26,7 +26,7 @@ resource "circonus_rule_set" "myapp-cert-ttl-alarm" {
 
   if {
     value {
-      less = "${2 * 24 * 3600}"
+      min_value = "${2 * 24 * 3600}"
     }
 
     then {
@@ -37,7 +37,7 @@ resource "circonus_rule_set" "myapp-cert-ttl-alarm" {
 
   if {
     value {
-      less = "${7 * 24 * 3600}"
+      min_value = "${7 * 24 * 3600}"
     }
 
     then {
@@ -48,7 +48,7 @@ resource "circonus_rule_set" "myapp-cert-ttl-alarm" {
 
   if {
     value {
-      less = "${21 * 24 * 3600}"
+      min_value = "${21 * 24 * 3600}"
     }
 
     then {
@@ -79,7 +79,7 @@ resource "circonus_rule_set" "myapp-healthy-alarm" {
   if {
     value {
       # SEV1 if it takes more than 9.5s for us to complete an HTTP request
-      more = "${9.5 * 1000}"
+      max_value = "${9.5 * 1000}"
     }
 
     then {
@@ -91,7 +91,7 @@ resource "circonus_rule_set" "myapp-healthy-alarm" {
   if {
     value {
       # SEV2 if it takes more than 5s for us to complete an HTTP request
-      more = "${5 * 1000}"
+      max_value = "${5 * 1000}"
     }
 
     then {
@@ -109,7 +109,7 @@ resource "circonus_rule_set" "myapp-healthy-alarm" {
         last = "10m"
         using = "average"
       }
-      more = "500"
+      max_value = "500"
     }
 
     then {
@@ -123,7 +123,7 @@ resource "circonus_rule_set" "myapp-healthy-alarm" {
       # SEV4 if it takes more than 500ms for us to complete an HTTP request.  We
       # want to record that things were slow, but not wake anyone up if it
       # momentarily pops above 500ms.
-      less = "500"
+      min_value = "500"
     }
 
     then {
@@ -268,11 +268,11 @@ the following predicates may be specified at a time.
 * `changed` - (Optional) A boolean indicating this rule should fire when the
   value changes (e.g. `n != n<sub>1</sub>`).
 
-* `less` - (Optional) When the value is less than this value, this rule will
-  fire (e.g. `n < ${less}`).
+* `min_value` - (Optional) When the value is less than this value, this rule will
+  fire (e.g. `n < ${min_value}`).
 
-* `more` - (Optional) When the value is greater than this value, this rule
-  will fire (e.g. `n > ${more}`).
+* `max_value` - (Optional) When the value is greater than this value, this rule
+  will fire (e.g. `n > ${max_value}`).
 
 Additionally, a `numeric` check can also evaluate data based on a windowing
 function versus the last measured value in the metric stream.  In order to have
@@ -302,16 +302,16 @@ Metric types of type `text` support the following predicates:
   less than this value, this rule will fire (e.g. `strstr(n, ${contains}) !=
   NULL`).
 
-* `equals` - (Optional) When the last value in the metric stream value exactly
-  matches this configured value, this rule will fire (e.g. `strcmp(n, ${equals})
+* `match` - (Optional) When the last value in the metric stream value exactly
+  matches this configured value, this rule will fire (e.g. `strcmp(n, ${match})
   == 0`).
 
-* `excludes` - (Optional) When the last value in the metric stream does not
+* `not_contain` - (Optional) When the last value in the metric stream does not
   match this configured value, this rule will fire (e.g. `strstr(n, ${contains})
   == NULL`).
 
-* `missing` - (Optional) When the last value in the metric stream does not match
-  this configured value, this rule will fire (e.g. `strstr(n, ${missing}) ==
+* `not_match` - (Optional) When the last value in the metric stream does not match
+  this configured value, this rule will fire (e.g. `strstr(n, ${not_match}) ==
   NULL`).
 
 ### `then` Configuration
@@ -354,7 +354,7 @@ resource "circonus_rule_set" "icmp-latency-alarm" {
         using = "average"
       }
 
-      more = 0.5 # units are in miliseconds
+      max_value = 0.5 # units are in miliseconds
     }
 
     then {
