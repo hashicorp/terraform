@@ -99,7 +99,7 @@ resource "aws_vpc" "test" {
   assign_generated_ipv6_cidr_block = true
 
   tags {
-    Name = "terraform-testacc-vpc-data-source-%d"
+    Name = "%s"
   }
 }
 
