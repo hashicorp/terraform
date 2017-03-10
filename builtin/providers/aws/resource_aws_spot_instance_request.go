@@ -266,6 +266,29 @@ func readInstance(d *schema.ResourceData, meta interface{}) error {
 		if err := readBlockDevices(d, instance, conn); err != nil {
 			return err
 		}
+
+		var ipv6Addresses []string
+		if len(instance.NetworkInterfaces) > 0 {
+			for _, ni := range instance.NetworkInterfaces {
+				if *ni.Attachment.DeviceIndex == 0 {
+					d.Set("subnet_id", ni.SubnetId)
+					d.Set("network_interface_id", ni.NetworkInterfaceId)
+					d.Set("associate_public_ip_address", ni.Association != nil)
+					d.Set("ipv6_address_count", len(ni.Ipv6Addresses))
+
+					for _, address := range ni.Ipv6Addresses {
+						ipv6Addresses = append(ipv6Addresses, *address.Ipv6Address)
+					}
+				}
+			}
+		} else {
+			d.Set("subnet_id", instance.SubnetId)
+			d.Set("network_interface_id", "")
+		}
+
+		if err := d.Set("ipv6_addresses", ipv6Addresses); err != nil {
+			log.Printf("[WARN] Error setting ipv6_addresses for AWS Spot Instance (%s): %s", d.Id(), err)
+		}
 	}
 
 	return nil
