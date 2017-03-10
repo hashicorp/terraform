@@ -59,6 +59,43 @@ func TestRefresh(t *testing.T) {
 	}
 }
 
+func TestRefresh_lockedState(t *testing.T) {
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	unlock, err := testLockState("./testdata", statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &RefreshCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	p.RefreshFn = nil
+	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("refresh"),
+	}
+
+	if code := c.Run(args); code == 0 {
+		t.Fatal("expected error")
+	}
+
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, "lock") {
+		t.Fatal("command output does not look like a lock error:", output)
+	}
+}
+
 func TestRefresh_badState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -757,7 +794,7 @@ func newInstanceState(id string) *terraform.InstanceState {
 		Ephemeral: terraform.EphemeralState{
 			ConnInfo: make(map[string]string),
 		},
-		Meta: make(map[string]string),
+		Meta: make(map[string]interface{}),
 	}
 }
 

@@ -46,9 +46,21 @@ func (n *NodeDestroyResource) ModifyCreateBeforeDestroy(v bool) error {
 
 // GraphNodeReferenceable, overriding NodeAbstractResource
 func (n *NodeDestroyResource) ReferenceableName() []string {
+	// We modify our referenceable name to have the suffix of ".destroy"
+	// since depending on the creation side doesn't necessarilly mean
+	// depending on destruction.
+	suffix := ".destroy"
+
+	// If we're CBD, we also append "-cbd". This is because CBD will setup
+	// its own edges (in CBDEdgeTransformer). Depending on the "destroy"
+	// side generally doesn't mean depending on CBD as well. See GH-11349
+	if n.CreateBeforeDestroy() {
+		suffix += "-cbd"
+	}
+
 	result := n.NodeAbstractResource.ReferenceableName()
 	for i, v := range result {
-		result[i] = v + ".destroy"
+		result[i] = v + suffix
 	}
 
 	return result
@@ -56,6 +68,21 @@ func (n *NodeDestroyResource) ReferenceableName() []string {
 
 // GraphNodeReferencer, overriding NodeAbstractResource
 func (n *NodeDestroyResource) References() []string {
+	// If we have a config, then we need to include destroy-time dependencies
+	if c := n.Config; c != nil {
+		var result []string
+		for _, p := range c.Provisioners {
+			// We include conn info and config for destroy time provisioners
+			// as dependencies that we have.
+			if p.When == config.ProvisionerWhenDestroy {
+				result = append(result, ReferencesFromConfig(p.ConnInfo)...)
+				result = append(result, ReferencesFromConfig(p.RawConfig)...)
+			}
+		}
+
+		return result
+	}
+
 	return nil
 }
 

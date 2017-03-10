@@ -23,9 +23,19 @@ func (n *NodeRefreshableResource) EvalTree() EvalNode {
 	switch mode := n.Addr.Mode; mode {
 	case config.ManagedResourceMode:
 		return n.evalTreeManagedResource()
+
 	case config.DataResourceMode:
-		dn := &NodeRefreshableDataResourceInstance{
-			NodeAbstractResource: n.NodeAbstractResource,
+		// Get the data source node. If we don't have a configuration
+		// then it is an orphan so we destroy it (remove it from the state).
+		var dn GraphNodeEvalable
+		if n.Config != nil {
+			dn = &NodeRefreshableDataResourceInstance{
+				NodeAbstractResource: n.NodeAbstractResource,
+			}
+		} else {
+			dn = &NodeDestroyableDataResource{
+				NodeAbstractResource: n.NodeAbstractResource,
+			}
 		}
 
 		return dn.EvalTree()

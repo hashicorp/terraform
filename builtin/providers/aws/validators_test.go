@@ -1006,6 +1006,11 @@ func TestValidateOnceAWeekWindowFormat(t *testing.T) {
 			Value:    "Sun:04:00-Sun:05:00",
 			ErrCount: 0,
 		},
+		{
+			// valid format
+			Value:    "",
+			ErrCount: 0,
+		},
 	}
 
 	for _, tc := range cases {
@@ -1040,6 +1045,11 @@ func TestValidateOnceADayWindowFormat(t *testing.T) {
 		{
 			// valid format
 			Value:    "04:00-05:00",
+			ErrCount: 0,
+		},
+		{
+			// valid format
+			Value:    "",
 			ErrCount: 0,
 		},
 	}
@@ -1311,5 +1321,232 @@ func TestValidateEmrEbsVolumeType(t *testing.T) {
 			t.Fatalf("Expected %d errors, got %d: %s", tc.ErrCount, len(errors), errors)
 		}
 	}
+}
 
+func TestValidateAppautoscalingScalableDimension(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "ecs:service:DesiredCount",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ec2:spot-fleet-request:TargetCapacity",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ec2:service:DesiredCount",
+			ErrCount: 1,
+		},
+		{
+			Value:    "ecs:spot-fleet-request:TargetCapacity",
+			ErrCount: 1,
+		},
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAppautoscalingScalableDimension(tc.Value, "scalable_dimension")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Scalable Dimension validation failed for value %q: %q", tc.Value, errors)
+		}
+	}
+}
+
+func TestValidateAppautoscalingServiceNamespace(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "ecs",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ec2",
+			ErrCount: 0,
+		},
+		{
+			Value:    "autoscaling",
+			ErrCount: 1,
+		},
+		{
+			Value:    "s3",
+			ErrCount: 1,
+		},
+		{
+			Value:    "es",
+			ErrCount: 1,
+		},
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateAppautoscalingServiceNamespace(tc.Value, "service_namespace")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Service Namespace validation failed for value %q: %q", tc.Value, errors)
+		}
+	}
+}
+
+func TestValidateDmsEndpointId(t *testing.T) {
+	validIds := []string{
+		"tf-test-endpoint-1",
+		"tfTestEndpoint",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsEndpointId(s, "endpoint_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid endpoint id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"tf_test_endpoint_1",
+		"tf.test.endpoint.1",
+		"tf test endpoint 1",
+		"tf-test-endpoint-1!",
+		"tf-test-endpoint-1-",
+		"tf-test-endpoint--1",
+		"tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1tf-test-endpoint-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsEndpointId(s, "endpoint_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid endpoint id: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateDmsCertificateId(t *testing.T) {
+	validIds := []string{
+		"tf-test-certificate-1",
+		"tfTestEndpoint",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsCertificateId(s, "certificate_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid certificate id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"tf_test_certificate_1",
+		"tf.test.certificate.1",
+		"tf test certificate 1",
+		"tf-test-certificate-1!",
+		"tf-test-certificate-1-",
+		"tf-test-certificate--1",
+		"tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1tf-test-certificate-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsEndpointId(s, "certificate_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid certificate id: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateDmsReplicationInstanceId(t *testing.T) {
+	validIds := []string{
+		"tf-test-replication-instance-1",
+		"tfTestReplicaitonInstance",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsReplicationInstanceId(s, "replicaiton_instance_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid replication instance id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"tf_test_replication-instance_1",
+		"tf.test.replication.instance.1",
+		"tf test replication instance 1",
+		"tf-test-replication-instance-1!",
+		"tf-test-replication-instance-1-",
+		"tf-test-replication-instance--1",
+		"tf-test-replication-instance-1tf-test-replication-instance-1tf-test-replication-instance-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsReplicationInstanceId(s, "replication_instance_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid replication instance id: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateDmsReplicationSubnetGroupId(t *testing.T) {
+	validIds := []string{
+		"tf-test-replication-subnet-group-1",
+		"tf_test_replication_subnet_group_1",
+		"tf.test.replication.subnet.group.1",
+		"tf test replication subnet group 1",
+		"tfTestReplicationSubnetGroup",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsReplicationSubnetGroupId(s, "replication_subnet_group_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid replication subnet group id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"default",
+		"tf-test-replication-subnet-group-1!",
+		"tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1tf-test-replication-subnet-group-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsReplicationSubnetGroupId(s, "replication_subnet_group_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid replication subnet group id: %v", s, errors)
+		}
+	}
+}
+
+func TestValidateDmsReplicationTaskId(t *testing.T) {
+	validIds := []string{
+		"tf-test-replication-task-1",
+		"tfTestReplicationTask",
+	}
+
+	for _, s := range validIds {
+		_, errors := validateDmsReplicationTaskId(s, "replication_task_id")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid replication task id: %v", s, errors)
+		}
+	}
+
+	invalidIds := []string{
+		"tf_test_replication_task_1",
+		"tf.test.replication.task.1",
+		"tf test replication task 1",
+		"tf-test-replication-task-1!",
+		"tf-test-replication-task-1-",
+		"tf-test-replication-task--1",
+		"tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1tf-test-replication-task-1",
+	}
+
+	for _, s := range invalidIds {
+		_, errors := validateDmsReplicationTaskId(s, "replication_task_id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid replication task id: %v", s, errors)
+		}
+	}
 }

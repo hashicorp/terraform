@@ -14,21 +14,22 @@ Defines a new Firewall Rule to be applied across the given Database Servers.
 
 ```
 resource "azure_sql_database_server" "sql-serv1" {
-    ...
+  # ...
 }
 
 resource "azure_sql_database_server" "sql-serv2" {
-    ...
+  # ...
 }
 
 resource "azure_sql_database_server_firewall_rule" "constraint" {
-    name = "terraform-testing-rule"
-    start_ip = "154.0.0.0"
-    end_ip   = "154.0.0.255"
-    database_server_names = [
-        "${azure_sql_database_server.sql-serv1.name}",
-        "${azure_sql_database_server.sql-serv2.name}",
-    ]
+  name     = "terraform-testing-rule"
+  start_ip = "154.0.0.0"
+  end_ip   = "154.0.0.255"
+
+  database_server_names = [
+    "${azure_sql_database_server.sql-serv1.name}",
+    "${azure_sql_database_server.sql-serv2.name}",
+  ]
 }
 ```
 

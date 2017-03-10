@@ -17,11 +17,11 @@ attribute instead.
 
 ```
 resource "aws_db_security_group" "default" {
-    name = "rds_sg"
+  name = "rds_sg"
 
-    ingress {
-        cidr = "10.0.0.0/24"
-    }
+  ingress {
+    cidr = "10.0.0.0/24"
+  }
 }
 ```
 
@@ -52,7 +52,7 @@ The following attributes are exported:
 
 ## Import
 
-DB Security groups can be imported using the `name`, e.g. 
+DB Security groups can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_db_security_group.default aws_rds_sg-1

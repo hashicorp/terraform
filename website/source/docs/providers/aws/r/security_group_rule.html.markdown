@@ -24,14 +24,14 @@ Basic usage
 
 ```
 resource "aws_security_group_rule" "allow_all" {
-    type = "ingress"
-    from_port = 0
-    to_port = 65535
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    prefix_list_ids = ["pl-12c4e678"]
+  type            = "ingress"
+  from_port       = 0
+  to_port         = 65535
+  protocol        = "tcp"
+  cidr_blocks     = ["0.0.0.0/0"]
+  prefix_list_ids = ["pl-12c4e678"]
 
-    security_group_id = "sg-123456"
+  security_group_id = "sg-123456"
 }
 ```
 
@@ -61,16 +61,17 @@ Prefix list IDs are exported on VPC Endpoints, so you can use this format:
 
 ```
 resource "aws_security_group_rule" "allow_all" {
-    type = "egress"
-    to_port = 0
-    protocol = "-1"
-    prefix_list_ids = ["${aws_vpc_endpoint.my_endpoint.prefix_list_id}"]
-    from_port = 0
-    security_group_id = "sg-123456"
+  type              = "egress"
+  to_port           = 0
+  protocol          = "-1"
+  prefix_list_ids   = ["${aws_vpc_endpoint.my_endpoint.prefix_list_id}"]
+  from_port         = 0
+  security_group_id = "sg-123456"
 }
-...
+
+# ...
 resource "aws_vpc_endpoint" "my_endpoint" {
-  ...
+  # ...
 }
 ```
 

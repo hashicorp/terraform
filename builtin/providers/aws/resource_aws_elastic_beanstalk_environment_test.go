@@ -263,6 +263,30 @@ func TestAccAWSBeanstalkEnv_basic_settings_update(t *testing.T) {
 	})
 }
 
+func TestAccAWSBeanstalkEnv_version_label(t *testing.T) {
+	var app elasticbeanstalk.EnvironmentDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBeanstalkEnvDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccBeanstalkEnvApplicationVersionConfig(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkApplicationVersionDeployed("aws_elastic_beanstalk_environment.default", &app),
+				),
+			},
+			resource.TestStep{
+				Config: testAccBeanstalkEnvApplicationVersionConfigUpdate(acctest.RandInt()),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkApplicationVersionDeployed("aws_elastic_beanstalk_environment.default", &app),
+				),
+			},
+		},
+	})
+}
+
 func testAccVerifyBeanstalkConfig(env *elasticbeanstalk.EnvironmentDescription, expected []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if env == nil {
@@ -440,6 +464,32 @@ func testAccCheckBeanstalkEnvConfigValue(n string, expectedValue string) resourc
 				return fmt.Errorf("Option setting value: %s. Expected %s", *value, expectedValue)
 			}
 		}
+
+		return nil
+	}
+}
+
+func testAccCheckBeanstalkApplicationVersionDeployed(n string, app *elasticbeanstalk.EnvironmentDescription) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("Elastic Beanstalk ENV is not set")
+		}
+
+		env, err := describeBeanstalkEnv(testAccProvider.Meta().(*AWSClient).elasticbeanstalkconn, aws.String(rs.Primary.ID))
+		if err != nil {
+			return err
+		}
+
+		if *env.VersionLabel != rs.Primary.Attributes["version_label"] {
+			return fmt.Errorf("Elastic Beanstalk version deployed %s. Expected %s", *env.VersionLabel, rs.Primary.Attributes["version_label"])
+		}
+
+		*app = *env
 
 		return nil
 	}
@@ -633,7 +683,7 @@ func testAccBeanstalkWorkerEnvConfig(rInt int) string {
  }
 
  resource "aws_elastic_beanstalk_environment" "tfenvtest" {
-	 name = "tf-test-name"
+	 name = "tf-test-name-%d"
 	 application = "${aws_elastic_beanstalk_application.tftest.name}"
 	 tier = "Worker"
 	 solution_stack_name = "64bit Amazon Linux running Python"
@@ -643,7 +693,7 @@ func testAccBeanstalkWorkerEnvConfig(rInt int) string {
 		 name      = "IamInstanceProfile"
 		 value     = "${aws_iam_instance_profile.tftest.name}"
 	 }
- }`, rInt)
+ }`, rInt, rInt)
 }
 
 func testAccBeanstalkEnvCnamePrefixConfig(randString string, rInt int) string {
@@ -654,12 +704,12 @@ description = "tf-test-desc"
 }
 
 resource "aws_elastic_beanstalk_environment" "tfenvtest" {
-name = "tf-test-name"
+name = "tf-test-name-%d"
 application = "${aws_elastic_beanstalk_application.tftest.name}"
 cname_prefix = "%s"
 solution_stack_name = "64bit Amazon Linux running Python"
 }
-`, rInt, randString)
+`, rInt, rInt, randString)
 }
 
 func testAccBeanstalkConfigTemplate(rInt int) string {
@@ -670,7 +720,7 @@ func testAccBeanstalkConfigTemplate(rInt int) string {
 	}
 
 	resource "aws_elastic_beanstalk_environment" "tftest" {
-		name = "tf-test-name"
+		name = "tf-test-name-%d"
 		application = "${aws_elastic_beanstalk_application.tftest.name}"
 		template_name = "${aws_elastic_beanstalk_configuration_template.tftest.name}"
 	}
@@ -686,7 +736,7 @@ func testAccBeanstalkConfigTemplate(rInt int) string {
 			value     = "1"
 	 }
 	}
-	`, rInt)
+	`, rInt, rInt)
 }
 
 func testAccBeanstalkConfigTemplateUpdate(rInt int) string {
@@ -697,7 +747,7 @@ func testAccBeanstalkConfigTemplateUpdate(rInt int) string {
 	}
 
 	resource "aws_elastic_beanstalk_environment" "tftest" {
-		name = "tf-test-name"
+		name = "tf-test-name-%d"
 		application = "${aws_elastic_beanstalk_application.tftest.name}"
 		template_name = "${aws_elastic_beanstalk_configuration_template.tftest.name}"
 	}
@@ -713,7 +763,7 @@ func testAccBeanstalkConfigTemplateUpdate(rInt int) string {
 			value     = "2"
 		}
 	}
-	`, rInt)
+	`, rInt, rInt)
 }
 
 func testAccBeanstalkResourceOptionSetting(rInt int) string {
@@ -724,7 +774,7 @@ resource "aws_elastic_beanstalk_application" "tftest" {
 }
 
 resource "aws_elastic_beanstalk_environment" "tfenvtest" {
-  name = "tf-test-name"
+  name = "tf-test-name-%d"
   application = "${aws_elastic_beanstalk_application.tftest.name}"
   solution_stack_name = "64bit Amazon Linux running Python"
 
@@ -748,7 +798,7 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
     name = "Recurrence"
     value = "0 8 * * *"
   }
-}`, rInt)
+}`, rInt, rInt)
 }
 
 func testAccBeanstalkEnv_VPC(name string, rInt int) string {
@@ -783,7 +833,7 @@ resource "aws_elastic_beanstalk_application" "default" {
 }
 
 resource "aws_elastic_beanstalk_environment" "default" {
-  name = "tf-test-name"
+  name = "tf-test-name-%d"
   application = "${aws_elastic_beanstalk_application.default.name}"
   solution_stack_name = "64bit Amazon Linux running Python"
 
@@ -811,7 +861,7 @@ resource "aws_elastic_beanstalk_environment" "default" {
     value     = "${aws_security_group.default.id}"
   }
 }
-`, name, rInt)
+`, name, rInt, rInt)
 }
 
 func testAccBeanstalkEnv_TemplateChange_stack(r int) string {
@@ -872,4 +922,70 @@ resource "aws_elastic_beanstalk_configuration_template" "template" {
   solution_stack_name = "64bit Amazon Linux 2016.03 v2.1.3 running Go 1.5"
 }
 `, r, r, r)
+}
+
+func testAccBeanstalkEnvApplicationVersionConfig(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "default" {
+  bucket = "tftest.applicationversion.buckets-%d"
+}
+
+resource "aws_s3_bucket_object" "default" {
+  bucket = "${aws_s3_bucket.default.id}"
+  key = "python-v1.zip"
+  source = "test-fixtures/python-v1.zip"
+}
+
+resource "aws_elastic_beanstalk_application" "default" {
+  name = "tf-test-name"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_application_version" "default" {
+  application = "tf-test-name"
+  name = "tf-test-version-label"
+  bucket = "${aws_s3_bucket.default.id}"
+  key = "${aws_s3_bucket_object.default.id}"
+}
+
+resource "aws_elastic_beanstalk_environment" "default" {
+  name = "tf-test-name"
+  application = "${aws_elastic_beanstalk_application.default.name}"
+  version_label = "${aws_elastic_beanstalk_application_version.default.name}"
+  solution_stack_name = "64bit Amazon Linux running Python"
+}
+`, randInt)
+}
+
+func testAccBeanstalkEnvApplicationVersionConfigUpdate(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "default" {
+  bucket = "tftest.applicationversion.buckets-%d"
+}
+
+resource "aws_s3_bucket_object" "default" {
+  bucket = "${aws_s3_bucket.default.id}"
+  key = "python-v2.zip"
+  source = "test-fixtures/python-v1.zip"
+}
+
+resource "aws_elastic_beanstalk_application" "default" {
+  name = "tf-test-name"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_application_version" "default" {
+  application = "tf-test-name"
+  name = "tf-test-version-label-v2"
+  bucket = "${aws_s3_bucket.default.id}"
+  key = "${aws_s3_bucket_object.default.id}"
+}
+
+resource "aws_elastic_beanstalk_environment" "default" {
+  name = "tf-test-name"
+  application = "${aws_elastic_beanstalk_application.default.name}"
+  version_label = "${aws_elastic_beanstalk_application_version.default.name}"
+  solution_stack_name = "64bit Amazon Linux running Python"
+}
+`, randInt)
 }

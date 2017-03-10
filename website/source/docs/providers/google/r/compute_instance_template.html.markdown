@@ -36,8 +36,8 @@ resource "google_compute_instance_template" "foobar" {
   // Create a new boot disk from an image
   disk {
     source_image = "debian-cloud/debian-8"
-    auto_delete = true
-    boot = true
+    auto_delete  = true
+    boot         = true
   }
 
   // Use an existing disk resource
@@ -73,31 +73,31 @@ with `name_prefix`.  Example:
 
 ```
 resource "google_compute_instance_template" "instance_template" {
-    name_prefix = "instance-template-"
-    machine_type = "n1-standard-1"
-    region = "us-central1"
+  name_prefix  = "instance-template-"
+  machine_type = "n1-standard-1"
+  region       = "us-central1"
 
-    // boot disk
-    disk {
-      ...
-    }
+  // boot disk
+  disk {
+    # ...
+  }
 
-    // networking
-    network_interface {
-      ...
-    }
+  // networking
+  network_interface {
+    # ...
+  }
 
-    lifecycle {
-        create_before_destroy = true
-    }
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "google_compute_instance_group_manager" "instance_group_manager" {
-    name = "instance-group-manager"
-    instance_template = "${google_compute_instance_template.instance_template.self_link}"
-    base_instance_name = "instance-group-manager"
-    zone = "us-central1-f"
-    target_size = "1"
+  name               = "instance-group-manager"
+  instance_template  = "${google_compute_instance_template.instance_template.self_link}"
+  base_instance_name = "instance-group-manager"
+  zone               = "us-central1-f"
+  target_size        = "1"
 }
 ```
 

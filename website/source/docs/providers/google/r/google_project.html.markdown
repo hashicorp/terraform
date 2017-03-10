@@ -3,7 +3,7 @@ layout: "google"
 page_title: "Google: google_project"
 sidebar_current: "docs-google-project"
 description: |-
- Allows management of a Google Cloud Platform project. 
+ Allows management of a Google Cloud Platform project.
 ---
 
 # google\_project
@@ -23,9 +23,9 @@ doc for more information.
 
 ```js
 resource "google_project" "my_project" {
-    project_id = "your-project-id"
-    org_id = "1234567"
-    services = ["compute_component", "storage-component-json.googleapis.com", "iam.googleapis.com"]
+  project_id = "your-project-id"
+  org_id     = "1234567"
+  services   = ["compute_component", "storage-component-json.googleapis.com", "iam.googleapis.com"]
 }
 ```
 
@@ -48,6 +48,12 @@ The following arguments are supported:
 * `org_id` - (Optional) The numeric ID of the organization this project belongs to.
     This is required if you are creating a new project.
     Changing this forces a new project to be created.
+
+* `billing_acount` - (Optional) The alphanumeric ID of the billing account this project
+    belongs to. The user or service account performing this operation with Terraform
+    must have Billing Account Administrator privileges (`roles/billing.admin`) in
+    the organization. See [Google Cloud Billing API Access Control](https://cloud.google.com/billing/v1/how-tos/access-control)
+    for more details.
 
 * `name` - (Optional) The display name of the project.
     This is required if you are creating a new project.

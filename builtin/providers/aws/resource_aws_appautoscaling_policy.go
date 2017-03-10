@@ -47,16 +47,16 @@ func resourceAwsAppautoscalingPolicy() *schema.Resource {
 				Required: true,
 			},
 			"scalable_dimension": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "ecs:service:DesiredCount",
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateAppautoscalingScalableDimension,
 			},
 			"service_namespace": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "ecs",
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateAppautoscalingServiceNamespace,
 			},
 			"adjustment_type": &schema.Schema{
 				Type:     schema.TypeString,
@@ -256,10 +256,6 @@ func getAwsAppautoscalingPutScalingPolicyInput(d *schema.ResourceData) (applicat
 
 	if v, ok := d.GetOk("service_namespace"); ok {
 		params.ServiceNamespace = aws.String(v.(string))
-	}
-
-	if v, ok := d.GetOk("policy_type"); ok {
-		params.PolicyType = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("scalable_dimension"); ok {

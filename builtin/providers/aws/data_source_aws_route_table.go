@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -138,7 +139,8 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 
 	rt := resp.RouteTables[0]
 
-	d.SetId(*rt.RouteTableId)
+	d.SetId(aws.StringValue(rt.RouteTableId))
+	d.Set("route_table_id", rt.RouteTableId)
 	d.Set("vpc_id", rt.VpcId)
 	d.Set("tags", tagsToMap(rt.Tags))
 	if err := d.Set("routes", dataSourceRoutesRead(rt.Routes)); err != nil {

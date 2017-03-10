@@ -32,7 +32,7 @@ resource "google_compute_instance_group" "webservers" {
 
   instances = [
     "${google_compute_instance.test.self_link}",
-    "${google_compute_instance.test2.self_link}"
+    "${google_compute_instance.test2.self_link}",
   ]
 
   named_port {

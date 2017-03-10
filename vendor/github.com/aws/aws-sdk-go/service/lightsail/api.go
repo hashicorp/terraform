@@ -65,28 +65,28 @@ func (c *Lightsail) AllocateStaticIpRequest(input *AllocateStaticIpInput) (req *
 // API operation AllocateStaticIp for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/AllocateStaticIp
@@ -151,28 +151,28 @@ func (c *Lightsail) AttachStaticIpRequest(input *AttachStaticIpInput) (req *requ
 // API operation AttachStaticIp for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/AttachStaticIp
@@ -237,28 +237,28 @@ func (c *Lightsail) CloseInstancePublicPortsRequest(input *CloseInstancePublicPo
 // API operation CloseInstancePublicPorts for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CloseInstancePublicPorts
@@ -323,28 +323,28 @@ func (c *Lightsail) CreateDomainRequest(input *CreateDomainInput) (req *request.
 // API operation CreateDomain for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateDomain
@@ -410,28 +410,28 @@ func (c *Lightsail) CreateDomainEntryRequest(input *CreateDomainEntryInput) (req
 // API operation CreateDomainEntry for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateDomainEntry
@@ -497,28 +497,28 @@ func (c *Lightsail) CreateInstanceSnapshotRequest(input *CreateInstanceSnapshotI
 // API operation CreateInstanceSnapshot for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateInstanceSnapshot
@@ -583,28 +583,28 @@ func (c *Lightsail) CreateInstancesRequest(input *CreateInstancesInput) (req *re
 // API operation CreateInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateInstances
@@ -670,28 +670,28 @@ func (c *Lightsail) CreateInstancesFromSnapshotRequest(input *CreateInstancesFro
 // API operation CreateInstancesFromSnapshot for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateInstancesFromSnapshot
@@ -756,28 +756,28 @@ func (c *Lightsail) CreateKeyPairRequest(input *CreateKeyPairInput) (req *reques
 // API operation CreateKeyPair for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/CreateKeyPair
@@ -842,28 +842,28 @@ func (c *Lightsail) DeleteDomainRequest(input *DeleteDomainInput) (req *request.
 // API operation DeleteDomain for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DeleteDomain
@@ -928,28 +928,28 @@ func (c *Lightsail) DeleteDomainEntryRequest(input *DeleteDomainEntryInput) (req
 // API operation DeleteDomainEntry for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DeleteDomainEntry
@@ -1014,28 +1014,28 @@ func (c *Lightsail) DeleteInstanceRequest(input *DeleteInstanceInput) (req *requ
 // API operation DeleteInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DeleteInstance
@@ -1100,28 +1100,28 @@ func (c *Lightsail) DeleteInstanceSnapshotRequest(input *DeleteInstanceSnapshotI
 // API operation DeleteInstanceSnapshot for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DeleteInstanceSnapshot
@@ -1186,28 +1186,28 @@ func (c *Lightsail) DeleteKeyPairRequest(input *DeleteKeyPairInput) (req *reques
 // API operation DeleteKeyPair for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DeleteKeyPair
@@ -1272,28 +1272,28 @@ func (c *Lightsail) DetachStaticIpRequest(input *DetachStaticIpInput) (req *requ
 // API operation DetachStaticIp for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DetachStaticIp
@@ -1358,28 +1358,28 @@ func (c *Lightsail) DownloadDefaultKeyPairRequest(input *DownloadDefaultKeyPairI
 // API operation DownloadDefaultKeyPair for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/DownloadDefaultKeyPair
@@ -1444,28 +1444,28 @@ func (c *Lightsail) GetActiveNamesRequest(input *GetActiveNamesInput) (req *requ
 // API operation GetActiveNames for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetActiveNames
@@ -1533,28 +1533,28 @@ func (c *Lightsail) GetBlueprintsRequest(input *GetBlueprintsInput) (req *reques
 // API operation GetBlueprints for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetBlueprints
@@ -1620,28 +1620,28 @@ func (c *Lightsail) GetBundlesRequest(input *GetBundlesInput) (req *request.Requ
 // API operation GetBundles for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetBundles
@@ -1706,28 +1706,28 @@ func (c *Lightsail) GetDomainRequest(input *GetDomainInput) (req *request.Reques
 // API operation GetDomain for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDomain
@@ -1792,28 +1792,28 @@ func (c *Lightsail) GetDomainsRequest(input *GetDomainsInput) (req *request.Requ
 // API operation GetDomains for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetDomains
@@ -1879,28 +1879,28 @@ func (c *Lightsail) GetInstanceRequest(input *GetInstanceInput) (req *request.Re
 // API operation GetInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetInstance
@@ -1966,28 +1966,28 @@ func (c *Lightsail) GetInstanceAccessDetailsRequest(input *GetInstanceAccessDeta
 // API operation GetInstanceAccessDetails for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetInstanceAccessDetails
@@ -2053,28 +2053,28 @@ func (c *Lightsail) GetInstanceMetricDataRequest(input *GetInstanceMetricDataInp
 // API operation GetInstanceMetricData for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetInstanceMetricData
@@ -2139,28 +2139,28 @@ func (c *Lightsail) GetInstancePortStatesRequest(input *GetInstancePortStatesInp
 // API operation GetInstancePortStates for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetInstancePortStates
@@ -2225,28 +2225,28 @@ func (c *Lightsail) GetInstanceSnapshotRequest(input *GetInstanceSnapshotInput) 
 // API operation GetInstanceSnapshot for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetInstanceSnapshot
@@ -2311,28 +2311,28 @@ func (c *Lightsail) GetInstanceSnapshotsRequest(input *GetInstanceSnapshotsInput
 // API operation GetInstanceSnapshots for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetInstanceSnapshots
@@ -2397,28 +2397,28 @@ func (c *Lightsail) GetInstanceStateRequest(input *GetInstanceStateInput) (req *
 // API operation GetInstanceState for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetInstanceState
@@ -2484,28 +2484,28 @@ func (c *Lightsail) GetInstancesRequest(input *GetInstancesInput) (req *request.
 // API operation GetInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetInstances
@@ -2570,28 +2570,28 @@ func (c *Lightsail) GetKeyPairRequest(input *GetKeyPairInput) (req *request.Requ
 // API operation GetKeyPair for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetKeyPair
@@ -2656,28 +2656,28 @@ func (c *Lightsail) GetKeyPairsRequest(input *GetKeyPairsInput) (req *request.Re
 // API operation GetKeyPairs for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetKeyPairs
@@ -2744,28 +2744,28 @@ func (c *Lightsail) GetOperationRequest(input *GetOperationInput) (req *request.
 // API operation GetOperation for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetOperation
@@ -2834,28 +2834,28 @@ func (c *Lightsail) GetOperationsRequest(input *GetOperationsInput) (req *reques
 // API operation GetOperations for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetOperations
@@ -2920,28 +2920,28 @@ func (c *Lightsail) GetOperationsForResourceRequest(input *GetOperationsForResou
 // API operation GetOperationsForResource for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetOperationsForResource
@@ -3006,28 +3006,28 @@ func (c *Lightsail) GetRegionsRequest(input *GetRegionsInput) (req *request.Requ
 // API operation GetRegions for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetRegions
@@ -3092,28 +3092,28 @@ func (c *Lightsail) GetStaticIpRequest(input *GetStaticIpInput) (req *request.Re
 // API operation GetStaticIp for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetStaticIp
@@ -3178,28 +3178,28 @@ func (c *Lightsail) GetStaticIpsRequest(input *GetStaticIpsInput) (req *request.
 // API operation GetStaticIps for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/GetStaticIps
@@ -3264,28 +3264,28 @@ func (c *Lightsail) ImportKeyPairRequest(input *ImportKeyPairInput) (req *reques
 // API operation ImportKeyPair for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/ImportKeyPair
@@ -3350,28 +3350,28 @@ func (c *Lightsail) IsVpcPeeredRequest(input *IsVpcPeeredInput) (req *request.Re
 // API operation IsVpcPeered for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/IsVpcPeered
@@ -3436,28 +3436,28 @@ func (c *Lightsail) OpenInstancePublicPortsRequest(input *OpenInstancePublicPort
 // API operation OpenInstancePublicPorts for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/OpenInstancePublicPorts
@@ -3522,28 +3522,28 @@ func (c *Lightsail) PeerVpcRequest(input *PeerVpcInput) (req *request.Request, o
 // API operation PeerVpc for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/PeerVpc
@@ -3611,28 +3611,28 @@ func (c *Lightsail) RebootInstanceRequest(input *RebootInstanceInput) (req *requ
 // API operation RebootInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/RebootInstance
@@ -3697,28 +3697,28 @@ func (c *Lightsail) ReleaseStaticIpRequest(input *ReleaseStaticIpInput) (req *re
 // API operation ReleaseStaticIp for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/ReleaseStaticIp
@@ -3784,28 +3784,28 @@ func (c *Lightsail) StartInstanceRequest(input *StartInstanceInput) (req *reques
 // API operation StartInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/StartInstance
@@ -3870,28 +3870,28 @@ func (c *Lightsail) StopInstanceRequest(input *StopInstanceInput) (req *request.
 // API operation StopInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/StopInstance
@@ -3956,28 +3956,28 @@ func (c *Lightsail) UnpeerVpcRequest(input *UnpeerVpcInput) (req *request.Reques
 // API operation UnpeerVpc for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/UnpeerVpc
@@ -4042,28 +4042,28 @@ func (c *Lightsail) UpdateDomainEntryRequest(input *UpdateDomainEntryInput) (req
 // API operation UpdateDomainEntry for usage and error information.
 //
 // Returned Error Codes:
-//   * ServiceException
+//   * ErrCodeServiceException "ServiceException"
 //   A general service exception.
 //
-//   * InvalidInputException
+//   * ErrCodeInvalidInputException "InvalidInputException"
 //   Lightsail throws this exception when user input does not conform to the validation
 //   rules of an input field.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   Lightsail throws this exception when it cannot find a resource.
 //
-//   * OperationFailureException
+//   * ErrCodeOperationFailureException "OperationFailureException"
 //   Lightsail throws this exception when an operation fails to execute.
 //
-//   * AccessDeniedException
+//   * ErrCodeAccessDeniedException "AccessDeniedException"
 //   Lightsail throws this exception when the user cannot be authenticated or
 //   uses invalid credentials to access a resource.
 //
-//   * AccountSetupInProgressException
+//   * ErrCodeAccountSetupInProgressException "AccountSetupInProgressException"
 //   Lightsail throws this exception when an account is still in the setup in
 //   progress state.
 //
-//   * UnauthenticatedException
+//   * ErrCodeUnauthenticatedException "UnauthenticatedException"
 //   Lightsail throws this exception when the user has not been authenticated.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/lightsail-2016-11-28/UpdateDomainEntry

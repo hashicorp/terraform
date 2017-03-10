@@ -25,10 +25,11 @@ resource "google_compute_instance" "frontend" {
   }
 
   network_interface {
-    network = "default"
-    access_config {}
+    network       = "default"
+    access_config = {}
   }
 }
+
 resource "google_dns_managed_zone" "prod" {
   name     = "prod-zone"
   dns_name = "prod.mydomain.com."

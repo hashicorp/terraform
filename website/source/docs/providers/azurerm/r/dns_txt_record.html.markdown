@@ -14,29 +14,32 @@ Enables you to manage DNS TXT Records within Azure DNS.
 
 ```
 resource "azurerm_resource_group" "test" {
-   name = "acceptanceTestResourceGroup1"
-   location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
+
 resource "azurerm_dns_zone" "test" {
-   name = "mydomain.com"
-   resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "mydomain.com"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
 resource "azurerm_dns_txt_record" "test" {
-   name = "test"
-   zone_name = "${azurerm_dns_zone.test.name}"
-   resource_group_name = "${azurerm_resource_group.test.name}"
-   ttl = "300"
-   record {
+  name                = "test"
+  zone_name           = "${azurerm_dns_zone.test.name}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  ttl                 = "300"
+
+  record {
     value = "google-site-authenticator"
-   }
-   record {
+  }
+
+  record {
     value = "more site information here"
-   }
-   
-   tags {
+  }
+
+  tags {
     Environment = "Production"
-   }
+  }
 }
 ```
 ## Argument Reference
@@ -53,7 +56,7 @@ The following arguments are supported:
 
 * `record` - (Required) A list of values that make up the txt record. Each `record` block supports fields documented below.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 The `record` block supports:
 
@@ -67,7 +70,7 @@ The following attributes are exported:
 
 ## Import
 
-TXT records can be imported using the `resource id`, e.g. 
+TXT records can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_dns_txt_record.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/dnsZones/zone1/TXT/myrecord1

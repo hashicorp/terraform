@@ -38,6 +38,13 @@ func (n *NodeAbstractProvider) Path() []string {
 	return n.PathValue
 }
 
+// RemovableIfNotTargeted
+func (n *NodeAbstractProvider) RemoveIfNotTargeted() bool {
+	// We need to add this so that this node will be removed if
+	// it isn't targeted or a dependency of a target.
+	return true
+}
+
 // GraphNodeReferencer
 func (n *NodeAbstractProvider) References() []string {
 	if n.Config == nil {

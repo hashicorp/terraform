@@ -68,7 +68,7 @@ func (c *EMR) AddInstanceGroupsRequest(input *AddInstanceGroupsInput) (req *requ
 // API operation AddInstanceGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Indicates that an error occurred while processing the request and that the
 //   request was not completed.
 //
@@ -156,7 +156,7 @@ func (c *EMR) AddJobFlowStepsRequest(input *AddJobFlowStepsInput) (req *request.
 // API operation AddJobFlowSteps for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Indicates that an error occurred while processing the request and that the
 //   request was not completed.
 //
@@ -225,10 +225,10 @@ func (c *EMR) AddTagsRequest(input *AddTagsInput) (req *request.Request, output 
 // API operation AddTags for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerException
+//   * ErrCodeInternalServerException "InternalServerException"
 //   This exception occurs when there is an internal failure in the EMR service.
 //
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   This exception occurs when there is something wrong with user input.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/AddTags
@@ -297,11 +297,11 @@ func (c *EMR) CancelStepsRequest(input *CancelStepsInput) (req *request.Request,
 // API operation CancelSteps for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Indicates that an error occurred while processing the request and that the
 //   request was not completed.
 //
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   This exception occurs when there is something wrong with user input.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/CancelSteps
@@ -367,10 +367,10 @@ func (c *EMR) CreateSecurityConfigurationRequest(input *CreateSecurityConfigurat
 // API operation CreateSecurityConfiguration for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerException
+//   * ErrCodeInternalServerException "InternalServerException"
 //   This exception occurs when there is an internal failure in the EMR service.
 //
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   This exception occurs when there is something wrong with user input.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/CreateSecurityConfiguration
@@ -435,10 +435,10 @@ func (c *EMR) DeleteSecurityConfigurationRequest(input *DeleteSecurityConfigurat
 // API operation DeleteSecurityConfiguration for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerException
+//   * ErrCodeInternalServerException "InternalServerException"
 //   This exception occurs when there is an internal failure in the EMR service.
 //
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   This exception occurs when there is something wrong with user input.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/DeleteSecurityConfiguration
@@ -504,10 +504,10 @@ func (c *EMR) DescribeClusterRequest(input *DescribeClusterInput) (req *request.
 // API operation DescribeCluster for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerException
+//   * ErrCodeInternalServerException "InternalServerException"
 //   This exception occurs when there is an internal failure in the EMR service.
 //
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   This exception occurs when there is something wrong with user input.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/DescribeCluster
@@ -594,7 +594,7 @@ func (c *EMR) DescribeJobFlowsRequest(input *DescribeJobFlowsInput) (req *reques
 // API operation DescribeJobFlows for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Indicates that an error occurred while processing the request and that the
 //   request was not completed.
 //
@@ -661,10 +661,10 @@ func (c *EMR) DescribeSecurityConfigurationRequest(input *DescribeSecurityConfig
 // API operation DescribeSecurityConfiguration for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerException
+//   * ErrCodeInternalServerException "InternalServerException"
 //   This exception occurs when there is an internal failure in the EMR service.
 //
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   This exception occurs when there is something wrong with user input.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/DescribeSecurityConfiguration
@@ -729,10 +729,10 @@ func (c *EMR) DescribeStepRequest(input *DescribeStepInput) (req *request.Reques
 // API operation DescribeStep for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerException
+//   * ErrCodeInternalServerException "InternalServerException"
 //   This exception occurs when there is an internal failure in the EMR service.
 //
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   This exception occurs when there is something wrong with user input.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/DescribeStep
@@ -803,10 +803,10 @@ func (c *EMR) ListBootstrapActionsRequest(input *ListBootstrapActionsInput) (req
 // API operation ListBootstrapActions for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerException
+//   * ErrCodeInternalServerException "InternalServerException"
 //   This exception occurs when there is an internal failure in the EMR service.
 //
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   This exception occurs when there is something wrong with user input.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ListBootstrapActions
@@ -906,10 +906,10 @@ func (c *EMR) ListClustersRequest(input *ListClustersInput) (req *request.Reques
 // API operation ListClusters for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerException
+//   * ErrCodeInternalServerException "InternalServerException"
 //   This exception occurs when there is an internal failure in the EMR service.
 //
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   This exception occurs when there is something wrong with user input.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ListClusters
@@ -1005,10 +1005,10 @@ func (c *EMR) ListInstanceGroupsRequest(input *ListInstanceGroupsInput) (req *re
 // API operation ListInstanceGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerException
+//   * ErrCodeInternalServerException "InternalServerException"
 //   This exception occurs when there is an internal failure in the EMR service.
 //
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   This exception occurs when there is something wrong with user input.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ListInstanceGroups
@@ -1108,10 +1108,10 @@ func (c *EMR) ListInstancesRequest(input *ListInstancesInput) (req *request.Requ
 // API operation ListInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerException
+//   * ErrCodeInternalServerException "InternalServerException"
 //   This exception occurs when there is an internal failure in the EMR service.
 //
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   This exception occurs when there is something wrong with user input.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ListInstances
@@ -1204,10 +1204,10 @@ func (c *EMR) ListSecurityConfigurationsRequest(input *ListSecurityConfiguration
 // API operation ListSecurityConfigurations for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerException
+//   * ErrCodeInternalServerException "InternalServerException"
 //   This exception occurs when there is an internal failure in the EMR service.
 //
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   This exception occurs when there is something wrong with user input.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ListSecurityConfigurations
@@ -1279,10 +1279,10 @@ func (c *EMR) ListStepsRequest(input *ListStepsInput) (req *request.Request, out
 // API operation ListSteps for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerException
+//   * ErrCodeInternalServerException "InternalServerException"
 //   This exception occurs when there is an internal failure in the EMR service.
 //
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   This exception occurs when there is something wrong with user input.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/ListSteps
@@ -1377,7 +1377,7 @@ func (c *EMR) ModifyInstanceGroupsRequest(input *ModifyInstanceGroupsInput) (req
 // API operation ModifyInstanceGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Indicates that an error occurred while processing the request and that the
 //   request was not completed.
 //
@@ -1572,10 +1572,10 @@ func (c *EMR) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Request, o
 // API operation RemoveTags for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerException
+//   * ErrCodeInternalServerException "InternalServerException"
 //   This exception occurs when there is an internal failure in the EMR service.
 //
-//   * InvalidRequestException
+//   * ErrCodeInvalidRequestException "InvalidRequestException"
 //   This exception occurs when there is something wrong with user input.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticmapreduce-2009-03-31/RemoveTags
@@ -1662,7 +1662,7 @@ func (c *EMR) RunJobFlowRequest(input *RunJobFlowInput) (req *request.Request, o
 // API operation RunJobFlow for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Indicates that an error occurred while processing the request and that the
 //   request was not completed.
 //
@@ -1746,7 +1746,7 @@ func (c *EMR) SetTerminationProtectionRequest(input *SetTerminationProtectionInp
 // API operation SetTerminationProtection for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Indicates that an error occurred while processing the request and that the
 //   request was not completed.
 //
@@ -1819,7 +1819,7 @@ func (c *EMR) SetVisibleToAllUsersRequest(input *SetVisibleToAllUsersInput) (req
 // API operation SetVisibleToAllUsers for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Indicates that an error occurred while processing the request and that the
 //   request was not completed.
 //
@@ -1895,7 +1895,7 @@ func (c *EMR) TerminateJobFlowsRequest(input *TerminateJobFlowsInput) (req *requ
 // API operation TerminateJobFlows for usage and error information.
 //
 // Returned Error Codes:
-//   * InternalServerError
+//   * ErrCodeInternalServerError "InternalServerError"
 //   Indicates that an error occurred while processing the request and that the
 //   request was not completed.
 //

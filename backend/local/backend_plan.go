@@ -8,9 +8,12 @@ import (
 	"strings"
 
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
+	clistate "github.com/hashicorp/terraform/command/state"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -51,10 +54,26 @@ func (b *Local) opPlan(
 	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook)
 
 	// Get our context
-	tfCtx, _, err := b.context(op)
+	tfCtx, opState, err := b.context(op)
 	if err != nil {
 		runningOp.Err = err
 		return
+	}
+
+	if op.LockState {
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = op.Type.String()
+		lockID, err := clistate.Lock(opState, lockInfo, b.CLI, b.Colorize())
+		if err != nil {
+			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
+			return
+		}
+
+		defer func() {
+			if err := clistate.Unlock(opState, lockID, b.CLI, b.Colorize()); err != nil {
+				runningOp.Err = multierror.Append(runningOp.Err, err)
+			}
+		}()
 	}
 
 	// Setup the state
@@ -171,7 +190,7 @@ Path: %s
 const planNoChanges = `
 [reset][bold][green]No changes. Infrastructure is up-to-date.[reset][green]
 
-This means that Terraform could not detect any differences between your
+This means that Terraform did not detect any differences between your
 configuration and real physical resources that exist. As a result, Terraform
 doesn't need to do anything.
 `

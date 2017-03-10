@@ -15,7 +15,7 @@ func TestAccDigitalOceanSSHKey_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckDigitalOceanSSHKeyDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckDigitalOceanSSHKeyConfig_basic,
+				Config: testAccCheckDigitalOceanSSHKeyConfig_basic(testAccValidImportPublicKey),
 			},
 
 			{

@@ -62,12 +62,18 @@ func resourceAwsAmiCreate(d *schema.ResourceData, meta interface{}) error {
 			DeviceName: aws.String(ebsBlockDev["device_name"].(string)),
 			Ebs: &ec2.EbsBlockDevice{
 				DeleteOnTermination: aws.Bool(ebsBlockDev["delete_on_termination"].(bool)),
-				VolumeSize:          aws.Int64(int64(ebsBlockDev["volume_size"].(int))),
 				VolumeType:          aws.String(ebsBlockDev["volume_type"].(string)),
 			},
 		}
-		if iops := ebsBlockDev["iops"].(int); iops != 0 {
-			blockDev.Ebs.Iops = aws.Int64(int64(iops))
+		if iops, ok := ebsBlockDev["iops"]; ok {
+			if iop := iops.(int); iop != 0 {
+				blockDev.Ebs.Iops = aws.Int64(int64(iop))
+			}
+		}
+		if size, ok := ebsBlockDev["volume_size"]; ok {
+			if s := size.(int); s != 0 {
+				blockDev.Ebs.VolumeSize = aws.Int64(int64(s))
+			}
 		}
 		encrypted := ebsBlockDev["encrypted"].(bool)
 		if snapshotId := ebsBlockDev["snapshot_id"].(string); snapshotId != "" {
@@ -353,58 +359,58 @@ func resourceAwsAmiCommonSchema(computed bool) map[string]*schema.Schema {
 	}
 
 	return map[string]*schema.Schema{
-		"id": &schema.Schema{
+		"id": {
 			Type:     schema.TypeString,
 			Computed: true,
 		},
-		"image_location": &schema.Schema{
+		"image_location": {
 			Type:     schema.TypeString,
 			Optional: !computed,
 			Computed: true,
 			ForceNew: !computed,
 		},
-		"architecture": &schema.Schema{
+		"architecture": {
 			Type:     schema.TypeString,
 			Optional: !computed,
 			Computed: computed,
 			ForceNew: !computed,
 			Default:  architectureDefault,
 		},
-		"description": &schema.Schema{
+		"description": {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
-		"kernel_id": &schema.Schema{
+		"kernel_id": {
 			Type:     schema.TypeString,
 			Optional: !computed,
 			Computed: computed,
 			ForceNew: !computed,
 		},
-		"name": &schema.Schema{
+		"name": {
 			Type:     schema.TypeString,
 			Required: true,
 			ForceNew: true,
 		},
-		"ramdisk_id": &schema.Schema{
+		"ramdisk_id": {
 			Type:     schema.TypeString,
 			Optional: !computed,
 			Computed: computed,
 			ForceNew: !computed,
 		},
-		"root_device_name": &schema.Schema{
+		"root_device_name": {
 			Type:     schema.TypeString,
 			Optional: !computed,
 			Computed: computed,
 			ForceNew: !computed,
 		},
-		"sriov_net_support": &schema.Schema{
+		"sriov_net_support": {
 			Type:     schema.TypeString,
 			Optional: !computed,
 			Computed: computed,
 			ForceNew: !computed,
 			Default:  sriovNetSupportDefault,
 		},
-		"virtualization_type": &schema.Schema{
+		"virtualization_type": {
 			Type:     schema.TypeString,
 			Optional: !computed,
 			Computed: computed,
@@ -419,13 +425,13 @@ func resourceAwsAmiCommonSchema(computed bool) map[string]*schema.Schema {
 		// on which root device attributes can be overridden for an instance to
 		// not apply when registering an AMI.
 
-		"ebs_block_device": &schema.Schema{
+		"ebs_block_device": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			Computed: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"delete_on_termination": &schema.Schema{
+					"delete_on_termination": {
 						Type:     schema.TypeBool,
 						Optional: !computed,
 						Default:  deleteEbsOnTerminationDefault,
@@ -433,42 +439,42 @@ func resourceAwsAmiCommonSchema(computed bool) map[string]*schema.Schema {
 						Computed: computed,
 					},
 
-					"device_name": &schema.Schema{
+					"device_name": {
 						Type:     schema.TypeString,
 						Required: !computed,
 						ForceNew: !computed,
 						Computed: computed,
 					},
 
-					"encrypted": &schema.Schema{
+					"encrypted": {
 						Type:     schema.TypeBool,
 						Optional: !computed,
 						Computed: computed,
 						ForceNew: !computed,
 					},
 
-					"iops": &schema.Schema{
+					"iops": {
 						Type:     schema.TypeInt,
 						Optional: !computed,
 						Computed: computed,
 						ForceNew: !computed,
 					},
 
-					"snapshot_id": &schema.Schema{
+					"snapshot_id": {
 						Type:     schema.TypeString,
 						Optional: !computed,
 						Computed: computed,
 						ForceNew: !computed,
 					},
 
-					"volume_size": &schema.Schema{
+					"volume_size": {
 						Type:     schema.TypeInt,
 						Optional: !computed,
 						Computed: true,
 						ForceNew: !computed,
 					},
 
-					"volume_type": &schema.Schema{
+					"volume_type": {
 						Type:     schema.TypeString,
 						Optional: !computed,
 						Computed: computed,
@@ -486,20 +492,20 @@ func resourceAwsAmiCommonSchema(computed bool) map[string]*schema.Schema {
 			},
 		},
 
-		"ephemeral_block_device": &schema.Schema{
+		"ephemeral_block_device": {
 			Type:     schema.TypeSet,
 			Optional: true,
 			Computed: true,
 			ForceNew: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"device_name": &schema.Schema{
+					"device_name": {
 						Type:     schema.TypeString,
 						Required: !computed,
 						Computed: computed,
 					},
 
-					"virtual_name": &schema.Schema{
+					"virtual_name": {
 						Type:     schema.TypeString,
 						Required: !computed,
 						Computed: computed,
@@ -521,7 +527,7 @@ func resourceAwsAmiCommonSchema(computed bool) map[string]*schema.Schema {
 		// resources record that they implicitly created new EBS snapshots that we should
 		// now manage. Not set by aws_ami, since the snapshots used there are presumed to
 		// be independently managed.
-		"manage_ebs_snapshots": &schema.Schema{
+		"manage_ebs_snapshots": {
 			Type:     schema.TypeBool,
 			Computed: true,
 			ForceNew: true,

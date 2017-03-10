@@ -6,7 +6,11 @@ import (
 	"os"
 
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
+	clistate "github.com/hashicorp/terraform/command/state"
+	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/state"
 )
 
 func (b *Local) opRefresh(
@@ -39,15 +43,37 @@ func (b *Local) opRefresh(
 		}
 	}
 
+	// If we have no config module given to use, create an empty tree to
+	// avoid crashes when Terraform.Context is initialized.
+	if op.Module == nil {
+		op.Module = module.NewEmptyTree()
+	}
+
 	// Get our context
-	tfCtx, state, err := b.context(op)
+	tfCtx, opState, err := b.context(op)
 	if err != nil {
 		runningOp.Err = err
 		return
 	}
 
+	if op.LockState {
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = op.Type.String()
+		lockID, err := clistate.Lock(opState, lockInfo, b.CLI, b.Colorize())
+		if err != nil {
+			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
+			return
+		}
+
+		defer func() {
+			if err := clistate.Unlock(opState, lockID, b.CLI, b.Colorize()); err != nil {
+				runningOp.Err = multierror.Append(runningOp.Err, err)
+			}
+		}()
+	}
+
 	// Set our state
-	runningOp.State = state.State()
+	runningOp.State = opState.State()
 
 	// Perform operation and write the resulting state to the running op
 	newState, err := tfCtx.Refresh()
@@ -58,11 +84,11 @@ func (b *Local) opRefresh(
 	}
 
 	// Write and persist the state
-	if err := state.WriteState(newState); err != nil {
+	if err := opState.WriteState(newState); err != nil {
 		runningOp.Err = errwrap.Wrapf("Error writing state: {{err}}", err)
 		return
 	}
-	if err := state.PersistState(); err != nil {
+	if err := opState.PersistState(); err != nil {
 		runningOp.Err = errwrap.Wrapf("Error saving state: {{err}}", err)
 		return
 	}

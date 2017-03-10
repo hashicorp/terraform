@@ -14,81 +14,83 @@ Create a virtual machine scale set.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg"
-    location = "West US"
+  name     = "acctestrg"
+  location = "West US"
 }
 
 resource "azurerm_virtual_network" "test" {
-    name = "acctvn"
-    address_space = ["10.0.0.0/16"]
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+  name                = "acctvn"
+  address_space       = ["10.0.0.0/16"]
+  location            = "West US"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
 resource "azurerm_subnet" "test" {
-    name = "acctsub"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    virtual_network_name = "${azurerm_virtual_network.test.name}"
-    address_prefix = "10.0.2.0/24"
+  name                 = "acctsub"
+  resource_group_name  = "${azurerm_resource_group.test.name}"
+  virtual_network_name = "${azurerm_virtual_network.test.name}"
+  address_prefix       = "10.0.2.0/24"
 }
 
 resource "azurerm_storage_account" "test" {
-    name = "accsa"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    location = "westus"
-    account_type = "Standard_LRS"
+  name                = "accsa"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  location            = "westus"
+  account_type        = "Standard_LRS"
 
-    tags {
-        environment = "staging"
-    }
+  tags {
+    environment = "staging"
+  }
 }
 
 resource "azurerm_storage_container" "test" {
-    name = "vhds"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    storage_account_name = "${azurerm_storage_account.test.name}"
-    container_access_type = "private"
+  name                  = "vhds"
+  resource_group_name   = "${azurerm_resource_group.test.name}"
+  storage_account_name  = "${azurerm_storage_account.test.name}"
+  container_access_type = "private"
 }
 
 resource "azurerm_virtual_machine_scale_set" "test" {
-  name = "mytestscaleset-1"
-  location = "West US"
+  name                = "mytestscaleset-1"
+  location            = "West US"
   resource_group_name = "${azurerm_resource_group.test.name}"
   upgrade_policy_mode = "Manual"
 
   sku {
-    name = "Standard_A0"
-    tier = "Standard"
+    name     = "Standard_A0"
+    tier     = "Standard"
     capacity = 2
   }
 
   os_profile {
     computer_name_prefix = "testvm"
-    admin_username = "myadmin"
-    admin_password = "Passwword1234"
+    admin_username       = "myadmin"
+    admin_password       = "Passwword1234"
   }
 
   os_profile_linux_config {
     disable_password_authentication = true
+
     ssh_keys {
-      path = "/home/myadmin/.ssh/authorized_keys"
+      path     = "/home/myadmin/.ssh/authorized_keys"
       key_data = "${file("~/.ssh/demo_key.pub")}"
     }
   }
 
   network_profile {
-      name = "TestNetworkProfile"
-      primary = true
-      ip_configuration {
-        name = "TestIPConfiguration"
-        subnet_id = "${azurerm_subnet.test.id}"
-      }
+    name    = "TestNetworkProfile"
+    primary = true
+
+    ip_configuration {
+      name      = "TestIPConfiguration"
+      subnet_id = "${azurerm_subnet.test.id}"
+    }
   }
 
   storage_profile_os_disk {
-    name = "osDiskProfile"
-    caching       = "ReadWrite"
-    create_option = "FromImage"
+    name           = "osDiskProfile"
+    caching        = "ReadWrite"
+    create_option  = "FromImage"
     vhd_containers = ["${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}"]
   }
 
@@ -134,7 +136,7 @@ The following arguments are supported:
 * `computer_name_prefix` - (Required) Specifies the computer name prefix for all of the virtual machines in the scale set. Computer name prefixes must be 1 to 15 characters long.
 * `admin_username` - (Required) Specifies the administrator account name to use for all the instances of virtual machines in the scale set.
 * `admin_password` - (Required) Specifies the administrator password to use for all the instances of virtual machines in a scale set..
-* `custom_data` - (Optional) Specifies a base-64 encoded string of custom data. The base-64 encoded string is decoded to a binary array that is saved as a file on all the Virtual Machines in the scale set. The maximum length of the binary array is 65535 bytes.
+* `custom_data` - (Optional) Specifies custom data to supply to the machine. On linux-based systems, this can be used as a cloud-init script. On other systems, this will be copied as a file on disk. Internally, Terraform will base64 encode this value before sending it to the API. The maximum length of the binary array is 65535 bytes.
 
 `os_profile_secrets` supports the following:
 

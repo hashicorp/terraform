@@ -15,9 +15,9 @@ A [schedule](https://v2.developer.pagerduty.com/v2/page/api-reference#!/Schedule
 
 ```
 resource "pagerduty_user" "example" {
-    name  = "Earline Greenholt"
-    email = "125.greenholt.earline@graham.name"
-    teams = ["${pagerduty_team.example.id}"]
+  name  = "Earline Greenholt"
+  email = "125.greenholt.earline@graham.name"
+  teams = ["${pagerduty_team.example.id}"]
 }
 
 resource "pagerduty_schedule" "foo" {

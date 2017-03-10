@@ -15,12 +15,16 @@ func dataSourcePagerDutyVendor() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name_regex": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Deprecated:    "Use field name instead",
+				ConflictsWith: []string{"name"},
 			},
 			"name": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:          schema.TypeString,
+				Computed:      true,
+				Optional:      true,
+				ConflictsWith: []string{"name_regex"},
 			},
 			"type": {
 				Type:     schema.TypeString,
@@ -33,7 +37,58 @@ func dataSourcePagerDutyVendor() *schema.Resource {
 func dataSourcePagerDutyVendorRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*pagerduty.Client)
 
-	log.Printf("[INFO] Reading PagerDuty vendors")
+	// Check if we're doing a normal or legacy lookup
+	_, ok := d.GetOk("name")
+	_, legacyOk := d.GetOk("name_regex")
+
+	if !ok && !legacyOk {
+		return fmt.Errorf("Either name or name_regex must be set")
+	}
+
+	// If name_regex is set, we're doing a legacy lookup
+	if legacyOk {
+		return dataSourcePagerDutyVendorLegacyRead(d, meta)
+	}
+
+	log.Printf("[INFO] Reading PagerDuty vendor")
+
+	searchName := d.Get("name").(string)
+
+	o := &pagerduty.ListVendorOptions{
+		Query: searchName,
+	}
+
+	resp, err := client.ListVendors(*o)
+	if err != nil {
+		return err
+	}
+
+	var found *pagerduty.Vendor
+
+	r := regexp.MustCompile("(?i)" + searchName)
+
+	for _, vendor := range resp.Vendors {
+		if r.MatchString(vendor.Name) {
+			found = &vendor
+			break
+		}
+	}
+
+	if found == nil {
+		return fmt.Errorf("Unable to locate any vendor with the name: %s", searchName)
+	}
+
+	d.SetId(found.ID)
+	d.Set("name", found.Name)
+	d.Set("type", found.GenericServiceType)
+
+	return nil
+}
+
+func dataSourcePagerDutyVendorLegacyRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*pagerduty.Client)
+
+	log.Printf("[INFO] Reading PagerDuty vendor (legacy)")
 
 	resp, err := getVendors(client)
 

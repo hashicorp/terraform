@@ -2,6 +2,7 @@ package command
 
 import (
 	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -14,6 +15,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
@@ -83,12 +86,15 @@ type Meta struct {
 	// shadow is used to enable/disable the shadow graph
 	//
 	// provider is to specify specific resource providers
+	//
+	// lockState is set to false to disable state locking
 	statePath    string
 	stateOutPath string
 	backupPath   string
 	parallelism  int
 	shadow       bool
 	provider     string
+	stateLock    bool
 }
 
 // initStatePaths is used to initialize the default values for
@@ -402,4 +408,45 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 	)))
 
 	return true
+}
+
+// Env returns the name of the currently configured environment, corresponding
+// to the desired named state.
+func (m *Meta) Env() string {
+	dataDir := m.dataDir
+	if m.dataDir == "" {
+		dataDir = DefaultDataDir
+	}
+
+	envData, err := ioutil.ReadFile(filepath.Join(dataDir, local.DefaultEnvFile))
+	current := string(bytes.TrimSpace(envData))
+	if current == "" {
+		current = backend.DefaultStateName
+	}
+
+	if err != nil && !os.IsNotExist(err) {
+		// always return the default if we can't get an environment name
+		log.Printf("[ERROR] failed to read current environment: %s", err)
+	}
+
+	return current
+}
+
+// SetEnv saves the named environment to the local filesystem.
+func (m *Meta) SetEnv(name string) error {
+	dataDir := m.dataDir
+	if m.dataDir == "" {
+		dataDir = DefaultDataDir
+	}
+
+	err := os.MkdirAll(dataDir, 0755)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filepath.Join(dataDir, local.DefaultEnvFile), []byte(name), 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }

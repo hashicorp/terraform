@@ -17,21 +17,21 @@ Create a new virtual guest using the "Debian" image.
 
 ```hcl
 resource "softlayer_virtual_guest" "twc_terraform_sample" {
-    name = "twc-terraform-sample-name"
-    domain = "bar.example.com"
-    image = "DEBIAN_7_64"
-    region = "ams01"
-    public_network_speed = 10
-    hourly_billing = true
-    private_network_only = false
-    cpu = 1
-    ram = 1024
-    disks = [25, 10, 20]
-    user_data = "{\"value\":\"newvalue\"}"
-    dedicated_acct_host_only = true
-    local_disk = false
-    frontend_vlan_id = 1085155
-    backend_vlan_id = 1085157
+  name                     = "twc-terraform-sample-name"
+  domain                   = "bar.example.com"
+  image                    = "DEBIAN_7_64"
+  region                   = "ams01"
+  public_network_speed     = 10
+  hourly_billing           = true
+  private_network_only     = false
+  cpu                      = 1
+  ram                      = 1024
+  disks                    = [25, 10, 20]
+  user_data                = "{\"value\":\"newvalue\"}"
+  dedicated_acct_host_only = true
+  local_disk               = false
+  frontend_vlan_id         = 1085155
+  backend_vlan_id          = 1085157
 }
 ```
 
@@ -39,15 +39,15 @@ Create a new virtual guest using block device template.
 
 ```hcl
 resource "softlayer_virtual_guest" "terraform-sample-BDTGroup" {
-   name = "terraform-sample-blockDeviceTemplateGroup"
-   domain = "bar.example.com"
-   region = "ams01"
-   public_network_speed = 10
-   hourly_billing = false
-   cpu = 1
-   ram = 1024
-   local_disk = false
-   block_device_template_group_gid = "****-****-****-****-****"
+  name                            = "terraform-sample-blockDeviceTemplateGroup"
+  domain                          = "bar.example.com"
+  region                          = "ams01"
+  public_network_speed            = 10
+  hourly_billing                  = false
+  cpu                             = 1
+  ram                             = 1024
+  local_disk                      = false
+  block_device_template_group_gid = "****-****-****-****-****"
 }
 ```
 

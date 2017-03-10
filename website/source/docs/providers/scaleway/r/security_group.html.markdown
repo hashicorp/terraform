@@ -15,7 +15,7 @@ For additional details please refer to [API documentation](https://developer.sca
 
 ```
 resource "scaleway_security_group" "test" {
-  name = "test"
+  name        = "test"
   description = "test"
 }
 ```

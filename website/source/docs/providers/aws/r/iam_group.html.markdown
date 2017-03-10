@@ -14,8 +14,8 @@ Provides an IAM group.
 
 ```
 resource "aws_iam_group" "developers" {
-    name = "developers"
-    path = "/users/"
+  name = "developers"
+  path = "/users/"
 }
 ```
 

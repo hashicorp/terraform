@@ -64,6 +64,30 @@ func TestAccGoogleSqlDatabaseInstance_basic2(t *testing.T) {
 	})
 }
 
+func TestAccGoogleSqlDatabaseInstance_basic3(t *testing.T) {
+	var instance sqladmin.DatabaseInstance
+	databaseID := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabaseInstance_basic3, databaseID),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleSqlDatabaseInstanceExists(
+						"google_sql_database_instance.instance", &instance),
+					testAccCheckGoogleSqlDatabaseInstanceEquals(
+						"google_sql_database_instance.instance", &instance),
+					testAccCheckGoogleSqlDatabaseRootUserDoesNotExist(
+						&instance),
+				),
+			},
+		},
+	})
+}
 func TestAccGoogleSqlDatabaseInstance_settings_basic(t *testing.T) {
 	var instance sqladmin.DatabaseInstance
 	databaseID := acctest.RandInt()
@@ -127,6 +151,29 @@ func TestAccGoogleSqlDatabaseInstance_diskspecs(t *testing.T) {
 			resource.TestStep{
 				Config: fmt.Sprintf(
 					testGoogleSqlDatabaseInstance_diskspecs, masterID),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleSqlDatabaseInstanceExists(
+						"google_sql_database_instance.instance", &instance),
+					testAccCheckGoogleSqlDatabaseInstanceEquals(
+						"google_sql_database_instance.instance", &instance),
+				),
+			},
+		},
+	})
+}
+
+func TestAccGoogleSqlDatabaseInstance_maintenance(t *testing.T) {
+	var instance sqladmin.DatabaseInstance
+	masterID := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(
+					testGoogleSqlDatabaseInstance_maintenance, masterID),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleSqlDatabaseInstanceExists(
 						"google_sql_database_instance.instance", &instance),
@@ -335,6 +382,26 @@ func testAccCheckGoogleSqlDatabaseInstanceEquals(n string,
 			}
 		}
 
+		if instance.Settings.MaintenanceWindow != nil {
+			server = strconv.FormatInt(instance.Settings.MaintenanceWindow.Day, 10)
+			local = attributes["settings.0.maintenance_window.0.day"]
+			if server != local && len(server) > 0 && len(local) > 0 {
+				return fmt.Errorf("Error settings.maintenance_window.day mismatch, (%s, %s)", server, local)
+			}
+
+			server = strconv.FormatInt(instance.Settings.MaintenanceWindow.Hour, 10)
+			local = attributes["settings.0.maintenance_window.0.hour"]
+			if server != local && len(server) > 0 && len(local) > 0 {
+				return fmt.Errorf("Error settings.maintenance_window.hour mismatch, (%s, %s)", server, local)
+			}
+
+			server = instance.Settings.MaintenanceWindow.UpdateTrack
+			local = attributes["settings.0.maintenance_window.0.update_track"]
+			if server != local && len(server) > 0 && len(local) > 0 {
+				return fmt.Errorf("Error settings.maintenance_window.update_track mismatch, (%s, %s)", server, local)
+			}
+		}
+
 		server = instance.Settings.PricingPlan
 		local = attributes["settings.0.pricing_plan"]
 		if server != local && len(server) > 0 && len(local) > 0 {
@@ -447,6 +514,27 @@ func testAccGoogleSqlDatabaseInstanceDestroy(s *terraform.State) error {
 	return nil
 }
 
+func testAccCheckGoogleSqlDatabaseRootUserDoesNotExist(
+	instance *sqladmin.DatabaseInstance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		config := testAccProvider.Meta().(*Config)
+
+		users, err := config.clientSqlAdmin.Users.List(config.Project, instance.Name).Do()
+
+		if err != nil {
+			return fmt.Errorf("Could not list database users for %q: %s", instance.Name, err)
+		}
+
+		for _, u := range users.Items {
+			if u.Name == "root" && u.Host == "%" {
+				return fmt.Errorf("%v@%v user still exists", u.Name, u.Host)
+			}
+		}
+
+		return nil
+	}
+}
+
 var testGoogleSqlDatabaseInstance_basic = `
 resource "google_sql_database_instance" "instance" {
 	name = "tf-lw-%d"
@@ -464,6 +552,15 @@ resource "google_sql_database_instance" "instance" {
 	settings {
 		tier = "D0"
 		crash_safe_replication = false
+	}
+}
+`
+var testGoogleSqlDatabaseInstance_basic3 = `
+resource "google_sql_database_instance" "instance" {
+	name = "tf-lw-%d"
+	region = "us-central"
+	settings {
+		tier = "db-f1-micro"
 	}
 }
 `
@@ -581,6 +678,23 @@ resource "google_sql_database_instance" "instance" {
 		disk_autoresize = true
 		disk_size = 15
 		disk_type = "PD_HDD"
+	}
+}
+`
+
+var testGoogleSqlDatabaseInstance_maintenance = `
+resource "google_sql_database_instance" "instance" {
+	name = "tf-lw-%d"
+	region = "us-central1"
+
+	settings {
+		tier = "db-f1-micro"
+
+		maintenance_window {
+		  day  = 7
+		  hour = 3
+			update_track = "canary"
+	  }
 	}
 }
 `

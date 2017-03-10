@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	"regexp"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"regexp"
 )
 
 func TestAccAWSEBSVolume_basic(t *testing.T) {
@@ -23,6 +24,81 @@ func TestAccAWSEBSVolume_basic(t *testing.T) {
 				Config: testAccAwsEbsVolumeConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVolumeExists("aws_ebs_volume.test", &v),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSEBSVolume_updateSize(t *testing.T) {
+	var v ec2.Volume
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_ebs_volume.test",
+		Providers:     testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAwsEbsVolumeConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVolumeExists("aws_ebs_volume.test", &v),
+					resource.TestCheckResourceAttr("aws_ebs_volume.test", "size", "1"),
+				),
+			},
+			{
+				Config: testAccAwsEbsVolumeConfigUpdateSize,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVolumeExists("aws_ebs_volume.test", &v),
+					resource.TestCheckResourceAttr("aws_ebs_volume.test", "size", "10"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSEBSVolume_updateType(t *testing.T) {
+	var v ec2.Volume
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_ebs_volume.test",
+		Providers:     testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAwsEbsVolumeConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVolumeExists("aws_ebs_volume.test", &v),
+					resource.TestCheckResourceAttr("aws_ebs_volume.test", "type", "gp2"),
+				),
+			},
+			{
+				Config: testAccAwsEbsVolumeConfigUpdateType,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVolumeExists("aws_ebs_volume.test", &v),
+					resource.TestCheckResourceAttr("aws_ebs_volume.test", "type", "sc1"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSEBSVolume_updateIops(t *testing.T) {
+	var v ec2.Volume
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_ebs_volume.test",
+		Providers:     testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAwsEbsVolumeConfigWithIops,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVolumeExists("aws_ebs_volume.test", &v),
+					resource.TestCheckResourceAttr("aws_ebs_volume.test", "iops", "100"),
+				),
+			},
+			{
+				Config: testAccAwsEbsVolumeConfigWithIopsUpdated,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVolumeExists("aws_ebs_volume.test", &v),
+					resource.TestCheckResourceAttr("aws_ebs_volume.test", "iops", "200"),
 				),
 			},
 		},
@@ -116,7 +192,57 @@ func testAccCheckVolumeExists(n string, v *ec2.Volume) resource.TestCheckFunc {
 const testAccAwsEbsVolumeConfig = `
 resource "aws_ebs_volume" "test" {
   availability_zone = "us-west-2a"
+  type = "gp2"
   size = 1
+  tags {
+    Name = "tf-acc-test-ebs-volume-test"
+  }
+}
+`
+
+const testAccAwsEbsVolumeConfigUpdateSize = `
+resource "aws_ebs_volume" "test" {
+  availability_zone = "us-west-2a"
+  type = "gp2"
+  size = 10
+  tags {
+    Name = "tf-acc-test-ebs-volume-test"
+  }
+}
+`
+
+const testAccAwsEbsVolumeConfigUpdateType = `
+resource "aws_ebs_volume" "test" {
+  availability_zone = "us-west-2a"
+  type = "sc1"
+  size = 500
+  tags {
+    Name = "tf-acc-test-ebs-volume-test"
+  }
+}
+`
+
+const testAccAwsEbsVolumeConfigWithIops = `
+resource "aws_ebs_volume" "test" {
+  availability_zone = "us-west-2a"
+  type = "io1"
+  size = 4
+  iops = 100
+  tags {
+    Name = "tf-acc-test-ebs-volume-test"
+  }
+}
+`
+
+const testAccAwsEbsVolumeConfigWithIopsUpdated = `
+resource "aws_ebs_volume" "test" {
+  availability_zone = "us-west-2a"
+  type = "io1"
+  size = 4
+  iops = 200
+  tags {
+    Name = "tf-acc-test-ebs-volume-test"
+  }
 }
 `
 

@@ -45,16 +45,16 @@ region, and profile loaded from the environment and shared config automatically.
 Requires the AWS_PROFILE to be set, or "default" is used.
 
 	// Create Session
-	sess, err := session.NewSession()
+	sess := session.Must(session.NewSession())
 
 	// Create a Session with a custom region
-	sess, err := session.NewSession(&aws.Config{Region: aws.String("us-east-1")})
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String("us-east-1"),
+	}))
 
 	// Create a S3 client instance from a session
-	sess, err := session.NewSession()
-	if err != nil {
-		// Handle Session creation error
-	}
+	sess := session.Must(session.NewSession())
+
 	svc := s3.New(sess)
 
 Create Session With Option Overrides
@@ -67,23 +67,25 @@ Use NewSessionWithOptions when you want to provide the config profile, or
 override the shared config state (AWS_SDK_LOAD_CONFIG).
 
 	// Equivalent to session.NewSession()
-	sess, err := session.NewSessionWithOptions(session.Options{})
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		// Options
+	}))
 
 	// Specify profile to load for the session's config
-	sess, err := session.NewSessionWithOptions(session.Options{
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		 Profile: "profile_name",
-	})
+	}))
 
 	// Specify profile for config and region for requests
-	sess, err := session.NewSessionWithOptions(session.Options{
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		 Config: aws.Config{Region: aws.String("us-east-1")},
 		 Profile: "profile_name",
-	})
+	}))
 
 	// Force enable Shared Config support
-	sess, err := session.NewSessionWithOptions(session.Options{
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: SharedConfigEnable,
-	})
+	}))
 
 Adding Handlers
 
@@ -93,7 +95,8 @@ handler logs every request and its payload made by a service client:
 
 	// Create a session, and add additional handlers for all service
 	// clients created with the Session to inherit. Adds logging handler.
-	sess, err := session.NewSession()
+	sess := session.Must(session.NewSession())
+	
 	sess.Handlers.Send.PushFront(func(r *request.Request) {
 		// Log every request made and its payload
 		logger.Println("Request: %s/%s, Payload: %s",
@@ -138,21 +141,51 @@ the other two fields are also provided.
 
 Assume Role values allow you to configure the SDK to assume an IAM role using
 a set of credentials provided in a config file via the source_profile field.
-Both "role_arn" and "source_profile" are required. The SDK does not support
-assuming a role with MFA token Via the Session's constructor. You can use the
-stscreds.AssumeRoleProvider credentials provider to specify custom
-configuration and support for MFA.
+Both "role_arn" and "source_profile" are required. The SDK supports assuming
+a role with MFA token if the session option AssumeRoleTokenProvider
+is set.
 
 	role_arn = arn:aws:iam::<account_number>:role/<role_name>
 	source_profile = profile_with_creds
 	external_id = 1234
-	mfa_serial = not supported!
+	mfa_serial = <serial or mfa arn>
 	role_session_name = session_name
 
 Region is the region the SDK should use for looking up AWS service endpoints
 and signing requests.
 
 	region = us-east-1
+
+Assume Role with MFA token
+
+To create a session with support for assuming an IAM role with MFA set the
+session option AssumeRoleTokenProvider to a function that will prompt for the
+MFA token code when the SDK assumes the role and refreshes the role's credentials.
+This allows you to configure the SDK via the shared config to assumea role
+with MFA tokens.
+
+In order for the SDK to assume a role with MFA the SharedConfigState
+session option must be set to SharedConfigEnable, or AWS_SDK_LOAD_CONFIG
+environment variable set.
+
+The shared configuration instructs the SDK to assume an IAM role with MFA
+when the mfa_serial configuration field is set in the shared config 
+(~/.aws/config) or shared credentials (~/.aws/credentials) file. 
+
+If mfa_serial is set in the configuration, the SDK will assume the role, and
+the AssumeRoleTokenProvider session option is not set an an error will
+be returned when creating the session.
+
+    sess := session.Must(session.NewSessionWithOptions(session.Options{
+        AssumeRoleTokenProvider: stscreds.StdinTokenProvider,
+    }))
+
+    // Create service client value configured for credentials
+    // from assumed role.
+    svc := s3.New(sess)
+
+To setup assume role outside of a session see the stscrds.AssumeRoleProvider
+documentation.
 
 Environment Variables
 

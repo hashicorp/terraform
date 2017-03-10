@@ -990,6 +990,15 @@ func getInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schema.Res
 
 		rawMap := raw.(map[string]interface{})
 
+		// Both a floating IP and a port cannot be specified
+		if fip, ok := rawMap["floating_ip"].(string); ok {
+			if port, ok := rawMap["port"].(string); ok {
+				if fip != "" && port != "" {
+					return nil, fmt.Errorf("Only one of a floating IP or port may be specified per network.")
+				}
+			}
+		}
+
 		allPages, err := tenantnetworks.List(computeClient).AllPages()
 		if err != nil {
 			if _, ok := err.(gophercloud.ErrDefault404); ok {
@@ -1468,7 +1477,14 @@ func getVolumeAttachments(computeClient *gophercloud.ServiceClient, d *schema.Re
 
 	allPages, err := volumeattach.List(computeClient, d.Id()).AllPages()
 	if err != nil {
-		return err
+		if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+			if errCode.Actual == 403 {
+				log.Printf("[DEBUG] os-volume_attachments disabled.")
+				return nil
+			} else {
+				return err
+			}
+		}
 	}
 
 	allVolumeAttachments, err := volumeattach.ExtractVolumeAttachments(allPages)

@@ -69,23 +69,23 @@ func (c *CodeDeploy) AddTagsToOnPremisesInstancesRequest(input *AddTagsToOnPremi
 // API operation AddTagsToOnPremisesInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * InstanceNameRequiredException
+//   * ErrCodeInstanceNameRequiredException "InstanceNameRequiredException"
 //   An on-premises instance name was not specified.
 //
-//   * TagRequiredException
+//   * ErrCodeTagRequiredException "TagRequiredException"
 //   A tag was not specified.
 //
-//   * InvalidTagException
+//   * ErrCodeInvalidTagException "InvalidTagException"
 //   The specified tag was specified in an invalid format.
 //
-//   * TagLimitExceededException
+//   * ErrCodeTagLimitExceededException "TagLimitExceededException"
 //   The maximum allowed number of tags was exceeded.
 //
-//   * InstanceLimitExceededException
+//   * ErrCodeInstanceLimitExceededException "InstanceLimitExceededException"
 //   The maximum number of allowed on-premises instances in a single call was
 //   exceeded.
 //
-//   * InstanceNotRegisteredException
+//   * ErrCodeInstanceNotRegisteredException "InstanceNotRegisteredException"
 //   The specified on-premises instance is not registered.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/AddTagsToOnPremisesInstances
@@ -150,22 +150,22 @@ func (c *CodeDeploy) BatchGetApplicationRevisionsRequest(input *BatchGetApplicat
 // API operation BatchGetApplicationRevisions for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationDoesNotExistException
+//   * ErrCodeApplicationDoesNotExistException "ApplicationDoesNotExistException"
 //   The application does not exist with the applicable IAM user or AWS account.
 //
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * RevisionRequiredException
+//   * ErrCodeRevisionRequiredException "RevisionRequiredException"
 //   The revision ID was not specified.
 //
-//   * InvalidRevisionException
+//   * ErrCodeInvalidRevisionException "InvalidRevisionException"
 //   The revision was specified in an invalid format.
 //
-//   * BatchLimitExceededException
+//   * ErrCodeBatchLimitExceededException "BatchLimitExceededException"
 //   The maximum number of names or IDs allowed for this request (100) was exceeded.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetApplicationRevisions
@@ -230,16 +230,16 @@ func (c *CodeDeploy) BatchGetApplicationsRequest(input *BatchGetApplicationsInpu
 // API operation BatchGetApplications for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * ApplicationDoesNotExistException
+//   * ErrCodeApplicationDoesNotExistException "ApplicationDoesNotExistException"
 //   The application does not exist with the applicable IAM user or AWS account.
 //
-//   * BatchLimitExceededException
+//   * ErrCodeBatchLimitExceededException "BatchLimitExceededException"
 //   The maximum number of names or IDs allowed for this request (100) was exceeded.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetApplications
@@ -304,22 +304,22 @@ func (c *CodeDeploy) BatchGetDeploymentGroupsRequest(input *BatchGetDeploymentGr
 // API operation BatchGetDeploymentGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * ApplicationDoesNotExistException
+//   * ErrCodeApplicationDoesNotExistException "ApplicationDoesNotExistException"
 //   The application does not exist with the applicable IAM user or AWS account.
 //
-//   * DeploymentGroupNameRequiredException
+//   * ErrCodeDeploymentGroupNameRequiredException "DeploymentGroupNameRequiredException"
 //   The deployment group name was not specified.
 //
-//   * InvalidDeploymentGroupNameException
+//   * ErrCodeInvalidDeploymentGroupNameException "InvalidDeploymentGroupNameException"
 //   The deployment group name was specified in an invalid format.
 //
-//   * BatchLimitExceededException
+//   * ErrCodeBatchLimitExceededException "BatchLimitExceededException"
 //   The maximum number of names or IDs allowed for this request (100) was exceeded.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetDeploymentGroups
@@ -385,22 +385,22 @@ func (c *CodeDeploy) BatchGetDeploymentInstancesRequest(input *BatchGetDeploymen
 // API operation BatchGetDeploymentInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * DeploymentIdRequiredException
+//   * ErrCodeDeploymentIdRequiredException "DeploymentIdRequiredException"
 //   At least one deployment ID must be specified.
 //
-//   * DeploymentDoesNotExistException
+//   * ErrCodeDeploymentDoesNotExistException "DeploymentDoesNotExistException"
 //   The deployment does not exist with the applicable IAM user or AWS account.
 //
-//   * InstanceIdRequiredException
+//   * ErrCodeInstanceIdRequiredException "InstanceIdRequiredException"
 //   The instance ID was not specified.
 //
-//   * InvalidDeploymentIdException
+//   * ErrCodeInvalidDeploymentIdException "InvalidDeploymentIdException"
 //   At least one of the deployment IDs was specified in an invalid format.
 //
-//   * InvalidInstanceNameException
+//   * ErrCodeInvalidInstanceNameException "InvalidInstanceNameException"
 //   The specified on-premises instance name was specified in an invalid format.
 //
-//   * BatchLimitExceededException
+//   * ErrCodeBatchLimitExceededException "BatchLimitExceededException"
 //   The maximum number of names or IDs allowed for this request (100) was exceeded.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetDeploymentInstances
@@ -465,13 +465,13 @@ func (c *CodeDeploy) BatchGetDeploymentsRequest(input *BatchGetDeploymentsInput)
 // API operation BatchGetDeployments for usage and error information.
 //
 // Returned Error Codes:
-//   * DeploymentIdRequiredException
+//   * ErrCodeDeploymentIdRequiredException "DeploymentIdRequiredException"
 //   At least one deployment ID must be specified.
 //
-//   * InvalidDeploymentIdException
+//   * ErrCodeInvalidDeploymentIdException "InvalidDeploymentIdException"
 //   At least one of the deployment IDs was specified in an invalid format.
 //
-//   * BatchLimitExceededException
+//   * ErrCodeBatchLimitExceededException "BatchLimitExceededException"
 //   The maximum number of names or IDs allowed for this request (100) was exceeded.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetDeployments
@@ -536,13 +536,13 @@ func (c *CodeDeploy) BatchGetOnPremisesInstancesRequest(input *BatchGetOnPremise
 // API operation BatchGetOnPremisesInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * InstanceNameRequiredException
+//   * ErrCodeInstanceNameRequiredException "InstanceNameRequiredException"
 //   An on-premises instance name was not specified.
 //
-//   * InvalidInstanceNameException
+//   * ErrCodeInvalidInstanceNameException "InvalidInstanceNameException"
 //   The specified on-premises instance name was specified in an invalid format.
 //
-//   * BatchLimitExceededException
+//   * ErrCodeBatchLimitExceededException "BatchLimitExceededException"
 //   The maximum number of names or IDs allowed for this request (100) was exceeded.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/BatchGetOnPremisesInstances
@@ -613,22 +613,22 @@ func (c *CodeDeploy) ContinueDeploymentRequest(input *ContinueDeploymentInput) (
 // API operation ContinueDeployment for usage and error information.
 //
 // Returned Error Codes:
-//   * DeploymentIdRequiredException
+//   * ErrCodeDeploymentIdRequiredException "DeploymentIdRequiredException"
 //   At least one deployment ID must be specified.
 //
-//   * DeploymentDoesNotExistException
+//   * ErrCodeDeploymentDoesNotExistException "DeploymentDoesNotExistException"
 //   The deployment does not exist with the applicable IAM user or AWS account.
 //
-//   * DeploymentAlreadyCompletedException
+//   * ErrCodeDeploymentAlreadyCompletedException "DeploymentAlreadyCompletedException"
 //   The deployment is already complete.
 //
-//   * InvalidDeploymentIdException
+//   * ErrCodeInvalidDeploymentIdException "InvalidDeploymentIdException"
 //   At least one of the deployment IDs was specified in an invalid format.
 //
-//   * DeploymentIsNotInReadyStateException
+//   * ErrCodeDeploymentIsNotInReadyStateException "DeploymentIsNotInReadyStateException"
 //   The deployment does not have a status of Ready and can't continue yet.
 //
-//   * UnsupportedActionForDeploymentTypeException
+//   * ErrCodeUnsupportedActionForDeploymentTypeException "UnsupportedActionForDeploymentTypeException"
 //   A call was submitted that is not supported for the specified deployment type.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ContinueDeployment
@@ -693,17 +693,17 @@ func (c *CodeDeploy) CreateApplicationRequest(input *CreateApplicationInput) (re
 // API operation CreateApplication for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * ApplicationAlreadyExistsException
+//   * ErrCodeApplicationAlreadyExistsException "ApplicationAlreadyExistsException"
 //   An application with the specified name already exists with the applicable
 //   IAM user or AWS account.
 //
-//   * ApplicationLimitExceededException
+//   * ErrCodeApplicationLimitExceededException "ApplicationLimitExceededException"
 //   More applications were attempted to be created than are allowed.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/CreateApplication
@@ -768,48 +768,48 @@ func (c *CodeDeploy) CreateDeploymentRequest(input *CreateDeploymentInput) (req 
 // API operation CreateDeployment for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * ApplicationDoesNotExistException
+//   * ErrCodeApplicationDoesNotExistException "ApplicationDoesNotExistException"
 //   The application does not exist with the applicable IAM user or AWS account.
 //
-//   * DeploymentGroupNameRequiredException
+//   * ErrCodeDeploymentGroupNameRequiredException "DeploymentGroupNameRequiredException"
 //   The deployment group name was not specified.
 //
-//   * InvalidDeploymentGroupNameException
+//   * ErrCodeInvalidDeploymentGroupNameException "InvalidDeploymentGroupNameException"
 //   The deployment group name was specified in an invalid format.
 //
-//   * DeploymentGroupDoesNotExistException
+//   * ErrCodeDeploymentGroupDoesNotExistException "DeploymentGroupDoesNotExistException"
 //   The named deployment group does not exist with the applicable IAM user or
 //   AWS account.
 //
-//   * RevisionRequiredException
+//   * ErrCodeRevisionRequiredException "RevisionRequiredException"
 //   The revision ID was not specified.
 //
-//   * RevisionDoesNotExistException
+//   * ErrCodeRevisionDoesNotExistException "RevisionDoesNotExistException"
 //   The named revision does not exist with the applicable IAM user or AWS account.
 //
-//   * InvalidRevisionException
+//   * ErrCodeInvalidRevisionException "InvalidRevisionException"
 //   The revision was specified in an invalid format.
 //
-//   * InvalidDeploymentConfigNameException
+//   * ErrCodeInvalidDeploymentConfigNameException "InvalidDeploymentConfigNameException"
 //   The deployment configuration name was specified in an invalid format.
 //
-//   * DeploymentConfigDoesNotExistException
+//   * ErrCodeDeploymentConfigDoesNotExistException "DeploymentConfigDoesNotExistException"
 //   The deployment configuration does not exist with the applicable IAM user
 //   or AWS account.
 //
-//   * DescriptionTooLongException
+//   * ErrCodeDescriptionTooLongException "DescriptionTooLongException"
 //   The description is too long.
 //
-//   * DeploymentLimitExceededException
+//   * ErrCodeDeploymentLimitExceededException "DeploymentLimitExceededException"
 //   The number of allowed deployments was exceeded.
 //
-//   * InvalidTargetInstancesException
+//   * ErrCodeInvalidTargetInstancesException "InvalidTargetInstancesException"
 //   The target instance configuration is invalid. Possible causes include:
 //
 //      * Configuration data for target instances was entered for an in-place
@@ -821,12 +821,12 @@ func (c *CodeDeploy) CreateDeploymentRequest(input *CreateDeploymentInput) (req 
 //
 //      * A specified tag is not currently applied to any instances.
 //
-//   * InvalidAutoRollbackConfigException
+//   * ErrCodeInvalidAutoRollbackConfigException "InvalidAutoRollbackConfigException"
 //   The automatic rollback configuration was specified in an invalid format.
 //   For example, automatic rollback is enabled but an invalid triggering event
 //   type or no event types were listed.
 //
-//   * InvalidLoadBalancerInfoException
+//   * ErrCodeInvalidLoadBalancerInfoException "InvalidLoadBalancerInfoException"
 //   An invalid load balancer name, or no load balancer name, was specified.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/CreateDeployment
@@ -891,20 +891,20 @@ func (c *CodeDeploy) CreateDeploymentConfigRequest(input *CreateDeploymentConfig
 // API operation CreateDeploymentConfig for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidDeploymentConfigNameException
+//   * ErrCodeInvalidDeploymentConfigNameException "InvalidDeploymentConfigNameException"
 //   The deployment configuration name was specified in an invalid format.
 //
-//   * DeploymentConfigNameRequiredException
+//   * ErrCodeDeploymentConfigNameRequiredException "DeploymentConfigNameRequiredException"
 //   The deployment configuration name was not specified.
 //
-//   * DeploymentConfigAlreadyExistsException
+//   * ErrCodeDeploymentConfigAlreadyExistsException "DeploymentConfigAlreadyExistsException"
 //   A deployment configuration with the specified name already exists with the
 //   applicable IAM user or AWS account.
 //
-//   * InvalidMinimumHealthyHostValueException
+//   * ErrCodeInvalidMinimumHealthyHostValueException "InvalidMinimumHealthyHostValueException"
 //   The minimum healthy instance value was specified in an invalid format.
 //
-//   * DeploymentConfigLimitExceededException
+//   * ErrCodeDeploymentConfigLimitExceededException "DeploymentConfigLimitExceededException"
 //   The deployment configurations limit was exceeded.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/CreateDeploymentConfig
@@ -969,62 +969,62 @@ func (c *CodeDeploy) CreateDeploymentGroupRequest(input *CreateDeploymentGroupIn
 // API operation CreateDeploymentGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * ApplicationDoesNotExistException
+//   * ErrCodeApplicationDoesNotExistException "ApplicationDoesNotExistException"
 //   The application does not exist with the applicable IAM user or AWS account.
 //
-//   * DeploymentGroupNameRequiredException
+//   * ErrCodeDeploymentGroupNameRequiredException "DeploymentGroupNameRequiredException"
 //   The deployment group name was not specified.
 //
-//   * InvalidDeploymentGroupNameException
+//   * ErrCodeInvalidDeploymentGroupNameException "InvalidDeploymentGroupNameException"
 //   The deployment group name was specified in an invalid format.
 //
-//   * DeploymentGroupAlreadyExistsException
+//   * ErrCodeDeploymentGroupAlreadyExistsException "DeploymentGroupAlreadyExistsException"
 //   A deployment group with the specified name already exists with the applicable
 //   IAM user or AWS account.
 //
-//   * InvalidEC2TagException
+//   * ErrCodeInvalidEC2TagException "InvalidEC2TagException"
 //   The tag was specified in an invalid format.
 //
-//   * InvalidTagException
+//   * ErrCodeInvalidTagException "InvalidTagException"
 //   The specified tag was specified in an invalid format.
 //
-//   * InvalidAutoScalingGroupException
+//   * ErrCodeInvalidAutoScalingGroupException "InvalidAutoScalingGroupException"
 //   The Auto Scaling group was specified in an invalid format or does not exist.
 //
-//   * InvalidDeploymentConfigNameException
+//   * ErrCodeInvalidDeploymentConfigNameException "InvalidDeploymentConfigNameException"
 //   The deployment configuration name was specified in an invalid format.
 //
-//   * DeploymentConfigDoesNotExistException
+//   * ErrCodeDeploymentConfigDoesNotExistException "DeploymentConfigDoesNotExistException"
 //   The deployment configuration does not exist with the applicable IAM user
 //   or AWS account.
 //
-//   * RoleRequiredException
+//   * ErrCodeRoleRequiredException "RoleRequiredException"
 //   The role ID was not specified.
 //
-//   * InvalidRoleException
+//   * ErrCodeInvalidRoleException "InvalidRoleException"
 //   The service role ARN was specified in an invalid format. Or, if an Auto Scaling
 //   group was specified, the specified service role does not grant the appropriate
 //   permissions to Auto Scaling.
 //
-//   * DeploymentGroupLimitExceededException
+//   * ErrCodeDeploymentGroupLimitExceededException "DeploymentGroupLimitExceededException"
 //   The deployment groups limit was exceeded.
 //
-//   * LifecycleHookLimitExceededException
+//   * ErrCodeLifecycleHookLimitExceededException "LifecycleHookLimitExceededException"
 //   The limit for lifecycle hooks was exceeded.
 //
-//   * InvalidTriggerConfigException
+//   * ErrCodeInvalidTriggerConfigException "InvalidTriggerConfigException"
 //   The trigger was specified in an invalid format.
 //
-//   * TriggerTargetsLimitExceededException
+//   * ErrCodeTriggerTargetsLimitExceededException "TriggerTargetsLimitExceededException"
 //   The maximum allowed number of triggers was exceeded.
 //
-//   * InvalidAlarmConfigException
+//   * ErrCodeInvalidAlarmConfigException "InvalidAlarmConfigException"
 //   The format of the alarm configuration is invalid. Possible causes include:
 //
 //      * The alarm list is null.
@@ -1037,23 +1037,23 @@ func (c *CodeDeploy) CreateDeploymentGroupRequest(input *CreateDeploymentGroupIn
 //
 //      * The alarm configuration is enabled but the alarm list is empty.
 //
-//   * AlarmsLimitExceededException
+//   * ErrCodeAlarmsLimitExceededException "AlarmsLimitExceededException"
 //   The maximum number of alarms for a deployment group (10) was exceeded.
 //
-//   * InvalidAutoRollbackConfigException
+//   * ErrCodeInvalidAutoRollbackConfigException "InvalidAutoRollbackConfigException"
 //   The automatic rollback configuration was specified in an invalid format.
 //   For example, automatic rollback is enabled but an invalid triggering event
 //   type or no event types were listed.
 //
-//   * InvalidLoadBalancerInfoException
+//   * ErrCodeInvalidLoadBalancerInfoException "InvalidLoadBalancerInfoException"
 //   An invalid load balancer name, or no load balancer name, was specified.
 //
-//   * InvalidDeploymentStyleException
+//   * ErrCodeInvalidDeploymentStyleException "InvalidDeploymentStyleException"
 //   An invalid deployment style was specified. Valid deployment types include
 //   "IN_PLACE" and "BLUE_GREEN". Valid deployment options for blue/green deployments
 //   include "WITH_TRAFFIC_CONTROL" and "WITHOUT_TRAFFIC_CONTROL".
 //
-//   * InvalidBlueGreenDeploymentConfigurationException
+//   * ErrCodeInvalidBlueGreenDeploymentConfigurationException "InvalidBlueGreenDeploymentConfigurationException"
 //   The configuration for the blue/green deployment group was provided in an
 //   invalid format. For information about deployment configuration format, see
 //   CreateDeploymentConfig.
@@ -1122,10 +1122,10 @@ func (c *CodeDeploy) DeleteApplicationRequest(input *DeleteApplicationInput) (re
 // API operation DeleteApplication for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/DeleteApplication
@@ -1195,16 +1195,16 @@ func (c *CodeDeploy) DeleteDeploymentConfigRequest(input *DeleteDeploymentConfig
 // API operation DeleteDeploymentConfig for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidDeploymentConfigNameException
+//   * ErrCodeInvalidDeploymentConfigNameException "InvalidDeploymentConfigNameException"
 //   The deployment configuration name was specified in an invalid format.
 //
-//   * DeploymentConfigNameRequiredException
+//   * ErrCodeDeploymentConfigNameRequiredException "DeploymentConfigNameRequiredException"
 //   The deployment configuration name was not specified.
 //
-//   * DeploymentConfigInUseException
+//   * ErrCodeDeploymentConfigInUseException "DeploymentConfigInUseException"
 //   The deployment configuration is still in use.
 //
-//   * InvalidOperationException
+//   * ErrCodeInvalidOperationException "InvalidOperationException"
 //   An invalid operation was detected.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/DeleteDeploymentConfig
@@ -1269,19 +1269,19 @@ func (c *CodeDeploy) DeleteDeploymentGroupRequest(input *DeleteDeploymentGroupIn
 // API operation DeleteDeploymentGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * DeploymentGroupNameRequiredException
+//   * ErrCodeDeploymentGroupNameRequiredException "DeploymentGroupNameRequiredException"
 //   The deployment group name was not specified.
 //
-//   * InvalidDeploymentGroupNameException
+//   * ErrCodeInvalidDeploymentGroupNameException "InvalidDeploymentGroupNameException"
 //   The deployment group name was specified in an invalid format.
 //
-//   * InvalidRoleException
+//   * ErrCodeInvalidRoleException "InvalidRoleException"
 //   The service role ARN was specified in an invalid format. Or, if an Auto Scaling
 //   group was specified, the specified service role does not grant the appropriate
 //   permissions to Auto Scaling.
@@ -1350,10 +1350,10 @@ func (c *CodeDeploy) DeregisterOnPremisesInstanceRequest(input *DeregisterOnPrem
 // API operation DeregisterOnPremisesInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * InstanceNameRequiredException
+//   * ErrCodeInstanceNameRequiredException "InstanceNameRequiredException"
 //   An on-premises instance name was not specified.
 //
-//   * InvalidInstanceNameException
+//   * ErrCodeInvalidInstanceNameException "InvalidInstanceNameException"
 //   The specified on-premises instance name was specified in an invalid format.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/DeregisterOnPremisesInstance
@@ -1418,13 +1418,13 @@ func (c *CodeDeploy) GetApplicationRequest(input *GetApplicationInput) (req *req
 // API operation GetApplication for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * ApplicationDoesNotExistException
+//   * ErrCodeApplicationDoesNotExistException "ApplicationDoesNotExistException"
 //   The application does not exist with the applicable IAM user or AWS account.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetApplication
@@ -1489,22 +1489,22 @@ func (c *CodeDeploy) GetApplicationRevisionRequest(input *GetApplicationRevision
 // API operation GetApplicationRevision for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationDoesNotExistException
+//   * ErrCodeApplicationDoesNotExistException "ApplicationDoesNotExistException"
 //   The application does not exist with the applicable IAM user or AWS account.
 //
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * RevisionDoesNotExistException
+//   * ErrCodeRevisionDoesNotExistException "RevisionDoesNotExistException"
 //   The named revision does not exist with the applicable IAM user or AWS account.
 //
-//   * RevisionRequiredException
+//   * ErrCodeRevisionRequiredException "RevisionRequiredException"
 //   The revision ID was not specified.
 //
-//   * InvalidRevisionException
+//   * ErrCodeInvalidRevisionException "InvalidRevisionException"
 //   The revision was specified in an invalid format.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetApplicationRevision
@@ -1569,13 +1569,13 @@ func (c *CodeDeploy) GetDeploymentRequest(input *GetDeploymentInput) (req *reque
 // API operation GetDeployment for usage and error information.
 //
 // Returned Error Codes:
-//   * DeploymentIdRequiredException
+//   * ErrCodeDeploymentIdRequiredException "DeploymentIdRequiredException"
 //   At least one deployment ID must be specified.
 //
-//   * InvalidDeploymentIdException
+//   * ErrCodeInvalidDeploymentIdException "InvalidDeploymentIdException"
 //   At least one of the deployment IDs was specified in an invalid format.
 //
-//   * DeploymentDoesNotExistException
+//   * ErrCodeDeploymentDoesNotExistException "DeploymentDoesNotExistException"
 //   The deployment does not exist with the applicable IAM user or AWS account.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetDeployment
@@ -1640,13 +1640,13 @@ func (c *CodeDeploy) GetDeploymentConfigRequest(input *GetDeploymentConfigInput)
 // API operation GetDeploymentConfig for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidDeploymentConfigNameException
+//   * ErrCodeInvalidDeploymentConfigNameException "InvalidDeploymentConfigNameException"
 //   The deployment configuration name was specified in an invalid format.
 //
-//   * DeploymentConfigNameRequiredException
+//   * ErrCodeDeploymentConfigNameRequiredException "DeploymentConfigNameRequiredException"
 //   The deployment configuration name was not specified.
 //
-//   * DeploymentConfigDoesNotExistException
+//   * ErrCodeDeploymentConfigDoesNotExistException "DeploymentConfigDoesNotExistException"
 //   The deployment configuration does not exist with the applicable IAM user
 //   or AWS account.
 //
@@ -1712,22 +1712,22 @@ func (c *CodeDeploy) GetDeploymentGroupRequest(input *GetDeploymentGroupInput) (
 // API operation GetDeploymentGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * ApplicationDoesNotExistException
+//   * ErrCodeApplicationDoesNotExistException "ApplicationDoesNotExistException"
 //   The application does not exist with the applicable IAM user or AWS account.
 //
-//   * DeploymentGroupNameRequiredException
+//   * ErrCodeDeploymentGroupNameRequiredException "DeploymentGroupNameRequiredException"
 //   The deployment group name was not specified.
 //
-//   * InvalidDeploymentGroupNameException
+//   * ErrCodeInvalidDeploymentGroupNameException "InvalidDeploymentGroupNameException"
 //   The deployment group name was specified in an invalid format.
 //
-//   * DeploymentGroupDoesNotExistException
+//   * ErrCodeDeploymentGroupDoesNotExistException "DeploymentGroupDoesNotExistException"
 //   The named deployment group does not exist with the applicable IAM user or
 //   AWS account.
 //
@@ -1793,22 +1793,22 @@ func (c *CodeDeploy) GetDeploymentInstanceRequest(input *GetDeploymentInstanceIn
 // API operation GetDeploymentInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * DeploymentIdRequiredException
+//   * ErrCodeDeploymentIdRequiredException "DeploymentIdRequiredException"
 //   At least one deployment ID must be specified.
 //
-//   * DeploymentDoesNotExistException
+//   * ErrCodeDeploymentDoesNotExistException "DeploymentDoesNotExistException"
 //   The deployment does not exist with the applicable IAM user or AWS account.
 //
-//   * InstanceIdRequiredException
+//   * ErrCodeInstanceIdRequiredException "InstanceIdRequiredException"
 //   The instance ID was not specified.
 //
-//   * InvalidDeploymentIdException
+//   * ErrCodeInvalidDeploymentIdException "InvalidDeploymentIdException"
 //   At least one of the deployment IDs was specified in an invalid format.
 //
-//   * InstanceDoesNotExistException
+//   * ErrCodeInstanceDoesNotExistException "InstanceDoesNotExistException"
 //   The specified instance does not exist in the deployment group.
 //
-//   * InvalidInstanceNameException
+//   * ErrCodeInvalidInstanceNameException "InvalidInstanceNameException"
 //   The specified on-premises instance name was specified in an invalid format.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetDeploymentInstance
@@ -1873,13 +1873,13 @@ func (c *CodeDeploy) GetOnPremisesInstanceRequest(input *GetOnPremisesInstanceIn
 // API operation GetOnPremisesInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * InstanceNameRequiredException
+//   * ErrCodeInstanceNameRequiredException "InstanceNameRequiredException"
 //   An on-premises instance name was not specified.
 //
-//   * InstanceNotRegisteredException
+//   * ErrCodeInstanceNotRegisteredException "InstanceNotRegisteredException"
 //   The specified on-premises instance is not registered.
 //
-//   * InvalidInstanceNameException
+//   * ErrCodeInvalidInstanceNameException "InvalidInstanceNameException"
 //   The specified on-premises instance name was specified in an invalid format.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/GetOnPremisesInstance
@@ -1944,35 +1944,35 @@ func (c *CodeDeploy) ListApplicationRevisionsRequest(input *ListApplicationRevis
 // API operation ListApplicationRevisions for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationDoesNotExistException
+//   * ErrCodeApplicationDoesNotExistException "ApplicationDoesNotExistException"
 //   The application does not exist with the applicable IAM user or AWS account.
 //
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * InvalidSortByException
+//   * ErrCodeInvalidSortByException "InvalidSortByException"
 //   The column name to sort by is either not present or was specified in an invalid
 //   format.
 //
-//   * InvalidSortOrderException
+//   * ErrCodeInvalidSortOrderException "InvalidSortOrderException"
 //   The sort order was specified in an invalid format.
 //
-//   * InvalidBucketNameFilterException
+//   * ErrCodeInvalidBucketNameFilterException "InvalidBucketNameFilterException"
 //   The bucket name either doesn't exist or was specified in an invalid format.
 //
-//   * InvalidKeyPrefixFilterException
+//   * ErrCodeInvalidKeyPrefixFilterException "InvalidKeyPrefixFilterException"
 //   The specified key prefix filter was specified in an invalid format.
 //
-//   * BucketNameFilterRequiredException
+//   * ErrCodeBucketNameFilterRequiredException "BucketNameFilterRequiredException"
 //   A bucket name is required, but was not provided.
 //
-//   * InvalidDeployedStateFilterException
+//   * ErrCodeInvalidDeployedStateFilterException "InvalidDeployedStateFilterException"
 //   The deployed state filter was specified in an invalid format.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The next token was specified in an invalid format.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListApplicationRevisions
@@ -2037,7 +2037,7 @@ func (c *CodeDeploy) ListApplicationsRequest(input *ListApplicationsInput) (req 
 // API operation ListApplications for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The next token was specified in an invalid format.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListApplications
@@ -2102,7 +2102,7 @@ func (c *CodeDeploy) ListDeploymentConfigsRequest(input *ListDeploymentConfigsIn
 // API operation ListDeploymentConfigs for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The next token was specified in an invalid format.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListDeploymentConfigs
@@ -2168,16 +2168,16 @@ func (c *CodeDeploy) ListDeploymentGroupsRequest(input *ListDeploymentGroupsInpu
 // API operation ListDeploymentGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * ApplicationDoesNotExistException
+//   * ErrCodeApplicationDoesNotExistException "ApplicationDoesNotExistException"
 //   The application does not exist with the applicable IAM user or AWS account.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The next token was specified in an invalid format.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListDeploymentGroups
@@ -2243,25 +2243,25 @@ func (c *CodeDeploy) ListDeploymentInstancesRequest(input *ListDeploymentInstanc
 // API operation ListDeploymentInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * DeploymentIdRequiredException
+//   * ErrCodeDeploymentIdRequiredException "DeploymentIdRequiredException"
 //   At least one deployment ID must be specified.
 //
-//   * DeploymentDoesNotExistException
+//   * ErrCodeDeploymentDoesNotExistException "DeploymentDoesNotExistException"
 //   The deployment does not exist with the applicable IAM user or AWS account.
 //
-//   * DeploymentNotStartedException
+//   * ErrCodeDeploymentNotStartedException "DeploymentNotStartedException"
 //   The specified deployment has not started.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The next token was specified in an invalid format.
 //
-//   * InvalidDeploymentIdException
+//   * ErrCodeInvalidDeploymentIdException "InvalidDeploymentIdException"
 //   At least one of the deployment IDs was specified in an invalid format.
 //
-//   * InvalidInstanceStatusException
+//   * ErrCodeInvalidInstanceStatusException "InvalidInstanceStatusException"
 //   The specified instance status does not exist.
 //
-//   * InvalidInstanceTypeException
+//   * ErrCodeInvalidInstanceTypeException "InvalidInstanceTypeException"
 //   An invalid instance type was specified for instances in a blue/green deployment.
 //   Valid values include "Blue" for an original environment and "Green" for a
 //   replacement environment.
@@ -2329,32 +2329,32 @@ func (c *CodeDeploy) ListDeploymentsRequest(input *ListDeploymentsInput) (req *r
 // API operation ListDeployments for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * ApplicationDoesNotExistException
+//   * ErrCodeApplicationDoesNotExistException "ApplicationDoesNotExistException"
 //   The application does not exist with the applicable IAM user or AWS account.
 //
-//   * InvalidDeploymentGroupNameException
+//   * ErrCodeInvalidDeploymentGroupNameException "InvalidDeploymentGroupNameException"
 //   The deployment group name was specified in an invalid format.
 //
-//   * DeploymentGroupDoesNotExistException
+//   * ErrCodeDeploymentGroupDoesNotExistException "DeploymentGroupDoesNotExistException"
 //   The named deployment group does not exist with the applicable IAM user or
 //   AWS account.
 //
-//   * DeploymentGroupNameRequiredException
+//   * ErrCodeDeploymentGroupNameRequiredException "DeploymentGroupNameRequiredException"
 //   The deployment group name was not specified.
 //
-//   * InvalidTimeRangeException
+//   * ErrCodeInvalidTimeRangeException "InvalidTimeRangeException"
 //   The specified time range was specified in an invalid format.
 //
-//   * InvalidDeploymentStatusException
+//   * ErrCodeInvalidDeploymentStatusException "InvalidDeploymentStatusException"
 //   The specified deployment status doesn't exist or cannot be determined.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The next token was specified in an invalid format.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListDeployments
@@ -2423,13 +2423,13 @@ func (c *CodeDeploy) ListOnPremisesInstancesRequest(input *ListOnPremisesInstanc
 // API operation ListOnPremisesInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidRegistrationStatusException
+//   * ErrCodeInvalidRegistrationStatusException "InvalidRegistrationStatusException"
 //   The registration status was specified in an invalid format.
 //
-//   * InvalidTagFilterException
+//   * ErrCodeInvalidTagFilterException "InvalidTagFilterException"
 //   The specified tag filter was specified in an invalid format.
 //
-//   * InvalidNextTokenException
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
 //   The next token was specified in an invalid format.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/ListOnPremisesInstances
@@ -2496,22 +2496,22 @@ func (c *CodeDeploy) RegisterApplicationRevisionRequest(input *RegisterApplicati
 // API operation RegisterApplicationRevision for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationDoesNotExistException
+//   * ErrCodeApplicationDoesNotExistException "ApplicationDoesNotExistException"
 //   The application does not exist with the applicable IAM user or AWS account.
 //
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * DescriptionTooLongException
+//   * ErrCodeDescriptionTooLongException "DescriptionTooLongException"
 //   The description is too long.
 //
-//   * RevisionRequiredException
+//   * ErrCodeRevisionRequiredException "RevisionRequiredException"
 //   The revision ID was not specified.
 //
-//   * InvalidRevisionException
+//   * ErrCodeInvalidRevisionException "InvalidRevisionException"
 //   The revision was specified in an invalid format.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/RegisterApplicationRevision
@@ -2581,36 +2581,36 @@ func (c *CodeDeploy) RegisterOnPremisesInstanceRequest(input *RegisterOnPremises
 // API operation RegisterOnPremisesInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * InstanceNameAlreadyRegisteredException
+//   * ErrCodeInstanceNameAlreadyRegisteredException "InstanceNameAlreadyRegisteredException"
 //   The specified on-premises instance name is already registered.
 //
-//   * IamArnRequiredException
+//   * ErrCodeIamArnRequiredException "IamArnRequiredException"
 //   No IAM ARN was included in the request. You must use an IAM session ARN or
 //   IAM user ARN in the request.
 //
-//   * IamSessionArnAlreadyRegisteredException
+//   * ErrCodeIamSessionArnAlreadyRegisteredException "IamSessionArnAlreadyRegisteredException"
 //   The request included an IAM session ARN that has already been used to register
 //   a different instance.
 //
-//   * IamUserArnAlreadyRegisteredException
+//   * ErrCodeIamUserArnAlreadyRegisteredException "IamUserArnAlreadyRegisteredException"
 //   The specified IAM user ARN is already registered with an on-premises instance.
 //
-//   * InstanceNameRequiredException
+//   * ErrCodeInstanceNameRequiredException "InstanceNameRequiredException"
 //   An on-premises instance name was not specified.
 //
-//   * IamUserArnRequiredException
+//   * ErrCodeIamUserArnRequiredException "IamUserArnRequiredException"
 //   An IAM user ARN was not specified.
 //
-//   * InvalidInstanceNameException
+//   * ErrCodeInvalidInstanceNameException "InvalidInstanceNameException"
 //   The specified on-premises instance name was specified in an invalid format.
 //
-//   * InvalidIamSessionArnException
+//   * ErrCodeInvalidIamSessionArnException "InvalidIamSessionArnException"
 //   The IAM session ARN was specified in an invalid format.
 //
-//   * InvalidIamUserArnException
+//   * ErrCodeInvalidIamUserArnException "InvalidIamUserArnException"
 //   The IAM user ARN was specified in an invalid format.
 //
-//   * MultipleIamArnsProvidedException
+//   * ErrCodeMultipleIamArnsProvidedException "MultipleIamArnsProvidedException"
 //   Both an IAM user ARN and an IAM session ARN were included in the request.
 //   Use only one ARN type.
 //
@@ -2678,23 +2678,23 @@ func (c *CodeDeploy) RemoveTagsFromOnPremisesInstancesRequest(input *RemoveTagsF
 // API operation RemoveTagsFromOnPremisesInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * InstanceNameRequiredException
+//   * ErrCodeInstanceNameRequiredException "InstanceNameRequiredException"
 //   An on-premises instance name was not specified.
 //
-//   * TagRequiredException
+//   * ErrCodeTagRequiredException "TagRequiredException"
 //   A tag was not specified.
 //
-//   * InvalidTagException
+//   * ErrCodeInvalidTagException "InvalidTagException"
 //   The specified tag was specified in an invalid format.
 //
-//   * TagLimitExceededException
+//   * ErrCodeTagLimitExceededException "TagLimitExceededException"
 //   The maximum allowed number of tags was exceeded.
 //
-//   * InstanceLimitExceededException
+//   * ErrCodeInstanceLimitExceededException "InstanceLimitExceededException"
 //   The maximum number of allowed on-premises instances in a single call was
 //   exceeded.
 //
-//   * InstanceNotRegisteredException
+//   * ErrCodeInstanceNotRegisteredException "InstanceNotRegisteredException"
 //   The specified on-premises instance is not registered.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/RemoveTagsFromOnPremisesInstances
@@ -2762,22 +2762,22 @@ func (c *CodeDeploy) SkipWaitTimeForInstanceTerminationRequest(input *SkipWaitTi
 // API operation SkipWaitTimeForInstanceTermination for usage and error information.
 //
 // Returned Error Codes:
-//   * DeploymentIdRequiredException
+//   * ErrCodeDeploymentIdRequiredException "DeploymentIdRequiredException"
 //   At least one deployment ID must be specified.
 //
-//   * DeploymentDoesNotExistException
+//   * ErrCodeDeploymentDoesNotExistException "DeploymentDoesNotExistException"
 //   The deployment does not exist with the applicable IAM user or AWS account.
 //
-//   * DeploymentAlreadyCompletedException
+//   * ErrCodeDeploymentAlreadyCompletedException "DeploymentAlreadyCompletedException"
 //   The deployment is already complete.
 //
-//   * InvalidDeploymentIdException
+//   * ErrCodeInvalidDeploymentIdException "InvalidDeploymentIdException"
 //   At least one of the deployment IDs was specified in an invalid format.
 //
-//   * DeploymentNotStartedException
+//   * ErrCodeDeploymentNotStartedException "DeploymentNotStartedException"
 //   The specified deployment has not started.
 //
-//   * UnsupportedActionForDeploymentTypeException
+//   * ErrCodeUnsupportedActionForDeploymentTypeException "UnsupportedActionForDeploymentTypeException"
 //   A call was submitted that is not supported for the specified deployment type.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/SkipWaitTimeForInstanceTermination
@@ -2842,16 +2842,16 @@ func (c *CodeDeploy) StopDeploymentRequest(input *StopDeploymentInput) (req *req
 // API operation StopDeployment for usage and error information.
 //
 // Returned Error Codes:
-//   * DeploymentIdRequiredException
+//   * ErrCodeDeploymentIdRequiredException "DeploymentIdRequiredException"
 //   At least one deployment ID must be specified.
 //
-//   * DeploymentDoesNotExistException
+//   * ErrCodeDeploymentDoesNotExistException "DeploymentDoesNotExistException"
 //   The deployment does not exist with the applicable IAM user or AWS account.
 //
-//   * DeploymentAlreadyCompletedException
+//   * ErrCodeDeploymentAlreadyCompletedException "DeploymentAlreadyCompletedException"
 //   The deployment is already complete.
 //
-//   * InvalidDeploymentIdException
+//   * ErrCodeInvalidDeploymentIdException "InvalidDeploymentIdException"
 //   At least one of the deployment IDs was specified in an invalid format.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/StopDeployment
@@ -2918,17 +2918,17 @@ func (c *CodeDeploy) UpdateApplicationRequest(input *UpdateApplicationInput) (re
 // API operation UpdateApplication for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * ApplicationAlreadyExistsException
+//   * ErrCodeApplicationAlreadyExistsException "ApplicationAlreadyExistsException"
 //   An application with the specified name already exists with the applicable
 //   IAM user or AWS account.
 //
-//   * ApplicationDoesNotExistException
+//   * ErrCodeApplicationDoesNotExistException "ApplicationDoesNotExistException"
 //   The application does not exist with the applicable IAM user or AWS account.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/codedeploy-2014-10-06/UpdateApplication
@@ -2993,60 +2993,60 @@ func (c *CodeDeploy) UpdateDeploymentGroupRequest(input *UpdateDeploymentGroupIn
 // API operation UpdateDeploymentGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * ApplicationNameRequiredException
+//   * ErrCodeApplicationNameRequiredException "ApplicationNameRequiredException"
 //   The minimum number of required application names was not specified.
 //
-//   * InvalidApplicationNameException
+//   * ErrCodeInvalidApplicationNameException "InvalidApplicationNameException"
 //   The application name was specified in an invalid format.
 //
-//   * ApplicationDoesNotExistException
+//   * ErrCodeApplicationDoesNotExistException "ApplicationDoesNotExistException"
 //   The application does not exist with the applicable IAM user or AWS account.
 //
-//   * InvalidDeploymentGroupNameException
+//   * ErrCodeInvalidDeploymentGroupNameException "InvalidDeploymentGroupNameException"
 //   The deployment group name was specified in an invalid format.
 //
-//   * DeploymentGroupAlreadyExistsException
+//   * ErrCodeDeploymentGroupAlreadyExistsException "DeploymentGroupAlreadyExistsException"
 //   A deployment group with the specified name already exists with the applicable
 //   IAM user or AWS account.
 //
-//   * DeploymentGroupNameRequiredException
+//   * ErrCodeDeploymentGroupNameRequiredException "DeploymentGroupNameRequiredException"
 //   The deployment group name was not specified.
 //
-//   * DeploymentGroupDoesNotExistException
+//   * ErrCodeDeploymentGroupDoesNotExistException "DeploymentGroupDoesNotExistException"
 //   The named deployment group does not exist with the applicable IAM user or
 //   AWS account.
 //
-//   * InvalidEC2TagException
+//   * ErrCodeInvalidEC2TagException "InvalidEC2TagException"
 //   The tag was specified in an invalid format.
 //
-//   * InvalidTagException
+//   * ErrCodeInvalidTagException "InvalidTagException"
 //   The specified tag was specified in an invalid format.
 //
-//   * InvalidAutoScalingGroupException
+//   * ErrCodeInvalidAutoScalingGroupException "InvalidAutoScalingGroupException"
 //   The Auto Scaling group was specified in an invalid format or does not exist.
 //
-//   * InvalidDeploymentConfigNameException
+//   * ErrCodeInvalidDeploymentConfigNameException "InvalidDeploymentConfigNameException"
 //   The deployment configuration name was specified in an invalid format.
 //
-//   * DeploymentConfigDoesNotExistException
+//   * ErrCodeDeploymentConfigDoesNotExistException "DeploymentConfigDoesNotExistException"
 //   The deployment configuration does not exist with the applicable IAM user
 //   or AWS account.
 //
-//   * InvalidRoleException
+//   * ErrCodeInvalidRoleException "InvalidRoleException"
 //   The service role ARN was specified in an invalid format. Or, if an Auto Scaling
 //   group was specified, the specified service role does not grant the appropriate
 //   permissions to Auto Scaling.
 //
-//   * LifecycleHookLimitExceededException
+//   * ErrCodeLifecycleHookLimitExceededException "LifecycleHookLimitExceededException"
 //   The limit for lifecycle hooks was exceeded.
 //
-//   * InvalidTriggerConfigException
+//   * ErrCodeInvalidTriggerConfigException "InvalidTriggerConfigException"
 //   The trigger was specified in an invalid format.
 //
-//   * TriggerTargetsLimitExceededException
+//   * ErrCodeTriggerTargetsLimitExceededException "TriggerTargetsLimitExceededException"
 //   The maximum allowed number of triggers was exceeded.
 //
-//   * InvalidAlarmConfigException
+//   * ErrCodeInvalidAlarmConfigException "InvalidAlarmConfigException"
 //   The format of the alarm configuration is invalid. Possible causes include:
 //
 //      * The alarm list is null.
@@ -3059,23 +3059,23 @@ func (c *CodeDeploy) UpdateDeploymentGroupRequest(input *UpdateDeploymentGroupIn
 //
 //      * The alarm configuration is enabled but the alarm list is empty.
 //
-//   * AlarmsLimitExceededException
+//   * ErrCodeAlarmsLimitExceededException "AlarmsLimitExceededException"
 //   The maximum number of alarms for a deployment group (10) was exceeded.
 //
-//   * InvalidAutoRollbackConfigException
+//   * ErrCodeInvalidAutoRollbackConfigException "InvalidAutoRollbackConfigException"
 //   The automatic rollback configuration was specified in an invalid format.
 //   For example, automatic rollback is enabled but an invalid triggering event
 //   type or no event types were listed.
 //
-//   * InvalidLoadBalancerInfoException
+//   * ErrCodeInvalidLoadBalancerInfoException "InvalidLoadBalancerInfoException"
 //   An invalid load balancer name, or no load balancer name, was specified.
 //
-//   * InvalidDeploymentStyleException
+//   * ErrCodeInvalidDeploymentStyleException "InvalidDeploymentStyleException"
 //   An invalid deployment style was specified. Valid deployment types include
 //   "IN_PLACE" and "BLUE_GREEN". Valid deployment options for blue/green deployments
 //   include "WITH_TRAFFIC_CONTROL" and "WITHOUT_TRAFFIC_CONTROL".
 //
-//   * InvalidBlueGreenDeploymentConfigurationException
+//   * ErrCodeInvalidBlueGreenDeploymentConfigurationException "InvalidBlueGreenDeploymentConfigurationException"
 //   The configuration for the blue/green deployment group was provided in an
 //   invalid format. For information about deployment configuration format, see
 //   CreateDeploymentConfig.

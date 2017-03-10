@@ -919,6 +919,7 @@ func (m schemaMap) diffSet(
 	diff *terraform.InstanceDiff,
 	d *ResourceData,
 	all bool) error {
+
 	o, n, _, computedSet := d.diffChange(k)
 	if computedSet {
 		n = nil
@@ -1003,6 +1004,7 @@ func (m schemaMap) diffSet(
 		for _, code := range list {
 			switch t := schema.Elem.(type) {
 			case *Resource:
+				countDiff, cOk := diff.GetAttribute(k + ".#")
 				// This is a complex resource
 				for k2, schema := range t.Schema {
 					subK := fmt.Sprintf("%s.%s.%s", k, code, k2)
@@ -1010,7 +1012,17 @@ func (m schemaMap) diffSet(
 					if err != nil {
 						return err
 					}
+
+					// If parent set is being removed
+					// remove all subfields which were missed by the diff func
+					// We process these separately because type-specific diff functions
+					// lack the context (hierarchy of fields)
+					subKeyIsCount := strings.HasSuffix(subK, ".#")
+					if cOk && countDiff.New == "0" && !subKeyIsCount {
+						m.markAsRemoved(subK, schema, diff)
+					}
 				}
+
 			case *Schema:
 				// Copy the schema so that we can set Computed/ForceNew from
 				// the parent schema (the TypeSet).
@@ -1315,6 +1327,9 @@ func (m schemaMap) validateObject(
 	if m, ok := raw.(map[string]interface{}); ok {
 		for subk, _ := range m {
 			if _, ok := schema[subk]; !ok {
+				if subk == TimeoutsConfigKey {
+					continue
+				}
 				es = append(es, fmt.Errorf(
 					"%s: invalid or unknown key: %s", k, subk))
 			}

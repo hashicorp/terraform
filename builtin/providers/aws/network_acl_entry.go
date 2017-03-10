@@ -88,6 +88,7 @@ func protocolIntegers() map[string]int {
 		"tcp":  6,
 		"icmp": 1,
 		"all":  -1,
+		"vrrp": 112,
 	}
 	return protocolIntegers
 }

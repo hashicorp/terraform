@@ -13,10 +13,10 @@ Provides a DigitalOcean domain resource.
 ## Example Usage
 
 ```
-# Create a new domain 
+# Create a new domain
 resource "digitalocean_domain" "default" {
-    name = "www.example.com"
-    ip_address = "${digitalocean_droplet.foo.ipv4_address}"
+  name       = "www.example.com"
+  ip_address = "${digitalocean_droplet.foo.ipv4_address}"
 }
 ```
 
@@ -39,7 +39,7 @@ The following attributes are exported:
 
 ## Import
 
-Domains can be imported using the `domain name`, e.g. 
+Domains can be imported using the `domain name`, e.g.
 
 ```
 terraform import digitalocean_domain.mydomain mytestdomain.com

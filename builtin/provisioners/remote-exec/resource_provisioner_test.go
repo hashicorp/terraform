@@ -2,11 +2,12 @@ package remoteexec
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
-	"strings"
+	"net"
 	"testing"
-
-	"reflect"
+	"time"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -46,8 +47,6 @@ wget http://foobar
 exit 0
 `
 
-var expectedInlineScriptsOut = strings.Split(expectedScriptOut, "\n")
-
 func TestResourceProvider_generateScript(t *testing.T) {
 	p := Provisioner().(*schema.Provisioner)
 	conf := map[string]interface{}{
@@ -63,7 +62,11 @@ func TestResourceProvider_generateScript(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if reflect.DeepEqual(out, expectedInlineScriptsOut) {
+	if len(out) != 1 {
+		t.Fatal("expected 1 out")
+	}
+
+	if out[0] != expectedScriptOut {
 		t.Fatalf("bad: %v", out)
 	}
 }
@@ -84,20 +87,18 @@ func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(scripts) != 3 {
+	if len(scripts) != 1 {
 		t.Fatalf("bad: %v", scripts)
 	}
 
-	for i, script := range scripts {
-		var out bytes.Buffer
-		_, err = io.Copy(&out, script)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	var out bytes.Buffer
+	_, err = io.Copy(&out, scripts[0])
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-		if out.String() != expectedInlineScriptsOut[i] {
-			t.Fatalf("bad: %v", out.String())
-		}
+	if out.String() != expectedScriptOut {
+		t.Fatalf("bad: %v", out.String())
 	}
 }
 
@@ -158,6 +159,31 @@ func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
 		if out.String() != expectedScriptOut {
 			t.Fatalf("bad: %v", out.String())
 		}
+	}
+}
+
+func TestRetryFunc(t *testing.T) {
+	// succeed on the third try
+	errs := []error{io.EOF, &net.OpError{Err: errors.New("ERROR")}, nil}
+	count := 0
+
+	err := retryFunc(context.Background(), time.Second, func() error {
+		if count >= len(errs) {
+			return errors.New("failed to stop after nil error")
+		}
+
+		err := errs[count]
+		count++
+
+		return err
+	})
+
+	if count != 3 {
+		t.Fatal("retry func should have been called 3 times")
+	}
+
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

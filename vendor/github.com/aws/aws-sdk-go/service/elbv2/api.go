@@ -73,16 +73,16 @@ func (c *ELBV2) AddTagsRequest(input *AddTagsInput) (req *request.Request, outpu
 // API operation AddTags for usage and error information.
 //
 // Returned Error Codes:
-//   * DuplicateTagKeys
+//   * ErrCodeDuplicateTagKeysException "DuplicateTagKeys"
 //   A tag key was specified more than once.
 //
-//   * TooManyTags
+//   * ErrCodeTooManyTagsException "TooManyTags"
 //   You've reached the limit on the number of tags per load balancer.
 //
-//   * LoadBalancerNotFound
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
 //   The specified load balancer does not exist.
 //
-//   * TargetGroupNotFound
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
 //   The specified target group does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/AddTags
@@ -156,40 +156,40 @@ func (c *ELBV2) CreateListenerRequest(input *CreateListenerInput) (req *request.
 // API operation CreateListener for usage and error information.
 //
 // Returned Error Codes:
-//   * DuplicateListener
+//   * ErrCodeDuplicateListenerException "DuplicateListener"
 //   A listener with the specified port already exists.
 //
-//   * TooManyListeners
+//   * ErrCodeTooManyListenersException "TooManyListeners"
 //   You've reached the limit on the number of listeners per load balancer.
 //
-//   * TooManyCertificates
+//   * ErrCodeTooManyCertificatesException "TooManyCertificates"
 //   You've reached the limit on the number of certificates per listener.
 //
-//   * LoadBalancerNotFound
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
 //   The specified load balancer does not exist.
 //
-//   * TargetGroupNotFound
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
 //   The specified target group does not exist.
 //
-//   * TargetGroupAssociationLimit
+//   * ErrCodeTargetGroupAssociationLimitException "TargetGroupAssociationLimit"
 //   You've reached the limit on the number of load balancers per target group.
 //
-//   * InvalidConfigurationRequest
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
 //   The requested configuration is not valid.
 //
-//   * IncompatibleProtocols
+//   * ErrCodeIncompatibleProtocolsException "IncompatibleProtocols"
 //   The specified configuration is not valid with this protocol.
 //
-//   * SSLPolicyNotFound
+//   * ErrCodeSSLPolicyNotFoundException "SSLPolicyNotFound"
 //   The specified SSL policy does not exist.
 //
-//   * CertificateNotFound
+//   * ErrCodeCertificateNotFoundException "CertificateNotFound"
 //   The specified certificate does not exist.
 //
-//   * UnsupportedProtocol
+//   * ErrCodeUnsupportedProtocolException "UnsupportedProtocol"
 //   The specified protocol is not supported.
 //
-//   * TooManyRegistrationsForTargetId
+//   * ErrCodeTooManyRegistrationsForTargetIdException "TooManyRegistrationsForTargetId"
 //   You've reached the limit on the number of times a target can be registered
 //   with a load balancer.
 //
@@ -271,31 +271,31 @@ func (c *ELBV2) CreateLoadBalancerRequest(input *CreateLoadBalancerInput) (req *
 // API operation CreateLoadBalancer for usage and error information.
 //
 // Returned Error Codes:
-//   * DuplicateLoadBalancerName
+//   * ErrCodeDuplicateLoadBalancerNameException "DuplicateLoadBalancerName"
 //   A load balancer with the specified name already exists for this account.
 //
-//   * TooManyLoadBalancers
+//   * ErrCodeTooManyLoadBalancersException "TooManyLoadBalancers"
 //   You've reached the limit on the number of load balancers for your AWS account.
 //
-//   * InvalidConfigurationRequest
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
 //   The requested configuration is not valid.
 //
-//   * SubnetNotFound
+//   * ErrCodeSubnetNotFoundException "SubnetNotFound"
 //   The specified subnet does not exist.
 //
-//   * InvalidSubnet
+//   * ErrCodeInvalidSubnetException "InvalidSubnet"
 //   The specified subnet is out of available addresses.
 //
-//   * InvalidSecurityGroup
+//   * ErrCodeInvalidSecurityGroupException "InvalidSecurityGroup"
 //   The specified security group does not exist.
 //
-//   * InvalidScheme
+//   * ErrCodeInvalidSchemeException "InvalidScheme"
 //   The requested scheme is not valid.
 //
-//   * TooManyTags
+//   * ErrCodeTooManyTagsException "TooManyTags"
 //   You've reached the limit on the number of tags per load balancer.
 //
-//   * DuplicateTagKeys
+//   * ErrCodeDuplicateTagKeysException "DuplicateTagKeys"
 //   A tag key was specified more than once.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateLoadBalancer
@@ -371,28 +371,28 @@ func (c *ELBV2) CreateRuleRequest(input *CreateRuleInput) (req *request.Request,
 // API operation CreateRule for usage and error information.
 //
 // Returned Error Codes:
-//   * PriorityInUse
+//   * ErrCodePriorityInUseException "PriorityInUse"
 //   The specified priority is in use.
 //
-//   * TooManyTargetGroups
+//   * ErrCodeTooManyTargetGroupsException "TooManyTargetGroups"
 //   You've reached the limit on the number of target groups for your AWS account.
 //
-//   * TooManyRules
+//   * ErrCodeTooManyRulesException "TooManyRules"
 //   You've reached the limit on the number of rules per load balancer.
 //
-//   * TargetGroupAssociationLimit
+//   * ErrCodeTargetGroupAssociationLimitException "TargetGroupAssociationLimit"
 //   You've reached the limit on the number of load balancers per target group.
 //
-//   * ListenerNotFound
+//   * ErrCodeListenerNotFoundException "ListenerNotFound"
 //   The specified listener does not exist.
 //
-//   * TargetGroupNotFound
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
 //   The specified target group does not exist.
 //
-//   * InvalidConfigurationRequest
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
 //   The requested configuration is not valid.
 //
-//   * TooManyRegistrationsForTargetId
+//   * ErrCodeTooManyRegistrationsForTargetIdException "TooManyRegistrationsForTargetId"
 //   You've reached the limit on the number of times a target can be registered
 //   with a load balancer.
 //
@@ -471,10 +471,10 @@ func (c *ELBV2) CreateTargetGroupRequest(input *CreateTargetGroupInput) (req *re
 // API operation CreateTargetGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * DuplicateTargetGroupName
+//   * ErrCodeDuplicateTargetGroupNameException "DuplicateTargetGroupName"
 //   A target group with the specified name already exists.
 //
-//   * TooManyTargetGroups
+//   * ErrCodeTooManyTargetGroupsException "TooManyTargetGroups"
 //   You've reached the limit on the number of target groups for your AWS account.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/CreateTargetGroup
@@ -542,7 +542,7 @@ func (c *ELBV2) DeleteListenerRequest(input *DeleteListenerInput) (req *request.
 // API operation DeleteListener for usage and error information.
 //
 // Returned Error Codes:
-//   * ListenerNotFound
+//   * ErrCodeListenerNotFoundException "ListenerNotFound"
 //   The specified listener does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteListener
@@ -615,10 +615,10 @@ func (c *ELBV2) DeleteLoadBalancerRequest(input *DeleteLoadBalancerInput) (req *
 // API operation DeleteLoadBalancer for usage and error information.
 //
 // Returned Error Codes:
-//   * LoadBalancerNotFound
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
 //   The specified load balancer does not exist.
 //
-//   * OperationNotPermitted
+//   * ErrCodeOperationNotPermittedException "OperationNotPermitted"
 //   This operation is not allowed.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteLoadBalancer
@@ -683,10 +683,10 @@ func (c *ELBV2) DeleteRuleRequest(input *DeleteRuleInput) (req *request.Request,
 // API operation DeleteRule for usage and error information.
 //
 // Returned Error Codes:
-//   * RuleNotFound
+//   * ErrCodeRuleNotFoundException "RuleNotFound"
 //   The specified rule does not exist.
 //
-//   * OperationNotPermitted
+//   * ErrCodeOperationNotPermittedException "OperationNotPermitted"
 //   This operation is not allowed.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteRule
@@ -754,7 +754,7 @@ func (c *ELBV2) DeleteTargetGroupRequest(input *DeleteTargetGroupInput) (req *re
 // API operation DeleteTargetGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceInUse
+//   * ErrCodeResourceInUseException "ResourceInUse"
 //   A specified resource is in use.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DeleteTargetGroup
@@ -821,10 +821,10 @@ func (c *ELBV2) DeregisterTargetsRequest(input *DeregisterTargetsInput) (req *re
 // API operation DeregisterTargets for usage and error information.
 //
 // Returned Error Codes:
-//   * TargetGroupNotFound
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
 //   The specified target group does not exist.
 //
-//   * InvalidTarget
+//   * ErrCodeInvalidTargetException "InvalidTarget"
 //   The specified target does not exist or is not in the same VPC as the target
 //   group.
 //
@@ -897,10 +897,10 @@ func (c *ELBV2) DescribeListenersRequest(input *DescribeListenersInput) (req *re
 // API operation DescribeListeners for usage and error information.
 //
 // Returned Error Codes:
-//   * ListenerNotFound
+//   * ErrCodeListenerNotFoundException "ListenerNotFound"
 //   The specified listener does not exist.
 //
-//   * LoadBalancerNotFound
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
 //   The specified load balancer does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeListeners
@@ -990,7 +990,7 @@ func (c *ELBV2) DescribeLoadBalancerAttributesRequest(input *DescribeLoadBalance
 // API operation DescribeLoadBalancerAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * LoadBalancerNotFound
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
 //   The specified load balancer does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeLoadBalancerAttributes
@@ -1065,7 +1065,7 @@ func (c *ELBV2) DescribeLoadBalancersRequest(input *DescribeLoadBalancersInput) 
 // API operation DescribeLoadBalancers for usage and error information.
 //
 // Returned Error Codes:
-//   * LoadBalancerNotFound
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
 //   The specified load balancer does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeLoadBalancers
@@ -1156,10 +1156,10 @@ func (c *ELBV2) DescribeRulesRequest(input *DescribeRulesInput) (req *request.Re
 // API operation DescribeRules for usage and error information.
 //
 // Returned Error Codes:
-//   * ListenerNotFound
+//   * ErrCodeListenerNotFoundException "ListenerNotFound"
 //   The specified listener does not exist.
 //
-//   * RuleNotFound
+//   * ErrCodeRuleNotFoundException "RuleNotFound"
 //   The specified rule does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeRules
@@ -1226,7 +1226,7 @@ func (c *ELBV2) DescribeSSLPoliciesRequest(input *DescribeSSLPoliciesInput) (req
 // API operation DescribeSSLPolicies for usage and error information.
 //
 // Returned Error Codes:
-//   * SSLPolicyNotFound
+//   * ErrCodeSSLPolicyNotFoundException "SSLPolicyNotFound"
 //   The specified SSL policy does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeSSLPolicies
@@ -1291,16 +1291,16 @@ func (c *ELBV2) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Requ
 // API operation DescribeTags for usage and error information.
 //
 // Returned Error Codes:
-//   * LoadBalancerNotFound
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
 //   The specified load balancer does not exist.
 //
-//   * TargetGroupNotFound
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
 //   The specified target group does not exist.
 //
-//   * ListenerNotFound
+//   * ErrCodeListenerNotFoundException "ListenerNotFound"
 //   The specified listener does not exist.
 //
-//   * RuleNotFound
+//   * ErrCodeRuleNotFoundException "RuleNotFound"
 //   The specified rule does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTags
@@ -1365,7 +1365,7 @@ func (c *ELBV2) DescribeTargetGroupAttributesRequest(input *DescribeTargetGroupA
 // API operation DescribeTargetGroupAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * TargetGroupNotFound
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
 //   The specified target group does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTargetGroupAttributes
@@ -1442,10 +1442,10 @@ func (c *ELBV2) DescribeTargetGroupsRequest(input *DescribeTargetGroupsInput) (r
 // API operation DescribeTargetGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * LoadBalancerNotFound
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
 //   The specified load balancer does not exist.
 //
-//   * TargetGroupNotFound
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
 //   The specified target group does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/DescribeTargetGroups
@@ -1535,14 +1535,14 @@ func (c *ELBV2) DescribeTargetHealthRequest(input *DescribeTargetHealthInput) (r
 // API operation DescribeTargetHealth for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidTarget
+//   * ErrCodeInvalidTargetException "InvalidTarget"
 //   The specified target does not exist or is not in the same VPC as the target
 //   group.
 //
-//   * TargetGroupNotFound
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
 //   The specified target group does not exist.
 //
-//   * HealthUnavailable
+//   * ErrCodeHealthUnavailableException "HealthUnavailable"
 //   The health of the specified targets could not be retrieved due to an internal
 //   error.
 //
@@ -1613,40 +1613,40 @@ func (c *ELBV2) ModifyListenerRequest(input *ModifyListenerInput) (req *request.
 // API operation ModifyListener for usage and error information.
 //
 // Returned Error Codes:
-//   * DuplicateListener
+//   * ErrCodeDuplicateListenerException "DuplicateListener"
 //   A listener with the specified port already exists.
 //
-//   * TooManyListeners
+//   * ErrCodeTooManyListenersException "TooManyListeners"
 //   You've reached the limit on the number of listeners per load balancer.
 //
-//   * TooManyCertificates
+//   * ErrCodeTooManyCertificatesException "TooManyCertificates"
 //   You've reached the limit on the number of certificates per listener.
 //
-//   * ListenerNotFound
+//   * ErrCodeListenerNotFoundException "ListenerNotFound"
 //   The specified listener does not exist.
 //
-//   * TargetGroupNotFound
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
 //   The specified target group does not exist.
 //
-//   * TargetGroupAssociationLimit
+//   * ErrCodeTargetGroupAssociationLimitException "TargetGroupAssociationLimit"
 //   You've reached the limit on the number of load balancers per target group.
 //
-//   * IncompatibleProtocols
+//   * ErrCodeIncompatibleProtocolsException "IncompatibleProtocols"
 //   The specified configuration is not valid with this protocol.
 //
-//   * SSLPolicyNotFound
+//   * ErrCodeSSLPolicyNotFoundException "SSLPolicyNotFound"
 //   The specified SSL policy does not exist.
 //
-//   * CertificateNotFound
+//   * ErrCodeCertificateNotFoundException "CertificateNotFound"
 //   The specified certificate does not exist.
 //
-//   * InvalidConfigurationRequest
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
 //   The requested configuration is not valid.
 //
-//   * UnsupportedProtocol
+//   * ErrCodeUnsupportedProtocolException "UnsupportedProtocol"
 //   The specified protocol is not supported.
 //
-//   * TooManyRegistrationsForTargetId
+//   * ErrCodeTooManyRegistrationsForTargetIdException "TooManyRegistrationsForTargetId"
 //   You've reached the limit on the number of times a target can be registered
 //   with a load balancer.
 //
@@ -1716,10 +1716,10 @@ func (c *ELBV2) ModifyLoadBalancerAttributesRequest(input *ModifyLoadBalancerAtt
 // API operation ModifyLoadBalancerAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * LoadBalancerNotFound
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
 //   The specified load balancer does not exist.
 //
-//   * InvalidConfigurationRequest
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
 //   The requested configuration is not valid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyLoadBalancerAttributes
@@ -1788,16 +1788,16 @@ func (c *ELBV2) ModifyRuleRequest(input *ModifyRuleInput) (req *request.Request,
 // API operation ModifyRule for usage and error information.
 //
 // Returned Error Codes:
-//   * TargetGroupAssociationLimit
+//   * ErrCodeTargetGroupAssociationLimitException "TargetGroupAssociationLimit"
 //   You've reached the limit on the number of load balancers per target group.
 //
-//   * RuleNotFound
+//   * ErrCodeRuleNotFoundException "RuleNotFound"
 //   The specified rule does not exist.
 //
-//   * OperationNotPermitted
+//   * ErrCodeOperationNotPermittedException "OperationNotPermitted"
 //   This operation is not allowed.
 //
-//   * TooManyRegistrationsForTargetId
+//   * ErrCodeTooManyRegistrationsForTargetIdException "TooManyRegistrationsForTargetId"
 //   You've reached the limit on the number of times a target can be registered
 //   with a load balancer.
 //
@@ -1866,7 +1866,7 @@ func (c *ELBV2) ModifyTargetGroupRequest(input *ModifyTargetGroupInput) (req *re
 // API operation ModifyTargetGroup for usage and error information.
 //
 // Returned Error Codes:
-//   * TargetGroupNotFound
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
 //   The specified target group does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyTargetGroup
@@ -1931,7 +1931,7 @@ func (c *ELBV2) ModifyTargetGroupAttributesRequest(input *ModifyTargetGroupAttri
 // API operation ModifyTargetGroupAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * TargetGroupNotFound
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
 //   The specified target group does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/ModifyTargetGroupAttributes
@@ -2006,17 +2006,17 @@ func (c *ELBV2) RegisterTargetsRequest(input *RegisterTargetsInput) (req *reques
 // API operation RegisterTargets for usage and error information.
 //
 // Returned Error Codes:
-//   * TargetGroupNotFound
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
 //   The specified target group does not exist.
 //
-//   * TooManyTargets
+//   * ErrCodeTooManyTargetsException "TooManyTargets"
 //   You've reached the limit on the number of targets.
 //
-//   * InvalidTarget
+//   * ErrCodeInvalidTargetException "InvalidTarget"
 //   The specified target does not exist or is not in the same VPC as the target
 //   group.
 //
-//   * TooManyRegistrationsForTargetId
+//   * ErrCodeTooManyRegistrationsForTargetIdException "TooManyRegistrationsForTargetId"
 //   You've reached the limit on the number of times a target can be registered
 //   with a load balancer.
 //
@@ -2084,19 +2084,19 @@ func (c *ELBV2) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Request,
 // API operation RemoveTags for usage and error information.
 //
 // Returned Error Codes:
-//   * LoadBalancerNotFound
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
 //   The specified load balancer does not exist.
 //
-//   * TargetGroupNotFound
+//   * ErrCodeTargetGroupNotFoundException "TargetGroupNotFound"
 //   The specified target group does not exist.
 //
-//   * ListenerNotFound
+//   * ErrCodeListenerNotFoundException "ListenerNotFound"
 //   The specified listener does not exist.
 //
-//   * RuleNotFound
+//   * ErrCodeRuleNotFoundException "RuleNotFound"
 //   The specified rule does not exist.
 //
-//   * TooManyTags
+//   * ErrCodeTooManyTagsException "TooManyTags"
 //   You've reached the limit on the number of tags per load balancer.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/RemoveTags
@@ -2162,13 +2162,13 @@ func (c *ELBV2) SetIpAddressTypeRequest(input *SetIpAddressTypeInput) (req *requ
 // API operation SetIpAddressType for usage and error information.
 //
 // Returned Error Codes:
-//   * LoadBalancerNotFound
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
 //   The specified load balancer does not exist.
 //
-//   * InvalidConfigurationRequest
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
 //   The requested configuration is not valid.
 //
-//   * InvalidSubnet
+//   * ErrCodeInvalidSubnetException "InvalidSubnet"
 //   The specified subnet is out of available addresses.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetIpAddressType
@@ -2237,13 +2237,13 @@ func (c *ELBV2) SetRulePrioritiesRequest(input *SetRulePrioritiesInput) (req *re
 // API operation SetRulePriorities for usage and error information.
 //
 // Returned Error Codes:
-//   * RuleNotFound
+//   * ErrCodeRuleNotFoundException "RuleNotFound"
 //   The specified rule does not exist.
 //
-//   * PriorityInUse
+//   * ErrCodePriorityInUseException "PriorityInUse"
 //   The specified priority is in use.
 //
-//   * OperationNotPermitted
+//   * ErrCodeOperationNotPermittedException "OperationNotPermitted"
 //   This operation is not allowed.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetRulePriorities
@@ -2310,13 +2310,13 @@ func (c *ELBV2) SetSecurityGroupsRequest(input *SetSecurityGroupsInput) (req *re
 // API operation SetSecurityGroups for usage and error information.
 //
 // Returned Error Codes:
-//   * LoadBalancerNotFound
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
 //   The specified load balancer does not exist.
 //
-//   * InvalidConfigurationRequest
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
 //   The requested configuration is not valid.
 //
-//   * InvalidSecurityGroup
+//   * ErrCodeInvalidSecurityGroupException "InvalidSecurityGroup"
 //   The specified security group does not exist.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetSecurityGroups
@@ -2382,16 +2382,16 @@ func (c *ELBV2) SetSubnetsRequest(input *SetSubnetsInput) (req *request.Request,
 // API operation SetSubnets for usage and error information.
 //
 // Returned Error Codes:
-//   * LoadBalancerNotFound
+//   * ErrCodeLoadBalancerNotFoundException "LoadBalancerNotFound"
 //   The specified load balancer does not exist.
 //
-//   * InvalidConfigurationRequest
+//   * ErrCodeInvalidConfigurationRequestException "InvalidConfigurationRequest"
 //   The requested configuration is not valid.
 //
-//   * SubnetNotFound
+//   * ErrCodeSubnetNotFoundException "SubnetNotFound"
 //   The specified subnet does not exist.
 //
-//   * InvalidSubnet
+//   * ErrCodeInvalidSubnetException "InvalidSubnet"
 //   The specified subnet is out of available addresses.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticloadbalancingv2-2015-12-01/SetSubnets

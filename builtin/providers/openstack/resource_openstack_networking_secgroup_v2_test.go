@@ -23,7 +23,7 @@ func TestAccNetworkingV2SecGroup_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2SecGroupExists(
 						"openstack_networking_secgroup_v2.secgroup_1", &security_group),
-					testAccCheckNetworkingV2SecGroupRuleCount(&security_group, 0),
+					testAccCheckNetworkingV2SecGroupRuleCount(&security_group, 2),
 				),
 			},
 			resource.TestStep{
@@ -31,6 +31,26 @@ func TestAccNetworkingV2SecGroup_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"openstack_networking_secgroup_v2.secgroup_1", "name", "security_group_2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNetworkingV2SecGroup_noDefaultRules(t *testing.T) {
+	var security_group groups.SecGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNetworkingV2SecGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccNetworkingV2SecGroup_noDefaultRules,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2SecGroupExists(
+						"openstack_networking_secgroup_v2.secgroup_1", &security_group),
+					testAccCheckNetworkingV2SecGroupRuleCount(&security_group, 0),
 				),
 			},
 		},
@@ -113,5 +133,13 @@ const testAccNetworkingV2SecGroup_update = `
 resource "openstack_networking_secgroup_v2" "secgroup_1" {
   name = "security_group_2"
   description = "terraform security group acceptance test"
+}
+`
+
+const testAccNetworkingV2SecGroup_noDefaultRules = `
+resource "openstack_networking_secgroup_v2" "secgroup_1" {
+	name = "security_group_1"
+	description = "terraform security group acceptance test"
+	delete_default_rules = true
 }
 `

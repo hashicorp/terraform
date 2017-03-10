@@ -84,6 +84,8 @@ variables in order to keep credential information out of the configuration.
 
 * `token` - (Required) Vault token that will be used by Terraform to
   authenticate. May be set via the `VAULT_TOKEN` environment variable.
+  If none is otherwise supplied, Terraform will attempt to read it from
+  `~/.vault-token` (where the vault command stores its current token).
   Terraform will issue itself a new token that is a child of the one given,
   with a short TTL to limit the exposure of any requested secrets.
 
@@ -127,13 +129,23 @@ The `client_auth` configuration block accepts the following arguments:
 ```
 provider "vault" {
   # It is strongly recommended to configure this provider through the
-  # environment variables described below, so that each user can have
+  # environment variables described above, so that each user can have
   # separate credentials set in the environment.
-  address = "https://vault.example.net:8200"
+  #
+  # This will default to using $VAULT_ADDR
+  # But can be set explicitly
+  # address = "https://vault.example.net:8200"
 }
 
-data "vault_generic_secret" "example" {
+resource "vault_generic_secret" "example" {
   path = "secret/foo"
+
+  data_json = <<EOT
+{
+  "foo":   "bar",
+  "pizza": "cheese"
+}
+EOT
 }
 ```
 

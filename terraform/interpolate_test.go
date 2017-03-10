@@ -680,7 +680,7 @@ func TestInterpolator_interpolatedListOrder(t *testing.T) {
 			&ModuleState{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_route53_zone.list": &ResourceState{
+					"aws_route53_zone.yada": &ResourceState{
 						Type:         "aws_route53_zone",
 						Dependencies: []string{},
 						Primary: &InstanceState{
@@ -719,7 +719,7 @@ func TestInterpolator_interpolatedListOrder(t *testing.T) {
 
 	list := []interface{}{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"}
 
-	testInterpolate(t, i, scope, "aws_route53_zone.list.foo",
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.foo",
 		interfaceToVariableSwallowError(list))
 }
 
@@ -844,7 +844,7 @@ func TestInterpolator_sets(t *testing.T) {
 			&ModuleState{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_network_interface.set": &ResourceState{
+					"aws_route53_zone.yada": &ResourceState{
 						Type:         "aws_network_interface",
 						Dependencies: []string{},
 						Primary: &InstanceState{
@@ -872,8 +872,25 @@ func TestInterpolator_sets(t *testing.T) {
 
 	set := []interface{}{"10.42.16.179"}
 
-	testInterpolate(t, i, scope, "aws_network_interface.set.private_ips",
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.private_ips",
 		interfaceToVariableSwallowError(set))
+}
+
+// When a splat reference is made to a resource that is unknown, we should
+// return an empty list rather than panicking.
+func TestInterpolater_resourceUnknownVariableList(t *testing.T) {
+	i := &Interpolater{
+		Module:    testModule(t, "plan-computed-data-resource"),
+		State:     NewState(), // state,
+		StateLock: new(sync.RWMutex),
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "aws_vpc.bar.*.foo",
+		interfaceToVariableSwallowError([]interface{}{}))
 }
 
 func testInterpolate(

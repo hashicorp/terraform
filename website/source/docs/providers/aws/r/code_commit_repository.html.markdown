@@ -11,7 +11,7 @@ description: |-
 Provides a CodeCommit Repository Resource.
 
 ~> **NOTE on CodeCommit Availability**: The CodeCommit is not yet rolled out
-in all regions - available regions are listed  
+in all regions - available regions are listed
 [the AWS Docs](https://docs.aws.amazon.com/general/latest/gr/rande.html#codecommit_region).
 
 ## Example Usage
@@ -19,7 +19,7 @@ in all regions - available regions are listed
 ```
 resource "aws_codecommit_repository" "test" {
   repository_name = "MyTestRepository"
-  description = "This is the Sample App Repository"
+  description     = "This is the Sample App Repository"
 }
 ```
 

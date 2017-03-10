@@ -70,15 +70,15 @@ func (c *ECR) BatchCheckLayerAvailabilityRequest(input *BatchCheckLayerAvailabil
 // API operation BatchCheckLayerAvailability for usage and error information.
 //
 // Returned Error Codes:
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchCheckLayerAvailability
@@ -151,14 +151,14 @@ func (c *ECR) BatchDeleteImageRequest(input *BatchDeleteImageInput) (req *reques
 // API operation BatchDeleteImage for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
@@ -225,14 +225,14 @@ func (c *ECR) BatchGetImageRequest(input *BatchGetImageInput) (req *request.Requ
 // API operation BatchGetImage for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
@@ -304,32 +304,32 @@ func (c *ECR) CompleteLayerUploadRequest(input *CompleteLayerUploadInput) (req *
 // API operation CompleteLayerUpload for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * UploadNotFoundException
+//   * ErrCodeUploadNotFoundException "UploadNotFoundException"
 //   The upload could not be found, or the specified upload id is not valid for
 //   this repository.
 //
-//   * InvalidLayerException
+//   * ErrCodeInvalidLayerException "InvalidLayerException"
 //   The layer digest calculation performed by Amazon ECR upon receipt of the
 //   image layer does not match the digest specified.
 //
-//   * LayerPartTooSmallException
+//   * ErrCodeLayerPartTooSmallException "LayerPartTooSmallException"
 //   Layer parts must be at least 5 MiB in size.
 //
-//   * LayerAlreadyExistsException
+//   * ErrCodeLayerAlreadyExistsException "LayerAlreadyExistsException"
 //   The image layer already exists in the associated repository.
 //
-//   * EmptyUploadException
+//   * ErrCodeEmptyUploadException "EmptyUploadException"
 //   The specified layer upload does not contain any layer parts.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CompleteLayerUpload
@@ -394,17 +394,17 @@ func (c *ECR) CreateRepositoryRequest(input *CreateRepositoryInput) (req *reques
 // API operation CreateRepository for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * RepositoryAlreadyExistsException
+//   * ErrCodeRepositoryAlreadyExistsException "RepositoryAlreadyExistsException"
 //   The specified repository already exists in the specified registry.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The operation did not succeed because it would have exceeded a service limit
 //   for your account. For more information, see Amazon ECR Default Service Limits
 //   (http://docs.aws.amazon.com/AmazonECR/latest/userguide/service_limits.html)
@@ -473,18 +473,18 @@ func (c *ECR) DeleteRepositoryRequest(input *DeleteRepositoryInput) (req *reques
 // API operation DeleteRepository for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * RepositoryNotEmptyException
+//   * ErrCodeRepositoryNotEmptyException "RepositoryNotEmptyException"
 //   The specified repository contains images. To delete a repository that contains
 //   images, you must force the deletion with the force parameter.
 //
@@ -550,18 +550,18 @@ func (c *ECR) DeleteRepositoryPolicyRequest(input *DeleteRepositoryPolicyInput) 
 // API operation DeleteRepositoryPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * RepositoryPolicyNotFoundException
+//   * ErrCodeRepositoryPolicyNotFoundException "RepositoryPolicyNotFoundException"
 //   The specified repository and registry combination does not have an associated
 //   repository policy.
 //
@@ -639,18 +639,18 @@ func (c *ECR) DescribeImagesRequest(input *DescribeImagesInput) (req *request.Re
 // API operation DescribeImages for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * ImageNotFoundException
+//   * ErrCodeImageNotFoundException "ImageNotFoundException"
 //   The image requested does not exist in the specified repository.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeImages
@@ -746,14 +746,14 @@ func (c *ECR) DescribeRepositoriesRequest(input *DescribeRepositoriesInput) (req
 // API operation DescribeRepositories for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
@@ -851,10 +851,10 @@ func (c *ECR) GetAuthorizationTokenRequest(input *GetAuthorizationTokenInput) (r
 // API operation GetAuthorizationToken for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
@@ -925,22 +925,22 @@ func (c *ECR) GetDownloadUrlForLayerRequest(input *GetDownloadUrlForLayerInput) 
 // API operation GetDownloadUrlForLayer for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * LayersNotFoundException
+//   * ErrCodeLayersNotFoundException "LayersNotFoundException"
 //   The specified layers could not be found, or the specified layer is not valid
 //   for this repository.
 //
-//   * LayerInaccessibleException
+//   * ErrCodeLayerInaccessibleException "LayerInaccessibleException"
 //   The specified layer is not available because it is not associated with an
 //   image. Unassociated image layers may be cleaned up at any time.
 //
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
@@ -1006,18 +1006,18 @@ func (c *ECR) GetRepositoryPolicyRequest(input *GetRepositoryPolicyInput) (req *
 // API operation GetRepositoryPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * RepositoryPolicyNotFoundException
+//   * ErrCodeRepositoryPolicyNotFoundException "RepositoryPolicyNotFoundException"
 //   The specified repository and registry combination does not have an associated
 //   repository policy.
 //
@@ -1087,14 +1087,14 @@ func (c *ECR) InitiateLayerUploadRequest(input *InitiateLayerUploadInput) (req *
 // API operation InitiateLayerUpload for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
@@ -1172,14 +1172,14 @@ func (c *ECR) ListImagesRequest(input *ListImagesInput) (req *request.Request, o
 // API operation ListImages for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
@@ -1274,26 +1274,26 @@ func (c *ECR) PutImageRequest(input *PutImageInput) (req *request.Request, outpu
 // API operation PutImage for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * ImageAlreadyExistsException
+//   * ErrCodeImageAlreadyExistsException "ImageAlreadyExistsException"
 //   The specified image has already been pushed, and there are no changes to
 //   the manifest or image tag since the last push.
 //
-//   * LayersNotFoundException
+//   * ErrCodeLayersNotFoundException "LayersNotFoundException"
 //   The specified layers could not be found, or the specified layer is not valid
 //   for this repository.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The operation did not succeed because it would have exceeded a service limit
 //   for your account. For more information, see Amazon ECR Default Service Limits
 //   (http://docs.aws.amazon.com/AmazonECR/latest/userguide/service_limits.html)
@@ -1361,14 +1361,14 @@ func (c *ECR) SetRepositoryPolicyRequest(input *SetRepositoryPolicyInput) (req *
 // API operation SetRepositoryPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
@@ -1438,26 +1438,26 @@ func (c *ECR) UploadLayerPartRequest(input *UploadLayerPartInput) (req *request.
 // API operation UploadLayerPart for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server-side issue.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * InvalidLayerPartException
+//   * ErrCodeInvalidLayerPartException "InvalidLayerPartException"
 //   The layer part size is not valid, or the first byte specified is not consecutive
 //   to the last byte of a previous layer part upload.
 //
-//   * RepositoryNotFoundException
+//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * UploadNotFoundException
+//   * ErrCodeUploadNotFoundException "UploadNotFoundException"
 //   The upload could not be found, or the specified upload id is not valid for
 //   this repository.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The operation did not succeed because it would have exceeded a service limit
 //   for your account. For more information, see Amazon ECR Default Service Limits
 //   (http://docs.aws.amazon.com/AmazonECR/latest/userguide/service_limits.html)

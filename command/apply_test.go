@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -55,6 +56,39 @@ func TestApply(t *testing.T) {
 	}
 	if state == nil {
 		t.Fatal("state should not be nil")
+	}
+}
+
+// test apply with locked state
+func TestApply_lockedState(t *testing.T) {
+	statePath := testTempFile(t)
+
+	unlock, err := testLockState("./testdata", statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("apply"),
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("expected error")
+	}
+
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, "lock") {
+		t.Fatal("command output does not look like a lock error:", output)
 	}
 }
 
@@ -550,7 +584,8 @@ func TestApply_plan(t *testing.T) {
 }
 
 func TestApply_plan_backup(t *testing.T) {
-	planPath := testPlanFile(t, testPlan(t))
+	plan := testPlan(t)
+	planPath := testPlanFile(t, plan)
 	statePath := testTempFile(t)
 	backupPath := testTempFile(t)
 
@@ -561,6 +596,12 @@ func TestApply_plan_backup(t *testing.T) {
 			ContextOpts: testCtxConfig(p),
 			Ui:          ui,
 		},
+	}
+
+	// create a state file that needs to be backed up
+	err := (&state.LocalState{Path: statePath}).WriteState(plan.State)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	args := []string{

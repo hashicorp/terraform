@@ -14,11 +14,11 @@ Provides a VMware virtual disk resource.  This can be used to create and delete 
 
 ```
 resource "vsphere_virtual_disk" "myDisk" {
-    size = 2
-    vmdk_path = "myDisk.vmdk"
-    datacenter = "Datacenter"
-    datastore = "local"
-    type = "thin"
+  size       = 2
+  vmdk_path  = "myDisk.vmdk"
+  datacenter = "Datacenter"
+  datastore  = "local"
+  type       = "thin"
 }
 ```
 

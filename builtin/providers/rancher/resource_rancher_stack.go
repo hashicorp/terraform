@@ -19,7 +19,7 @@ func resourceRancherStack() *schema.Resource {
 		Update: resourceRancherStackUpdate,
 		Delete: resourceRancherStackDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceRancherStackImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -138,7 +138,7 @@ func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	if stack.State == "removed" {
+	if removed(stack.State) {
 		log.Printf("[INFO] Stack %s was removed on %v", d.Id(), stack.Removed)
 		d.SetId("")
 		return nil
@@ -156,10 +156,13 @@ func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 	dockerCompose := strings.Replace(config.DockerComposeConfig, "\r", "", -1)
 	rancherCompose := strings.Replace(config.RancherComposeConfig, "\r", "", -1)
 
-	catalogId := d.Get("catalog_id")
-	if catalogId == "" {
+	catalogID := d.Get("catalog_id")
+	if catalogID == "" {
 		d.Set("docker_compose", dockerCompose)
 		d.Set("rancher_compose", rancherCompose)
+	} else {
+		d.Set("docker_compose", "")
+		d.Set("rancher_compose", "")
 	}
 	d.Set("rendered_docker_compose", dockerCompose)
 	d.Set("rendered_rancher_compose", rancherCompose)
@@ -180,6 +183,7 @@ func resourceRancherStackRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("start_on_create", stack.StartOnCreate)
+	d.Set("finish_upgrade", d.Get("finish_upgrade").(bool))
 
 	return nil
 }
@@ -203,7 +207,7 @@ func resourceRancherStackUpdate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	var newStack rancherClient.Environment
-	if err := client.Update("environment", &stack.Resource, data, &newStack); err != nil {
+	if err = client.Update("environment", &stack.Resource, data, &newStack); err != nil {
 		return err
 	}
 
@@ -331,6 +335,25 @@ func resourceRancherStackDelete(d *schema.ResourceData, meta interface{}) error 
 
 	d.SetId("")
 	return nil
+}
+
+func resourceRancherStackImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	envID, resourceID := splitID(d.Id())
+	d.SetId(resourceID)
+	if envID != "" {
+		d.Set("environment_id", envID)
+	} else {
+		client, err := meta.(*Config).GlobalClient()
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		stack, err := client.Environment.ById(d.Id())
+		if err != nil {
+			return []*schema.ResourceData{}, err
+		}
+		d.Set("environment_id", stack.AccountId)
+	}
+	return []*schema.ResourceData{d}, nil
 }
 
 // StackStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch

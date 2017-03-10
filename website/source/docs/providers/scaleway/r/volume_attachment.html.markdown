@@ -17,15 +17,15 @@ to downtime if the server is already in use.
 
 ```
 resource "scaleway_server" "test" {
-  name = "test"
+  name  = "test"
   image = "aecaed73-51a5-4439-a127-6d8229847145"
-  type = "C2S"
+  type  = "C2S"
 }
 
 resource "scaleway_volume" "test" {
-  name = "test"
+  name       = "test"
   size_in_gb = 20
-  type = "l_ssd"
+  type       = "l_ssd"
 }
 
 resource "scaleway_volume_attachment" "test" {

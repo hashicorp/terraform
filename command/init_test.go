@@ -1,6 +1,7 @@
 package command
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -233,6 +234,63 @@ func TestInit_backend(t *testing.T) {
 
 	if _, err := os.Stat(filepath.Join(DefaultDataDir, DefaultStateFilename)); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestInit_backendUnset(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("init-backend"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	{
+		ui := new(cli.MockUi)
+		c := &InitCommand{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(testProvider()),
+				Ui:          ui,
+			},
+		}
+
+		// Init
+		args := []string{}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		}
+
+		if _, err := os.Stat(filepath.Join(DefaultDataDir, DefaultStateFilename)); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		// Unset
+		if err := ioutil.WriteFile("main.tf", []byte(""), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		// Run it again
+		defer testInteractiveInput(t, []string{"yes", "yes"})()
+
+		ui := new(cli.MockUi)
+		c := &InitCommand{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(testProvider()),
+				Ui:          ui,
+			},
+		}
+
+		args := []string{}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		}
+
+		s := testStateRead(t, filepath.Join(
+			DefaultDataDir, DefaultStateFilename))
+		if !s.Backend.Empty() {
+			t.Fatal("should not have backend config")
+		}
 	}
 }
 

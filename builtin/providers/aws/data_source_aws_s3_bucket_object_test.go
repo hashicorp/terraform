@@ -1,3 +1,4 @@
+// make testacc TEST=./builtin/providers/aws/ TESTARGS='-run=TestAccDataSourceAWSS3BucketObject_'
 package aws
 
 import (
@@ -160,6 +161,7 @@ func TestAccDataSourceAWSS3BucketObject_allParams(t *testing.T) {
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "expires", ""),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "website_redirect_location", ""),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "metadata.%", "0"),
+					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "tags.%", "1"),
 				),
 			},
 		},
@@ -284,6 +286,9 @@ CONTENT
 	content_disposition = "attachment"
 	content_encoding = "gzip"
 	content_language = "en-GB"
+	tags {
+		Key1 = "Value 1"
+	}
 }
 `, randInt, randInt)
 

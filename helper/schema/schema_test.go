@@ -862,6 +862,65 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
+			Name: "List with computed set",
+			Schema: map[string]*Schema{
+				"config": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					ForceNew: true,
+					MinItems: 1,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"name": {
+								Type:     TypeString,
+								Required: true,
+							},
+
+							"rules": {
+								Type:     TypeSet,
+								Computed: true,
+								Elem:     &Schema{Type: TypeString},
+								Set:      HashString,
+							},
+						},
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"config": []interface{}{
+					map[string]interface{}{
+						"name": "hello",
+					},
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"config.#": &terraform.ResourceAttrDiff{
+						Old:         "0",
+						New:         "1",
+						RequiresNew: true,
+					},
+
+					"config.0.name": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "hello",
+					},
+
+					"config.0.rules.#": &terraform.ResourceAttrDiff{
+						Old:         "",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
 			Name: "Set",
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -2985,6 +3044,95 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			Name: "Removal of TypeSet should cause computed fields to be removed",
+			Schema: map[string]*Schema{
+				"type_set": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"name": &Schema{
+								Type:     TypeString,
+								Optional: true,
+							},
+							"required": &Schema{
+								Type:     TypeString,
+								Required: true,
+							},
+							"value": &Schema{
+								Type:     TypeInt,
+								Optional: true,
+							},
+							"required_value": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+							"computed_value": &Schema{
+								Type:     TypeString,
+								Optional: true,
+								Computed: true,
+							},
+						},
+					},
+					Set: func(i interface{}) int {
+						if i != nil {
+							return 12345
+						}
+						return 0
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"type_set.#":                    "1",
+					"type_set.12345.name":           "Name",
+					"type_set.12345.required":       "Required",
+					"type_set.12345.value":          "0",
+					"type_set.12345.required_value": "5",
+					"type_set.12345.computed_value": "COMPUTED",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"type_set": []interface{}{},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"type_set.#": &terraform.ResourceAttrDiff{
+						Old:        "1",
+						New:        "0",
+						NewRemoved: false,
+					},
+					"type_set.12345.name": &terraform.ResourceAttrDiff{
+						Old:        "Name",
+						New:        "",
+						NewRemoved: true,
+					},
+					"type_set.12345.required": &terraform.ResourceAttrDiff{
+						Old:        "Required",
+						New:        "",
+						NewRemoved: true,
+					},
+					"type_set.12345.value": &terraform.ResourceAttrDiff{
+						Old:        "0",
+						New:        "0",
+						NewRemoved: true,
+					},
+					"type_set.12345.required_value": &terraform.ResourceAttrDiff{
+						Old:        "5",
+						New:        "0",
+						NewRemoved: true,
+					},
+					"type_set.12345.computed_value": &terraform.ResourceAttrDiff{
+						NewRemoved: true,
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -4621,6 +4769,23 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 			Vars: map[string]string{
 				"var.foo": config.UnknownVariableValue,
+			},
+
+			Err: false,
+		},
+
+		"special timeouts field": {
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				TimeoutsConfigKey: "bar",
 			},
 
 			Err: false,

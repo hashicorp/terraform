@@ -624,3 +624,13 @@ resource "google_project" "acceptance" {
 	org_id = "%s"
 }`, pid, name, org)
 }
+
+func testAccGoogleProject_createBilling(pid, name, org, billing string) string {
+	return fmt.Sprintf(`
+resource "google_project" "acceptance" {
+    project_id = "%s"
+	name = "%s"
+	org_id = "%s"
+	billing_account = "%s"
+}`, pid, name, org, billing)
+}

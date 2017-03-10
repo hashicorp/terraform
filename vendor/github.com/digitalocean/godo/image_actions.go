@@ -41,7 +41,7 @@ func (i *ImageActionsServiceOp) Transfer(imageID int, transferRequest *ActionReq
 		return nil, resp, err
 	}
 
-	return &root.Event, resp, err
+	return root.Event, resp, err
 }
 
 // Get an action for a particular image by id.
@@ -67,5 +67,5 @@ func (i *ImageActionsServiceOp) Get(imageID, actionID int) (*Action, *Response, 
 		return nil, resp, err
 	}
 
-	return &root.Event, resp, err
+	return root.Event, resp, err
 }

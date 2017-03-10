@@ -1,3 +1,4 @@
+// make testacc TEST=./builtin/providers/aws/ TESTARGS='-run=TestAccDataSourceAwsRouteTable_'
 package aws
 
 import (
@@ -8,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccDataSourceAwsRouteTable(t *testing.T) {
+func TestAccDataSourceAwsRouteTable_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
@@ -21,6 +22,7 @@ func TestAccDataSourceAwsRouteTable(t *testing.T) {
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_subnet"),
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_id"),
 				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -67,6 +69,14 @@ func testAccDataSourceAwsRouteTableCheck(name string) resource.TestCheckFunc {
 			return fmt.Errorf(
 				"id is %s; want %s",
 				attr["id"],
+				rts.Primary.Attributes["id"],
+			)
+		}
+
+		if attr["route_table_id"] != rts.Primary.Attributes["id"] {
+			return fmt.Errorf(
+				"route_table_id is %s; want %s",
+				attr["route_table_id"],
 				rts.Primary.Attributes["id"],
 			)
 		}
@@ -184,6 +194,14 @@ provider "aws" {
   region = "us-east-2"
 }
 
+resource "aws_vpc" "test" {
+  cidr_block = "172.16.0.0/16"
+
+  tags {
+    Name = "terraform-testacc-data-source"
+  }
+}
+
 data "aws_route_table" "by_filter" {
   filter {
     name = "association.main"
@@ -191,7 +209,7 @@ data "aws_route_table" "by_filter" {
   }
   filter {
     name = "vpc-id"
-    values = ["vpc-6bd70802"]
+    values = ["${aws_vpc.test.id}"]
   }
 }
 `

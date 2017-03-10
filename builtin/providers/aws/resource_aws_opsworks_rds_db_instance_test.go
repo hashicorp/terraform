@@ -183,6 +183,8 @@ resource "aws_db_instance" "foo" {
   password             = "foofoofoofoo"
   username             = "foo"
   parameter_group_name = "default.mysql5.6"
+
+  skip_final_snapshot = true
 }
 `, testAccAwsOpsworksStackConfigVpcCreate(name))
 }

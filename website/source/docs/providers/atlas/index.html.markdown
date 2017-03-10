@@ -21,12 +21,12 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Atlas provider
 provider "atlas" {
-    token = "${var.atlas_token}"
+  token = "${var.atlas_token}"
 }
 
 # Fetch an artifact configuration
 data "atlas_artifact" "web" {
-    ...
+  # ...
 }
 ```
 
