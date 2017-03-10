@@ -48,6 +48,8 @@ $ terraform remote config -backend-config="name=ATLAS_USERNAME/getting-started"
 
 Replace `ATLAS_USERNAME` with your Atlas username.
 
+**Note:** This action requires either a Terraform Enterprise account or you need to sign up Terraform Enterprise Free-Trial (1 month).
+
 Before you [push](/docs/commands/push.html) your Terraform configuration to Atlas you'll need to start a local version control system with at least one commit. Here is an example using `git`.
 
 ```
