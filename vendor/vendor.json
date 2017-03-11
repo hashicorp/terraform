@@ -1531,6 +1531,12 @@
 			"revisionTime": "2017-03-10T01:59:53Z"
 		},
 		{
+			"checksumSHA1": "y49Ur726Juznj85+23ZgqMvehgg=",
+			"path": "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/availabilityzones",
+			"revision": "0f64da0e36de86a0ca1a8f2fc1b0570a0d3f7504",
+			"revisionTime": "2017-03-10T01:59:53Z"
+		},
+		{
 			"checksumSHA1": "w2wHF5eEBE89ZYlkS9GAJsSIq9U=",
 			"path": "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume",
 			"revision": "0f64da0e36de86a0ca1a8f2fc1b0570a0d3f7504",
