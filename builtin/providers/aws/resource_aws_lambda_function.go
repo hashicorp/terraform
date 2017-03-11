@@ -83,9 +83,10 @@ func resourceAwsLambdaFunction() *schema.Resource {
 				ValidateFunc: validateRuntime,
 			},
 			"timeout": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  3,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      3,
+				ValidateFunc: validateTimeout,
 			},
 			"publish": {
 				Type:     schema.TypeBool,
@@ -583,6 +584,17 @@ func validateRuntime(v interface{}, k string) (ws []string, errors []error) {
 		errors = append(errors, fmt.Errorf(
 			"%s has reached end of life since October 2016 and has been deprecated in favor of %s.",
 			runtime, lambda.RuntimeNodejs43))
+	}
+	return
+}
+
+func validateTimeout(v interface{}, k string) (ws []string, errors []error) {
+	timeout := v.(int)
+
+	if timeout > 300 {
+		errors = append(errors, fmt.Errorf(
+			"Lambda timeout can't exceed 300. Currently set to %d.",
+			timeout))
 	}
 	return
 }
