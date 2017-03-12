@@ -42,3 +42,7 @@ The following arguments are supported:
 
 * `apikey` - (Required) This is the Docker Cloud API key for the user. This
   can also be specified with the `DOCKERCLOUD_APIKEY` shell environment variable.
+
+* `baseurl` - (Optional) Base URL for accessing Docker Cloud. This can also be
+  specified with the `DOCKERCLOUD_REST_HOST` shell environment variable (default:
+  `https://cloud.docker.com`).

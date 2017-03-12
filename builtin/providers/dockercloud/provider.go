@@ -23,7 +23,7 @@ func Provider() terraform.ResourceProvider {
 			},
 			"baseurl": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOCKERCLOUD_REST_HOST", "https://cloud.docker.com"),
 				Description: "API key used to authenticate the user.",
 			},
