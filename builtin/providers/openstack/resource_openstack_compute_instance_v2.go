@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/availabilityzones"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
@@ -103,6 +104,7 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"network": &schema.Schema{
 				Type:     schema.TypeList,
@@ -570,6 +572,21 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 	if err := getVolumeAttachments(computeClient, d); err != nil {
 		return err
 	}
+
+	// Build a custom struct for the availability zone extension
+	var serverWithAZ struct {
+		servers.Server
+		availabilityzones.ServerExt
+	}
+
+	// Do another Get so the above work is not disturbed.
+	err = servers.Get(computeClient, d.Id()).ExtractInto(&serverWithAZ)
+	if err != nil {
+		return CheckDeleted(d, err, "server")
+	}
+
+	// Set the availability zone
+	d.Set("availability_zone", serverWithAZ.AvailabilityZone)
 
 	return nil
 }
