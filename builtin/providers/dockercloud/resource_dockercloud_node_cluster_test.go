@@ -2,6 +2,8 @@ package dockercloud
 
 import (
 	"fmt"
+	"log"
+	"reflect"
 	"testing"
 
 	"github.com/docker/go-dockercloud/dockercloud"
@@ -115,3 +117,44 @@ resource "dockercloud_node_cluster" "foobar" {
     size = "t2.nano"
     region = "us-east-1"
 }`
+
+func TestFlattenNodeTags(t *testing.T) {
+	expected := []string{"foo", "bar", "baz"}
+	tags := flattenNodeTags([]dockercloud.NodeTag{
+		dockercloud.NodeTag{Name: "foo"},
+		dockercloud.NodeTag{Name: "bar"},
+		dockercloud.NodeTag{Name: "baz"},
+	})
+
+	if !reflect.DeepEqual(tags, expected) {
+		t.Fatalf("Node tags do not match, got: %s", tags)
+	}
+}
+
+func TestParseResourceURI(t *testing.T) {
+	provider, region, err := parseResourceURI("/api/infra/v1/region/aws/us-east-1/", regionBasePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if provider != "aws" {
+		log.Fatalf("Expected provider to be aws, got: %s", provider)
+	}
+
+	if region != "us-east-1" {
+		log.Fatalf("Expected region to be us-east-1, got: %s", region)
+	}
+
+	provider, size, err := parseResourceURI("/api/infra/v1/nodetype/aws/t2.nano/", nodeTypeBasePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if provider != "aws" {
+		log.Fatalf("Expected provider to be aws, got: %s", provider)
+	}
+
+	if size != "t2.nano" {
+		log.Fatalf("Expected region to be us-east-1, got: %s", size)
+	}
+}

@@ -2,7 +2,6 @@ package dockercloud
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/docker/go-dockercloud/dockercloud"
@@ -38,14 +37,13 @@ func resourceDockercloudStackCreate(d *schema.ResourceData, meta interface{}) er
 
 	stack, err := dockercloud.CreateStack(opts)
 	if err != nil {
-		if strings.Contains(err.Error(), "409 CONFLICT") {
+		if err.(dockercloud.HttpError).StatusCode == 409 {
 			return fmt.Errorf("Duplicate stack name: %s", opts.Name)
 		}
 		return err
 	}
 
 	d.SetId(stack.Uuid)
-	d.Set("uri", stack.Resource_uri)
 
 	return resourceDockercloudStackRead(d, meta)
 }
@@ -53,7 +51,7 @@ func resourceDockercloudStackCreate(d *schema.ResourceData, meta interface{}) er
 func resourceDockercloudStackRead(d *schema.ResourceData, meta interface{}) error {
 	stack, err := dockercloud.GetStack(d.Id())
 	if err != nil {
-		if strings.Contains(err.Error(), "404 NOT FOUND") {
+		if err.(dockercloud.HttpError).StatusCode == 404 {
 			d.SetId("")
 			return nil
 		}
@@ -66,6 +64,7 @@ func resourceDockercloudStackRead(d *schema.ResourceData, meta interface{}) erro
 		return nil
 	}
 
+	d.Set("name", stack.Name)
 	d.Set("uri", stack.Resource_uri)
 
 	return nil

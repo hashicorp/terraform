@@ -3,7 +3,6 @@ package dockercloud
 import (
 	"bytes"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/docker/go-dockercloud/dockercloud"
@@ -57,7 +56,7 @@ func resourceDockercloudServiceCreate(d *schema.ResourceData, meta interface{}) 
 func resourceDockercloudServiceRead(d *schema.ResourceData, meta interface{}) error {
 	service, err := dockercloud.GetService(d.Id())
 	if err != nil {
-		if strings.Contains(err.Error(), "404 NOT FOUND") {
+		if err.(dockercloud.HttpError).StatusCode == 404 {
 			d.SetId("")
 			return nil
 		}

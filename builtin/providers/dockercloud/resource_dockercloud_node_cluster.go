@@ -10,6 +10,11 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+const (
+	nodeTypeBasePath = "/api/infra/v1/nodetype"
+	regionBasePath   = "/api/infra/v1/region"
+)
+
 func resourceDockercloudNodeCluster() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceDockercloudNodeClusterCreate,
@@ -66,8 +71,8 @@ func resourceDockercloudNodeClusterCreate(d *schema.ResourceData, meta interface
 
 	opts := dockercloud.NodeCreateRequest{
 		Name:     d.Get("name").(string),
-		Region:   fmt.Sprintf("/api/infra/v1/region/%s/%s/", provider, region),
-		NodeType: fmt.Sprintf("/api/infra/v1/nodetype/%s/%s/", provider, size),
+		Region:   fmt.Sprintf("%s/%s/%s/", regionBasePath, provider, region),
+		NodeType: fmt.Sprintf("%s/%s/%s/", nodeTypeBasePath, provider, size),
 	}
 
 	if attr, ok := d.GetOk("disk"); ok {
@@ -78,12 +83,11 @@ func resourceDockercloudNodeClusterCreate(d *schema.ResourceData, meta interface
 		opts.Target_num_nodes = attr.(int)
 	}
 
-	tags := d.Get("tags.#").(int)
-	if tags > 0 {
-		opts.Tags = make([]dockercloud.NodeTag, 0, tags)
-		for i := 0; i < tags; i++ {
-			key := fmt.Sprintf("tags.%d", i)
-			opts.Tags = append(opts.Tags, dockercloud.NodeTag{Name: d.Get(key).(string)})
+	tags := d.Get("tags").([]interface{})
+	if len(tags) > 0 {
+		opts.Tags = make([]dockercloud.NodeTag, len(tags))
+		for i, tag := range tags {
+			opts.Tags[i] = dockercloud.NodeTag{Name: tag.(string)}
 		}
 	}
 
@@ -119,12 +123,12 @@ func resourceDockercloudNodeClusterCreate(d *schema.ResourceData, meta interface
 func resourceDockercloudNodeClusterRead(d *schema.ResourceData, meta interface{}) error {
 	nodeCluster, err := dockercloud.GetNodeCluster(d.Id())
 	if err != nil {
-		if strings.Contains(err.Error(), "404 NOT FOUND") {
+		if err.(dockercloud.HttpError).StatusCode == 404 {
 			d.SetId("")
 			return nil
 		}
 
-		return fmt.Errorf("Error retrieving node cluster: %s", err)
+		return fmt.Errorf("Error retrieving node cluster: %s %+v", err, err.(dockercloud.HttpError))
 	}
 
 	if nodeCluster.State == "Terminated" {
@@ -132,9 +136,22 @@ func resourceDockercloudNodeClusterRead(d *schema.ResourceData, meta interface{}
 		return nil
 	}
 
+	provider, size, err := parseResourceURI(nodeCluster.NodeType, nodeTypeBasePath)
+	if err != nil {
+		return err
+	}
+
+	_, region, err := parseResourceURI(nodeCluster.Region, regionBasePath)
+	if err != nil {
+		return err
+	}
+
 	d.Set("name", nodeCluster.Name)
-	d.Set("node_count", nodeCluster.Target_num_nodes)
+	d.Set("node_provider", provider)
+	d.Set("size", size)
+	d.Set("region", region)
 	d.Set("disk", nodeCluster.Disk)
+	d.Set("node_count", nodeCluster.Target_num_nodes)
 	d.Set("tags", flattenNodeTags(nodeCluster.Tags))
 
 	return nil
@@ -163,7 +180,7 @@ func resourceDockercloudNodeClusterUpdate(d *schema.ResourceData, meta interface
 		return fmt.Errorf("Error retrieving node cluster (%s): %s", d.Id(), err)
 	}
 
-	if err := nodeCluster.Update(opts); err != nil {
+	if err = nodeCluster.Update(opts); err != nil {
 		return fmt.Errorf("Error updating node cluster: %s", err)
 	}
 
@@ -252,4 +269,14 @@ func flattenNodeTags(t []dockercloud.NodeTag) []string {
 	}
 
 	return ret
+}
+
+// parseResourceURI returns the provider and value of the resource provided
+// For example: /api/infra/v1/region/aws/t2.nano/ would return "aws, "t2.nano", nil
+func parseResourceURI(uri string, base string) (string, string, error) {
+	s := strings.Split(strings.Trim(strings.TrimPrefix(uri, base), "/"), "/")
+	if len(s) != 2 {
+		return "", "", fmt.Errorf("Unknown URI format: %s %+v", uri, s)
+	}
+	return s[0], s[1], nil
 }
