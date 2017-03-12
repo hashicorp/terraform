@@ -46,9 +46,9 @@ The following arguments are supported:
 * `deployment_strategy` - (Optional) Container distribution among nodes. Must be one of `EMPTIEST_NODE`, `HIGH_AVAILABILITY` or `EVERY_NODE`.
 * `autorestart` - (Optional) Whether the containers for this service should be restarted if they stop. Must be one of `OFF`, `ON_FAILURE` or `ALWAYS`.
 * `autodestroy` - (Optional) Whether the containers should be terminated if they stop. Must be one of `OFF`, `ON_SUCCESS` or `ALWAYS`.
-* `autoredeploy` - (Optional, bool) Whether to redeploy the containers of the service when its image is updated in Docker Cloud registry.
-* `privileged` - (Optional, bool) Run container in privileged mode.
-* `sequential_deployment` - (Optional, bool) Whether the containers should be launched and scaled in sequence.
+* `autoredeploy` - (Optional, bool) Whether to redeploy the containers of the service when its image is updated in Docker Cloud registry (default: `false`).
+* `privileged` - (Optional, bool) Run container in privileged mode (default: `false`).
+* `sequential_deployment` - (Optional, bool) Whether the containers should be launched and scaled in sequence (default: `false`).
 * `container_count` - (Optional) Number of containers to start. When `deployment_strategy` is set to anything other than `EMPTIEST_NODE`, `container_count` cannot be set.
 * `roles` - (Optional) List of Docker Cloud API roles to grant the service. Currently, only `global` is supported.
 * `tags` - (Optional) List of tags to be used to deploy the service.

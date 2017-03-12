@@ -102,14 +102,17 @@ func serviceSchema() map[string]*schema.Schema {
 		"autoredeploy": &schema.Schema{
 			Type:     schema.TypeBool,
 			Optional: true,
+			Default:  false,
 		},
 		"privileged": &schema.Schema{
 			Type:     schema.TypeBool,
 			Optional: true,
+			Default:  false,
 		},
 		"sequential_deployment": &schema.Schema{
 			Type:     schema.TypeBool,
 			Optional: true,
+			Default:  false,
 		},
 		"container_count": &schema.Schema{
 			Type:     schema.TypeInt,
@@ -233,8 +236,11 @@ func serviceSchema() map[string]*schema.Schema {
 
 func newServiceCreateRequest(d *schema.ResourceData) dockercloud.ServiceCreateRequest {
 	opts := dockercloud.ServiceCreateRequest{
-		Name:  d.Get("name").(string),
-		Image: d.Get("image").(string),
+		Name:                  d.Get("name").(string),
+		Image:                 d.Get("image").(string),
+		Autoredeploy:          d.Get("autoredeploy").(bool),
+		Privileged:            d.Get("privileged").(bool),
+		Sequential_deployment: d.Get("sequential_deployment").(bool),
 	}
 
 	if attr, ok := d.GetOk("entrypoint"); ok {
@@ -267,18 +273,6 @@ func newServiceCreateRequest(d *schema.ResourceData) dockercloud.ServiceCreateRe
 
 	if attr, ok := d.GetOk("autodestroy"); ok {
 		opts.Autodestroy = attr.(string)
-	}
-
-	if attr, ok := d.GetOk("autoredeploy"); ok {
-		opts.Autoredeploy = attr.(bool)
-	}
-
-	if attr, ok := d.GetOk("privileged"); ok {
-		opts.Privileged = attr.(bool)
-	}
-
-	if attr, ok := d.GetOk("sequential_deployment"); ok {
-		opts.Sequential_deployment = attr.(bool)
 	}
 
 	if attr, ok := d.GetOk("container_count"); ok {
