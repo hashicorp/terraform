@@ -188,7 +188,8 @@ func resourceServiceV1() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Default:     "",
-							Description: "SSL certificate hostname (deprecated by Fastly)",
+							Description: "SSL certificate hostname",
+							Deprecated:  "Use ssl_cert_hostname and ssl_sni_hostname instead.",
 						},
 						"ssl_cert_hostname": {
 							Type:        schema.TypeString,
