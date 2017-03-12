@@ -128,7 +128,7 @@ func resourceDockercloudNodeClusterRead(d *schema.ResourceData, meta interface{}
 			return nil
 		}
 
-		return fmt.Errorf("Error retrieving node cluster: %s %+v", err, err.(dockercloud.HttpError))
+		return fmt.Errorf("Error retrieving node cluster: %s", err)
 	}
 
 	if nodeCluster.State == "Terminated" {
