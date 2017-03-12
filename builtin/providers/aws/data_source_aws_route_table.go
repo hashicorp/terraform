@@ -41,6 +41,16 @@ func dataSourceAwsRouteTable() *schema.Resource {
 							Computed: true,
 						},
 
+						"ipv6_cidr_block": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
+						"egress_only_gateway_id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
 						"gateway_id": {
 							Type:     schema.TypeString,
 							Computed: true,
@@ -176,6 +186,12 @@ func dataSourceRoutesRead(ec2Routes []*ec2.Route) []map[string]interface{} {
 
 		if r.DestinationCidrBlock != nil {
 			m["cidr_block"] = *r.DestinationCidrBlock
+		}
+		if r.DestinationIpv6CidrBlock != nil {
+			m["ipv6_cidr_block"] = *r.DestinationIpv6CidrBlock
+		}
+		if r.EgressOnlyInternetGatewayId != nil {
+			m["egress_only_gateway_id"] = *r.EgressOnlyInternetGatewayId
 		}
 		if r.GatewayId != nil {
 			m["gateway_id"] = *r.GatewayId
