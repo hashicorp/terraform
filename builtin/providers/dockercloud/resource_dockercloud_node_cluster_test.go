@@ -127,7 +127,7 @@ func TestFlattenNodeTags(t *testing.T) {
 	})
 
 	if !reflect.DeepEqual(tags, expected) {
-		t.Fatalf("Node tags do not match, got: %s", tags)
+		t.Fatalf("Node tags do not match, got: %v", tags)
 	}
 }
 
