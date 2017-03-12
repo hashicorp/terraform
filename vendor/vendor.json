@@ -1479,9 +1479,10 @@
 			"revisionTime": "2016-11-17T03:31:26Z"
 		},
 		{
-			"checksumSHA1": "ov+6gzPH5YDff0pSit5Zolkh2gQ=",
+			"checksumSHA1": "nu3W9toub02L8S239VzXF+pevWM=",
 			"path": "github.com/google/go-github/github",
-			"revision": "ac4445ca1c9dfacf5c0bbf34b712b23a3bb59b6c"
+			"revision": "c1bdf188056730d883ce163c5f7400f25ba766d6",
+			"revisionTime": "2017-03-11T05:09:05Z"
 		},
 		{
 			"checksumSHA1": "Evpv9y6iPdy+8FeAVDmKrqV1sqo=",
