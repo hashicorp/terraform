@@ -51,6 +51,7 @@ func resourceAwsRouteTableImportState(
 			d.SetType("aws_route")
 			d.Set("route_table_id", id)
 			d.Set("destination_cidr_block", route.DestinationCidrBlock)
+			d.Set("destination_ipv6_cidr_block", route.DestinationIpv6CidrBlock)
 			d.SetId(routeIDHash(d, route))
 			results = append(results, d)
 		}
