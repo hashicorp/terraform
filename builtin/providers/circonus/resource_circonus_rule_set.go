@@ -270,7 +270,7 @@ func resourceRuleSet() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: validateHTTPURL(ruleSetLinkAttr, urlIsAbs),
+				ValidateFunc: validateHTTPURL(ruleSetLinkAttr, urlIsAbs|urlOptional),
 			},
 			ruleSetMetricTypeAttr: &schema.Schema{
 				Type:         schema.TypeString,

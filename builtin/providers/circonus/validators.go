@@ -313,14 +313,20 @@ type urlParseFlags int
 
 const (
 	urlIsAbs urlParseFlags = 1 << iota
-	urlWithoutSchema
+	urlOptional
 	urlWithoutPort
+	urlWithoutSchema
 )
 
 const urlBasicCheck urlParseFlags = 0
 
 func validateHTTPURL(attrName schemaAttr, checkFlags urlParseFlags) func(v interface{}, key string) (warnings []string, errors []error) {
 	return func(v interface{}, key string) (warnings []string, errors []error) {
+		s := v.(string)
+		if checkFlags&urlOptional != 0 && s == "" {
+			return warnings, errors
+		}
+
 		u, err := url.Parse(v.(string))
 		switch {
 		case err != nil:
