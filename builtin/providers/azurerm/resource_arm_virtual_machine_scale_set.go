@@ -341,6 +341,55 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Set: resourceArmVirtualMachineScaleSetStorageProfileImageReferenceHash,
 			},
 
+			"extension": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"publisher": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"type_handler_version": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"auto_upgrade_minor_version": {
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+
+						"settings": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							ValidateFunc:     validateJsonString,
+							DiffSuppressFunc: suppressDiffVirtualMachineExtensionSettings,
+						},
+
+						"protected_settings": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							Sensitive:        true,
+							ValidateFunc:     validateJsonString,
+							DiffSuppressFunc: suppressDiffVirtualMachineExtensionSettings,
+						},
+					},
+				},
+				Set: resourceArmVirtualMachineScaleSetExtensionHash,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -381,6 +430,11 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
+	extensions, err := expandAzureRMVirtualMachineScaleSetExtensions(d)
+	if err != nil {
+		return err
+	}
+
 	updatePolicy := d.Get("upgrade_policy_mode").(string)
 	overprovision := d.Get("overprovision").(bool)
 	scaleSetProps := compute.VirtualMachineScaleSetProperties{
@@ -388,9 +442,10 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 			Mode: compute.UpgradeMode(updatePolicy),
 		},
 		VirtualMachineProfile: &compute.VirtualMachineScaleSetVMProfile{
-			NetworkProfile: expandAzureRmVirtualMachineScaleSetNetworkProfile(d),
-			StorageProfile: &storageProfile,
-			OsProfile:      osProfile,
+			NetworkProfile:   expandAzureRmVirtualMachineScaleSetNetworkProfile(d),
+			StorageProfile:   &storageProfile,
+			OsProfile:        osProfile,
+			ExtensionProfile: extensions,
 		},
 		Overprovision: &overprovision,
 	}
@@ -486,6 +541,14 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 
 	if err := d.Set("storage_profile_os_disk", flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(properties.VirtualMachineProfile.StorageProfile.OsDisk)); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set Storage Profile OS Disk error: %#v", err)
+	}
+
+	if properties.VirtualMachineProfile.ExtensionProfile != nil {
+		extension, err := flattenAzureRmVirtualMachineScaleSetExtensionProfile(properties.VirtualMachineProfile.ExtensionProfile)
+		if err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set Extension Profile error: %#v", err)
+		}
+		d.Set("extension", extension)
 	}
 
 	flattenAndSetTags(d, resp.Tags)
@@ -702,6 +765,39 @@ func flattenAzureRmVirtualMachineScaleSetSku(sku *compute.Sku) []interface{} {
 	return []interface{}{result}
 }
 
+func flattenAzureRmVirtualMachineScaleSetExtensionProfile(profile *compute.VirtualMachineScaleSetExtensionProfile) ([]map[string]interface{}, error) {
+	if profile.Extensions == nil {
+		return nil, nil
+	}
+
+	result := make([]map[string]interface{}, 0, len(*profile.Extensions))
+	for _, extension := range *profile.Extensions {
+		e := make(map[string]interface{})
+		e["name"] = *extension.Name
+		properties := extension.VirtualMachineScaleSetExtensionProperties
+		if properties != nil {
+			e["publisher"] = *properties.Publisher
+			e["type"] = *properties.Type
+			e["type_handler_version"] = *properties.TypeHandlerVersion
+			if properties.AutoUpgradeMinorVersion != nil {
+				e["auto_upgrade_minor_version"] = *properties.AutoUpgradeMinorVersion
+			}
+
+			if properties.Settings != nil {
+				settings, err := flattenArmVirtualMachineExtensionSettings(*properties.Settings)
+				if err != nil {
+					return nil, err
+				}
+				e["settings"] = settings
+			}
+		}
+
+		result = append(result, e)
+	}
+
+	return result, nil
+}
+
 func resourceArmVirtualMachineScaleSetStorageProfileImageReferenceHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
@@ -773,6 +869,20 @@ func resourceArmVirtualMachineScaleSetOsProfileLWindowsConfigHash(v interface{})
 	if m["enable_automatic_upgrades"] != nil {
 		buf.WriteString(fmt.Sprintf("%t-", m["enable_automatic_upgrades"].(bool)))
 	}
+	return hashcode.String(buf.String())
+}
+
+func resourceArmVirtualMachineScaleSetExtensionHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["publisher"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["type"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["type_handler_version"].(string)))
+	if m["auto_upgrade_minor_version"] != nil {
+		buf.WriteString(fmt.Sprintf("%t-", m["auto_upgrade_minor_version"].(bool)))
+	}
+
 	return hashcode.String(buf.String())
 }
 
@@ -1090,4 +1200,52 @@ func expandAzureRmVirtualMachineScaleSetOsProfileSecrets(d *schema.ResourceData)
 	}
 
 	return &secrets
+}
+
+func expandAzureRMVirtualMachineScaleSetExtensions(d *schema.ResourceData) (*compute.VirtualMachineScaleSetExtensionProfile, error) {
+	extensions := d.Get("extension").(*schema.Set).List()
+	resources := make([]compute.VirtualMachineScaleSetExtension, 0, len(extensions))
+	for _, e := range extensions {
+		config := e.(map[string]interface{})
+		name := config["name"].(string)
+		publisher := config["publisher"].(string)
+		t := config["type"].(string)
+		version := config["type_handler_version"].(string)
+
+		extension := compute.VirtualMachineScaleSetExtension{
+			Name: &name,
+			VirtualMachineScaleSetExtensionProperties: &compute.VirtualMachineScaleSetExtensionProperties{
+				Publisher:          &publisher,
+				Type:               &t,
+				TypeHandlerVersion: &version,
+			},
+		}
+
+		if u := config["auto_upgrade_minor_version"]; u != nil {
+			upgrade := u.(bool)
+			extension.VirtualMachineScaleSetExtensionProperties.AutoUpgradeMinorVersion = &upgrade
+		}
+
+		if s := config["settings"].(string); s != "" {
+			settings, err := expandArmVirtualMachineExtensionSettings(s)
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse settings: %s", err)
+			}
+			extension.VirtualMachineScaleSetExtensionProperties.Settings = &settings
+		}
+
+		if s := config["protected_settings"].(string); s != "" {
+			protectedSettings, err := expandArmVirtualMachineExtensionSettings(s)
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse protected_settings: %s", err)
+			}
+			extension.VirtualMachineScaleSetExtensionProperties.ProtectedSettings = &protectedSettings
+		}
+
+		resources = append(resources, extension)
+	}
+
+	return &compute.VirtualMachineScaleSetExtensionProfile{
+		Extensions: &resources,
+	}, nil
 }
