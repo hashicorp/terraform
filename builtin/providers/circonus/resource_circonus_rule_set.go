@@ -369,9 +369,9 @@ func ruleSetRead(d *schema.ResourceData, meta interface{}) error {
 		case apiRuleSetMinValue:
 			valueAttrs[string(ruleSetMinValueAttr)] = rule.Value
 		case apiRuleSetNotContains:
-			valueAttrs[string(ruleSetNotMatchAttr)] = rule.Value
-		case apiRuleSetNotMatch:
 			valueAttrs[string(ruleSetNotContainAttr)] = rule.Value
+		case apiRuleSetNotMatch:
+			valueAttrs[string(ruleSetNotMatchAttr)] = rule.Value
 		default:
 			return fmt.Errorf("PROVIDER BUG: Unsupported criteria %q", rule.Criteria)
 		}
