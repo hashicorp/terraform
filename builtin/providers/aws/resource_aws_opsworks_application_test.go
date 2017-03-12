@@ -34,14 +34,14 @@ func TestAccAWSOpsworksApplication(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "enable_ssl", "false",
 					),
-					resource.TestCheckResourceAttr(
-						"aws_opsworks_application.tf-acc-app", "ssl_configuration", "",
+					resource.TestCheckNoResourceAttr(
+						"aws_opsworks_application.tf-acc-app", "ssl_configuration",
 					),
-					resource.TestCheckResourceAttr(
-						"aws_opsworks_application.tf-acc-app", "domains", "",
+					resource.TestCheckNoResourceAttr(
+						"aws_opsworks_application.tf-acc-app", "domains",
 					),
-					resource.TestCheckResourceAttr(
-						"aws_opsworks_application.tf-acc-app", "app_source", "",
+					resource.TestCheckNoResourceAttr(
+						"aws_opsworks_application.tf-acc-app", "app_source",
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "environment.3077298702.key", "key1",
@@ -49,8 +49,8 @@ func TestAccAWSOpsworksApplication(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "environment.3077298702.value", "value1",
 					),
-					resource.TestCheckResourceAttr(
-						"aws_opsworks_application.tf-acc-app", "environment.3077298702.secret", "",
+					resource.TestCheckNoResourceAttr(
+						"aws_opsworks_application.tf-acc-app", "environment.3077298702.secret",
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "document_root", "foo",
@@ -117,8 +117,8 @@ func TestAccAWSOpsworksApplication(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "environment.3077298702.value", "value1",
 					),
-					resource.TestCheckResourceAttr(
-						"aws_opsworks_application.tf-acc-app", "environment.3077298702.secret", "",
+					resource.TestCheckNoResourceAttr(
+						"aws_opsworks_application.tf-acc-app", "environment.3077298702.secret",
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "document_root", "root",
