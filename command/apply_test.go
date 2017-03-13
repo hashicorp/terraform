@@ -603,7 +603,8 @@ func TestApply_plan_backup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	args := []string{"-state-out", statePath,
+	args := []string{
+		"-state-out", statePath,
 		"-backup", backupPath,
 		planPath,
 	}
