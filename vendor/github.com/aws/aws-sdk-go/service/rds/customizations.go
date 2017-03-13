@@ -13,6 +13,8 @@ func init() {
 	ops := []string{
 		opCopyDBSnapshot,
 		opCreateDBInstanceReadReplica,
+		opCopyDBClusterSnapshot,
+		opCreateDBCluster,
 	}
 	initRequest = func(r *request.Request) {
 		for _, operation := range ops {

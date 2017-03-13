@@ -27,7 +27,7 @@ func resourceAwsDmsReplicationTask() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"cdc_start_time": {
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Optional: true,
 				// Requires a Unix timestamp in seconds. Example 1484346880
 			},

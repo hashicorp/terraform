@@ -4,7 +4,18 @@ branch for the next major version of Terraform.
 
 ## 0.9.0-beta3 (unreleased)
 
+FEATURES:
 
+ * **New Provider:**  `Circonus` [GH-12578]
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * provider/aws: `aws_codebuild_project` renamed `timeout` to `build_timeout` [GH-12503]
+ * provider/azurem: `azurerm_virtual_machine` and `azurerm_virtual_machine_scale_set` now store has of custom_data not all custom_data [GH-12214]
+
+IMPROVEMENTS:
+
+ * provider/azurerm: store only hash of `azurerm_virtual_machine` and `azurerm_virtual_machine_scale_set` custom_data - reduces size of state [GH-12214]
 
 ## 0.9.0-beta2 (March 2, 2017)
 

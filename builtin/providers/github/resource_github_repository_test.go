@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -18,7 +19,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubRepositoryConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
@@ -33,7 +34,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 					}),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccGithubRepositoryUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
@@ -55,10 +56,10 @@ func TestAccGithubRepository_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubRepositoryConfig,
 			},
-			resource.TestStep{
+			{
 				ResourceName:      "github_repository.foo",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -81,7 +82,7 @@ func testAccCheckGithubRepositoryExists(n string, repo *github.Repository) resou
 
 		org := testAccProvider.Meta().(*Organization)
 		conn := org.client
-		gotRepo, _, err := conn.Repositories.Get(org.name, repoName)
+		gotRepo, _, err := conn.Repositories.Get(context.TODO(), org.name, repoName)
 		if err != nil {
 			return err
 		}
@@ -174,7 +175,7 @@ func testAccCheckGithubRepositoryDestroy(s *terraform.State) error {
 			continue
 		}
 
-		gotRepo, resp, err := conn.Repositories.Get(orgName, rs.Primary.ID)
+		gotRepo, resp, err := conn.Repositories.Get(context.TODO(), orgName, rs.Primary.ID)
 		if err == nil {
 			if gotRepo != nil && *gotRepo.Name == rs.Primary.ID {
 				return fmt.Errorf("Repository still exists")

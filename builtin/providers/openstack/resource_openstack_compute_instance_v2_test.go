@@ -29,6 +29,8 @@ func TestAccComputeV2Instance_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_1", &instance),
 					testAccCheckComputeV2InstanceMetadata(&instance, "foo", "bar"),
+					resource.TestCheckResourceAttr(
+						"openstack_compute_instance_v2.instance_1", "availability_zone", "nova"),
 				),
 			},
 		},

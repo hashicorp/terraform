@@ -15,6 +15,7 @@ import (
 	azurermprovider "github.com/hashicorp/terraform/builtin/providers/azurerm"
 	bitbucketprovider "github.com/hashicorp/terraform/builtin/providers/bitbucket"
 	chefprovider "github.com/hashicorp/terraform/builtin/providers/chef"
+	circonusprovider "github.com/hashicorp/terraform/builtin/providers/circonus"
 	clcprovider "github.com/hashicorp/terraform/builtin/providers/clc"
 	cloudflareprovider "github.com/hashicorp/terraform/builtin/providers/cloudflare"
 	cloudstackprovider "github.com/hashicorp/terraform/builtin/providers/cloudstack"
@@ -90,6 +91,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"azurerm":      azurermprovider.Provider,
 	"bitbucket":    bitbucketprovider.Provider,
 	"chef":         chefprovider.Provider,
+	"circonus":     circonusprovider.Provider,
 	"clc":          clcprovider.Provider,
 	"cloudflare":   cloudflareprovider.Provider,
 	"cloudstack":   cloudstackprovider.Provider,

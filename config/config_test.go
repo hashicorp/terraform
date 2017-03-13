@@ -201,6 +201,12 @@ func TestConfigValidate_table(t *testing.T) {
 			true,
 			"cannot contain interp",
 		},
+		{
+			"nested types in variable default",
+			"validate-var-nested",
+			false,
+			"",
+		},
 	}
 
 	for i, tc := range cases {

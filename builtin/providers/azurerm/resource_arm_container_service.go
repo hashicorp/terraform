@@ -360,7 +360,7 @@ func flattenAzureRmContainerServiceLinuxProfile(profile containerservice.LinuxPr
 	}
 
 	values["admin_username"] = *profile.AdminUsername
-	values["ssh_key"] = &sshKeys
+	values["ssh_key"] = sshKeys
 	profiles.Add(values)
 
 	return profiles
