@@ -102,6 +102,11 @@ func resourceComputeSnapshotCreate(d *schema.ResourceData, meta interface{}) err
 		snapshot.SnapshotEncryptionKey.RawKey = v.(string)
 	}
 
+	if v, ok := d.GetOk("sourcedisk_encryption_key_raw"); ok {
+		snapshot.SourceDiskEncryptionKey = &compute.CustomerEncryptionKey{}
+		snapshot.SourceDiskEncryptionKey.RawKey = v.(string)
+	}
+
 	op, err := config.clientCompute.Disks.CreateSnapshot(
 		project, d.Get("zone").(string), disk, snapshot).Do()
 	if err != nil {
