@@ -56,15 +56,15 @@ The following arguments are supported:
 
 * `domain_name` - (Required) The fully-qualified domain name to register
 * `certificate_name` - (Optional) The unique name to use when registering this
-  cert as an IAM server certificate
+  cert as an IAM server certificate. Conflicts with `certificate_arn`.
 * `certificate_body` - (Optional) The certificate issued for the domain name
-  being registered, in PEM format
+  being registered, in PEM format. Conflicts with `certificate_arn`.
 * `certificate_chain` - (Optional) The certificate for the CA that issued the
   certificate, along with any intermediate CA certificates required to
-  create an unbroken chain to a certificate trusted by the intended API clients.
+  create an unbroken chain to a certificate trusted by the intended API clients. Conflicts with `certificate_arn`.
 * `certificate_private_key` - (Optional) The private key associated with the
-  domain certificate given in `certificate_body`.
-* `certificate_arn` - (Optional) The ARN for an AWS-managed certificate.
+  domain certificate given in `certificate_body`. Conflicts with `certificate_arn`.
+* `certificate_arn` - (Optional) The ARN for an AWS-managed certificate. Conflicts with `certificate_name`, `certificate_body`, `certificate_chain` and `certificate_private_key`.
 
 ## Attributes Reference
 

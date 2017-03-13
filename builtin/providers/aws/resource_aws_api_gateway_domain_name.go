@@ -25,26 +25,30 @@ func resourceAwsApiGatewayDomainName() *schema.Resource {
 			//to ApiGateway DomainNames. When this happens, we will be deprecating all certificate methods
 			//except certificate_arn. We are not quite sure when this will happen.
 			"certificate_body": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Optional: true,
+				Type:          schema.TypeString,
+				ForceNew:      true,
+				Optional:      true,
+				ConflictsWith: []string{"certificate_arn"},
 			},
 
 			"certificate_chain": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Optional: true,
+				Type:          schema.TypeString,
+				ForceNew:      true,
+				Optional:      true,
+				ConflictsWith: []string{"certificate_arn"},
 			},
 
 			"certificate_name": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"certificate_arn"},
 			},
 
 			"certificate_private_key": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Optional: true,
+				Type:          schema.TypeString,
+				ForceNew:      true,
+				Optional:      true,
+				ConflictsWith: []string{"certificate_arn"},
 			},
 
 			"domain_name": {
@@ -54,8 +58,9 @@ func resourceAwsApiGatewayDomainName() *schema.Resource {
 			},
 
 			"certificate_arn": {
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"certificate_body", "certificate_chain", "certificate_name", "certificate_private_key"},
 			},
 
 			"cloudfront_domain_name": {
