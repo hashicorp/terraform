@@ -99,52 +99,57 @@ func resourceGoogleProject() *schema.Resource {
 func resourceGoogleProjectCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	var pid string
-	var err error
-	pid = d.Get("project_id").(string)
-	if pid == "" {
-		pid, err = getProject(d, config)
-		if err != nil {
-			return fmt.Errorf("Error getting project ID: %v", err)
-		}
-		if pid == "" {
-			return fmt.Errorf("'project_id' must be set in the config")
-		}
-	}
-
-	// we need to check if name and org_id are set, and throw an error if they aren't
-	// we can't just set these as required on the object, however, as that would break
-	// all configs that used previous iterations of the resource.
-	// TODO(paddy): remove this for 0.9 and set these attributes as required.
-	name, org_id := d.Get("name").(string), d.Get("org_id").(string)
-	if name == "" {
-		return fmt.Errorf("`name` must be set in the config if you're creating a project.")
-	}
-	if org_id == "" {
-		return fmt.Errorf("`org_id` must be set in the config if you're creating a project.")
-	}
-
-	log.Printf("[DEBUG]: Creating new project %q", pid)
-	project := &cloudresourcemanager.Project{
-		ProjectId: pid,
-		Name:      d.Get("name").(string),
-		Parent: &cloudresourcemanager.ResourceId{
-			Id:   d.Get("org_id").(string),
-			Type: "organization",
-		},
-	}
-
-	op, err := config.clientResourceManager.Projects.Create(project).Do()
+	pid, err := getProject(d, config)
 	if err != nil {
-		return fmt.Errorf("Error creating project %s (%s): %s.", project.ProjectId, project.Name, err)
+		return fmt.Errorf("Error getting project ID: %v", err)
 	}
 
-	d.SetId(pid)
+	if pid == "" {
+		return fmt.Errorf("'project_id' must be set in the config")
+	}
 
-	// Wait for the operation to complete
-	waitErr := resourceManagerOperationWait(config, op, "project to create")
-	if waitErr != nil {
-		return waitErr
+	// this does not fail when project does not exists
+	// it returns empty project at the time of this comment
+	p, err := config.clientResourceManager.Projects.Get(pid).Do()
+	if err != nil {
+		return fmt.Errorf("failed to get initial project: %s", err)
+	}
+
+	if p.ProjectNumber == 0 {
+		// we need to check if name and org_id are set, and throw an error if they aren't
+		// we can't just set these as required on the object, however, as that would break
+		// all configs that used previous iterations of the resource.
+		// TODO(paddy): remove this for 0.9 and set these attributes as required.
+		name, org_id := d.Get("name").(string), d.Get("org_id").(string)
+		if name == "" {
+			return fmt.Errorf("`name` must be set in the config if you're creating a project.")
+		}
+		if org_id == "" {
+			return fmt.Errorf("`org_id` must be set in the config if you're creating a project.")
+		}
+
+		log.Printf("[DEBUG]: Creating new project %q", pid)
+		project := &cloudresourcemanager.Project{
+			ProjectId: pid,
+			Name:      d.Get("name").(string),
+			Parent: &cloudresourcemanager.ResourceId{
+				Id:   d.Get("org_id").(string),
+				Type: "organization",
+			},
+		}
+
+		op, err := config.clientResourceManager.Projects.Create(project).Do()
+		if err != nil {
+			return fmt.Errorf("Error creating project %s (%s): %s.", project.ProjectId, project.Name, err)
+		}
+
+		d.SetId(pid)
+
+		// Wait for the operation to complete
+		waitErr := resourceManagerOperationWait(config, op, "project to create")
+		if waitErr != nil {
+			return waitErr
+		}
 	}
 
 	// Apply the IAM policy if it is set

@@ -38,7 +38,6 @@ func TestAccGoogleProject_create(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			// This step imports an existing project
 			resource.TestStep{
 				Config: testAccGoogleProject_create(pid, pname, org),
 				Check: resource.ComposeTestCheckFunc(
@@ -142,6 +141,27 @@ func TestAccGoogleProject_merge(t *testing.T) {
 					testAccCheckGoogleProjectExists("google_project.acceptance", pid),
 					testAccCheckGoogleProjectHasMoreBindingsThan(pid, 0),
 				),
+			},
+		},
+	})
+}
+
+// Test loading an existing project without a create, this
+// should not throw an error
+func TestAccGoogleProject_read(t *testing.T) {
+	pid := "terraform-" + acctest.RandString(10)
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccGoogleProject_create(pid, pname, org),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckGoogleProjectExists("google_project.acceptance", pid),
+				),
+			},
+			resource.TestStep{
+				Config: testAccGoogleProjectImportExisting(pid),
 			},
 		},
 	})
