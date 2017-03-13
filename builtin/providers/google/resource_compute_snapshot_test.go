@@ -142,8 +142,8 @@ func testAccComputeSnapshot_encryption(snapshotName string, diskName string) str
 	return fmt.Sprintf(`
 resource "google_compute_disk" "foobar" {
 	name = "%s"
-	image = "debian-8-jessie-v20160803"
-	size = 50
+	image = "debian-8-jessie-v20160921"
+	size = 10
 	type = "pd-ssd"
 	zone = "us-central1-a"
 }
