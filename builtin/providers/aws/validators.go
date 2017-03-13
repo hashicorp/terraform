@@ -930,3 +930,22 @@ func validateConfigExecutionFrequency(v interface{}, k string) (ws []string, err
 		k, frequency, validFrequencies))
 	return
 }
+
+func validateAccountAlias(v interface{}, k string) (ws []string, es []error) {
+	val := v.(string)
+
+	if (len(val) < 3) || (len(val) > 63) {
+		es = append(es, fmt.Errorf("%q must contain from 3 to 63 alphanumeric characters or hyphens", k))
+	}
+	if !regexp.MustCompile("^[a-z0-9][a-z0-9-]+$").MatchString(val) {
+		es = append(es, fmt.Errorf("%q must start with an alphanumeric character and only contain lowercase alphanumeric characters and hyphens", k))
+	}
+	if strings.Contains(val, "--") {
+		es = append(es, fmt.Errorf("%q must not contain consecutive hyphens", k))
+	}
+	if strings.HasSuffix(val, "-") {
+		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
+	}
+
+	return
+}
