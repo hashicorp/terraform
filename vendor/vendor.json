@@ -2775,6 +2775,12 @@
 			"revisionTime": "2017-01-24T12:11:56Z"
 		},
 		{
+			"checksumSHA1": "9vQ5+o0oO/0deG+uokvvdpeSv0Y=",
+			"path": "github.com/ovh/go-ovh/ovh",
+			"revision": "d2207178e10e4527e8f222fd8707982df8c3af17",
+			"revisionTime": "2017-01-02T12:05:21Z"
+		},
+		{
 			"checksumSHA1": "d1VHczIGt2bhYR0BNkTedIS/9uk=",
 			"path": "github.com/packer-community/winrmcp/winrmcp",
 			"revision": "3d184cea22ee1c41ec1697e0d830ff0c78f7ea97"
