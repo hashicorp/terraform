@@ -49,6 +49,7 @@ var (
 // ContextOpts are the user-configurable options to create a context with
 // NewContext.
 type ContextOpts struct {
+	Meta               *ContextMeta
 	Destroy            bool
 	Diff               *Diff
 	Hooks              []Hook
@@ -63,6 +64,14 @@ type ContextOpts struct {
 	Variables          map[string]interface{}
 
 	UIInput UIInput
+}
+
+// ContextMeta is metadata about the running context. This is information
+// that this package or structure cannot determine on its own but exposes
+// into Terraform in various ways. This must be provided by the Context
+// initializer.
+type ContextMeta struct {
+	Env string // Env is the state environment
 }
 
 // Context represents all the context that Terraform needs in order to
@@ -80,6 +89,7 @@ type Context struct {
 	diff       *Diff
 	diffLock   sync.RWMutex
 	hooks      []Hook
+	meta       *ContextMeta
 	module     *module.Tree
 	sh         *stopHook
 	shadow     bool
@@ -178,6 +188,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 		destroy:   opts.Destroy,
 		diff:      diff,
 		hooks:     hooks,
+		meta:      opts.Meta,
 		module:    opts.Module,
 		shadow:    opts.Shadow,
 		state:     state,
@@ -313,6 +324,7 @@ func (c *Context) Interpolater() *Interpolater {
 	var stateLock sync.RWMutex
 	return &Interpolater{
 		Operation:          walkApply,
+		Meta:               c.meta,
 		Module:             c.module,
 		State:              c.state.DeepCopy(),
 		StateLock:          &stateLock,
