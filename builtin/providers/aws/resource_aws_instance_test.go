@@ -981,6 +981,55 @@ func driftTags(instance *ec2.Instance) resource.TestCheckFunc {
 	}
 }
 
+func TestAccAWSInstanceWithNetworkInterface(t *testing.T) {
+	var before ec2.Instance
+	var after ec2.Instance
+
+	testCheckPrivateIP := func(ip string, v *ec2.Instance) resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if *v.PrivateIpAddress != ip {
+				return fmt.Errorf("bad private IP: %s, expected: %s", *v.PrivateIpAddress, ip)
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccInstanceConfigWithNetworkInterface("test1"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &before),
+					testCheckPrivateIP("10.1.1.11", &before),
+				),
+			},
+			{
+				Config: testAccInstanceConfigWithNetworkInterface("test2"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &after),
+					testAccCheckInstanceRecreated(
+						t, &before, &after),
+					testCheckPrivateIP("10.1.1.12", &after),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckInstanceRecreated(t *testing.T,
+	before, after *ec2.Instance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *before.InstanceId == *after.InstanceId {
+			t.Fatalf("AWS Instance IDs have not changed. Before %s. After %s", *before.InstanceId, *after.InstanceId)
+		}
+		return nil
+	}
+}
+
 const testAccInstanceConfig_pre = `
 resource "aws_security_group" "tf_test_foo" {
 	name = "tf_test_foo"
@@ -1505,3 +1554,32 @@ resource "aws_instance" "foo" {
 	subnet_id = "${aws_subnet.foo.id}"
 }
 `
+
+func testAccInstanceConfigWithNetworkInterface(eni string) string {
+	return fmt.Sprintf(`
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_network_interface" "test1" {
+    subnet_id = "${aws_subnet.foo.id}"
+		private_ips = ["10.1.1.11"]
+}
+
+resource "aws_network_interface" "test2" {
+    subnet_id = "${aws_subnet.foo.id}"
+		private_ips = ["10.1.1.12"]
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-22b9a343"
+	instance_type = "t2.micro"
+	network_interface_id = "${aws_network_interface.%s.id}"
+}
+`, eni)
+}
