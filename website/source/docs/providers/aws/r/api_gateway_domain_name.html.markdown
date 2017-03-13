@@ -55,15 +55,16 @@ resource "aws_route53_record" "example" {
 The following arguments are supported:
 
 * `domain_name` - (Required) The fully-qualified domain name to register
-* `certificate_name` - (Required) The unique name to use when registering this
+* `certificate_name` - (Optional) The unique name to use when registering this
   cert as an IAM server certificate
-* `certificate_body` - (Required) The certificate issued for the domain name
+* `certificate_body` - (Optional) The certificate issued for the domain name
   being registered, in PEM format
-* `certificate_chain` - (Required) The certificate for the CA that issued the
+* `certificate_chain` - (Optional) The certificate for the CA that issued the
   certificate, along with any intermediate CA certificates required to
   create an unbroken chain to a certificate trusted by the intended API clients.
-* `certificate_private_key` - (Required) The private key associated with the
+* `certificate_private_key` - (Optional) The private key associated with the
   domain certificate given in `certificate_body`.
+* `certificate_arn` - (Optional) The ARN for an AWS-managed certificate.
 
 ## Attributes Reference
 
