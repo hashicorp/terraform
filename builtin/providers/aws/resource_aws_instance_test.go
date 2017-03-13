@@ -981,7 +981,7 @@ func driftTags(instance *ec2.Instance) resource.TestCheckFunc {
 	}
 }
 
-func TestAccAWSInstanceWithNetworkInterface(t *testing.T) {
+func TestAccAWSInstance_withNetworkInterface(t *testing.T) {
 	var before ec2.Instance
 	var after ec2.Instance
 
