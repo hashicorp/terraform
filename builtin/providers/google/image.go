@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	resolveImageProjectRegex = "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?" // TODO(paddy): this isn't based on any documentation; we're just copying the image name restrictions. Need to follow up with @danawillow and/or @evandbrown and see if there's an actual limit to this
-	resolveImageFamilyRegex  = "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?" // TODO(paddy): this isn't based on any documentation; we're just copying the image name restrictions. Need to follow up with @danawillow and/or @evandbrown and see if there's an actual limit to this
-	resolveImageImageRegex   = "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?" // 1-63 characters, lowercase letters, numbers, and hyphens only, beginning and ending in a lowercase letter or number
+	resolveImageProjectRegex = "[-_a-zA-Z0-9]*"
+	resolveImageFamilyRegex  = "[-_a-zA-Z0-9]*"
+	resolveImageImageRegex   = "[-_a-zA-Z0-9]*"
 )
 
 var (
@@ -45,6 +45,13 @@ func resolveImageFamilyExists(c *Config, project, name string) (bool, error) {
 	} else {
 		return false, fmt.Errorf("Error checking if family %s exists: %s", name, err)
 	}
+}
+
+func sanityTestRegexMatches(expected int, got []string, regexType, name string) error {
+	if len(got)-1 != expected { // subtract one, index zero is the entire matched expression
+		return fmt.Errorf("Expected %d %s regex matches, got %d for %s", 2, regexType, len(got)-1, name)
+	}
+	return nil
 }
 
 // If the given name is a URL, return it.
@@ -85,32 +92,32 @@ func resolveImage(c *Config, name string) (string, error) {
 		return name, nil
 	case resolveImageProjectImage.MatchString(name): // projects/xyz/global/images/xyz
 		res := resolveImageProjectImage.FindStringSubmatch(name)
-		if len(res)-1 != 2 { // subtract one, index zero is the entire matched expression
-			return "", fmt.Errorf("Expected %d project image regex matches, got %d for %s", 2, len(res)-1, name)
+		if err := sanityTestRegexMatches(2, res, "project image", name); err != nil {
+			return "", err
 		}
 		return fmt.Sprintf("projects/%s/global/images/%s", res[1], res[2]), nil
 	case resolveImageProjectFamily.MatchString(name): // projects/xyz/global/images/family/xyz
 		res := resolveImageProjectFamily.FindStringSubmatch(name)
-		if len(res)-1 != 2 { // subtract one, index zero is the entire matched expression
-			return "", fmt.Errorf("Expected %d project family regex matches, got %d for %s", 2, len(res)-1, name)
+		if err := sanityTestRegexMatches(2, res, "project family", name); err != nil {
+			return "", err
 		}
 		return fmt.Sprintf("projects/%s/global/images/family/%s", res[1], res[2]), nil
 	case resolveImageGlobalImage.MatchString(name): // global/images/xyz
 		res := resolveImageGlobalImage.FindStringSubmatch(name)
-		if len(res)-1 != 1 { // subtract one, index zero is the entire matched expression
-			return "", fmt.Errorf("Expected %d global image regex matches, got %d for %s", 1, len(res)-1, name)
+		if err := sanityTestRegexMatches(1, res, "global image", name); err != nil {
+			return "", err
 		}
 		return fmt.Sprintf("global/images/%s", res[1]), nil
 	case resolveImageGlobalFamily.MatchString(name): // global/images/family/xyz
 		res := resolveImageGlobalFamily.FindStringSubmatch(name)
-		if len(res)-1 != 1 { // subtract one, index zero is the entire matched expression
-			return "", fmt.Errorf("Expected %d global family regex matches, got %d for %s", 1, len(res)-1, name)
+		if err := sanityTestRegexMatches(1, res, "global family", name); err != nil {
+			return "", err
 		}
 		return fmt.Sprintf("global/images/family/%s", res[1]), nil
 	case resolveImageFamilyFamily.MatchString(name): // family/xyz
 		res := resolveImageFamilyFamily.FindStringSubmatch(name)
-		if len(res)-1 != 1 { // subtract one, index zero is the entire matched expression
-			return "", fmt.Errorf("Expected %d family family regex matches, got %d for %s", 1, len(res)-1, name)
+		if err := sanityTestRegexMatches(1, res, "family family", name); err != nil {
+			return "", err
 		}
 		if ok, err := resolveImageFamilyExists(c, c.Project, res[1]); err != nil {
 			return "", err
@@ -126,8 +133,8 @@ func resolveImage(c *Config, name string) (string, error) {
 		}
 	case resolveImageProjectImageShorthand.MatchString(name): // xyz/xyz
 		res := resolveImageProjectImageShorthand.FindStringSubmatch(name)
-		if len(res)-1 != 2 { // subtract one, index zero is the entire matched expression
-			return "", fmt.Errorf("Expected %d project image shorthand regex matches, got %d for %s", 2, len(res)-1, name)
+		if err := sanityTestRegexMatches(2, res, "project image shorthand", name); err != nil {
+			return "", err
 		}
 		if ok, err := resolveImageImageExists(c, res[1], res[2]); err != nil {
 			return "", err
@@ -137,8 +144,8 @@ func resolveImage(c *Config, name string) (string, error) {
 		fallthrough // check if it's a family
 	case resolveImageProjectFamilyShorthand.MatchString(name): // xyz/xyz
 		res := resolveImageProjectFamilyShorthand.FindStringSubmatch(name)
-		if len(res)-1 != 2 { // subtract one, index zero is the entire matched expression
-			return "", fmt.Errorf("Expected %d project family shorthand regex matches, got %d for %s", 2, len(res)-1, name)
+		if err := sanityTestRegexMatches(2, res, "project family shorthand", name); err != nil {
+			return "", err
 		}
 		if ok, err := resolveImageFamilyExists(c, res[1], res[2]); err != nil {
 			return "", err
@@ -147,8 +154,8 @@ func resolveImage(c *Config, name string) (string, error) {
 		}
 	case resolveImageImage.MatchString(name): // xyz
 		res := resolveImageImage.FindStringSubmatch(name)
-		if len(res)-1 != 1 { // subtract one, index zero is the entire matched expression
-			return "", fmt.Errorf("Expected %d image regex matches, got %d for %s", 1, len(res)-1, name)
+		if err := sanityTestRegexMatches(1, res, "image", name); err != nil {
+			return "", err
 		}
 		if ok, err := resolveImageImageExists(c, c.Project, res[1]); err != nil {
 			return "", err
@@ -166,8 +173,8 @@ func resolveImage(c *Config, name string) (string, error) {
 		fallthrough // check if the name is a family, instead of an image
 	case resolveImageFamily.MatchString(name): // xyz
 		res := resolveImageFamily.FindStringSubmatch(name)
-		if len(res)-1 != 1 { // subtract one, index zero is the entire matched expression
-			return "", fmt.Errorf("Expected %d family regex matches, got %d for %s", 1, len(res)-1, name)
+		if err := sanityTestRegexMatches(1, res, "family", name); err != nil {
+			return "", err
 		}
 		if ok, err := resolveImageFamilyExists(c, c.Project, res[1]); err != nil {
 			return "", err
