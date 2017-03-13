@@ -15,7 +15,7 @@ For additional details please refer to [API documentation](http://sldn.softlayer
 
 ```
 resource "ibmcloud_infra_ssh_key" "test_ssh_key" {
-    name = "test_ssh_key_name"
+    label = "test_ssh_key_name"
     notes = "test_ssh_key_notes"
     public_key = "ssh-rsa <rsa_public_key>"
 }
@@ -25,11 +25,11 @@ resource "ibmcloud_infra_ssh_key" "test_ssh_key" {
 
 The following arguments are supported:
 
-* `name` - (Required) A descriptive name used to identify an SSH key.
+* `label` - (Required) A descriptive name used to identify an SSH key.
 * `public_key` - (Required) The public SSH key.
 * `notes` - (Optional) A small note about an SSH key to use at your discretion.
 
-The `name` and `notes` fields are editable.
+The `label` and `notes` fields are editable.
 
 ## Attributes Reference
 

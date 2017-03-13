@@ -32,7 +32,7 @@ provider "ibmcloud" {
 
 # Create an SSH key. The SSH key surfaces in the SoftLayer console under Devices > Manage > SSH Keys.
 resource "ibmcloud_infra_ssh_key" "test_key_1" {
-    name = "test_key_1"
+    label = "test_key_1"
     public_key = "${file(\"~/.ssh/id_rsa_test_key_1.pub\")}"
     # Windows example:
     # public_key = "${file(\"C:\ssh\keys\path\id_rsa_test_key_1.pub\")}"
