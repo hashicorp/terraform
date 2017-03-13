@@ -53,6 +53,13 @@ func New() backend.Backend {
 				Description: "HTTP Auth in the format of 'username:password'",
 				Default:     "", // To prevent input
 			},
+
+			"gzip": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Compress the state data using gzip",
+				Default:     false,
+			},
 		},
 	}
 

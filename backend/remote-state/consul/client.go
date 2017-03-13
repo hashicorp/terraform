@@ -18,13 +18,13 @@ import (
 const (
 	lockSuffix     = "/.lock"
 	lockInfoSuffix = "/.lockinfo"
-	maxKVSize      = 512 * 1024
 )
 
 // RemoteClient is a remote client that stores data in Consul.
 type RemoteClient struct {
 	Client *consulapi.Client
 	Path   string
+	GZip   bool
 
 	consulLock *consulapi.Lock
 	lockCh     <-chan struct{}
@@ -58,8 +58,7 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 
 func (c *RemoteClient) Put(data []byte) error {
 	payload := data
-	// If the payload to be written exceeds the Consul KV byte limit, compress
-	if len(data) > maxKVSize {
+	if c.GZip {
 		if compressedState, err := compressState(data); err == nil {
 			payload = compressedState
 		} else {
