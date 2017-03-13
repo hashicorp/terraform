@@ -56,7 +56,7 @@ resource "ibmcloud_infra_virtual_guest" "my_server_1" {
 resource "ibmcloud_infra_virtual_guest" "my_server_2" {
     hostname = "host-b.example.com"
     domain = "example.com"
-    ssh_keys = [123456, "${softlayer_ssh_key.test_key_1.id}"]
+    ssh_keys = [123456, "${ibmcloud_infra_ssh_key.test_key_1.id}"]
     os_reference_code = "CENTOS_6_64"
     datacenter = "ams01"
     network_speed = 10
@@ -115,4 +115,4 @@ The following arguments are supported in the `provider` block:
 * `softlayer_timeout` - (Optional) This is the timeout, expressed in seconds, for the SoftLayer API key. It can also be sourced from the `SL_TIMEOUT`  or `SOFTLAYER_TIMEOUT` environment variable. The former variable has higher precedence. The default value is `60 seconds`.
 
 * `softlayer_account_number` - (Optional) This is the SoftLayer account number. It can also be sourced from the `SL_ACCOUNT_NUMBER`  or `SOFTLAYER_ACCOUNT_NUMBER` environment variable. The former variable has higher precedence.
-Currently the provider accepts only those account numbers for which 2FA is not enabled.
+Currently the provider accepts only those account numbers for which 2FA is not enabled. If the account number is not provided then the provider works with default SoftLayer Account Number and resources are created in the same default account.
