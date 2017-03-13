@@ -17,6 +17,10 @@ IMPROVEMENTS:
 
  * provider/azurerm: store only hash of `azurerm_virtual_machine` and `azurerm_virtual_machine_scale_set` custom_data - reduces size of state [GH-12214]
 
+BUG FIXES:
+
+ * provider/google: Correct the incorrect instance group manager URL returned from GKE [GH-4336]
+ 
 ## 0.9.0-beta2 (March 2, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
