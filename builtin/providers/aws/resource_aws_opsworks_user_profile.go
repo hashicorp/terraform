@@ -26,6 +26,7 @@ func resourceAwsOpsworksUserProfile() *schema.Resource {
 			"user_arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"allow_self_management": &schema.Schema{
