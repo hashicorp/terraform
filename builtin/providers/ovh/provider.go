@@ -35,7 +35,9 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
-		ResourcesMap: map[string]*schema.Resource{},
+		ResourcesMap: map[string]*schema.Resource{
+			"ovh_publiccloud_user": resourcePublicCloudUser(),
+		},
 
 		ConfigureFunc: configureProvider,
 	}
