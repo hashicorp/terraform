@@ -2,10 +2,10 @@ package consul
 
 import (
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/terraform/backend"
 )
 
@@ -14,15 +14,12 @@ func TestBackend_impl(t *testing.T) {
 }
 
 func TestBackend(t *testing.T) {
-	addr := os.Getenv("CONSUL_HTTP_ADDR")
-	if addr == "" {
-		t.Log("consul tests require CONSUL_HTTP_ADDR")
-		t.Skip()
-	}
+	srv := testutil.NewTestServer(t)
+	defer srv.Stop()
 
 	// Get the backend
 	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"address": addr,
+		"address": srv.HTTPAddr,
 		"path":    fmt.Sprintf("tf-unit/%s", time.Now().String()),
 	})
 
