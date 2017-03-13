@@ -174,8 +174,7 @@ func resourceComputeSnapshotDelete(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error deleting snapshot: %s", err)
 	}
 
-	zone := d.Get("zone").(string)
-	err = computeOperationWaitZone(config, op, project, zone, "Deleting Snapshot")
+	err = computeOperationWaitGlobal(config, op, project, "Deleting Snapshot")
 	if err != nil {
 		return err
 	}
