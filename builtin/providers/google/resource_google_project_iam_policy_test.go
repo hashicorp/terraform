@@ -633,8 +633,8 @@ func testAccGoogleProjectAssociatePolicyBasic(pid, name, org string) string {
 	return fmt.Sprintf(`
 resource "google_project" "acceptance" {
     project_id = "%s"
-	name = "%s"
-	org_id = "%s"
+    name = "%s"
+    org_id = "%s"
 }
 resource "google_project_iam_policy" "acceptance" {
     project = "${google_project.acceptance.id}"
@@ -662,8 +662,8 @@ func testAccGoogleProject_create(pid, name, org string) string {
 	return fmt.Sprintf(`
 resource "google_project" "acceptance" {
     project_id = "%s"
-	name = "%s"
-	org_id = "%s"
+    name = "%s"
+    org_id = "%s"
 }`, pid, name, org)
 }
 
@@ -671,9 +671,9 @@ func testAccGoogleProject_createBilling(pid, name, org, billing string) string {
 	return fmt.Sprintf(`
 resource "google_project" "acceptance" {
     project_id = "%s"
-	name = "%s"
-	org_id = "%s"
-	billing_account = "%s"
+    name = "%s"
+    org_id = "%s"
+    billing_account = "%s"
 }`, pid, name, org, billing)
 }
 
@@ -692,16 +692,16 @@ resource "google_project_iam_policy" "acceptance" {
 data "google_iam_policy" "expanded" {
     binding {
         role = "roles/viewer"
-	members = [
-	    "user:paddy@carvers.co",
-	]
+        members = [
+            "user:paddy@carvers.co",
+        ]
     }
     
     binding {
         role = "roles/viewer"
-	members = [
-	    "user:paddy@hashicorp.com",
-	]
+        members = [
+            "user:paddy@hashicorp.com",
+        ]
     }
 }`, pid, name, org)
 }
