@@ -1,6 +1,8 @@
 package consul
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/md5"
 	"encoding/json"
 	"errors"
@@ -22,6 +24,7 @@ const (
 type RemoteClient struct {
 	Client *consulapi.Client
 	Path   string
+	GZip   bool
 
 	consulLock *consulapi.Lock
 	lockCh     <-chan struct{}
@@ -36,18 +39,37 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 		return nil, nil
 	}
 
+	payload := pair.Value
+	// If the payload starts with 0x1f, it's gzip, not json
+	if len(pair.Value) >= 1 && pair.Value[0] == '\x1f' {
+		if data, err := uncompressState(pair.Value); err == nil {
+			payload = data
+		} else {
+			return nil, err
+		}
+	}
+
 	md5 := md5.Sum(pair.Value)
 	return &remote.Payload{
-		Data: pair.Value,
+		Data: payload,
 		MD5:  md5[:],
 	}, nil
 }
 
 func (c *RemoteClient) Put(data []byte) error {
+	payload := data
+	if c.GZip {
+		if compressedState, err := compressState(data); err == nil {
+			payload = compressedState
+		} else {
+			return err
+		}
+	}
+
 	kv := c.Client.KV()
 	_, err := kv.Put(&consulapi.KVPair{
 		Key:   c.Path,
-		Value: data,
+		Value: payload,
 	}, nil)
 	return err
 }
@@ -176,4 +198,32 @@ func (c *RemoteClient) Unlock(id string) error {
 	}
 
 	return err
+}
+
+func compressState(data []byte) ([]byte, error) {
+	b := new(bytes.Buffer)
+	gz := gzip.NewWriter(b)
+	if _, err := gz.Write(data); err != nil {
+		return nil, err
+	}
+	if err := gz.Flush(); err != nil {
+		return nil, err
+	}
+	if err := gz.Close(); err != nil {
+		return nil, err
+	}
+	return b.Bytes(), nil
+}
+
+func uncompressState(data []byte) ([]byte, error) {
+	b := new(bytes.Buffer)
+	gz, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	b.ReadFrom(gz)
+	if err := gz.Close(); err != nil {
+		return nil, err
+	}
+	return b.Bytes(), nil
 }
