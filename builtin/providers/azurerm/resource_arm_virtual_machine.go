@@ -730,7 +730,7 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 		for _, disk := range disks {
 			if disk.Vhd != nil {
 				if err = resourceArmVirtualMachineDeleteVhd(*disk.Vhd.URI, meta); err != nil {
-					return fmt.Errorf("Error deleting Data Managed Disk: %s", err)
+					return fmt.Errorf("Error deleting Data Disk VHD: %s", err)
 				}
 			} else if disk.ManagedDisk != nil {
 				if err = resourceArmVirtualMachineDeleteManagedDisk(*disk.ManagedDisk.ID, meta); err != nil {
