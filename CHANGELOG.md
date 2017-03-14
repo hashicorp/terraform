@@ -17,6 +17,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 IMPROVEMENTS:
 
  * provider/azurerm: store only hash of `azurerm_virtual_machine` and `azurerm_virtual_machine_scale_set` custom_data - reduces size of state [GH-12214]
+ * report all errors encountered during config validation [GH-12383]
 
 BUG FIXES:
 
