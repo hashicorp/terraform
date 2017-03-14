@@ -26,6 +26,11 @@ credentials off of developer machines and releasing local machines
 from long-running Terraform processes.
 
 # How to Use Terraform Remotely
+
+~> **Warning!** This feature requires Terraform Enterprise.
+You will be asked to start a trial when clicking on interactive tutorial link (instant access).
+Alternatively you can contact sales@hashicorp.com to start or extend your trial.
+
 You can learn how to use Terraform remotely with our [interactive tutorial](https://atlas.hashicorp.com/tutorial/terraform/?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform)
 or you can follow the outlined steps below.
 
