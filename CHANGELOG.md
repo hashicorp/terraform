@@ -15,6 +15,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * provider/google: compute_instance, compute_instance_template, and compute_disk all have a subtly changed logic when specifying an image family as the image; in 0.8.x they would pin to the latest image in the family when the resource is created; in 0.9.x they pass the family to the API and use its behaviour. New input formats are also supported. [GH-12223]
  * provider/google: removed the unused and deprecated region field from google_compute_backend_service [GH-12663]
  * provider/google: removed the deprecated account_file field for the Google Cloud provider [GH-12668]
+ * provider/google: removed the deprecated fields from google_project [GH-12659]
 
 IMPROVEMENTS:
 
