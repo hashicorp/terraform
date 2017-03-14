@@ -840,7 +840,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	d.SetPartial("apply_immediately")
 
 	if !d.Get("apply_immediately").(bool) {
-		log.Println("[INFO] Only settings updating, instances changes will be applied in next maintenance window")
+		log.Println("[INFO] Only settings updating, instance changes will be applied in next maintenance window")
 	}
 
 	requestUpdate := false
