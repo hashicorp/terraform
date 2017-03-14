@@ -47,7 +47,6 @@ func resourceIBMCloudInfraSSHKey() *schema.Resource {
 			"notes": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  nil,
 			},
 		},
 	}
@@ -136,7 +135,6 @@ func resourceIBMCloudInfraSSHKeyRead(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error retrieving SSH key: %s", err)
 	}
 
-	d.Set("id", key.Id)
 	d.Set("label", key.Label)
 	d.Set("public_key", key.Key)
 	d.Set("fingerprint", key.Fingerprint)
@@ -176,7 +174,7 @@ func resourceIBMCloudInfraSSHKeyDelete(d *schema.ResourceData, meta interface{})
 
 	id, err := strconv.Atoi(d.Id())
 	if err != nil {
-		return fmt.Errorf("Error deleting SSH Key: %s", err)
+		return fmt.Errorf("Error parsing SSH Key ID: %+v", err)
 	}
 
 	log.Printf("[INFO] Deleting SSH key: %d", id)

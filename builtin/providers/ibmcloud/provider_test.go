@@ -1,6 +1,8 @@
 package ibmcloud
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -29,15 +31,19 @@ func TestProvider_impl(t *testing.T) {
 
 func testAccPreCheck(t *testing.T) {
 
-	requiredEnv := map[string]string{
-		"ibmid":    "IBMID",
-		"password": "IBMID_PASSWORD",
+	if v := os.Getenv("IBMID"); v == "" {
+		t.Fatal("IBMID must be set for acceptance tests")
+	}
+	if v := os.Getenv("IBMID_PASSWORD"); v == "" {
+		t.Fatal("IBMID_PASSWORD must be set for acceptance tests")
 	}
 
-	for _, param := range []string{"ibmid", "ibmid_password"} {
-		value, _ := testAccProvider.Schema[param].DefaultFunc()
-		if value == "" {
-			t.Fatalf("%s must be set for acceptance test", requiredEnv[param])
-		}
+	slAccountNumber, err := schema.MultiEnvDefaultFunc([]string{"SL_ACCOUNT_NUMBER", "SOFTLAYER_ACCOUNT_NUMBER"}, "")()
+	if err != nil {
+		t.Fatalf("Failed to check env variables SL_ACCOUNT_NUMBER and SOFTLAYER_ACCOUNT_NUMBER %+v", err)
+	}
+	if slAccountNumber == "" {
+		fmt.Println("[WARN] Test: SL_ACCOUNT_NUMBER or SOFTLAYER_ACCOUNT_NUMBER not set.", "Test will use the default SoftLayer account number that you have linked with your IBM ID.",
+			"You can check your default account number from the SoftLayer control portal. You can also set the default Account Number in the portal if you have more than one account")
 	}
 }

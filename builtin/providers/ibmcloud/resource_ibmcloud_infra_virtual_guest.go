@@ -170,7 +170,8 @@ func resourceIBMCloudInfraVirtualGuest() *schema.Resource {
 					}
 					return o == n
 				},
-				Default: 100,
+				Default:      100,
+				ValidateFunc: validateNetworkSpeed,
 			},
 
 			"ipv4_address": {
@@ -228,6 +229,7 @@ func resourceIBMCloudInfraVirtualGuest() *schema.Resource {
 					}
 					return true
 				},
+				ValidateFunc: validateSecondaryIPCount,
 			},
 
 			"secondary_ip_addresses": {
@@ -250,14 +252,13 @@ func resourceIBMCloudInfraVirtualGuest() *schema.Resource {
 			"local_disk": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
+				Default:  true,
 				ForceNew: true,
 			},
 
 			"post_install_script_uri": {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  nil,
 				ForceNew: true,
 			},
 
@@ -1066,4 +1067,24 @@ func setGuestTags(id int, tags string, meta interface{}) error {
 		return fmt.Errorf("Could not set tags on virtual guest %d", id)
 	}
 	return nil
+}
+
+func validateSecondaryIPCount(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(int)
+	if !(value == 4 || value == 8) {
+		errors = append(errors, fmt.Errorf("secondary_ip_count must be either 4 or 8. Provided value is %d", value))
+	}
+	return
+}
+
+func validateNetworkSpeed(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(int)
+	switch value {
+	case 10:
+	case 100:
+	case 1000:
+	default:
+		errors = append(errors, fmt.Errorf("network_speed permissible values are 10, 100 and 1000. The values are in Mbps. Provided value is %d", value))
+	}
+	return
 }

@@ -15,53 +15,16 @@ Use the navigation menu on the left to read about the available resources.
 
 ## Example Usage
 
-Here is an example that sets up the following resources:
-
-+ An SSH key.
-+ A virtual server that uses an existing SSH key.
-+ A virtual server that uses an existing SSH key and a Terraform-managed SSH key (created as `test_key_1` in the example below).
-
-Add the following code to a file called `sl.tf` and run the `terraform` command from the same directory:
-
-```hcl
-# Configure the IBM Cloud Provider
+```
+# Define the Provider Settings
 provider "ibmcloud" {
-    ibmid = "${var.ibmcloud_bmx_user}"
-    ibmid_password = "${var.ibmcloud_bmx_pass}"
+    ibmid          = "your-ibm-id"
+    ibmid_password = "your-ibm-id-password"
 }
 
-# Create an SSH key. The SSH key surfaces in the SoftLayer console under Devices > Manage > SSH Keys.
+# Create an SSH key.
 resource "ibmcloud_infra_ssh_key" "test_key_1" {
-    label = "test_key_1"
-    public_key = "${file(\"~/.ssh/id_rsa_test_key_1.pub\")}"
-    # Windows example:
-    # public_key = "${file(\"C:\ssh\keys\path\id_rsa_test_key_1.pub\")}"
-}
-
-# Virtual server created with existing SSH key in SoftLayer \
-# Inventory and not created using this Terraform template.
-resource "ibmcloud_infra_virtual_guest" "my_server_1" {
-    hostname = "host-a.example.com"
-    domain = "example.com"
-    ssh_key_ids = [123456]
-    os_reference_code = "DEBIAN_7_64"
-    datacenter = "ams01"
-    network_speed = 10
-    cores = 1
-    memory = 1024
-}
-
-# Virtual server created with a mix of previously existing and \
-# Terraform-managed resources.
-resource "ibmcloud_infra_virtual_guest" "my_server_2" {
-    hostname = "host-b.example.com"
-    domain = "example.com"
-    ssh_keys = [123456, "${ibmcloud_infra_ssh_key.test_key_1.id}"]
-    os_reference_code = "CENTOS_6_64"
-    datacenter = "ams01"
-    network_speed = 10
-    cores = 1
-    memory = 1024
+  ...
 }
 ```
 
@@ -90,15 +53,22 @@ provider "ibmcloud" {
 
 You can provide your credentials via the `IBMID` and `IBMID_PASSWORD` environment variables, representing your IBM ID, IBM ID password respectively.  
 
+Suppose you have below contents in your configuration file (.tf file)
+
 ```
-provider "ibmcloud" {}
+# Create a virtual guest
+resource "ibmcloud_infra_virtual_guest" "my_virtual_guest" {
+  ...
+}
 ```
 
-Usage:
+Notice we don't specify the provider details in the above configuration. You can simply export the
+required environment variables as shown below and provider will be configured without explicity
+specifying them in a provider block.
 
 ```
 $ export IBMID="ibmid"
-$ export IBMID_PASSWORD="password"
+$ export IBMID_PASSWORD="ibmid_password"
 $ terraform plan
 ```
 

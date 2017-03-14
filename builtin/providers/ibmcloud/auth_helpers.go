@@ -190,7 +190,7 @@ func fetchIMSToken(c *Config, iamToken string) (imstoken string, imsuserid int, 
 		if jsonResponse.Code != "" {
 			//should never happen as status code is 200 here
 			log.Printf("[SEVERE] Permanent failure occured while acquiring IMS token")
-			panic(jsonResponse)
+			return "", 0, jsonResponse
 		}
 
 		log.Printf("[INFO] IMS token aquired")

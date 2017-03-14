@@ -6,9 +6,9 @@ description: |-
   Manages IBM Cloud infrastructure SSH Keys.
 ---
 
-# ibmcloud\_infra_ssh_key
+# ibmcloud\_infra\_ssh\_key
 
-Provides SSK keys. This allows SSH keys to be created, updated and deleted.
+Provides SSH keys. This allows SSH keys to be created, updated and deleted.
 For additional details please refer to [API documentation](http://sldn.softlayer.com/reference/datatypes/SoftLayer_Security_Ssh_Key).
 
 ## Example Usage
@@ -26,10 +26,9 @@ resource "ibmcloud_infra_ssh_key" "test_ssh_key" {
 The following arguments are supported:
 
 * `label` - (Required) A descriptive name used to identify an SSH key.
-* `public_key` - (Required) The public SSH key.
+* `public_key` - (Required) The public SSH key. Changing this forces a new resource to be created.
 * `notes` - (Optional) A small note about an SSH key to use at your discretion.
 
-The `label` and `notes` fields are editable.
 
 ## Attributes Reference
 
