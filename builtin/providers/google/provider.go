@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"google.golang.org/api/compute/v1"
@@ -17,11 +16,10 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"account_file": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				DefaultFunc:  schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
-				ValidateFunc: validateAccountFile,
-				Removed:      "Use the credentials field instead",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
+				Removed:     "Use the credentials field instead",
 			},
 
 			"credentials": &schema.Schema{
@@ -126,34 +124,6 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	return &config, nil
-}
-
-func validateAccountFile(v interface{}, k string) (warnings []string, errors []error) {
-	if v == nil {
-		return
-	}
-
-	value := v.(string)
-
-	if value == "" {
-		return
-	}
-
-	contents, wasPath, err := pathorcontents.Read(value)
-	if err != nil {
-		errors = append(errors, fmt.Errorf("Error loading Account File: %s", err))
-	}
-	if wasPath {
-		errors = append(errors, fmt.Errorf(`Error loading credentials; they were provided as a path instead of file contents. Please use ${file("%s")} instead.`, value))
-	}
-
-	var account accountFile
-	if err := json.Unmarshal([]byte(contents), &account); err != nil {
-		errors = append(errors,
-			fmt.Errorf("account_file not valid JSON '%s': %s", contents, err))
-	}
-
-	return
 }
 
 func validateCredentials(v interface{}, k string) (warnings []string, errors []error) {
