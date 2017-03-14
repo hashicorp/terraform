@@ -92,6 +92,9 @@ The following arguments are supported:
     If `create_option` is `Copy`, then the value must be equal to or greater than the source's size.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
+For more information on managed disks, such as sizing options and pricing, please check out the
+[azure documentation](https://docs.microsoft.com/en-us/azure/storage/storage-managed-disks-overview).
+
 ## Attributes Reference
 
 The following attributes are exported:
