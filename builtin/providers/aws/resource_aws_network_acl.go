@@ -28,20 +28,20 @@ func resourceAwsNetworkAcl() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 				Computed: false,
 			},
-			"subnet_id": &schema.Schema{
+			"subnet_id": {
 				Type:       schema.TypeString,
 				Optional:   true,
 				ForceNew:   true,
 				Computed:   false,
 				Deprecated: "Attribute subnet_id is deprecated on network_acl resources. Use subnet_ids instead",
 			},
-			"subnet_ids": &schema.Schema{
+			"subnet_ids": {
 				Type:          schema.TypeSet,
 				Optional:      true,
 				Computed:      true,
@@ -49,42 +49,46 @@ func resourceAwsNetworkAcl() *schema.Resource {
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Set:           schema.HashString,
 			},
-			"ingress": &schema.Schema{
+			"ingress": {
 				Type:     schema.TypeSet,
 				Required: false,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"from_port": &schema.Schema{
+						"from_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"to_port": &schema.Schema{
+						"to_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"rule_no": &schema.Schema{
+						"rule_no": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"action": &schema.Schema{
+						"action": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"cidr_block": &schema.Schema{
+						"cidr_block": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"icmp_type": &schema.Schema{
+						"ipv6_cidr_block": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"icmp_type": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"icmp_code": &schema.Schema{
+						"icmp_code": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
@@ -92,42 +96,46 @@ func resourceAwsNetworkAcl() *schema.Resource {
 				},
 				Set: resourceAwsNetworkAclEntryHash,
 			},
-			"egress": &schema.Schema{
+			"egress": {
 				Type:     schema.TypeSet,
 				Required: false,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"from_port": &schema.Schema{
+						"from_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"to_port": &schema.Schema{
+						"to_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"rule_no": &schema.Schema{
+						"rule_no": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"action": &schema.Schema{
+						"action": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"cidr_block": &schema.Schema{
+						"cidr_block": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"icmp_type": &schema.Schema{
+						"ipv6_cidr_block": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"icmp_type": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"icmp_code": &schema.Schema{
+						"icmp_code": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
@@ -389,25 +397,36 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, conn *ec2
 				}
 			}
 
-			// AWS mutates the CIDR block into a network implied by the IP and
-			// mask provided. This results in hashing inconsistencies between
-			// the local config file and the state returned by the API. Error
-			// if the user provides a CIDR block with an inappropriate mask
-			if err := validateCIDRBlock(*add.CidrBlock); err != nil {
-				return err
+			if add.CidrBlock != nil {
+				// AWS mutates the CIDR block into a network implied by the IP and
+				// mask provided. This results in hashing inconsistencies between
+				// the local config file and the state returned by the API. Error
+				// if the user provides a CIDR block with an inappropriate mask
+				if err := validateCIDRBlock(*add.CidrBlock); err != nil {
+					return err
+				}
 			}
 
-			// Add new Acl entry
-			_, connErr := conn.CreateNetworkAclEntry(&ec2.CreateNetworkAclEntryInput{
+			createOpts := &ec2.CreateNetworkAclEntryInput{
 				NetworkAclId: aws.String(d.Id()),
-				CidrBlock:    add.CidrBlock,
 				Egress:       add.Egress,
 				PortRange:    add.PortRange,
 				Protocol:     add.Protocol,
 				RuleAction:   add.RuleAction,
 				RuleNumber:   add.RuleNumber,
 				IcmpTypeCode: add.IcmpTypeCode,
-			})
+			}
+
+			if add.CidrBlock != nil {
+				createOpts.CidrBlock = add.CidrBlock
+			}
+
+			if add.Ipv6CidrBlock != nil {
+				createOpts.Ipv6CidrBlock = add.Ipv6CidrBlock
+			}
+
+			// Add new Acl entry
+			_, connErr := conn.CreateNetworkAclEntry(createOpts)
 			if connErr != nil {
 				return fmt.Errorf("Error creating %s entry: %s", entryType, connErr)
 			}
@@ -520,7 +539,13 @@ func resourceAwsNetworkAclEntryHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", protocol))
 	}
 
-	buf.WriteString(fmt.Sprintf("%s-", m["cidr_block"].(string)))
+	if v, ok := m["cidr_block"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m["ipv6_cidr_block"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
 
 	if v, ok := m["ssl_certificate_id"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
@@ -539,11 +564,11 @@ func resourceAwsNetworkAclEntryHash(v interface{}) int {
 func getDefaultNetworkAcl(vpc_id string, conn *ec2.EC2) (defaultAcl *ec2.NetworkAcl, err error) {
 	resp, err := conn.DescribeNetworkAcls(&ec2.DescribeNetworkAclsInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name:   aws.String("default"),
 				Values: []*string{aws.String("true")},
 			},
-			&ec2.Filter{
+			{
 				Name:   aws.String("vpc-id"),
 				Values: []*string{aws.String(vpc_id)},
 			},
@@ -559,7 +584,7 @@ func getDefaultNetworkAcl(vpc_id string, conn *ec2.EC2) (defaultAcl *ec2.Network
 func findNetworkAclAssociation(subnetId string, conn *ec2.EC2) (networkAclAssociation *ec2.NetworkAclAssociation, err error) {
 	resp, err := conn.DescribeNetworkAcls(&ec2.DescribeNetworkAclsInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name:   aws.String("association.subnet-id"),
 				Values: []*string{aws.String(subnetId)},
 			},
@@ -587,8 +612,12 @@ func networkAclEntriesToMapList(networkAcls []*ec2.NetworkAclEntry) []map[string
 		acl := make(map[string]interface{})
 		acl["rule_no"] = *entry.RuleNumber
 		acl["action"] = *entry.RuleAction
-		acl["cidr_block"] = *entry.CidrBlock
-
+		if entry.CidrBlock != nil {
+			acl["cidr_block"] = *entry.CidrBlock
+		}
+		if entry.Ipv6CidrBlock != nil {
+			acl["ipv6_cidr_block"] = *entry.Ipv6CidrBlock
+		}
 		// The AWS network ACL API only speaks protocol numbers, and
 		// that's all we record.
 		if _, err := strconv.Atoi(*entry.Protocol); err != nil {

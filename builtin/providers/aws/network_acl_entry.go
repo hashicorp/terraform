@@ -32,7 +32,14 @@ func expandNetworkAclEntries(configured []interface{}, entryType string) ([]*ec2
 			Egress:     aws.Bool(entryType == "egress"),
 			RuleAction: aws.String(data["action"].(string)),
 			RuleNumber: aws.Int64(int64(data["rule_no"].(int))),
-			CidrBlock:  aws.String(data["cidr_block"].(string)),
+		}
+
+		if v, ok := data["ipv6_cidr_block"]; ok {
+			e.Ipv6CidrBlock = aws.String(v.(string))
+		}
+
+		if v, ok := data["cidr_block"]; ok {
+			e.CidrBlock = aws.String(v.(string))
 		}
 
 		// Specify additional required fields for ICMP
@@ -55,14 +62,24 @@ func flattenNetworkAclEntries(list []*ec2.NetworkAclEntry) []map[string]interfac
 	entries := make([]map[string]interface{}, 0, len(list))
 
 	for _, entry := range list {
-		entries = append(entries, map[string]interface{}{
-			"from_port":  *entry.PortRange.From,
-			"to_port":    *entry.PortRange.To,
-			"action":     *entry.RuleAction,
-			"rule_no":    *entry.RuleNumber,
-			"protocol":   *entry.Protocol,
-			"cidr_block": *entry.CidrBlock,
-		})
+
+		newEntry := map[string]interface{}{
+			"from_port": *entry.PortRange.From,
+			"to_port":   *entry.PortRange.To,
+			"action":    *entry.RuleAction,
+			"rule_no":   *entry.RuleNumber,
+			"protocol":  *entry.Protocol,
+		}
+
+		if entry.CidrBlock != nil {
+			newEntry["cidr_block"] = *entry.CidrBlock
+		}
+
+		if entry.Ipv6CidrBlock != nil {
+			newEntry["ipv6_cidr_block"] = *entry.Ipv6CidrBlock
+		}
+
+		entries = append(entries, newEntry)
 	}
 
 	return entries
