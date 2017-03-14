@@ -298,6 +298,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_flow_log":                                 resourceAwsFlowLog(),
 			"aws_glacier_vault":                            resourceAwsGlacierVault(),
 			"aws_iam_access_key":                           resourceAwsIamAccessKey(),
+			"aws_iam_account_alias":                        resourceAwsIamAccountAlias(),
 			"aws_iam_account_password_policy":              resourceAwsIamAccountPasswordPolicy(),
 			"aws_iam_group_policy":                         resourceAwsIamGroupPolicy(),
 			"aws_iam_group":                                resourceAwsIamGroup(),
