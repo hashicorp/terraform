@@ -22,6 +22,7 @@ BUG FIXES:
 
  * provider/google: Correct the incorrect instance group manager URL returned from GKE [GH-4336]
  * provider/google: Fix a plan/apply cycle in IAM policies [GH-12387]
+ * provider/google: Fix a plan/apply cycle in forwarding rules when only a single port is specified [GH-12662]
  
 ## 0.9.0-beta2 (March 2, 2017)
 
