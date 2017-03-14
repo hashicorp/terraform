@@ -205,15 +205,6 @@ func testAccCheckGoogleProjectHasMoreBindingsThan(pid string, count int) resourc
 	}
 }
 
-func testAccGoogleProjectImportExisting(pid string) string {
-	return fmt.Sprintf(`
-resource "google_project" "acceptance" {
-    project_id = "%s"
-
-}
-`, pid)
-}
-
 func testAccGoogleProject_toMerge(pid, name, org string) string {
 	return fmt.Sprintf(`
 resource "google_project" "acceptance" {
