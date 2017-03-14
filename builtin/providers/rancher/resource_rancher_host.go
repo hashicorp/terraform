@@ -10,6 +10,15 @@ import (
 	rancher "github.com/rancher/go-rancher/client"
 )
 
+// ro_labels are used internally by Rancher
+// They are not documented and should not be set in Terraform
+var ro_labels = []string{
+	"io.rancher.host.agent_image",
+	"io.rancher.host.docker_version",
+	"io.rancher.host.kvm",
+	"io.rancher.host.linux_kernel_version",
+}
+
 func resourceRancherHost() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceRancherHostCreate,
@@ -73,7 +82,6 @@ func resourceRancherHostCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(host.Id)
-	name := d.Get("name").(string)
 
 	return resourceRancherHostUpdate(d, meta)
 }
@@ -95,6 +103,12 @@ func resourceRancherHostRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("description", host.Description)
 	d.Set("name", host.Name)
 	d.Set("hostname", host.Hostname)
+
+	labels := host.Labels
+	// Remove read-only labels
+	for _, lbl := range ro_labels {
+		delete(labels, lbl)
+	}
 	d.Set("labels", host.Labels)
 
 	return nil
@@ -109,7 +123,16 @@ func resourceRancherHostUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	name := d.Get("name").(string)
 	description := d.Get("description").(string)
+
+	// Process labels: merge ro_labels into new labels
 	labels := d.Get("labels").(map[string]interface{})
+	host, err := client.Host.ById(d.Id())
+	if err != nil {
+		return err
+	}
+	for _, lbl := range ro_labels {
+		labels[lbl] = host.Labels[lbl]
+	}
 
 	data := map[string]interface{}{
 		"name":        &name,
@@ -118,11 +141,6 @@ func resourceRancherHostUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	var newHost rancher.Host
-	host, err := client.Host.ById(d.Id())
-	if err != nil {
-		return err
-	}
-
 	if err := client.Update("host", &host.Resource, data, &newHost); err != nil {
 		return err
 	}
