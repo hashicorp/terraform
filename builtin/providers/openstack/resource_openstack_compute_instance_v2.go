@@ -324,6 +324,11 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"force_delete": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -882,9 +887,18 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	err = servers.Delete(computeClient, d.Id()).ExtractErr()
-	if err != nil {
-		return fmt.Errorf("Error deleting OpenStack server: %s", err)
+	if d.Get("force_delete").(bool) {
+		log.Printf("[DEBUG] Force deleting OpenStack Instance %s", d.Id())
+		err = servers.ForceDelete(computeClient, d.Id()).ExtractErr()
+		if err != nil {
+			return fmt.Errorf("Error deleting OpenStack server: %s", err)
+		}
+	} else {
+		log.Printf("[DEBUG] Deleting OpenStack Instance %s", d.Id())
+		err = servers.Delete(computeClient, d.Id()).ExtractErr()
+		if err != nil {
+			return fmt.Errorf("Error deleting OpenStack server: %s", err)
+		}
 	}
 
 	// Wait for the instance to delete before moving on.
