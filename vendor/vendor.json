@@ -1329,6 +1329,42 @@
 			"revisionTime": "2017-02-21T19:08:14Z"
 		},
 		{
+			"checksumSHA1": "VTxWyFud/RedrpllGdQonVtGM/A=",
+			"path": "github.com/docker/docker/api/types/strslice",
+			"revision": "b248de7e332b6e67b08a8981f68060e6ae629ccf",
+			"revisionTime": "2016-09-15T05:15:42Z"
+		},
+		{
+			"checksumSHA1": "28zvWJsE4skyLANiN3Png632NLM=",
+			"path": "github.com/docker/docker/pkg/urlutil",
+			"revision": "b248de7e332b6e67b08a8981f68060e6ae629ccf",
+			"revisionTime": "2016-09-15T05:15:42Z"
+		},
+		{
+			"checksumSHA1": "lEqVJt7+iIa0nMKYWIUoQhh9VTM=",
+			"path": "github.com/docker/go-connections/nat",
+			"revision": "990a1a1a70b0da4c4cb70e117971a4f0babfbf1a",
+			"revisionTime": "2016-06-08T02:44:54Z"
+		},
+		{
+			"checksumSHA1": "P03iBfOzJJIhNWtskEWCoaEamBs=",
+			"path": "github.com/docker/libcompose/config",
+			"revision": "f5739a73c53493ebd1ff76d6ec95f3fc1c478c38",
+			"revisionTime": "2017-02-24T10:46:12Z"
+		},
+		{
+			"checksumSHA1": "VCGi4eudukyWy7ulSjKeEHCyfks=",
+			"path": "github.com/docker/libcompose/utils",
+			"revision": "f5739a73c53493ebd1ff76d6ec95f3fc1c478c38",
+			"revisionTime": "2017-02-24T10:46:12Z"
+		},
+		{
+			"checksumSHA1": "qUasAZHQeUb/16j062vNLffMhlA=",
+			"path": "github.com/docker/libcompose/yaml",
+			"revision": "f5739a73c53493ebd1ff76d6ec95f3fc1c478c38",
+			"revisionTime": "2017-02-24T10:46:12Z"
+		},
+		{
 			"checksumSHA1": "zkENTbOfU8YoxPfFwVAhTz516Dg=",
 			"path": "github.com/dustin/go-humanize",
 			"revision": "7a41df006ff9af79a29f0ffa9c5f21fbe6314a2d",
@@ -1377,6 +1413,12 @@
 			"path": "github.com/fatih/structs",
 			"revision": "a720dfa8df582c51dee1b36feabb906bde1588bd",
 			"revisionTime": "2017-01-03T08:10:50Z"
+		},
+		{
+			"checksumSHA1": "VdXZPcDRHK1T7XjBu2KW8Mb8S6w=",
+			"path": "github.com/flynn/go-shlex",
+			"revision": "3f9db97f856818214da2e1057f8ad84803971cff",
+			"revisionTime": "2015-05-15T14:53:56Z"
 		},
 		{
 			"checksumSHA1": "n25vuAkZbpXDMGrutoefN+b4g+M=",
@@ -2880,6 +2922,24 @@
 			"path": "github.com/xanzy/ssh-agent",
 			"revision": "ba9c9e33906f58169366275e3450db66139a31a9",
 			"revisionTime": "2015-12-15T15:34:51Z"
+		},
+		{
+			"checksumSHA1": "B9K+5clCq0PU8n8/utbKT0QjQyU=",
+			"path": "github.com/xeipuuv/gojsonpointer",
+			"revision": "6fe8760cad3569743d51ddbb243b26f8456742dc",
+			"revisionTime": "2017-02-25T23:34:18Z"
+		},
+		{
+			"checksumSHA1": "pSoUW+qY6LwIJ5lFwGohPU5HUpg=",
+			"path": "github.com/xeipuuv/gojsonreference",
+			"revision": "e02fc20de94c78484cd5ffb007f8af96be030a45",
+			"revisionTime": "2015-08-08T06:50:54Z"
+		},
+		{
+			"checksumSHA1": "yuSXFgYAa6NfA3+8Kv1s7pYdFZE=",
+			"path": "github.com/xeipuuv/gojsonschema",
+			"revision": "ff0417f4272e480246b4507459b3f6ae721a87ac",
+			"revisionTime": "2017-02-25T17:21:24Z"
 		},
 		{
 			"checksumSHA1": "eXEiPlpDRaamJQ4vPX/9t333kQc=",
