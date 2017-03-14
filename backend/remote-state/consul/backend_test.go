@@ -47,3 +47,18 @@ func TestBackend(t *testing.T) {
 	// Test
 	backend.TestBackend(t, b)
 }
+
+func TestBackend_gzip(t *testing.T) {
+	srv := newConsulTestServer(t)
+	defer srv.Stop()
+
+	// Get the backend
+	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
+		"address": srv.HTTPAddr,
+		"path":    fmt.Sprintf("tf-unit/%s", time.Now().String()),
+		"gzip":    true,
+	})
+
+	// Test
+	backend.TestBackend(t, b)
+}
