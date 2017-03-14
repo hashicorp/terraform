@@ -221,11 +221,11 @@ func testAccCheckContainerCluster(n string) resource.TestCheckFunc {
 		}
 
 		// Network has to be done separately in order to normalize the two values
-		tf, err := getNetworkNameFromString(attributes["network"])
+		tf, err := getNetworkNameFromSelfLink(attributes["network"])
 		if err != nil {
 			return err
 		}
-		gcp, err := getNetworkNameFromString(cluster.Network)
+		gcp, err := getNetworkNameFromSelfLink(cluster.Network)
 		if err != nil {
 			return err
 		}

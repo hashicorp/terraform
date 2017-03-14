@@ -236,7 +236,7 @@ func getNetworkLink(d *schema.ResourceData, config *Config, field string) (strin
 func getNetworkName(d *schema.ResourceData, field string) (string, error) {
 	if v, ok := d.GetOk(field); ok {
 		network := v.(string)
-		return getNetworkNameFromString(network)
+		return getNetworkNameFromSelfLink(network)
 	}
 	return "", nil
 }
