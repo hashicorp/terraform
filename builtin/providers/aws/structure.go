@@ -216,6 +216,12 @@ func expandIPPerms(
 				perm.IpRanges = append(perm.IpRanges, &ec2.IpRange{CidrIp: aws.String(v.(string))})
 			}
 		}
+		if raw, ok := m["ipv6_cidr_blocks"]; ok {
+			list := raw.([]interface{})
+			for _, v := range list {
+				perm.Ipv6Ranges = append(perm.Ipv6Ranges, &ec2.Ipv6Range{CidrIpv6: aws.String(v.(string))})
+			}
+		}
 
 		if raw, ok := m["prefix_list_ids"]; ok {
 			list := raw.([]interface{})

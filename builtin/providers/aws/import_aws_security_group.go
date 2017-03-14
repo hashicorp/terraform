@@ -66,11 +66,18 @@ func resourceAwsSecurityGroupImportStatePerm(sg *ec2.SecurityGroup, ruleType str
 			p := &ec2.IpPermission{
 				FromPort:      perm.FromPort,
 				IpProtocol:    perm.IpProtocol,
-				IpRanges:      perm.IpRanges,
 				PrefixListIds: perm.PrefixListIds,
 				ToPort:        perm.ToPort,
 
 				UserIdGroupPairs: []*ec2.UserIdGroupPair{pair},
+			}
+
+			if perm.Ipv6Ranges != nil {
+				p.Ipv6Ranges = perm.Ipv6Ranges
+			}
+
+			if perm.IpRanges != nil {
+				p.IpRanges = perm.IpRanges
 			}
 
 			r, err := resourceAwsSecurityGroupImportStatePermPair(sg, ruleType, p)
