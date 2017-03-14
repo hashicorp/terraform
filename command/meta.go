@@ -208,10 +208,15 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 		vs[k] = v
 	}
 	opts.Variables = vs
+
 	opts.Targets = m.targets
 	opts.UIInput = m.UIInput()
 	opts.Parallelism = m.parallelism
 	opts.Shadow = m.shadow
+
+	opts.Meta = &terraform.ContextMeta{
+		Env: m.Env(),
+	}
 
 	return &opts
 }

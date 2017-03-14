@@ -501,10 +501,13 @@ func (c *Config) Validate() error {
 			// Good
 			case *ModuleVariable:
 			case *ResourceVariable:
+			case *TerraformVariable:
 			case *UserVariable:
 
 			default:
-				panic(fmt.Sprintf("Unknown type in count var in %s: %T", n, v))
+				errs = append(errs, fmt.Errorf(
+					"Internal error. Unknown type in count var in %s: %T",
+					n, v))
 			}
 		}
 

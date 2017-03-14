@@ -84,6 +84,7 @@ func (w *ContextGraphWalker) EnterPath(path []string) EvalContext {
 		StateLock:           &w.Context.stateLock,
 		Interpolater: &Interpolater{
 			Operation:          w.Operation,
+			Meta:               w.Context.meta,
 			Module:             w.Context.module,
 			State:              w.Context.state,
 			StateLock:          &w.Context.stateLock,

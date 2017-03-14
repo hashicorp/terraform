@@ -893,6 +893,33 @@ func TestInterpolater_resourceUnknownVariableList(t *testing.T) {
 		interfaceToVariableSwallowError([]interface{}{}))
 }
 
+func TestInterpolater_terraformEnv(t *testing.T) {
+	i := &Interpolater{
+		Meta: &ContextMeta{Env: "foo"},
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "terraform.env", ast.Variable{
+		Value: "foo",
+		Type:  ast.TypeString,
+	})
+}
+
+func TestInterpolater_terraformInvalid(t *testing.T) {
+	i := &Interpolater{
+		Meta: &ContextMeta{Env: "foo"},
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolateErr(t, i, scope, "terraform.nope")
+}
+
 func testInterpolate(
 	t *testing.T, i *Interpolater,
 	scope *InterpolationScope,
