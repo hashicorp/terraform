@@ -949,3 +949,28 @@ func validateAccountAlias(v interface{}, k string) (ws []string, es []error) {
 
 	return
 }
+
+func validateIamRolePolicyName(v interface{}, k string) (ws []string, errors []error) {
+	// https://github.com/boto/botocore/blob/2485f5c/botocore/data/iam/2010-05-08/service-2.json#L8291-L8296
+	value := v.(string)
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 128 characters", k))
+	}
+	if !regexp.MustCompile("^[\\w+=,.@-]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must match [\\w+=,.@-]", k))
+	}
+	return
+}
+
+func validateIamRolePolicyNamePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 100 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 100 characters", k))
+	}
+	if !regexp.MustCompile("^[\\w+=,.@-]+$").MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q must match [\\w+=,.@-]", k))
+	}
+	return
+}
