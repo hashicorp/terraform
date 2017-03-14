@@ -177,11 +177,11 @@ The `disk` block supports:
     to the name of the instance.
 
 * `source_image` - (Required if source not set) The image from which to
-    initialize this disk. This can be one of: the image self_link,
-    projects/{project}/global/images/{image},
-    projects/{project}/global/images/family/{family}, global/images/{image},
-    global/images/family/{family}, family/{family}, {project}/{family},
-    {project}/{image}, {family}, or {image}.
+    initialize this disk. This can be one of: the image's `self_link`,
+    `projects/{project}/global/images/{image}`,
+    `projects/{project}/global/images/family/{family}`, `global/images/{image}`,
+    `global/images/family/{family}`, `family/{family}`, `{project}/{family}`,
+    `{project}/{image}`, `{family}`, or `{image}`.
 
 * `interface` - (Optional) Specifies the disk interface to use for attaching
     this disk.

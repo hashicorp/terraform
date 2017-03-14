@@ -38,10 +38,10 @@ The following arguments are supported:
     to encrypt this disk.
 
 * `image` - (Optional) The image from which to initialize this disk. This can be
-    one of: the image self_link, projects/{project}/global/images/{image},
-    projects/{project}/global/images/family/{family}, global/images/{image},
-    global/images/family/{family}, family/{family}, {project}/{family},
-    {project}/{image}, {family}, or {image}.
+    one of: the image's `self_link`, `projects/{project}/global/images/{image}`,
+    `projects/{project}/global/images/family/{family}`, `global/images/{image}`,
+    `global/images/family/{family}`, `family/{family}`, `{project}/{family}`,
+    `{project}/{image}`, `{family}`, or `{image}`.
 
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.
