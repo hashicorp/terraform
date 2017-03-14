@@ -191,23 +191,11 @@ func resourceArmManagedDiskRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("location", resp.Location)
 
 	if resp.Properties != nil {
-		m := flattenAzureRmManagedDiskProperties(resp.Properties)
-		d.Set("storage_account_type", m["storage_account_type"])
-		d.Set("disk_size_gb", m["disk_size_gb"])
-		if m["os_type"] != nil {
-			d.Set("os_type", m["os_type"])
-		}
+		flattenAzureRmManagedDiskProperties(d, resp.Properties)
 	}
 
 	if resp.CreationData != nil {
-		m := flattenAzureRmManagedDiskCreationData(resp.CreationData)
-		d.Set("create_option", m["create_option"])
-		if m["source_uri"] != nil {
-			d.Set("source_uri", m["source_uri"])
-		}
-		if m["source_resource_id"] != nil {
-			d.Set("source_resource_id", m["source_resource_id"])
-		}
+		flattenAzureRmManagedDiskCreationData(d, resp.CreationData)
 	}
 
 	flattenAndSetTags(d, resp.Tags)
@@ -232,25 +220,19 @@ func resourceArmManagedDiskDelete(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func flattenAzureRmManagedDiskProperties(properties *disk.Properties) map[string]interface{} {
-	result := make(map[string]interface{})
-	result["storage_account_type"] = string(properties.AccountType)
+func flattenAzureRmManagedDiskProperties(d *schema.ResourceData, properties *disk.Properties) {
+	d.Set("storage_account_type", string(properties.AccountType))
 	if properties.DiskSizeGB != nil {
-		result["disk_size_gb"] = *properties.DiskSizeGB
+		d.Set("disk_size_gb", *properties.DiskSizeGB)
 	}
 	if properties.OsType != "" {
-		result["os_type"] = string(properties.OsType)
+		d.Set("os_type", string(properties.OsType))
 	}
-
-	return result
 }
 
-func flattenAzureRmManagedDiskCreationData(creationData *disk.CreationData) map[string]interface{} {
-	result := make(map[string]interface{})
-	result["create_option"] = string(creationData.CreateOption)
+func flattenAzureRmManagedDiskCreationData(d *schema.ResourceData, creationData *disk.CreationData) {
+	d.Set("create_option", string(creationData.CreateOption))
 	if creationData.SourceURI != nil {
-		result["source_uri"] = *creationData.SourceURI
+		d.Set("source_uri", *creationData.SourceURI)
 	}
-
-	return result
 }
