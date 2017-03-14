@@ -52,15 +52,15 @@ func TestIpPermissionIDHash(t *testing.T) {
 		FromPort:   aws.Int64(int64(80)),
 		ToPort:     aws.Int64(int64(8000)),
 		UserIdGroupPairs: []*ec2.UserIdGroupPair{
-			&ec2.UserIdGroupPair{
+			{
 				UserId:  aws.String("987654321"),
 				GroupId: aws.String("sg-12345678"),
 			},
-			&ec2.UserIdGroupPair{
+			{
 				UserId:  aws.String("123456789"),
 				GroupId: aws.String("sg-987654321"),
 			},
-			&ec2.UserIdGroupPair{
+			{
 				UserId:  aws.String("123456789"),
 				GroupId: aws.String("sg-12345678"),
 			},
@@ -72,15 +72,15 @@ func TestIpPermissionIDHash(t *testing.T) {
 		FromPort:   aws.Int64(int64(80)),
 		ToPort:     aws.Int64(int64(8000)),
 		UserIdGroupPairs: []*ec2.UserIdGroupPair{
-			&ec2.UserIdGroupPair{
+			{
 				UserId:    aws.String("987654321"),
 				GroupName: aws.String("my-security-group"),
 			},
-			&ec2.UserIdGroupPair{
+			{
 				UserId:    aws.String("123456789"),
 				GroupName: aws.String("my-security-group"),
 			},
-			&ec2.UserIdGroupPair{
+			{
 				UserId:    aws.String("123456789"),
 				GroupName: aws.String("my-other-security-group"),
 			},
@@ -176,6 +176,46 @@ func TestAccAWSSecurityGroupRule_Ingress_Protocol(t *testing.T) {
 					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.ingress_1", &group, nil, "ingress"),
 					resource.TestCheckResourceAttr(
 						"aws_security_group_rule.ingress_1", "from_port", "80"),
+					testRuleCount,
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSecurityGroupRule_Ingress_Ipv6(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	testRuleCount := func(*terraform.State) error {
+		if len(group.IpPermissions) != 1 {
+			return fmt.Errorf("Wrong Security Group rule count, expected %d, got %d",
+				1, len(group.IpPermissions))
+		}
+
+		rule := group.IpPermissions[0]
+		if *rule.FromPort != int64(80) {
+			return fmt.Errorf("Wrong Security Group port setting, expected %d, got %d",
+				80, int(*rule.FromPort))
+		}
+
+		ipv6Address := rule.Ipv6Ranges[0]
+		if *ipv6Address.CidrIpv6 != "::/0" {
+			return fmt.Errorf("Wrong Security Group IPv6 address, expected %s, got %s",
+				"::/0", *ipv6Address.CidrIpv6)
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSSecurityGroupRuleIngress_ipv6Config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
 					testRuleCount,
 				),
 			},
@@ -376,7 +416,7 @@ func TestAccAWSSecurityGroupRule_PartialMatching_Source(t *testing.T) {
 			ToPort:     aws.Int64(80),
 			IpProtocol: aws.String("tcp"),
 			UserIdGroupPairs: []*ec2.UserIdGroupPair{
-				&ec2.UserIdGroupPair{GroupId: nat.GroupId},
+				{GroupId: nat.GroupId},
 			},
 		}
 
@@ -695,6 +735,34 @@ func testAccAWSSecurityGroupRuleIngressConfig(rInt int) string {
 		security_group_id = "${aws_security_group.web.id}"
 	}`, rInt)
 }
+
+const testAccAWSSecurityGroupRuleIngress_ipv6Config = `
+resource "aws_vpc" "tftest" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    Name = "tf-testing"
+  }
+}
+
+resource "aws_security_group" "web" {
+  vpc_id = "${aws_vpc.tftest.id}"
+
+  tags {
+    Name = "tf-acc-test"
+  }
+}
+
+resource "aws_security_group_rule" "ingress_1" {
+  type        = "ingress"
+  protocol    = "6"
+  from_port   = 80
+  to_port     = 8000
+  ipv6_cidr_blocks = ["::/0"]
+
+  security_group_id = "${aws_security_group.web.id}"
+}
+`
 
 const testAccAWSSecurityGroupRuleIngress_protocolConfig = `
 resource "aws_vpc" "tftest" {
