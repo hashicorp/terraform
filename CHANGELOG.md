@@ -12,6 +12,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/aws: `aws_codebuild_project` renamed `timeout` to `build_timeout` [GH-12503]
  * provider/azurem: `azurerm_virtual_machine` and `azurerm_virtual_machine_scale_set` now store has of custom_data not all custom_data [GH-12214]
+ * provider/google: compute_instance, compute_instance_template, and compute_disk all have a subtly changed logic when specifying an image family as the image; in 0.8.x they would pin to the latest image in the family when the resource is created; in 0.9.x they pass the family to the API and use its behaviour. New input formats are also supported. [GH-12223]
 
 IMPROVEMENTS:
 
