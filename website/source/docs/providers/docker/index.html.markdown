@@ -16,12 +16,6 @@ API hosts.
 
 Use the navigation to the left to read about the available resources.
 
-<div class="alert alert-block alert-info">
-<strong>Note:</strong> The Docker provider is new as of Terraform 0.4.
-It is ready to be used but many features are still being added. If there
-is a Docker feature missing, please report it in the GitHub repo.
-</div>
-
 ## Example Usage
 
 ```
