@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -15,6 +16,12 @@ func TestBackend_impl(t *testing.T) {
 }
 
 func newConsulTestServer(t *testing.T) *testutil.TestServer {
+	skip := os.Getenv("TF_ACC") == "" && os.Getenv("TF_CONSUL_TEST") == ""
+	if skip {
+		t.Log("consul server tests require setting TF_ACC or TF_CONSUL_TEST")
+		t.Skip()
+	}
+
 	srv := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
 		c.LogLevel = "warn"
 
