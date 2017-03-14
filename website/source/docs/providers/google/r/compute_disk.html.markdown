@@ -37,9 +37,11 @@ The following arguments are supported:
     encoded in [RFC 4648 base64](https://tools.ietf.org/html/rfc4648#section-4)
     to encrypt this disk.
 
-* `image` - (Optional) The image from which to initialize this disk. Either the
-    full URL, a contraction of the form "project/name", or just a name (in which
-    case the current project is used).
+* `image` - (Optional) The image from which to initialize this disk. This can be
+    one of: the image's `self_link`, `projects/{project}/global/images/{image}`,
+    `projects/{project}/global/images/family/{family}`, `global/images/{image}`,
+    `global/images/family/{family}`, `family/{family}`, `{project}/{family}`,
+    `{project}/{image}`, `{family}`, or `{image}`.
 
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.

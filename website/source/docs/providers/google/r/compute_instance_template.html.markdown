@@ -176,8 +176,12 @@ The `disk` block supports:
 * `disk_name` - (Optional) Name of the disk. When not provided, this defaults
     to the name of the instance.
 
-* `source_image` - (Required if source not set) The name of the image to base
-    this disk off of. Accepts same arguments as a [google_compute_instance image](https://www.terraform.io/docs/providers/google/r/compute_instance.html#image).
+* `source_image` - (Required if source not set) The image from which to
+    initialize this disk. This can be one of: the image's `self_link`,
+    `projects/{project}/global/images/{image}`,
+    `projects/{project}/global/images/family/{family}`, `global/images/{image}`,
+    `global/images/family/{family}`, `family/{family}`, `{project}/{family}`,
+    `{project}/{image}`, `{family}`, or `{image}`.
 
 * `interface` - (Optional) Specifies the disk interface to use for attaching
     this disk.
