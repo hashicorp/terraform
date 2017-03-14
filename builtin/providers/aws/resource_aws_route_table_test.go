@@ -63,7 +63,7 @@ func TestAccAWSRouteTable_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRouteTableConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
@@ -72,7 +72,7 @@ func TestAccAWSRouteTable_basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccRouteTableConfigChange,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
@@ -113,11 +113,40 @@ func TestAccAWSRouteTable_instance(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRouteTableConfigInstance,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
 						"aws_route_table.foo", &v),
+					testCheck,
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRouteTable_ipv6(t *testing.T) {
+	var v ec2.RouteTable
+
+	testCheck := func(*terraform.State) error {
+		// Expect 3: 2 IPv6 (local + all outbound) + 1 IPv4
+		if len(v.Routes) != 3 {
+			return fmt.Errorf("bad routes: %#v", v.Routes)
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route_table.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRouteTableDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRouteTableConfigIpv6,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRouteTableExists("aws_route_table.foo", &v),
 					testCheck,
 				),
 			},
@@ -134,7 +163,7 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRouteTableConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
@@ -142,7 +171,7 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccRouteTableConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
@@ -244,7 +273,7 @@ func TestAccAWSRouteTable_vpcPeering(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRouteTableVpcPeeringConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
@@ -285,7 +314,7 @@ func TestAccAWSRouteTable_vgwRoutePropagation(t *testing.T) {
 			testAccCheckRouteTableDestroy,
 		),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRouteTableVgwRoutePropagationConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
@@ -338,6 +367,26 @@ resource "aws_route_table" "foo" {
 	route {
 		cidr_block = "10.4.0.0/16"
 		gateway_id = "${aws_internet_gateway.foo.id}"
+	}
+}
+`
+
+const testAccRouteTableConfigIpv6 = `
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+  assign_generated_ipv6_cidr_block = true
+}
+
+resource "aws_egress_only_internet_gateway" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_route_table" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+
+	route {
+		ipv6_cidr_block = "::/0"
+		egress_only_gateway_id = "${aws_egress_only_internet_gateway.foo.id}"
 	}
 }
 `
