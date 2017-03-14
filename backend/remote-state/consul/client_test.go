@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/state/remote"
 )
@@ -16,7 +15,7 @@ func TestRemoteClient_impl(t *testing.T) {
 }
 
 func TestRemoteClient(t *testing.T) {
-	srv := testutil.NewTestServer(t)
+	srv := newConsulTestServer(t)
 	defer srv.Stop()
 
 	// Get the backend
@@ -36,7 +35,7 @@ func TestRemoteClient(t *testing.T) {
 }
 
 func TestConsul_stateLock(t *testing.T) {
-	srv := testutil.NewTestServer(t)
+	srv := newConsulTestServer(t)
 	defer srv.Stop()
 
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
