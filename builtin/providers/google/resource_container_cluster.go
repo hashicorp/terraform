@@ -231,6 +231,19 @@ func resourceContainerCluster() *schema.Resource {
 							},
 						},
 
+						"metadata": &schema.Schema{
+							Type:     schema.TypeMap,
+							Optional: true,
+							Elem:     schema.TypeString,
+						},
+
+						"tags": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							ForceNew: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+
 						"oauth_scopes": &schema.Schema{
 							Type:     schema.TypeList,
 							Optional: true,
@@ -367,6 +380,26 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 
 		if v, ok = nodeConfig["disk_size_gb"]; ok {
 			cluster.NodeConfig.DiskSizeGb = int64(v.(int))
+		}
+
+		if v, ok := nodeConfig["metadata"]; ok {
+			metadataMap := v.(map[string]interface{})
+			metadata := map[string]string{}
+			for k, v := range metadataMap {
+				metadata[k] = v.(string)
+			}
+
+			cluster.NodeConfig.Metadata = metadata
+		}
+
+		if v, ok := nodeConfig["tags"]; ok {
+			tagsList := v.([]interface{})
+			tags := []string{}
+			for _, v := range tagsList {
+				tags = append(tags, v.(string))
+			}
+
+			cluster.NodeConfig.Tags = tags
 		}
 
 		if v, ok := nodeConfig["oauth_scopes"]; ok {
@@ -561,6 +594,8 @@ func flattenClusterNodeConfig(c *container.NodeConfig) []map[string]interface{} 
 		map[string]interface{}{
 			"machine_type": c.MachineType,
 			"disk_size_gb": c.DiskSizeGb,
+			"metadata": c.Metadata,
+			"tags": c.Tags,
 		},
 	}
 
