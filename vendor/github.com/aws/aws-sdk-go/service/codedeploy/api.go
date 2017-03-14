@@ -1921,6 +1921,12 @@ func (c *CodeDeploy) ListApplicationRevisionsRequest(input *ListApplicationRevis
 		Name:       opListApplicationRevisions,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -1982,6 +1988,31 @@ func (c *CodeDeploy) ListApplicationRevisions(input *ListApplicationRevisionsInp
 	return out, err
 }
 
+// ListApplicationRevisionsPages iterates over the pages of a ListApplicationRevisions operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListApplicationRevisions method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListApplicationRevisions operation.
+//    pageNum := 0
+//    err := client.ListApplicationRevisionsPages(params,
+//        func(page *ListApplicationRevisionsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *CodeDeploy) ListApplicationRevisionsPages(input *ListApplicationRevisionsInput, fn func(p *ListApplicationRevisionsOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListApplicationRevisionsRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*ListApplicationRevisionsOutput), lastPage)
+	})
+}
+
 const opListApplications = "ListApplications"
 
 // ListApplicationsRequest generates a "aws/request.Request" representing the
@@ -2014,6 +2045,12 @@ func (c *CodeDeploy) ListApplicationsRequest(input *ListApplicationsInput) (req 
 		Name:       opListApplications,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -2045,6 +2082,31 @@ func (c *CodeDeploy) ListApplications(input *ListApplicationsInput) (*ListApplic
 	req, out := c.ListApplicationsRequest(input)
 	err := req.Send()
 	return out, err
+}
+
+// ListApplicationsPages iterates over the pages of a ListApplications operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListApplications method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListApplications operation.
+//    pageNum := 0
+//    err := client.ListApplicationsPages(params,
+//        func(page *ListApplicationsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *CodeDeploy) ListApplicationsPages(input *ListApplicationsInput, fn func(p *ListApplicationsOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListApplicationsRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*ListApplicationsOutput), lastPage)
+	})
 }
 
 const opListDeploymentConfigs = "ListDeploymentConfigs"
@@ -2079,6 +2141,12 @@ func (c *CodeDeploy) ListDeploymentConfigsRequest(input *ListDeploymentConfigsIn
 		Name:       opListDeploymentConfigs,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -2110,6 +2178,31 @@ func (c *CodeDeploy) ListDeploymentConfigs(input *ListDeploymentConfigsInput) (*
 	req, out := c.ListDeploymentConfigsRequest(input)
 	err := req.Send()
 	return out, err
+}
+
+// ListDeploymentConfigsPages iterates over the pages of a ListDeploymentConfigs operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListDeploymentConfigs method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListDeploymentConfigs operation.
+//    pageNum := 0
+//    err := client.ListDeploymentConfigsPages(params,
+//        func(page *ListDeploymentConfigsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *CodeDeploy) ListDeploymentConfigsPages(input *ListDeploymentConfigsInput, fn func(p *ListDeploymentConfigsOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListDeploymentConfigsRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*ListDeploymentConfigsOutput), lastPage)
+	})
 }
 
 const opListDeploymentGroups = "ListDeploymentGroups"
@@ -2144,6 +2237,12 @@ func (c *CodeDeploy) ListDeploymentGroupsRequest(input *ListDeploymentGroupsInpu
 		Name:       opListDeploymentGroups,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -2187,6 +2286,31 @@ func (c *CodeDeploy) ListDeploymentGroups(input *ListDeploymentGroupsInput) (*Li
 	return out, err
 }
 
+// ListDeploymentGroupsPages iterates over the pages of a ListDeploymentGroups operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListDeploymentGroups method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListDeploymentGroups operation.
+//    pageNum := 0
+//    err := client.ListDeploymentGroupsPages(params,
+//        func(page *ListDeploymentGroupsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *CodeDeploy) ListDeploymentGroupsPages(input *ListDeploymentGroupsInput, fn func(p *ListDeploymentGroupsOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListDeploymentGroupsRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*ListDeploymentGroupsOutput), lastPage)
+	})
+}
+
 const opListDeploymentInstances = "ListDeploymentInstances"
 
 // ListDeploymentInstancesRequest generates a "aws/request.Request" representing the
@@ -2219,6 +2343,12 @@ func (c *CodeDeploy) ListDeploymentInstancesRequest(input *ListDeploymentInstanc
 		Name:       opListDeploymentInstances,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -2273,6 +2403,31 @@ func (c *CodeDeploy) ListDeploymentInstances(input *ListDeploymentInstancesInput
 	return out, err
 }
 
+// ListDeploymentInstancesPages iterates over the pages of a ListDeploymentInstances operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListDeploymentInstances method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListDeploymentInstances operation.
+//    pageNum := 0
+//    err := client.ListDeploymentInstancesPages(params,
+//        func(page *ListDeploymentInstancesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *CodeDeploy) ListDeploymentInstancesPages(input *ListDeploymentInstancesInput, fn func(p *ListDeploymentInstancesOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListDeploymentInstancesRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*ListDeploymentInstancesOutput), lastPage)
+	})
+}
+
 const opListDeployments = "ListDeployments"
 
 // ListDeploymentsRequest generates a "aws/request.Request" representing the
@@ -2305,6 +2460,12 @@ func (c *CodeDeploy) ListDeploymentsRequest(input *ListDeploymentsInput) (req *r
 		Name:       opListDeployments,
 		HTTPMethod: "POST",
 		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "",
+			TruncationToken: "",
+		},
 	}
 
 	if input == nil {
@@ -2362,6 +2523,31 @@ func (c *CodeDeploy) ListDeployments(input *ListDeploymentsInput) (*ListDeployme
 	req, out := c.ListDeploymentsRequest(input)
 	err := req.Send()
 	return out, err
+}
+
+// ListDeploymentsPages iterates over the pages of a ListDeployments operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListDeployments method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListDeployments operation.
+//    pageNum := 0
+//    err := client.ListDeploymentsPages(params,
+//        func(page *ListDeploymentsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *CodeDeploy) ListDeploymentsPages(input *ListDeploymentsInput, fn func(p *ListDeploymentsOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.ListDeploymentsRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*ListDeploymentsOutput), lastPage)
+	})
 }
 
 const opListOnPremisesInstances = "ListOnPremisesInstances"
