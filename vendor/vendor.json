@@ -468,6 +468,12 @@
 			"revisionTime": "2015-08-27T00:49:46Z"
 		},
 		{
+			"checksumSHA1": "YfhpW3cu1CHWX7lUCRparOJ6Vy4=",
+			"path": "github.com/armon/go-metrics",
+			"revision": "93f237eba9b0602f3e73710416558854a81d9337",
+			"revisionTime": "2017-01-14T13:47:37Z"
+		},
+		{
 			"checksumSHA1": "gNO0JNpLzYOdInGeq7HqMZUzx9M=",
 			"path": "github.com/armon/go-radix",
 			"revision": "4239b77079c7b5d1243b7b4736304ce8ddb6f0f2",
@@ -1882,9 +1888,33 @@
 			"revisionTime": "2016-11-07T20:49:10Z"
 		},
 		{
+			"checksumSHA1": "jfELEMRhiTcppZmRH+ZwtkVS5Uw=",
+			"path": "github.com/hashicorp/consul/acl",
+			"revision": "144a5e5340893a5e726e831c648f26dc19fef1e7",
+			"revisionTime": "2017-03-10T23:35:18Z"
+		},
+		{
 			"checksumSHA1": "ygEjA1d52B1RDmZu8+1WTwkrYDQ=",
 			"comment": "v0.6.3-28-g3215b87",
 			"path": "github.com/hashicorp/consul/api",
+			"revision": "48d7b069ad443a48ffa93364048ff8909b5d1fa2",
+			"revisionTime": "2017-02-07T15:38:46Z"
+		},
+		{
+			"checksumSHA1": "nomqbPd9j3XelMMcv7+vTEPsdr4=",
+			"path": "github.com/hashicorp/consul/consul/structs",
+			"revision": "48d7b069ad443a48ffa93364048ff8909b5d1fa2",
+			"revisionTime": "2017-02-07T15:38:46Z"
+		},
+		{
+			"checksumSHA1": "dgYoWTG7nIL9CUBuktDvMZqYDR8=",
+			"path": "github.com/hashicorp/consul/testutil",
+			"revision": "48d7b069ad443a48ffa93364048ff8909b5d1fa2",
+			"revisionTime": "2017-02-07T15:38:46Z"
+		},
+		{
+			"checksumSHA1": "ZPDLNuKJGZJFV9HlJ/V0O4/c/Ko=",
+			"path": "github.com/hashicorp/consul/types",
 			"revision": "48d7b069ad443a48ffa93364048ff8909b5d1fa2",
 			"revisionTime": "2017-02-07T15:38:46Z"
 		},
@@ -1946,6 +1976,12 @@
 			"revisionTime": "2016-05-03T14:34:40Z"
 		},
 		{
+			"checksumSHA1": "BGODc7juQbdG3vNXHZG07kt+lKI=",
+			"path": "github.com/hashicorp/go-sockaddr",
+			"revision": "f910dd83c2052566cad78352c33af714358d1372",
+			"revisionTime": "2017-02-08T07:30:35Z"
+		},
+		{
 			"checksumSHA1": "85XUnluYJL7F55ptcwdmN8eSOsk=",
 			"path": "github.com/hashicorp/go-uuid",
 			"revision": "36289988d83ca270bc07c234c36f364b0dd9c9a7"
@@ -1955,6 +1991,18 @@
 			"path": "github.com/hashicorp/go-version",
 			"revision": "e96d3840402619007766590ecea8dd7af1292276",
 			"revisionTime": "2016-10-31T18:26:05Z"
+		},
+		{
+			"checksumSHA1": "d9PxF1XQGLMJZRct2R8qVM/eYlE=",
+			"path": "github.com/hashicorp/golang-lru",
+			"revision": "0a025b7e63adc15a622f29b0b2c4c3848243bbf6",
+			"revisionTime": "2016-08-13T22:13:03Z"
+		},
+		{
+			"checksumSHA1": "9hffs0bAIU6CquiRhKQdzjHnKt0=",
+			"path": "github.com/hashicorp/golang-lru/simplelru",
+			"revision": "0a025b7e63adc15a622f29b0b2c4c3848243bbf6",
+			"revisionTime": "2016-08-13T22:13:03Z"
 		},
 		{
 			"checksumSHA1": "Ok3Csn6Voou7pQT6Dv2mkwpqFtw=",
@@ -2053,10 +2101,28 @@
 			"revisionTime": "2015-06-09T07:04:31Z"
 		},
 		{
+			"checksumSHA1": "1zk7IeGClUqBo+Phsx89p7fQ/rQ=",
+			"path": "github.com/hashicorp/memberlist",
+			"revision": "23ad4b7d7b38496cd64c241dfd4c60b7794c254a",
+			"revisionTime": "2017-02-08T21:15:06Z"
+		},
+		{
+			"checksumSHA1": "wpirHJV/6VEbbD+HyAP2/6Xc0ek=",
+			"path": "github.com/hashicorp/raft",
+			"revision": "aaad9f10266e089bd401e7a6487651a69275641b",
+			"revisionTime": "2016-11-10T00:52:40Z"
+		},
+		{
 			"checksumSHA1": "o8In5byYGDCY/mnTuV4Tfmci+3w=",
 			"comment": "v0.7.0-12-ge4ec8cc",
 			"path": "github.com/hashicorp/serf/coordinate",
 			"revision": "e4ec8cc423bbe20d26584b96efbeb9102e16d05f"
+		},
+		{
+			"checksumSHA1": "/0bDLkmtbWMm06hjM7HnHaw0QBo=",
+			"path": "github.com/hashicorp/serf/serf",
+			"revision": "19f2c401e122352c047a84d6584dd51e2fb8fcc4",
+			"revisionTime": "2017-03-08T19:39:51Z"
 		},
 		{
 			"checksumSHA1": "2fkVZIzvxIGBLhSiVnkTgGiqpQ4=",
@@ -2765,6 +2831,12 @@
 			"path": "github.com/sean-/postgresql-acl",
 			"revision": "d10489e5d217ebe9c23470c4d0ba7081a6d1e799",
 			"revisionTime": "2016-12-25T12:04:19Z"
+		},
+		{
+			"checksumSHA1": "tnMZLo/kR9Kqx6GtmWwowtTLlA8=",
+			"path": "github.com/sean-/seed",
+			"revision": "e2103e2c35297fb7e17febb81e49b312087a2372",
+			"revisionTime": "2017-03-13T16:33:22Z"
 		},
 		{
 			"checksumSHA1": "ySSmShoczI/i/5PzurH8Uhi/dbA=",
