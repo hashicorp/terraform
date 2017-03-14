@@ -271,48 +271,60 @@ func TestAccGoogleProjectIamPolicy_expanded(t *testing.T) {
 	})
 }
 
+func getStatePrimaryResource(s *terraform.State, res, expectedID string) (*terraform.InstanceState, error) {
+	// Get the project resource
+	resource, ok := s.RootModule().Resources[res]
+	if !ok {
+		return nil, fmt.Errorf("Not found: %s", res)
+	}
+	if resource.Primary.Attributes["id"] != expectedID && expectedID != "" {
+		return nil, fmt.Errorf("Expected project %q to match ID %q in state", resource.Primary.ID, expectedID)
+	}
+	return resource.Primary, nil
+}
+
+func getGoogleProjectIamPolicyFromResource(resource *terraform.InstanceState) (cloudresourcemanager.Policy, error) {
+	var p cloudresourcemanager.Policy
+	ps, ok := resource.Attributes["policy_data"]
+	if !ok {
+		return p, fmt.Errorf("Resource %q did not have a 'policy_data' attribute. Attributes were %#v", resource.ID, resource.Attributes)
+	}
+	if err := json.Unmarshal([]byte(ps), &p); err != nil {
+		return p, fmt.Errorf("Could not unmarshal %s:\n: %v", ps, err)
+	}
+	return p, nil
+}
+
+func getGoogleProjectIamPolicyFromState(s *terraform.State, res, expectedID string) (cloudresourcemanager.Policy, error) {
+	project, err := getStatePrimaryResource(s, res, expectedID)
+	if err != nil {
+		return cloudresourcemanager.Policy{}, err
+	}
+	return getGoogleProjectIamPolicyFromResource(project)
+}
+
+func compareBindings(a, b []*cloudresourcemanager.Binding) bool {
+	a = mergeBindings(a)
+	b = mergeBindings(b)
+	sort.Sort(sortableBindings(a))
+	sort.Sort(sortableBindings(b))
+	return reflect.DeepEqual(derefBindings(a), derefBindings(b))
+}
+
 func testAccCheckGoogleProjectIamPolicyExists(projectRes, policyRes, pid string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		// Get the project resource
-		project, ok := s.RootModule().Resources[projectRes]
-		if !ok {
-			return fmt.Errorf("Not found: %s", projectRes)
+		projectPolicy, err := getGoogleProjectIamPolicyFromState(s, projectRes, pid)
+		if err != nil {
+			return fmt.Errorf("Error retrieving IAM policy for project from state: %s", err)
 		}
-		// The project ID should match the config's project ID
-		if project.Primary.ID != pid {
-			return fmt.Errorf("Expected project %q to match ID %q in state", pid, project.Primary.ID)
-		}
-
-		var projectP, policyP cloudresourcemanager.Policy
-		// The project should have a policy
-		ps, ok := project.Primary.Attributes["policy_data"]
-		if !ok {
-			return fmt.Errorf("Project resource %q did not have a 'policy_data' attribute. Attributes were %#v", project.Primary.Attributes["id"], project.Primary.Attributes)
-		}
-		if err := json.Unmarshal([]byte(ps), &projectP); err != nil {
-			return fmt.Errorf("Could not unmarshal %s:\n: %v", ps, err)
-		}
-
-		// The data policy resource should have a policy
-		policy, ok := s.RootModule().Resources[policyRes]
-		if !ok {
-			return fmt.Errorf("Not found: %s", policyRes)
-		}
-		ps, ok = policy.Primary.Attributes["policy_data"]
-		if !ok {
-			return fmt.Errorf("Data policy resource %q did not have a 'policy_data' attribute. Attributes were %#v", policy.Primary.Attributes["id"], project.Primary.Attributes)
-		}
-		if err := json.Unmarshal([]byte(ps), &policyP); err != nil {
-			return err
+		policyPolicy, err := getGoogleProjectIamPolicyFromState(s, policyRes, "")
+		if err != nil {
+			return fmt.Errorf("Error retrieving IAM policy for data_policy from state: %s", err)
 		}
 
 		// The bindings in both policies should be identical
-		projectP.Bindings = mergeBindings(projectP.Bindings)
-		policyP.Bindings = mergeBindings(policyP.Bindings)
-		sort.Sort(sortableBindings(projectP.Bindings))
-		sort.Sort(sortableBindings(policyP.Bindings))
-		if !reflect.DeepEqual(derefBindings(projectP.Bindings), derefBindings(policyP.Bindings)) {
-			return fmt.Errorf("Project and data source policies do not match: project policy is %+v, data resource policy is  %+v", derefBindings(projectP.Bindings), derefBindings(policyP.Bindings))
+		if !compareBindings(projectPolicy.Bindings, policyPolicy.Bindings) {
+			return fmt.Errorf("Project and data source policies do not match: project policy is %+v, data resource policy is  %+v", derefBindings(projectPolicy.Bindings), derefBindings(policyPolicy.Bindings))
 		}
 		return nil
 	}
@@ -320,49 +332,21 @@ func testAccCheckGoogleProjectIamPolicyExists(projectRes, policyRes, pid string)
 
 func testAccCheckGoogleProjectIamPolicyIsMerged(projectRes, policyRes, pid string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		// Get the project resource
-		project, ok := s.RootModule().Resources[projectRes]
-		if !ok {
-			return fmt.Errorf("Not found: %s", projectRes)
-		}
-		// The project ID should match the config's project ID
-		if project.Primary.ID != pid {
-			return fmt.Errorf("Expected project %q to match ID %q in state", pid, project.Primary.ID)
-		}
-
 		err := testAccCheckGoogleProjectIamPolicyExists(projectRes, policyRes, pid)(s)
 		if err != nil {
 			return err
 		}
 
-		var projectP, policyP cloudresourcemanager.Policy
-		// The project should have a policy
-		ps, ok := project.Primary.Attributes["policy_data"]
-		if !ok {
-			return fmt.Errorf("Project resource %q did not have a 'policy_data' attribute. Attributes were %#v", project.Primary.Attributes["id"], project.Primary.Attributes)
-		}
-		if err := json.Unmarshal([]byte(ps), &projectP); err != nil {
-			return fmt.Errorf("Could not unmarshal %s:\n: %v", ps, err)
-		}
-
-		// The data policy resource should have a policy
-		policy, ok := s.RootModule().Resources[policyRes]
-		if !ok {
-			return fmt.Errorf("Not found: %s", policyRes)
-		}
-		ps, ok = policy.Primary.Attributes["policy_data"]
-		if !ok {
-			return fmt.Errorf("Data policy resource %q did not have a 'policy_data' attribute. Attributes were %#v", policy.Primary.Attributes["id"], project.Primary.Attributes)
-		}
-		if err := json.Unmarshal([]byte(ps), &policyP); err != nil {
-			return err
+		projectPolicy, err := getGoogleProjectIamPolicyFromState(s, projectRes, pid)
+		if err != nil {
+			return fmt.Errorf("Error retrieving IAM policy for project from state: %s", err)
 		}
 
 		// Merge the project policy in Terraform state with the policy the project had before the config was applied
-		expected := make([]*cloudresourcemanager.Binding, 0)
+		var expected []*cloudresourcemanager.Binding
 		expected = append(expected, originalPolicy.Bindings...)
-		expected = append(expected, projectP.Bindings...)
-		expectedM := mergeBindings(expected)
+		expected = append(expected, projectPolicy.Bindings...)
+		expected = mergeBindings(expected)
 
 		// Retrieve the actual policy from the project
 		c := testAccProvider.Meta().(*Config)
@@ -370,13 +354,9 @@ func testAccCheckGoogleProjectIamPolicyIsMerged(projectRes, policyRes, pid strin
 		if err != nil {
 			return fmt.Errorf("Failed to retrieve IAM Policy for project %q: %s", pid, err)
 		}
-		actualM := mergeBindings(actual.Bindings)
-
-		sort.Sort(sortableBindings(actualM))
-		sort.Sort(sortableBindings(expectedM))
 		// The bindings should match, indicating the policy was successfully applied and merged
-		if !reflect.DeepEqual(derefBindings(actualM), derefBindings(expectedM)) {
-			return fmt.Errorf("Actual and expected project policies do not match: actual policy is %+v, expected policy is  %+v", derefBindings(actualM), derefBindings(expectedM))
+		if !compareBindings(actual.Bindings, expected) {
+			return fmt.Errorf("Actual and expected project policies do not match: actual policy is %+v, expected policy is  %+v", derefBindings(actual.Bindings), derefBindings(expected))
 		}
 
 		return nil
