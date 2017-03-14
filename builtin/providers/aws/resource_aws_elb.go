@@ -388,7 +388,9 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	d.Set("subnets", flattenStringList(lb.Subnets))
-	d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
+	if lbAttrs.ConnectionSettings != nil {
+		d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
+	}
 	d.Set("connection_draining", lbAttrs.ConnectionDraining.Enabled)
 	d.Set("connection_draining_timeout", lbAttrs.ConnectionDraining.Timeout)
 	d.Set("cross_zone_load_balancing", lbAttrs.CrossZoneLoadBalancing.Enabled)
