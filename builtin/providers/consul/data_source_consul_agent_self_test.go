@@ -10,7 +10,6 @@ import (
 
 func TestAccDataConsulAgentSelf_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
@@ -25,7 +24,8 @@ func TestAccDataConsulAgentSelf_basic(t *testing.T) {
 					testAccCheckDataSourceValue("data.consul_agent_self.read", "advertise_addr", "<any>"),
 					testAccCheckDataSourceValue("data.consul_agent_self.read", "bind_addr", "<any>"),
 					testAccCheckDataSourceValue("data.consul_agent_self.read", "bootstrap_expect", "<all>"),
-					testAccCheckDataSourceValue("data.consul_agent_self.read", "bootstrap_mode", "false"),
+					// the local test server is bootstrapped
+					testAccCheckDataSourceValue("data.consul_agent_self.read", "bootstrap_mode", "true"),
 					testAccCheckDataSourceValue("data.consul_agent_self.read", "client_addr", "<any>"),
 					testAccCheckDataSourceValue("data.consul_agent_self.read", "datacenter", "<any>"),
 					testAccCheckDataSourceValue("data.consul_agent_self.read", "dev_mode", "<any>"),

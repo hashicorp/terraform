@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -16,15 +15,12 @@ func TestRemoteClient_impl(t *testing.T) {
 }
 
 func TestRemoteClient(t *testing.T) {
-	addr := os.Getenv("CONSUL_HTTP_ADDR")
-	if addr == "" {
-		t.Log("consul tests require CONSUL_HTTP_ADDR")
-		t.Skip()
-	}
+	srv := newConsulTestServer(t)
+	defer srv.Stop()
 
 	// Get the backend
 	b := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"address": addr,
+		"address": srv.HTTPAddr,
 		"path":    fmt.Sprintf("tf-unit/%s", time.Now().String()),
 	})
 
@@ -39,17 +35,14 @@ func TestRemoteClient(t *testing.T) {
 }
 
 func TestConsul_stateLock(t *testing.T) {
-	addr := os.Getenv("CONSUL_HTTP_ADDR")
-	if addr == "" {
-		t.Log("consul lock tests require CONSUL_HTTP_ADDR")
-		t.Skip()
-	}
+	srv := newConsulTestServer(t)
+	defer srv.Stop()
 
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// create 2 instances to get 2 remote.Clients
 	sA, err := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"address": addr,
+		"address": srv.HTTPAddr,
 		"path":    path,
 	}).State(backend.DefaultStateName)
 	if err != nil {
@@ -57,7 +50,7 @@ func TestConsul_stateLock(t *testing.T) {
 	}
 
 	sB, err := backend.TestBackendConfig(t, New(), map[string]interface{}{
-		"address": addr,
+		"address": srv.HTTPAddr,
 		"path":    path,
 	}).State(backend.DefaultStateName)
 	if err != nil {
