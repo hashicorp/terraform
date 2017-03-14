@@ -79,7 +79,7 @@ func resourceArmManagedDisk() *schema.Resource {
 
 			"disk_size_gb": {
 				Type:         schema.TypeInt,
-				Optional:     true,
+				Required:     true,
 				ValidateFunc: validateDiskSizeGB,
 			},
 
