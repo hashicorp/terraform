@@ -16,6 +16,11 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+const (
+	AWSAMISleepDuration = 4 * time.Second
+	AWSAMIRetryCount    = 5
+)
+
 func resourceAwsAmi() *schema.Resource {
 	// Our schema is shared also with aws_ami_copy and aws_ami_from_instance
 	resourceSchema := resourceAwsAmiCommonSchema(false)
@@ -281,9 +286,47 @@ func resourceAwsAmiDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	d.SetId("")
+	// Verify that the image is actually removed, if not we need to wait for it to be removed
+	if err := resourceAwsAmiWaitForDestroy(d.Id(), client); err != nil {
+		return err
+	}
 
+	// No error, ami was deleted successfully
+	d.SetId("")
 	return nil
+}
+
+func resourceAwsAmiWaitForDestroy(id string, client *ec2.EC2) error {
+	log.Printf("Waiting for AMI %s to be deleted...", id)
+
+	req := &ec2.DescribeImagesInput{
+		ImageIds: []*string{aws.String(id)},
+	}
+
+	polls := 0
+	for {
+		resp, err := client.DescribeImages(req)
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAMIID.NotFound" {
+				// AMI was successfully deleted, exit
+				return nil
+			}
+			// Unknown error hit fetching AMI
+			return err
+		}
+
+		if len(resp.Images) == 0 {
+			return nil
+		}
+
+		// Entry retry loop
+		polls++
+		if polls > AWSAMIRetryCount {
+			return errors.New("Timeoout reached waiting for AMI to be deleted")
+		}
+		time.Sleep(AWSAMISleepDuration)
+		continue
+	}
 }
 
 func resourceAwsAmiWaitForAvailable(id string, client *ec2.EC2) (*ec2.Image, error) {
@@ -303,10 +346,10 @@ func resourceAwsAmiWaitForAvailable(id string, client *ec2.EC2) (*ec2.Image, err
 				pollsWhereNotFound++
 				// We arbitrarily stop polling after getting a "not found" error five times,
 				// assuming that the AMI has been deleted by something other than Terraform.
-				if pollsWhereNotFound > 5 {
+				if pollsWhereNotFound > AWSAMIRetryCount {
 					return nil, fmt.Errorf("gave up waiting for AMI to be created: %s", err)
 				}
-				time.Sleep(4 * time.Second)
+				time.Sleep(AWSAMISleepDuration)
 				continue
 			}
 			return nil, fmt.Errorf("error reading AMI: %s", err)
@@ -320,7 +363,7 @@ func resourceAwsAmiWaitForAvailable(id string, client *ec2.EC2) (*ec2.Image, err
 
 		if state == "pending" {
 			// Give it a few seconds before we poll again.
-			time.Sleep(4 * time.Second)
+			time.Sleep(AWSAMISleepDuration)
 			continue
 		}
 
