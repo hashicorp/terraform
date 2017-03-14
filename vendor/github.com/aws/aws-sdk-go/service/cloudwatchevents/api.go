@@ -60,12 +60,13 @@ func (c *CloudWatchEvents) DeleteRuleRequest(input *DeleteRuleInput) (req *reque
 
 // DeleteRule API operation for Amazon CloudWatch Events.
 //
-// Deletes a rule. You must remove all targets from a rule using RemoveTargets
-// before you can delete the rule.
+// Deletes the specified rule.
 //
-// Note: When you delete a rule, incoming events might still continue to match
-// to the deleted rule. Please allow a short period of time for changes to take
-// effect.
+// You must remove all targets from a rule using RemoveTargets before you can
+// delete the rule.
+//
+// When you delete a rule, incoming events might continue to match to the deleted
+// rule. Please allow a short period of time for changes to take effect.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -76,7 +77,7 @@ func (c *CloudWatchEvents) DeleteRuleRequest(input *DeleteRuleInput) (req *reque
 //
 // Returned Error Codes:
 //   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   This exception occurs if there is concurrent modification on rule or target.
+//   There is concurrent modification on a rule or target.
 //
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
@@ -133,7 +134,7 @@ func (c *CloudWatchEvents) DescribeRuleRequest(input *DescribeRuleInput) (req *r
 
 // DescribeRule API operation for Amazon CloudWatch Events.
 //
-// Describes the details of the specified rule.
+// Describes the specified rule.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -203,12 +204,11 @@ func (c *CloudWatchEvents) DisableRuleRequest(input *DisableRuleInput) (req *req
 
 // DisableRule API operation for Amazon CloudWatch Events.
 //
-// Disables a rule. A disabled rule won't match any events, and won't self-trigger
-// if it has a schedule expression.
+// Disables the specified rule. A disabled rule won't match any events, and
+// won't self-trigger if it has a schedule expression.
 //
-// Note: When you disable a rule, incoming events might still continue to match
-// to the disabled rule. Please allow a short period of time for changes to
-// take effect.
+// When you disable a rule, incoming events might continue to match to the disabled
+// rule. Please allow a short period of time for changes to take effect.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -222,7 +222,7 @@ func (c *CloudWatchEvents) DisableRuleRequest(input *DisableRuleInput) (req *req
 //   The rule does not exist.
 //
 //   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   This exception occurs if there is concurrent modification on rule or target.
+//   There is concurrent modification on a rule or target.
 //
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
@@ -281,11 +281,11 @@ func (c *CloudWatchEvents) EnableRuleRequest(input *EnableRuleInput) (req *reque
 
 // EnableRule API operation for Amazon CloudWatch Events.
 //
-// Enables a rule. If the rule does not exist, the operation fails.
+// Enables the specified rule. If the rule does not exist, the operation fails.
 //
-// Note: When you enable a rule, incoming events might not immediately start
-// matching to a newly enabled rule. Please allow a short period of time for
-// changes to take effect.
+// When you enable a rule, incoming events might not immediately start matching
+// to a newly enabled rule. Please allow a short period of time for changes
+// to take effect.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -299,7 +299,7 @@ func (c *CloudWatchEvents) EnableRuleRequest(input *EnableRuleInput) (req *reque
 //   The rule does not exist.
 //
 //   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   This exception occurs if there is concurrent modification on rule or target.
+//   There is concurrent modification on a rule or target.
 //
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
@@ -356,12 +356,8 @@ func (c *CloudWatchEvents) ListRuleNamesByTargetRequest(input *ListRuleNamesByTa
 
 // ListRuleNamesByTarget API operation for Amazon CloudWatch Events.
 //
-// Lists the names of the rules that the given target is put to. You can see
-// which of the rules in Amazon CloudWatch Events can invoke a specific target
-// in your account. If you have more rules in your account than the given limit,
-// the results will be paginated. In that case, use the next token returned
-// in the response and repeat ListRulesByTarget until the NextToken in the response
-// is returned as null.
+// Lists the rules for the specified target. You can see which of the rules
+// in Amazon CloudWatch Events can invoke a specific target in your account.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -426,11 +422,8 @@ func (c *CloudWatchEvents) ListRulesRequest(input *ListRulesInput) (req *request
 
 // ListRules API operation for Amazon CloudWatch Events.
 //
-// Lists the Amazon CloudWatch Events rules in your account. You can either
-// list all the rules or you can provide a prefix to match to the rule names.
-// If you have more rules in your account than the given limit, the results
-// will be paginated. In that case, use the next token returned in the response
-// and repeat ListRules until the NextToken in the response is returned as null.
+// Lists your Amazon CloudWatch Events rules. You can either list all the rules
+// or you can provide a prefix to match to the rule names.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -495,7 +488,7 @@ func (c *CloudWatchEvents) ListTargetsByRuleRequest(input *ListTargetsByRuleInpu
 
 // ListTargetsByRule API operation for Amazon CloudWatch Events.
 //
-// Lists of targets assigned to the rule.
+// Lists the targets assigned to the specified rule.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -629,20 +622,20 @@ func (c *CloudWatchEvents) PutRuleRequest(input *PutRuleInput) (req *request.Req
 
 // PutRule API operation for Amazon CloudWatch Events.
 //
-// Creates or updates a rule. Rules are enabled by default, or based on value
-// of the State parameter. You can disable a rule using DisableRule.
+// Creates or updates the specified rule. Rules are enabled by default, or based
+// on value of the state. You can disable a rule using DisableRule.
 //
-// Note: When you create or update a rule, incoming events might not immediately
-// start matching to new or updated rules. Please allow a short period of time
-// for changes to take effect.
+// When you create or update a rule, incoming events might not immediately start
+// matching to new or updated rules. Please allow a short period of time for
+// changes to take effect.
 //
 // A rule must contain at least an EventPattern or ScheduleExpression. Rules
 // with EventPatterns are triggered when a matching event is observed. Rules
 // with ScheduleExpressions self-trigger based on the given schedule. A rule
 // can have both an EventPattern and a ScheduleExpression, in which case the
-// rule will trigger on matching events as well as on a schedule.
+// rule triggers on matching events as well as on a schedule.
 //
-// Note: Most services in AWS treat : or / as the same character in Amazon Resource
+// Most services in AWS treat : or / as the same character in Amazon Resource
 // Names (ARNs). However, CloudWatch Events uses an exact match in event patterns
 // and rules. Be sure to use the correct ARN characters when creating event
 // patterns so that they match the ARN syntax in the event you want to match.
@@ -656,14 +649,13 @@ func (c *CloudWatchEvents) PutRuleRequest(input *PutRuleInput) (req *request.Req
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidEventPatternException "InvalidEventPatternException"
-//   The event pattern is invalid.
+//   The event pattern is not valid.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
-//   This exception occurs if you try to create more rules or add more targets
-//   to a rule than allowed by default.
+//   You tried to create more rules or add more targets to a rule than is allowed.
 //
 //   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   This exception occurs if there is concurrent modification on rule or target.
+//   There is concurrent modification on a rule or target.
 //
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
@@ -720,30 +712,49 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 
 // PutTargets API operation for Amazon CloudWatch Events.
 //
-// Adds target(s) to a rule. Targets are the resources that can be invoked when
-// a rule is triggered. For example, AWS Lambda functions, Amazon Kinesis streams,
-// and built-in targets. Updates the target(s) if they are already associated
-// with the role. In other words, if there is already a target with the given
-// target ID, then the target associated with that ID is updated.
+// Adds the specified targets to the specified rule, or updates the targets
+// if they are already associated with the rule.
 //
-// In order to be able to make API calls against the resources you own, Amazon
-// CloudWatch Events needs the appropriate permissions. For AWS Lambda and Amazon
-// SNS resources, CloudWatch Events relies on resource-based policies. For Amazon
-// Kinesis streams, CloudWatch Events relies on IAM roles. For more information,
-// see Permissions for Sending Events to Targets (http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/EventsTargetPermissions.html)
-// in the Amazon CloudWatch Developer Guide.
+// Targets are the resources that are invoked when a rule is triggered. Example
+// targets include EC2 instances, AWS Lambda functions, Amazon Kinesis streams,
+// Amazon ECS tasks, AWS Step Functions state machines, and built-in targets.
+// Note that creating rules with built-in targets is supported only in the AWS
+// Management Console.
 //
-// Input and InputPath are mutually-exclusive and optional parameters of a target.
-// When a rule is triggered due to a matched event, if for a target:
+// For some target types, PutTargets provides target-specific parameters. If
+// the target is an Amazon Kinesis stream, you can optionally specify which
+// shard the event goes to by using the KinesisParameters argument. To invoke
+// a command on multiple EC2 instances with one rule, you can use the RunCommandParameters
+// field.
 //
-//    * Neither Input nor InputPath is specified, then the entire event is passed
-//    to the target in JSON form.
-//    * InputPath is specified in the form of JSONPath (e.g. $.detail), then
-//    only the part of the event specified in the path is passed to the target
-//    (e.g. only the detail part of the event is passed).
-//    * Input is specified in the form of a valid JSON, then the matched event
+// To be able to make API calls against the resources that you own, Amazon CloudWatch
+// Events needs the appropriate permissions. For AWS Lambda and Amazon SNS resources,
+// CloudWatch Events relies on resource-based policies. For EC2 instances, Amazon
+// Kinesis streams, and AWS Step Functions state machines, CloudWatch Events
+// relies on IAM roles that you specify in the RoleARN argument in PutTarget.
+// For more information, see Authentication and Access Control (http://docs.aws.amazon.com/AmazonCloudWatch/latest/events/auth-and-access-control-cwe.html)
+// in the Amazon CloudWatch Events User Guide.
+//
+// Input, InputPath and InputTransformer are mutually exclusive and optional
+// parameters of a target. When a rule is triggered due to a matched event:
+//
+//    * If none of the following arguments are specified for a target, then
+//    the entire event is passed to the target in JSON form (unless the target
+//    is Amazon EC2 Run Command or Amazon ECS task, in which case nothing from
+//    the event is passed to the target).
+//
+//    * If Input is specified in the form of valid JSON, then the matched event
 //    is overridden with this constant.
-// Note: When you add targets to a rule, when the associated rule triggers,
+//
+//    * If InputPath is specified in the form of JSONPath (for example, $.detail),
+//    then only the part of the event specified in the path is passed to the
+//    target (for example, only the detail part of the event is passed).
+//
+//    * If InputTransformer is specified, then one or more specified JSONPaths
+//    are extracted from the event and used as values in a template that you
+//    specify as the input to the target.
+//
+// When you add targets to a rule and the associated rule triggers soon after,
 // new or updated targets might not be immediately invoked. Please allow a short
 // period of time for changes to take effect.
 //
@@ -759,11 +770,10 @@ func (c *CloudWatchEvents) PutTargetsRequest(input *PutTargetsInput) (req *reque
 //   The rule does not exist.
 //
 //   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   This exception occurs if there is concurrent modification on rule or target.
+//   There is concurrent modification on a rule or target.
 //
 //   * ErrCodeLimitExceededException "LimitExceededException"
-//   This exception occurs if you try to create more rules or add more targets
-//   to a rule than allowed by default.
+//   You tried to create more rules or add more targets to a rule than is allowed.
 //
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
@@ -820,12 +830,12 @@ func (c *CloudWatchEvents) RemoveTargetsRequest(input *RemoveTargetsInput) (req 
 
 // RemoveTargets API operation for Amazon CloudWatch Events.
 //
-// Removes target(s) from a rule so that when the rule is triggered, those targets
-// will no longer be invoked.
+// Removes the specified targets from the specified rule. When the rule is triggered,
+// those targets are no longer be invoked.
 //
-// Note: When you remove a target, when the associated rule triggers, removed
-// targets might still continue to be invoked. Please allow a short period of
-// time for changes to take effect.
+// When you remove a target, when the associated rule triggers, removed targets
+// might continue to be invoked. Please allow a short period of time for changes
+// to take effect.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -839,7 +849,7 @@ func (c *CloudWatchEvents) RemoveTargetsRequest(input *RemoveTargetsInput) (req 
 //   The rule does not exist.
 //
 //   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
-//   This exception occurs if there is concurrent modification on rule or target.
+//   There is concurrent modification on a rule or target.
 //
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
@@ -896,9 +906,9 @@ func (c *CloudWatchEvents) TestEventPatternRequest(input *TestEventPatternInput)
 
 // TestEventPattern API operation for Amazon CloudWatch Events.
 //
-// Tests whether an event pattern matches the provided event.
+// Tests whether the specified event pattern matches the provided event.
 //
-// Note: Most services in AWS treat : or / as the same character in Amazon Resource
+// Most services in AWS treat : or / as the same character in Amazon Resource
 // Names (ARNs). However, CloudWatch Events uses an exact match in event patterns
 // and rules. Be sure to use the correct ARN characters when creating event
 // patterns so that they match the ARN syntax in the event you want to match.
@@ -912,7 +922,7 @@ func (c *CloudWatchEvents) TestEventPatternRequest(input *TestEventPatternInput)
 //
 // Returned Error Codes:
 //   * ErrCodeInvalidEventPatternException "InvalidEventPatternException"
-//   The event pattern is invalid.
+//   The event pattern is not valid.
 //
 //   * ErrCodeInternalException "InternalException"
 //   This exception occurs due to unexpected causes.
@@ -924,12 +934,11 @@ func (c *CloudWatchEvents) TestEventPattern(input *TestEventPatternInput) (*Test
 	return out, err
 }
 
-// Container for the parameters to the DeleteRule operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DeleteRuleRequest
 type DeleteRuleInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the rule to be deleted.
+	// The name of the rule.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -982,12 +991,11 @@ func (s DeleteRuleOutput) GoString() string {
 	return s.String()
 }
 
-// Container for the parameters to the DescribeRule operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeRuleRequest
 type DescribeRuleInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the rule you want to describe details for.
+	// The name of the rule.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -1025,21 +1033,20 @@ func (s *DescribeRuleInput) SetName(v string) *DescribeRuleInput {
 	return s
 }
 
-// The result of the DescribeRule operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DescribeRuleResponse
 type DescribeRuleOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) associated with the rule.
+	// The Amazon Resource Name (ARN) of the rule.
 	Arn *string `min:"1" type:"string"`
 
-	// The rule's description.
+	// The description of the rule.
 	Description *string `type:"string"`
 
 	// The event pattern.
 	EventPattern *string `type:"string"`
 
-	// The rule's name.
+	// The name of the rule.
 	Name *string `min:"1" type:"string"`
 
 	// The Amazon Resource Name (ARN) of the IAM role associated with the rule.
@@ -1104,12 +1111,11 @@ func (s *DescribeRuleOutput) SetState(v string) *DescribeRuleOutput {
 	return s
 }
 
-// Container for the parameters to the DisableRule operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/DisableRuleRequest
 type DisableRuleInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the rule you want to disable.
+	// The name of the rule.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -1162,12 +1168,68 @@ func (s DisableRuleOutput) GoString() string {
 	return s.String()
 }
 
-// Container for the parameters to the EnableRule operation.
+// The custom parameters to be used when the target is an Amazon ECS cluster.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/EcsParameters
+type EcsParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The number of tasks to create based on the TaskDefinition. The default is
+	// one.
+	TaskCount *int64 `min:"1" type:"integer"`
+
+	// The ARN of the task definition to use if the event target is an Amazon ECS
+	// cluster.
+	//
+	// TaskDefinitionArn is a required field
+	TaskDefinitionArn *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s EcsParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EcsParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EcsParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EcsParameters"}
+	if s.TaskCount != nil && *s.TaskCount < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("TaskCount", 1))
+	}
+	if s.TaskDefinitionArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("TaskDefinitionArn"))
+	}
+	if s.TaskDefinitionArn != nil && len(*s.TaskDefinitionArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TaskDefinitionArn", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetTaskCount sets the TaskCount field's value.
+func (s *EcsParameters) SetTaskCount(v int64) *EcsParameters {
+	s.TaskCount = &v
+	return s
+}
+
+// SetTaskDefinitionArn sets the TaskDefinitionArn field's value.
+func (s *EcsParameters) SetTaskDefinitionArn(v string) *EcsParameters {
+	s.TaskDefinitionArn = &v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/EnableRuleRequest
 type EnableRuleInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the rule that you want to enable.
+	// The name of the rule.
 	//
 	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
@@ -1220,7 +1282,106 @@ func (s EnableRuleOutput) GoString() string {
 	return s.String()
 }
 
-// Container for the parameters to the ListRuleNamesByTarget operation.
+// Contains the parameters needed for you to provide custom input to a target
+// based on one or more pieces of data extracted from the event.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/InputTransformer
+type InputTransformer struct {
+	_ struct{} `type:"structure"`
+
+	// Map of JSON paths to be extracted from the event. These are key-value pairs,
+	// where each value is a JSON path.
+	InputPathsMap map[string]*string `type:"map"`
+
+	// Input template where you can use the values of the keys from InputPathsMap
+	// to customize the data sent to the target.
+	//
+	// InputTemplate is a required field
+	InputTemplate *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s InputTransformer) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InputTransformer) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InputTransformer) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InputTransformer"}
+	if s.InputTemplate == nil {
+		invalidParams.Add(request.NewErrParamRequired("InputTemplate"))
+	}
+	if s.InputTemplate != nil && len(*s.InputTemplate) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InputTemplate", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetInputPathsMap sets the InputPathsMap field's value.
+func (s *InputTransformer) SetInputPathsMap(v map[string]*string) *InputTransformer {
+	s.InputPathsMap = v
+	return s
+}
+
+// SetInputTemplate sets the InputTemplate field's value.
+func (s *InputTransformer) SetInputTemplate(v string) *InputTransformer {
+	s.InputTemplate = &v
+	return s
+}
+
+// This object enables you to specify a JSON path to extract from the event
+// and use as the partition key for the Amazon Kinesis stream, so that you can
+// control the shard to which the event goes. If you do not include this parameter,
+// the default is to use the eventId as the partition key.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/KinesisParameters
+type KinesisParameters struct {
+	_ struct{} `type:"structure"`
+
+	// The JSON path to be extracted from the event and used as the partition key.
+	// For more information, see Amazon Kinesis Streams Key Concepts (http://docs.aws.amazon.com/streams/latest/dev/key-concepts.html#partition-key)
+	// in the Amazon Kinesis Streams Developer Guide.
+	//
+	// PartitionKeyPath is a required field
+	PartitionKeyPath *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s KinesisParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s KinesisParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *KinesisParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "KinesisParameters"}
+	if s.PartitionKeyPath == nil {
+		invalidParams.Add(request.NewErrParamRequired("PartitionKeyPath"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPartitionKeyPath sets the PartitionKeyPath field's value.
+func (s *KinesisParameters) SetPartitionKeyPath(v string) *KinesisParameters {
+	s.PartitionKeyPath = &v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRuleNamesByTargetRequest
 type ListRuleNamesByTargetInput struct {
 	_ struct{} `type:"structure"`
@@ -1228,12 +1389,10 @@ type ListRuleNamesByTargetInput struct {
 	// The maximum number of results to return.
 	Limit *int64 `min:"1" type:"integer"`
 
-	// The token returned by a previous call to indicate that there is more data
-	// available.
+	// The token returned by a previous call to retrieve the next set of results.
 	NextToken *string `min:"1" type:"string"`
 
-	// The Amazon Resource Name (ARN) of the target resource that you want to list
-	// the rules for.
+	// The Amazon Resource Name (ARN) of the target resource.
 	//
 	// TargetArn is a required field
 	TargetArn *string `min:"1" type:"string" required:"true"`
@@ -1289,15 +1448,15 @@ func (s *ListRuleNamesByTargetInput) SetTargetArn(v string) *ListRuleNamesByTarg
 	return s
 }
 
-// The result of the ListRuleNamesByTarget operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRuleNamesByTargetResponse
 type ListRuleNamesByTargetOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Indicates that there are additional results to retrieve.
+	// Indicates whether there are additional results to retrieve. If there are
+	// no more results, the value is null.
 	NextToken *string `min:"1" type:"string"`
 
-	// List of rules names that can invoke the given target.
+	// The names of the rules that can invoke the given target.
 	RuleNames []*string `type:"list"`
 }
 
@@ -1323,7 +1482,6 @@ func (s *ListRuleNamesByTargetOutput) SetRuleNames(v []*string) *ListRuleNamesBy
 	return s
 }
 
-// Container for the parameters to the ListRules operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRulesRequest
 type ListRulesInput struct {
 	_ struct{} `type:"structure"`
@@ -1334,8 +1492,7 @@ type ListRulesInput struct {
 	// The prefix matching the rule name.
 	NamePrefix *string `min:"1" type:"string"`
 
-	// The token returned by a previous call to indicate that there is more data
-	// available.
+	// The token returned by a previous call to retrieve the next set of results.
 	NextToken *string `min:"1" type:"string"`
 }
 
@@ -1386,15 +1543,15 @@ func (s *ListRulesInput) SetNextToken(v string) *ListRulesInput {
 	return s
 }
 
-// The result of the ListRules operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListRulesResponse
 type ListRulesOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Indicates that there are additional results to retrieve.
+	// Indicates whether there are additional results to retrieve. If there are
+	// no more results, the value is null.
 	NextToken *string `min:"1" type:"string"`
 
-	// List of rules matching the specified criteria.
+	// The rules that match the specified criteria.
 	Rules []*Rule `type:"list"`
 }
 
@@ -1420,7 +1577,6 @@ func (s *ListRulesOutput) SetRules(v []*Rule) *ListRulesOutput {
 	return s
 }
 
-// Container for the parameters to the ListTargetsByRule operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListTargetsByRuleRequest
 type ListTargetsByRuleInput struct {
 	_ struct{} `type:"structure"`
@@ -1428,11 +1584,10 @@ type ListTargetsByRuleInput struct {
 	// The maximum number of results to return.
 	Limit *int64 `min:"1" type:"integer"`
 
-	// The token returned by a previous call to indicate that there is more data
-	// available.
+	// The token returned by a previous call to retrieve the next set of results.
 	NextToken *string `min:"1" type:"string"`
 
-	// The name of the rule whose targets you want to list.
+	// The name of the rule.
 	//
 	// Rule is a required field
 	Rule *string `min:"1" type:"string" required:"true"`
@@ -1488,16 +1643,16 @@ func (s *ListTargetsByRuleInput) SetRule(v string) *ListTargetsByRuleInput {
 	return s
 }
 
-// The result of the ListTargetsByRule operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/ListTargetsByRuleResponse
 type ListTargetsByRuleOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Indicates that there are additional results to retrieve.
+	// Indicates whether there are additional results to retrieve. If there are
+	// no more results, the value is null.
 	NextToken *string `min:"1" type:"string"`
 
-	// Lists the targets assigned to the rule.
-	Targets []*Target `type:"list"`
+	// The targets assigned to the rule.
+	Targets []*Target `min:"1" type:"list"`
 }
 
 // String returns the string representation
@@ -1522,7 +1677,6 @@ func (s *ListTargetsByRuleOutput) SetTargets(v []*Target) *ListTargetsByRuleOutp
 	return s
 }
 
-// Container for the parameters to the PutEvents operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEventsRequest
 type PutEventsInput struct {
 	_ struct{} `type:"structure"`
@@ -1567,15 +1721,13 @@ func (s *PutEventsInput) SetEntries(v []*PutEventsRequestEntry) *PutEventsInput 
 	return s
 }
 
-// The result of the PutEvents operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEventsResponse
 type PutEventsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of successfully and unsuccessfully ingested events results. If the
-	// ingestion was successful, the entry will have the event ID in it. If not,
-	// then the ErrorCode and ErrorMessage can be used to identify the problem with
-	// the entry.
+	// The successfully and unsuccessfully ingested events results. If the ingestion
+	// was successful, the entry has the event ID in it. Otherwise, you can use
+	// the error code and error message to identify the problem with the entry.
 	Entries []*PutEventsResultEntry `type:"list"`
 
 	// The number of failed entries.
@@ -1604,13 +1756,13 @@ func (s *PutEventsOutput) SetFailedEntryCount(v int64) *PutEventsOutput {
 	return s
 }
 
-// Contains information about the event to be used in PutEvents.
+// Represents an event to be submitted.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEventsRequestEntry
 type PutEventsRequestEntry struct {
 	_ struct{} `type:"structure"`
 
 	// In the JSON sense, an object containing fields, which may also contain nested
-	// sub-objects. No constraints are imposed on its contents.
+	// subobjects. No constraints are imposed on its contents.
 	Detail *string `type:"string"`
 
 	// Free-form string used to decide what fields to expect in the event detail.
@@ -1623,9 +1775,8 @@ type PutEventsRequestEntry struct {
 	// The source of the event.
 	Source *string `type:"string"`
 
-	// Timestamp of event, per RFC3339 (https://www.rfc-editor.org/rfc/rfc3339.txt).
-	// If no timestamp is provided, the timestamp of the PutEvents call will be
-	// used.
+	// The timestamp of the event, per RFC3339 (https://www.rfc-editor.org/rfc/rfc3339.txt).
+	// If no timestamp is provided, the timestamp of the PutEvents call is used.
 	Time *time.Time `type:"timestamp" timestampFormat:"unix"`
 }
 
@@ -1669,18 +1820,18 @@ func (s *PutEventsRequestEntry) SetTime(v time.Time) *PutEventsRequestEntry {
 	return s
 }
 
-// A PutEventsResult contains a list of PutEventsResultEntry.
+// Represents an event that failed to be submitted.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutEventsResultEntry
 type PutEventsResultEntry struct {
 	_ struct{} `type:"structure"`
 
-	// The error code representing why the event submission failed on this entry.
+	// The error code that indicates why the event submission failed.
 	ErrorCode *string `type:"string"`
 
-	// The error message explaining why the event submission failed on this entry.
+	// The error message that explains why the event submission failed.
 	ErrorMessage *string `type:"string"`
 
-	// The ID of the event submitted to Amazon CloudWatch Events.
+	// The ID of the event.
 	EventId *string `type:"string"`
 }
 
@@ -1712,7 +1863,6 @@ func (s *PutEventsResultEntry) SetEventId(v string) *PutEventsResultEntry {
 	return s
 }
 
-// Container for the parameters to the PutRule operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutRuleRequest
 type PutRuleInput struct {
 	_ struct{} `type:"structure"`
@@ -1803,12 +1953,11 @@ func (s *PutRuleInput) SetState(v string) *PutRuleInput {
 	return s
 }
 
-// The result of the PutRule operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutRuleResponse
 type PutRuleOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) that identifies the rule.
+	// The Amazon Resource Name (ARN) of the rule.
 	RuleArn *string `min:"1" type:"string"`
 }
 
@@ -1828,20 +1977,19 @@ func (s *PutRuleOutput) SetRuleArn(v string) *PutRuleOutput {
 	return s
 }
 
-// Container for the parameters to the PutTargets operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutTargetsRequest
 type PutTargetsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the rule you want to add targets to.
+	// The name of the rule.
 	//
 	// Rule is a required field
 	Rule *string `min:"1" type:"string" required:"true"`
 
-	// List of targets you want to update or add to the rule.
+	// The targets to update or add to the rule.
 	//
 	// Targets is a required field
-	Targets []*Target `type:"list" required:"true"`
+	Targets []*Target `min:"1" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -1865,6 +2013,9 @@ func (s *PutTargetsInput) Validate() error {
 	}
 	if s.Targets == nil {
 		invalidParams.Add(request.NewErrParamRequired("Targets"))
+	}
+	if s.Targets != nil && len(s.Targets) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Targets", 1))
 	}
 	if s.Targets != nil {
 		for i, v := range s.Targets {
@@ -1895,12 +2046,11 @@ func (s *PutTargetsInput) SetTargets(v []*Target) *PutTargetsInput {
 	return s
 }
 
-// The result of the PutTargets operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutTargetsResponse
 type PutTargetsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// An array of failed target entries.
+	// The failed target entries.
 	FailedEntries []*PutTargetsResultEntry `type:"list"`
 
 	// The number of failed entries.
@@ -1929,18 +2079,18 @@ func (s *PutTargetsOutput) SetFailedEntryCount(v int64) *PutTargetsOutput {
 	return s
 }
 
-// A PutTargetsResult contains a list of PutTargetsResultEntry.
+// Represents a target that failed to be added to a rule.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/PutTargetsResultEntry
 type PutTargetsResultEntry struct {
 	_ struct{} `type:"structure"`
 
-	// The error code representing why the target submission failed on this entry.
+	// The error code that indicates why the target addition failed.
 	ErrorCode *string `type:"string"`
 
-	// The error message explaining why the target submission failed on this entry.
+	// The error message that explains why the target addition failed.
 	ErrorMessage *string `type:"string"`
 
-	// The ID of the target submitted to Amazon CloudWatch Events.
+	// The ID of the target.
 	TargetId *string `min:"1" type:"string"`
 }
 
@@ -1972,17 +2122,16 @@ func (s *PutTargetsResultEntry) SetTargetId(v string) *PutTargetsResultEntry {
 	return s
 }
 
-// Container for the parameters to the RemoveTargets operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemoveTargetsRequest
 type RemoveTargetsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The list of target IDs to remove from the rule.
+	// The IDs of the targets to remove from the rule.
 	//
 	// Ids is a required field
 	Ids []*string `min:"1" type:"list" required:"true"`
 
-	// The name of the rule you want to remove targets from.
+	// The name of the rule.
 	//
 	// Rule is a required field
 	Rule *string `min:"1" type:"string" required:"true"`
@@ -2032,12 +2181,11 @@ func (s *RemoveTargetsInput) SetRule(v string) *RemoveTargetsInput {
 	return s
 }
 
-// The result of the RemoveTargets operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemoveTargetsResponse
 type RemoveTargetsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// An array of failed target entries.
+	// The failed target entries.
 	FailedEntries []*RemoveTargetsResultEntry `type:"list"`
 
 	// The number of failed entries.
@@ -2066,19 +2214,18 @@ func (s *RemoveTargetsOutput) SetFailedEntryCount(v int64) *RemoveTargetsOutput 
 	return s
 }
 
-// The ID of the target requested to be removed from the rule by Amazon CloudWatch
-// Events.
+// Represents a target that failed to be removed from a rule.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RemoveTargetsResultEntry
 type RemoveTargetsResultEntry struct {
 	_ struct{} `type:"structure"`
 
-	// The error code representing why the target removal failed on this entry.
+	// The error code that indicates why the target removal failed.
 	ErrorCode *string `type:"string"`
 
-	// The error message explaining why the target removal failed on this entry.
+	// The error message that explains why the target removal failed.
 	ErrorMessage *string `type:"string"`
 
-	// The ID of the target requested to be removed by Amazon CloudWatch Events.
+	// The ID of the target.
 	TargetId *string `min:"1" type:"string"`
 }
 
@@ -2110,8 +2257,7 @@ func (s *RemoveTargetsResultEntry) SetTargetId(v string) *RemoveTargetsResultEnt
 	return s
 }
 
-// Contains information about a rule in Amazon CloudWatch Events. A ListRulesResult
-// contains a list of Rules.
+// Contains information about a rule in Amazon CloudWatch Events.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/Rule
 type Rule struct {
 	_ struct{} `type:"structure"`
@@ -2125,17 +2271,16 @@ type Rule struct {
 	// The event pattern of the rule.
 	EventPattern *string `type:"string"`
 
-	// The rule's name.
+	// The name of the rule.
 	Name *string `min:"1" type:"string"`
 
-	// The Amazon Resource Name (ARN) associated with the role that is used for
-	// target invocation.
+	// The Amazon Resource Name (ARN) of the role that is used for target invocation.
 	RoleArn *string `min:"1" type:"string"`
 
 	// The scheduling expression. For example, "cron(0 20 * * ? *)", "rate(5 minutes)".
 	ScheduleExpression *string `type:"string"`
 
-	// The rule's state.
+	// The state of the rule.
 	State *string `type:"string" enum:"RuleState"`
 }
 
@@ -2191,41 +2336,175 @@ func (s *Rule) SetState(v string) *Rule {
 	return s
 }
 
-// Targets are the resources that can be invoked when a rule is triggered. For
-// example, AWS Lambda functions, Amazon Kinesis streams, and built-in targets.
-//
-// Input and InputPath are mutually-exclusive and optional parameters of a target.
-// When a rule is triggered due to a matched event, if for a target:
-//
-//    * Neither Input nor InputPath is specified, then the entire event is passed
-//    to the target in JSON form.
-//    * InputPath is specified in the form of JSONPath (e.g. $.detail), then
-//    only the part of the event specified in the path is passed to the target
-//    (e.g. only the detail part of the event is passed).
-//    * Input is specified in the form of a valid JSON, then the matched event
-//    is overridden with this constant.
+// This parameter contains the criteria (either InstanceIds or a tag) used to
+// specify which EC2 instances are to be sent the command.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RunCommandParameters
+type RunCommandParameters struct {
+	_ struct{} `type:"structure"`
+
+	// Currently, we support including only one RunCommandTarget block, which specifies
+	// either an array of InstanceIds or a tag.
+	//
+	// RunCommandTargets is a required field
+	RunCommandTargets []*RunCommandTarget `min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s RunCommandParameters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RunCommandParameters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RunCommandParameters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RunCommandParameters"}
+	if s.RunCommandTargets == nil {
+		invalidParams.Add(request.NewErrParamRequired("RunCommandTargets"))
+	}
+	if s.RunCommandTargets != nil && len(s.RunCommandTargets) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RunCommandTargets", 1))
+	}
+	if s.RunCommandTargets != nil {
+		for i, v := range s.RunCommandTargets {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "RunCommandTargets", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRunCommandTargets sets the RunCommandTargets field's value.
+func (s *RunCommandParameters) SetRunCommandTargets(v []*RunCommandTarget) *RunCommandParameters {
+	s.RunCommandTargets = v
+	return s
+}
+
+// Information about the EC2 instances that are to be sent the command, specified
+// as key-value pairs. Each RunCommandTarget block can include only one key,
+// but this key may specify multiple values.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/RunCommandTarget
+type RunCommandTarget struct {
+	_ struct{} `type:"structure"`
+
+	// Can be either tag:tag-key or InstanceIds.
+	//
+	// Key is a required field
+	Key *string `min:"1" type:"string" required:"true"`
+
+	// If Key is tag:tag-key, Values is a list of tag values. If Key is InstanceIds,
+	// Values is a list of Amazon EC2 instance IDs.
+	//
+	// Values is a required field
+	Values []*string `min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s RunCommandTarget) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RunCommandTarget) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RunCommandTarget) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RunCommandTarget"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.Key != nil && len(*s.Key) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Key", 1))
+	}
+	if s.Values == nil {
+		invalidParams.Add(request.NewErrParamRequired("Values"))
+	}
+	if s.Values != nil && len(s.Values) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Values", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKey sets the Key field's value.
+func (s *RunCommandTarget) SetKey(v string) *RunCommandTarget {
+	s.Key = &v
+	return s
+}
+
+// SetValues sets the Values field's value.
+func (s *RunCommandTarget) SetValues(v []*string) *RunCommandTarget {
+	s.Values = v
+	return s
+}
+
+// Targets are the resources to be invoked when a rule is triggered. Target
+// types include EC2 instances, AWS Lambda functions, Amazon Kinesis streams,
+// Amazon ECS tasks, AWS Step Functions state machines, Run Command, and built-in
+// targets.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/Target
 type Target struct {
 	_ struct{} `type:"structure"`
 
-	// The Amazon Resource Name (ARN) associated of the target.
+	// The Amazon Resource Name (ARN) of the target.
 	//
 	// Arn is a required field
 	Arn *string `min:"1" type:"string" required:"true"`
 
-	// The unique target assignment ID.
+	// Contains the Amazon ECS task definition and task count to be used, if the
+	// event target is an Amazon ECS task. For more information about Amazon ECS
+	// tasks, see Task Definitions  (http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_defintions.html)
+	// in the Amazon EC2 Container Service Developer Guide.
+	EcsParameters *EcsParameters `type:"structure"`
+
+	// The ID of the target.
 	//
 	// Id is a required field
 	Id *string `min:"1" type:"string" required:"true"`
 
-	// Valid JSON text passed to the target. For more information about JSON text,
-	// see The JavaScript Object Notation (JSON) Data Interchange Format (http://www.rfc-editor.org/rfc/rfc7159.txt).
+	// Valid JSON text passed to the target. In this case, nothing from the event
+	// itself is passed to the target. For more information, see The JavaScript
+	// Object Notation (JSON) Data Interchange Format (http://www.rfc-editor.org/rfc/rfc7159.txt).
 	Input *string `type:"string"`
 
 	// The value of the JSONPath that is used for extracting part of the matched
 	// event when passing it to the target. For more information about JSON paths,
 	// see JSONPath (http://goessner.net/articles/JsonPath/).
 	InputPath *string `type:"string"`
+
+	// Settings to enable you to provide custom input to a target based on certain
+	// event data. You can extract one or more key-value pairs from the event and
+	// then use that data to send customized input to the target.
+	InputTransformer *InputTransformer `type:"structure"`
+
+	// The custom parameter you can use to control shard assignment, when the target
+	// is an Amazon Kinesis stream. If you do not include this parameter, the default
+	// is to use the eventId as the partition key.
+	KinesisParameters *KinesisParameters `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the IAM role to be used for this target
+	// when the rule is triggered. If one rule triggers multiple targets, you can
+	// use a different IAM role for each target.
+	RoleArn *string `min:"1" type:"string"`
+
+	// Parameters used when you are using the rule to invoke Amazon EC2 Run Command.
+	RunCommandParameters *RunCommandParameters `type:"structure"`
 }
 
 // String returns the string representation
@@ -2253,6 +2532,29 @@ func (s *Target) Validate() error {
 	if s.Id != nil && len(*s.Id) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Id", 1))
 	}
+	if s.RoleArn != nil && len(*s.RoleArn) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleArn", 1))
+	}
+	if s.EcsParameters != nil {
+		if err := s.EcsParameters.Validate(); err != nil {
+			invalidParams.AddNested("EcsParameters", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.InputTransformer != nil {
+		if err := s.InputTransformer.Validate(); err != nil {
+			invalidParams.AddNested("InputTransformer", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.KinesisParameters != nil {
+		if err := s.KinesisParameters.Validate(); err != nil {
+			invalidParams.AddNested("KinesisParameters", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.RunCommandParameters != nil {
+		if err := s.RunCommandParameters.Validate(); err != nil {
+			invalidParams.AddNested("RunCommandParameters", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -2263,6 +2565,12 @@ func (s *Target) Validate() error {
 // SetArn sets the Arn field's value.
 func (s *Target) SetArn(v string) *Target {
 	s.Arn = &v
+	return s
+}
+
+// SetEcsParameters sets the EcsParameters field's value.
+func (s *Target) SetEcsParameters(v *EcsParameters) *Target {
+	s.EcsParameters = v
 	return s
 }
 
@@ -2284,17 +2592,40 @@ func (s *Target) SetInputPath(v string) *Target {
 	return s
 }
 
-// Container for the parameters to the TestEventPattern operation.
+// SetInputTransformer sets the InputTransformer field's value.
+func (s *Target) SetInputTransformer(v *InputTransformer) *Target {
+	s.InputTransformer = v
+	return s
+}
+
+// SetKinesisParameters sets the KinesisParameters field's value.
+func (s *Target) SetKinesisParameters(v *KinesisParameters) *Target {
+	s.KinesisParameters = v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *Target) SetRoleArn(v string) *Target {
+	s.RoleArn = &v
+	return s
+}
+
+// SetRunCommandParameters sets the RunCommandParameters field's value.
+func (s *Target) SetRunCommandParameters(v *RunCommandParameters) *Target {
+	s.RunCommandParameters = v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/TestEventPatternRequest
 type TestEventPatternInput struct {
 	_ struct{} `type:"structure"`
 
-	// The event in the JSON format to test against the event pattern.
+	// The event, in JSON format, to test against the event pattern.
 	//
 	// Event is a required field
 	Event *string `type:"string" required:"true"`
 
-	// The event pattern you want to test.
+	// The event pattern.
 	//
 	// EventPattern is a required field
 	EventPattern *string `type:"string" required:"true"`
@@ -2338,7 +2669,6 @@ func (s *TestEventPatternInput) SetEventPattern(v string) *TestEventPatternInput
 	return s
 }
 
-// The result of the TestEventPattern operation.
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07/TestEventPatternResponse
 type TestEventPatternOutput struct {
 	_ struct{} `type:"structure"`

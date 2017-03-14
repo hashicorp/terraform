@@ -1,3 +1,35 @@
+Release v1.7.9 (2017-03-13)
+===
+
+Service Client Updates
+---
+* `service/devicefarm`: Updates service API, documentation, paginators, and examples
+  * Network shaping allows users to simulate network connections and conditions while testing their Android, iOS, and web apps with AWS Device Farm.
+* `service/cloudwatchevents`: Updates service API, documentation, and examples
+
+SDK Enhancement
+===
+* `aws/session`: Add support for side loaded CA bundles (#1117)
+  * Adds supports for side loading Certificate Authority bundle files to the SDK using AWS_CA_BUNDLE environment variable or CustomCABundle session option.
+* `service/s3/s3crypto`: Add support for AES/CBC/PKCS5Padding (#1124)
+
+SDK Bug
+===
+* `service/rds`: Fixing issue when not providing `SourceRegion` on cross
+region operations (#1127)
+* `service/rds`: Enables cross region for `CopyDBClusterSnapshot` and
+`CreateDBCluster` (#1128)
+
+Release v1.7.8 (2017-03-10)
+===
+
+Service Client Updates
+---
+* `service/codedeploy`: Updates service paginators
+  * Add paginators for Codedeploy
+* `service/emr`: Updates service API, documentation, and paginators
+  * This release includes support for instance fleets in Amazon EMR.
+
 Release v1.7.7 (2017-03-09)
 ===
 

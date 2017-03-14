@@ -7,7 +7,7 @@ const (
 	// ErrCodeConcurrentModificationException for service response error code
 	// "ConcurrentModificationException".
 	//
-	// This exception occurs if there is concurrent modification on rule or target.
+	// There is concurrent modification on a rule or target.
 	ErrCodeConcurrentModificationException = "ConcurrentModificationException"
 
 	// ErrCodeInternalException for service response error code
@@ -19,14 +19,13 @@ const (
 	// ErrCodeInvalidEventPatternException for service response error code
 	// "InvalidEventPatternException".
 	//
-	// The event pattern is invalid.
+	// The event pattern is not valid.
 	ErrCodeInvalidEventPatternException = "InvalidEventPatternException"
 
 	// ErrCodeLimitExceededException for service response error code
 	// "LimitExceededException".
 	//
-	// This exception occurs if you try to create more rules or add more targets
-	// to a rule than allowed by default.
+	// You tried to create more rules or add more targets to a rule than is allowed.
 	ErrCodeLimitExceededException = "LimitExceededException"
 
 	// ErrCodeResourceNotFoundException for service response error code
