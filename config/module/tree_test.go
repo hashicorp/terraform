@@ -410,8 +410,17 @@ func TestTreeValidate_requiredChildVar(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if err := tree.Validate(); err == nil {
+	err := tree.Validate()
+	if err == nil {
 		t.Fatal("should error")
+	}
+
+	// ensure both variables are mentioned in the output
+	errMsg := err.Error()
+	for _, v := range []string{"feature", "memory"} {
+		if !strings.Contains(errMsg, v) {
+			t.Fatalf("no mention of missing variable %q", v)
+		}
 	}
 }
 
