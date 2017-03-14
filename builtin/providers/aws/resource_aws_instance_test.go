@@ -1011,23 +1011,11 @@ func TestAccAWSInstance_withNetworkInterface(t *testing.T) {
 				Config: testAccInstanceConfigWithNetworkInterface("test2"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &after),
-					testAccCheckInstanceRecreated(
-						t, &before, &after),
 					testCheckPrivateIP("10.1.1.12", &after),
 				),
 			},
 		},
 	})
-}
-
-func testAccCheckInstanceRecreated(t *testing.T,
-	before, after *ec2.Instance) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if *before.InstanceId == *after.InstanceId {
-			t.Fatalf("AWS Instance IDs have not changed. Before %s. After %s", *before.InstanceId, *after.InstanceId)
-		}
-		return nil
-	}
 }
 
 const testAccInstanceConfig_pre = `
