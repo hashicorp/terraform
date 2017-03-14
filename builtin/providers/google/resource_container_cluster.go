@@ -234,6 +234,7 @@ func resourceContainerCluster() *schema.Resource {
 						"metadata": &schema.Schema{
 							Type:     schema.TypeMap,
 							Optional: true,
+							ForceNew: true,
 							Elem:     schema.TypeString,
 						},
 
@@ -594,8 +595,8 @@ func flattenClusterNodeConfig(c *container.NodeConfig) []map[string]interface{} 
 		map[string]interface{}{
 			"machine_type": c.MachineType,
 			"disk_size_gb": c.DiskSizeGb,
-			"metadata": c.Metadata,
-			"tags": c.Tags,
+			"metadata":     c.Metadata,
+			"tags":         c.Tags,
 		},
 	}
 
