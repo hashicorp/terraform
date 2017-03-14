@@ -8069,3 +8069,33 @@ func TestContext2Apply_dataDependsOn(t *testing.T) {
 		t.Fatalf("bad:\n%s", strings.TrimSpace(state.String()))
 	}
 }
+
+func TestContext2Apply_terraformEnv(t *testing.T) {
+	m := testModule(t, "apply-terraform-env")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Meta:   &ContextMeta{Env: "foo"},
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := state.RootModule().Outputs["output"]
+	expected := "foo"
+	if actual == nil || actual.Value != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
