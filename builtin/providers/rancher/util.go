@@ -37,3 +37,8 @@ func splitID(id string) (envID, resourceID string) {
 	}
 	return "", id
 }
+
+// NewListOpts wraps around client.NewListOpts()
+func NewListOpts() *client.ListOpts {
+	return client.NewListOpts()
+}
