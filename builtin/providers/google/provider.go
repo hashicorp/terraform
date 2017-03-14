@@ -21,7 +21,7 @@ func Provider() terraform.ResourceProvider {
 				Optional:     true,
 				DefaultFunc:  schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
 				ValidateFunc: validateAccountFile,
-				Deprecated:   "Use the credentials field instead",
+				Removed:      "Use the credentials field instead",
 			},
 
 			"credentials": &schema.Schema{
@@ -115,9 +115,6 @@ func Provider() terraform.ResourceProvider {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	credentials := d.Get("credentials").(string)
-	if credentials == "" {
-		credentials = d.Get("account_file").(string)
-	}
 	config := Config{
 		Credentials: credentials,
 		Project:     d.Get("project").(string),
@@ -147,9 +144,7 @@ func validateAccountFile(v interface{}, k string) (warnings []string, errors []e
 		errors = append(errors, fmt.Errorf("Error loading Account File: %s", err))
 	}
 	if wasPath {
-		warnings = append(warnings, `account_file was provided as a path instead of
-as file contents. This support will be removed in the future. Please update
-your configuration to use ${file("filename.json")} instead.`)
+		errors = append(errors, fmt.Errorf(`Error loading credentials; they were provided as a path instead of file contents. Please use ${file("%s")} instead.`, value))
 	}
 
 	var account accountFile
