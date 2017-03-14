@@ -49,7 +49,7 @@ func resolveImageFamilyExists(c *Config, project, name string) (bool, error) {
 
 func sanityTestRegexMatches(expected int, got []string, regexType, name string) error {
 	if len(got)-1 != expected { // subtract one, index zero is the entire matched expression
-		return fmt.Errorf("Expected %d %s regex matches, got %d for %s", 2, regexType, len(got)-1, name)
+		return fmt.Errorf("Expected %d %s regex matches, got %d for %s", expected, regexType, len(got)-1, name)
 	}
 	return nil
 }
