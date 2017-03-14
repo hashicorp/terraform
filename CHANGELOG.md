@@ -21,6 +21,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * provider/google: Correct the incorrect instance group manager URL returned from GKE [GH-4336]
+ * provider/google: Fix a plan/apply cycle in IAM policies [GH-12387]
  
 ## 0.9.0-beta2 (March 2, 2017)
 
