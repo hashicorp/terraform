@@ -1,6 +1,9 @@
 ## 0.9.1 (unreleased)
 
+BACKWARDS IMCOMPATIBILITIES / NOTES:
 
+ * provider/pagerduty: the deprecated `name_regex` field has been removed from vendor data source [GH-12396]
+ 
 
 ## 0.9.0 (March 15, 2017)
 
