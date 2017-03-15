@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -296,10 +297,49 @@ func resourceAwsAmiDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+func AMIStateRefreshFunc(client *ec2.EC2, id string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		resp, err := client.DescribeImages(&ec2.DescribeImagesInput{ImageIds: []*string{aws.String(id)}})
+
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAMIID.NotFound" {
+				return nil, "destroyed", nil
+			} else if resp != nil && len(resp.Images) == 0 {
+				return nil, "destroyed", nil
+			} else {
+				return nil, "", fmt.Errorf("Error on refresh: %+v", err)
+			}
+		}
+
+		if resp == nil || resp.Images == nil || len(resp.Images) == 0 {
+			return nil, "destroyed", nil
+		}
+
+		// AMI is valid, so return it's state
+		return resp.Images[0], *resp.Images[0].State, nil
+	}
+}
+
 func resourceAwsAmiWaitForDestroy(id string, client *ec2.EC2) error {
 	log.Printf("Waiting for AMI %s to be deleted...", id)
 
-	req := &ec2.DescribeImagesInput{
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"available", "pending", "failed"},
+		Target:     []string{"destroyed"},
+		Refresh:    AMIStateRefreshFunc(client, id),
+		Timeout:    10 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err := stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf("Error waiting for AMI (%s) to be deleted: %v", id, err)
+	}
+
+	return nil
+
+	/*req := &ec2.DescribeImagesInput{
 		ImageIds: []*string{aws.String(id)},
 	}
 
@@ -326,7 +366,7 @@ func resourceAwsAmiWaitForDestroy(id string, client *ec2.EC2) error {
 		}
 		time.Sleep(AWSAMISleepDuration)
 		continue
-	}
+	}*/
 }
 
 func resourceAwsAmiWaitForAvailable(id string, client *ec2.EC2) (*ec2.Image, error) {
