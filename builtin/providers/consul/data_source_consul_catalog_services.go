@@ -44,15 +44,6 @@ func dataSourceConsulCatalogServices() *schema.Resource {
 			catalogServicesServices: &schema.Schema{
 				Computed: true,
 				Type:     schema.TypeMap,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						catalogServiceServiceTags: &schema.Schema{
-							Type:     schema.TypeList,
-							Computed: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-						},
-					},
-				},
 			},
 		},
 	}

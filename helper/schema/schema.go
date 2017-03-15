@@ -599,6 +599,12 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 			}
 		}
 
+		if v.Type == TypeMap {
+			if _, ok := v.Elem.(*Resource); ok {
+				return fmt.Errorf("%s: Elem cannot be Resource", k)
+			}
+		}
+
 		if v.Type == TypeList || v.Type == TypeSet {
 			if v.Elem == nil {
 				return fmt.Errorf("%s: Elem must be set for lists", k)

@@ -115,18 +115,6 @@ func dataSourceConsulCatalogService() *schema.Resource {
 						catalogServiceTaggedAddresses: &schema.Schema{
 							Type:     schema.TypeMap,
 							Computed: true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									catalogNodesSchemaTaggedLAN: &schema.Schema{
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-									catalogNodesSchemaTaggedWAN: &schema.Schema{
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-								},
-							},
 						},
 					},
 				},

@@ -203,26 +203,6 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 			agentSelfAddresses: {
 				Computed: true,
 				Type:     schema.TypeMap,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						agentSelfSchemaPortsDNS: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfSchemaPortsHTTP: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfSchemaPortsHTTPS: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfSchemaPortsRPC: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
 			},
 			agentSelfAdvertiseAddr: {
 				Computed: true,
@@ -231,22 +211,6 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 			agentSelfAdvertiseAddrs: {
 				Computed: true,
 				Type:     schema.TypeMap,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						agentSelfSchemaPortsSerfLAN: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfSchemaPortsSerfWAN: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfSchemaPortsRPC: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
 			},
 			agentSelfAdvertiseAddrWAN: {
 				Computed: true,
@@ -300,58 +264,6 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 			agentSelfDNSConfig: {
 				Computed: true,
 				Type:     schema.TypeMap,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						agentSelfDNSAllowStale: {
-							Computed: true,
-							Type:     schema.TypeBool,
-						},
-						agentSelfDNSEnableCompression: {
-							Computed: true,
-							Type:     schema.TypeBool,
-						},
-						agentSelfDNSEnableTruncate: {
-							Computed: true,
-							Type:     schema.TypeBool,
-						},
-						agentSelfDNSMaxStale: {
-							Computed: true,
-							Type:     schema.TypeString,
-							ValidateFunc: makeValidationFunc(agentSelfDNSMaxStale, validatorInputs{
-								validateDurationMin("0ns"),
-							}),
-						},
-						agentSelfDNSNodeTTL: {
-							Computed: true,
-							Type:     schema.TypeString,
-							ValidateFunc: makeValidationFunc(agentSelfDNSNodeTTL, validatorInputs{
-								validateDurationMin("0ns"),
-							}),
-						},
-						agentSelfDNSOnlyPassing: {
-							Computed: true,
-							Type:     schema.TypeBool,
-						},
-						agentSelfDNSRecursorTimeout: {
-							Computed: true,
-							Type:     schema.TypeString,
-							ValidateFunc: makeValidationFunc(agentSelfDNSRecursorTimeout, validatorInputs{
-								validateDurationMin("0ns"),
-							}),
-						},
-						agentSelfDNSServiceTTL: {
-							Computed: true,
-							Type:     schema.TypeString,
-							ValidateFunc: makeValidationFunc(agentSelfDNSServiceTTL, validatorInputs{
-								validateDurationMin("0ns"),
-							}),
-						},
-						agentSelfDNSUDPAnswerLimit: {
-							Computed: true,
-							Type:     schema.TypeInt,
-						},
-					},
-				},
 			},
 			agentSelfDataDir: {
 				Computed: true,
@@ -429,17 +341,6 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 			agentSelfPerformance: {
 				Computed: true,
 				Type:     schema.TypeMap,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						agentSelfPerformanceRaftMultiplier: {
-							Computed: true,
-							Type:     schema.TypeString, // FIXME(sean@): should be schema.TypeInt
-							ValidateFunc: makeValidationFunc(agentSelfPerformanceRaftMultiplier, validatorInputs{
-								validateIntMin(0),
-							}),
-						},
-					},
-				},
 			},
 			agentSelfPidFile: {
 				Computed: true,
@@ -448,66 +349,6 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 			agentSelfPorts: {
 				Computed: true,
 				Type:     schema.TypeMap,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						agentSelfSchemaPortsDNS: {
-							Computed: true,
-							Type:     schema.TypeInt,
-							ValidateFunc: makeValidationFunc(agentSelfSchemaPortsDNS, validatorInputs{
-								validateIntMin(1),
-								validateIntMax(65535),
-							}),
-						},
-						agentSelfSchemaPortsHTTP: {
-							Computed: true,
-							Type:     schema.TypeInt,
-							ValidateFunc: makeValidationFunc(agentSelfSchemaPortsHTTP, validatorInputs{
-								validateIntMin(1),
-								validateIntMax(65535),
-							}),
-						},
-						agentSelfSchemaPortsHTTPS: {
-							Computed: true,
-							Type:     schema.TypeInt,
-							ValidateFunc: makeValidationFunc(agentSelfSchemaPortsHTTPS, validatorInputs{
-								validateIntMin(1),
-								validateIntMax(65535),
-							}),
-						},
-						agentSelfSchemaPortsRPC: {
-							Computed: true,
-							Type:     schema.TypeInt,
-							ValidateFunc: makeValidationFunc(agentSelfSchemaPortsRPC, validatorInputs{
-								validateIntMin(1),
-								validateIntMax(65535),
-							}),
-						},
-						agentSelfSchemaPortsSerfLAN: {
-							Computed: true,
-							Type:     schema.TypeInt,
-							ValidateFunc: makeValidationFunc(agentSelfSchemaPortsSerfLAN, validatorInputs{
-								validateIntMin(1),
-								validateIntMax(65535),
-							}),
-						},
-						agentSelfSchemaPortsSerfWAN: {
-							Computed: true,
-							Type:     schema.TypeInt,
-							ValidateFunc: makeValidationFunc(agentSelfSchemaPortsSerfWAN, validatorInputs{
-								validateIntMin(1),
-								validateIntMax(65535),
-							}),
-						},
-						agentSelfSchemaPortsServer: {
-							Computed: true,
-							Type:     schema.TypeInt,
-							ValidateFunc: makeValidationFunc(agentSelfSchemaPortsServer, validatorInputs{
-								validateIntMin(1),
-								validateIntMax(65535),
-							}),
-						},
-					},
-				},
 			},
 			agentSelfProtocol: {
 				Computed: true,
@@ -552,46 +393,10 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 			agentSelfRetryJoinEC2: {
 				Computed: true,
 				Type:     schema.TypeMap,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						agentSelfRetryJoinAWSRegion: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfRetryJoinAWSTagKey: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfRetryJoinAWSTagValue: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
 			},
 			agentSelfRetryJoinGCE: {
 				Computed: true,
 				Type:     schema.TypeMap,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						agentSelfRetryJoinGCEProjectName: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfRetryJoinGCEZonePattern: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfRetryJoinGCETagValue: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfRetryJoinGCECredentialsFile: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
 			},
 			agentSelfSerfLANBindAddr: {
 				Computed: true,
@@ -633,106 +438,10 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 			agentSelfTaggedAddresses: {
 				Computed: true,
 				Type:     schema.TypeMap,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						agentSelfTaggedAddressesLAN: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTaggedAddressesWAN: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
 			},
 			agentSelfTelemetry: {
 				Computed: true,
 				Type:     schema.TypeMap,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						agentSelfTelemetryCirconusAPIApp: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryCirconusAPIToken: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryCirconusAPIURL: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryCirconusBrokerID: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryCirconusBrokerSelectTag: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryCirconusCheckDisplayName: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryCirconusCheckID: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryCirconusCheckInstanceID: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryCirconusCheckSearchTag: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryCirconusCheckSubmissionURL: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryCirconusCheckTags: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryCirconusCheckForceMetricActiation: &schema.Schema{
-							Type:     schema.TypeBool,
-							Computed: true,
-						},
-						agentSelfTelemetryCirconusSubmissionInterval: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-							ValidateFunc: makeValidationFunc(agentSelfTelemetryCirconusSubmissionInterval, validatorInputs{
-								validateDurationMin("0ns"),
-							}),
-						},
-						agentSelfTelemetryEnableHostname: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryDogStatsdAddr: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryDogStatsdTags: &schema.Schema{
-							Type:     schema.TypeList,
-							Computed: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-						},
-						agentSelfTelemetryStatsdAddr: {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryStatsiteAddr: {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfTelemetryStatsitePrefix: {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
 			},
 			agentSelfTLSCAFile: {
 				Computed: true,
@@ -773,22 +482,6 @@ func dataSourceConsulAgentSelf() *schema.Resource {
 			agentSelfUnixSockets: {
 				Computed: true,
 				Type:     schema.TypeMap,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						agentSelfUnixSocketUser: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfUnixSocketGroup: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						agentSelfUnixSocketMode: &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
 			},
 			agentSelfVersion: {
 				Computed: true,
