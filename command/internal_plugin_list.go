@@ -53,6 +53,7 @@ import (
 	postgresqlprovider "github.com/hashicorp/terraform/builtin/providers/postgresql"
 	powerdnsprovider "github.com/hashicorp/terraform/builtin/providers/powerdns"
 	profitbricksprovider "github.com/hashicorp/terraform/builtin/providers/profitbricks"
+	puppetdbprovider "github.com/hashicorp/terraform/builtin/providers/puppetdb"
 	rabbitmqprovider "github.com/hashicorp/terraform/builtin/providers/rabbitmq"
 	rancherprovider "github.com/hashicorp/terraform/builtin/providers/rancher"
 	randomprovider "github.com/hashicorp/terraform/builtin/providers/random"
@@ -129,6 +130,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"postgresql":   postgresqlprovider.Provider,
 	"powerdns":     powerdnsprovider.Provider,
 	"profitbricks": profitbricksprovider.Provider,
+	"puppetdb":     puppetdbprovider.Provider,
 	"rabbitmq":     rabbitmqprovider.Provider,
 	"rancher":      rancherprovider.Provider,
 	"random":       randomprovider.Provider,
