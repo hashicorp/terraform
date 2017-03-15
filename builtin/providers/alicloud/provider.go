@@ -26,7 +26,7 @@ func Provider() terraform.ResourceProvider {
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_REGION", DEFAULT_REGION),
+				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_REGION", "cn-beijing"),
 				Description: descriptions["region"],
 			},
 		},

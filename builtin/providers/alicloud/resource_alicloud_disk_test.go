@@ -136,13 +136,9 @@ func testAccCheckDiskDestroy(s *terraform.State) error {
 }
 
 const testAccDiskConfig = `
-data "alicloud_zones" "default" {
-	"available_disk_category"= "cloud_efficiency"
-}
-
 resource "alicloud_disk" "foo" {
 	# cn-beijing
-	availability_zone = "${data.alicloud_zones.default.zones.0.id}"
+	availability_zone = "cn-beijing-b"
 	name = "New-disk"
 	description = "Hello ecs disk."
 	category = "cloud_efficiency"
@@ -150,15 +146,10 @@ resource "alicloud_disk" "foo" {
 }
 `
 const testAccDiskConfigWithTags = `
-data "alicloud_zones" "default" {
-	"available_disk_category"= "cloud_efficiency"
-}
-
 resource "alicloud_disk" "bar" {
 	# cn-beijing
-	availability_zone = "${data.alicloud_zones.default.zones.0.id}"
-	category = "cloud_efficiency"
-        size = "20"
+	availability_zone = "cn-beijing-b"
+        size = "10"
         tags {
         	Name = "TerraformTest"
         }

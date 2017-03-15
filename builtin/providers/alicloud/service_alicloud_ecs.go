@@ -187,13 +187,14 @@ func (client *AliyunClient) DescribeSecurity(securityGroupId string) (*ecs.Descr
 }
 
 func (client *AliyunClient) DescribeSecurityGroupRule(securityGroupId, types, ip_protocol, port_range string) (*ecs.PermissionType, error) {
+
 	sg, err := client.DescribeSecurity(securityGroupId)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, p := range sg.Permissions.Permission {
-		if strings.ToLower(string(p.IpProtocol)) == ip_protocol && p.PortRange == port_range && strings.ToLower(p.Direction) == types {
+		if strings.ToLower(string(p.IpProtocol)) == ip_protocol && p.PortRange == port_range {
 			return &p, nil
 		}
 	}
@@ -202,11 +203,6 @@ func (client *AliyunClient) DescribeSecurityGroupRule(securityGroupId, types, ip
 }
 
 func (client *AliyunClient) RevokeSecurityGroup(args *ecs.RevokeSecurityGroupArgs) error {
-	//when the rule is not exist, api will return success(200)
+	//todo: handle the specal err
 	return client.ecsconn.RevokeSecurityGroup(args)
-}
-
-func (client *AliyunClient) RevokeSecurityGroupEgress(args *ecs.RevokeSecurityGroupEgressArgs) error {
-	//when the rule is not exist, api will return success(200)
-	return client.ecsconn.RevokeSecurityGroupEgress(args)
 }

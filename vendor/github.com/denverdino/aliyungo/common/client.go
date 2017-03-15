@@ -128,8 +128,7 @@ func (client *Client) Invoke(action string, args interface{}, response interface
 
 // Invoke sends the raw HTTP request for ECS services
 //改进了一下上面那个方法，可以使用各种Http方法
-//2017.1.30 增加了一个path参数，用来拓展访问的地址
-func (client *Client) InvokeByAnyMethod(method, action, path string, args interface{}, response interface{}) error {
+func (client *Client) InvokeByAnyMethod(method, action string, args interface{}, response interface{}) error {
 
 	request := Request{}
 	request.init(client.version, action, client.AccessKeyId)
@@ -141,18 +140,17 @@ func (client *Client) InvokeByAnyMethod(method, action, path string, args interf
 	signature := util.CreateSignatureForRequest(method, &data, client.AccessKeySecret)
 
 	data.Add("Signature", signature)
+
 	// Generate the request URL
 	var (
 		httpReq *http.Request
 		err error
 	)
 	if method == http.MethodGet {
-		requestURL := client.endpoint + path + "?" + data.Encode()
-		//fmt.Println(requestURL)
+		requestURL := client.endpoint + "?" + data.Encode()
 		httpReq, err = http.NewRequest(method, requestURL, nil)
 	} else {
-		//fmt.Println(client.endpoint + path)
-		httpReq, err = http.NewRequest(method, client.endpoint + path, strings.NewReader(data.Encode()))
+		httpReq, err = http.NewRequest(method, client.endpoint, strings.NewReader(data.Encode()))
 		httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 
