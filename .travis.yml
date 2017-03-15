@@ -5,7 +5,7 @@ go:
 - 1.8
 
 env:
-  - CONSUL_VERSION=0.7.5 TF_CONSUL_TEST=1
+  - CONSUL_VERSION=0.7.5 TF_CONSUL_TEST=1 GOMAXPROCS=4
 
 # Fetch consul for the backend and provider tests
 before_install:
