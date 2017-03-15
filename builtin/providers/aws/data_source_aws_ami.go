@@ -228,7 +228,8 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 
 	var image *ec2.Image
 	if len(filteredImages) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again.")
+		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again. %t",
+			params.Filters)
 	}
 
 	if len(filteredImages) > 1 {
