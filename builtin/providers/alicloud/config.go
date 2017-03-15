@@ -19,8 +19,10 @@ type Config struct {
 type AliyunClient struct {
 	Region  common.Region
 	ecsconn *ecs.Client
-	vpcconn *ecs.Client
-	slbconn *slb.Client
+	// use new version
+	ecsNewconn *ecs.Client
+	vpcconn    *ecs.Client
+	slbconn    *slb.Client
 }
 
 // Client for AliyunClient
@@ -35,6 +37,12 @@ func (c *Config) Client() (*AliyunClient, error) {
 		return nil, err
 	}
 
+	ecsNewconn, err := c.ecsConn()
+	if err != nil {
+		return nil, err
+	}
+	ecsNewconn.SetVersion(EcsApiVersion20160314)
+
 	slbconn, err := c.slbConn()
 	if err != nil {
 		return nil, err
@@ -46,11 +54,25 @@ func (c *Config) Client() (*AliyunClient, error) {
 	}
 
 	return &AliyunClient{
-		Region:  c.Region,
-		ecsconn: ecsconn,
-		vpcconn: vpcconn,
-		slbconn: slbconn,
+		Region:     c.Region,
+		ecsconn:    ecsconn,
+		ecsNewconn: ecsNewconn,
+		vpcconn:    vpcconn,
+		slbconn:    slbconn,
 	}, nil
+}
+
+// return new ecs Client
+// when you need new client not global client, use this method
+func (c *Config) NewEcsConn() (*ecs.Client, error) {
+	client := ecs.NewClient(c.AccessKey, c.SecretKey)
+	_, err := client.DescribeRegions()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
 func (c *Config) loadAndValidate() error {
