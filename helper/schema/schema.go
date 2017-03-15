@@ -1357,6 +1357,13 @@ func getValueType(k string, schema *Schema) (ValueType, error) {
 			return vt, nil
 		}
 	}
+
+	if _, ok := schema.Elem.(*Resource); ok {
+		// TODO: We don't actually support this (yet)
+		// but silently pass the validation, until we decide
+		// how to handle nested structures in maps
+		return TypeString, nil
+	}
 	return 0, fmt.Errorf("%s: unexpected map value type: %#v", k, schema.Elem)
 }
 
