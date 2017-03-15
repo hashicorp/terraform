@@ -20,7 +20,7 @@ func TestAccContainerCluster_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccContainerCluster_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckContainerClusterExists(
+					testAccCheckContainerCluster(
 						"google_container_cluster.primary"),
 				),
 			},
@@ -37,10 +37,8 @@ func TestAccContainerCluster_withAdditionalZones(t *testing.T) {
 			resource.TestStep{
 				Config: testAccContainerCluster_withAdditionalZones,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckContainerClusterExists(
+					testAccCheckContainerCluster(
 						"google_container_cluster.with_additional_zones"),
-					testAccCheckContainerClusterAdditionalZonesExist(
-						"google_container_cluster.with_additional_zones", 2),
 				),
 			},
 		},
@@ -56,7 +54,7 @@ func TestAccContainerCluster_withVersion(t *testing.T) {
 			resource.TestStep{
 				Config: testAccContainerCluster_withVersion,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckContainerClusterExists(
+					testAccCheckContainerCluster(
 						"google_container_cluster.with_version"),
 				),
 			},
@@ -73,7 +71,7 @@ func TestAccContainerCluster_withNodeConfig(t *testing.T) {
 			resource.TestStep{
 				Config: testAccContainerCluster_withNodeConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckContainerClusterExists(
+					testAccCheckContainerCluster(
 						"google_container_cluster.with_node_config"),
 				),
 			},
@@ -90,7 +88,7 @@ func TestAccContainerCluster_withNodeConfigScopeAlias(t *testing.T) {
 			resource.TestStep{
 				Config: testAccContainerCluster_withNodeConfigScopeAlias,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckContainerClusterExists(
+					testAccCheckContainerCluster(
 						"google_container_cluster.with_node_config_scope_alias"),
 				),
 			},
@@ -107,9 +105,9 @@ func TestAccContainerCluster_network(t *testing.T) {
 			resource.TestStep{
 				Config: testAccContainerCluster_networkRef,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckContainerClusterExists(
+					testAccCheckContainerCluster(
 						"google_container_cluster.with_net_ref_by_url"),
-					testAccCheckContainerClusterExists(
+					testAccCheckContainerCluster(
 						"google_container_cluster.with_net_ref_by_name"),
 				),
 			},
@@ -126,7 +124,7 @@ func TestAccContainerCluster_backend(t *testing.T) {
 			resource.TestStep{
 				Config: testAccContainerCluster_backendRef,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckContainerClusterExists(
+					testAccCheckContainerCluster(
 						"google_container_cluster.primary"),
 				),
 			},
@@ -153,51 +151,136 @@ func testAccCheckContainerClusterDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckContainerClusterExists(n string) resource.TestCheckFunc {
+func testAccCheckContainerCluster(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
+		attributes, err := getResourceAttributes(n, s)
+		if err != nil {
+			return err
 		}
 
 		config := testAccProvider.Meta().(*Config)
-
-		attributes := rs.Primary.Attributes
-		found, err := config.clientContainer.Projects.Zones.Clusters.Get(
+		cluster, err := config.clientContainer.Projects.Zones.Clusters.Get(
 			config.Project, attributes["zone"], attributes["name"]).Do()
 		if err != nil {
 			return err
 		}
 
-		if found.Name != attributes["name"] {
-			return fmt.Errorf("Cluster not found")
+		if cluster.Name != attributes["name"] {
+			return fmt.Errorf("Cluster %s not found, found %s instead", attributes["name"], cluster.Name)
+		}
+
+		type clusterTestField struct {
+			tf_attr  string
+			gcp_attr interface{}
+		}
+
+		clusterTests := []clusterTestField{
+			{"initial_node_count", strconv.FormatInt(cluster.InitialNodeCount, 10)},
+			{"master_auth.0.client_certificate", cluster.MasterAuth.ClientCertificate},
+			{"master_auth.0.client_key", cluster.MasterAuth.ClientKey},
+			{"master_auth.0.cluster_ca_certificate", cluster.MasterAuth.ClusterCaCertificate},
+			{"master_auth.0.password", cluster.MasterAuth.Password},
+			{"master_auth.0.username", cluster.MasterAuth.Username},
+			{"zone", cluster.Zone},
+			{"cluster_ipv4_cidr", cluster.ClusterIpv4Cidr},
+			{"description", cluster.Description},
+			{"endpoint", cluster.Endpoint},
+			{"instance_group_urls", cluster.InstanceGroupUrls},
+			{"logging_service", cluster.LoggingService},
+			{"monitoring_service", cluster.MonitoringService},
+			{"subnetwork", cluster.Subnetwork},
+			{"node_config.0.machine_type", cluster.NodeConfig.MachineType},
+			{"node_config.0.disk_size_gb", strconv.FormatInt(cluster.NodeConfig.DiskSizeGb, 10)},
+			{"node_config.0.oauth_scopes", cluster.NodeConfig.OauthScopes},
+			{"node_version", cluster.CurrentNodeVersion},
+		}
+
+		// Remove Zone from additional_zones since that's what the resource writes in state
+		additionalZones := []string{}
+		for _, location := range cluster.Locations {
+			if location != cluster.Zone {
+				additionalZones = append(additionalZones, location)
+			}
+		}
+		clusterTests = append(clusterTests, clusterTestField{"additional_zones", additionalZones})
+
+		// AddonsConfig is neither Required or Computed, so the API may return nil for it
+		if cluster.AddonsConfig != nil {
+			if cluster.AddonsConfig.HttpLoadBalancing != nil {
+				clusterTests = append(clusterTests, clusterTestField{"addons_config.0.http_load_balancing.0.disabled", strconv.FormatBool(cluster.AddonsConfig.HttpLoadBalancing.Disabled)})
+			}
+			if cluster.AddonsConfig.HorizontalPodAutoscaling != nil {
+				clusterTests = append(clusterTests, clusterTestField{"addons_config.0.horizontal_pod_autoscaling.0.disabled", strconv.FormatBool(cluster.AddonsConfig.HorizontalPodAutoscaling.Disabled)})
+			}
+		}
+
+		for _, attrs := range clusterTests {
+			if c := checkMatch(attributes, attrs.tf_attr, attrs.gcp_attr); c != "" {
+				return fmt.Errorf(c)
+			}
+		}
+
+		// Network has to be done separately in order to normalize the two values
+		tf, err := getNetworkNameFromSelfLink(attributes["network"])
+		if err != nil {
+			return err
+		}
+		gcp, err := getNetworkNameFromSelfLink(cluster.Network)
+		if err != nil {
+			return err
+		}
+		if tf != gcp {
+			return fmt.Errorf(matchError("network", tf, gcp))
 		}
 
 		return nil
 	}
 }
 
-func testAccCheckContainerClusterAdditionalZonesExist(n string, num int) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-
-		additionalZonesSize, err := strconv.Atoi(rs.Primary.Attributes["additional_zones.#"])
-		if err != nil {
-			return err
-		}
-		if additionalZonesSize != num {
-			return fmt.Errorf("number of additional zones did not match %d, was %d", num, additionalZonesSize)
-		}
-
-		return nil
+func getResourceAttributes(n string, s *terraform.State) (map[string]string, error) {
+	rs, ok := s.RootModule().Resources[n]
+	if !ok {
+		return nil, fmt.Errorf("Not found: %s", n)
 	}
+
+	if rs.Primary.ID == "" {
+		return nil, fmt.Errorf("No ID is set")
+	}
+
+	return rs.Primary.Attributes, nil
+}
+
+func checkMatch(attributes map[string]string, attr string, gcp interface{}) string {
+	if gcpList, ok := gcp.([]string); ok {
+		return checkListMatch(attributes, attr, gcpList)
+	}
+	tf := attributes[attr]
+	if tf != gcp {
+		return matchError(attr, tf, gcp)
+	}
+	return ""
+}
+
+func checkListMatch(attributes map[string]string, attr string, gcpList []string) string {
+	num, err := strconv.Atoi(attributes[attr+".#"])
+	if err != nil {
+		return fmt.Sprintf("Error in number conversion for attribute %s: %s", attr, err)
+	}
+	if num != len(gcpList) {
+		return fmt.Sprintf("Cluster has mismatched %s size.\nTF Size: %d\nGCP Size: %d", attr, num, len(gcpList))
+	}
+
+	for i, gcp := range gcpList {
+		if tf := attributes[fmt.Sprintf("%s.%d", attr, i)]; tf != gcp {
+			return matchError(fmt.Sprintf("%s[%d]", attr, i), tf, gcp)
+		}
+	}
+
+	return ""
+}
+
+func matchError(attr, tf string, gcp interface{}) string {
+	return fmt.Sprintf("Cluster has mismatched %s.\nTF State: %+v\nGCP State: %+v", attr, tf, gcp)
 }
 
 var testAccContainerCluster_basic = fmt.Sprintf(`
