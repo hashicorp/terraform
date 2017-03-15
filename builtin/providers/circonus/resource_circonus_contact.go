@@ -55,8 +55,8 @@ const (
 
 	// circonus_contact.pager_duty attributes
 	//contactContactGroupFallbackAttr
-	contactPagerDutyIntegrationKeyAttr schemaAttr = "integration_key"
-	contactPagerDutyWebhookURLAttr     schemaAttr = "webook_url"
+	contactPagerDutyServiceKeyAttr schemaAttr = "service_key"
+	contactPagerDutyWebhookURLAttr schemaAttr = "webhook_url"
 
 	// circonus_contact.slack attributes
 	//contactContactGroupFallbackAttr
@@ -110,8 +110,8 @@ type contactHTTPInfo struct {
 
 type contactPagerDutyInfo struct {
 	FallbackGroupCID int    `json:"failover_group,string"`
-	IntegrationKey   string `json:"service_key"`
-	WebookURL        string `json:"webook_url"`
+	ServiceKey       string `json:"service_key"`
+	WebhookURL       string `json:"webhook_url"`
 }
 
 type contactSlackInfo struct {
@@ -173,9 +173,9 @@ var contactHTTPDescriptions = attrDescrs{
 }
 
 var contactPagerDutyDescriptions = attrDescrs{
-	contactContactGroupFallbackAttr:    "",
-	contactPagerDutyIntegrationKeyAttr: "",
-	contactPagerDutyWebhookURLAttr:     "",
+	contactContactGroupFallbackAttr: "",
+	contactPagerDutyServiceKeyAttr:  "",
+	contactPagerDutyWebhookURLAttr:  "",
 }
 
 var contactSlackDescriptions = attrDescrs{
@@ -353,11 +353,11 @@ func resourceContactGroup() *schema.Resource {
 							Optional:     true,
 							ValidateFunc: validateContactGroupCID(contactContactGroupFallbackAttr),
 						},
-						contactPagerDutyIntegrationKeyAttr: &schema.Schema{
+						contactPagerDutyServiceKeyAttr: &schema.Schema{
 							Type:         schema.TypeString,
 							Required:     true,
 							Sensitive:    true,
-							ValidateFunc: validateHTTPURL(contactPagerDutyIntegrationKeyAttr, urlIsAbs),
+							ValidateFunc: validateRegexp(contactPagerDutyServiceKeyAttr, `^[a-zA-Z0-9]{32}$`),
 						},
 						contactPagerDutyWebhookURLAttr: &schema.Schema{
 							Type:         schema.TypeString,
@@ -760,7 +760,7 @@ func contactGroupHTTPToState(cg *api.ContactGroup) ([]interface{}, error) {
 
 	for _, ext := range cg.Contacts.External {
 		switch ext.Method {
-		case contactHTTPAttr:
+		case circonusMethodHTTP:
 			url := contactHTTPInfo{}
 			if err := json.Unmarshal([]byte(ext.Info), &url); err != nil {
 				return nil, errwrap.Wrapf(fmt.Sprintf("unable to decode external %s JSON (%q): {{err}}", contactHTTPAttr, ext.Info), err)
@@ -923,12 +923,12 @@ func getContactGroupInput(d *schema.ResourceData) (*api.ContactGroup, error) {
 				pagerDutyInfo.FallbackGroupCID = contactGroupID
 			}
 
-			if v, ok := pagerDutyMap[string(contactPagerDutyIntegrationKeyAttr)]; ok {
-				pagerDutyInfo.IntegrationKey = v.(string)
+			if v, ok := pagerDutyMap[string(contactPagerDutyServiceKeyAttr)]; ok {
+				pagerDutyInfo.ServiceKey = v.(string)
 			}
 
 			if v, ok := pagerDutyMap[string(contactPagerDutyWebhookURLAttr)]; ok {
-				pagerDutyInfo.WebookURL = v.(string)
+				pagerDutyInfo.WebhookURL = v.(string)
 			}
 
 			js, err := json.Marshal(pagerDutyInfo)
@@ -1136,7 +1136,7 @@ func contactGroupIRCToState(cg *api.ContactGroup) []interface{} {
 
 	for _, user := range cg.Contacts.Users {
 		switch user.Method {
-		case contactIRCAttr:
+		case circonusMethodIRC:
 			ircContacts = append(ircContacts, map[string]interface{}{
 				contactUserCIDAttr: user.UserCID,
 			})
@@ -1151,16 +1151,16 @@ func contactGroupPagerDutyToState(cg *api.ContactGroup) ([]interface{}, error) {
 
 	for _, ext := range cg.Contacts.External {
 		switch ext.Method {
-		case contactPagerDutyAttr:
+		case circonusMethodPagerDuty:
 			pdInfo := contactPagerDutyInfo{}
 			if err := json.Unmarshal([]byte(ext.Info), &pdInfo); err != nil {
 				return nil, errwrap.Wrapf(fmt.Sprintf("unable to decode external %s JSON (%q): {{err}}", contactPagerDutyAttr, ext.Info), err)
 			}
 
 			pdContacts = append(pdContacts, map[string]interface{}{
-				string(contactContactGroupFallbackAttr):    failoverGroupIDToCID(pdInfo.FallbackGroupCID),
-				string(contactPagerDutyIntegrationKeyAttr): pdInfo.IntegrationKey,
-				string(contactPagerDutyWebhookURLAttr):     pdInfo.WebookURL,
+				string(contactContactGroupFallbackAttr): failoverGroupIDToCID(pdInfo.FallbackGroupCID),
+				string(contactPagerDutyServiceKeyAttr):  pdInfo.ServiceKey,
+				string(contactPagerDutyWebhookURLAttr):  pdInfo.WebhookURL,
 			})
 		}
 	}
@@ -1173,7 +1173,7 @@ func contactGroupSlackToState(cg *api.ContactGroup) ([]interface{}, error) {
 
 	for _, ext := range cg.Contacts.External {
 		switch ext.Method {
-		case contactSlackAttr:
+		case circonusMethodSlack:
 			slackInfo := contactSlackInfo{}
 			if err := json.Unmarshal([]byte(ext.Info), &slackInfo); err != nil {
 				return nil, errwrap.Wrapf(fmt.Sprintf("unable to decode external %s JSON (%q): {{err}}", contactSlackAttr, ext.Info), err)
@@ -1197,7 +1197,7 @@ func contactGroupSMSToState(cg *api.ContactGroup) ([]interface{}, error) {
 
 	for _, ext := range cg.Contacts.External {
 		switch ext.Method {
-		case contactSMSAttr:
+		case circonusMethodSMS:
 			smsContacts = append(smsContacts, map[string]interface{}{
 				contactSMSAddressAttr: ext.Info,
 			})
@@ -1206,7 +1206,7 @@ func contactGroupSMSToState(cg *api.ContactGroup) ([]interface{}, error) {
 
 	for _, user := range cg.Contacts.Users {
 		switch user.Method {
-		case contactSMSAttr:
+		case circonusMethodSMS:
 			smsContacts = append(smsContacts, map[string]interface{}{
 				contactUserCIDAttr: user.UserCID,
 			})
@@ -1221,7 +1221,7 @@ func contactGroupVictorOpsToState(cg *api.ContactGroup) ([]interface{}, error) {
 
 	for _, ext := range cg.Contacts.External {
 		switch ext.Method {
-		case contactVictorOpsAttr:
+		case circonusMethodVictorOps:
 			victorOpsInfo := contactVictorOpsInfo{}
 			if err := json.Unmarshal([]byte(ext.Info), &victorOpsInfo); err != nil {
 				return nil, errwrap.Wrapf(fmt.Sprintf("unable to decode external %s JSON (%q): {{err}}", contactVictorOpsInfoAttr, ext.Info), err)
@@ -1246,7 +1246,7 @@ func contactGroupXMPPToState(cg *api.ContactGroup) ([]interface{}, error) {
 
 	for _, ext := range cg.Contacts.External {
 		switch ext.Method {
-		case contactXMPPAttr:
+		case circonusMethodXMPP:
 			xmppContacts = append(xmppContacts, map[string]interface{}{
 				contactXMPPAddressAttr: ext.Info,
 			})
@@ -1255,7 +1255,7 @@ func contactGroupXMPPToState(cg *api.ContactGroup) ([]interface{}, error) {
 
 	for _, user := range cg.Contacts.Users {
 		switch user.Method {
-		case contactXMPPAttr:
+		case circonusMethodXMPP:
 			xmppContacts = append(xmppContacts, map[string]interface{}{
 				contactUserCIDAttr: user.UserCID,
 			})

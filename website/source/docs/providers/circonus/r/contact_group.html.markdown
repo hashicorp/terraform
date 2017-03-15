@@ -130,8 +130,8 @@ resource "circonus_contact_group" "myteam-alerts" {
 * `short_summary` - (Optional) The brief summary used in short form alert
   messages.
 
-* `slack` - (Optional) Zero or more `pager_duty` attributes may be present to
-  dispatch to Pager Duty teams.  See below for details on supported attributes.
+* `slack` - (Optional) Zero or more `slack` attributes may be present to
+  dispatch to Slack teams.  See below for details on supported attributes.
 
 * `sms` - (Optional) Zero or more `sms` attributes may be present to dispatch
   SMS messages to Circonus users by referencing their user ID, or by specifying
@@ -191,13 +191,13 @@ mechanisms).
 
 ## Supported Contact Group `pager_duty` Attributes
 
-* `contact_group_fallback` - (Optional) If there is a problem contacting Pager
-  Duty, relay the notification automatically to the specified Contact Group
+* `contact_group_fallback` - (Optional) If there is a problem contacting
+  PagerDuty, relay the notification automatically to the specified Contact Group
   (e.g. `/contact_group/1234`).
 
-* `service_key` - (Required) The Pager Duty Service Key.
+* `service_key` - (Required) The PagerDuty Service Key.
 
-* `webook_url` - (Required) The Pager Duty webhook URL that Pager Duty uses to
+* `webhook_url` - (Required) The PagerDuty webhook URL that PagerDuty uses to
   notify Circonus of acknowledged actions.
 
 ## Supported Contact Group `slack` Attributes
