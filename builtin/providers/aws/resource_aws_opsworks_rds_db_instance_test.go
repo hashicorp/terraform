@@ -20,7 +20,7 @@ func TestAccAWSOpsworksRdsDbInstance(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksRdsDbDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksRdsDbInstance(sName, "foo", "barbarbarbar"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksRdsDbExists(
@@ -31,7 +31,7 @@ func TestAccAWSOpsworksRdsDbInstance(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksRdsDbInstance(sName, "bar", "barbarbarbar"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksRdsDbExists(
@@ -42,7 +42,7 @@ func TestAccAWSOpsworksRdsDbInstance(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksRdsDbInstance(sName, "bar", "foofoofoofoofoo"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksRdsDbExists(
@@ -53,7 +53,7 @@ func TestAccAWSOpsworksRdsDbInstance(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksRdsDbInstanceForceNew(sName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksRdsDbExists(
