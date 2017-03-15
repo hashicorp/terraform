@@ -43,11 +43,11 @@ The command-line flags are all optional. The list of available flags are:
   apply.
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote/index.html) is used.
+  Ignored when [remote state](/docs/state/remote.html) is used.
 
 * `-state-out=path` - Path to write updated state file. By default, the
   `-state` path will be used. Ignored when
-  [remote state](/docs/state/remote/index.html) is used.
+  [remote state](/docs/state/remote.html) is used.
 
 * `-target=resource` - A [Resource
   Address](/docs/internals/resource-addressing.html) to target. Operation will
