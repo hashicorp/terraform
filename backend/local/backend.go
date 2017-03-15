@@ -127,7 +127,7 @@ func (b *Local) States() ([]string, error) {
 	// the listing always start with "default"
 	envs := []string{backend.DefaultStateName}
 
-	entries, err := ioutil.ReadDir(DefaultEnvDir)
+	entries, err := ioutil.ReadDir(b.stateEnvDir())
 	// no error if there's no envs configured
 	if os.IsNotExist(err) {
 		return envs, nil
@@ -166,7 +166,7 @@ func (b *Local) DeleteState(name string) error {
 	}
 
 	delete(b.states, name)
-	return os.RemoveAll(filepath.Join(DefaultEnvDir, name))
+	return os.RemoveAll(filepath.Join(b.stateEnvDir(), name))
 }
 
 func (b *Local) State(name string) (state.State, error) {
@@ -320,17 +320,12 @@ func (b *Local) StatePaths(name string) (string, string, string) {
 		name = backend.DefaultStateName
 	}
 
-	envDir := DefaultEnvDir
-	if b.StateEnvDir != "" {
-		envDir = b.StateEnvDir
-	}
-
 	if name == backend.DefaultStateName {
 		if statePath == "" {
 			statePath = DefaultStateFilename
 		}
 	} else {
-		statePath = filepath.Join(envDir, name, DefaultStateFilename)
+		statePath = filepath.Join(b.stateEnvDir(), name, DefaultStateFilename)
 	}
 
 	if stateOutPath == "" {
@@ -353,12 +348,7 @@ func (b *Local) createState(name string) error {
 		return nil
 	}
 
-	envDir := DefaultEnvDir
-	if b.StateEnvDir != "" {
-		envDir = b.StateEnvDir
-	}
-
-	stateDir := filepath.Join(envDir, name)
+	stateDir := filepath.Join(b.stateEnvDir(), name)
 	s, err := os.Stat(stateDir)
 	if err == nil && s.IsDir() {
 		// no need to check for os.IsNotExist, since that is covered by os.MkdirAll
@@ -372,6 +362,15 @@ func (b *Local) createState(name string) error {
 	}
 
 	return nil
+}
+
+// stateEnvDir returns the directory where state environments are stored.
+func (b *Local) stateEnvDir() string {
+	if b.StateEnvDir != "" {
+		return b.StateEnvDir
+	}
+
+	return DefaultEnvDir
 }
 
 // currentStateName returns the name of the current named state as set in the
