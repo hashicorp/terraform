@@ -160,6 +160,4 @@ For more information on modules, the types of sources supported, how
 to write modules, and more, read the in depth
 [module documentation](/docs/modules/index.html).
 
-We've now concluded the getting started guide, however
-there are a number of [next steps](/intro/getting-started/next-steps.html)
-to get started with Terraform.
+Next, we learn how to [use Terraform remotely and the associated benefits](/intro/getting-started/remote.html).

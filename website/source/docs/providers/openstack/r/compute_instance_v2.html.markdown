@@ -337,6 +337,10 @@ The following arguments are supported:
     before destroying it, thus giving chance for guest OS daemons to stop correctly.
     If instance doesn't stop within timeout, it will be destroyed anyway.
 
+* `force_delete` - (Optional) Whether to force the OpenStack instance to be
+    forcefully deleted. This is useful for environments that have reclaim / soft
+    deletion enabled.
+
 
 The `network` block supports:
 

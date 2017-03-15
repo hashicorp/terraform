@@ -21,54 +21,59 @@ func resourceAwsNetworkAclRule() *schema.Resource {
 		Delete: resourceAwsNetworkAclRuleDelete,
 
 		Schema: map[string]*schema.Schema{
-			"network_acl_id": &schema.Schema{
+			"network_acl_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"rule_number": &schema.Schema{
+			"rule_number": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"egress": &schema.Schema{
+			"egress": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 				Default:  false,
 			},
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"rule_action": &schema.Schema{
+			"rule_action": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"cidr_block": &schema.Schema{
+			"cidr_block": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 			},
-			"from_port": &schema.Schema{
+			"ipv6_cidr_block": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"from_port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},
-			"to_port": &schema.Schema{
+			"to_port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},
-			"icmp_type": &schema.Schema{
+			"icmp_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validateICMPArgumentValue,
 			},
-			"icmp_code": &schema.Schema{
+			"icmp_code": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
@@ -97,12 +102,19 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 		Egress:       aws.Bool(d.Get("egress").(bool)),
 		RuleNumber:   aws.Int64(int64(d.Get("rule_number").(int))),
 		Protocol:     aws.String(strconv.Itoa(p)),
-		CidrBlock:    aws.String(d.Get("cidr_block").(string)),
 		RuleAction:   aws.String(d.Get("rule_action").(string)),
 		PortRange: &ec2.PortRange{
 			From: aws.Int64(int64(d.Get("from_port").(int))),
 			To:   aws.Int64(int64(d.Get("to_port").(int))),
 		},
+	}
+
+	if v, ok := d.GetOk("cidr_block"); ok {
+		params.CidrBlock = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("ipv6_cidr_block"); ok {
+		params.Ipv6CidrBlock = aws.String(v.(string))
 	}
 
 	// Specify additional required fields for ICMP. For the list
@@ -160,6 +172,7 @@ func resourceAwsNetworkAclRuleRead(d *schema.ResourceData, meta interface{}) err
 
 	d.Set("rule_number", resp.RuleNumber)
 	d.Set("cidr_block", resp.CidrBlock)
+	d.Set("ipv6_cidr_block", resp.Ipv6CidrBlock)
 	d.Set("egress", resp.Egress)
 	if resp.IcmpTypeCode != nil {
 		d.Set("icmp_code", resp.IcmpTypeCode.Code)

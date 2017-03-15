@@ -603,7 +603,6 @@ func TestApply_plan_backup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	args := []string{
 		"-state-out", statePath,
 		"-backup", backupPath,
@@ -1529,6 +1528,91 @@ func TestApply_disableBackup(t *testing.T) {
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
 	}
+}
+
+// Test that the Terraform env is passed through
+func TestApply_terraformEnv(t *testing.T) {
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("apply-terraform-env"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	expected := strings.TrimSpace(`
+<no state>
+Outputs:
+
+output = default
+	`)
+	testStateOutput(t, statePath, expected)
+}
+
+// Test that the Terraform env is passed through
+func TestApply_terraformEnvNonDefault(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	os.MkdirAll(td, 0755)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Create new env
+	{
+		ui := new(cli.MockUi)
+		newCmd := &EnvNewCommand{}
+		newCmd.Meta = Meta{Ui: ui}
+		if code := newCmd.Run([]string{"test"}); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		}
+	}
+
+	// Switch to it
+	{
+		args := []string{"test"}
+		ui := new(cli.MockUi)
+		selCmd := &EnvSelectCommand{}
+		selCmd.Meta = Meta{Ui: ui}
+		if code := selCmd.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		}
+	}
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		testFixturePath("apply-terraform-env"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	statePath := filepath.Join("terraform.tfstate.d", "test", "terraform.tfstate")
+	expected := strings.TrimSpace(`
+<no state>
+Outputs:
+
+output = test
+	`)
+	testStateOutput(t, statePath, expected)
 }
 
 func testHttpServer(t *testing.T) net.Listener {

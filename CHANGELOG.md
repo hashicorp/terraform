@@ -12,11 +12,22 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/aws: `aws_codebuild_project` renamed `timeout` to `build_timeout` [GH-12503]
  * provider/azurem: `azurerm_virtual_machine` and `azurerm_virtual_machine_scale_set` now store has of custom_data not all custom_data [GH-12214]
+ * provider/google: compute_instance, compute_instance_template, and compute_disk all have a subtly changed logic when specifying an image family as the image; in 0.8.x they would pin to the latest image in the family when the resource is created; in 0.9.x they pass the family to the API and use its behaviour. New input formats are also supported. [GH-12223]
+ * provider/google: removed the unused and deprecated region field from google_compute_backend_service [GH-12663]
+ * provider/google: removed the deprecated account_file field for the Google Cloud provider [GH-12668]
+ * provider/google: removed the deprecated fields from google_project [GH-12659]
 
 IMPROVEMENTS:
 
  * provider/azurerm: store only hash of `azurerm_virtual_machine` and `azurerm_virtual_machine_scale_set` custom_data - reduces size of state [GH-12214]
+ * report all errors encountered during config validation [GH-12383]
 
+BUG FIXES:
+
+ * provider/google: Correct the incorrect instance group manager URL returned from GKE [GH-4336]
+ * provider/google: Fix a plan/apply cycle in IAM policies [GH-12387]
+ * provider/google: Fix a plan/apply cycle in forwarding rules when only a single port is specified [GH-12662]
+ 
 ## 0.9.0-beta2 (March 2, 2017)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:

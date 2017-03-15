@@ -85,11 +85,15 @@ func (b *Backend) State(name string) (state.State, error) {
 	// Determine the path of the data
 	path := b.path(name)
 
+	// Determine whether to gzip or not
+	gzip := b.configData.Get("gzip").(bool)
+
 	// Build the state client
 	stateMgr := &remote.State{
 		Client: &RemoteClient{
 			Client: client,
 			Path:   path,
+			GZip:   gzip,
 		},
 	}
 
