@@ -339,6 +339,7 @@ func (client *Client) WaitForInstanceAsyn(instanceId string, status InstanceStat
 			if e.ErrorResponse.Code != "InvalidInstanceId.NotFound" {
 				return err
 			}
+			time.Sleep(DefaultWaitForInterval * time.Second)
 			continue
 		}
 		if instance.Status == status {
@@ -564,8 +565,8 @@ type InstanceIdSets struct {
 }
 
 type BusinessInfo struct {
-	Pack       string `json:"pack,omitempty" yaml:"pack,omitempty"`
-	ActivityId string `json:"activityId,omitempty" yaml:"activityId,omitempty"`
+	Pack       string `json:"pack,omitempty"`
+	ActivityId string `json:"activityId,omitempty"`
 }
 
 func (client *Client) RunInstances(args *RunInstanceArgs) (instanceIdSet []string, err error) {

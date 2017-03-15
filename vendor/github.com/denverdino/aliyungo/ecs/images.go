@@ -63,8 +63,12 @@ type DescribeImagesResponse struct {
 type DiskDeviceMapping struct {
 	SnapshotId string
 	//Why Size Field is string-type.
-	Size   string
-	Device string
+	Size       string
+	Device     string
+	//For import images
+	Format     string
+	OSSBucket  string
+	OSSObject  string
 }
 
 //
@@ -226,6 +230,38 @@ func (client *Client) CopyImage(args *CopyImageArgs) (string, error) {
 		return "", err
 	}
 	return response.ImageId, nil
+}
+
+
+// ImportImageArgs repsents arguements to import image from oss
+type ImportImageArgs struct {
+	RegionId     common.Region
+	ImageName    string
+	ImageVersion string
+	Description  string
+	ClientToken  string
+	Architecture string
+	OSType	     string
+	Platform     string
+	DiskDeviceMappings struct {
+		DiskDeviceMapping []DiskDeviceMapping
+	}
+}
+
+func (client *Client) ImportImage(args *ImportImageArgs) (string, error) {
+	response := &CopyImageResponse{}
+	err := client.Invoke("ImportImage", args, &response)
+	if err != nil {
+		return "", err
+	}
+	return response.ImageId, nil
+}
+
+type ImportImageResponse struct {
+	common.Response
+	RegionId common.Region
+	ImageId string
+	ImportTaskId string
 }
 
 // Default timeout value for WaitForImageReady method
