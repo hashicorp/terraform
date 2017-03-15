@@ -641,11 +641,11 @@ func resourceIBMCloudInfraVirtualGuestRead(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("Error retrieving virtual guest: %s", err)
 	}
 
-	d.Set("hostname", *result.Hostname)
-	d.Set("domain", *result.Domain)
+	d.Set("hostname", result.Hostname)
+	d.Set("domain", result.Domain)
 
 	if result.Datacenter != nil {
-		d.Set("datacenter", *result.Datacenter.Name)
+		d.Set("datacenter", result.Datacenter.Name)
 	}
 
 	d.Set(
@@ -656,28 +656,28 @@ func resourceIBMCloudInfraVirtualGuestRead(d *schema.ResourceData, meta interfac
 			d.Get("network_speed").(int),
 		),
 	)
-	d.Set("cores", *result.StartCpus)
-	d.Set("memory", *result.MaxMemory)
-	d.Set("dedicated_acct_host_only", *result.DedicatedAccountHostOnlyFlag)
+	d.Set("cores", result.StartCpus)
+	d.Set("memory", result.MaxMemory)
+	d.Set("dedicated_acct_host_only", result.DedicatedAccountHostOnlyFlag)
 	if result.PrimaryIpAddress != nil {
 		d.Set("has_public_ip", *result.PrimaryIpAddress != "")
-		d.Set("ipv4_address", *result.PrimaryIpAddress)
+		d.Set("ipv4_address", result.PrimaryIpAddress)
 	}
-	d.Set("ipv4_address_private", *result.PrimaryBackendIpAddress)
+	d.Set("ipv4_address_private", result.PrimaryBackendIpAddress)
 	if result.PrimaryNetworkComponent.PrimaryIpAddressRecord != nil {
-		d.Set("ip_address_id", *result.PrimaryNetworkComponent.PrimaryIpAddressRecord.GuestNetworkComponentBinding.IpAddressId)
+		d.Set("ip_address_id", result.PrimaryNetworkComponent.PrimaryIpAddressRecord.GuestNetworkComponentBinding.IpAddressId)
 	}
 	d.Set("ip_address_id_private",
-		*result.PrimaryBackendNetworkComponent.PrimaryIpAddressRecord.GuestNetworkComponentBinding.IpAddressId)
-	d.Set("private_network_only", *result.PrivateNetworkOnlyFlag)
-	d.Set("hourly_billing", *result.HourlyBillingFlag)
-	d.Set("local_disk", *result.LocalDiskFlag)
+		result.PrimaryBackendNetworkComponent.PrimaryIpAddressRecord.GuestNetworkComponentBinding.IpAddressId)
+	d.Set("private_network_only", result.PrivateNetworkOnlyFlag)
+	d.Set("hourly_billing", result.HourlyBillingFlag)
+	d.Set("local_disk", result.LocalDiskFlag)
 
 	if result.PrimaryNetworkComponent.NetworkVlan != nil {
-		d.Set("public_vlan_id", *result.PrimaryNetworkComponent.NetworkVlan.Id)
+		d.Set("public_vlan_id", result.PrimaryNetworkComponent.NetworkVlan.Id)
 	}
 
-	d.Set("private_vlan_id", *result.PrimaryBackendNetworkComponent.NetworkVlan.Id)
+	d.Set("private_vlan_id", result.PrimaryBackendNetworkComponent.NetworkVlan.Id)
 
 	if result.PrimaryNetworkComponent.PrimaryIpAddressRecord != nil {
 		publicSubnet := result.PrimaryNetworkComponent.PrimaryIpAddressRecord.Subnet
@@ -696,8 +696,8 @@ func resourceIBMCloudInfraVirtualGuestRead(d *schema.ResourceData, meta interfac
 	d.Set("ipv6_enabled", false)
 	if result.PrimaryNetworkComponent.PrimaryVersion6IpAddressRecord != nil {
 		d.Set("ipv6_enabled", true)
-		d.Set("ipv6_address", *result.PrimaryNetworkComponent.PrimaryVersion6IpAddressRecord.IpAddress)
-		d.Set("ipv6_address_id", *result.PrimaryNetworkComponent.PrimaryVersion6IpAddressRecord.GuestNetworkComponentBinding.IpAddressId)
+		d.Set("ipv6_address", result.PrimaryNetworkComponent.PrimaryVersion6IpAddressRecord.IpAddress)
+		d.Set("ipv6_address_id", result.PrimaryNetworkComponent.PrimaryVersion6IpAddressRecord.GuestNetworkComponentBinding.IpAddressId)
 		publicSubnet := result.PrimaryNetworkComponent.PrimaryVersion6IpAddressRecord.Subnet
 		d.Set(
 			"public_ipv6_subnet",
@@ -826,21 +826,22 @@ func resourceIBMCloudInfraVirtualGuestUpdate(d *schema.ResourceData, meta interf
 		upgradeOptions[product.NICSpeedCategoryCode] = float64(d.Get("network_speed").(int))
 	}
 
-	if len(upgradeOptions) > 0 {
-		_, err = virtual.UpgradeVirtualGuest(sess, &result, upgradeOptions)
-		if err != nil {
-			return fmt.Errorf("Couldn't upgrade virtual guest: %s", err)
-		}
-
-		// Wait for softlayer to start upgrading...
-		_, err = WaitForUpgradeTransactionsToAppear(d, meta)
-
-		// Wait for upgrade transactions to finish
-		_, err = WaitForNoActiveTransactions(d, meta)
-
-		return err
+	if len(upgradeOptions) == 0 {
+		return nil
 	}
 
+	_, err = virtual.UpgradeVirtualGuest(sess, &result, upgradeOptions)
+	if err != nil {
+		return fmt.Errorf("Couldn't upgrade virtual guest: %s", err)
+	}
+	// Wait for softlayer to start upgrading...
+	WaitForUpgradeTransactionsToAppear(d, meta)
+
+	// Wait for upgrade transactions to finish
+	_, err = WaitForNoActiveTransactions(d, meta)
+	if err != nil {
+		return err
+	}
 	return resourceIBMCloudInfraVirtualGuestRead(d, meta)
 }
 
