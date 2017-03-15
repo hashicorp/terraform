@@ -21,7 +21,8 @@ func TestLocal_impl(t *testing.T) {
 }
 
 func TestLocal_backend(t *testing.T) {
-	backend.TestBackend(t, TestLocal(t))
+	b := TestLocal(t)
+	backend.TestBackend(t, b, b)
 }
 
 func checkState(t *testing.T, path, expected string) {
