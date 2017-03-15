@@ -10,10 +10,6 @@ variable "zone" {
   default = "cn-beijing-b"
 }
 
-variable "password" {
-  default = "Test123456"
-}
-
 variable "image" {
   default = "ubuntu_140405_32_40G_cloudinit_20161115.vhd"
 }

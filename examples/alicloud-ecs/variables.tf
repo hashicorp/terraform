@@ -23,6 +23,9 @@ variable "ecs_type" {
 variable "ecs_password" {
   default = "Test12345"
 }
+variable "availability_zones" {
+  default = "cn-beijing-b"
+}
 variable "allocate_public_ip" {
   default = true
 }
@@ -38,7 +41,7 @@ variable "io_optimized" {
 }
 
 variable "disk_category" {
-  default = "cloud_efficiency"
+  default = "cloud_ssd"
 }
 variable "disk_size" {
   default = "40"
