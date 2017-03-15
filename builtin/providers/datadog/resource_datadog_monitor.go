@@ -110,15 +110,10 @@ func resourceDatadogMonitor() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			// TODO should actually be map[string]int
 			"silenced": {
 				Type:     schema.TypeMap,
 				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-					Elem: &schema.Schema{
-						Type: schema.TypeInt},
-				},
+				Elem:     schema.TypeInt,
 			},
 			"include_tags": {
 				Type:     schema.TypeBool,
@@ -158,7 +153,7 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		s := make(map[string]int)
 		// TODO: this is not very defensive, test if we can fail on non int input
 		for k, v := range attr.(map[string]interface{}) {
-			s[k], _ = strconv.Atoi(v.(string))
+			s[k] = v.(int)
 		}
 		o.Silenced = s
 	}
@@ -364,7 +359,7 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 		// TODO: this is not very defensive, test if we can fail non int input
 		s := make(map[string]int)
 		for k, v := range attr.(map[string]interface{}) {
-			s[k], _ = strconv.Atoi(v.(string))
+			s[k] = v.(int)
 		}
 		o.Silenced = s
 	}

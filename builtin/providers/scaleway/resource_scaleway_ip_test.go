@@ -8,6 +8,23 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestAccScalewayIP_Count(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckScalewayIPDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckScalewayIPConfig_Count,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckScalewayIPExists("scaleway_ip.base.0"),
+					testAccCheckScalewayIPExists("scaleway_ip.base.1"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccScalewayIP_Basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -126,6 +143,12 @@ func testAccCheckScalewayIPAttachment(n string, check func(string) bool, msg str
 
 var testAccCheckScalewayIPConfig = `
 resource "scaleway_ip" "base" {
+}
+`
+
+var testAccCheckScalewayIPConfig_Count = `
+resource "scaleway_ip" "base" {
+  count = 2
 }
 `
 
