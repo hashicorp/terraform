@@ -28,7 +28,7 @@ it cannot ever be deleted. If you've never explicitly used environments, then
 you've only ever worked on the "default" environment.
 
 Environments are managed with the `terraform env` set of commands. To
-create a new environment and switch to it, you can use `terraform env new`,
+create a new environment and switch to it, you can use `terraform env create`,
 to switch environments you can use `terraform env select`, etc.
 
 For example, creating an environment:
