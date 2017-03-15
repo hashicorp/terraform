@@ -25,99 +25,99 @@ func resourceAwsOpsworksStack() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"agent_version": &schema.Schema{
+			"agent_version": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
 
-			"service_role_arn": &schema.Schema{
+			"service_role_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"default_instance_profile_arn": &schema.Schema{
+			"default_instance_profile_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"color": &schema.Schema{
+			"color": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"configuration_manager_name": &schema.Schema{
+			"configuration_manager_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Chef",
 			},
 
-			"configuration_manager_version": &schema.Schema{
+			"configuration_manager_version": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "11.4",
 			},
 
-			"manage_berkshelf": &schema.Schema{
+			"manage_berkshelf": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"berkshelf_version": &schema.Schema{
+			"berkshelf_version": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "3.2.0",
 			},
 
-			"custom_cookbooks_source": &schema.Schema{
+			"custom_cookbooks_source": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"url": &schema.Schema{
+						"url": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"username": &schema.Schema{
+						"username": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"password": &schema.Schema{
+						"password": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"revision": &schema.Schema{
+						"revision": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"ssh_key": &schema.Schema{
+						"ssh_key": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -125,58 +125,58 @@ func resourceAwsOpsworksStack() *schema.Resource {
 				},
 			},
 
-			"custom_json": &schema.Schema{
+			"custom_json": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"default_availability_zone": &schema.Schema{
+			"default_availability_zone": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"default_os": &schema.Schema{
+			"default_os": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Ubuntu 12.04 LTS",
 			},
 
-			"default_root_device_type": &schema.Schema{
+			"default_root_device_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "instance-store",
 			},
 
-			"default_ssh_key_name": &schema.Schema{
+			"default_ssh_key_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"default_subnet_id": &schema.Schema{
+			"default_subnet_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"hostname_theme": &schema.Schema{
+			"hostname_theme": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Layer_Dependent",
 			},
 
-			"use_custom_cookbooks": &schema.Schema{
+			"use_custom_cookbooks": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"use_opsworks_security_groups": &schema.Schema{
+			"use_opsworks_security_groups": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,

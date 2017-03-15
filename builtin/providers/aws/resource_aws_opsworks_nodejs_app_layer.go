@@ -10,7 +10,7 @@ func resourceAwsOpsworksNodejsAppLayer() *schema.Resource {
 		DefaultLayerName: "Node.js App Server",
 
 		Attributes: map[string]*opsworksLayerTypeAttribute{
-			"nodejs_version": &opsworksLayerTypeAttribute{
+			"nodejs_version": {
 				AttrName: "NodejsVersion",
 				Type:     schema.TypeString,
 				Default:  "0.10.38",

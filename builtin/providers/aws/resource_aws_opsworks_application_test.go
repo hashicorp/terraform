@@ -24,7 +24,7 @@ func TestAccAWSOpsworksApplication(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksApplicationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksApplicationCreate(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksApplicationExists(
@@ -62,7 +62,7 @@ func TestAccAWSOpsworksApplication(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksApplicationUpdate(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksApplicationExists(
@@ -193,7 +193,7 @@ func testAccCheckAWSOpsworksCreateAppAttributes(
 		}
 
 		expectedEnv := []*opsworks.EnvironmentVariable{
-			&opsworks.EnvironmentVariable{
+			{
 				Key:    aws.String("key1"),
 				Value:  aws.String("value1"),
 				Secure: aws.Bool(false),
@@ -253,12 +253,12 @@ func testAccCheckAWSOpsworksUpdateAppAttributes(
 		}
 
 		expectedEnv := []*opsworks.EnvironmentVariable{
-			&opsworks.EnvironmentVariable{
+			{
 				Key:    aws.String("key2"),
 				Value:  aws.String("*****FILTERED*****"),
 				Secure: aws.Bool(true),
 			},
-			&opsworks.EnvironmentVariable{
+			{
 				Key:    aws.String("key1"),
 				Value:  aws.String("value1"),
 				Secure: aws.Bool(false),

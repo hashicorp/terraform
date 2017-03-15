@@ -20,7 +20,7 @@ func TestAccAWSOpsworksUserProfile(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksUserProfileDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksUserProfileCreate(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksUserProfileExists(
@@ -36,7 +36,7 @@ func TestAccAWSOpsworksUserProfile(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksUserProfileUpdate(rName, updateRName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSOpsworksUserProfileExists(
