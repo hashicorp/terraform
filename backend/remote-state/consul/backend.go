@@ -60,6 +60,13 @@ func New() backend.Backend {
 				Description: "Compress the state data using gzip",
 				Default:     false,
 			},
+
+			"lock": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Lock state access",
+				Default:     true,
+			},
 		},
 	}
 
@@ -71,12 +78,17 @@ func New() backend.Backend {
 type Backend struct {
 	*schema.Backend
 
+	// The fields below are set from configure
 	configData *schema.ResourceData
+	lock       bool
 }
 
 func (b *Backend) configure(ctx context.Context) error {
 	// Grab the resource data
 	b.configData = schema.FromContextBackendConfig(ctx)
+
+	// Store the lock information
+	b.lock = b.configData.Get("lock").(bool)
 
 	// Initialize a client to test config
 	_, err := b.clientRaw()
