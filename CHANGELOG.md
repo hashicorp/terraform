@@ -4,6 +4,10 @@ BACKWARDS IMCOMPATIBILITIES / NOTES:
 
  * provider/pagerduty: the deprecated `name_regex` field has been removed from vendor data source [GH-12396]
  
+BUG FIXES:
+
+ * provider/aws: Get the aws_lambda_function attributes when there are great than 50 versions of a function [GH-11745]
+ 
 
 ## 0.9.0 (March 15, 2017)
 
