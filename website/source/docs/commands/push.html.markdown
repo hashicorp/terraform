@@ -117,7 +117,7 @@ or plan), and the `-overwrite` flag tells the push command to update Atlas.
 ## Remote State Requirement
 
 `terraform push` requires that
-[remote state](/docs/commands/remote-config.html)
+[remote state](/docs/state/remote.html)
 is enabled. The reasoning for this is simple: `terraform push` sends your
 configuration to be managed remotely. For it to keep the state in sync
 and for you to be able to easily access that state, remote state must
