@@ -236,17 +236,20 @@ func getNetworkLink(d *schema.ResourceData, config *Config, field string) (strin
 func getNetworkName(d *schema.ResourceData, field string) (string, error) {
 	if v, ok := d.GetOk(field); ok {
 		network := v.(string)
-
-		if strings.HasPrefix(network, "https://www.googleapis.com/compute/") {
-			// extract the network name from SelfLink URL
-			networkName := network[strings.LastIndex(network, "/")+1:]
-			if networkName == "" {
-				return "", fmt.Errorf("network url not valid")
-			}
-			return networkName, nil
-		}
-
-		return network, nil
+		return getNetworkNameFromSelfLink(network)
 	}
 	return "", nil
+}
+
+func getNetworkNameFromSelfLink(network string) (string, error) {
+	if strings.HasPrefix(network, "https://www.googleapis.com/compute/") {
+		// extract the network name from SelfLink URL
+		networkName := network[strings.LastIndex(network, "/")+1:]
+		if networkName == "" {
+			return "", fmt.Errorf("network url not valid")
+		}
+		return networkName, nil
+	}
+
+	return network, nil
 }
