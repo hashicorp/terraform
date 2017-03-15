@@ -1740,6 +1740,7 @@ func TestContext2Apply_cancel(t *testing.T) {
 				if ctx.sh.Stopped() {
 					break
 				}
+				time.Sleep(10 * time.Millisecond)
 			}
 		}
 
