@@ -90,6 +90,10 @@ func testBackendStates(t *testing.T, b Backend) {
 	// Verify they are distinct states
 	{
 		s := barState.State()
+		if s == nil {
+			s = terraform.NewState()
+		}
+
 		s.Lineage = "bar"
 		if err := barState.WriteState(s); err != nil {
 			t.Fatalf("bad: %s", err)
@@ -101,7 +105,7 @@ func testBackendStates(t *testing.T, b Backend) {
 		if err := fooState.RefreshState(); err != nil {
 			t.Fatalf("bad: %s", err)
 		}
-		if v := fooState.State(); v.Lineage == "bar" {
+		if v := fooState.State(); v != nil && v.Lineage == "bar" {
 			t.Fatalf("bad: %#v", v)
 		}
 	}
