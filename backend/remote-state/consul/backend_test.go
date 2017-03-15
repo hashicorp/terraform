@@ -90,5 +90,5 @@ func TestBackend_gzip(t *testing.T) {
 	})
 
 	// Test
-	backend.TestBackend(t, b)
+	backend.TestBackend(t, b, nil)
 }
