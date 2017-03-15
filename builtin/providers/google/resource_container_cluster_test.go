@@ -124,7 +124,7 @@ func TestAccContainerCluster_backend(t *testing.T) {
 			resource.TestStep{
 				Config: testAccContainerCluster_backendRef,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckContainerClusterExists(
+					testAccCheckContainerCluster(
 						"google_container_cluster.primary"),
 				),
 			},
