@@ -15,13 +15,6 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"account_file": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
-				Removed:     "Use the credentials field instead",
-			},
-
 			"credentials": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
