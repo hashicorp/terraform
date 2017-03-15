@@ -151,10 +151,6 @@ func testAccCheckNatGatewayDestroy(s *terraform.State) error {
 }
 
 const testAccNatGatewayConfig = `
-data "alicloud_zones" "default" {
-	"available_resource_creation"= "VSwitch"
-}
-
 resource "alicloud_vpc" "foo" {
 	name = "tf_test_foo"
 	cidr_block = "172.16.0.0/12"
@@ -163,7 +159,7 @@ resource "alicloud_vpc" "foo" {
 resource "alicloud_vswitch" "foo" {
 	vpc_id = "${alicloud_vpc.foo.id}"
 	cidr_block = "172.16.0.0/21"
-	availability_zone = "${data.alicloud_zones.default.zones.0.id}"
+	availability_zone = "cn-beijing-b"
 }
 
 resource "alicloud_nat_gateway" "foo" {
@@ -173,11 +169,11 @@ resource "alicloud_nat_gateway" "foo" {
 	bandwidth_packages = [{
 	  ip_count = 1
 	  bandwidth = 5
-	  zone = "${data.alicloud_zones.default.zones.0.id}"
+	  zone = "cn-beijing-b"
 	}, {
 	  ip_count = 2
 	  bandwidth = 10
-	  zone = "${data.alicloud_zones.default.zones.0.id}"
+	  zone = "cn-beijing-b"
 	}]
 	depends_on = [
     	"alicloud_vswitch.foo"]
@@ -185,10 +181,6 @@ resource "alicloud_nat_gateway" "foo" {
 `
 
 const testAccNatGatewayConfigSpec = `
-data "alicloud_zones" "default" {
-	"available_resource_creation"= "VSwitch"
-}
-
 resource "alicloud_vpc" "foo" {
 	name = "tf_test_foo"
 	cidr_block = "172.16.0.0/12"
@@ -197,7 +189,7 @@ resource "alicloud_vpc" "foo" {
 resource "alicloud_vswitch" "foo" {
 	vpc_id = "${alicloud_vpc.foo.id}"
 	cidr_block = "172.16.0.0/21"
-	availability_zone = "${data.alicloud_zones.default.zones.0.id}"
+	availability_zone = "cn-beijing-b"
 }
 
 resource "alicloud_nat_gateway" "foo" {
@@ -207,11 +199,11 @@ resource "alicloud_nat_gateway" "foo" {
 	bandwidth_packages = [{
 	  ip_count = 1
 	  bandwidth = 5
-	  zone = "${data.alicloud_zones.default.zones.0.id}"
+	  zone = "cn-beijing-b"
 	}, {
 	  ip_count = 2
 	  bandwidth = 10
-	  zone = "${data.alicloud_zones.default.zones.0.id}"
+	  zone = "cn-beijing-b"
 	}]
 	depends_on = [
     	"alicloud_vswitch.foo"]
@@ -219,10 +211,6 @@ resource "alicloud_nat_gateway" "foo" {
 `
 
 const testAccNatGatewayConfigSpecUpgrade = `
-data "alicloud_zones" "default" {
-	"available_resource_creation"= "VSwitch"
-}
-
 resource "alicloud_vpc" "foo" {
 	name = "tf_test_foo"
 	cidr_block = "172.16.0.0/12"
@@ -231,7 +219,7 @@ resource "alicloud_vpc" "foo" {
 resource "alicloud_vswitch" "foo" {
 	vpc_id = "${alicloud_vpc.foo.id}"
 	cidr_block = "172.16.0.0/21"
-	availability_zone = "${data.alicloud_zones.default.zones.0.id}"
+	availability_zone = "cn-beijing-b"
 }
 
 resource "alicloud_nat_gateway" "foo" {
@@ -241,11 +229,11 @@ resource "alicloud_nat_gateway" "foo" {
 	bandwidth_packages = [{
 	  ip_count = 1
 	  bandwidth = 5
-	  zone = "${data.alicloud_zones.default.zones.0.id}"
+	  zone = "cn-beijing-b"
 	}, {
 	  ip_count = 2
 	  bandwidth = 10
-	  zone = "${data.alicloud_zones.default.zones.0.id}"
+	  zone = "cn-beijing-b"
 	}]
 	depends_on = [
     	"alicloud_vswitch.foo"]
