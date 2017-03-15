@@ -298,7 +298,7 @@ For more information on the different example configurations, please check out t
 * `disable_password_authentication` - (Required) Specifies whether password authentication should be disabled.
 * `ssh_keys` - (Optional) Specifies a collection of `path` and `key_data` to be placed on the virtual machine.
 
-~> **Note:** Please note that the only allowed `path` is `/home/<username>/.ssh/authorized_keys` due to a limitation of Azure_
+~> **Note:** Please note that the only allowed `path` is `/home/<username>/.ssh/authorized_keys` due to a limitation of Azure.
 
 `os_profile_secrets` supports the following:
 
