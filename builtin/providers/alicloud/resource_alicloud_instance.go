@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"encoding/base64"
+	"encoding/json"
 	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -21,8 +22,9 @@ func resourceAliyunInstance() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"availability_zone": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"image_id": &schema.Schema{
@@ -61,8 +63,11 @@ func resourceAliyunInstance() *schema.Resource {
 			},
 
 			"instance_network_type": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				Computed:     true,
+				ValidateFunc: validateInstanceNetworkType,
 			},
 
 			"internet_charge_type": &schema.Schema{
@@ -145,7 +150,6 @@ func resourceAliyunInstance() *schema.Resource {
 
 			"private_ip": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
 			},
 
@@ -167,6 +171,11 @@ func resourceAliyunInstance() *schema.Resource {
 
 func resourceAliyunInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AliyunClient).ecsconn
+
+	// create postpaid instance by runInstances API
+	if v := d.Get("instance_charge_type").(string); v != string(common.PrePaid) {
+		return resourceAliyunRunInstance(d, meta)
+	}
 
 	args, err := buildAliyunInstanceArgs(d, meta)
 	if err != nil {
@@ -201,6 +210,49 @@ func resourceAliyunInstanceCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if err := conn.WaitForInstance(d.Id(), ecs.Running, defaultTimeout); err != nil {
+		log.Printf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Running, err)
+	}
+
+	return resourceAliyunInstanceUpdate(d, meta)
+}
+
+func resourceAliyunRunInstance(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AliyunClient).ecsconn
+	newConn := meta.(*AliyunClient).ecsNewconn
+
+	args, err := buildAliyunInstanceArgs(d, meta)
+	if err != nil {
+		return err
+	}
+
+	runArgs, err := buildAliyunRunInstancesArgs(d, meta)
+	if err != nil {
+		return err
+	}
+
+	runArgs.CreateInstanceArgs = *args
+
+	// runInstances is support in version 2016-03-14
+	instanceIds, err := newConn.RunInstances(runArgs)
+
+	if err != nil {
+		return fmt.Errorf("Error creating Aliyun ecs instance: %#v", err)
+	}
+
+	d.SetId(instanceIds[0])
+
+	d.Set("password", d.Get("password"))
+	d.Set("system_disk_category", d.Get("system_disk_category"))
+
+	if d.Get("allocate_public_ip").(bool) {
+		_, err := conn.AllocatePublicIpAddress(d.Id())
+		if err != nil {
+			log.Printf("[DEBUG] AllocatePublicIpAddress for instance got error: %#v", err)
+		}
+	}
+
+	// after instance created, its status change from pending, starting to running
+	if err := conn.WaitForInstanceAsyn(d.Id(), ecs.Running, defaultTimeout); err != nil {
 		log.Printf("[DEBUG] WaitForInstance %s got error: %#v", ecs.Running, err)
 	}
 
@@ -414,32 +466,67 @@ func resourceAliyunInstanceDelete(d *schema.ResourceData, meta interface{}) erro
 
 	return nil
 }
+func buildAliyunRunInstancesArgs(d *schema.ResourceData, meta interface{}) (*ecs.RunInstanceArgs, error) {
+	args := &ecs.RunInstanceArgs{
+		MaxAmount: 1,
+		MinAmount: 1,
+	}
+
+	bussStr, err := json.Marshal(DefaultBusinessInfo)
+	if err != nil {
+		log.Printf("Failed to translate bussiness info %#v from json to string", DefaultBusinessInfo)
+	}
+
+	args.BusinessInfo = string(bussStr)
+
+	subnetValue := d.Get("subnet_id").(string)
+	vswitchValue := d.Get("vswitch_id").(string)
+	networkValue := d.Get("instance_network_type").(string)
+
+	// because runInstance is not compatible with createInstance, force NetworkType value to classic
+	if subnetValue == "" && vswitchValue == "" && networkValue == "" {
+		args.NetworkType = string(ClassicNet)
+	}
+
+	return args, nil
+}
 
 func buildAliyunInstanceArgs(d *schema.ResourceData, meta interface{}) (*ecs.CreateInstanceArgs, error) {
 	client := meta.(*AliyunClient)
 
 	args := &ecs.CreateInstanceArgs{
-		RegionId:         getRegion(d, meta),
-		InstanceType:     d.Get("instance_type").(string),
-		PrivateIpAddress: d.Get("private_ip").(string),
+		RegionId:     getRegion(d, meta),
+		InstanceType: d.Get("instance_type").(string),
 	}
 
 	imageID := d.Get("image_id").(string)
 
 	args.ImageId = imageID
 
+	systemDiskCategory := ecs.DiskCategory(d.Get("system_disk_category").(string))
+
 	zoneID := d.Get("availability_zone").(string)
+	// check instanceType and systemDiskCategory, when zoneID is not empty
+	if zoneID != "" {
+		zone, err := client.DescribeZone(zoneID)
+		if err != nil {
+			return nil, err
+		}
 
-	zone, err := client.DescribeZone(zoneID)
-	if err != nil {
-		return nil, err
+		if err := client.ResourceAvailable(zone, ecs.ResourceTypeInstance); err != nil {
+			return nil, err
+		}
+
+		if err := client.DiskAvailable(zone, systemDiskCategory); err != nil {
+			return nil, err
+		}
+
+		args.ZoneId = zoneID
+
 	}
-
-	if err := client.ResourceAvailable(zone, ecs.ResourceTypeInstance); err != nil {
-		return nil, err
+	args.SystemDisk = ecs.SystemDiskType{
+		Category: systemDiskCategory,
 	}
-
-	args.ZoneId = zoneID
 
 	sgs, ok := d.GetOk("security_groups")
 
@@ -452,16 +539,6 @@ func buildAliyunInstanceArgs(d *schema.ResourceData, meta interface{}) (*ecs.Cre
 			args.SecurityGroupId = sg0
 		}
 
-	}
-
-	systemDiskCategory := ecs.DiskCategory(d.Get("system_disk_category").(string))
-
-	if err := client.DiskAvailable(zone, systemDiskCategory); err != nil {
-		return nil, err
-	}
-
-	args.SystemDisk = ecs.SystemDiskType{
-		Category: systemDiskCategory,
 	}
 
 	if v := d.Get("instance_name").(string); v != "" {
@@ -490,7 +567,11 @@ func buildAliyunInstanceArgs(d *schema.ResourceData, meta interface{}) (*ecs.Cre
 	}
 
 	if v := d.Get("io_optimized").(string); v != "" {
-		args.IoOptimized = ecs.IoOptimized(v)
+		if v == "optimized" {
+			args.IoOptimized = ecs.IoOptimized("true")
+		} else {
+			args.IoOptimized = ecs.IoOptimized("false")
+		}
 	}
 
 	vswitchValue := d.Get("subnet_id").(string)
