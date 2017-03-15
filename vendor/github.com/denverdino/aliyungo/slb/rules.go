@@ -17,7 +17,7 @@ type Rule struct {
 	RuleId         string
 	RuleName       string
 	Domain         string
-	Url            string
+	Url            string `json:",omitempty"`
 	VServerGroupId string
 }
 
