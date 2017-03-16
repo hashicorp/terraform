@@ -58,14 +58,20 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validateCIDRNetworkAddress,
+				},
 			},
 
 			"ipv6_cidr_blocks": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validateCIDRNetworkAddress,
+				},
 			},
 
 			"prefix_list_ids": {
