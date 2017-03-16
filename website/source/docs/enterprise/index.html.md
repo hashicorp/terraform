@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Terraform Enterprise Features"
 sidebar_current: "docs-enterprise"
 description: |-
-Terraform Enterprise is a tool for safely and efficiently changing infrastructure across providers.
+  Terraform Enterprise is a tool for safely and efficiently changing infrastructure across providers.
 ---
 
 # Terraform Enterprise Features
