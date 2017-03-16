@@ -9,6 +9,9 @@ FEATURES:
  * **New Provider:** `kubernetes` [GH-12372]
  * **New Resource:** `kubernetes_namespace` [GH-12372]
  * **New Resource:** `kubernetes_config_map` [GH-12753]
+ * **New Data Source:** `dns_a_record_set` [GH-12744]
+ * **New Data Source:** `dns_cname_record_set` [GH-12744]
+ * **New Data Source:** `dns_txt_record_set` [GH-12744]
 
 IMPROVEMENTS:
 
