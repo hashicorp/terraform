@@ -138,6 +138,20 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, error) {
 	return local, nil
 }
 
+// IsLocalBackend returns true if the backend is a local backend. We use this
+// for some checks that require a remote backend.
+func (m *Meta) IsLocalBackend(b backend.Backend) bool {
+	// Is it a local backend?
+	bLocal, ok := b.(*backendlocal.Local)
+
+	// If it is, does it not have an alternate state backend?
+	if ok {
+		ok = bLocal.Backend == nil
+	}
+
+	return ok
+}
+
 // Operation initializes a new backend.Operation struct.
 //
 // This prepares the operation. After calling this, the caller is expected
