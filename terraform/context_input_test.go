@@ -658,3 +658,30 @@ func TestContext2Input_hcl(t *testing.T) {
 		t.Fatalf("bad: \n%s", actualStr)
 	}
 }
+
+// adding a list interpolation in fails to interpolate the count variable
+func TestContext2Input_submoduleTriggersInvalidCount(t *testing.T) {
+	input := new(MockUIInput)
+	m := testModule(t, "input-submodule-count")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		UIInput: input,
+	})
+
+	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+		return c, nil
+	}
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		return nil
+	}
+
+	if err := ctx.Input(InputModeStd); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
