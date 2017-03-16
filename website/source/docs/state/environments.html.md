@@ -34,7 +34,7 @@ to switch environments you can use `terraform env select`, etc.
 For example, creating an environment:
 
 ```
-$ terraform env create bar
+$ terraform env new bar
 Created and switched to environment "bar"!
 
 You're now on a new, empty environment. Environments isolate their state,
