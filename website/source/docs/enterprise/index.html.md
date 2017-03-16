@@ -16,4 +16,4 @@ This is a list of features specific to Terraform Enterprise.
 - [Terraform Plans and Applies](/docs/enterprise/runs)
 - [Terraform Artifact Registry](/docs/enterprise/artifacts)
 - [Terraform Remote State Storage](/docs/enterprise/state)
-- [Terraform Run Notifications](/docs/enterprise/runs/notifications)
+- [Terraform Run Notifications](/docs/enterprise/runs/notifications.html)
