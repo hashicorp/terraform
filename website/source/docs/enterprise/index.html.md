@@ -8,7 +8,7 @@ description: |-
 
 # Terraform Enterprise Features
 
-[Terraform](https://terraform.io) is a tool for safely and
+[Terraform](https://www.hashicorp.com/products/terraform/) is a tool for safely and
 efficiently changing infrastructure across providers.
 
 This is a list of features specific to Terraform Enterprise.
