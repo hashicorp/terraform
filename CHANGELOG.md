@@ -8,6 +8,7 @@ FEATURES:
 
  * **New Provider:** `kubernetes` [GH-12372]
  * **New Resource:** `kubernetes_namespace` [GH-12372]
+ * **New Resource:** `kubernetes_config_map` [GH-12753]
 
 IMPROVEMENTS:
 
