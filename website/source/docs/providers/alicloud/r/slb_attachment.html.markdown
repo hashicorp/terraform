@@ -15,18 +15,17 @@ Provides an Application Load Balancer Attachment resource.
 ```
 # Create a new load balancer attachment for classic
 resource "alicloud_slb" "default" {
-	# Other parameters...
+  # Other parameters...
 }
 
 resource "alicloud_instance" "default" {
-	# Other parameters...
+  # Other parameters...
 }
 
 resource "alicloud_slb_attachment" "default" {
-	slb_id = "${alicloud_slb.default.id}"
-	instances = ["${alicloud_instance.default.id}"]
+  slb_id    = "${alicloud_slb.default.id}"
+  instances = ["${alicloud_instance.default.id}"]
 }
-
 ```
 
 ## Argument Reference

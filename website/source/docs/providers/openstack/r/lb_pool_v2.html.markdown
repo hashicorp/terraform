@@ -14,12 +14,13 @@ Manages a V2 pool resource within OpenStack.
 
 ```
 resource "openstack_lb_pool_v2" "pool_1" {
-  protocol = "ProtocolHTTP"
-  lb_method = "ROUND_ROBIN"
-  listener_id =  "d9415786-5f1a-428b-b35f-2f1523e146d2"
+  protocol    = "ProtocolHTTP"
+  lb_method   = "ROUND_ROBIN"
+  listener_id = "d9415786-5f1a-428b-b35f-2f1523e146d2"
+
   persistence {
-      type          = "HTTP_COOKIE"
-      cookie_name   = "testCookie"
+    type        = "HTTP_COOKIE"
+    cookie_name = "testCookie"
   }
 }
 ```
@@ -41,7 +42,7 @@ The following arguments are supported:
 
 * `description` - (Optional) Human-readable description for the pool.
 
-* `protocol` = (Required) The protocol - can either be TCP, HTTP or HTTPS. 
+* `protocol` = (Required) The protocol - can either be TCP, HTTP or HTTPS.
     Changing this creates a new pool.
 
 * `loadbalancer_id` - (Optional) The load balancer on which to provision this
@@ -62,7 +63,7 @@ The following arguments are supported:
 
 * `admin_state_up` - (Optional) The administrative state of the pool.
     A valid value is true (UP) or false (DOWN).
-    
+
 The `persistence` argument supports:
 
 * `type` - (Required) The type of persistence mode. The current specification

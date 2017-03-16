@@ -16,7 +16,7 @@ The Instance Types data source list the ecs_instance_types of Alicloud.
 # Declare the data source
 data "alicloud_instance_types" "1c2g" {
   cpu_core_count = 1
-  memory_size = 2
+  memory_size    = 2
 }
 
 # Create ecs instance with the first matched instance_type
@@ -26,7 +26,6 @@ resource "alicloud_instance" "instance" {
 
   # Other properties...
 }
-
 ```
 
 ## Argument Reference

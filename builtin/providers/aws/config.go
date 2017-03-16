@@ -27,6 +27,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/codebuild"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codedeploy"
+	"github.com/aws/aws-sdk-go/service/codepipeline"
+	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -108,6 +110,7 @@ type AWSClient struct {
 	cloudwatchconn        *cloudwatch.CloudWatch
 	cloudwatchlogsconn    *cloudwatchlogs.CloudWatchLogs
 	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
+	configconn            *configservice.ConfigService
 	dmsconn               *databasemigrationservice.DatabaseMigrationService
 	dsconn                *directoryservice.DirectoryService
 	dynamodbconn          *dynamodb.DynamoDB
@@ -150,6 +153,7 @@ type AWSClient struct {
 	codebuildconn         *codebuild.CodeBuild
 	codedeployconn        *codedeploy.CodeDeploy
 	codecommitconn        *codecommit.CodeCommit
+	codepipelineconn      *codepipeline.CodePipeline
 	sfnconn               *sfn.SFN
 	ssmconn               *ssm.SSM
 	wafconn               *waf.WAF
@@ -281,7 +285,9 @@ func (c *Config) Client() (interface{}, error) {
 	client.codecommitconn = codecommit.New(sess)
 	client.codebuildconn = codebuild.New(sess)
 	client.codedeployconn = codedeploy.New(sess)
+	client.configconn = configservice.New(sess)
 	client.dmsconn = databasemigrationservice.New(sess)
+	client.codepipelineconn = codepipeline.New(sess)
 	client.dsconn = directoryservice.New(sess)
 	client.dynamodbconn = dynamodb.New(dynamoSess)
 	client.ec2conn = ec2.New(awsEc2Sess)
@@ -302,7 +308,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.kmsconn = kms.New(sess)
 	client.lambdaconn = lambda.New(sess)
 	client.lightsailconn = lightsail.New(usEast1Sess)
-	client.opsworksconn = opsworks.New(usEast1Sess)
+	client.opsworksconn = opsworks.New(sess)
 	client.r53conn = route53.New(usEast1Sess)
 	client.rdsconn = rds.New(sess)
 	client.redshiftconn = redshift.New(sess)

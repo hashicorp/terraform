@@ -3,11 +3,13 @@ package digitalocean
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccDigitalOceanDroplet_importBasic(t *testing.T) {
 	resourceName := "digitalocean_droplet.foobar"
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -15,7 +17,7 @@ func TestAccDigitalOceanDroplet_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckDigitalOceanDropletConfig_basic,
+				Config: testAccCheckDigitalOceanDropletConfig_basic(rInt),
 			},
 
 			{

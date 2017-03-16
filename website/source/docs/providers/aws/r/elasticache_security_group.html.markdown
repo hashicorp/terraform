@@ -19,12 +19,12 @@ ElastiCache cluster **outside** of a VPC. If you are using a VPC, see the
 
 ```
 resource "aws_security_group" "bar" {
-    name = "security-group"
+  name = "security-group"
 }
 
 resource "aws_elasticache_security_group" "bar" {
-    name = "elasticache-security-group"
-    security_group_names = ["${aws_security_group.bar.name}"]
+  name                 = "elasticache-security-group"
+  security_group_names = ["${aws_security_group.bar.name}"]
 }
 ```
 

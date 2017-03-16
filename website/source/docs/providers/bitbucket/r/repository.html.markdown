@@ -18,8 +18,8 @@ private, how to fork the repository and other options.
 ```
 # Manage your respository
 resource "bitbucket_repository" "infrastructure" {
-    owner = "myteam"
-    name = "terraform-code"
+  owner = "myteam"
+  name  = "terraform-code"
 }
 ```
 
@@ -50,7 +50,7 @@ The following arguments are computed. You can access both `clone_ssh` and
 
 ## Import
 
-Repositories can be imported using the `name`, e.g. 
+Repositories can be imported using the `name`, e.g.
 
 ```
 $ terraform import bitbucket_repository.my-repo my-repo

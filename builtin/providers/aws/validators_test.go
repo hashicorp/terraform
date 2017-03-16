@@ -1550,3 +1550,32 @@ func TestValidateDmsReplicationTaskId(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateAccountAlias(t *testing.T) {
+	validAliases := []string{
+		"tf-alias",
+		"0tf-alias1",
+	}
+
+	for _, s := range validAliases {
+		_, errors := validateAccountAlias(s, "account_alias")
+		if len(errors) > 0 {
+			t.Fatalf("%q should be a valid account alias: %v", s, errors)
+		}
+	}
+
+	invalidAliases := []string{
+		"tf",
+		"-tf",
+		"tf-",
+		"TF-Alias",
+		"tf-alias-tf-alias-tf-alias-tf-alias-tf-alias-tf-alias-tf-alias-tf-alias",
+	}
+
+	for _, s := range invalidAliases {
+		_, errors := validateAccountAlias(s, "account_alias")
+		if len(errors) == 0 {
+			t.Fatalf("%q should not be a valid account alias: %v", s, errors)
+		}
+	}
+}

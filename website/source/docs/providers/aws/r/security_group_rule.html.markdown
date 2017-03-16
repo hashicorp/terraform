@@ -24,14 +24,14 @@ Basic usage
 
 ```
 resource "aws_security_group_rule" "allow_all" {
-    type = "ingress"
-    from_port = 0
-    to_port = 65535
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    prefix_list_ids = ["pl-12c4e678"]
+  type            = "ingress"
+  from_port       = 0
+  to_port         = 65535
+  protocol        = "tcp"
+  cidr_blocks     = ["0.0.0.0/0"]
+  prefix_list_ids = ["pl-12c4e678"]
 
-    security_group_id = "sg-123456"
+  security_group_id = "sg-123456"
 }
 ```
 
@@ -42,6 +42,7 @@ The following arguments are supported:
 * `type` - (Required) The type of rule being created. Valid options are `ingress` (inbound)
 or `egress` (outbound).
 * `cidr_blocks` - (Optional) List of CIDR blocks. Cannot be specified with `source_security_group_id`.
+* `ipv6_cidr_blocks` - (Optional) List of IPv6 CIDR blocks.
 * `prefix_list_ids` - (Optional) List of prefix list IDs (for allowing access to VPC endpoints).
 Only valid with `egress`.
 * `from_port` - (Required) The start port (or ICMP type number if protocol is "icmp").
@@ -61,16 +62,17 @@ Prefix list IDs are exported on VPC Endpoints, so you can use this format:
 
 ```
 resource "aws_security_group_rule" "allow_all" {
-    type = "egress"
-    to_port = 0
-    protocol = "-1"
-    prefix_list_ids = ["${aws_vpc_endpoint.my_endpoint.prefix_list_id}"]
-    from_port = 0
-    security_group_id = "sg-123456"
+  type              = "egress"
+  to_port           = 0
+  protocol          = "-1"
+  prefix_list_ids   = ["${aws_vpc_endpoint.my_endpoint.prefix_list_id}"]
+  from_port         = 0
+  security_group_id = "sg-123456"
 }
-...
+
+# ...
 resource "aws_vpc_endpoint" "my_endpoint" {
-  ...
+  # ...
 }
 ```
 

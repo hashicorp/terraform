@@ -22,14 +22,14 @@ remove errant keys not present in the configuration, consider using the
 
 ```
 resource "consul_keys" "app" {
-    datacenter = "nyc1"
-    token = "abcd"
+  datacenter = "nyc1"
+  token      = "abcd"
 
-    # Set the CNAME of our load balancer as a key
-    key {
-        path = "service/app/elb_address"
-        value = "${aws_elb.app.dns_name}"
-    }
+  # Set the CNAME of our load balancer as a key
+  key {
+    path  = "service/app/elb_address"
+    value = "${aws_elb.app.dns_name}"
+  }
 }
 ```
 

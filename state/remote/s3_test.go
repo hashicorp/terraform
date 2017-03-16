@@ -13,6 +13,7 @@ import (
 
 func TestS3Client_impl(t *testing.T) {
 	var _ Client = new(S3Client)
+	var _ ClientLocker = new(S3Client)
 }
 
 func TestS3Factory(t *testing.T) {
@@ -169,7 +170,7 @@ func TestS3ClientLocks(t *testing.T) {
 
 	createDynamoDBTable(t, s3Client, bucketName)
 
-	testClientLocks(t, client)
+	TestRemoteLocks(t, client, client)
 }
 
 // create the dynamoDB table, and wait until we can query it.

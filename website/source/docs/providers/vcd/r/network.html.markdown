@@ -15,20 +15,19 @@ modify, and delete internal networks for vApps to connect.
 
 ```
 resource "vcd_network" "net" {
-	name = "my-net"
-	edge_gateway = "Edge Gateway Name"
-	gateway = "10.10.0.1"
+  name         = "my-net"
+  edge_gateway = "Edge Gateway Name"
+  gateway      = "10.10.0.1"
 
-	dhcp_pool {
-		start_address = "10.10.0.2"
-		end_address = "10.10.0.100"
-	}
+  dhcp_pool {
+    start_address = "10.10.0.2"
+    end_address   = "10.10.0.100"
+  }
 
-	static_ip_pool {
-		start_address = "10.10.0.152"
-		end_address = "10.10.0.254"
-	}
-
+  static_ip_pool {
+    start_address = "10.10.0.152"
+    end_address   = "10.10.0.254"
+  }
 }
 ```
 

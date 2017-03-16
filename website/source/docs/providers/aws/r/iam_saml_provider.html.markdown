@@ -14,8 +14,8 @@ Provides an IAM SAML provider.
 
 ```
 resource "aws_iam_saml_provider" "default" {
-    name = "myprovider"
-    saml_metadata_document = "${file("saml-metadata.xml")}"
+  name                   = "myprovider"
+  saml_metadata_document = "${file("saml-metadata.xml")}"
 }
 ```
 
@@ -35,7 +35,7 @@ The following attributes are exported:
 
 ## Import
 
-IAM SAML Providers can be imported using the `arn`, e.g. 
+IAM SAML Providers can be imported using the `arn`, e.g.
 
 ```
 $ terraform import aws_iam_saml_provider.default arn:aws:iam::123456789012:saml-provider/SAMLADFS

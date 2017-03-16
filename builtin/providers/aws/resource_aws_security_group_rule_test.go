@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -12,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"regexp"
 )
 
 func TestIpPermissionIDHash(t *testing.T) {
@@ -52,15 +52,15 @@ func TestIpPermissionIDHash(t *testing.T) {
 		FromPort:   aws.Int64(int64(80)),
 		ToPort:     aws.Int64(int64(8000)),
 		UserIdGroupPairs: []*ec2.UserIdGroupPair{
-			&ec2.UserIdGroupPair{
+			{
 				UserId:  aws.String("987654321"),
 				GroupId: aws.String("sg-12345678"),
 			},
-			&ec2.UserIdGroupPair{
+			{
 				UserId:  aws.String("123456789"),
 				GroupId: aws.String("sg-987654321"),
 			},
-			&ec2.UserIdGroupPair{
+			{
 				UserId:  aws.String("123456789"),
 				GroupId: aws.String("sg-12345678"),
 			},
@@ -72,15 +72,15 @@ func TestIpPermissionIDHash(t *testing.T) {
 		FromPort:   aws.Int64(int64(80)),
 		ToPort:     aws.Int64(int64(8000)),
 		UserIdGroupPairs: []*ec2.UserIdGroupPair{
-			&ec2.UserIdGroupPair{
+			{
 				UserId:    aws.String("987654321"),
 				GroupName: aws.String("my-security-group"),
 			},
-			&ec2.UserIdGroupPair{
+			{
 				UserId:    aws.String("123456789"),
 				GroupName: aws.String("my-security-group"),
 			},
-			&ec2.UserIdGroupPair{
+			{
 				UserId:    aws.String("123456789"),
 				GroupName: aws.String("my-other-security-group"),
 			},
@@ -110,6 +110,7 @@ func TestIpPermissionIDHash(t *testing.T) {
 
 func TestAccAWSSecurityGroupRule_Ingress_VPC(t *testing.T) {
 	var group ec2.SecurityGroup
+	rInt := acctest.RandInt()
 
 	testRuleCount := func(*terraform.State) error {
 		if len(group.IpPermissions) != 1 {
@@ -132,7 +133,7 @@ func TestAccAWSSecurityGroupRule_Ingress_VPC(t *testing.T) {
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSSecurityGroupRuleIngressConfig,
+				Config: testAccAWSSecurityGroupRuleIngressConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
 					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.ingress_1", &group, nil, "ingress"),
@@ -182,8 +183,49 @@ func TestAccAWSSecurityGroupRule_Ingress_Protocol(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroupRule_Ingress_Ipv6(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	testRuleCount := func(*terraform.State) error {
+		if len(group.IpPermissions) != 1 {
+			return fmt.Errorf("Wrong Security Group rule count, expected %d, got %d",
+				1, len(group.IpPermissions))
+		}
+
+		rule := group.IpPermissions[0]
+		if *rule.FromPort != int64(80) {
+			return fmt.Errorf("Wrong Security Group port setting, expected %d, got %d",
+				80, int(*rule.FromPort))
+		}
+
+		ipv6Address := rule.Ipv6Ranges[0]
+		if *ipv6Address.CidrIpv6 != "::/0" {
+			return fmt.Errorf("Wrong Security Group IPv6 address, expected %s, got %s",
+				"::/0", *ipv6Address.CidrIpv6)
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSSecurityGroupRuleIngress_ipv6Config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
+					testRuleCount,
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSSecurityGroupRule_Ingress_Classic(t *testing.T) {
 	var group ec2.SecurityGroup
+	rInt := acctest.RandInt()
 
 	testRuleCount := func(*terraform.State) error {
 		if len(group.IpPermissions) != 1 {
@@ -206,7 +248,7 @@ func TestAccAWSSecurityGroupRule_Ingress_Classic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSSecurityGroupRuleIngressClassicConfig,
+				Config: testAccAWSSecurityGroupRuleIngressClassicConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
 					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.ingress_1", &group, nil, "ingress"),
@@ -261,6 +303,7 @@ func TestAccAWSSecurityGroupRule_MultiIngress(t *testing.T) {
 
 func TestAccAWSSecurityGroupRule_Egress(t *testing.T) {
 	var group ec2.SecurityGroup
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -268,7 +311,7 @@ func TestAccAWSSecurityGroupRule_Egress(t *testing.T) {
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSSecurityGroupRuleEgressConfig,
+				Config: testAccAWSSecurityGroupRuleEgressConfig(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
 					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.egress_1", &group, nil, "egress"),
@@ -297,14 +340,34 @@ func TestAccAWSSecurityGroupRule_SelfReference(t *testing.T) {
 }
 
 func TestAccAWSSecurityGroupRule_ExpectInvalidTypeError(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccAWSSecurityGroupRuleExpectInvalidType,
+				Config:      testAccAWSSecurityGroupRuleExpectInvalidType(rInt),
 				ExpectError: regexp.MustCompile(`\\"type\\" contains an invalid Security Group Rule type \\"foobar\\"`),
+			},
+		},
+	})
+}
+
+func TestAccAWSSecurityGroupRule_ExpectInvalidCIDR(t *testing.T) {
+	rInt := acctest.RandInt()
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAWSSecurityGroupRuleInvalidIPv4CIDR(rInt),
+				ExpectError: regexp.MustCompile("invalid CIDR address: 1.2.3.4/33"),
+			},
+			{
+				Config:      testAccAWSSecurityGroupRuleInvalidIPv6CIDR(rInt),
+				ExpectError: regexp.MustCompile("invalid CIDR address: ::/244"),
 			},
 		},
 	})
@@ -313,6 +376,7 @@ func TestAccAWSSecurityGroupRule_ExpectInvalidTypeError(t *testing.T) {
 // testing partial match implementation
 func TestAccAWSSecurityGroupRule_PartialMatching_basic(t *testing.T) {
 	var group ec2.SecurityGroup
+	rInt := acctest.RandInt()
 
 	p := ec2.IpPermission{
 		FromPort:   aws.Int64(80),
@@ -340,7 +404,7 @@ func TestAccAWSSecurityGroupRule_PartialMatching_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSSecurityGroupRulePartialMatching,
+				Config: testAccAWSSecurityGroupRulePartialMatching(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
 					testAccCheckAWSSecurityGroupRuleAttributes("aws_security_group_rule.ingress", &group, &p, "ingress"),
@@ -356,6 +420,7 @@ func TestAccAWSSecurityGroupRule_PartialMatching_Source(t *testing.T) {
 	var group ec2.SecurityGroup
 	var nat ec2.SecurityGroup
 	var p ec2.IpPermission
+	rInt := acctest.RandInt()
 
 	// This function creates the expected IPPermission with the group id from an
 	// external security group, needed because Security Group IDs are generated on
@@ -370,7 +435,7 @@ func TestAccAWSSecurityGroupRule_PartialMatching_Source(t *testing.T) {
 			ToPort:     aws.Int64(80),
 			IpProtocol: aws.String("tcp"),
 			UserIdGroupPairs: []*ec2.UserIdGroupPair{
-				&ec2.UserIdGroupPair{GroupId: nat.GroupId},
+				{GroupId: nat.GroupId},
 			},
 		}
 
@@ -383,7 +448,7 @@ func TestAccAWSSecurityGroupRule_PartialMatching_Source(t *testing.T) {
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSSecurityGroupRulePartialMatching_Source,
+				Config: testAccAWSSecurityGroupRulePartialMatching_Source(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.nat", &nat),
@@ -433,6 +498,7 @@ func TestAccAWSSecurityGroupRule_Race(t *testing.T) {
 
 func TestAccAWSSecurityGroupRule_SelfSource(t *testing.T) {
 	var group ec2.SecurityGroup
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -440,7 +506,7 @@ func TestAccAWSSecurityGroupRule_SelfSource(t *testing.T) {
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSSecurityGroupRuleSelfInSource,
+				Config: testAccAWSSecurityGroupRuleSelfInSource(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
 				),
@@ -667,22 +733,51 @@ func testAccCheckAWSSecurityGroupRuleAttributes(n string, group *ec2.SecurityGro
 	}
 }
 
-const testAccAWSSecurityGroupRuleIngressConfig = `
-resource "aws_security_group" "web" {
-  name = "terraform_acceptance_test_example"
-  description = "Used in the terraform acceptance tests"
+func testAccAWSSecurityGroupRuleIngressConfig(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_security_group" "web" {
+		name = "terraform_test_%d"
+		description = "Used in the terraform acceptance tests"
 
-        tags {
-                Name = "tf-acc-test"
-        }
+					tags {
+									Name = "tf-acc-test"
+					}
+	}
+
+	resource "aws_security_group_rule" "ingress_1" {
+		type = "ingress"
+		protocol = "tcp"
+		from_port = 80
+		to_port = 8000
+		cidr_blocks = ["10.0.0.0/8"]
+
+		security_group_id = "${aws_security_group.web.id}"
+	}`, rInt)
+}
+
+const testAccAWSSecurityGroupRuleIngress_ipv6Config = `
+resource "aws_vpc" "tftest" {
+  cidr_block = "10.0.0.0/16"
+
+  tags {
+    Name = "tf-testing"
+  }
+}
+
+resource "aws_security_group" "web" {
+  vpc_id = "${aws_vpc.tftest.id}"
+
+  tags {
+    Name = "tf-acc-test"
+  }
 }
 
 resource "aws_security_group_rule" "ingress_1" {
-  type = "ingress"
-  protocol = "tcp"
-  from_port = 80
-  to_port = 8000
-  cidr_blocks = ["10.0.0.0/8"]
+  type        = "ingress"
+  protocol    = "6"
+  from_port   = 80
+  to_port     = 8000
+  ipv6_cidr_blocks = ["::/0"]
 
   security_group_id = "${aws_security_group.web.id}"
 }
@@ -737,51 +832,53 @@ resource "aws_security_group_rule" "issue_5310" {
 }
 `
 
-const testAccAWSSecurityGroupRuleIngressClassicConfig = `
-provider "aws" {
-        region = "us-east-1"
+func testAccAWSSecurityGroupRuleIngressClassicConfig(rInt int) string {
+	return fmt.Sprintf(`
+	provider "aws" {
+					region = "us-east-1"
+	}
+
+	resource "aws_security_group" "web" {
+		name = "terraform_test_%d"
+		description = "Used in the terraform acceptance tests"
+
+					tags {
+									Name = "tf-acc-test"
+					}
+	}
+
+	resource "aws_security_group_rule" "ingress_1" {
+		type = "ingress"
+		protocol = "tcp"
+		from_port = 80
+		to_port = 8000
+		cidr_blocks = ["10.0.0.0/8"]
+
+		security_group_id = "${aws_security_group.web.id}"
+	}`, rInt)
 }
 
-resource "aws_security_group" "web" {
-  name = "terraform_acceptance_test_example"
-  description = "Used in the terraform acceptance tests"
+func testAccAWSSecurityGroupRuleEgressConfig(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_security_group" "web" {
+		name = "terraform_test_%d"
+		description = "Used in the terraform acceptance tests"
 
-        tags {
-                Name = "tf-acc-test"
-        }
+					tags {
+									Name = "tf-acc-test"
+					}
+	}
+
+	resource "aws_security_group_rule" "egress_1" {
+		type = "egress"
+		protocol = "tcp"
+		from_port = 80
+		to_port = 8000
+		cidr_blocks = ["10.0.0.0/8"]
+
+		security_group_id = "${aws_security_group.web.id}"
+	}`, rInt)
 }
-
-resource "aws_security_group_rule" "ingress_1" {
-  type = "ingress"
-  protocol = "tcp"
-  from_port = 80
-  to_port = 8000
-  cidr_blocks = ["10.0.0.0/8"]
-
-  security_group_id = "${aws_security_group.web.id}"
-}
-`
-
-const testAccAWSSecurityGroupRuleEgressConfig = `
-resource "aws_security_group" "web" {
-  name = "terraform_acceptance_test_example"
-  description = "Used in the terraform acceptance tests"
-
-        tags {
-                Name = "tf-acc-test"
-        }
-}
-
-resource "aws_security_group_rule" "egress_1" {
-  type = "egress"
-  protocol = "tcp"
-  from_port = 80
-  to_port = 8000
-  cidr_blocks = ["10.0.0.0/8"]
-
-  security_group_id = "${aws_security_group.web.id}"
-}
-`
 
 const testAccAWSSecurityGroupRuleConfigMultiIngress = `
 resource "aws_security_group" "web" {
@@ -847,106 +944,108 @@ resource "aws_security_group_rule" "self" {
 }
 `
 
-const testAccAWSSecurityGroupRulePartialMatching = `
-resource "aws_vpc" "default" {
-  cidr_block = "10.0.0.0/16"
-  tags {
-    Name = "tf-sg-rule-bug"
-  }
+func testAccAWSSecurityGroupRulePartialMatching(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_vpc" "default" {
+		cidr_block = "10.0.0.0/16"
+		tags {
+			Name = "tf-sg-rule-bug"
+		}
+	}
+
+	resource "aws_security_group" "web" {
+			name = "tf-other-%d"
+			vpc_id = "${aws_vpc.default.id}"
+			tags {
+					Name        = "tf-other-sg"
+			}
+	}
+
+	resource "aws_security_group" "nat" {
+			name = "tf-nat-%d"
+			vpc_id = "${aws_vpc.default.id}"
+			tags {
+					Name        = "tf-nat-sg"
+			}
+	}
+
+	resource "aws_security_group_rule" "ingress" {
+			type        = "ingress"
+			from_port   = 80
+			to_port     = 80
+			protocol    = "tcp"
+			cidr_blocks = ["10.0.2.0/24", "10.0.3.0/24", "10.0.4.0/24"]
+
+		 security_group_id = "${aws_security_group.web.id}"
+	}
+
+	resource "aws_security_group_rule" "other" {
+			type        = "ingress"
+			from_port   = 80
+			to_port     = 80
+			protocol    = "tcp"
+			cidr_blocks = ["10.0.5.0/24"]
+
+		 security_group_id = "${aws_security_group.web.id}"
+	}
+
+	// same a above, but different group, to guard against bad hashing
+	resource "aws_security_group_rule" "nat_ingress" {
+			type        = "ingress"
+			from_port   = 80
+			to_port     = 80
+			protocol    = "tcp"
+			cidr_blocks = ["10.0.2.0/24", "10.0.3.0/24", "10.0.4.0/24"]
+
+		 security_group_id = "${aws_security_group.nat.id}"
+	}`, rInt, rInt)
 }
 
-resource "aws_security_group" "web" {
-    name = "tf-other"
-    vpc_id = "${aws_vpc.default.id}"
-    tags {
-        Name        = "tf-other-sg"
-    }
+func testAccAWSSecurityGroupRulePartialMatching_Source(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_vpc" "default" {
+		cidr_block = "10.0.0.0/16"
+		tags {
+			Name = "tf-sg-rule-bug"
+		}
+	}
+
+	resource "aws_security_group" "web" {
+			name = "tf-other-%d"
+			vpc_id = "${aws_vpc.default.id}"
+			tags {
+					Name        = "tf-other-sg"
+			}
+	}
+
+	resource "aws_security_group" "nat" {
+			name = "tf-nat-%d"
+			vpc_id = "${aws_vpc.default.id}"
+			tags {
+					Name        = "tf-nat-sg"
+			}
+	}
+
+	resource "aws_security_group_rule" "source_ingress" {
+			type        = "ingress"
+			from_port   = 80
+			to_port     = 80
+			protocol    = "tcp"
+
+									source_security_group_id = "${aws_security_group.nat.id}"
+		 security_group_id = "${aws_security_group.web.id}"
+	}
+
+	resource "aws_security_group_rule" "other_ingress" {
+			type        = "ingress"
+			from_port   = 80
+			to_port     = 80
+			protocol    = "tcp"
+			cidr_blocks = ["10.0.2.0/24", "10.0.3.0/24", "10.0.4.0/24"]
+
+		 security_group_id = "${aws_security_group.web.id}"
+	}`, rInt, rInt)
 }
-
-resource "aws_security_group" "nat" {
-    name = "tf-nat"
-    vpc_id = "${aws_vpc.default.id}"
-    tags {
-        Name        = "tf-nat-sg"
-    }
-}
-
-resource "aws_security_group_rule" "ingress" {
-    type        = "ingress"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.2.0/24", "10.0.3.0/24", "10.0.4.0/24"]
-
-   security_group_id = "${aws_security_group.web.id}"
-}
-
-resource "aws_security_group_rule" "other" {
-    type        = "ingress"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.5.0/24"]
-
-   security_group_id = "${aws_security_group.web.id}"
-}
-
-// same a above, but different group, to guard against bad hashing
-resource "aws_security_group_rule" "nat_ingress" {
-    type        = "ingress"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.2.0/24", "10.0.3.0/24", "10.0.4.0/24"]
-
-   security_group_id = "${aws_security_group.nat.id}"
-}
-`
-
-const testAccAWSSecurityGroupRulePartialMatching_Source = `
-resource "aws_vpc" "default" {
-  cidr_block = "10.0.0.0/16"
-  tags {
-    Name = "tf-sg-rule-bug"
-  }
-}
-
-resource "aws_security_group" "web" {
-    name = "tf-other"
-    vpc_id = "${aws_vpc.default.id}"
-    tags {
-        Name        = "tf-other-sg"
-    }
-}
-
-resource "aws_security_group" "nat" {
-    name = "tf-nat"
-    vpc_id = "${aws_vpc.default.id}"
-    tags {
-        Name        = "tf-nat-sg"
-    }
-}
-
-resource "aws_security_group_rule" "source_ingress" {
-    type        = "ingress"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-
-                source_security_group_id = "${aws_security_group.nat.id}"
-   security_group_id = "${aws_security_group.web.id}"
-}
-
-resource "aws_security_group_rule" "other_ingress" {
-    type        = "ingress"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.2.0/24", "10.0.3.0/24", "10.0.4.0/24"]
-
-   security_group_id = "${aws_security_group.web.id}"
-}
-`
 
 var testAccAWSSecurityGroupRuleRace = func() string {
 	var b bytes.Buffer
@@ -1035,52 +1134,86 @@ resource "aws_security_group_rule" "egress_1" {
 }
 `
 
-const testAccAWSSecurityGroupRuleSelfInSource = `
-resource "aws_vpc" "foo" {
-  cidr_block = "10.1.0.0/16"
+func testAccAWSSecurityGroupRuleSelfInSource(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_vpc" "foo" {
+		cidr_block = "10.1.0.0/16"
 
-  tags {
-    Name = "tf_sg_rule_self_group"
-  }
+		tags {
+			Name = "tf_sg_rule_self_group"
+		}
+	}
+
+	resource "aws_security_group" "web" {
+		name        = "allow_all-%d"
+		description = "Allow all inbound traffic"
+		vpc_id      = "${aws_vpc.foo.id}"
+	}
+
+	resource "aws_security_group_rule" "allow_self" {
+		type                     = "ingress"
+		from_port                = 0
+		to_port                  = 0
+		protocol                 = "-1"
+		security_group_id        = "${aws_security_group.web.id}"
+		source_security_group_id = "${aws_security_group.web.id}"
+	}`, rInt)
 }
 
-resource "aws_security_group" "web" {
-  name        = "allow_all"
-  description = "Allow all inbound traffic"
-  vpc_id      = "${aws_vpc.foo.id}"
+func testAccAWSSecurityGroupRuleExpectInvalidType(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_vpc" "foo" {
+		cidr_block = "10.1.0.0/16"
+
+		tags {
+			Name = "tf_sg_rule_self_group"
+		}
+	}
+
+	resource "aws_security_group" "web" {
+		name        = "allow_all-%d"
+		description = "Allow all inbound traffic"
+		vpc_id      = "${aws_vpc.foo.id}"
+	}
+
+	resource "aws_security_group_rule" "allow_self" {
+		type                     = "foobar"
+		from_port                = 0
+		to_port                  = 0
+		protocol                 = "-1"
+		security_group_id        = "${aws_security_group.web.id}"
+		source_security_group_id = "${aws_security_group.web.id}"
+	}`, rInt)
 }
 
-resource "aws_security_group_rule" "allow_self" {
-  type                     = "ingress"
-  from_port                = 0
-  to_port                  = 0
-  protocol                 = "-1"
-  security_group_id        = "${aws_security_group.web.id}"
-  source_security_group_id = "${aws_security_group.web.id}"
-}
-`
-
-const testAccAWSSecurityGroupRuleExpectInvalidType = `
-resource "aws_vpc" "foo" {
-  cidr_block = "10.1.0.0/16"
-
-  tags {
-    Name = "tf_sg_rule_self_group"
-  }
+func testAccAWSSecurityGroupRuleInvalidIPv4CIDR(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_security_group" "foo" {
+  name = "testing-failure-%d"
 }
 
-resource "aws_security_group" "web" {
-  name        = "allow_all"
-  description = "Allow all inbound traffic"
-  vpc_id      = "${aws_vpc.foo.id}"
+resource "aws_security_group_rule" "ing" {
+  type = "ingress"
+  from_port = 0
+  to_port = 0
+  protocol = "-1"
+  cidr_blocks = ["1.2.3.4/33"]
+  security_group_id = "${aws_security_group.foo.id}"
+}`, rInt)
 }
 
-resource "aws_security_group_rule" "allow_self" {
-  type                     = "foobar"
-  from_port                = 0
-  to_port                  = 0
-  protocol                 = "-1"
-  security_group_id        = "${aws_security_group.web.id}"
-  source_security_group_id = "${aws_security_group.web.id}"
+func testAccAWSSecurityGroupRuleInvalidIPv6CIDR(rInt int) string {
+	return fmt.Sprintf(`
+resource "aws_security_group" "foo" {
+  name = "testing-failure-%d"
 }
-`
+
+resource "aws_security_group_rule" "ing" {
+  type = "egress"
+  from_port = 0
+  to_port = 0
+  protocol = "-1"
+  ipv6_cidr_blocks = ["::/244"]
+  security_group_id = "${aws_security_group.foo.id}"
+}`, rInt)
+}

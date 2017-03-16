@@ -63,7 +63,7 @@ func TestTaint_lockedState(t *testing.T) {
 	}
 	statePath := testStateFile(t, state)
 
-	unlock, err := testLockState(statePath)
+	unlock, err := testLockState("./testdata", statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestTaint_lockedState(t *testing.T) {
 	}
 
 	output := ui.ErrorWriter.String()
-	if !strings.Contains(output, "locked") {
+	if !strings.Contains(output, "lock") {
 		t.Fatal("command output does not look like a lock error:", output)
 	}
 }

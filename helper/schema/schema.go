@@ -919,6 +919,7 @@ func (m schemaMap) diffSet(
 	diff *terraform.InstanceDiff,
 	d *ResourceData,
 	all bool) error {
+
 	o, n, _, computedSet := d.diffChange(k)
 	if computedSet {
 		n = nil
@@ -1003,6 +1004,7 @@ func (m schemaMap) diffSet(
 		for _, code := range list {
 			switch t := schema.Elem.(type) {
 			case *Resource:
+				countDiff, cOk := diff.GetAttribute(k + ".#")
 				// This is a complex resource
 				for k2, schema := range t.Schema {
 					subK := fmt.Sprintf("%s.%s.%s", k, code, k2)
@@ -1010,7 +1012,17 @@ func (m schemaMap) diffSet(
 					if err != nil {
 						return err
 					}
+
+					// If parent set is being removed
+					// remove all subfields which were missed by the diff func
+					// We process these separately because type-specific diff functions
+					// lack the context (hierarchy of fields)
+					subKeyIsCount := strings.HasSuffix(subK, ".#")
+					if cOk && countDiff.New == "0" && !subKeyIsCount {
+						m.markAsRemoved(subK, schema, diff)
+					}
 				}
+
 			case *Schema:
 				// Copy the schema so that we can set Computed/ForceNew from
 				// the parent schema (the TypeSet).
@@ -1250,8 +1262,15 @@ func (m schemaMap) validateMap(
 		return nil, []error{fmt.Errorf("%s: should be a map", k)}
 	}
 
-	// If it is not a slice, it is valid
+	// If it is not a slice, validate directly
 	if rawV.Kind() != reflect.Slice {
+		mapIface := rawV.Interface()
+		if _, errs := validateMapValues(k, mapIface.(map[string]interface{}), schema); len(errs) > 0 {
+			return nil, errs
+		}
+		if schema.ValidateFunc != nil {
+			return schema.ValidateFunc(mapIface, k)
+		}
 		return nil, nil
 	}
 
@@ -1267,6 +1286,10 @@ func (m schemaMap) validateMap(
 			return nil, []error{fmt.Errorf(
 				"%s: should be a map", k)}
 		}
+		mapIface := v.Interface()
+		if _, errs := validateMapValues(k, mapIface.(map[string]interface{}), schema); len(errs) > 0 {
+			return nil, errs
+		}
 	}
 
 	if schema.ValidateFunc != nil {
@@ -1281,6 +1304,67 @@ func (m schemaMap) validateMap(
 	}
 
 	return nil, nil
+}
+
+func validateMapValues(k string, m map[string]interface{}, schema *Schema) ([]string, []error) {
+	for key, raw := range m {
+		valueType, err := getValueType(k, schema)
+		if err != nil {
+			return nil, []error{err}
+		}
+
+		switch valueType {
+		case TypeBool:
+			var n bool
+			if err := mapstructure.WeakDecode(raw, &n); err != nil {
+				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
+			}
+		case TypeInt:
+			var n int
+			if err := mapstructure.WeakDecode(raw, &n); err != nil {
+				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
+			}
+		case TypeFloat:
+			var n float64
+			if err := mapstructure.WeakDecode(raw, &n); err != nil {
+				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
+			}
+		case TypeString:
+			var n string
+			if err := mapstructure.WeakDecode(raw, &n); err != nil {
+				return nil, []error{fmt.Errorf("%s (%s): %s", k, key, err)}
+			}
+		default:
+			panic(fmt.Sprintf("Unknown validation type: %#v", schema.Type))
+		}
+	}
+	return nil, nil
+}
+
+func getValueType(k string, schema *Schema) (ValueType, error) {
+	if schema.Elem == nil {
+		return TypeString, nil
+	}
+	if vt, ok := schema.Elem.(ValueType); ok {
+		return vt, nil
+	}
+
+	if s, ok := schema.Elem.(*Schema); ok {
+		if s.Elem == nil {
+			return TypeString, nil
+		}
+		if vt, ok := s.Elem.(ValueType); ok {
+			return vt, nil
+		}
+	}
+
+	if _, ok := schema.Elem.(*Resource); ok {
+		// TODO: We don't actually support this (yet)
+		// but silently pass the validation, until we decide
+		// how to handle nested structures in maps
+		return TypeString, nil
+	}
+	return 0, fmt.Errorf("%s: unexpected map value type: %#v", k, schema.Elem)
 }
 
 func (m schemaMap) validateObject(
@@ -1315,6 +1399,9 @@ func (m schemaMap) validateObject(
 	if m, ok := raw.(map[string]interface{}); ok {
 		for subk, _ := range m {
 			if _, ok := schema[subk]; !ok {
+				if subk == TimeoutsConfigKey {
+					continue
+				}
 				es = append(es, fmt.Errorf(
 					"%s: invalid or unknown key: %s", k, subk))
 			}
@@ -1357,28 +1444,28 @@ func (m schemaMap) validatePrimitive(
 		// Verify that we can parse this as the correct type
 		var n bool
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{err}
+			return nil, []error{fmt.Errorf("%s: %s", k, err)}
 		}
 		decoded = n
 	case TypeInt:
 		// Verify that we can parse this as an int
 		var n int
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{err}
+			return nil, []error{fmt.Errorf("%s: %s", k, err)}
 		}
 		decoded = n
 	case TypeFloat:
 		// Verify that we can parse this as an int
 		var n float64
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{err}
+			return nil, []error{fmt.Errorf("%s: %s", k, err)}
 		}
 		decoded = n
 	case TypeString:
 		// Verify that we can parse this as a string
 		var n string
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
-			return nil, []error{err}
+			return nil, []error{fmt.Errorf("%s: %s", k, err)}
 		}
 		decoded = n
 	default:

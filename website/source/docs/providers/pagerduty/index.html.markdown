@@ -17,20 +17,20 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the PagerDuty provider
 provider "pagerduty" {
-    token = "${var.pagerduty_token}"
+  token = "${var.pagerduty_token}"
 }
 
 # Create a PagerDuty team
 resource "pagerduty_team" "engineering" {
-    name        = "Engineering"
-    description = "All engineering"
+  name        = "Engineering"
+  description = "All engineering"
 }
 
 # Create a PagerDuty user
 resource "pagerduty_user" "earline" {
-    name  = "Earline Greenholt"
-    email = "125.greenholt.earline@graham.name"
-    teams = ["${pagerduty_team.engineering.id}"]
+  name  = "Earline Greenholt"
+  email = "125.greenholt.earline@graham.name"
+  teams = ["${pagerduty_team.engineering.id}"]
 }
 ```
 

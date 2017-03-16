@@ -15,7 +15,7 @@ Provides an Elastic File System (EFS) mount target.
 ```
 resource "aws_efs_mount_target" "alpha" {
   file_system_id = "${aws_efs_file_system.foo.id}"
-  subnet_id = "${aws_subnet.alpha.id}"
+  subnet_id      = "${aws_subnet.alpha.id}"
 }
 
 resource "aws_vpc" "foo" {
@@ -23,9 +23,9 @@ resource "aws_vpc" "foo" {
 }
 
 resource "aws_subnet" "alpha" {
-  vpc_id = "${aws_vpc.foo.id}"
+  vpc_id            = "${aws_vpc.foo.id}"
   availability_zone = "us-west-2a"
-  cidr_block = "10.0.1.0/24"
+  cidr_block        = "10.0.1.0/24"
 }
 ```
 

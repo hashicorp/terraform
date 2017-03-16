@@ -25,7 +25,11 @@ type CLI interface {
 	// CLIIinit is called once with options. The options passed to this
 	// function may not be modified after calling this since they can be
 	// read/written at any time by the Backend implementation.
-	CLIIinit(*CLIOpts) error
+	//
+	// This may be called before or after Configure is called, so if settings
+	// here affect configurable settings, care should be taken to handle
+	// whether they should be overwritten or not.
+	CLIInit(*CLIOpts) error
 }
 
 // CLIOpts are the options passed into CLIInit for the CLI interface.

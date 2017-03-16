@@ -15,8 +15,8 @@ Provides a Rancher Registration Token resource. This can be used to create regis
 ```hcl
 # Create a new Rancher registration token
 resource "rancher_registration_token" "default" {
-  name = "staging_token"
-  description = "Registration token for the staging environment"
+  name           = "staging_token"
+  description    = "Registration token for the staging environment"
   environment_id = "${rancher_environment.default.id}"
 }
 ```

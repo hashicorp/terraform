@@ -14,11 +14,12 @@ Provides an RDS DB subnet group resource.
 
 ```
 resource "aws_db_subnet_group" "default" {
-    name = "main"
-    subnet_ids = ["${aws_subnet.frontend.id}", "${aws_subnet.backend.id}"]
-    tags {
-        Name = "My DB subnet group"
-    }
+  name       = "main"
+  subnet_ids = ["${aws_subnet.frontend.id}", "${aws_subnet.backend.id}"]
+
+  tags {
+    Name = "My DB subnet group"
+  }
 }
 ```
 
@@ -41,7 +42,7 @@ The following attributes are exported:
 
 ## Import
 
-DB Subnet groups can be imported using the `name`, e.g. 
+DB Subnet groups can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_db_subnet_group.default production-subnet-group

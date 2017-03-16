@@ -15,16 +15,16 @@ a user on a MySQL server.
 
 ```
 resource "mysql_user" "jdoe" {
-    user = "jdoe"
-    host = "example.com"
-    password = "password"
+  user     = "jdoe"
+  host     = "example.com"
+  password = "password"
 }
 
 resource "mysql_grant" "jdoe" {
-    user = "${mysql_user.jdoe.user}"
-    host = "${mysql_user.jdoe.host}"
-    database = "app"
-    privileges = ["SELECT", "UPDATE"]
+  user       = "${mysql_user.jdoe.user}"
+  host       = "${mysql_user.jdoe.host}"
+  database   = "app"
+  privileges = ["SELECT", "UPDATE"]
 }
 ```
 

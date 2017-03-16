@@ -42,16 +42,16 @@ func (s *BackupState) PersistState() error {
 }
 
 // all states get wrapped by BackupState, so it has to be a Locker
-func (s *BackupState) Lock(reason string) error {
+func (s *BackupState) Lock(info *LockInfo) (string, error) {
 	if s, ok := s.Real.(Locker); ok {
-		return s.Lock(reason)
+		return s.Lock(info)
 	}
-	return nil
+	return "", nil
 }
 
-func (s *BackupState) Unlock() error {
+func (s *BackupState) Unlock(id string) error {
 	if s, ok := s.Real.(Locker); ok {
-		return s.Unlock()
+		return s.Unlock(id)
 	}
 	return nil
 }

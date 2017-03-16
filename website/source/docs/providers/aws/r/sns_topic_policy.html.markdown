@@ -19,6 +19,7 @@ resource "aws_sns_topic" "test" {
 
 resource "aws_sns_topic_policy" "custom" {
   arn = "${aws_sns_topic.test.arn}"
+
   policy = <<POLICY
 {
   "Version": "2012-10-17",

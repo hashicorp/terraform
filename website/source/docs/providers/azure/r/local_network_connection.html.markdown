@@ -14,9 +14,9 @@ Defines a new connection to a remote network through a VPN tunnel.
 
 ```
 resource "azure_local_network_connection" "localnet" {
-    name = "terraform-local-network-connection"
-    vpn_gateway_address = "45.12.189.2"
-    address_space_prefixes = ["10.10.10.0/24", "10.10.11.0/24"]
+  name                   = "terraform-local-network-connection"
+  vpn_gateway_address    = "45.12.189.2"
+  address_space_prefixes = ["10.10.10.0/24", "10.10.11.0/24"]
 }
 ```
 

@@ -14,9 +14,9 @@ A [service integration](https://v2.developer.pagerduty.com/v2/page/api-reference
 
 ```
 resource "pagerduty_user" "example" {
-    name  = "Earline Greenholt"
-    email = "125.greenholt.earline@graham.name"
-    teams = ["${pagerduty_team.example.id}"]
+  name  = "Earline Greenholt"
+  email = "125.greenholt.earline@graham.name"
+  teams = ["${pagerduty_team.example.id}"]
 }
 
 resource "pagerduty_escalation_policy" "foo" {
@@ -50,22 +50,20 @@ data "pagerduty_vendor" "datadog" {
   name = "Datadog"
 }
 
+resource "pagerduty_service_integration" "datadog" {
+  name    = "${data.pagerduty_vendor.datadog.name}"
+  service = "${pagerduty_service.example.id}"
+  vendor  = "${data.pagerduty_vendor.datadog.id}"
+}
+
 data "pagerduty_vendor" "cloudwatch" {
-  name_regex = "Amazon CloudWatch"
+  name = "Cloudwatch"
 }
 
-resource "pagerduty_service_integration" "datadog" {
-  name    = "${data.pagerduty_vendor.datadog.name}"
-  type    = "generic_events_api_inbound_integration"
+resource "pagerduty_service_integration" "cloudwatch" {
+  name    = "${data.pagerduty_vendor.cloudwatch.name}"
   service = "${pagerduty_service.example.id}"
-  vendor  = "${data.pagerduty_vendor.datadog.id}"
-}
-
-resource "pagerduty_service_integration" "datadog" {
-  name    = "${data.pagerduty_vendor.datadog.name}"
-  type    = "generic_events_api_inbound_integration"
-  service = "${pagerduty_service.example.id}"
-  vendor  = "${data.pagerduty_vendor.datadog.id}"
+  vendor  = "${data.pagerduty_vendor.cloudwatch.id}"
 }
 ```
 
@@ -74,20 +72,23 @@ resource "pagerduty_service_integration" "datadog" {
 The following arguments are supported:
 
   * `name` - (Optional) The name of the service integration.
-  * `type` - (Optional) The service type. Can be `aws_cloudwatch_inbound_integration`, `cloudkick_inbound_integration`,
+  * `type` - (Optional) The service type. Can be:
+  `aws_cloudwatch_inbound_integration`,
+  `cloudkick_inbound_integration`,
   `event_transformer_api_inbound_integration`,
   `generic_email_inbound_integration`,
   `generic_events_api_inbound_integration`,
   `keynote_inbound_integration`,
   `nagios_inbound_integration`,
-  `pingdom_inbound_integration`,
-  `sql_monitor_inbound_integration`.
+  `pingdom_inbound_integration`or `sql_monitor_inbound_integration`.
 
-    When integrating with a `vendor` this can usually be set to: `${data.pagerduty_vendor.datadog.type}`
+    **Note:** This is meant for **generic** service integrations.
+    To integrate with a **vendor** (e.g Datadog or Amazon Cloudwatch) use the `vendor` field instead.
 
-  * `service` - (Optional) The PagerDuty service that the integration belongs to.
-  * `vendor` - (Optional) The vendor that this integration integrates with, if applicable. (e.g Datadog)
+  * `service` - (Optional) The ID of the service the integration should belong to.
+  * `vendor` - (Optional) The ID of the vendor the integration should integrate with (e.g Datadog or Amazon Cloudwatch).
 
+    **Note:** You can use the `pagerduty_vendor` data source to locate the appropriate vendor ID.
 ## Attributes Reference
 
 The following attributes are exported:

@@ -22,7 +22,7 @@ resource "google_storage_bucket" "image-store" {
 
   website {
     main_page_suffix = "index.html"
-    not_found_page = "404.html"
+    not_found_page   = "404.html"
   }
 }
 ```
@@ -48,7 +48,7 @@ to `google_storage_bucket_acl.predefined_acl`.
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.
 
-* `storage_class` - (Optional) The [Storage Class](https://cloud.google.com/storage/docs/storage-classes) of the new bucket. Supported values include: `STANDARD`, `NEARLINE`, `DURABLE_REDUCED_AVAILABILITY`
+* `storage_class` - (Optional) The [Storage Class](https://cloud.google.com/storage/docs/storage-classes) of the new bucket. Supported values include: `MULTI_REGIONAL`, `REGIONAL`, `NEARLINE`, `COLDLINE`.
 
 * `website` - (Optional) Configuration if the bucket acts as a website.
 

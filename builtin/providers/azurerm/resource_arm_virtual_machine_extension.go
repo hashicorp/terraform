@@ -153,12 +153,13 @@ func resourceArmVirtualMachineExtensionsRead(d *schema.ResourceData, meta interf
 	name := id.Path["extensions"]
 
 	resp, err := client.Get(resGroup, vmName, name, "")
+
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Virtual Machine Extension %s: %s", name, err)
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
 	}
 
 	d.Set("name", resp.Name)

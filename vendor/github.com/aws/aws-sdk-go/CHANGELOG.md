@@ -1,3 +1,228 @@
+Release v1.7.9 (2017-03-13)
+===
+
+Service Client Updates
+---
+* `service/devicefarm`: Updates service API, documentation, paginators, and examples
+  * Network shaping allows users to simulate network connections and conditions while testing their Android, iOS, and web apps with AWS Device Farm.
+* `service/cloudwatchevents`: Updates service API, documentation, and examples
+
+SDK Enhancement
+===
+* `aws/session`: Add support for side loaded CA bundles (#1117)
+  * Adds supports for side loading Certificate Authority bundle files to the SDK using AWS_CA_BUNDLE environment variable or CustomCABundle session option.
+* `service/s3/s3crypto`: Add support for AES/CBC/PKCS5Padding (#1124)
+
+SDK Bug
+===
+* `service/rds`: Fixing issue when not providing `SourceRegion` on cross
+region operations (#1127)
+* `service/rds`: Enables cross region for `CopyDBClusterSnapshot` and
+`CreateDBCluster` (#1128)
+
+Release v1.7.8 (2017-03-10)
+===
+
+Service Client Updates
+---
+* `service/codedeploy`: Updates service paginators
+  * Add paginators for Codedeploy
+* `service/emr`: Updates service API, documentation, and paginators
+  * This release includes support for instance fleets in Amazon EMR.
+
+Release v1.7.7 (2017-03-09)
+===
+
+Service Client Updates
+---
+* `service/apigateway`: Updates service API, documentation, and paginators
+  * API Gateway has added support for ACM certificates on custom domain names. Both Amazon-issued certificates and uploaded third-part certificates are supported.
+* `service/clouddirectory`: Updates service API, documentation, and paginators
+  * Introduces a new Cloud Directory API that enables you to retrieve all available parent paths for any type of object (a node, leaf node, policy node, and index node) in a hierarchy.
+
+Release v1.7.6 (2017-03-09)
+===
+
+Service Client Updates
+---
+* `service/organizations`: Updates service documentation and examples
+  * Doc-only Update for Organizations: Add SDK Code Snippets
+* `service/workdocs`: Adds new service
+  * The Administrative SDKs for Amazon WorkDocs provides full administrator level access to WorkDocs site resources, allowing developers to integrate their applications to manage WorkDocs users, content and permissions programmatically
+
+Release v1.7.5 (2017-03-08)
+===
+
+Service Client Updates
+---
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/rds`: Updates service API and documentation
+  * Add support to using encrypted clusters as cross-region replication masters. Update CopyDBClusterSnapshot API to support encrypted cross region copy of Aurora cluster snapshots.
+
+Release v1.7.4 (2017-03-06)
+===
+
+Service Client Updates
+---
+* `service/budgets`: Updates service API and paginators
+  * When creating or editing a budget via the AWS Budgets API you can define notifications that are sent to subscribers when the actual or forecasted value for cost or usage exceeds the notificationThreshold associated with the budget notification object. Starting today, the maximum allowed value for the notificationThreshold was raised from 100 to 300. This change was made to give you more flexibility when setting budget notifications.
+* `service/cloudtrail`: Updates service documentation and paginators
+  * Doc-only update for AWSCloudTrail: Updated links/descriptions
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/opsworkscm`: Updates service API, documentation, and paginators
+  * OpsWorks for Chef Automate has added a new field "AssociatePublicIpAddress" to the CreateServer request, "CloudFormationStackArn" to the Server model and "TERMINATED" server state.
+
+
+Release v1.7.3 (2017-02-28)
+===
+
+Service Client Updates
+---
+* `service/mturk`: Renaming service
+  * service/mechanicalturkrequesterservice was renamed to service/mturk. Be sure to change any references of the old client to the new.
+
+Release v1.7.2 (2017-02-28)
+===
+
+Service Client Updates
+---
+* `service/dynamodb`: Updates service API and documentation
+  * Release notes: Time to Live (TTL) is a feature that allows you to define when items in a table expire and can be purged from the database, so that you don't have to track expired data and delete it manually. With TTL enabled on a DynamoDB table, you can set a timestamp for deletion on a per-item basis, allowing you to limit storage usage to only those records that are relevant.
+* `service/iam`: Updates service API, documentation, and paginators
+  * This release adds support for AWS Organizations service control policies (SCPs) to SimulatePrincipalPolicy operation. If there are SCPs associated with the simulated user's account, their effect on the result is captured in the OrganizationDecisionDetail element in the EvaluationResult.
+* `service/mechanicalturkrequesterservice`: Adds new service
+  * Amazon Mechanical Turk is a web service that provides an on-demand, scalable, human workforce to complete jobs that humans can do better than computers, for example, recognizing objects in photos.
+* `service/organizations`: Adds new service
+  * AWS Organizations is a web service that enables you to consolidate your multiple AWS accounts into an organization and centrally manage your accounts and their resources.
+* `service/dynamodbstreams`: Updates service API, documentation, and paginators
+* `service/waf`: Updates service API, documentation, and paginators
+  * Aws WAF - For GetSampledRequests action, changed max number of samples from 100 to 500.
+* `service/wafregional`: Updates service API, documentation, and paginators
+
+Release v1.7.1 (2017-02-24)
+===
+
+Service Client Updates
+---
+* `service/elasticsearchservice`: Updates service API, documentation, paginators, and examples
+  * Added three new API calls to existing Amazon Elasticsearch service to expose Amazon Elasticsearch imposed limits to customers.
+
+Release v1.7.0 (2017-02-23)
+===
+
+Service Client Updates
+---
+* `service/ec2`: Updates service API
+  * New EC2 I3 instance type
+
+SDK Bug
+---
+* `service/s3/s3manager`: Adding support for SSE (#1097)
+  * Fixes SSE fields not being applied to a part during multi part upload.
+
+SDK Feature
+---
+* `aws/session`: Add support for AssumeRoles with MFA (#1088)
+  * Adds support for assuming IAM roles with MFA enabled. A TokenProvider func was added to stscreds.AssumeRoleProvider that will be called each time the role's credentials need to be refreshed. A basic token provider that sources the MFA token from stdin as stscreds.StdinTokenProvider.
+* `aws/session`: Update SDK examples and docs to use session.Must (#1099)
+  * Updates the SDK's example and docs to use session.Must where possible to highlight its usage as apposed to session error checking that is most cases errors will be terminal to the application anyways.
+Release v1.6.27 (2017-02-22)
+===
+
+Service Client Updates
+---
+* `service/clouddirectory`: Updates service documentation
+  * ListObjectAttributes documentation updated based on forum feedback
+* `service/elasticbeanstalk`: Updates service API, documentation, and paginators
+  * Elastic Beanstalk adds support for creating and managing custom platform.
+* `service/gamelift`: Updates service API, documentation, and paginators
+  * Allow developers to configure global queues for creating GameSessions. Allow PlayerData on PlayerSessions to store player-specific data.
+* `service/route53`: Updates service API, documentation, and examples
+  * Added support for operations CreateVPCAssociationAuthorization and DeleteVPCAssociationAuthorization to throw a ConcurrentModification error when a conflicting modification occurs in parallel to the authorizations in place for a given hosted zone.
+
+Release v1.6.26 (2017-02-21)
+===
+
+Service Client Updates
+---
+* `service/ec2`: Updates service API and documentation
+  * Added the billingProduct parameter to the RegisterImage API.
+
+Release v1.6.25 (2017-02-17)
+===
+
+Service Client Updates
+---
+* `service/directconnect`: Updates service API, documentation, and paginators
+  * This update will introduce the ability for Direct Connect customers to take advantage of Link Aggregation (LAG).     This allows you to bundle many individual physical interfaces into a single logical interface, referred to as a LAG.     This makes administration much simpler as the majority of configuration is done on the LAG while you are free     to add or remove physical interfaces from the bundle as bandwidth demand increases or decreases. A concrete example     of the simplification added by LAG is that customers need only a single BGP session as opposed to one session per     physical connection.
+
+Release v1.6.24 (2017-02-16)
+===
+
+Service Client Updates
+---
+* `service/cognitoidentity`: Updates service API, documentation, and paginators
+  * Allow createIdentityPool and updateIdentityPool API to set server side token check value on identity pool
+* `service/configservice`: Updates service API and documentation
+  * AWS Config now supports a new test mode for the PutEvaluations API. Set the TestMode parameter to true in your custom rule to verify whether your AWS Lambda function will deliver evaluation results to AWS Config. No updates occur to your existing evaluations, and evaluation results are not sent to AWS Config.
+
+Release v1.6.23 (2017-02-15)
+===
+
+Service Client Updates
+---
+* `service/kms`: Updates service API, documentation, paginators, and examples
+  * his release of AWS Key Management Service introduces the ability to tag keys. Tagging keys can help you organize your keys and track your KMS costs in the cost allocation report. This release also increases the maximum length of a key ID to accommodate ARNs that include a long key alias.
+
+Release v1.6.22 (2017-02-14)
+===
+
+Service Client Updates
+---
+* `service/ec2`: Updates service API, documentation, and paginators
+  * Adds support for the new Modify Volumes apis.
+
+Release v1.6.21 (2017-02-11)
+===
+
+Service Client Updates
+---
+* `service/storagegateway`: Updates service API, documentation, and paginators
+  * File gateway mode in AWS Storage gateway provides access to objects in S3 as files on a Network File System (NFS) mount point. This is done by creating Nfs file shares using existing APIs CreateNfsFileShare. Using the feature in this update, the customer can restrict the clients that have read/write access to the gateway by specifying the list of clients as a list of IP addresses or CIDR blocks. This list can be specified using the API CreateNfsFileShare while creating new file shares, or UpdateNfsFileShare while update existing file shares. To find out the list of clients that have access, the existing API DescribeNfsFileShare will now output the list of clients that have access.
+
+Release v1.6.20 (2017-02-09)
+===
+
+Service Client Updates
+---
+* `service/ec2`: Updates service API and documentation
+  * This feature allows customers to associate an IAM profile to running instances that do not have any.
+* `service/rekognition`: Updates service API and documentation
+  * DetectFaces and IndexFaces operations now return an estimate of the age of the face as an age range.
+
+SDK Features
+---
+* `aws/endpoints`: Add option to resolve unknown endpoints (#1074)
+Release v1.6.19 (2017-02-08)
+===
+
+Service Client Updates
+---
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/glacier`: Updates service examples
+	* Doc Update
+* `service/lexruntimeservice`: Adds new service
+	* Preview release
+
+SDK Bug Fixes
+---
+* `private/protocol/json`: Fixes json to throw an error if a float number is (+/-)Inf and NaN (#1068)
+* `private/model/api`: Fix documentation error listing (#1067)
+
+SDK Features
+---
+* `private/model`: Add service response error code generation (#1061)
+
 Release v1.6.18 (2017-01-27)
 ===
 

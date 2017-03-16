@@ -13,13 +13,14 @@ description: |-
 
 ```
 resource "aws_elasticsearch_domain" "es" {
-	domain_name = "tf-test"
-	elasticsearch_version = "1.5"
-	advanced_options {
-		"rest.action.multi.allow_explicit_index" = true
-	}
+  domain_name           = "tf-test"
+  elasticsearch_version = "1.5"
 
-	access_policies = <<CONFIG
+  advanced_options {
+    "rest.action.multi.allow_explicit_index" = true
+  }
+
+  access_policies = <<CONFIG
 {
 	"Version": "2012-10-17",
 	"Statement": [
@@ -35,13 +36,13 @@ resource "aws_elasticsearch_domain" "es" {
 }
 CONFIG
 
-	snapshot_options {
-		automated_snapshot_start_hour = 23
-	}
-	
-	tags {
-      Domain = "TestDomain"
-    }
+  snapshot_options {
+    automated_snapshot_start_hour = 23
+  }
+
+  tags {
+    Domain = "TestDomain"
+  }
 }
 ```
 
@@ -89,3 +90,11 @@ The following attributes are exported:
 * `arn` - Amazon Resource Name (ARN) of the domain.
 * `domain_id` - Unique identifier for the domain.
 * `endpoint` - Domain-specific endpoint used to submit index, search, and data upload requests.
+
+## Import
+
+ElasticSearch domains can be imported using the `domain_name`, e.g.
+
+```
+$ terraform import aws_elasticsearch_domain.example domain_name
+```

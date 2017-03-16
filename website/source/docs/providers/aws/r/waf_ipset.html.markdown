@@ -15,8 +15,9 @@ Provides a WAF IPSet Resource
 ```
 resource "aws_waf_ipset" "ipset" {
   name = "tfIPSet"
+
   ip_set_descriptors {
-    type = "IPV4"
+    type  = "IPV4"
     value = "192.0.7.0/24"
   }
 }
@@ -27,7 +28,7 @@ resource "aws_waf_ipset" "ipset" {
 The following arguments are supported:
 
 * `name` - (Required) The name or description of the IPSet.
-* `ip_set_descriptors` - (Required) The IP address type and IP address range (in CIDR notation) from which web requests originate. 
+* `ip_set_descriptors` - (Required) The IP address type and IP address range (in CIDR notation) from which web requests originate.
 
 ## Remarks
 

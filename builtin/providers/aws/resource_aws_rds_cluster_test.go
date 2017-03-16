@@ -2,7 +2,9 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -32,6 +34,25 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 						"aws_rds_cluster.default", "db_cluster_parameter_group_name", "default.aurora5.6"),
 					resource.TestCheckResourceAttrSet(
 						"aws_rds_cluster.default", "reader_endpoint"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRDSCluster_takeFinalSnapshot(t *testing.T) {
+	var v rds.DBCluster
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSClusterSnapshot(rInt),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSClusterConfigWithFinalSnapshot(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
 				),
 			},
 		},
@@ -198,6 +219,62 @@ func testAccCheckAWSClusterDestroy(s *terraform.State) error {
 	return nil
 }
 
+func testAccCheckAWSClusterSnapshot(rInt int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "aws_rds_cluster" {
+				continue
+			}
+
+			// Try and delete the snapshot before we check for the cluster not found
+			snapshot_identifier := fmt.Sprintf("foobarbaz-test-terraform-final-snapshot-%d", rInt)
+
+			awsClient := testAccProvider.Meta().(*AWSClient)
+			conn := awsClient.rdsconn
+
+			arn, arnErr := buildRDSClusterARN(snapshot_identifier, awsClient.partition, awsClient.accountid, awsClient.region)
+			tagsARN := strings.Replace(arn, ":cluster:", ":snapshot:", 1)
+			if arnErr != nil {
+				return fmt.Errorf("Error building ARN for tags check with ARN (%s): %s", tagsARN, arnErr)
+			}
+
+			log.Printf("[INFO] Deleting the Snapshot %s", snapshot_identifier)
+			_, snapDeleteErr := conn.DeleteDBClusterSnapshot(
+				&rds.DeleteDBClusterSnapshotInput{
+					DBClusterSnapshotIdentifier: aws.String(snapshot_identifier),
+				})
+			if snapDeleteErr != nil {
+				return snapDeleteErr
+			}
+
+			// Try to find the Group
+			var err error
+			resp, err := conn.DescribeDBClusters(
+				&rds.DescribeDBClustersInput{
+					DBClusterIdentifier: aws.String(rs.Primary.ID),
+				})
+
+			if err == nil {
+				if len(resp.DBClusters) != 0 &&
+					*resp.DBClusters[0].DBClusterIdentifier == rs.Primary.ID {
+					return fmt.Errorf("DB Cluster %s still exists", rs.Primary.ID)
+				}
+			}
+
+			// Return nil if the cluster is already destroyed
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "DBClusterNotFoundFault" {
+					return nil
+				}
+			}
+
+			return err
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckAWSClusterExists(n string, v *rds.DBCluster) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -238,10 +315,28 @@ resource "aws_rds_cluster" "default" {
   master_username = "foo"
   master_password = "mustbeeightcharaters"
   db_cluster_parameter_group_name = "default.aurora5.6"
+  skip_final_snapshot = true
   tags {
     Environment = "production"
   }
 }`, n)
+}
+
+func testAccAWSClusterConfigWithFinalSnapshot(n int) string {
+	return fmt.Sprintf(`
+resource "aws_rds_cluster" "default" {
+  cluster_identifier = "tf-aurora-cluster-%d"
+  availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
+  database_name = "mydb"
+  master_username = "foo"
+  master_password = "mustbeeightcharaters"
+  db_cluster_parameter_group_name = "default.aurora5.6"
+  skip_final_snapshot = true
+  final_snapshot_identifier = "tf-acctest-rdscluster-snapshot-%d"
+  tags {
+    Environment = "production"
+  }
+}`, n, n)
 }
 
 func testAccAWSClusterConfigWithoutUserNameAndPassword(n int) string {
@@ -250,6 +345,7 @@ resource "aws_rds_cluster" "default" {
   cluster_identifier = "tf-aurora-cluster-%d"
   availability_zones = ["us-west-2a","us-west-2b","us-west-2c"]
   database_name = "mydb"
+  skip_final_snapshot = true
 }`, n)
 }
 
@@ -262,6 +358,7 @@ resource "aws_rds_cluster" "default" {
   master_username = "foo"
   master_password = "mustbeeightcharaters"
   db_cluster_parameter_group_name = "default.aurora5.6"
+  skip_final_snapshot = true
   tags {
     Environment = "production"
     AnotherTag = "test"
@@ -302,6 +399,7 @@ func testAccAWSClusterConfig_kmsKey(n int) string {
    db_cluster_parameter_group_name = "default.aurora5.6"
    storage_encrypted = true
    kms_key_id = "${aws_kms_key.foo.arn}"
+   skip_final_snapshot = true
  }`, n, n)
 }
 
@@ -314,6 +412,7 @@ resource "aws_rds_cluster" "default" {
   master_username = "foo"
   master_password = "mustbeeightcharaters"
   storage_encrypted = true
+  skip_final_snapshot = true
 }`, n)
 }
 
@@ -328,6 +427,7 @@ resource "aws_rds_cluster" "default" {
   backup_retention_period = 5
   preferred_backup_window = "07:00-09:00"
   preferred_maintenance_window = "tue:04:00-tue:04:30"
+  skip_final_snapshot = true
 }`, n)
 }
 
@@ -343,5 +443,6 @@ resource "aws_rds_cluster" "default" {
   preferred_backup_window = "03:00-09:00"
   preferred_maintenance_window = "wed:01:00-wed:01:30"
   apply_immediately = true
+  skip_final_snapshot = true
 }`, n)
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -117,6 +118,8 @@ func resourceAwsS3BucketObject() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -188,6 +191,15 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		putInput.ServerSideEncryption = aws.String(s3.ServerSideEncryptionAwsKms)
 	}
 
+	if v, ok := d.GetOk("tags"); ok {
+		// The tag-set must be encoded as URL Query parameters.
+		values := url.Values{}
+		for k, v := range v.(map[string]interface{}) {
+			values.Add(k, v.(string))
+		}
+		putInput.Tagging = aws.String(values.Encode())
+	}
+
 	resp, err := s3conn.PutObject(putInput)
 	if err != nil {
 		return fmt.Errorf("Error putting object in S3 bucket (%s): %s", bucket, err)
@@ -257,6 +269,16 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 		d.Set("storage_class", resp.StorageClass)
 	}
 
+	tagResp, err := s3conn.GetObjectTagging(
+		&s3.GetObjectTaggingInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		})
+	if err != nil {
+		return fmt.Errorf("Failed to get object tags (bucket: %s, key: %s): %s", bucket, key, err)
+	}
+	d.Set("tags", tagsToMapS3(tagResp.TagSet))
+
 	return nil
 }
 
@@ -297,7 +319,7 @@ func resourceAwsS3BucketObjectDelete(d *schema.ResourceData, meta interface{}) e
 		}
 		_, err := s3conn.DeleteObject(&input)
 		if err != nil {
-			return fmt.Errorf("Error deleting S3 bucket object: %s", err)
+			return fmt.Errorf("Error deleting S3 bucket object: %s  Bucket: %q Object: %q", err, bucket, key)
 		}
 	}
 

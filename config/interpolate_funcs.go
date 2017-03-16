@@ -85,6 +85,7 @@ func Funcs() map[string]ast.Function {
 		"sha1":         interpolationFuncSha1(),
 		"sha256":       interpolationFuncSha256(),
 		"signum":       interpolationFuncSignum(),
+		"slice":        interpolationFuncSlice(),
 		"sort":         interpolationFuncSort(),
 		"split":        interpolationFuncSplit(),
 		"timestamp":    interpolationFuncTimestamp(),
@@ -789,6 +790,42 @@ func interpolationFuncSignum() ast.Function {
 			default:
 				return 0, nil
 			}
+		},
+	}
+}
+
+// interpolationFuncSlice returns a portion of the input list between from, inclusive and to, exclusive.
+func interpolationFuncSlice() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeList, // inputList
+			ast.TypeInt,  // from
+			ast.TypeInt,  // to
+		},
+		ReturnType: ast.TypeList,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			inputList := args[0].([]ast.Variable)
+			from := args[1].(int)
+			to := args[2].(int)
+
+			if from < 0 {
+				return nil, fmt.Errorf("from index must be >= 0")
+			}
+			if to > len(inputList) {
+				return nil, fmt.Errorf("to index must be <= length of the input list")
+			}
+			if from > to {
+				return nil, fmt.Errorf("from index must be <= to index")
+			}
+
+			var outputList []ast.Variable
+			for i, val := range inputList {
+				if i >= from && i < to {
+					outputList = append(outputList, val)
+				}
+			}
+			return outputList, nil
 		},
 	}
 }

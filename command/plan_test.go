@@ -46,7 +46,7 @@ func TestPlan_lockedState(t *testing.T) {
 	}
 
 	testPath := testFixturePath("plan")
-	unlock, err := testLockState(filepath.Join(testPath, DefaultStateFilename))
+	unlock, err := testLockState("./testdata", filepath.Join(testPath, DefaultStateFilename))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestPlan_lockedState(t *testing.T) {
 	}
 
 	output := ui.ErrorWriter.String()
-	if !strings.Contains(output, "locked") {
+	if !strings.Contains(output, "lock") {
 		t.Fatal("command output does not look like a lock error:", output)
 	}
 }
@@ -191,6 +191,9 @@ func TestPlan_noState(t *testing.T) {
 }
 
 func TestPlan_outPath(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
 	tf, err := ioutil.TempFile("", "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -402,6 +405,9 @@ func TestPlan_outBackendLegacy(t *testing.T) {
 }
 
 func TestPlan_refresh(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
@@ -619,6 +625,9 @@ func TestPlan_validate(t *testing.T) {
 }
 
 func TestPlan_vars(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
@@ -654,6 +663,9 @@ func TestPlan_vars(t *testing.T) {
 }
 
 func TestPlan_varsUnset(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
 	// Disable test mode so input would be asked
 	test = false
 	defer func() { test = true }()
@@ -678,6 +690,9 @@ func TestPlan_varsUnset(t *testing.T) {
 }
 
 func TestPlan_varFile(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
 	varFilePath := testTempFile(t)
 	if err := ioutil.WriteFile(varFilePath, []byte(planVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)

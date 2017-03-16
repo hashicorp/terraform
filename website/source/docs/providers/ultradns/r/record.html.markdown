@@ -15,11 +15,11 @@ Provides an UltraDNS record resource.
 ```
 # Add a record to the domain
 resource "ultradns_record" "foobar" {
-	zone = "${var.ultradns_domain}"
-	name = "terraform"
-	rdata = [ "192.168.0.11" ]
-	type = "A"
-	ttl = 3600
+  zone  = "${var.ultradns_domain}"
+  name  = "terraform"
+  rdata = ["192.168.0.11"]
+  type  = "A"
+  ttl   = 3600
 }
 ```
 

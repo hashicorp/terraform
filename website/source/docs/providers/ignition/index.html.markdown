@@ -3,7 +3,7 @@ layout: "ignition"
 page_title: "Provider: Ignition"
 sidebar_current: "docs-ignition-index"
 description: |-
-  The Ignition provider is used to generate Ignition configuration files used by CoreOS Linux. 
+  The Ignition provider is used to generate Ignition configuration files used by CoreOS Linux.
 ---
 
 # Ignition Provider
@@ -19,23 +19,23 @@ Use the navigation to the left to read about the available resources.
 This config will write a single service unit (shown below) with the contents of an example service. This unit will be enabled as a dependency of multi-user.target and therefore start on boot
 
 ```
-# Systemd unit resource containing the unit definition
-resource "ignition_systemd_unit" "example" {
-	name = "example.service"
-	content = "[Service]\nType=oneshot\nExecStart=/usr/bin/echo Hello World\n\n[Install]\nWantedBy=multi-user.target"
+# Systemd unit data resource containing the unit definition
+data "ignition_systemd_unit" "example" {
+  name = "example.service"
+  content = "[Service]\nType=oneshot\nExecStart=/usr/bin/echo Hello World\n\n[Install]\nWantedBy=multi-user.target"
 }
 
-# Ingnition config include the previous defined systemd unit resource
-resource "ignition_config" "example" {
-	systemd = [
-		"${ignition_systemd_unit.example.id}",
-	]
+# Ingnition config include the previous defined systemd unit data resource
+data "ignition_config" "example" {
+  systemd = [
+    "${data.ignition_systemd_unit.example.id}",
+  ]
 }
 
 # Create a CoreOS server using the Igntion config.
 resource "aws_instance" "web" {
-    # ...
+  # ...
 
-	user_data = "${ignition_config.example.rendered}"
+  user_data = "${data.ignition_config.example.rendered}"
 }
 ```

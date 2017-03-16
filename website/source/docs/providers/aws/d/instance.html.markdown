@@ -16,12 +16,14 @@ resources.
 ```
 data "aws_instance" "foo" {
   instance_id = "i-instanceid"
+
   filter {
-    name = "image-id"
+    name   = "image-id"
     values = ["ami-xxxxxxxx"]
   }
+
   filter {
-    name = "tag:Name"
+    name   = "tag:Name"
     values = ["instance-name-tag"]
   }
 }
@@ -31,7 +33,7 @@ data "aws_instance" "foo" {
 
 * `instance_id` - (Optional) Specify the exact Instance ID with which to populate the data source.
 
-* `instance_tags` - (Optional) A mapping of tags, each pair of which must 
+* `instance_tags` - (Optional) A mapping of tags, each pair of which must
 exactly match a pair on the desired Instance.
 
 * `filter` - (Optional) One or more name/value pairs to use as filters. There are
@@ -74,10 +76,10 @@ interpolation.
 * `network_interface_id` - The ID of the network interface that was created with the Instance.
 * `placement_group` - The placement group of the Instance.
 * `private_dns` - The private DNS name assigned to the Instance. Can only be
-  used inside the Amazon EC2, and only available if you've enabled DNS hostnames 
+  used inside the Amazon EC2, and only available if you've enabled DNS hostnames
   for your VPC.
 * `private_ip` - The private IP address assigned to the Instance.
-* `public_dns` - The public DNS name assigned to the Instance. For EC2-VPC, this 
+* `public_dns` - The public DNS name assigned to the Instance. For EC2-VPC, this
   is only available if you've enabled DNS hostnames for your VPC.
 * `public_ip` - The public IP address assigned to the Instance, if applicable. **NOTE**: If you are using an [`aws_eip`](/docs/providers/aws/r/eip.html) with your instance, you should refer to the EIP's address directly and not use `public_ip`, as this field will change after the EIP is attached.
 * `root_block_device` - The root block device mappings of the Instance
@@ -88,7 +90,7 @@ interpolation.
 * `security_groups` - The associated security groups.
 * `source_dest_check` - Whether the network interface performs source/destination checking (Boolean).
 * `subnet_id` - The VPC subnet ID.
-* `user_data` - The User Data supplied to the Instance. 
+* `user_data` - The User Data supplied to the Instance.
 * `tags` - A mapping of tags assigned to the Instance.
 * `tenancy` - The tenancy of the instance: `dedicated`, `default`, `host`.
 * `vpc_security_group_ids` - The associated security groups in a non-default VPC.

@@ -147,6 +147,9 @@ func resourceConsulCatalogEntryCreate(d *schema.ResourceData, meta interface{}) 
 		for i, rawService := range serviceList {
 			serviceData := rawService.(map[string]interface{})
 
+			if len(serviceData["id"].(string)) == 0 {
+				serviceData["id"] = serviceData["name"].(string)
+			}
 			serviceID := serviceData["id"].(string)
 			serviceIDs[i] = serviceID
 

@@ -19,14 +19,14 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the Dyn provider
 provider "dyn" {
-    customer_name = "${var.dyn_customer_name}"
-    username = "${var.dyn_username}"
-    password = "${var.dyn_password}"
+  customer_name = "${var.dyn_customer_name}"
+  username      = "${var.dyn_username}"
+  password      = "${var.dyn_password}"
 }
 
 # Create a record
 resource "dyn_record" "www" {
-    ...
+  # ...
 }
 ```
 

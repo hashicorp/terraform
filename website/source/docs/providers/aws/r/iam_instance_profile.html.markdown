@@ -14,14 +14,15 @@ Provides an IAM instance profile.
 
 ```
 resource "aws_iam_instance_profile" "test_profile" {
-    name = "test_profile"
-    roles = ["${aws_iam_role.role.name}"]
+  name  = "test_profile"
+  roles = ["${aws_iam_role.role.name}"]
 }
 
 resource "aws_iam_role" "role" {
-    name = "test_role"
-    path = "/"
-    assume_role_policy = <<EOF
+  name = "test_role"
+  path = "/"
+
+  assume_role_policy = <<EOF
 {
     "Version": "2012-10-17",
     "Statement": [

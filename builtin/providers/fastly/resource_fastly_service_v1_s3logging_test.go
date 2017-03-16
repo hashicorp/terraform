@@ -18,16 +18,18 @@ func TestAccFastlyServiceV1_s3logging_basic(t *testing.T) {
 	domainName1 := fmt.Sprintf("%s.notadomain.com", acctest.RandString(10))
 
 	log1 := gofastly.S3{
-		Version:         "1",
-		Name:            "somebucketlog",
-		BucketName:      "fastlytestlogging",
-		Domain:          "s3-us-west-2.amazonaws.com",
-		AccessKey:       "somekey",
-		SecretKey:       "somesecret",
-		Period:          uint(3600),
-		GzipLevel:       uint(0),
-		Format:          "%h %l %u %t %r %>s",
-		TimestampFormat: "%Y-%m-%dT%H:%M:%S.000",
+		Version:           "1",
+		Name:              "somebucketlog",
+		BucketName:        "fastlytestlogging",
+		Domain:            "s3-us-west-2.amazonaws.com",
+		AccessKey:         "somekey",
+		SecretKey:         "somesecret",
+		Period:            uint(3600),
+		GzipLevel:         uint(0),
+		Format:            "%h %l %u %t %r %>s",
+		FormatVersion:     1,
+		TimestampFormat:   "%Y-%m-%dT%H:%M:%S.000",
+		ResponseCondition: "response_condition_test",
 	}
 
 	log2 := gofastly.S3{
@@ -40,6 +42,7 @@ func TestAccFastlyServiceV1_s3logging_basic(t *testing.T) {
 		GzipLevel:       uint(3),
 		Period:          uint(60),
 		Format:          "%h %l %u %t %r %>s",
+		FormatVersion:   1,
 		TimestampFormat: "%Y-%m-%dT%H:%M:%S.000",
 	}
 
@@ -48,7 +51,7 @@ func TestAccFastlyServiceV1_s3logging_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckServiceV1Destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccServiceV1S3LoggingConfig(name, domainName1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
@@ -60,7 +63,7 @@ func TestAccFastlyServiceV1_s3logging_basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccServiceV1S3LoggingConfig_update(name, domainName1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
@@ -95,6 +98,7 @@ func TestAccFastlyServiceV1_s3logging_s3_env(t *testing.T) {
 		Period:          uint(3600),
 		GzipLevel:       uint(0),
 		Format:          "%h %l %u %t %r %>s",
+		FormatVersion:   1,
 		TimestampFormat: "%Y-%m-%dT%H:%M:%S.000",
 	}
 
@@ -103,11 +107,50 @@ func TestAccFastlyServiceV1_s3logging_s3_env(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckServiceV1Destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccServiceV1S3LoggingConfig_env(name, domainName1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
 					testAccCheckFastlyServiceV1S3LoggingAttributes(&service, []*gofastly.S3{&log3}),
+					resource.TestCheckResourceAttr(
+						"fastly_service_v1.foo", "name", name),
+					resource.TestCheckResourceAttr(
+						"fastly_service_v1.foo", "s3logging.#", "1"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccFastlyServiceV1_s3logging_formatVersion(t *testing.T) {
+	var service gofastly.ServiceDetail
+	name := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	domainName1 := fmt.Sprintf("%s.notadomain.com", acctest.RandString(10))
+
+	log1 := gofastly.S3{
+		Version:         "1",
+		Name:            "somebucketlog",
+		BucketName:      "fastlytestlogging",
+		Domain:          "s3-us-west-2.amazonaws.com",
+		AccessKey:       "somekey",
+		SecretKey:       "somesecret",
+		Period:          uint(3600),
+		GzipLevel:       uint(0),
+		Format:          "%a %l %u %t %m %U%q %H %>s %b %T",
+		FormatVersion:   2,
+		TimestampFormat: "%Y-%m-%dT%H:%M:%S.000",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckServiceV1Destroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccServiceV1S3LoggingConfig_formatVersion(name, domainName1),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
+					testAccCheckFastlyServiceV1S3LoggingAttributes(&service, []*gofastly.S3{&log1}),
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "name", name),
 					resource.TestCheckResourceAttr(
@@ -177,12 +220,20 @@ resource "fastly_service_v1" "foo" {
     name    = "amazon docs"
   }
 
+	condition {
+    name      = "response_condition_test"
+    type      = "RESPONSE"
+    priority  = 8
+    statement = "resp.status == 418"
+  }
+
   s3logging {
-    name       = "somebucketlog"
-                bucket_name = "fastlytestlogging"
-    domain     = "s3-us-west-2.amazonaws.com"
-                s3_access_key = "somekey"
-    s3_secret_key = "somesecret"
+    name               = "somebucketlog"
+    bucket_name        = "fastlytestlogging"
+    domain             = "s3-us-west-2.amazonaws.com"
+    s3_access_key      = "somekey"
+    s3_secret_key      = "somesecret"
+		response_condition = "response_condition_test"
   }
 
   force_destroy = true
@@ -204,12 +255,20 @@ resource "fastly_service_v1" "foo" {
     name    = "amazon docs"
   }
 
+	condition {
+    name      = "response_condition_test"
+    type      = "RESPONSE"
+    priority  = 8
+    statement = "resp.status == 418"
+  }
+
   s3logging {
-    name          = "somebucketlog"
-    bucket_name   = "fastlytestlogging"
-    domain        = "s3-us-west-2.amazonaws.com"
-    s3_access_key = "somekey"
-    s3_secret_key = "somesecret"
+    name               = "somebucketlog"
+    bucket_name        = "fastlytestlogging"
+    domain             = "s3-us-west-2.amazonaws.com"
+    s3_access_key      = "somekey"
+    s3_secret_key      = "somesecret"
+		response_condition = "response_condition_test"
   }
 
   s3logging {
@@ -245,6 +304,35 @@ resource "fastly_service_v1" "foo" {
     name          = "somebucketlog"
     bucket_name   = "fastlytestlogging"
     domain        = "s3-us-west-2.amazonaws.com"
+  }
+
+  force_destroy = true
+}`, name, domain)
+}
+
+func testAccServiceV1S3LoggingConfig_formatVersion(name, domain string) string {
+	return fmt.Sprintf(`
+resource "fastly_service_v1" "foo" {
+  name = "%s"
+
+  domain {
+    name    = "%s"
+    comment = "tf-testing-domain"
+  }
+
+  backend {
+    address = "aws.amazon.com"
+    name    = "amazon docs"
+  }
+
+  s3logging {
+    name           = "somebucketlog"
+    bucket_name    = "fastlytestlogging"
+    domain         = "s3-us-west-2.amazonaws.com"
+    s3_access_key  = "somekey"
+    s3_secret_key  = "somesecret"
+    format         = "%%a %%l %%u %%t %%m %%U%%q %%H %%>s %%b %%T"
+    format_version = 2
   }
 
   force_destroy = true

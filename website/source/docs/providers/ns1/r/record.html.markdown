@@ -18,21 +18,25 @@ resource "ns1_zone" "tld" {
 }
 
 resource "ns1_record" "www" {
-  zone = "${ns1_zone.tld.id}"
+  zone   = "${ns1_zone.tld.id}"
   domain = "www.${ns1_zone.tld.zone}"
-  type = "CNAME"
-  ttl = 60
+  type   = "CNAME"
+  ttl    = 60
 
   answers = {
-    answer = ["sub1.${ns1_zone.tld.zone}"]
+    answer = "sub1.${ns1_zone.tld.zone}"
   }
-  answer = {
-    answer = ["sub2.${ns1_zone.tld.zone}"]
+
+  answers = {
+    answer = "sub2.${ns1_zone.tld.zone}"
   }
 
   filters = {
     filter = "select_first_n"
-    config = {N=1}
+
+    config = {
+      N = 1
+    }
   }
 }
 ```
@@ -47,7 +51,7 @@ The following arguments are supported:
 * `ttl` - (Optional) The records' time to live.
 * `link` - (Optional) The target record to link to. This means this record is a 'linked' record, and it inherits all properties from its target.
 * `use_client_subnet` - (Optional) Whether to use EDNS client subnet data when available(in filter chain).
-* `answers` - (Optional) The list of the RDATA fields for the records' specified type. Answers are documented below. 
+* `answers` - (Optional) The list of the RDATA fields for the records' specified type. Answers are documented below.
 * `filters` - (Optional) The list of NS1 filters for the record(order matters). Filters are documented below.
 
 Answers (`answers`) support the following:
