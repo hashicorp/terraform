@@ -23,6 +23,7 @@ BUG FIXES:
 
  * command/init: Changing only `-backend-config` detects changes and reconfigures [GH-12776]
  * command/push: Detect local state and error properly [GH-12773]
+ * command/refresh: Allow empty and non-existent state [GH-12777]
  * provider/aws: Get the aws_lambda_function attributes when there are great than 50 versions of a function [GH-11745]
  * provider/aws: Correctly check for nil cidr_block in aws_network_acl [GH-12735]
  * provider/aws: Stop setting weight property on route53_record read [GH-12756]
