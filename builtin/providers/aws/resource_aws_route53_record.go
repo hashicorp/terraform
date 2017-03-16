@@ -33,7 +33,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 		SchemaVersion: 2,
 		MigrateState:  resourceAwsRoute53RecordMigrateState,
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -43,18 +43,18 @@ func resourceAwsRoute53Record() *schema.Resource {
 				},
 			},
 
-			"fqdn": &schema.Schema{
+			"fqdn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateRoute53RecordType,
 			},
 
-			"zone_id": &schema.Schema{
+			"zone_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -67,41 +67,41 @@ func resourceAwsRoute53Record() *schema.Resource {
 				},
 			},
 
-			"ttl": &schema.Schema{
+			"ttl": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				ConflictsWith: []string{"alias"},
 			},
 
-			"weight": &schema.Schema{
+			"weight": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Removed:  "Now implemented as weighted_routing_policy; Please see https://www.terraform.io/docs/providers/aws/r/route53_record.html",
 			},
 
-			"set_identifier": &schema.Schema{
+			"set_identifier": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"alias": &schema.Schema{
+			"alias": {
 				Type:          schema.TypeSet,
 				Optional:      true,
 				ConflictsWith: []string{"records", "ttl"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"zone_id": &schema.Schema{
+						"zone_id": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"name": &schema.Schema{
+						"name": {
 							Type:      schema.TypeString,
 							Required:  true,
 							StateFunc: normalizeAwsAliasName,
 						},
 
-						"evaluate_target_health": &schema.Schema{
+						"evaluate_target_health": {
 							Type:     schema.TypeBool,
 							Required: true,
 						},
@@ -110,13 +110,13 @@ func resourceAwsRoute53Record() *schema.Resource {
 				Set: resourceAwsRoute53AliasRecordHash,
 			},
 
-			"failover": &schema.Schema{ // PRIMARY | SECONDARY
+			"failover": { // PRIMARY | SECONDARY
 				Type:     schema.TypeString,
 				Optional: true,
 				Removed:  "Now implemented as failover_routing_policy; see docs",
 			},
 
-			"failover_routing_policy": &schema.Schema{
+			"failover_routing_policy": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ConflictsWith: []string{
@@ -126,7 +126,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Required: true,
 							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
@@ -141,7 +141,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 				},
 			},
 
-			"latency_routing_policy": &schema.Schema{
+			"latency_routing_policy": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ConflictsWith: []string{
@@ -151,7 +151,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"region": &schema.Schema{
+						"region": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -159,7 +159,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 				},
 			},
 
-			"geolocation_routing_policy": &schema.Schema{ // AWS Geolocation
+			"geolocation_routing_policy": { // AWS Geolocation
 				Type:     schema.TypeList,
 				Optional: true,
 				ConflictsWith: []string{
@@ -169,15 +169,15 @@ func resourceAwsRoute53Record() *schema.Resource {
 				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"continent": &schema.Schema{
+						"continent": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"country": &schema.Schema{
+						"country": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"subdivision": &schema.Schema{
+						"subdivision": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -185,7 +185,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 				},
 			},
 
-			"weighted_routing_policy": &schema.Schema{
+			"weighted_routing_policy": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ConflictsWith: []string{
@@ -195,7 +195,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"weight": &schema.Schema{
+						"weight": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
@@ -203,12 +203,12 @@ func resourceAwsRoute53Record() *schema.Resource {
 				},
 			},
 
-			"health_check_id": &schema.Schema{ // ID of health check
+			"health_check_id": { // ID of health check
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"records": &schema.Schema{
+			"records": {
 				Type:          schema.TypeSet,
 				ConflictsWith: []string{"alias"},
 				Elem:          &schema.Schema{Type: schema.TypeString},
@@ -297,11 +297,11 @@ func resourceAwsRoute53RecordUpdate(d *schema.ResourceData, meta interface{}) er
 	changeBatch := &route53.ChangeBatch{
 		Comment: aws.String("Managed by Terraform"),
 		Changes: []*route53.Change{
-			&route53.Change{
+			{
 				Action:            aws.String("DELETE"),
 				ResourceRecordSet: oldRec,
 			},
-			&route53.Change{
+			{
 				Action:            aws.String("CREATE"),
 				ResourceRecordSet: rec,
 			},
@@ -368,7 +368,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	changeBatch := &route53.ChangeBatch{
 		Comment: aws.String("Managed by Terraform"),
 		Changes: []*route53.Change{
-			&route53.Change{
+			{
 				Action:            aws.String("UPSERT"),
 				ResourceRecordSet: rec,
 			},
@@ -470,8 +470,6 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		if len(parts) > 3 {
 			d.Set("set_identifier", parts[3])
 		}
-
-		d.Set("weight", -1)
 	}
 
 	record, err := findRecord(d, meta)
@@ -631,7 +629,7 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 	changeBatch := &route53.ChangeBatch{
 		Comment: aws.String("Deleted by Terraform"),
 		Changes: []*route53.Change{
-			&route53.Change{
+			{
 				Action:            aws.String("DELETE"),
 				ResourceRecordSet: rec,
 			},
