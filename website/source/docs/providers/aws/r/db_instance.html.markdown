@@ -31,6 +31,7 @@ for more information.
 ```
 resource "aws_db_instance" "default" {
   allocated_storage    = 10
+  storage_type         = "gp2"
   engine               = "mysql"
   engine_version       = "5.6.17"
   instance_class       = "db.t1.micro"
@@ -56,7 +57,7 @@ The following arguments are supported:
 * `instance_class` - (Required) The instance type of the RDS instance.
 * `storage_type` - (Optional) One of "standard" (magnetic), "gp2" (general
     purpose SSD), or "io1" (provisioned IOPS SSD). The default is "io1" if
-    `iops` is specified, "standard" if not.
+    `iops` is specified, "standard" if not. Note that this behaviour is different from the AWS web console, where the default is "gp2".
 * `final_snapshot_identifier` - (Optional) The name of your final DB snapshot
     when this DB instance is deleted. If omitted, no final snapshot will be
     made.
