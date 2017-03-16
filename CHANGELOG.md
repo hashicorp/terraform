@@ -19,6 +19,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * command/push: Detect local state and error properly [GH-12773]
  * provider/aws: Get the aws_lambda_function attributes when there are great than 50 versions of a function [GH-11745]
  * provider/aws: Correctly check for nil cidr_block in aws_network_acl [GH-12735]
  * provider/google: Fix the Google provider asking for account_file input on every run [GH-12729]
