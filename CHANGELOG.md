@@ -9,6 +9,10 @@ FEATURES:
  * **New Provider:** `kubernetes` [GH-12372]
  * **New Resource:** `kubernetes_namespace` [GH-12372]
 
+IMPROVEMENTS:
+
+ * provider/aws: Improved error when failing to get S3 tags [GH-12759]
+
 BUG FIXES:
 
  * provider/aws: Get the aws_lambda_function attributes when there are great than 50 versions of a function [GH-11745]
