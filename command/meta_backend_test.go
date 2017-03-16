@@ -2863,12 +2863,12 @@ func TestMetaBackend_planBackendEmptyDir(t *testing.T) {
 		testFixturePath("backend-plan-backend-empty-config"),
 		DefaultDataDir, DefaultStateFilename))
 	planState := original.DeepCopy()
-	planState.Backend = backendState.Backend
 
 	// Create the plan
 	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-backend-empty-config"),
-		State:  planState,
+		Module:  testModule(t, "backend-plan-backend-empty-config"),
+		State:   planState,
+		Backend: backendState.Backend,
 	}
 
 	// Setup the meta
@@ -2965,12 +2965,12 @@ func TestMetaBackend_planBackendMatch(t *testing.T) {
 		testFixturePath("backend-plan-backend-empty-config"),
 		DefaultDataDir, DefaultStateFilename))
 	planState := original.DeepCopy()
-	planState.Backend = backendState.Backend
 
 	// Create the plan
 	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-backend-empty-config"),
-		State:  planState,
+		Module:  testModule(t, "backend-plan-backend-empty-config"),
+		State:   planState,
+		Backend: backendState.Backend,
 	}
 
 	// Setup the meta
@@ -3067,15 +3067,15 @@ func TestMetaBackend_planBackendMismatchLineage(t *testing.T) {
 		testFixturePath("backend-plan-backend-empty-config"),
 		DefaultDataDir, DefaultStateFilename))
 	planState := original.DeepCopy()
-	planState.Backend = backendState.Backend
 
 	// Get the real original
 	original = testStateRead(t, "local-state.tfstate")
 
 	// Create the plan
 	plan := &terraform.Plan{
-		Module: testModule(t, "backend-plan-backend-empty-config"),
-		State:  planState,
+		Module:  testModule(t, "backend-plan-backend-empty-config"),
+		State:   planState,
+		Backend: backendState.Backend,
 	}
 
 	// Setup the meta
