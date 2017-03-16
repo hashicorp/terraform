@@ -26,6 +26,22 @@ func TestAccContainerNodePool_basic(t *testing.T) {
 	})
 }
 
+func TestAccContainerNodePool_autoscaling(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerNodePoolDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerNodePool_autoscaling,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerNodePoolMatches("google_container_node_pool.np"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckContainerNodePoolDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -77,6 +93,23 @@ func testAccCheckContainerNodePoolMatches(n string) resource.TestCheckFunc {
 			return fmt.Errorf("Mismatched initialNodeCount. TF State: %s. GCP State: %d",
 				attributes["initial_node_count"], found.InitialNodeCount)
 		}
+
+		tfAS := attributes["autoscaling.#"] != ""
+		if gcpAS := found.Autoscaling != nil && found.Autoscaling.Enabled == true; tfAS != gcpAS {
+			return fmt.Errorf("Mismatched autoscaling status. TF State: %t. GCP State: %t", tfAS, gcpAS)
+		}
+		if tfAS {
+			if tf := attributes["autoscaling.0.min_node_count"]; strconv.FormatInt(found.Autoscaling.MinNodeCount, 10) != tf {
+				return fmt.Errorf("Mismatched Autoscaling.MinNodeCount. TF State: %s. GCP State: %d",
+					tf, found.Autoscaling.MinNodeCount)
+			}
+
+			if tf := attributes["autoscaling.0.max_node_count"]; strconv.FormatInt(found.Autoscaling.MaxNodeCount, 10) != tf {
+				return fmt.Errorf("Mismatched Autoscaling.MaxNodeCount. TF State: %s. GCP State: %d",
+					tf, found.Autoscaling.MaxNodeCount)
+			}
+
+		}
 		return nil
 	}
 }
@@ -98,4 +131,27 @@ resource "google_container_node_pool" "np" {
 	zone = "us-central1-a"
 	cluster = "${google_container_cluster.cluster.name}"
 	initial_node_count = 2
+}`, acctest.RandString(10), acctest.RandString(10))
+
+var testAccContainerNodePool_autoscaling = fmt.Sprintf(`
+resource "google_container_cluster" "cluster" {
+	name = "tf-cluster-nodepool-test-%s"
+	zone = "us-central1-a"
+	initial_node_count = 3
+
+	master_auth {
+		username = "mr.yoda"
+		password = "adoy.rm"
+	}
+}
+
+resource "google_container_node_pool" "np" {
+	name = "tf-nodepool-test-%s"
+	zone = "us-central1-a"
+	cluster = "${google_container_cluster.cluster.name}"
+	initial_node_count = 2
+	autoscaling {
+		min_node_count = 1
+		max_node_count = 3
+	}
 }`, acctest.RandString(10), acctest.RandString(10))
