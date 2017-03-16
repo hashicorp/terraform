@@ -14,10 +14,10 @@ Manages a V1 volume resource within OpenStack.
 
 ```
 resource "openstack_blockstorage_volume_v1" "volume_1" {
-  region = "RegionOne"
-  name = "tf-test-volume"
+  region      = "RegionOne"
+  name        = "tf-test-volume"
   description = "first test volume"
-  size = 3
+  size        = 3
 }
 ```
 

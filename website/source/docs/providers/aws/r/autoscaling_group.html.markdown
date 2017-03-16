@@ -31,10 +31,10 @@ resource "aws_autoscaling_group" "bar" {
   launch_configuration      = "${aws_launch_configuration.foobar.name}"
 
   initial_lifecycle_hook {
-    name                   = "foobar"
-    default_result         = "CONTINUE"
-    heartbeat_timeout      = 2000
-    lifecycle_transition   = "autoscaling:EC2_INSTANCE_LAUNCHING"
+    name                 = "foobar"
+    default_result       = "CONTINUE"
+    heartbeat_timeout    = 2000
+    lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"
 
     notification_metadata = <<EOF
 {
@@ -70,6 +70,7 @@ The following arguments are supported:
     (See also [Waiting for Capacity](#waiting-for-capacity) below.)
 * `availability_zones` - (Optional) A list of AZs to launch resources in.
    Required only if you do not specify any `vpc_zone_identifier`
+* `default_cooldown` - (Optional) The amount of time, in seconds, after a scaling activity completes before another scaling activity can start.
 * `launch_configuration` - (Required) The name of the launch configuration to use.
 * `initial_lifecycle_hook` - (Optional) One or more
   [Lifecycle Hooks](http://docs.aws.amazon.com/autoscaling/latest/userguide/lifecycle-hooks.html)
@@ -224,7 +225,7 @@ for more information.
 
 ## Import
 
-AutoScaling Groups can be imported using the `name`, e.g. 
+AutoScaling Groups can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_autoscaling_group.web web-asg

@@ -34,21 +34,21 @@ resource "postgresql_schema" "my_schema" {
 
   policy {
     usage = true
-    role = "${postgresql_role.app_www.name}"
+    role  = "${postgresql_role.app_www.name}"
   }
 
   # app_releng can create new objects in the schema.  This is the role that
   # migrations are executed as.
   policy {
     create = true
-    usage = true
-    role = "${postgresql_role.app_releng.name}"
+    usage  = true
+    role   = "${postgresql_role.app_releng.name}"
   }
 
   policy {
     create_with_grant = true
-    usage_with_grant = true
-    role = "${postgresql_role.app_dba.name}"
+    usage_with_grant  = true
+    role              = "${postgresql_role.app_dba.name}"
   }
 }
 ```
@@ -78,7 +78,7 @@ Terraform:
 
 ```
 resource "postgresql_schema" "public" {
-  name  = "public"
+  name = "public"
 }
 
 resource "postgresql_schema" "schema_foo" {

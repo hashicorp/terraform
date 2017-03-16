@@ -89,7 +89,7 @@ func resourceLBMemberV1Create(d *schema.ResourceData, meta interface{}) error {
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"PENDING_CREATE"},
-		Target:     []string{"ACTIVE", "INACTIVE"},
+		Target:     []string{"ACTIVE", "INACTIVE", "CREATED", "DOWN"},
 		Refresh:    waitForLBMemberActive(networkingClient, m.ID),
 		Timeout:    2 * time.Minute,
 		Delay:      5 * time.Second,

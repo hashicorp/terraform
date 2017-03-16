@@ -509,8 +509,67 @@ func (c *RDS) CopyDBClusterSnapshotRequest(input *CopyDBClusterSnapshotInput) (r
 
 // CopyDBClusterSnapshot API operation for Amazon Relational Database Service.
 //
-// Creates a snapshot of a DB cluster. For more information on Amazon Aurora,
-// see Aurora on Amazon RDS (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html)
+// Copies a snapshot of a DB cluster.
+//
+// To copy a DB cluster snapshot from a shared manual DB cluster snapshot, SourceDBClusterSnapshotIdentifier
+// must be the Amazon Resource Name (ARN) of the shared DB cluster snapshot.
+//
+// You can copy an encrypted DB cluster snapshot from another AWS region. In
+// that case, the region where you call the CopyDBClusterSnapshot action is
+// the destination region for the encrypted DB cluster snapshot to be copied
+// to. To copy an encrypted DB cluster snapshot from another region, you must
+// provide the following values:
+//
+//    * KmsKeyId - The AWS Key Management System (KMS) key identifier for the
+//    key to use to encrypt the copy of the DB cluster snapshot in the destination
+//    region.
+//
+//    * PreSignedUrl - A URL that contains a Signature Version 4 signed request
+//    for the CopyDBClusterSnapshot action to be called in the source region
+//    where the DB cluster snapshot will be copied from. The pre-signed URL
+//    must be a valid request for the CopyDBClusterSnapshot API action that
+//    can be executed in the source region that contains the encrypted DB cluster
+//    snapshot to be copied.
+//
+// The pre-signed URL request must contain the following parameter values:
+//
+// KmsKeyId - The KMS key identifier for the key to use to encrypt the copy
+//    of the DB cluster snapshot in the destination region. This is the same
+//    identifier for both the CopyDBClusterSnapshot action that is called in
+//    the destination region, and the action contained in the pre-signed URL.
+//
+// DestinationRegion - The name of the region that the DB cluster snapshot will
+//    be created in.
+//
+// SourceDBClusterSnapshotIdentifier - The DB cluster snapshot identifier for
+//    the encrypted DB cluster snapshot to be copied. This identifier must be
+//    in the Amazon Resource Name (ARN) format for the source region. For example,
+//    if you are copying an encrypted DB cluster snapshot from the us-west-2
+//    region, then your SourceDBClusterSnapshotIdentifier looks like the following
+//    example: arn:aws:rds:us-west-2:123456789012:cluster-snapshot:aurora-cluster1-snapshot-20161115.
+//
+// To learn how to generate a Signature Version 4 signed request, see  Authenticating
+//    Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
+//    and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+//
+//    * TargetDBClusterSnapshotIdentifier - The identifier for the new copy
+//    of the DB cluster snapshot in the destination region.
+//
+//    * SourceDBClusterSnapshotIdentifier - The DB cluster snapshot identifier
+//    for the encrypted DB cluster snapshot to be copied. This identifier must
+//    be in the ARN format for the source region and is the same value as the
+//    SourceDBClusterSnapshotIdentifier in the pre-signed URL.
+//
+// To cancel the copy operation once it is in progress, delete the target DB
+// cluster snapshot identified by TargetDBClusterSnapshotIdentifier while that
+// DB cluster snapshot is in "copying" status.
+//
+// For more information on copying encrypted DB cluster snapshots from one region
+// to another, see  Copying a DB Cluster Snapshot in the Same Account, Either
+// in the Same Region or Across Regions (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CopySnapshot.html#USER_CopyDBClusterSnapshot.CrossRegion)
+// in the Amazon RDS User Guide.
+//
+// For more information on Amazon Aurora, see Aurora on Amazon RDS (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html)
 // in the Amazon RDS User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -873,6 +932,8 @@ func (c *RDS) CreateDBClusterRequest(input *CreateDBClusterInput) (req *request.
 //
 // You can use the ReplicationSourceIdentifier parameter to create the DB cluster
 // as a Read Replica of another DB cluster or Amazon RDS MySQL DB instance.
+// For cross-region replication where the DB cluster identified by ReplicationSourceIdentifier
+// is encrypted, you must also specify the PreSignedUrl parameter.
 //
 // For more information on Amazon Aurora, see Aurora on Amazon RDS (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html)
 // in the Amazon RDS User Guide.
@@ -8316,6 +8377,65 @@ func (s *CopyDBClusterParameterGroupOutput) SetDBClusterParameterGroup(v *DBClus
 type CopyDBClusterSnapshotInput struct {
 	_ struct{} `type:"structure"`
 
+	CopyTags *bool `type:"boolean"`
+
+	// DestinationRegion is used for presigning the request to a given region.
+	DestinationRegion *string `type:"string"`
+
+	// The AWS KMS key ID for an encrypted DB cluster snapshot. The KMS key ID is
+	// the Amazon Resource Name (ARN), KMS key identifier, or the KMS key alias
+	// for the KMS encryption key.
+	//
+	// If you copy an unencrypted DB cluster snapshot and specify a value for the
+	// KmsKeyId parameter, Amazon RDS encrypts the target DB cluster snapshot using
+	// the specified KMS encryption key.
+	//
+	// If you copy an encrypted DB cluster snapshot from your AWS account, you can
+	// specify a value for KmsKeyId to encrypt the copy with a new KMS encryption
+	// key. If you don't specify a value for KmsKeyId, then the copy of the DB cluster
+	// snapshot is encrypted with the same KMS key as the source DB cluster snapshot.
+	//
+	// If you copy an encrypted DB cluster snapshot that is shared from another
+	// AWS account, then you must specify a value for KmsKeyId.
+	//
+	// To copy an encrypted DB cluster snapshot to another region, you must set
+	// KmsKeyId to the KMS key ID you want to use to encrypt the copy of the DB
+	// cluster snapshot in the destination region. KMS encryption keys are specific
+	// to the region that they are created in, and you cannot use encryption keys
+	// from one region in another region.
+	KmsKeyId *string `type:"string"`
+
+	// The URL that contains a Signature Version 4 signed request for the CopyDBClusterSnapshot
+	// API action in the AWS region that contains the source DB cluster snapshot
+	// to copy. The PreSignedUrl parameter must be used when copying an encrypted
+	// DB cluster snapshot from another AWS region.
+	//
+	// The pre-signed URL must be a valid request for the CopyDBSClusterSnapshot
+	// API action that can be executed in the source region that contains the encrypted
+	// DB cluster snapshot to be copied. The pre-signed URL request must contain
+	// the following parameter values:
+	//
+	//    * KmsKeyId - The KMS key identifier for the key to use to encrypt the
+	//    copy of the DB cluster snapshot in the destination region. This is the
+	//    same identifier for both the CopyDBClusterSnapshot action that is called
+	//    in the destination region, and the action contained in the pre-signed
+	//    URL.
+	//
+	//    * DestinationRegion - The name of the region that the DB cluster snapshot
+	//    will be created in.
+	//
+	//    * SourceDBClusterSnapshotIdentifier - The DB cluster snapshot identifier
+	//    for the encrypted DB cluster snapshot to be copied. This identifier must
+	//    be in the Amazon Resource Name (ARN) format for the source region. For
+	//    example, if you are copying an encrypted DB cluster snapshot from the
+	//    us-west-2 region, then your SourceDBClusterSnapshotIdentifier looks like
+	//    the following example: arn:aws:rds:us-west-2:123456789012:cluster-snapshot:aurora-cluster1-snapshot-20161115.
+	//
+	// To learn how to generate a Signature Version 4 signed request, see  Authenticating
+	// Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
+	// and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+	PreSignedUrl *string `type:"string"`
+
 	// The identifier of the DB cluster snapshot to copy. This parameter is not
 	// case-sensitive.
 	//
@@ -8331,6 +8451,11 @@ type CopyDBClusterSnapshotInput struct {
 	//
 	// SourceDBClusterSnapshotIdentifier is a required field
 	SourceDBClusterSnapshotIdentifier *string `type:"string" required:"true"`
+
+	// SourceRegion is the source region where the resource exists. This is not
+	// sent over the wire and is only used for presigning. This value should always
+	// have the same region as the source ARN.
+	SourceRegion *string `type:"string" ignore:"true"`
 
 	// A list of tags.
 	Tags []*Tag `locationNameList:"Tag" type:"list"`
@@ -8378,9 +8503,39 @@ func (s *CopyDBClusterSnapshotInput) Validate() error {
 	return nil
 }
 
+// SetCopyTags sets the CopyTags field's value.
+func (s *CopyDBClusterSnapshotInput) SetCopyTags(v bool) *CopyDBClusterSnapshotInput {
+	s.CopyTags = &v
+	return s
+}
+
+// SetDestinationRegion sets the DestinationRegion field's value.
+func (s *CopyDBClusterSnapshotInput) SetDestinationRegion(v string) *CopyDBClusterSnapshotInput {
+	s.DestinationRegion = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *CopyDBClusterSnapshotInput) SetKmsKeyId(v string) *CopyDBClusterSnapshotInput {
+	s.KmsKeyId = &v
+	return s
+}
+
+// SetPreSignedUrl sets the PreSignedUrl field's value.
+func (s *CopyDBClusterSnapshotInput) SetPreSignedUrl(v string) *CopyDBClusterSnapshotInput {
+	s.PreSignedUrl = &v
+	return s
+}
+
 // SetSourceDBClusterSnapshotIdentifier sets the SourceDBClusterSnapshotIdentifier field's value.
 func (s *CopyDBClusterSnapshotInput) SetSourceDBClusterSnapshotIdentifier(v string) *CopyDBClusterSnapshotInput {
 	s.SourceDBClusterSnapshotIdentifier = &v
+	return s
+}
+
+// SetSourceRegion sets the SourceRegion field's value.
+func (s *CopyDBClusterSnapshotInput) SetSourceRegion(v string) *CopyDBClusterSnapshotInput {
+	s.SourceRegion = &v
 	return s
 }
 
@@ -8966,6 +9121,9 @@ type CreateDBClusterInput struct {
 	// you are creating.
 	DatabaseName *string `type:"string"`
 
+	// DestinationRegion is used for presigning the request to a given region.
+	DestinationRegion *string `type:"string"`
+
 	// The name of the database engine to be used for this DB cluster.
 	//
 	// Valid Values: aurora
@@ -8985,12 +9143,16 @@ type CreateDBClusterInput struct {
 	// The KMS key identifier is the Amazon Resource Name (ARN) for the KMS encryption
 	// key. If you are creating a DB cluster with the same AWS account that owns
 	// the KMS encryption key used to encrypt the new DB cluster, then you can use
-	// the KMS key alias instead of the ARN for the KM encryption key.
+	// the KMS key alias instead of the ARN for the KMS encryption key.
 	//
 	// If the StorageEncrypted parameter is true, and you do not specify a value
 	// for the KmsKeyId parameter, then Amazon RDS will use your default encryption
 	// key. AWS KMS creates the default encryption key for your AWS account. Your
 	// AWS account has a different default encryption key for each AWS region.
+	//
+	// If you create a Read Replica of an encrypted DB cluster in another region,
+	// you must set KmsKeyId to a KMS key ID that is valid in the destination region.
+	// This key is used to encrypt the Read Replica in that region.
 	KmsKeyId *string `type:"string"`
 
 	// The password for the master database user. This password can contain any
@@ -9021,6 +9183,36 @@ type CreateDBClusterInput struct {
 	//
 	// Default: 3306
 	Port *int64 `type:"integer"`
+
+	// A URL that contains a Signature Version 4 signed request for the CreateDBCluster
+	// action to be called in the source region where the DB cluster will be replicated
+	// from. You only need to specify PreSignedUrl when you are performing cross-region
+	// replication from an encrypted DB cluster.
+	//
+	// The pre-signed URL must be a valid request for the CreateDBCluster API action
+	// that can be executed in the source region that contains the encrypted DB
+	// cluster to be copied.
+	//
+	// The pre-signed URL request must contain the following parameter values:
+	//
+	//    * KmsKeyId - The KMS key identifier for the key to use to encrypt the
+	//    copy of the DB cluster in the destination region. This should refer to
+	//    the same KMS key for both the CreateDBCluster action that is called in
+	//    the destination region, and the action contained in the pre-signed URL.
+	//
+	//    * DestinationRegion - The name of the region that Aurora Read Replica
+	//    will be created in.
+	//
+	//    * ReplicationSourceIdentifier - The DB cluster identifier for the encrypted
+	//    DB cluster to be copied. This identifier must be in the Amazon Resource
+	//    Name (ARN) format for the source region. For example, if you are copying
+	//    an encrypted DB cluster from the us-west-2 region, then your ReplicationSourceIdentifier
+	//    would look like Example: arn:aws:rds:us-west-2:123456789012:cluster:aurora-cluster1.
+	//
+	// To learn how to generate a Signature Version 4 signed request, see  Authenticating
+	// Requests: Using Query Parameters (AWS Signature Version 4) (http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html)
+	// and  Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+	PreSignedUrl *string `type:"string"`
 
 	// The daily time range during which automated backups are created if automated
 	// backups are enabled using the BackupRetentionPeriod parameter.
@@ -9059,6 +9251,11 @@ type CreateDBClusterInput struct {
 	// The Amazon Resource Name (ARN) of the source DB instance or DB cluster if
 	// this DB cluster is created as a Read Replica.
 	ReplicationSourceIdentifier *string `type:"string"`
+
+	// SourceRegion is the source region where the resource exists. This is not
+	// sent over the wire and is only used for presigning. This value should always
+	// have the same region as the source ARN.
+	SourceRegion *string `type:"string" ignore:"true"`
 
 	// Specifies whether the DB cluster is encrypted.
 	StorageEncrypted *bool `type:"boolean"`
@@ -9138,6 +9335,12 @@ func (s *CreateDBClusterInput) SetDatabaseName(v string) *CreateDBClusterInput {
 	return s
 }
 
+// SetDestinationRegion sets the DestinationRegion field's value.
+func (s *CreateDBClusterInput) SetDestinationRegion(v string) *CreateDBClusterInput {
+	s.DestinationRegion = &v
+	return s
+}
+
 // SetEngine sets the Engine field's value.
 func (s *CreateDBClusterInput) SetEngine(v string) *CreateDBClusterInput {
 	s.Engine = &v
@@ -9180,6 +9383,12 @@ func (s *CreateDBClusterInput) SetPort(v int64) *CreateDBClusterInput {
 	return s
 }
 
+// SetPreSignedUrl sets the PreSignedUrl field's value.
+func (s *CreateDBClusterInput) SetPreSignedUrl(v string) *CreateDBClusterInput {
+	s.PreSignedUrl = &v
+	return s
+}
+
 // SetPreferredBackupWindow sets the PreferredBackupWindow field's value.
 func (s *CreateDBClusterInput) SetPreferredBackupWindow(v string) *CreateDBClusterInput {
 	s.PreferredBackupWindow = &v
@@ -9195,6 +9404,12 @@ func (s *CreateDBClusterInput) SetPreferredMaintenanceWindow(v string) *CreateDB
 // SetReplicationSourceIdentifier sets the ReplicationSourceIdentifier field's value.
 func (s *CreateDBClusterInput) SetReplicationSourceIdentifier(v string) *CreateDBClusterInput {
 	s.ReplicationSourceIdentifier = &v
+	return s
+}
+
+// SetSourceRegion sets the SourceRegion field's value.
+func (s *CreateDBClusterInput) SetSourceRegion(v string) *CreateDBClusterInput {
+	s.SourceRegion = &v
 	return s
 }
 

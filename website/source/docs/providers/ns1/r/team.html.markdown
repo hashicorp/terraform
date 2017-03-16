@@ -16,8 +16,9 @@ Provides a NS1 Team resource. This can be used to create, modify, and delete tea
 # Create a new NS1 Team
 resource "ns1_team" "example" {
   name = "Example team"
+
   permissions = {
-    dns_view_zones = false
+    dns_view_zones       = false
     account_manage_users = false
   }
 }

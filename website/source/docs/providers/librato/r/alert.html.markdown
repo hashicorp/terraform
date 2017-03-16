@@ -16,14 +16,15 @@ create and manage alerts on Librato.
 ```
 # Create a new Librato alert
 resource "librato_alert" "myalert" {
-    name = "MyAlert"
-    description = "A Test Alert"
-    services = [ "${librato_service.myservice.id}" ]
-    condition {
-      type = "above"
-      threshold = 10
-      metric_name = "librato.cpu.percent.idle"
-    }
+  name        = "MyAlert"
+  description = "A Test Alert"
+  services    = ["${librato_service.myservice.id}"]
+
+  condition {
+    type        = "above"
+    threshold   = 10
+    metric_name = "librato.cpu.percent.idle"
+  }
 }
 ```
 
@@ -55,7 +56,7 @@ Conditions (`condition`) support the following:
 
 * `type` - The type of condition. Must be one of `above`, `below` or `absent`.
 * `metric_name`- The name of the metric this alert condition applies to.
-* `source`- A source expression which identifies which sources for the given metric to monitor. 
+* `source`- A source expression which identifies which sources for the given metric to monitor.
 * `detect_reset` - boolean: toggles the method used to calculate the delta from the previous sample when the summary_function is `derivative`.
 * `duration` - number of seconds condition must be true to fire the alert (required for type `absent`).
 * `threshold` - float: measurements over this number will fire the alert (only for `above` or `below`).

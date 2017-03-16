@@ -16,7 +16,7 @@ Basic usage:
 
 ```
 resource "cloudstack_vpn_gateway" "default" {
-    vpc_id = "f8141e2f-4e7e-4c63-9362-986c908b7ea7"
+  vpc_id = "f8141e2f-4e7e-4c63-9362-986c908b7ea7"
 }
 ```
 

@@ -5,12 +5,14 @@ import (
 	"log"
 	"net"
 	"regexp"
-	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/googleapi"
+)
+
+var (
+	instanceGroupManagerURL = regexp.MustCompile("^https://www.googleapis.com/compute/v1/projects/([a-z][a-z0-9-]{5}(?:[-a-z0-9]{0,23}[a-z0-9])?)/zones/([a-z0-9-]*)/instanceGroupManagers/([^/]*)")
 )
 
 func resourceContainerCluster() *schema.Resource {
@@ -389,23 +391,11 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	// Wait until it's created
-	wait := resource.StateChangeConf{
-		Pending:    []string{"PENDING", "RUNNING"},
-		Target:     []string{"DONE"},
-		Timeout:    30 * time.Minute,
-		MinTimeout: 3 * time.Second,
-		Refresh: func() (interface{}, string, error) {
-			resp, err := config.clientContainer.Projects.Zones.Operations.Get(
-				project, zoneName, op.Name).Do()
-			log.Printf("[DEBUG] Progress of creating GKE cluster %s: %s",
-				clusterName, resp.Status)
-			return resp, resp.Status, err
-		},
-	}
-
-	_, err = wait.WaitForState()
-	if err != nil {
-		return err
+	waitErr := containerOperationWait(config, op, project, zoneName, "creating GKE cluster", 30, 3)
+	if waitErr != nil {
+		// The resource didn't actually create
+		d.SetId("")
+		return waitErr
 	}
 
 	log.Printf("[INFO] GKE cluster %s has been created", clusterName)
@@ -474,7 +464,28 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("network", d.Get("network").(string))
 	d.Set("subnetwork", cluster.Subnetwork)
 	d.Set("node_config", flattenClusterNodeConfig(cluster.NodeConfig))
-	d.Set("instance_group_urls", cluster.InstanceGroupUrls)
+
+	// container engine's API currently mistakenly returns the instance group manager's
+	// URL instead of the instance group's URL in its responses. This shim detects that
+	// error, and corrects it, by fetching the instance group manager URL and retrieving
+	// the instance group manager, then using that to look up the instance group URL, which
+	// is then substituted.
+	//
+	// This should be removed when the API response is fixed.
+	instanceGroupURLs := make([]string, 0, len(cluster.InstanceGroupUrls))
+	for _, u := range cluster.InstanceGroupUrls {
+		if !instanceGroupManagerURL.MatchString(u) {
+			instanceGroupURLs = append(instanceGroupURLs, u)
+			continue
+		}
+		matches := instanceGroupManagerURL.FindStringSubmatch(u)
+		instanceGroupManager, err := config.clientCompute.InstanceGroupManagers.Get(matches[1], matches[2], matches[3]).Do()
+		if err != nil {
+			return fmt.Errorf("Error reading instance group manager returned as an instance group URL: %s", err)
+		}
+		instanceGroupURLs = append(instanceGroupURLs, instanceGroupManager.InstanceGroup)
+	}
+	d.Set("instance_group_urls", instanceGroupURLs)
 
 	return nil
 }
@@ -503,24 +514,9 @@ func resourceContainerClusterUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	// Wait until it's updated
-	wait := resource.StateChangeConf{
-		Pending:    []string{"PENDING", "RUNNING"},
-		Target:     []string{"DONE"},
-		Timeout:    10 * time.Minute,
-		MinTimeout: 2 * time.Second,
-		Refresh: func() (interface{}, string, error) {
-			log.Printf("[DEBUG] Checking if GKE cluster %s is updated", clusterName)
-			resp, err := config.clientContainer.Projects.Zones.Operations.Get(
-				project, zoneName, op.Name).Do()
-			log.Printf("[DEBUG] Progress of updating GKE cluster %s: %s",
-				clusterName, resp.Status)
-			return resp, resp.Status, err
-		},
-	}
-
-	_, err = wait.WaitForState()
-	if err != nil {
-		return err
+	waitErr := containerOperationWait(config, op, project, zoneName, "updating GKE cluster", 10, 2)
+	if waitErr != nil {
+		return waitErr
 	}
 
 	log.Printf("[INFO] GKE cluster %s has been updated to %s", d.Id(),
@@ -548,24 +544,9 @@ func resourceContainerClusterDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	// Wait until it's deleted
-	wait := resource.StateChangeConf{
-		Pending:    []string{"PENDING", "RUNNING"},
-		Target:     []string{"DONE"},
-		Timeout:    10 * time.Minute,
-		MinTimeout: 3 * time.Second,
-		Refresh: func() (interface{}, string, error) {
-			log.Printf("[DEBUG] Checking if GKE cluster %s is deleted", clusterName)
-			resp, err := config.clientContainer.Projects.Zones.Operations.Get(
-				project, zoneName, op.Name).Do()
-			log.Printf("[DEBUG] Progress of deleting GKE cluster %s: %s",
-				clusterName, resp.Status)
-			return resp, resp.Status, err
-		},
-	}
-
-	_, err = wait.WaitForState()
-	if err != nil {
-		return err
+	waitErr := containerOperationWait(config, op, project, zoneName, "deleting GKE cluster", 10, 3)
+	if waitErr != nil {
+		return waitErr
 	}
 
 	log.Printf("[INFO] GKE cluster %s has been deleted", d.Id())

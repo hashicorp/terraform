@@ -15,8 +15,8 @@ Provides a Rancher Registy resource. This can be used to create registries for r
 ```hcl
 # Create a new Rancher registry
 resource "rancher_registry" "dockerhub" {
-  name = "dockerhub"
-  description = "DockerHub Registry"
+  name           = "dockerhub"
+  description    = "DockerHub Registry"
   environment_id = "${rancher_environment.default.id}"
   server_address = "index.dockerhub.io"
 }

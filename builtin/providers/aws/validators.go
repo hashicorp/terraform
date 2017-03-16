@@ -36,23 +36,23 @@ func validateElastiCacheClusterId(v interface{}, k string) (ws []string, errors 
 	value := v.(string)
 	if (len(value) < 1) || (len(value) > 20) {
 		errors = append(errors, fmt.Errorf(
-			"%q must contain from 1 to 20 alphanumeric characters or hyphens", k))
+			"%q (%q) must contain from 1 to 20 alphanumeric characters or hyphens", k, value))
 	}
 	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+			"only lowercase alphanumeric characters and hyphens allowed in %q (%q)", k, value))
 	}
 	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"first character of %q must be a letter", k))
+			"first character of %q (%q) must be a letter", k, value))
 	}
 	if regexp.MustCompile(`--`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"%q cannot contain two consecutive hyphens", k))
+			"%q (%q) cannot contain two consecutive hyphens", k, value))
 	}
 	if regexp.MustCompile(`-$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"%q cannot end with a hyphen", k))
+			"%q (%q) cannot end with a hyphen", k, value))
 	}
 	return
 }
@@ -928,5 +928,24 @@ func validateConfigExecutionFrequency(v interface{}, k string) (ws []string, err
 	errors = append(errors, fmt.Errorf(
 		"%q contains an invalid freqency %q. Valid frequencies are %q.",
 		k, frequency, validFrequencies))
+	return
+}
+
+func validateAccountAlias(v interface{}, k string) (ws []string, es []error) {
+	val := v.(string)
+
+	if (len(val) < 3) || (len(val) > 63) {
+		es = append(es, fmt.Errorf("%q must contain from 3 to 63 alphanumeric characters or hyphens", k))
+	}
+	if !regexp.MustCompile("^[a-z0-9][a-z0-9-]+$").MatchString(val) {
+		es = append(es, fmt.Errorf("%q must start with an alphanumeric character and only contain lowercase alphanumeric characters and hyphens", k))
+	}
+	if strings.Contains(val, "--") {
+		es = append(es, fmt.Errorf("%q must not contain consecutive hyphens", k))
+	}
+	if strings.HasSuffix(val, "-") {
+		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
+	}
+
 	return
 }

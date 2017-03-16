@@ -68,10 +68,9 @@ const (
 	// ErrCodeHealthCheckAlreadyExists for service response error code
 	// "HealthCheckAlreadyExists".
 	//
-	// The health check you're attempting to create already exists.
-	//
-	// Amazon Route 53 returns this error when a health check has already been created
-	// with the specified value for CallerReference.
+	// The health check you're attempting to create already exists. Amazon Route
+	// 53 returns this error when a health check has already been created with the
+	// specified value for CallerReference.
 	ErrCodeHealthCheckAlreadyExists = "HealthCheckAlreadyExists"
 
 	// ErrCodeHealthCheckInUse for service response error code
@@ -92,8 +91,8 @@ const (
 	// ErrCodeHostedZoneAlreadyExists for service response error code
 	// "HostedZoneAlreadyExists".
 	//
-	// The hosted zone you are trying to create already exists. Amazon Route 53
-	// returns this error when a hosted zone has already been created with the specified
+	// The hosted zone you're trying to create already exists. Amazon Route 53 returns
+	// this error when a hosted zone has already been created with the specified
 	// CallerReference.
 	ErrCodeHostedZoneAlreadyExists = "HostedZoneAlreadyExists"
 
@@ -112,14 +111,14 @@ const (
 	// ErrCodeIncompatibleVersion for service response error code
 	// "IncompatibleVersion".
 	//
-	// The resource you are trying to access is unsupported on this Amazon Route
-	// 53 endpoint. Please consider using a newer endpoint or a tool that does so.
+	// The resource you're trying to access is unsupported on this Amazon Route
+	// 53 endpoint.
 	ErrCodeIncompatibleVersion = "IncompatibleVersion"
 
 	// ErrCodeInvalidArgument for service response error code
 	// "InvalidArgument".
 	//
-	// Parameter name and problem.
+	// Parameter name is invalid.
 	ErrCodeInvalidArgument = "InvalidArgument"
 
 	// ErrCodeInvalidChangeBatch for service response error code
@@ -242,6 +241,8 @@ const (
 
 	// ErrCodeThrottlingException for service response error code
 	// "ThrottlingException".
+	//
+	// The limit on the number of requests per second was exceeded.
 	ErrCodeThrottlingException = "ThrottlingException"
 
 	// ErrCodeTooManyHealthChecks for service response error code

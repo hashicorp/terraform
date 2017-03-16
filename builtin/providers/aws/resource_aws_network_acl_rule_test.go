@@ -20,12 +20,30 @@ func TestAccAWSNetworkAclRule_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSNetworkAclRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSNetworkAclRuleBasicConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSNetworkAclRuleExists("aws_network_acl_rule.baz", &networkAcl),
 					testAccCheckAWSNetworkAclRuleExists("aws_network_acl_rule.qux", &networkAcl),
 					testAccCheckAWSNetworkAclRuleExists("aws_network_acl_rule.wibble", &networkAcl),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSNetworkAclRule_ipv6(t *testing.T) {
+	var networkAcl ec2.NetworkAcl
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSNetworkAclRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSNetworkAclRuleIpv6Config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSNetworkAclRuleExists("aws_network_acl_rule.baz", &networkAcl),
 				),
 			},
 		},
@@ -194,4 +212,24 @@ resource "aws_network_acl_rule" "wibble" {
 	icmp_type = -1
 	icmp_code = -1
 }
+`
+
+const testAccAWSNetworkAclRuleIpv6Config = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.3.0.0/16"
+}
+resource "aws_network_acl" "bar" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_network_acl_rule" "baz" {
+	network_acl_id = "${aws_network_acl.bar.id}"
+	rule_number = 150
+	egress = false
+	protocol = "tcp"
+	rule_action = "allow"
+	ipv6_cidr_block = "::/0"
+	from_port = 22
+	to_port = 22
+}
+
 `

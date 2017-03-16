@@ -16,13 +16,13 @@ Manages status (recording / stopped) of an AWS Config Configuration Recorder.
 
 ```
 resource "aws_config_configuration_recorder_status" "foo" {
-  name = "${aws_config_configuration_recorder.foo.name}"
+  name       = "${aws_config_configuration_recorder.foo.name}"
   is_enabled = true
   depends_on = ["aws_config_delivery_channel.foo"]
 }
 
 resource "aws_iam_role_policy_attachment" "a" {
-  role = "${aws_iam_role.r.name}"
+  role       = "${aws_iam_role.r.name}"
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSConfigRole"
 }
 
@@ -31,17 +31,18 @@ resource "aws_s3_bucket" "b" {
 }
 
 resource "aws_config_delivery_channel" "foo" {
-  name = "example"
+  name           = "example"
   s3_bucket_name = "${aws_s3_bucket.b.bucket}"
 }
 
 resource "aws_config_configuration_recorder" "foo" {
-  name = "example"
+  name     = "example"
   role_arn = "${aws_iam_role.r.arn}"
 }
 
 resource "aws_iam_role" "r" {
   name = "example-awsconfig"
+
   assume_role_policy = <<POLICY
 {
   "Version": "2012-10-17",
@@ -69,7 +70,7 @@ The following arguments are supported:
 
 ## Import
 
-Configuration Recorder Status can be imported using the name of the Configuration Recorder, e.g. 
+Configuration Recorder Status can be imported using the name of the Configuration Recorder, e.g.
 
 ```
 $ terraform import aws_config_configuration_recorder_status.foo example

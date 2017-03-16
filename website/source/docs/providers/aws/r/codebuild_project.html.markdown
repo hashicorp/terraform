@@ -15,6 +15,7 @@ Provides a CodeBuild Project resource.
 ```
 resource "aws_iam_role" "codebuild_role" {
   name = "codebuild-role-"
+
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -32,10 +33,11 @@ EOF
 }
 
 resource "aws_iam_policy" "codebuild_policy" {
-    name        = "codebuild-policy"
-    path        = "/service-role/"
-    description = "Policy used in trust relationship with CodeBuild"
-    policy      = <<POLICY
+  name        = "codebuild-policy"
+  path        = "/service-role/"
+  description = "Policy used in trust relationship with CodeBuild"
+
+  policy = <<POLICY
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -64,7 +66,7 @@ resource "aws_iam_policy_attachment" "codebuild_policy_attachment" {
 resource "aws_codebuild_project" "foo" {
   name         = "test-project"
   description  = "test_codebuild_project"
-  timeout      = "5"
+  build_timeout      = "5"
   service_role = "${aws_iam_role.codebuild_role.arn}"
 
   artifacts {
@@ -76,10 +78,15 @@ resource "aws_codebuild_project" "foo" {
     image        = "2"
     type         = "LINUX_CONTAINER"
 
-	environment_variable {
-	  "name"  = "SOME_KEY"
-	  "value" = "SOME_VALUE"
-	}
+    environment_variable {
+      "name"  = "SOME_KEY1"
+      "value" = "SOME_VALUE1"
+    }
+
+    environment_variable {
+      "name"  = "SOME_KEY2"
+      "value" = "SOME_VALUE2"
+    }
   }
 
   source {
@@ -101,11 +108,11 @@ The following arguments are supported:
 * `description` - (Optional) A short description of the project.
 * `encryption_key` - (Optional) The AWS Key Management Service (AWS KMS) customer master key (CMK) to be used for encrypting the build project's build output artifacts.
 * `service_role` - (Optional) The Amazon Resource Name (ARN) of the AWS Identity and Access Management (IAM) role that enables AWS CodeBuild to interact with dependent AWS services on behalf of the AWS account.
-* `timeout` - (Optional) How long in minutes, from 5 to 480 (8 hours), for AWS CodeBuild to wait until timing out any related build that does not get marked as completed. The default is 60 minutes.
+* `build_timeout` - (Optional) How long in minutes, from 5 to 480 (8 hours), for AWS CodeBuild to wait until timing out any related build that does not get marked as completed. The default is 60 minutes.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
-* `artifacts` - (Optional) Information about the project's build output artifacts. Artifact blocks are documented below.
-* `environment` - (Optional) Information about the project's build environment. Environment blocks are documented below.
-* `source` - (Optional) Information about the project's input source code. Source blocks are documented below.
+* `artifacts` - (Required) Information about the project's build output artifacts. Artifact blocks are documented below.
+* `environment` - (Required) Information about the project's build environment. Environment blocks are documented below.
+* `source` - (Required) Information about the project's input source code. Source blocks are documented below.
 
 `artifacts` supports the following:
 
@@ -137,7 +144,7 @@ The following arguments are supported:
 `auth` supports the following:
 
 * `type` - (Required) The authorization type to use. The only valid value is `OAUTH`
-* `resource` - (Required) The resource value that applies to the specified authorization type.
+* `resource` - (Optional) The resource value that applies to the specified authorization type.
 
 ## Attributes Reference
 

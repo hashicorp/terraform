@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -103,8 +104,19 @@ func (c *Config) loadAndValidate() error {
 		config.BuildNameToCertificate()
 	}
 
+	// if OS_DEBUG is set, log the requests and responses
+	var osDebug bool
+	if os.Getenv("OS_DEBUG") != "" {
+		osDebug = true
+	}
+
 	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, TLSClientConfig: config}
-	client.HTTPClient.Transport = transport
+	client.HTTPClient = http.Client{
+		Transport: &LogRoundTripper{
+			rt:      transport,
+			osDebug: osDebug,
+		},
+	}
 
 	// If using Swift Authentication, there's no need to validate authentication normally.
 	if !c.Swauth {
@@ -135,6 +147,13 @@ func (c *Config) blockStorageV2Client(region string) (*gophercloud.ServiceClient
 
 func (c *Config) computeV2Client(region string) (*gophercloud.ServiceClient, error) {
 	return openstack.NewComputeV2(c.osClient, gophercloud.EndpointOpts{
+		Region:       region,
+		Availability: c.getEndpointType(),
+	})
+}
+
+func (c *Config) imageV2Client(region string) (*gophercloud.ServiceClient, error) {
+	return openstack.NewImageServiceV2(c.osClient, gophercloud.EndpointOpts{
 		Region:       region,
 		Availability: c.getEndpointType(),
 	})

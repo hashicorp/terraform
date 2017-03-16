@@ -17,7 +17,7 @@ resource "aws_opsworks_permission" "my_stack_permission" {
   allow_ssh  = true
   allow_sudo = true
   level      = "iam_only"
-  user_arn   = "${aws_iam_user.user.arn}"  
+  user_arn   = "${aws_iam_user.user.arn}"
   stack_id   = "${aws_opsworks_stack.stack.id}"
 }
 ```
@@ -29,8 +29,8 @@ The following arguments are supported:
 * `allow_ssh` - (Optional) Whether the user is allowed to use SSH to communicate with the instance
 * `allow_sudo` - (Optional) Whether the user is allowed to use sudo to elevate privileges
 * `user_arn` - (Required) The user's IAM ARN to set permissions for
-* `level` - (Optional) The users permission level. Mus be one of `deny`, `show`, `deploy`, `manage`, `iam_only` 
-* `stack_id` - (Required) The stack to set the permissions for 
+* `level` - (Optional) The users permission level. Mus be one of `deny`, `show`, `deploy`, `manage`, `iam_only`
+* `stack_id` - (Required) The stack to set the permissions for
 
 ## Attributes Reference
 

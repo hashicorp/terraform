@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	clistate "github.com/hashicorp/terraform/command/state"
 	"github.com/hashicorp/terraform/state"
 )
 
@@ -54,19 +55,27 @@ func (c *UntaintCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	st, err := b.State()
+	env := c.Env()
+	st, err := b.State(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
+	if err := st.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		return 1
+	}
 
-	if s, ok := st.(state.Locker); c.Meta.stateLock && ok {
-		if err := s.Lock("untaint"); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to lock state: %s", err))
+	if c.Meta.stateLock {
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = "untaint"
+		lockID, err := clistate.Lock(st, lockInfo, c.Ui, c.Colorize())
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
 			return 1
 		}
 
-		defer s.Unlock()
+		defer clistate.Unlock(st, lockID, c.Ui, c.Colorize())
 	}
 
 	// Get the actual state structure

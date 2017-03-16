@@ -14,10 +14,10 @@ Manages a V1 load balancer monitor resource within OpenStack.
 
 ```
 resource "openstack_lb_monitor_v1" "monitor_1" {
-  type = "PING"
-  delay = 30
-  timeout = 5
-  max_retries = 3
+  type           = "PING"
+  delay          = 30
+  timeout        = 5
+  max_retries    = 3
   admin_state_up = "true"
 }
 ```

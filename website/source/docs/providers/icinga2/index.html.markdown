@@ -19,15 +19,15 @@ for an API user with the appropriate permissions.
 ```
 # Configure the Icinga2 provider
 provider "icinga2" {
-  api_url=https://192.168.33.5:5665/v1
-  api_user=root
-  api_password=icinga
-  insecure_skip_tls_verify=true
+  api_url                  = "https://192.168.33.5:5665/v1"
+  api_user                 = "root"
+  api_password             = "icinga"
+  insecure_skip_tls_verify = true
 }
 
 # Configure a host
-resouce "icinga2_host" "web-server"{
-  ...
+resouce "icinga2_host" "web-server" {
+  # ...
 }
 ```
 
@@ -42,9 +42,9 @@ Usage:
 
 ```
 provider "icinga2" {
-  api_url=https://192.168.33.5:5665/v1
-  api_user=root
-  api_password=icinga
+  api_url      = "https://192.168.33.5:5665/v1"
+  api_user     = "root"
+  api_password = "icinga"
 }
 ```
 

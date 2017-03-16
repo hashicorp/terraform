@@ -13,26 +13,26 @@ Provides a Route53 health check.
 
 ```
 resource "aws_route53_health_check" "child1" {
-  fqdn = "foobar.terraform.com"
-  port = 80
-  type = "HTTP"
-  resource_path = "/"
+  fqdn              = "foobar.terraform.com"
+  port              = 80
+  type              = "HTTP"
+  resource_path     = "/"
   failure_threshold = "5"
-  request_interval = "30"
+  request_interval  = "30"
 
   tags = {
     Name = "tf-test-health-check"
-   }
+  }
 }
 
 resource "aws_route53_health_check" "foo" {
-  type = "CALCULATED"
+  type                   = "CALCULATED"
   child_health_threshold = 1
-  child_healthchecks = ["${aws_route53_health_check.child1.id}"]
+  child_healthchecks     = ["${aws_route53_health_check.child1.id}"]
 
   tags = {
     Name = "tf-test-calculated-health-check"
-   }
+  }
 }
 ```
 
@@ -40,21 +40,21 @@ resource "aws_route53_health_check" "foo" {
 
 ```
 resource "aws_cloudwatch_metric_alarm" "foobar" {
-    alarm_name = "terraform-test-foobar5"
-    comparison_operator = "GreaterThanOrEqualToThreshold"
-    evaluation_periods = "2"
-    metric_name = "CPUUtilization"
-    namespace = "AWS/EC2"
-    period = "120"
-    statistic = "Average"
-    threshold = "80"
-    alarm_description = "This metric monitor ec2 cpu utilization"
+  alarm_name          = "terraform-test-foobar5"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = "120"
+  statistic           = "Average"
+  threshold           = "80"
+  alarm_description   = "This metric monitor ec2 cpu utilization"
 }
 
 resource "aws_route53_health_check" "foo" {
-  type = "CLOUDWATCH_METRIC"
-  cloudwatch_alarm_name = "${aws_cloudwatch_metric_alarm.foobar.alarm_name}"
-  cloudwatch_alarm_region = "us-west-2"
+  type                            = "CLOUDWATCH_METRIC"
+  cloudwatch_alarm_name           = "${aws_cloudwatch_metric_alarm.foobar.alarm_name}"
+  cloudwatch_alarm_region         = "us-west-2"
   insufficient_data_health_status = "Healthy"
 }
 ```
@@ -89,7 +89,7 @@ At least one of either `fqdn` or `ip_address` must be specified.
 
 ## Import
 
-Route53 Health Checks can be imported using the `health check id`, e.g. 
+Route53 Health Checks can be imported using the `health check id`, e.g.
 
 ```
 $ terraform import aws_route53_health_check.http_check abcdef11-2222-3333-4444-555555fedcba

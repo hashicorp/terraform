@@ -11,7 +11,7 @@ description: |-
 Provides an AutoScaling Lifecycle Hook resource.
 
 ~> **NOTE:** Terraform has two types of ways you can add lifecycle hooks - via
-the `initial_lifecycle_hook` attribute from the 
+the `initial_lifecycle_hook` attribute from the
 [`aws_autoscaling_group`](/docs/providers/aws/r/autoscaling_group.html)
 resource, or via this one. Hooks added via this resource will not be added
 until the autoscaling group has been created, and depending on your
@@ -26,30 +26,33 @@ but take care to not duplicate those hooks with this resource.
 
 ```
 resource "aws_autoscaling_group" "foobar" {
-    availability_zones = ["us-west-2a"]
-    name = "terraform-test-foobar5"
-    health_check_type = "EC2"
-    termination_policies = ["OldestInstance"]
-    tag {
-        key = "Foo"
-        value = "foo-bar"
-        propagate_at_launch = true
-    }
+  availability_zones   = ["us-west-2a"]
+  name                 = "terraform-test-foobar5"
+  health_check_type    = "EC2"
+  termination_policies = ["OldestInstance"]
+
+  tag {
+    key                 = "Foo"
+    value               = "foo-bar"
+    propagate_at_launch = true
+  }
 }
 
 resource "aws_autoscaling_lifecycle_hook" "foobar" {
-    name = "foobar"
-    autoscaling_group_name = "${aws_autoscaling_group.foobar.name}"
-    default_result = "CONTINUE"
-    heartbeat_timeout = 2000
-    lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"
-    notification_metadata = <<EOF
+  name                   = "foobar"
+  autoscaling_group_name = "${aws_autoscaling_group.foobar.name}"
+  default_result         = "CONTINUE"
+  heartbeat_timeout      = 2000
+  lifecycle_transition   = "autoscaling:EC2_INSTANCE_LAUNCHING"
+
+  notification_metadata = <<EOF
 {
   "foo": "bar"
 }
 EOF
-    notification_target_arn = "arn:aws:sqs:us-east-1:444455556666:queue1*"
-    role_arn = "arn:aws:iam::123456789012:role/S3Access"
+
+  notification_target_arn = "arn:aws:sqs:us-east-1:444455556666:queue1*"
+  role_arn                = "arn:aws:iam::123456789012:role/S3Access"
 }
 ```
 

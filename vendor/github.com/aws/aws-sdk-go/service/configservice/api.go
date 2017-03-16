@@ -1870,7 +1870,7 @@ func (c *ConfigService) PutEvaluationsRequest(input *PutEvaluationsInput) (req *
 //   are valid and try again.
 //
 //   * ErrCodeInvalidResultTokenException "InvalidResultTokenException"
-//   The speNexcified token is invalid.
+//   The specified ResultToken is invalid.
 //
 //   * ErrCodeNoSuchConfigRuleException "NoSuchConfigRuleException"
 //   One or more AWS Config rules in the request are invalid. Verify that the
@@ -5328,6 +5328,15 @@ type PutEvaluationsInput struct {
 	//
 	// ResultToken is a required field
 	ResultToken *string `type:"string" required:"true"`
+
+	// Use this parameter to specify a test run for PutEvaluations. You can verify
+	// whether your AWS Lambda function will deliver evaluation results to AWS Config.
+	// No updates occur to your existing evaluations, and evaluation results are
+	// not sent to AWS Config.
+	//
+	// When TestMode is true, PutEvaluations doesn't require a valid value for the
+	// ResultToken parameter, but the value cannot be null.
+	TestMode *bool `type:"boolean"`
 }
 
 // String returns the string representation
@@ -5372,6 +5381,12 @@ func (s *PutEvaluationsInput) SetEvaluations(v []*Evaluation) *PutEvaluationsInp
 // SetResultToken sets the ResultToken field's value.
 func (s *PutEvaluationsInput) SetResultToken(v string) *PutEvaluationsInput {
 	s.ResultToken = &v
+	return s
+}
+
+// SetTestMode sets the TestMode field's value.
+func (s *PutEvaluationsInput) SetTestMode(v bool) *PutEvaluationsInput {
+	s.TestMode = &v
 	return s
 }
 

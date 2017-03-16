@@ -18,20 +18,20 @@ Basic Usage
 
 ```
 resource "alicloud_security_group" "group" {
-    name = "terraform-test-group"
-    description = "New security group"
+  name        = "terraform-test-group"
+  description = "New security group"
 }
 ```
 Basic usage for vpc
 
 ```
 resource "alicloud_security_group" "group" {
-    name = "new-group"
-    vpc_id = "${alicloud_vpc.vpc.id}"
+  name   = "new-group"
+  vpc_id = "${alicloud_vpc.vpc.id}"
 }
 
 resource "alicloud_vpc" "vpc" {
-    cidr_block = "10.1.0.0/21"
+  cidr_block = "10.1.0.0/21"
 }
 ```
 

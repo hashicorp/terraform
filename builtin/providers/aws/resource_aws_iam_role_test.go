@@ -91,7 +91,7 @@ func TestAccAWSRole_badJSON(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccAWSRoleConfig_badJson,
-				ExpectError: regexp.MustCompile(`"assume_role_policy" contains an invalid JSON:.*`),
+				ExpectError: regexp.MustCompile(`.*contains an invalid JSON:.*`),
 			},
 		},
 	})

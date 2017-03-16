@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
+	clistate "github.com/hashicorp/terraform/command/state"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -17,6 +20,19 @@ func (b *Local) opApply(
 	op *backend.Operation,
 	runningOp *backend.RunningOperation) {
 	log.Printf("[INFO] backend/local: starting Apply operation")
+
+	// If we have a nil module at this point, then set it to an empty tree
+	// to avoid any potential crashes.
+	if op.Plan == nil && op.Module == nil && !op.Destroy {
+		runningOp.Err = fmt.Errorf(strings.TrimSpace(applyErrNoConfig))
+		return
+	}
+
+	// If we have a nil module at this point, then set it to an empty tree
+	// to avoid any potential crashes.
+	if op.Module == nil {
+		op.Module = module.NewEmptyTree()
+	}
 
 	// Setup our count hook that keeps track of resource changes
 	countHook := new(CountHook)
@@ -35,22 +51,21 @@ func (b *Local) opApply(
 		return
 	}
 
-	// context acquired the state, and therefor the lock.
-	// Unlock it when the operation is complete
-	defer func() {
-		if s, ok := opState.(state.Locker); op.LockState && ok {
-			if err := s.Unlock(); err != nil {
-				runningOp.Err = multierror.Append(runningOp.Err,
-					errwrap.Wrapf("Error unlocking state:\n\n"+
-						"{{err}}\n\n"+
-						"The Terraform operation completed but there was an error unlocking the state.\n"+
-						"This may require unlocking the state manually with the `terraform unlock` command\n",
-						err,
-					),
-				)
-			}
+	if op.LockState {
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = op.Type.String()
+		lockID, err := clistate.Lock(opState, lockInfo, b.CLI, b.Colorize())
+		if err != nil {
+			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
+			return
 		}
-	}()
+
+		defer func() {
+			if err := clistate.Unlock(opState, lockID, b.CLI, b.Colorize()); err != nil {
+				runningOp.Err = multierror.Append(runningOp.Err, err)
+			}
+		}()
+	}
 
 	// Setup the state
 	runningOp.State = tfCtx.State()
@@ -165,3 +180,12 @@ func (b *Local) opApply(
 		}
 	}
 }
+
+const applyErrNoConfig = `
+No configuration files found!
+
+Apply requires configuration to be present. Applying without a configuration
+would mark everything for destruction, which is normally not what is desired.
+If you would like to destroy everything, please run 'terraform destroy' instead
+which does not require any configuration files.
+`

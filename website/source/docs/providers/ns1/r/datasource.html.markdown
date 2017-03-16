@@ -14,7 +14,7 @@ Provides a NS1 Data Source resource. This can be used to create, modify, and del
 
 ```
 resource "ns1_datasource" "example" {
-  name = "example"
+  name       = "example"
   sourcetype = "nsone_v1"
 }
 ```

@@ -14,7 +14,7 @@ Creates a security group.
 
 ```
 resource "cloudstack_security_group" "default" {
-  name = "allow_web"
+  name        = "allow_web"
   description = "Allow access to HTTP and HTTPS"
 }
 ```

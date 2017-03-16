@@ -170,16 +170,17 @@ func TestAccAWSDBInstanceNoSnapshot(t *testing.T) {
 
 func TestAccAWSDBInstanceSnapshot(t *testing.T) {
 	var snap rds.DBInstance
+	rInt := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		// testAccCheckAWSDBInstanceSnapshot verifies a database snapshot is
 		// created, and subequently deletes it
-		CheckDestroy: testAccCheckAWSDBInstanceSnapshot,
+		CheckDestroy: testAccCheckAWSDBInstanceSnapshot(rInt),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccSnapshotInstanceConfigWithSnapshot(),
+				Config: testAccSnapshotInstanceConfigWithSnapshot(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.snapshot", &snap),
 				),
@@ -434,87 +435,90 @@ func testAccCheckAWSDBInstanceReplicaAttributes(source, replica *rds.DBInstance)
 	}
 }
 
-func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).rdsconn
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "aws_db_instance" {
-			continue
-		}
-
-		var err error
-		resp, err := conn.DescribeDBInstances(
-			&rds.DescribeDBInstancesInput{
-				DBInstanceIdentifier: aws.String(rs.Primary.ID),
-			})
-
-		if err != nil {
-			newerr, _ := err.(awserr.Error)
-			if newerr.Code() != "DBInstanceNotFound" {
-				return err
+func testAccCheckAWSDBInstanceSnapshot(rInt int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "aws_db_instance" {
+				continue
 			}
 
-		} else {
-			if len(resp.DBInstances) != 0 &&
-				*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
-				return fmt.Errorf("DB Instance still exists")
-			}
-		}
+			awsClient := testAccProvider.Meta().(*AWSClient)
+			conn := awsClient.rdsconn
 
-		log.Printf("[INFO] Trying to locate the DBInstance Final Snapshot")
-		snapshot_identifier := "foobarbaz-test-terraform-final-snapshot-2"
-		_, snapErr := conn.DescribeDBSnapshots(
-			&rds.DescribeDBSnapshotsInput{
-				DBSnapshotIdentifier: aws.String(snapshot_identifier),
-			})
-
-		if snapErr != nil {
-			newerr, _ := snapErr.(awserr.Error)
-			if newerr.Code() == "DBSnapshotNotFound" {
-				return fmt.Errorf("Snapshot %s not found", snapshot_identifier)
-			}
-		} else { // snapshot was found,
-			// verify we have the tags copied to the snapshot
-			instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta().(*AWSClient).partition, testAccProvider.Meta().(*AWSClient).accountid, testAccProvider.Meta().(*AWSClient).region)
-			// tags have a different ARN, just swapping :db: for :snapshot:
-			tagsARN := strings.Replace(instanceARN, ":db:", ":snapshot:", 1)
-			if err != nil {
-				return fmt.Errorf("Error building ARN for tags check with ARN (%s): %s", tagsARN, err)
-			}
-			resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
-				ResourceName: aws.String(tagsARN),
-			})
-			if err != nil {
-				return fmt.Errorf("Error retrieving tags for ARN (%s): %s", tagsARN, err)
-			}
-
-			if resp.TagList == nil || len(resp.TagList) == 0 {
-				return fmt.Errorf("Tag list is nil or zero: %s", resp.TagList)
-			}
-
-			var found bool
-			for _, t := range resp.TagList {
-				if *t.Key == "Name" && *t.Value == "tf-tags-db" {
-					found = true
-				}
-			}
-			if !found {
-				return fmt.Errorf("Expected to find tag Name (%s), but wasn't found. Tags: %s", "tf-tags-db", resp.TagList)
-			}
-			// end tag search
-
-			log.Printf("[INFO] Deleting the Snapshot %s", snapshot_identifier)
-			_, snapDeleteErr := conn.DeleteDBSnapshot(
-				&rds.DeleteDBSnapshotInput{
+			var err error
+			log.Printf("[INFO] Trying to locate the DBInstance Final Snapshot")
+			snapshot_identifier := fmt.Sprintf("foobarbaz-test-terraform-final-snapshot-%d", rInt)
+			_, snapErr := conn.DescribeDBSnapshots(
+				&rds.DescribeDBSnapshotsInput{
 					DBSnapshotIdentifier: aws.String(snapshot_identifier),
 				})
-			if snapDeleteErr != nil {
-				return err
-			}
-		} // end snapshot was found
-	}
 
-	return nil
+			if snapErr != nil {
+				newerr, _ := snapErr.(awserr.Error)
+				if newerr.Code() == "DBSnapshotNotFound" {
+					return fmt.Errorf("Snapshot %s not found", snapshot_identifier)
+				}
+			} else { // snapshot was found,
+				// verify we have the tags copied to the snapshot
+				instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta().(*AWSClient).partition, testAccProvider.Meta().(*AWSClient).accountid, testAccProvider.Meta().(*AWSClient).region)
+				// tags have a different ARN, just swapping :db: for :snapshot:
+				tagsARN := strings.Replace(instanceARN, ":db:", ":snapshot:", 1)
+				if err != nil {
+					return fmt.Errorf("Error building ARN for tags check with ARN (%s): %s", tagsARN, err)
+				}
+				resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
+					ResourceName: aws.String(tagsARN),
+				})
+				if err != nil {
+					return fmt.Errorf("Error retrieving tags for ARN (%s): %s", tagsARN, err)
+				}
+
+				if resp.TagList == nil || len(resp.TagList) == 0 {
+					return fmt.Errorf("Tag list is nil or zero: %s", resp.TagList)
+				}
+
+				var found bool
+				for _, t := range resp.TagList {
+					if *t.Key == "Name" && *t.Value == "tf-tags-db" {
+						found = true
+					}
+				}
+				if !found {
+					return fmt.Errorf("Expected to find tag Name (%s), but wasn't found. Tags: %s", "tf-tags-db", resp.TagList)
+				}
+				// end tag search
+
+				log.Printf("[INFO] Deleting the Snapshot %s", snapshot_identifier)
+				_, snapDeleteErr := conn.DeleteDBSnapshot(
+					&rds.DeleteDBSnapshotInput{
+						DBSnapshotIdentifier: aws.String(snapshot_identifier),
+					})
+				if snapDeleteErr != nil {
+					return err
+				}
+			} // end snapshot was found
+
+			resp, err := conn.DescribeDBInstances(
+				&rds.DescribeDBInstancesInput{
+					DBInstanceIdentifier: aws.String(rs.Primary.ID),
+				})
+
+			if err != nil {
+				newerr, _ := err.(awserr.Error)
+				if newerr.Code() != "DBInstanceNotFound" {
+					return err
+				}
+
+			} else {
+				if len(resp.DBInstances) != 0 &&
+					*resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
+					return fmt.Errorf("DB Instance still exists")
+				}
+			}
+		}
+
+		return nil
+	}
 }
 
 func testAccCheckAWSDBInstanceNoSnapshot(s *terraform.State) error {
@@ -618,6 +622,10 @@ resource "aws_db_instance" "bar" {
 	backup_retention_period = 0
 
 	parameter_group_name = "default.mysql5.6"
+
+	timeouts {
+		create = "30m"
+	}
 }`
 
 var testAccAWSDBInstanceConfigKmsKeyId = `
@@ -758,7 +766,7 @@ resource "aws_db_instance" "snapshot" {
 }`, acctest.RandInt())
 }
 
-func testAccSnapshotInstanceConfigWithSnapshot() string {
+func testAccSnapshotInstanceConfigWithSnapshot(rInt int) string {
 	return fmt.Sprintf(`
 provider "aws" {
   region = "us-east-1"
@@ -780,12 +788,12 @@ resource "aws_db_instance" "snapshot" {
 	parameter_group_name = "default.mysql5.6"
 
 	copy_tags_to_snapshot = true
-	final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-2"
+	final_snapshot_identifier = "foobarbaz-test-terraform-final-snapshot-%d"
 	tags {
 		Name = "tf-tags-db"
 	}
 }
-`, acctest.RandInt())
+`, rInt, rInt)
 }
 
 func testAccSnapshotInstanceConfig_enhancedMonitoring(rName string) string {

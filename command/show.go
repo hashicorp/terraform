@@ -74,8 +74,10 @@ func (c *ShowCommand) Run(args []string) int {
 			return 1
 		}
 
+		env := c.Env()
+
 		// Get the state
-		stateStore, err := b.State()
+		stateStore, err := b.State(env)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 			return 1

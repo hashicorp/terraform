@@ -96,8 +96,10 @@ func (n *NodeAbstractResource) References() []string {
 		result = append(result, ReferencesFromConfig(c.RawCount)...)
 		result = append(result, ReferencesFromConfig(c.RawConfig)...)
 		for _, p := range c.Provisioners {
-			result = append(result, ReferencesFromConfig(p.ConnInfo)...)
-			result = append(result, ReferencesFromConfig(p.RawConfig)...)
+			if p.When == config.ProvisionerWhenCreate {
+				result = append(result, ReferencesFromConfig(p.ConnInfo)...)
+				result = append(result, ReferencesFromConfig(p.RawConfig)...)
+			}
 		}
 
 		return result

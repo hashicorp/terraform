@@ -2,6 +2,7 @@ package fastly
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -106,6 +107,26 @@ func TestAccFastlyServiceV1_gzips_basic(t *testing.T) {
 	name := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 	domainName1 := fmt.Sprintf("%s.notadomain.com", acctest.RandString(10))
 
+	log1 := gofastly.Gzip{
+		Version:        "1",
+		Name:           "gzip file types",
+		Extensions:     "js css",
+		CacheCondition: "testing_condition",
+	}
+
+	log2 := gofastly.Gzip{
+		Version:      "1",
+		Name:         "gzip extensions",
+		ContentTypes: "text/css text/html",
+	}
+
+	log3 := gofastly.Gzip{
+		Version:      "1",
+		Name:         "all",
+		Extensions:   "js html css",
+		ContentTypes: "text/javascript application/x-javascript application/javascript text/css text/html",
+	}
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -115,19 +136,11 @@ func TestAccFastlyServiceV1_gzips_basic(t *testing.T) {
 				Config: testAccServiceV1GzipsConfig(name, domainName1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
-					testAccCheckFastlyServiceV1GzipsAttributes(&service, name, 2),
+					testAccCheckFastlyServiceV1GzipsAttributes(&service, []*gofastly.Gzip{&log1, &log2}),
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "name", name),
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "gzip.#", "2"),
-					resource.TestCheckResourceAttr(
-						"fastly_service_v1.foo", "gzip.3704620722.extensions.#", "2"),
-					resource.TestCheckResourceAttr(
-						"fastly_service_v1.foo", "gzip.3704620722.content_types.#", "0"),
-					resource.TestCheckResourceAttr(
-						"fastly_service_v1.foo", "gzip.3820313126.content_types.#", "2"),
-					resource.TestCheckResourceAttr(
-						"fastly_service_v1.foo", "gzip.3820313126.extensions.#", "0"),
 				),
 			},
 
@@ -135,27 +148,19 @@ func TestAccFastlyServiceV1_gzips_basic(t *testing.T) {
 				Config: testAccServiceV1GzipsConfig_update(name, domainName1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
-					testAccCheckFastlyServiceV1GzipsAttributes(&service, name, 1),
+					testAccCheckFastlyServiceV1GzipsAttributes(&service, []*gofastly.Gzip{&log3}),
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "name", name),
 					resource.TestCheckResourceAttr(
 						"fastly_service_v1.foo", "gzip.#", "1"),
-					resource.TestCheckResourceAttr(
-						"fastly_service_v1.foo", "gzip.3694165387.extensions.#", "3"),
-					resource.TestCheckResourceAttr(
-						"fastly_service_v1.foo", "gzip.3694165387.content_types.#", "5"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckFastlyServiceV1GzipsAttributes(service *gofastly.ServiceDetail, name string, gzipCount int) resource.TestCheckFunc {
+func testAccCheckFastlyServiceV1GzipsAttributes(service *gofastly.ServiceDetail, gzips []*gofastly.Gzip) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-
-		if service.Name != name {
-			return fmt.Errorf("Bad name, expected (%s), got (%s)", name, service.Name)
-		}
 
 		conn := testAccProvider.Meta().(*FastlyClient).conn
 		gzipsList, err := conn.ListGzips(&gofastly.ListGzipsInput{
@@ -167,8 +172,27 @@ func testAccCheckFastlyServiceV1GzipsAttributes(service *gofastly.ServiceDetail,
 			return fmt.Errorf("[ERR] Error looking up Gzips for (%s), version (%s): %s", service.Name, service.ActiveVersion.Number, err)
 		}
 
-		if len(gzipsList) != gzipCount {
-			return fmt.Errorf("Gzip count mismatch, expected (%d), got (%d)", gzipCount, len(gzipsList))
+		if len(gzipsList) != len(gzips) {
+			return fmt.Errorf("Gzip count mismatch, expected (%d), got (%d)", len(gzips), len(gzipsList))
+		}
+
+		var found int
+		for _, g := range gzips {
+			for _, lg := range gzipsList {
+				if g.Name == lg.Name {
+					// we don't know these things ahead of time, so populate them now
+					g.ServiceID = service.ID
+					g.Version = service.ActiveVersion.Number
+					if !reflect.DeepEqual(g, lg) {
+						return fmt.Errorf("Bad match Gzip match, expected (%#v), got (%#v)", g, lg)
+					}
+					found++
+				}
+			}
+		}
+
+		if found != len(gzips) {
+			return fmt.Errorf("Error matching Gzip rules")
 		}
 
 		return nil
@@ -190,9 +214,17 @@ resource "fastly_service_v1" "foo" {
     name    = "amazon docs"
   }
 
+	condition {
+    name      = "testing_condition"
+    type      = "CACHE"
+    priority  = 10
+    statement = "req.url ~ \"^/articles/\""
+  }
+
   gzip {
-    name       = "gzip file types"
-    extensions = ["css", "js"]
+    name       			= "gzip file types"
+    extensions 			= ["css", "js"]
+		cache_condition = "testing_condition"
   }
 
   gzip {

@@ -9,7 +9,7 @@ import (
 
 func TestIngnitionDisk(t *testing.T) {
 	testIgnition(t, `
-		resource "ignition_disk" "foo" {
+		data "ignition_disk" "foo" {
 			device = "/foo"
 			partition {
 				label = "qux"
@@ -18,10 +18,10 @@ func TestIngnitionDisk(t *testing.T) {
 				type_guid = "01234567-89AB-CDEF-EDCB-A98765432101"
 			}
 		}
-		
-		resource "ignition_config" "test" {
+
+		data "ignition_config" "test" {
 			disks = [
-				"${ignition_disk.foo.id}",
+				"${data.ignition_disk.foo.id}",
 			]
 		}
 	`, func(c *types.Config) error {
@@ -53,6 +53,29 @@ func TestIngnitionDisk(t *testing.T) {
 
 		if p.TypeGUID != "01234567-89AB-CDEF-EDCB-A98765432101" {
 			return fmt.Errorf("parition.0.type_guid, found %q", p.TypeGUID)
+		}
+
+		return nil
+	})
+}
+
+func TestIngnitionDiskResource(t *testing.T) {
+	testIgnition(t, `
+		resource "ignition_disk" "foo" {
+			device = "/foo"
+			partition {
+				label = "qux"
+			}
+		}
+
+		data "ignition_config" "test" {
+			disks = [
+				"${ignition_disk.foo.id}",
+			]
+		}
+	`, func(c *types.Config) error {
+		if len(c.Storage.Disks) != 1 {
+			return fmt.Errorf("disks, found %d", len(c.Storage.Disks))
 		}
 
 		return nil

@@ -450,7 +450,7 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 	if err := setTagsS3(s3conn, d); err != nil {
-		return err
+		return fmt.Errorf("%q: %s", d.Get("bucket").(string), err)
 	}
 
 	if d.HasChange("policy") {
@@ -980,7 +980,7 @@ func resourceAwsS3BucketDelete(d *schema.ResourceData, meta interface{}) error {
 				return resourceAwsS3BucketDelete(d, meta)
 			}
 		}
-		return fmt.Errorf("Error deleting S3 Bucket: %s", err)
+		return fmt.Errorf("Error deleting S3 Bucket: %s %q", err, d.Get("bucket").(string))
 	}
 	return nil
 }

@@ -45,6 +45,7 @@ func TestApply_destroy(t *testing.T) {
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
+		t.Log(ui.OutputWriter.String())
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
@@ -139,7 +140,7 @@ func TestApply_destroyLockedState(t *testing.T) {
 	}
 
 	output := ui.ErrorWriter.String()
-	if !strings.Contains(output, "locked") {
+	if !strings.Contains(output, "lock") {
 		t.Fatal("command output does not look like a lock error:", output)
 	}
 }

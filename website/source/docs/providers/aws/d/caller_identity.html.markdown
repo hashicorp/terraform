@@ -19,7 +19,7 @@ cases, the data source will return an error.
 ## Example Usage
 
 ```
-data "aws_caller_identity" "current" { }
+data "aws_caller_identity" "current" {}
 
 output "account_id" {
   value = "${data.aws_caller_identity.current.account_id}"
@@ -32,4 +32,4 @@ There are no arguments available for this data source.
 
 ## Attributes Reference
 
-`account_id` is set to the ID of the AWS account. 
+`account_id` is set to the ID of the AWS account.

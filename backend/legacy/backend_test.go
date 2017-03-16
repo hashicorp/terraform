@@ -34,7 +34,7 @@ func TestBackend(t *testing.T) {
 	}
 
 	// Grab state
-	s, err := b.State()
+	s, err := b.State(backend.DefaultStateName)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

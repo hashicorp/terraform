@@ -26,7 +26,7 @@ To make a resource importable, please see the
 ### AWS
 
 * aws_api_gateway_account
-* aws_api_gateway_key
+* aws_api_gateway_api_key
 * aws_autoscaling_group
 * aws_cloudfront_distribution
 * aws_cloudfront_origin_access_identity
@@ -118,6 +118,11 @@ To make a resource importable, please see the
 * azurerm_sql_firewall_rule
 * azurerm_storage_account
 * azurerm_virtual_network
+
+### Circonus
+
+* circonus_check
+* circonus_contact_group
 
 ### DigitalOcean
 

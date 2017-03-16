@@ -38,20 +38,21 @@ Now, take that output and add it to your resource definitions.
 
 ```
 data "aws_kms_secret" "db" {
-    secret {
-        name = "master_password"
-        payload = "AQECAHgaPa0J8WadplGCqqVAr4HNvDaFSQ+NaiwIBhmm6qDSFwAAAGIwYAYJKoZIhvcNAQcGoFMwUQIBADBMBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDI+LoLdvYv8l41OhAAIBEIAfx49FFJCLeYrkfMfAw6XlnxP23MmDBdqP8dPp28OoAQ=="
+  secret {
+    name    = "master_password"
+    payload = "AQECAHgaPa0J8WadplGCqqVAr4HNvDaFSQ+NaiwIBhmm6qDSFwAAAGIwYAYJKoZIhvcNAQcGoFMwUQIBADBMBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDI+LoLdvYv8l41OhAAIBEIAfx49FFJCLeYrkfMfAw6XlnxP23MmDBdqP8dPp28OoAQ=="
 
-        context {
-            foo = "bar"
-        }
+    context {
+      foo = "bar"
     }
+  }
 }
 
 resource "aws_rds_cluster" "rds" {
-    master_username = "root"
-    master_password = "${data.aws_kms_secret.db.master_password}"
-    ...
+  master_username = "root"
+  master_password = "${data.aws_kms_secret.db.master_password}"
+
+  # ...
 }
 ```
 

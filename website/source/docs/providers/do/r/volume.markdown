@@ -14,18 +14,18 @@ Provides a DigitalOcean Block Storage volume which can be attached to a Droplet 
 
 ```
 resource "digitalocean_volume" "foobar" {
-    region      = "nyc1"
-    name        = "baz"
-    size        = 100
-    description = "an example volume"
+  region      = "nyc1"
+  name        = "baz"
+  size        = 100
+  description = "an example volume"
 }
 
 resource "digitalocean_droplet" "foobar" {
-    name       = "baz"
-    size       = "1gb"
-    image      = "coreos-stable"
-    region     = "nyc1"
-    volume_ids = ["${digitalocean_volume.foobar.id}"]
+  name       = "baz"
+  size       = "1gb"
+  image      = "coreos-stable"
+  region     = "nyc1"
+  volume_ids = ["${digitalocean_volume.foobar.id}"]
 }
 ```
 
@@ -47,7 +47,7 @@ The following attributes are exported:
 
 ## Import
 
-Volumes can be imported using the `volume id`, e.g. 
+Volumes can be imported using the `volume id`, e.g.
 
 ```
 terraform import digitalocean_volume.volumea 506f78a4-e098-11e5-ad9f-000f53306ae1

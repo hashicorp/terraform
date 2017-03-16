@@ -28,23 +28,25 @@ Add the below to a file called `arukas.tf` and run the `terraform` command from 
 
 ```hcl
 provider "arukas" {
-    token = ""
-    secret = ""
+  token  = ""
+  secret = ""
 }
 
 resource "arukas_container" "foobar" {
-    name = "terraform_for_arukas_test_foobar"
-    image = "nginx:latest"
-    instances = 1
-    memory = 256
-    ports = {
-        protocol = "tcp"
-        number = "80"
-    }
-    environments {
-        key = "key1"
-        value = "value1"
-    }
+  name      = "terraform_for_arukas_test_foobar"
+  image     = "nginx:latest"
+  instances = 1
+  memory    = 256
+
+  ports = {
+    protocol = "tcp"
+    number   = "80"
+  }
+
+  environments {
+    key   = "key1"
+    value = "value1"
+  }
 }
 ```
 

@@ -80,7 +80,7 @@ func resourceNetworkingPortV2() *schema.Resource {
 				Computed: true,
 			},
 			"fixed_ip": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: false,
 				Computed: true,
@@ -304,7 +304,7 @@ func resourcePortSecurityGroupsV2(d *schema.ResourceData) []string {
 }
 
 func resourcePortFixedIpsV2(d *schema.ResourceData) interface{} {
-	rawIP := d.Get("fixed_ip").([]interface{})
+	rawIP := d.Get("fixed_ip").(*schema.Set).List()
 
 	if len(rawIP) == 0 {
 		return nil

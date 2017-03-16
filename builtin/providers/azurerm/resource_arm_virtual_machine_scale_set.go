@@ -19,7 +19,7 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 		Delete: resourceArmVirtualMachineScaleSetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -27,30 +27,30 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 
 			"location": locationSchema(),
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"sku": &schema.Schema{
+			"sku": {
 				Type:     schema.TypeSet,
 				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"tier": &schema.Schema{
+						"tier": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"capacity": &schema.Schema{
+						"capacity": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
@@ -59,66 +59,68 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Set: resourceArmVirtualMachineScaleSetSkuHash,
 			},
 
-			"upgrade_policy_mode": &schema.Schema{
+			"upgrade_policy_mode": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"overprovision": &schema.Schema{
+			"overprovision": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"os_profile": &schema.Schema{
+			"os_profile": {
 				Type:     schema.TypeSet,
 				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"computer_name_prefix": &schema.Schema{
+						"computer_name_prefix": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"admin_username": &schema.Schema{
+						"admin_username": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"admin_password": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+						"admin_password": {
+							Type:      schema.TypeString,
+							Required:  true,
+							Sensitive: true,
 						},
 
-						"custom_data": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
+						"custom_data": {
+							Type:      schema.TypeString,
+							Optional:  true,
+							StateFunc: userDataStateFunc,
 						},
 					},
 				},
 				Set: resourceArmVirtualMachineScaleSetsOsProfileHash,
 			},
 
-			"os_profile_secrets": &schema.Schema{
+			"os_profile_secrets": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"source_vault_id": &schema.Schema{
+						"source_vault_id": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"vault_certificates": &schema.Schema{
+						"vault_certificates": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"certificate_url": &schema.Schema{
+									"certificate_url": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"certificate_store": &schema.Schema{
+									"certificate_store": {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
@@ -129,54 +131,54 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				},
 			},
 
-			"os_profile_windows_config": &schema.Schema{
+			"os_profile_windows_config": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"provision_vm_agent": &schema.Schema{
+						"provision_vm_agent": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
-						"enable_automatic_upgrades": &schema.Schema{
+						"enable_automatic_upgrades": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
-						"winrm": &schema.Schema{
+						"winrm": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"protocol": &schema.Schema{
+									"protocol": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"certificate_url": &schema.Schema{
+									"certificate_url": {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
 								},
 							},
 						},
-						"additional_unattend_config": &schema.Schema{
+						"additional_unattend_config": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"pass": &schema.Schema{
+									"pass": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"component": &schema.Schema{
+									"component": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"setting_name": &schema.Schema{
+									"setting_name": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"content": &schema.Schema{
+									"content": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
@@ -188,29 +190,29 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Set: resourceArmVirtualMachineScaleSetOsProfileLWindowsConfigHash,
 			},
 
-			"os_profile_linux_config": &schema.Schema{
+			"os_profile_linux_config": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"disable_password_authentication": &schema.Schema{
+						"disable_password_authentication": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
 							ForceNew: true,
 						},
-						"ssh_keys": &schema.Schema{
+						"ssh_keys": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"path": &schema.Schema{
+									"path": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"key_data": &schema.Schema{
+									"key_data": {
 										Type:     schema.TypeString,
 										Optional: true,
 									},
@@ -222,37 +224,37 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Set: resourceArmVirtualMachineScaleSetOsProfileLinuxConfigHash,
 			},
 
-			"network_profile": &schema.Schema{
+			"network_profile": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"primary": &schema.Schema{
+						"primary": {
 							Type:     schema.TypeBool,
 							Required: true,
 						},
 
-						"ip_configuration": &schema.Schema{
+						"ip_configuration": {
 							Type:     schema.TypeList,
 							Required: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"name": &schema.Schema{
+									"name": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
 
-									"subnet_id": &schema.Schema{
+									"subnet_id": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
 
-									"load_balancer_backend_address_pool_ids": &schema.Schema{
+									"load_balancer_backend_address_pool_ids": {
 										Type:     schema.TypeSet,
 										Optional: true,
 										Elem:     &schema.Schema{Type: schema.TypeString},
@@ -266,40 +268,40 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Set: resourceArmVirtualMachineScaleSetNetworkConfigurationHash,
 			},
 
-			"storage_profile_os_disk": &schema.Schema{
+			"storage_profile_os_disk": {
 				Type:     schema.TypeSet,
 				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"image": &schema.Schema{
+						"image": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"vhd_containers": &schema.Schema{
+						"vhd_containers": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
 
-						"caching": &schema.Schema{
+						"caching": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"os_type": &schema.Schema{
+						"os_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"create_option": &schema.Schema{
+						"create_option": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -308,35 +310,84 @@ func resourceArmVirtualMachineScaleSet() *schema.Resource {
 				Set: resourceArmVirtualMachineScaleSetStorageProfileOsDiskHash,
 			},
 
-			"storage_profile_image_reference": &schema.Schema{
+			"storage_profile_image_reference": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"publisher": &schema.Schema{
+						"publisher": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"offer": &schema.Schema{
+						"offer": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"sku": &schema.Schema{
+						"sku": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"version": &schema.Schema{
+						"version": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 					},
 				},
 				Set: resourceArmVirtualMachineScaleSetStorageProfileImageReferenceHash,
+			},
+
+			"extension": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"publisher": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"type": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"type_handler_version": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"auto_upgrade_minor_version": {
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+
+						"settings": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							ValidateFunc:     validateJsonString,
+							DiffSuppressFunc: suppressDiffVirtualMachineExtensionSettings,
+						},
+
+						"protected_settings": {
+							Type:             schema.TypeString,
+							Optional:         true,
+							Sensitive:        true,
+							ValidateFunc:     validateJsonString,
+							DiffSuppressFunc: suppressDiffVirtualMachineExtensionSettings,
+						},
+					},
+				},
+				Set: resourceArmVirtualMachineScaleSetExtensionHash,
 			},
 
 			"tags": tagsSchema(),
@@ -379,6 +430,11 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 		return err
 	}
 
+	extensions, err := expandAzureRMVirtualMachineScaleSetExtensions(d)
+	if err != nil {
+		return err
+	}
+
 	updatePolicy := d.Get("upgrade_policy_mode").(string)
 	overprovision := d.Get("overprovision").(bool)
 	scaleSetProps := compute.VirtualMachineScaleSetProperties{
@@ -386,9 +442,10 @@ func resourceArmVirtualMachineScaleSetCreate(d *schema.ResourceData, meta interf
 			Mode: compute.UpgradeMode(updatePolicy),
 		},
 		VirtualMachineProfile: &compute.VirtualMachineScaleSetVMProfile{
-			NetworkProfile: expandAzureRmVirtualMachineScaleSetNetworkProfile(d),
-			StorageProfile: &storageProfile,
-			OsProfile:      osProfile,
+			NetworkProfile:   expandAzureRmVirtualMachineScaleSetNetworkProfile(d),
+			StorageProfile:   &storageProfile,
+			OsProfile:        osProfile,
+			ExtensionProfile: extensions,
 		},
 		Overprovision: &overprovision,
 	}
@@ -484,6 +541,14 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 
 	if err := d.Set("storage_profile_os_disk", flattenAzureRmVirtualMachineScaleSetStorageProfileOSDisk(properties.VirtualMachineProfile.StorageProfile.OsDisk)); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set Storage Profile OS Disk error: %#v", err)
+	}
+
+	if properties.VirtualMachineProfile.ExtensionProfile != nil {
+		extension, err := flattenAzureRmVirtualMachineScaleSetExtensionProfile(properties.VirtualMachineProfile.ExtensionProfile)
+		if err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Scale Set Extension Profile error: %#v", err)
+		}
+		d.Set("extension", extension)
 	}
 
 	flattenAndSetTags(d, resp.Tags)
@@ -700,6 +765,39 @@ func flattenAzureRmVirtualMachineScaleSetSku(sku *compute.Sku) []interface{} {
 	return []interface{}{result}
 }
 
+func flattenAzureRmVirtualMachineScaleSetExtensionProfile(profile *compute.VirtualMachineScaleSetExtensionProfile) ([]map[string]interface{}, error) {
+	if profile.Extensions == nil {
+		return nil, nil
+	}
+
+	result := make([]map[string]interface{}, 0, len(*profile.Extensions))
+	for _, extension := range *profile.Extensions {
+		e := make(map[string]interface{})
+		e["name"] = *extension.Name
+		properties := extension.VirtualMachineScaleSetExtensionProperties
+		if properties != nil {
+			e["publisher"] = *properties.Publisher
+			e["type"] = *properties.Type
+			e["type_handler_version"] = *properties.TypeHandlerVersion
+			if properties.AutoUpgradeMinorVersion != nil {
+				e["auto_upgrade_minor_version"] = *properties.AutoUpgradeMinorVersion
+			}
+
+			if properties.Settings != nil {
+				settings, err := flattenArmVirtualMachineExtensionSettings(*properties.Settings)
+				if err != nil {
+					return nil, err
+				}
+				e["settings"] = settings
+			}
+		}
+
+		result = append(result, e)
+	}
+
+	return result, nil
+}
+
 func resourceArmVirtualMachineScaleSetStorageProfileImageReferenceHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
@@ -771,6 +869,20 @@ func resourceArmVirtualMachineScaleSetOsProfileLWindowsConfigHash(v interface{})
 	if m["enable_automatic_upgrades"] != nil {
 		buf.WriteString(fmt.Sprintf("%t-", m["enable_automatic_upgrades"].(bool)))
 	}
+	return hashcode.String(buf.String())
+}
+
+func resourceArmVirtualMachineScaleSetExtensionHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["publisher"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["type"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["type_handler_version"].(string)))
+	if m["auto_upgrade_minor_version"] != nil {
+		buf.WriteString(fmt.Sprintf("%t-", m["auto_upgrade_minor_version"].(bool)))
+	}
+
 	return hashcode.String(buf.String())
 }
 
@@ -871,6 +983,7 @@ func expandAzureRMVirtualMachineScaleSetsOsProfile(d *schema.ResourceData) (*com
 	}
 
 	if customData != "" {
+		customData = base64Encode(customData)
 		osProfile.CustomData = &customData
 	}
 
@@ -1087,4 +1200,52 @@ func expandAzureRmVirtualMachineScaleSetOsProfileSecrets(d *schema.ResourceData)
 	}
 
 	return &secrets
+}
+
+func expandAzureRMVirtualMachineScaleSetExtensions(d *schema.ResourceData) (*compute.VirtualMachineScaleSetExtensionProfile, error) {
+	extensions := d.Get("extension").(*schema.Set).List()
+	resources := make([]compute.VirtualMachineScaleSetExtension, 0, len(extensions))
+	for _, e := range extensions {
+		config := e.(map[string]interface{})
+		name := config["name"].(string)
+		publisher := config["publisher"].(string)
+		t := config["type"].(string)
+		version := config["type_handler_version"].(string)
+
+		extension := compute.VirtualMachineScaleSetExtension{
+			Name: &name,
+			VirtualMachineScaleSetExtensionProperties: &compute.VirtualMachineScaleSetExtensionProperties{
+				Publisher:          &publisher,
+				Type:               &t,
+				TypeHandlerVersion: &version,
+			},
+		}
+
+		if u := config["auto_upgrade_minor_version"]; u != nil {
+			upgrade := u.(bool)
+			extension.VirtualMachineScaleSetExtensionProperties.AutoUpgradeMinorVersion = &upgrade
+		}
+
+		if s := config["settings"].(string); s != "" {
+			settings, err := expandArmVirtualMachineExtensionSettings(s)
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse settings: %s", err)
+			}
+			extension.VirtualMachineScaleSetExtensionProperties.Settings = &settings
+		}
+
+		if s := config["protected_settings"].(string); s != "" {
+			protectedSettings, err := expandArmVirtualMachineExtensionSettings(s)
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse protected_settings: %s", err)
+			}
+			extension.VirtualMachineScaleSetExtensionProperties.ProtectedSettings = &protectedSettings
+		}
+
+		resources = append(resources, extension)
+	}
+
+	return &compute.VirtualMachineScaleSetExtensionProfile{
+		Extensions: &resources,
+	}, nil
 }

@@ -18,22 +18,22 @@ The provider configuration block accepts the following arguments:
 
 * ``apikey`` - (Required) The API auth token to use when making requests. May alternatively
   be set via the ``STATUSCAKE_APIKEY`` environment variable.
-  
+
 Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
 ```
 provider "statuscake" {
-    username = "testuser"
-    apikey = "12345ddfnakn"
+  username = "testuser"
+  apikey   = "12345ddfnakn"
 }
 
 resource "statuscake_test" "google" {
-    website_name = "google.com"
-    website_url = "www.google.com"
-    test_type = "HTTP"
-    check_rate = 300
-    contact_id = 12345
+  website_name = "google.com"
+  website_url  = "www.google.com"
+  test_type    = "HTTP"
+  check_rate   = 300
+  contact_id   = 12345
 }
 ```

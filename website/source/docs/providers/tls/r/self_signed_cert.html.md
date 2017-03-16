@@ -99,6 +99,7 @@ both [Key Usage](https://tools.ietf.org/html/rfc5280#section-4.2.1.3) and
 * `data_encipherment`
 * `key_agreement`
 * `cert_signing`
+* `crl_signing`
 * `encipher_only`
 * `decipher_only`
 * `any_extended`

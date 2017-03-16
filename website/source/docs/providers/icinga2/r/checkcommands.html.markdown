@@ -16,13 +16,14 @@ and deleted.
 ```
 # Configure a new checkcommand on an Icinga2 Server, that can be used to monitor hosts and/or services
 provider "icinga2" {
-  api_url=https://192.168.33.5:5665/v1
+  api_url = "https://192.168.33.5:5665/v1"
 }
 
 resource "icinga2_checkcommand" "apache_status" {
   name      = "apache_status"
-  templates = [ "apache-status","plugin-check-command","plugin-check-command","ipv4-or-ipv6" ]
-  command = "/usr/lib64/nagios/plugins/check_apache_status.pl"
+  templates = ["apache-status", "plugin-check-command", "plugin-check-command", "ipv4-or-ipv6"]
+  command   = "/usr/lib64/nagios/plugins/check_apache_status.pl"
+
   arguments = {
     "-H" = "$apache_status_address$"
     "-c" = "$apache_status_critical$"

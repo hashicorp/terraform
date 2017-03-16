@@ -15,8 +15,8 @@ Provides a Inspector assessment template
 ```
 resource "aws_inspector_resource_group" "bar" {
   tags {
-    Name  = "foo"
-    Env = "bar"
+    Name = "foo"
+    Env  = "bar"
   }
 }
 ```

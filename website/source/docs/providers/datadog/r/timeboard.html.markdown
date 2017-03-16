@@ -15,29 +15,32 @@ Provides a Datadog timeboard resource. This can be used to create and manage Dat
 ```
 # Create a new Datadog timeboard
 resource "datadog_timeboard" "redis" {
-
-  title = "Redis Timeboard (created via Terraform)"
+  title       = "Redis Timeboard (created via Terraform)"
   description = "created using the Datadog provider in Terraform"
-  read_only = true
+  read_only   = true
 
   graph {
     title = "Redis latency (ms)"
-    viz = "timeseries"
+    viz   = "timeseries"
+
     request {
-      q = "avg:redis.info.latency_ms{$host}"
+      q    = "avg:redis.info.latency_ms{$host}"
       type = "bars"
     }
   }
 
   graph {
     title = "Redis memory usage"
-    viz = "timeseries"
+    viz   = "timeseries"
+
     request {
-      q = "avg:redis.mem.used{$host} - avg:redis.mem.lua{$host}, avg:redis.mem.lua{$host}"
+      q       = "avg:redis.mem.used{$host} - avg:redis.mem.lua{$host}, avg:redis.mem.lua{$host}"
       stacked = true
     }
+
     request {
       q = "avg:redis.mem.rss{$host}"
+
       style {
         palette = "warm"
       }
@@ -46,14 +49,15 @@ resource "datadog_timeboard" "redis" {
 
   graph {
     title = "Top System CPU by Docker container"
-    viz = "toplist"
+    viz   = "toplist"
+
     request {
       q = "top(avg:docker.cpu.system{*} by {container_name}, 10, 'mean', 'desc')"
     }
   }
 
   template_variable {
-    name = "host"
+    name   = "host"
     prefix = "host"
   }
 }

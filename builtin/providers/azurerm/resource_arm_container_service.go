@@ -328,8 +328,8 @@ func resourceArmContainerServiceDelete(d *schema.ResourceData, meta interface{})
 
 }
 
-func flattenAzureRmContainerServiceMasterProfile(profile containerservice.MasterProfile) schema.Set {
-	masterProfiles := schema.Set{
+func flattenAzureRmContainerServiceMasterProfile(profile containerservice.MasterProfile) *schema.Set {
+	masterProfiles := &schema.Set{
 		F: resourceAzureRMContainerServiceMasterProfileHash,
 	}
 
@@ -343,14 +343,14 @@ func flattenAzureRmContainerServiceMasterProfile(profile containerservice.Master
 	return masterProfiles
 }
 
-func flattenAzureRmContainerServiceLinuxProfile(profile containerservice.LinuxProfile) schema.Set {
-	profiles := schema.Set{
+func flattenAzureRmContainerServiceLinuxProfile(profile containerservice.LinuxProfile) *schema.Set {
+	profiles := &schema.Set{
 		F: resourceAzureRMContainerServiceLinuxProfilesHash,
 	}
 
 	values := map[string]interface{}{}
 
-	sshKeys := schema.Set{
+	sshKeys := &schema.Set{
 		F: resourceAzureRMContainerServiceLinuxProfilesSSHKeysHash,
 	}
 	for _, ssh := range *profile.SSH.PublicKeys {
@@ -360,14 +360,14 @@ func flattenAzureRmContainerServiceLinuxProfile(profile containerservice.LinuxPr
 	}
 
 	values["admin_username"] = *profile.AdminUsername
-	values["ssh_key"] = &sshKeys
+	values["ssh_key"] = sshKeys
 	profiles.Add(values)
 
 	return profiles
 }
 
-func flattenAzureRmContainerServiceAgentPoolProfiles(profiles *[]containerservice.AgentPoolProfile) schema.Set {
-	agentPoolProfiles := schema.Set{
+func flattenAzureRmContainerServiceAgentPoolProfiles(profiles *[]containerservice.AgentPoolProfile) *schema.Set {
+	agentPoolProfiles := &schema.Set{
 		F: resourceAzureRMContainerServiceAgentPoolProfilesHash,
 	}
 

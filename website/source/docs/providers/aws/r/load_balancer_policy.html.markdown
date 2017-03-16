@@ -14,14 +14,14 @@ Provides a load balancer policy, which can be attached to an ELB listener or bac
 
 ```
 resource "aws_elb" "wu-tang" {
-  name = "wu-tang"
+  name               = "wu-tang"
   availability_zones = ["us-east-1a"]
 
   listener {
-    instance_port = 443
-    instance_protocol = "http"
-    lb_port = 443
-    lb_protocol = "https"
+    instance_port      = 443
+    instance_protocol  = "http"
+    lb_port            = 443
+    lb_protocol        = "https"
     ssl_certificate_id = "arn:aws:iam::000000000000:server-certificate/wu-tang.net"
   }
 
@@ -32,51 +32,57 @@ resource "aws_elb" "wu-tang" {
 
 resource "aws_load_balancer_policy" "wu-tang-ca-pubkey-policy" {
   load_balancer_name = "${aws_elb.wu-tang.name}"
-  policy_name = "wu-tang-ca-pubkey-policy"
-  policy_type_name = "PublicKeyPolicyType"
+  policy_name        = "wu-tang-ca-pubkey-policy"
+  policy_type_name   = "PublicKeyPolicyType"
+
   policy_attribute = {
-    name = "PublicKey"
-	    value = "${file("wu-tang-pubkey")}"
+    name  = "PublicKey"
+    value = "${file("wu-tang-pubkey")}"
   }
 }
 
 resource "aws_load_balancer_policy" "wu-tang-root-ca-backend-auth-policy" {
   load_balancer_name = "${aws_elb.wu-tang.name}"
-  policy_name = "wu-tang-root-ca-backend-auth-policy"
-  policy_type_name = "BackendServerAuthenticationPolicyType"
+  policy_name        = "wu-tang-root-ca-backend-auth-policy"
+  policy_type_name   = "BackendServerAuthenticationPolicyType"
+
   policy_attribute = {
-    name = "PublicKeyPolicyName"
+    name  = "PublicKeyPolicyName"
     value = "${aws_load_balancer_policy.wu-tang-root-ca-pubkey-policy.policy_name}"
   }
 }
 
 resource "aws_load_balancer_policy" "wu-tang-ssl" {
   load_balancer_name = "${aws_elb.wu-tang.name}"
-  policy_name = "wu-tang-ssl"
-  policy_type_name = "SSLNegotiationPolicyType"
+  policy_name        = "wu-tang-ssl"
+  policy_type_name   = "SSLNegotiationPolicyType"
+
   policy_attribute = {
-    name = "ECDHE-ECDSA-AES128-GCM-SHA256"
+    name  = "ECDHE-ECDSA-AES128-GCM-SHA256"
     value = "true"
   }
+
   policy_attribute = {
-    name = "Protocol-TLSv1.2"
+    name  = "Protocol-TLSv1.2"
     value = "true"
   }
 }
 
 resource "aws_load_balancer_backend_server_policy" "wu-tang-backend-auth-policies-443" {
   load_balancer_name = "${aws_elb.wu-tang.name}"
-  instance_port = 443
+  instance_port      = 443
+
   policy_names = [
-    "${aws_load_balancer_policy.wu-tang-root-ca-backend-auth-policy.policy_name}"
+    "${aws_load_balancer_policy.wu-tang-root-ca-backend-auth-policy.policy_name}",
   ]
 }
 
 resource "aws_load_balancer_listener_policy" "wu-tang-listener-policies-443" {
   load_balancer_name = "${aws_elb.wu-tang.name}"
   load_balancer_port = 443
+
   policy_names = [
-    "${aws_load_balancer_policy.wu-tang-ssl.policy_name}"
+    "${aws_load_balancer_policy.wu-tang-ssl.policy_name}",
   ]
 }
 ```

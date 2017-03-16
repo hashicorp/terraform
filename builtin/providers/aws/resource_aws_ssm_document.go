@@ -384,7 +384,7 @@ func validateAwsSSMDocumentType(v interface{}, k string) (ws []string, errors []
 	}
 
 	if !types[value] {
-		errors = append(errors, fmt.Errorf("CodeBuild: Arifacts Namespace Type can only be NONE / BUILD_ID"))
+		errors = append(errors, fmt.Errorf("Document type %s is invalid. Valid types are Command, Policy or Automation", value))
 	}
 	return
 }

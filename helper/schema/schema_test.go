@@ -862,6 +862,65 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
+			Name: "List with computed set",
+			Schema: map[string]*Schema{
+				"config": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					ForceNew: true,
+					MinItems: 1,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"name": {
+								Type:     TypeString,
+								Required: true,
+							},
+
+							"rules": {
+								Type:     TypeSet,
+								Computed: true,
+								Elem:     &Schema{Type: TypeString},
+								Set:      HashString,
+							},
+						},
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"config": []interface{}{
+					map[string]interface{}{
+						"name": "hello",
+					},
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"config.#": &terraform.ResourceAttrDiff{
+						Old:         "0",
+						New:         "1",
+						RequiresNew: true,
+					},
+
+					"config.0.name": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "hello",
+					},
+
+					"config.0.rules.#": &terraform.ResourceAttrDiff{
+						Old:         "",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
 			Name: "Set",
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -4714,49 +4773,193 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: false,
 		},
+
+		"special timeouts field": {
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				TimeoutsConfigKey: "bar",
+			},
+
+			Err: false,
+		},
+
+		"invalid bool field": {
+			Schema: map[string]*Schema{
+				"bool_field": {
+					Type:     TypeBool,
+					Optional: true,
+				},
+			},
+			Config: map[string]interface{}{
+				"bool_field": "abcdef",
+			},
+			Err: true,
+		},
+		"invalid integer field": {
+			Schema: map[string]*Schema{
+				"integer_field": {
+					Type:     TypeInt,
+					Optional: true,
+				},
+			},
+			Config: map[string]interface{}{
+				"integer_field": "abcdef",
+			},
+			Err: true,
+		},
+		"invalid float field": {
+			Schema: map[string]*Schema{
+				"float_field": {
+					Type:     TypeFloat,
+					Optional: true,
+				},
+			},
+			Config: map[string]interface{}{
+				"float_field": "abcdef",
+			},
+			Err: true,
+		},
+
+		// Invalid map values
+		"invalid bool map value": {
+			Schema: map[string]*Schema{
+				"boolMap": &Schema{
+					Type:     TypeMap,
+					Elem:     TypeBool,
+					Optional: true,
+				},
+			},
+			Config: map[string]interface{}{
+				"boolMap": map[string]interface{}{
+					"boolField": "notbool",
+				},
+			},
+			Err: true,
+		},
+		"invalid int map value": {
+			Schema: map[string]*Schema{
+				"intMap": &Schema{
+					Type:     TypeMap,
+					Elem:     TypeInt,
+					Optional: true,
+				},
+			},
+			Config: map[string]interface{}{
+				"intMap": map[string]interface{}{
+					"intField": "notInt",
+				},
+			},
+			Err: true,
+		},
+		"invalid float map value": {
+			Schema: map[string]*Schema{
+				"floatMap": &Schema{
+					Type:     TypeMap,
+					Elem:     TypeFloat,
+					Optional: true,
+				},
+			},
+			Config: map[string]interface{}{
+				"floatMap": map[string]interface{}{
+					"floatField": "notFloat",
+				},
+			},
+			Err: true,
+		},
+
+		"map with positive validate function": {
+			Schema: map[string]*Schema{
+				"floatInt": &Schema{
+					Type:     TypeMap,
+					Elem:     TypeInt,
+					Optional: true,
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"floatInt": map[string]interface{}{
+					"rightAnswer": "42",
+					"tooMuch":     "43",
+				},
+			},
+			Err: false,
+		},
+		"map with negative validate function": {
+			Schema: map[string]*Schema{
+				"floatInt": &Schema{
+					Type:     TypeMap,
+					Elem:     TypeInt,
+					Optional: true,
+					ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+						es = append(es, fmt.Errorf("this is not fine"))
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"floatInt": map[string]interface{}{
+					"rightAnswer": "42",
+					"tooMuch":     "43",
+				},
+			},
+			Err: true,
+		},
 	}
 
 	for tn, tc := range cases {
-		c, err := config.NewRawConfig(tc.Config)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if tc.Vars != nil {
-			vars := make(map[string]ast.Variable)
-			for k, v := range tc.Vars {
-				vars[k] = ast.Variable{Value: v, Type: ast.TypeString}
-			}
-
-			if err := c.Interpolate(vars); err != nil {
+		t.Run(tn, func(t *testing.T) {
+			c, err := config.NewRawConfig(tc.Config)
+			if err != nil {
 				t.Fatalf("err: %s", err)
 			}
-		}
+			if tc.Vars != nil {
+				vars := make(map[string]ast.Variable)
+				for k, v := range tc.Vars {
+					vars[k] = ast.Variable{Value: v, Type: ast.TypeString}
+				}
 
-		ws, es := schemaMap(tc.Schema).Validate(terraform.NewResourceConfig(c))
-		if len(es) > 0 != tc.Err {
-			if len(es) == 0 {
-				t.Errorf("%q: no errors", tn)
+				if err := c.Interpolate(vars); err != nil {
+					t.Fatalf("err: %s", err)
+				}
 			}
 
-			for _, e := range es {
-				t.Errorf("%q: err: %s", tn, e)
+			ws, es := schemaMap(tc.Schema).Validate(terraform.NewResourceConfig(c))
+			if len(es) > 0 != tc.Err {
+				if len(es) == 0 {
+					t.Errorf("%q: no errors", tn)
+				}
+
+				for _, e := range es {
+					t.Errorf("%q: err: %s", tn, e)
+				}
+
+				t.FailNow()
 			}
 
-			t.FailNow()
-		}
-
-		if !reflect.DeepEqual(ws, tc.Warnings) {
-			t.Fatalf("%q: warnings:\n\nexpected: %#v\ngot:%#v", tn, tc.Warnings, ws)
-		}
-
-		if tc.Errors != nil {
-			sort.Sort(errorSort(es))
-			sort.Sort(errorSort(tc.Errors))
-
-			if !reflect.DeepEqual(es, tc.Errors) {
-				t.Fatalf("%q: errors:\n\nexpected: %q\ngot: %q", tn, tc.Errors, es)
+			if !reflect.DeepEqual(ws, tc.Warnings) {
+				t.Fatalf("%q: warnings:\n\nexpected: %#v\ngot:%#v", tn, tc.Warnings, ws)
 			}
-		}
+
+			if tc.Errors != nil {
+				sort.Sort(errorSort(es))
+				sort.Sort(errorSort(tc.Errors))
+
+				if !reflect.DeepEqual(es, tc.Errors) {
+					t.Fatalf("%q: errors:\n\nexpected: %q\ngot: %q", tn, tc.Errors, es)
+				}
+			}
+		})
+
 	}
 }
 

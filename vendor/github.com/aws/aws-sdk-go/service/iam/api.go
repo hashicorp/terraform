@@ -10398,6 +10398,12 @@ func (c *IAM) UploadServerCertificateRequest(input *UploadServerCertificateInput
 // entity includes a public key certificate, a private key, and an optional
 // certificate chain, which should all be PEM-encoded.
 //
+// We recommend that you use AWS Certificate Manager (https://aws.amazon.com/certificate-manager/)
+// to provision, manage, and deploy your server certificates. With ACM you can
+// request a certificate, deploy it to AWS resources, and let ACM handle certificate
+// renewals for you. Certificates provided by ACM are free. For more information
+// about using ACM, see the AWS Certificate Manager User Guide (http://docs.aws.amazon.com/acm/latest/userguide/).
+//
 // For more information about working with server certificates, including a
 // list of AWS services that can use the server certificates that you manage
 // with IAM, go to Working with Server Certificates (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
@@ -14604,6 +14610,11 @@ type EvaluationResult struct {
 	// call GetContextKeysForCustomPolicy or GetContextKeysForPrincipalPolicy.
 	MissingContextValues []*string `type:"list"`
 
+	// A structure that details how AWS Organizations and its service control policies
+	// affect the results of the simulation. Only applies if the simulated user's
+	// account is part of an organization.
+	OrganizationsDecisionDetail *OrganizationsDecisionDetail `type:"structure"`
+
 	// The individual results of the simulation of the API action specified in EvalActionName
 	// on each resource.
 	ResourceSpecificResults []*ResourceSpecificResult `type:"list"`
@@ -14652,6 +14663,12 @@ func (s *EvaluationResult) SetMatchedStatements(v []*Statement) *EvaluationResul
 // SetMissingContextValues sets the MissingContextValues field's value.
 func (s *EvaluationResult) SetMissingContextValues(v []*string) *EvaluationResult {
 	s.MissingContextValues = v
+	return s
+}
+
+// SetOrganizationsDecisionDetail sets the OrganizationsDecisionDetail field's value.
+func (s *EvaluationResult) SetOrganizationsDecisionDetail(v *OrganizationsDecisionDetail) *EvaluationResult {
+	s.OrganizationsDecisionDetail = v
 	return s
 }
 
@@ -20223,6 +20240,32 @@ func (s OpenIDConnectProviderListEntry) GoString() string {
 // SetArn sets the Arn field's value.
 func (s *OpenIDConnectProviderListEntry) SetArn(v string) *OpenIDConnectProviderListEntry {
 	s.Arn = &v
+	return s
+}
+
+// Contains information about AWS Organizations's affect on a policy simulation.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/OrganizationsDecisionDetail
+type OrganizationsDecisionDetail struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies whether the simulated action is allowed by the AWS Organizations
+	// service control policies that impact the simulated user's account.
+	AllowedByOrganizations *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s OrganizationsDecisionDetail) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OrganizationsDecisionDetail) GoString() string {
+	return s.String()
+}
+
+// SetAllowedByOrganizations sets the AllowedByOrganizations field's value.
+func (s *OrganizationsDecisionDetail) SetAllowedByOrganizations(v bool) *OrganizationsDecisionDetail {
+	s.AllowedByOrganizations = &v
 	return s
 }
 

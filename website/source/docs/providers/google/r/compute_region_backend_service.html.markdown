@@ -16,11 +16,11 @@ See [backendServices](https://cloud.google.com/compute/docs/reference/latest/bac
 
 ```tf
 resource "google_compute_region_backend_service" "foobar" {
-  name                  = "blablah"
-  description           = "Hello World 1234"
-  protocol              = "TCP"
-  timeout_sec           = 10
-  session_affinity      = "CLIENT_IP"
+  name             = "blablah"
+  description      = "Hello World 1234"
+  protocol         = "TCP"
+  timeout_sec      = 10
+  session_affinity = "CLIENT_IP"
 
   backend {
     group = "${google_compute_instance_group_manager.foo.instance_group}"
@@ -56,7 +56,7 @@ resource "google_compute_health_check" "default" {
   name               = "test"
   check_interval_sec = 1
   timeout_sec        = 1
-  type               = "TCP"
+
   tcp_health_check {
     port = "80"
   }

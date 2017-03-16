@@ -28,6 +28,25 @@ func TestAccAWSDataDbInstance_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSDataDbInstance_endpoint(t *testing.T) {
+	rInt := acctest.RandInt()
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBInstanceConfigWithDataSource(rInt),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.aws_db_instance.bar", "address"),
+					resource.TestCheckResourceAttrSet("data.aws_db_instance.bar", "port"),
+					resource.TestCheckResourceAttrSet("data.aws_db_instance.bar", "hosted_zone_id"),
+					resource.TestCheckResourceAttrSet("data.aws_db_instance.bar", "endpoint"),
+				),
+			},
+		},
+	})
+}
+
 func testAccAWSDBInstanceConfigWithDataSource(rInt int) string {
 	return fmt.Sprintf(`
 resource "aws_db_instance" "bar" {

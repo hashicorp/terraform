@@ -37,7 +37,6 @@ resource "fastly_service_v1" "demo" {
 
   force_destroy = true
 }
-
 ```
 
 Basic usage with an Amazon S3 Website and that removes the `x-amz-request-id` header:
@@ -108,13 +107,13 @@ resource "fastly_service_v1" "demo" {
   force_destroy = true
 
   vcl {
-    name = "my_custom_main_vcl"
+    name    = "my_custom_main_vcl"
     content = "${file("${path.module}/my_custom_main.vcl")}"
-    main = true
+    main    = true
   }
 
   vcl {
-    name = "my_custom_library_vcl"
+    name    = "my_custom_library_vcl"
     content = "${file("${path.module}/my_custom_library.vcl")}"
   }
 }
@@ -132,8 +131,9 @@ The following arguments are supported:
 * `name` - (Required) The unique name for the Service to create.
 * `domain` - (Required) A set of Domain names to serve as entry points for your
 Service. Defined below.
-* `backend` - (Required) A set of Backends to service requests from your Domains.
-Defined below.
+* `backend` - (Optional) A set of Backends to service requests from your Domains.
+Defined below. Backends must be defined in this argument, or defined in the
+`vcl` argument below
 * `condition` - (Optional) A set of conditions to add logic to any basic
 configuration object in this service. Defined below.
 * `cache_setting` - (Optional) A set of Cache Settings, allowing you to override
@@ -153,6 +153,7 @@ order to destroy the Service, set `force_destroy` to `true`. Default `false`.
 Defined below.
 * `papertrail` - (Optional) A Papertrail endpoint to send streaming logs too.
 Defined below.
+* `response_object` - (Optional) Allows you to create synthetic responses that exist entirely on the varnish machine. Useful for creating error or maintenance pages that exists outside the scope of your datacenter. Best when used with Condition objects.
 * `vcl` - (Optional) A set of custom VCL configuration blocks. The
 ability to upload custom VCL code is not enabled by default for new Fastly
 accounts (see the [Fastly documentation](https://docs.fastly.com/guides/vcl/uploading-custom-vcl) for details).
@@ -177,9 +178,11 @@ Default `1000`
 * `max_conn` - (Optional) Maximum number of connections for this Backend.
 Default `200`.
 * `port` - (Optional) The port number on which the Backend responds. Default `80`.
-* `request_condition` - (Optional, string) Condition, which if met, will select this backend during a request.
+* `request_condition` - (Optional, string) Name of already defined `condition`, which if met, will select this backend during a request.
 * `ssl_check_cert` - (Optional) Be strict about checking SSL certs. Default `true`.
-* `ssl_hostname` - (Optional) Used for both SNI during the TLS handshake and to validate the cert.
+* `ssl_hostname` - (Optional, deprecated by Fastly) Used for both SNI during the TLS handshake and to validate the cert.
+* `ssl_cert_hostname` - (Optional) Overrides ssl_hostname, but only for cert verification. Does not affect SNI at all.
+* `ssl_sni_hostname` - (Optional) Overrides ssl_hostname, but only for SNI in the handshake. Does not affect cert validation at all.
 * `shield` - (Optional) The POP of the shield designated to reduce inbound load.
 * `weight` - (Optional) The [portion of traffic](https://docs.fastly.com/guides/performance-tuning/load-balancing-configuration.html#how-weight-affects-load-balancing) to send to this Backend. Each Backend receives `weight / total` of the traffic. Default `100`.
 
@@ -202,7 +205,7 @@ The `cache_setting` block supports:
 * `name` - (Required) Unique name for this Cache Setting.
 * `action` - (Required) One of `cache`, `pass`, or `restart`, as defined
 on Fastly's documentation under ["Caching action descriptions"](https://docs.fastly.com/guides/performance-tuning/controlling-caching#caching-action-descriptions).
-* `cache_condition` - (Required) Name of the condition used to test whether this settings object should be used. This Condition must be of type `CACHE`.
+* `cache_condition` - (Required) Name of already defined `condition` used to test whether this settings object should be used. This `condition` must be of type `CACHE`.
 * `stale_ttl` - (Optional) Max "Time To Live" for stale (unreachable) objects.
 Default `300`.
 * `ttl` - (Optional) The Time-To-Live (TTL) for the object.
@@ -214,6 +217,8 @@ The `gzip` block supports:
 have dynamically gzip'ed. Example: `["text/html", "text/css"]`.
 * `extensions` - (Optional) File extensions for each file type to dynamically
 gzip. Example: `["css", "js"]`.
+* `cache_condition` - (Optional) Name of already defined `condition` controlling when this gzip configuration applies. This `condition` must be of type `CACHE`. For detailed information about Conditionals,
+see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
 
 The `Header` block supports adding, removing, or modifying Request and Response
@@ -231,6 +236,10 @@ content. (Does not apply to the `delete` action.)
 * `regex` - (Optional) Regular expression to use (Only applies to the `regex` and `regex_repeat` actions.)
 * `substitution` - (Optional) Value to substitute in place of regular expression. (Only applies to the `regex` and `regex_repeat` actions.)
 * `priority` - (Optional) Lower priorities execute first. Default: `100`.
+* `request_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `REQUEST`.
+* `cache_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `CACHE`.
+* `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals,
+see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
 The `healthcheck` block supports:
 
@@ -250,9 +259,8 @@ The `request_setting` block allow you to customize Fastly's request handling, by
 defining behavior that should change based on a predefined `condition`:
 
 * `name` - (Required) The domain for this request setting.
-* `request_condition` - (Required) The name of the corresponding `condition` to
-determine if this request setting should be applied. The `request_condition` must
-match the name of a defined `condition`.
+* `request_condition` - (Required) Name of already defined `condition` to
+determine if this request setting should be applied.
 * `max_stale_age` - (Optional) How old an object is allowed to be to serve
 `stale-if-error` or `stale-while-revalidate`, in seconds. Default `60`.
 * `force_miss` - (Optional) Force a cache miss for the request. If specified,
@@ -295,8 +303,7 @@ compression. `1` is fastest and least compressed, `9` is slowest and most
 compressed. Default `0`.
 * `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Defaults to Apache Common Log format (`%h %l %u %t %r %>s`)
 * `timestamp_format` - (Optional) `strftime` specified timestamp formatting (default `%Y-%m-%dT%H:%M:%S.000`).
-* `request_condition` - (Optional) The VCL request condition to check if this
-Request Setting should be applied. For detailed information about Conditionals,
+* `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals,
 see [Fastly's Documentation on Conditionals][fastly-conditionals].
 
 The `papertrail` block supports:
@@ -305,9 +312,20 @@ The `papertrail` block supports:
 * `address` - (Required) The address of the Papertrail endpoint.
 * `port` - (Required) The port associated with the address where the Papertrail endpoint can be accessed.
 * `format` - (Optional) Apache-style string or VCL variables to use for log formatting. Defaults to Apache Common Log format (`%h %l %u %t %r %>s`)
-* `request_condition` - (Optional) The VCL request condition to check if this
-Request Setting should be applied. For detailed information about Conditionals,
+* `response_condition` - (Optional) Name of already defined `condition` to apply. This `condition` must be of type `RESPONSE`. For detailed information about Conditionals,
 see [Fastly's Documentation on Conditionals][fastly-conditionals].
+
+The `response_object` block supports:
+
+* `name` - (Required) A unique name to identify this Response Object.
+* `status` - (Optional) The HTTP Status Code. Default `200`.
+* `response` - (Optional) The HTTP Response. Default `Ok`.
+* `content` - (Optional) The content to deliver for the response object.
+* `content_type` - (Optional) The MIME type of the content.
+* `request_condition` - (Optional) Name of already defined `condition` to be checked during the request phase. If the condition passes then this object will be delivered. This `condition` must be of type `REQUEST`.
+* `cache_condition` - (Optional) Name of already defined `condition` to check after we have retrieved an object. If the condition passes then deliver this Request Object instead. This `condition` must be of type `CACHE`. For detailed information about Conditionals,
+see [Fastly's Documentation on Conditionals][fastly-conditionals].
+
 
 The `vcl` block supports:
 
@@ -330,6 +348,7 @@ Service.
 * `header` – Set of Headers. See above for details.
 * `s3logging` – Set of S3 Logging configurations. See above for details.
 * `papertrail` – Set of Papertrail configurations. See above for details.
+* `response_object` - Set of Response Object configurations. See above for details.
 * `vcl` – Set of custom VCL configurations. See above for details.
 * `default_host` – Default host specified.
 * `default_ttl` - Default TTL.

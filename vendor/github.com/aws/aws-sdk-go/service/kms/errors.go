@@ -139,6 +139,12 @@ const (
 	// be found.
 	ErrCodeNotFoundException = "NotFoundException"
 
+	// ErrCodeTagException for service response error code
+	// "TagException".
+	//
+	// The request was rejected because one or more tags are not valid.
+	ErrCodeTagException = "TagException"
+
 	// ErrCodeUnsupportedOperationException for service response error code
 	// "UnsupportedOperationException".
 	//

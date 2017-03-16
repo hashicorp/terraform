@@ -64,7 +64,7 @@ const (
 	// ErrCodeInvalidResultTokenException for service response error code
 	// "InvalidResultTokenException".
 	//
-	// The speNexcified token is invalid.
+	// The specified ResultToken is invalid.
 	ErrCodeInvalidResultTokenException = "InvalidResultTokenException"
 
 	// ErrCodeInvalidRoleException for service response error code
