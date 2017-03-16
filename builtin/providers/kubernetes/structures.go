@@ -2,9 +2,19 @@ package kubernetes
 
 import (
 	"fmt"
+	"strings"
 
 	api "k8s.io/kubernetes/pkg/api/v1"
 )
+
+func idParts(id string) (string, string) {
+	parts := strings.Split(id, "/")
+	return parts[0], parts[1]
+}
+
+func buildId(meta api.ObjectMeta) string {
+	return meta.Namespace + "/" + meta.Name
+}
 
 func expandMetadata(in []interface{}) api.ObjectMeta {
 	meta := api.ObjectMeta{}

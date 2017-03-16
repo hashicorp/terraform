@@ -81,7 +81,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"kubernetes_namespace": resourceKubernetesNamespace(),
+			"kubernetes_config_map": resourceKubernetesConfigMap(),
+			"kubernetes_namespace":  resourceKubernetesNamespace(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
