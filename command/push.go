@@ -110,11 +110,11 @@ func (c *PushCommand) Run(args []string) int {
 	// We require a non-local backend
 	if c.IsLocalBackend(b) {
 		c.Ui.Error(
-			"Remote state is not enabled. For Atlas to run Terraform\n" +
-				"for you, remote state must be used and configured. Remote\n" +
-				"state via any backend is accepted, not just Atlas. To\n" +
-				"configure remote state, use the `terraform remote config`\n" +
-				"command.")
+			"A remote backend is not enabled. For Atlas to run Terraform\n" +
+				"for you, remote state must be used and configured. Remote \n" +
+				"state via any backend is accepted, not just Atlas. To configure\n" +
+				"a backend, please see the documentation at the URL below:\n\n" +
+				"https://www.terraform.io/docs/state/remote.html")
 		return 1
 	}
 

@@ -774,7 +774,7 @@ func TestPush_noRemoteState(t *testing.T) {
 	}
 
 	errStr := ui.ErrorWriter.String()
-	if !strings.Contains(errStr, "Remote state") {
+	if !strings.Contains(errStr, "remote backend") {
 		t.Fatalf("bad: %s", errStr)
 	}
 }
