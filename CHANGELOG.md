@@ -16,6 +16,7 @@ FEATURES:
 IMPROVEMENTS:
 
  * provider/aws: Improved error when failing to get S3 tags [GH-12759]
+ * provider/aws: Validate CIDR Blocks in SG and SG rule resources [GH-12765]
  * provider/scaleway: expose public IPv6 information on scaleway_server [GH-12748]
 
 BUG FIXES:
