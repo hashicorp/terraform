@@ -397,7 +397,7 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, conn *ec2
 				}
 			}
 
-			if add.CidrBlock != nil {
+			if add.CidrBlock != nil && *add.CidrBlock != "" {
 				// AWS mutates the CIDR block into a network implied by the IP and
 				// mask provided. This results in hashing inconsistencies between
 				// the local config file and the state returned by the API. Error
@@ -417,11 +417,11 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, conn *ec2
 				IcmpTypeCode: add.IcmpTypeCode,
 			}
 
-			if add.CidrBlock != nil {
+			if add.CidrBlock != nil && *add.CidrBlock != "" {
 				createOpts.CidrBlock = add.CidrBlock
 			}
 
-			if add.Ipv6CidrBlock != nil {
+			if add.Ipv6CidrBlock != nil && *add.Ipv6CidrBlock != "" {
 				createOpts.Ipv6CidrBlock = add.Ipv6CidrBlock
 			}
 
