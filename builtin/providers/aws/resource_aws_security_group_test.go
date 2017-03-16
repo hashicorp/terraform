@@ -719,6 +719,32 @@ func TestAccAWSSecurityGroup_drift_complex(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroup_invalidCIDRBlock(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAWSSecurityGroupInvalidIngressCidr,
+				ExpectError: regexp.MustCompile("invalid CIDR address: 1.2.3.4/33"),
+			},
+			{
+				Config:      testAccAWSSecurityGroupInvalidEgressCidr,
+				ExpectError: regexp.MustCompile("invalid CIDR address: 1.2.3.4/33"),
+			},
+			{
+				Config:      testAccAWSSecurityGroupInvalidIPv6IngressCidr,
+				ExpectError: regexp.MustCompile("invalid CIDR address: ::/244"),
+			},
+			{
+				Config:      testAccAWSSecurityGroupInvalidIPv6EgressCidr,
+				ExpectError: regexp.MustCompile("invalid CIDR address: ::/244"),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSSecurityGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -1648,6 +1674,54 @@ resource "aws_security_group" "web" {
   }
 }`, acctest.RandInt(), acctest.RandInt())
 }
+
+const testAccAWSSecurityGroupInvalidIngressCidr = `
+resource "aws_security_group" "foo" {
+  name = "testing-foo"
+  description = "foo-testing"
+  ingress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["1.2.3.4/33"]
+  }
+}`
+
+const testAccAWSSecurityGroupInvalidEgressCidr = `
+resource "aws_security_group" "foo" {
+  name = "testing-foo"
+  description = "foo-testing"
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["1.2.3.4/33"]
+  }
+}`
+
+const testAccAWSSecurityGroupInvalidIPv6IngressCidr = `
+resource "aws_security_group" "foo" {
+  name = "testing-foo"
+  description = "foo-testing"
+  ingress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    ipv6_cidr_blocks = ["::/244"]
+  }
+}`
+
+const testAccAWSSecurityGroupInvalidIPv6EgressCidr = `
+resource "aws_security_group" "foo" {
+  name = "testing-foo"
+  description = "foo-testing"
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    ipv6_cidr_blocks = ["::/244"]
+  }
+}`
 
 const testAccAWSSecurityGroupCombindCIDRandGroups = `
 resource "aws_vpc" "foo" {
