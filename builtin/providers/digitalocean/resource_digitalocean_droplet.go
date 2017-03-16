@@ -26,7 +26,6 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 			"image": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"name": {
