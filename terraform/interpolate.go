@@ -540,6 +540,13 @@ func (i *Interpolater) computeResourceMultiVariable(
 
 	unknownVariable := unknownVariable()
 
+	// If we're only looking for input, we don't need to expand a
+	// multi-variable. This prevents us from encountering things that should be
+	// known but aren't because the state has yet to be refreshed.
+	if i.Operation == walkInput {
+		return &unknownVariable, nil
+	}
+
 	// Get the information about this resource variable, and verify
 	// that it exists and such.
 	module, cr, err := i.resourceVariableInfo(scope, v)
