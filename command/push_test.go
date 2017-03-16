@@ -75,6 +75,70 @@ func TestPush_good(t *testing.T) {
 	}
 }
 
+func TestPush_goodBackendInit(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	copy.CopyDir(testFixturePath("push-backend-new"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// init backend
+	ui := new(cli.MockUi)
+	ci := &InitCommand{
+		Meta: Meta{
+			Ui: ui,
+		},
+	}
+	if code := ci.Run(nil); code != 0 {
+		t.Fatalf("bad: %d\n%s", code, ui.ErrorWriter)
+	}
+
+	// Path where the archive will be "uploaded" to
+	archivePath := testTempFile(t)
+	defer os.Remove(archivePath)
+
+	client := &mockPushClient{File: archivePath}
+	ui = new(cli.MockUi)
+	c := &PushCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+
+		client: client,
+	}
+
+	args := []string{
+		"-vcs=false",
+		td,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	actual := testArchiveStr(t, archivePath)
+	expected := []string{
+		// Expected weird behavior, doesn't affect unpackaging
+		".terraform/",
+		".terraform/",
+		".terraform/terraform.tfstate",
+		".terraform/terraform.tfstate",
+		"main.tf",
+	}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	variables := make(map[string]interface{})
+	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
+		t.Fatalf("bad: %#v", client.UpsertOptions)
+	}
+
+	if client.UpsertOptions.Name != "hello" {
+		t.Fatalf("bad: %#v", client.UpsertOptions)
+	}
+}
+
 func TestPush_noUploadModules(t *testing.T) {
 	// Path where the archive will be "uploaded" to
 	archivePath := testTempFile(t)
