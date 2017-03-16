@@ -24,17 +24,16 @@ func resourceAwsAlbTargetGroupAttachment() *schema.Resource {
 				ForceNew: true,
 				Required: true,
 			},
-
 			"target_id": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-
 			"port": {
 				Type:     schema.TypeInt,
 				ForceNew: true,
-				Required: true,
+				Optional: true,
+				Computed: true,
 			},
 		},
 	}
@@ -43,18 +42,23 @@ func resourceAwsAlbTargetGroupAttachment() *schema.Resource {
 func resourceAwsAlbAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
-	params := &elbv2.RegisterTargetsInput{
-		TargetGroupArn: aws.String(d.Get("target_group_arn").(string)),
-		Targets: []*elbv2.TargetDescription{
-			{
-				Id:   aws.String(d.Get("target_id").(string)),
-				Port: aws.Int64(int64(d.Get("port").(int))),
-			},
-		},
+	target := &elbv2.TargetDescription{
+		Id: aws.String(d.Get("target_id").(string)),
 	}
 
-	log.Printf("[INFO] Registering Target %s (%d) with Target Group %s", d.Get("target_id").(string),
-		d.Get("port").(int), d.Get("target_group_arn").(string))
+	var port string
+	if value, ok := d.GetOk("port"); ok {
+		target.Port = aws.Int64(int64(value.(int)))
+		port = fmt.Sprintf(" (%d)", value.(int))
+	}
+
+	params := &elbv2.RegisterTargetsInput{
+		TargetGroupArn: aws.String(d.Get("target_group_arn").(string)),
+		Targets:        []*elbv2.TargetDescription{target},
+	}
+
+	log.Printf("[INFO] Registering Target %s%s with Target Group %s",
+		d.Get("target_id").(string), port, d.Get("target_group_arn").(string))
 
 	_, err := elbconn.RegisterTargets(params)
 	if err != nil {
@@ -73,8 +77,7 @@ func resourceAwsAlbAttachmentDelete(d *schema.ResourceData, meta interface{}) er
 		TargetGroupArn: aws.String(d.Get("target_group_arn").(string)),
 		Targets: []*elbv2.TargetDescription{
 			{
-				Id:   aws.String(d.Get("target_id").(string)),
-				Port: aws.Int64(int64(d.Get("port").(int))),
+				Id: aws.String(d.Get("target_id").(string)),
 			},
 		},
 	}
@@ -93,12 +96,12 @@ func resourceAwsAlbAttachmentDelete(d *schema.ResourceData, meta interface{}) er
 // target, so there is no work to do beyond ensuring that the target and group still exist.
 func resourceAwsAlbAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
+
 	resp, err := elbconn.DescribeTargetHealth(&elbv2.DescribeTargetHealthInput{
 		TargetGroupArn: aws.String(d.Get("target_group_arn").(string)),
 		Targets: []*elbv2.TargetDescription{
 			{
-				Id:   aws.String(d.Get("target_id").(string)),
-				Port: aws.Int64(int64(d.Get("port").(int))),
+				Id: aws.String(d.Get("target_id").(string)),
 			},
 		},
 	})
@@ -121,6 +124,10 @@ func resourceAwsAlbAttachmentRead(d *schema.ResourceData, meta interface{}) erro
 		d.SetId("")
 		return nil
 	}
+
+	target := resp.TargetHealthDescriptions[0].Target
+
+	d.Set("port", target.Port)
 
 	return nil
 }
