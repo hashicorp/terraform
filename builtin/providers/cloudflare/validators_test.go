@@ -3,36 +3,38 @@ package cloudflare
 import "testing"
 
 func TestValidateRecordType(t *testing.T) {
-	validTypes := []string{
-		"A",
-		"AAAA",
-		"CNAME",
-		"TXT",
-		"SRV",
-		"LOC",
-		"MX",
-		"NS",
-		"SPF",
+	validTypes := map[string]bool{
+		"A":     true,
+		"AAAA":  true,
+		"CNAME": true,
+		"TXT":   false,
+		"SRV":   false,
+		"LOC":   false,
+		"MX":    false,
+		"NS":    false,
+		"SPF":   false,
 	}
-	for _, v := range validTypes {
-		_, errors := validateRecordType(v, "type")
-		if len(errors) != 0 {
-			t.Fatalf("%q should be a valid record type: %q", v, errors)
+	for k, v := range validTypes {
+		err := validateRecordType(k, v)
+		if err != nil {
+			t.Fatalf("%s should be a valid record type: %s", k, err)
 		}
 	}
 
-	invalidTypes := []string{
-		"a",
-		"cName",
-		"txt",
-		"SRv",
-		"foo",
-		"bar",
+	invalidTypes := map[string]bool{
+		"a":     false,
+		"cName": false,
+		"txt":   false,
+		"SRv":   false,
+		"foo":   false,
+		"bar":   false,
+		"TXT":   true,
+		"SRV":   true,
+		"SPF":   true,
 	}
-	for _, v := range invalidTypes {
-		_, errors := validateRecordType(v, "type")
-		if len(errors) == 0 {
-			t.Fatalf("%q should be an invalid record type", v)
+	for k, v := range invalidTypes {
+		if err := validateRecordType(k, v); err == nil {
+			t.Fatalf("%s should be an invalid record type", k)
 		}
 	}
 }

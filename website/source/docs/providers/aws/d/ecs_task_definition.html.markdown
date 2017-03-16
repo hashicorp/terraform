@@ -26,6 +26,7 @@ resource "aws_ecs_cluster" "foo" {
 
 resource "aws_ecs_task_definition" "mongo" {
   family = "mongodb"
+
   container_definitions = <<DEFINITION
 [
   {
@@ -45,8 +46,8 @@ DEFINITION
 }
 
 resource "aws_ecs_service" "mongo" {
-  name = "mongo"
-  cluster = "${aws_ecs_cluster.foo.id}"
+  name          = "mongo"
+  cluster       = "${aws_ecs_cluster.foo.id}"
   desired_count = 2
 
   # Track the latest ACTIVE revision

@@ -16,54 +16,60 @@ instances to be requested on the Spot market.
 ```
 # Request a Spot fleet
 resource "aws_spot_fleet_request" "cheap_compute" {
-    iam_fleet_role = "arn:aws:iam::12345678:role/spot-fleet"
-    spot_price = "0.03"
-    allocation_strategy = "diversified"
-    target_capacity = 6
-    valid_until = "2019-11-04T20:44:20Z"
-    launch_specification {
-        instance_type = "m4.10xlarge"
-        ami = "ami-1234"
-        spot_price = "2.793"
+  iam_fleet_role      = "arn:aws:iam::12345678:role/spot-fleet"
+  spot_price          = "0.03"
+  allocation_strategy = "diversified"
+  target_capacity     = 6
+  valid_until         = "2019-11-04T20:44:20Z"
+
+  launch_specification {
+    instance_type = "m4.10xlarge"
+    ami           = "ami-1234"
+    spot_price    = "2.793"
+  }
+
+  launch_specification {
+    instance_type     = "m4.4xlarge"
+    ami               = "ami-5678"
+    key_name          = "my-key"
+    spot_price        = "1.117"
+    availability_zone = "us-west-1a"
+    subnet_id         = "subnet-1234"
+    weighted_capacity = 35
+
+    root_block_device {
+      volume_size = "300"
+      volume_type = "gp2"
     }
-    launch_specification {
-        instance_type = "m4.4xlarge"
-        ami = "ami-5678"
-        key_name = "my-key"
-        spot_price = "1.117"
-        availability_zone = "us-west-1a"
-        subnet_id = "subnet-1234"
-        weighted_capacity = 35
-        root_block_device {
-            volume_size = "300"
-            volume_type = "gp2"
-        }
-    }
+  }
 }
 ```
 
-~> **NOTE:** Terraform does not support the functionality where multiple `subnet_id` or `availability_zone` parameters can be specified in the same 
+~> **NOTE:** Terraform does not support the functionality where multiple `subnet_id` or `availability_zone` parameters can be specified in the same
 launch configuration block. If you want to specify multiple values, then separate launch configuration blocks should be used:
 
 ```
 resource "aws_spot_fleet_request" "foo" {
-    iam_fleet_role = "arn:aws:iam::12345678:role/spot-fleet"
-    spot_price = "0.005"
-    target_capacity = 2
-    valid_until = "2019-11-04T20:44:20Z"
-    launch_specification {
-        instance_type = "m1.small"
-        ami = "ami-d06a90b0"
-        key_name = "my-key"
-        availability_zone = "us-west-2a"
-    }
-    launch_specification {
-        instance_type = "m3.large"
-        ami = "ami-d06a90b0"
-        key_name = "my-key"
-        availability_zone = "us-west-2a"
-    }
-    depends_on = ["aws_iam_policy_attachment.test-attach"]
+  iam_fleet_role  = "arn:aws:iam::12345678:role/spot-fleet"
+  spot_price      = "0.005"
+  target_capacity = 2
+  valid_until     = "2019-11-04T20:44:20Z"
+
+  launch_specification {
+    instance_type     = "m1.small"
+    ami               = "ami-d06a90b0"
+    key_name          = "my-key"
+    availability_zone = "us-west-2a"
+  }
+
+  launch_specification {
+    instance_type     = "m3.large"
+    ami               = "ami-d06a90b0"
+    key_name          = "my-key"
+    availability_zone = "us-west-2a"
+  }
+
+  depends_on = ["aws_iam_policy_attachment.test-attach"]
 }
 ```
 
@@ -76,6 +82,7 @@ Most of these arguments directly correspond to the
   Spot instances on your behalf when you cancel its Spot fleet request using
 CancelSpotFleetRequests or when the Spot fleet request expires, if you set
 terminateInstancesWithExpiration.
+* `replace_unhealthy_instances` - (Optional) Indicates whether Spot fleet should replace unhealthy instances. Default `false`.
 * `launch_specification` - Used to define the launch configuration of the
   spot-fleet request. Can be specified multiple times to define different bids
 across different markets and instance types.

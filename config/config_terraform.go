@@ -1,6 +1,10 @@
 package config
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/hashstructure"
 )
 
@@ -9,6 +13,38 @@ import (
 type Terraform struct {
 	RequiredVersion string   `hcl:"required_version"` // Required Terraform version (constraint)
 	Backend         *Backend // See Backend struct docs
+}
+
+// Validate performs the validation for just the Terraform configuration.
+func (t *Terraform) Validate() []error {
+	var errs []error
+
+	if raw := t.RequiredVersion; raw != "" {
+		// Check that the value has no interpolations
+		rc, err := NewRawConfig(map[string]interface{}{
+			"root": raw,
+		})
+		if err != nil {
+			errs = append(errs, fmt.Errorf(
+				"terraform.required_version: %s", err))
+		} else if len(rc.Interpolations) > 0 {
+			errs = append(errs, fmt.Errorf(
+				"terraform.required_version: cannot contain interpolations"))
+		} else {
+			// Check it is valid
+			_, err := version.NewConstraint(raw)
+			if err != nil {
+				errs = append(errs, fmt.Errorf(
+					"terraform.required_version: invalid syntax: %s", err))
+			}
+		}
+	}
+
+	if t.Backend != nil {
+		errs = append(errs, t.Backend.Validate()...)
+	}
+
+	return errs
 }
 
 // Backend is the configuration for the "backend" to use with Terraform.
@@ -46,3 +82,24 @@ func (b *Backend) Rehash() uint64 {
 
 	return code
 }
+
+func (b *Backend) Validate() []error {
+	if len(b.RawConfig.Interpolations) > 0 {
+		return []error{fmt.Errorf(strings.TrimSpace(errBackendInterpolations))}
+	}
+
+	return nil
+}
+
+const errBackendInterpolations = `
+terraform.backend: configuration cannot contain interpolations
+
+The backend configuration is loaded by Terraform extremely early, before
+the core of Terraform can be initialized. This is necessary because the backend
+dictates the behavior of that core. The core is what handles interpolation
+processing. Because of this, interpolations cannot be used in backend
+configuration.
+
+If you'd like to parameterize backend configuration, we recommend using
+partial configuration with the "-backend-config" flag to "terraform init".
+`

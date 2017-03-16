@@ -32,7 +32,8 @@ func (c *StatePullCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	state, err := b.State()
+	env := c.Env()
+	state, err := b.State(env)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
@@ -42,8 +43,16 @@ func (c *StatePullCommand) Run(args []string) int {
 		return 1
 	}
 
+	s := state.State()
+	if s == nil {
+		// Output on "error" so it shows up on stderr
+		c.Ui.Error("Empty state (no state)")
+
+		return 0
+	}
+
 	var buf bytes.Buffer
-	if err := terraform.WriteState(state.State(), &buf); err != nil {
+	if err := terraform.WriteState(s, &buf); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}

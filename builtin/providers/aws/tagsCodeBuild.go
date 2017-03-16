@@ -32,7 +32,7 @@ func diffTagsCodeBuild(oldTags, newTags []*codebuild.Tag) ([]*codebuild.Tag, []*
 }
 
 func tagsFromMapCodeBuild(m map[string]interface{}) []*codebuild.Tag {
-	result := make([]*codebuild.Tag, 0, len(m))
+	result := []*codebuild.Tag{}
 	for k, v := range m {
 		result = append(result, &codebuild.Tag{
 			Key:   aws.String(k),
@@ -44,7 +44,7 @@ func tagsFromMapCodeBuild(m map[string]interface{}) []*codebuild.Tag {
 }
 
 func tagsToMapCodeBuild(ts []*codebuild.Tag) map[string]string {
-	result := make(map[string]string)
+	result := map[string]string{}
 	for _, t := range ts {
 		result[*t.Key] = *t.Value
 	}

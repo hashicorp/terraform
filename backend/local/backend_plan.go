@@ -8,8 +8,10 @@ import (
 	"strings"
 
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
+	clistate "github.com/hashicorp/terraform/command/state"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -58,15 +60,21 @@ func (b *Local) opPlan(
 		return
 	}
 
-	// context acquired the state, and therefor the lock.
-	// Unlock it when the operation is complete
-	defer func() {
-		if s, ok := opState.(state.Locker); op.LockState && ok {
-			if err := s.Unlock(); err != nil {
-				log.Printf("[ERROR]: %s", err)
-			}
+	if op.LockState {
+		lockInfo := state.NewLockInfo()
+		lockInfo.Operation = op.Type.String()
+		lockID, err := clistate.Lock(opState, lockInfo, b.CLI, b.Colorize())
+		if err != nil {
+			runningOp.Err = errwrap.Wrapf("Error locking state: {{err}}", err)
+			return
 		}
-	}()
+
+		defer func() {
+			if err := clistate.Unlock(opState, lockID, b.CLI, b.Colorize()); err != nil {
+				runningOp.Err = multierror.Append(runningOp.Err, err)
+			}
+		}()
+	}
 
 	// Setup the state
 	runningOp.State = tfCtx.State()
@@ -182,7 +190,7 @@ Path: %s
 const planNoChanges = `
 [reset][bold][green]No changes. Infrastructure is up-to-date.[reset][green]
 
-This means that Terraform could not detect any differences between your
+This means that Terraform did not detect any differences between your
 configuration and real physical resources that exist. As a result, Terraform
 doesn't need to do anything.
 `

@@ -27,9 +27,9 @@ You can directly supply a topic and ARN by hand in the `topic_arn` property alon
 
 ```
 resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
-    topic_arn = "arn:aws:sns:us-west-2:432981146916:user-updates-topic"
-    protocol = "sqs"
-    endpoint = "arn:aws:sqs:us-west-2:432981146916:terraform-queue-too"
+  topic_arn = "arn:aws:sns:us-west-2:432981146916:user-updates-topic"
+  protocol  = "sqs"
+  endpoint  = "arn:aws:sqs:us-west-2:432981146916:terraform-queue-too"
 }
 ```
 
@@ -41,13 +41,13 @@ resource "aws_sns_topic" "user_updates" {
 }
 
 resource "aws_sqs_queue" "user_updates_queue" {
-	name = "user-updates-queue"
+  name = "user-updates-queue"
 }
 
 resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
-    topic_arn = "${aws_sns_topic.user_updates.arn}"
-    protocol  = "sqs"
-    endpoint  = "${aws_sqs_queue.user_updates_queue.arn}"
+  topic_arn = "${aws_sns_topic.user_updates.arn}"
+  protocol  = "sqs"
+  endpoint  = "${aws_sqs_queue.user_updates_queue.arn}"
 }
 ```
 You can subscribe SNS topics to SQS queues in different Amazon accounts and regions:
@@ -261,7 +261,7 @@ Unsupported protocols include the following:
 * `email-json` -- delivery of JSON-encoded message via SMTP
 * `sms` -- delivery text message
 
-These are unsupported because the endpoint needs to be authorized and does not 
+These are unsupported because the endpoint needs to be authorized and does not
 generate an ARN until the target email address has been validated. This breaks
 the Terraform model and as a result are not currently supported.
 
@@ -286,7 +286,7 @@ The following attributes are exported:
 
 ## Import
 
-SNS Topic Subscriptions can be imported using the `subscription arn`, e.g. 
+SNS Topic Subscriptions can be imported using the `subscription arn`, e.g.
 
 ```
 $ terraform import aws_sns_topic_subscription.user_updates_sqs_target arn:aws:sns:us-west-2:0123456789012:my-topic:8a21d249-4329-4871-acc6-7be709c6ea7f

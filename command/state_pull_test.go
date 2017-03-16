@@ -37,3 +37,27 @@ func TestStatePull(t *testing.T) {
 		t.Fatalf("expected:\n%s\n\nto include: %q", actual, expected)
 	}
 }
+
+func TestStatePull_noState(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StatePullCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	actual := ui.OutputWriter.String()
+	if actual != "" {
+		t.Fatalf("bad: %s", actual)
+	}
+}

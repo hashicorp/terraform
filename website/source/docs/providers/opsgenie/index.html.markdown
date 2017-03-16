@@ -19,12 +19,12 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the OpenStack Provider
 provider "opsgenie" {
-    api_key = "key"
+  api_key = "key"
 }
 
 # Create a user
 resource "opsgenie_user" "test" {
-    ...
+  # ...
 }
 ```
 

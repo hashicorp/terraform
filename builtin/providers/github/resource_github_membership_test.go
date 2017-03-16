@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -17,7 +18,7 @@ func TestAccGithubMembership_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubMembershipDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubMembershipConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubMembershipExists("github_membership.test_org_membership", &membership),
@@ -34,10 +35,10 @@ func TestAccGithubMembership_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubMembershipDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubMembershipConfig,
 			},
-			resource.TestStep{
+			{
 				ResourceName:      "github_membership.test_org_membership",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -55,7 +56,7 @@ func testAccCheckGithubMembershipDestroy(s *terraform.State) error {
 		}
 		o, u := parseTwoPartID(rs.Primary.ID)
 
-		membership, resp, err := conn.Organizations.GetOrgMembership(u, o)
+		membership, resp, err := conn.Organizations.GetOrgMembership(context.TODO(), u, o)
 
 		if err == nil {
 			if membership != nil &&
@@ -85,7 +86,7 @@ func testAccCheckGithubMembershipExists(n string, membership *github.Membership)
 		conn := testAccProvider.Meta().(*Organization).client
 		o, u := parseTwoPartID(rs.Primary.ID)
 
-		githubMembership, _, err := conn.Organizations.GetOrgMembership(u, o)
+		githubMembership, _, err := conn.Organizations.GetOrgMembership(context.TODO(), u, o)
 		if err != nil {
 			return err
 		}
@@ -108,7 +109,7 @@ func testAccCheckGithubMembershipRoleState(n string, membership *github.Membersh
 		conn := testAccProvider.Meta().(*Organization).client
 		o, u := parseTwoPartID(rs.Primary.ID)
 
-		githubMembership, _, err := conn.Organizations.GetOrgMembership(u, o)
+		githubMembership, _, err := conn.Organizations.GetOrgMembership(context.TODO(), u, o)
 		if err != nil {
 			return err
 		}

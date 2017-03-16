@@ -4,6 +4,7 @@
 package kms
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -73,22 +74,22 @@ func (c *KMS) CancelKeyDeletionRequest(input *CancelKeyDeletionInput) (req *requ
 // API operation CancelKeyDeletion for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -171,31 +172,31 @@ func (c *KMS) CreateAliasRequest(input *CreateAliasInput) (req *request.Request,
 // API operation CreateAlias for usage and error information.
 //
 // Returned Error Codes:
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * AlreadyExistsException
+//   * ErrCodeAlreadyExistsException "AlreadyExistsException"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InvalidAliasNameException
+//   * ErrCodeInvalidAliasNameException "InvalidAliasNameException"
 //   The request was rejected because the specified alias name is not valid.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The request was rejected because a limit was exceeded. For more information,
 //   see Limits (http://docs.aws.amazon.com/kms/latest/developerguide/limits.html)
 //   in the AWS Key Management Service Developer Guide.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -269,33 +270,33 @@ func (c *KMS) CreateGrantRequest(input *CreateGrantInput) (req *request.Request,
 // API operation CreateGrant for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * DisabledException
+//   * ErrCodeDisabledException "DisabledException"
 //   The request was rejected because the specified CMK is not enabled.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidGrantTokenException
+//   * ErrCodeInvalidGrantTokenException "InvalidGrantTokenException"
 //   The request was rejected because the specified grant token is not valid.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The request was rejected because a limit was exceeded. For more information,
 //   see Limits (http://docs.aws.amazon.com/kms/latest/developerguide/limits.html)
 //   in the AWS Key Management Service Developer Guide.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -375,29 +376,32 @@ func (c *KMS) CreateKeyRequest(input *CreateKeyInput) (req *request.Request, out
 // API operation CreateKey for usage and error information.
 //
 // Returned Error Codes:
-//   * MalformedPolicyDocumentException
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocumentException"
 //   The request was rejected because the specified policy is not syntactically
 //   or semantically correct.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   The request was rejected because a specified parameter is not supported or
 //   a specified resource is not valid for this operation.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The request was rejected because a limit was exceeded. For more information,
 //   see Limits (http://docs.aws.amazon.com/kms/latest/developerguide/limits.html)
 //   in the AWS Key Management Service Developer Guide.
+//
+//   * ErrCodeTagException "TagException"
+//   The request was rejected because one or more tags are not valid.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/CreateKey
 func (c *KMS) CreateKey(input *CreateKeyInput) (*CreateKeyOutput, error) {
@@ -477,33 +481,33 @@ func (c *KMS) DecryptRequest(input *DecryptInput) (req *request.Request, output 
 // API operation Decrypt for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * DisabledException
+//   * ErrCodeDisabledException "DisabledException"
 //   The request was rejected because the specified CMK is not enabled.
 //
-//   * InvalidCiphertextException
+//   * ErrCodeInvalidCiphertextException "InvalidCiphertextException"
 //   The request was rejected because the specified ciphertext has been corrupted
 //   or is otherwise invalid.
 //
-//   * KeyUnavailableException
+//   * ErrCodeKeyUnavailableException "KeyUnavailableException"
 //   The request was rejected because the specified CMK was not available. The
 //   request can be retried.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InvalidGrantTokenException
+//   * ErrCodeInvalidGrantTokenException "InvalidGrantTokenException"
 //   The request was rejected because the specified grant token is not valid.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -575,19 +579,19 @@ func (c *KMS) DeleteAliasRequest(input *DeleteAliasInput) (req *request.Request,
 // API operation DeleteAlias for usage and error information.
 //
 // Returned Error Codes:
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -668,26 +672,26 @@ func (c *KMS) DeleteImportedKeyMaterialRequest(input *DeleteImportedKeyMaterialI
 // API operation DeleteImportedKeyMaterial for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   The request was rejected because a specified parameter is not supported or
 //   a specified resource is not valid for this operation.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -757,18 +761,18 @@ func (c *KMS) DescribeKeyRequest(input *DescribeKeyInput) (req *request.Request,
 // API operation DescribeKey for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
@@ -840,22 +844,22 @@ func (c *KMS) DisableKeyRequest(input *DisableKeyInput) (req *request.Request, o
 // API operation DisableKey for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -927,25 +931,25 @@ func (c *KMS) DisableKeyRotationRequest(input *DisableKeyRotationInput) (req *re
 // API operation DisableKeyRotation for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * DisabledException
+//   * ErrCodeDisabledException "DisabledException"
 //   The request was rejected because the specified CMK is not enabled.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -953,7 +957,7 @@ func (c *KMS) DisableKeyRotationRequest(input *DisableKeyRotationInput) (req *re
 //   Key State Affects Use of a Customer Master Key (http://docs.aws.amazon.com/kms/latest/developerguide/key-state.html)
 //   in the AWS Key Management Service Developer Guide.
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   The request was rejected because a specified parameter is not supported or
 //   a specified resource is not valid for this operation.
 //
@@ -1021,27 +1025,27 @@ func (c *KMS) EnableKeyRequest(input *EnableKeyInput) (req *request.Request, out
 // API operation EnableKey for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The request was rejected because a limit was exceeded. For more information,
 //   see Limits (http://docs.aws.amazon.com/kms/latest/developerguide/limits.html)
 //   in the AWS Key Management Service Developer Guide.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -1113,25 +1117,25 @@ func (c *KMS) EnableKeyRotationRequest(input *EnableKeyRotationInput) (req *requ
 // API operation EnableKeyRotation for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * DisabledException
+//   * ErrCodeDisabledException "DisabledException"
 //   The request was rejected because the specified CMK is not enabled.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -1139,7 +1143,7 @@ func (c *KMS) EnableKeyRotationRequest(input *EnableKeyRotationInput) (req *requ
 //   Key State Affects Use of a Customer Master Key (http://docs.aws.amazon.com/kms/latest/developerguide/key-state.html)
 //   in the AWS Key Management Service Developer Guide.
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   The request was rejected because a specified parameter is not supported or
 //   a specified resource is not valid for this operation.
 //
@@ -1224,32 +1228,32 @@ func (c *KMS) EncryptRequest(input *EncryptInput) (req *request.Request, output 
 // API operation Encrypt for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * DisabledException
+//   * ErrCodeDisabledException "DisabledException"
 //   The request was rejected because the specified CMK is not enabled.
 //
-//   * KeyUnavailableException
+//   * ErrCodeKeyUnavailableException "KeyUnavailableException"
 //   The request was rejected because the specified CMK was not available. The
 //   request can be retried.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InvalidKeyUsageException
+//   * ErrCodeInvalidKeyUsageException "InvalidKeyUsageException"
 //   The request was rejected because the specified KeySpec value is not valid.
 //
-//   * InvalidGrantTokenException
+//   * ErrCodeInvalidGrantTokenException "InvalidGrantTokenException"
 //   The request was rejected because the specified grant token is not valid.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -1362,32 +1366,32 @@ func (c *KMS) GenerateDataKeyRequest(input *GenerateDataKeyInput) (req *request.
 // API operation GenerateDataKey for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * DisabledException
+//   * ErrCodeDisabledException "DisabledException"
 //   The request was rejected because the specified CMK is not enabled.
 //
-//   * KeyUnavailableException
+//   * ErrCodeKeyUnavailableException "KeyUnavailableException"
 //   The request was rejected because the specified CMK was not available. The
 //   request can be retried.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InvalidKeyUsageException
+//   * ErrCodeInvalidKeyUsageException "InvalidKeyUsageException"
 //   The request was rejected because the specified KeySpec value is not valid.
 //
-//   * InvalidGrantTokenException
+//   * ErrCodeInvalidGrantTokenException "InvalidGrantTokenException"
 //   The request was rejected because the specified grant token is not valid.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -1471,32 +1475,32 @@ func (c *KMS) GenerateDataKeyWithoutPlaintextRequest(input *GenerateDataKeyWitho
 // API operation GenerateDataKeyWithoutPlaintext for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * DisabledException
+//   * ErrCodeDisabledException "DisabledException"
 //   The request was rejected because the specified CMK is not enabled.
 //
-//   * KeyUnavailableException
+//   * ErrCodeKeyUnavailableException "KeyUnavailableException"
 //   The request was rejected because the specified CMK was not available. The
 //   request can be retried.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InvalidKeyUsageException
+//   * ErrCodeInvalidKeyUsageException "InvalidKeyUsageException"
 //   The request was rejected because the specified KeySpec value is not valid.
 //
-//   * InvalidGrantTokenException
+//   * ErrCodeInvalidGrantTokenException "InvalidGrantTokenException"
 //   The request was rejected because the specified grant token is not valid.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -1566,11 +1570,11 @@ func (c *KMS) GenerateRandomRequest(input *GenerateRandomInput) (req *request.Re
 // API operation GenerateRandom for usage and error information.
 //
 // Returned Error Codes:
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
@@ -1636,22 +1640,22 @@ func (c *KMS) GetKeyPolicyRequest(input *GetKeyPolicyInput) (req *request.Reques
 // API operation GetKeyPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -1722,22 +1726,22 @@ func (c *KMS) GetKeyRotationStatusRequest(input *GetKeyRotationStatusInput) (req
 // API operation GetKeyRotationStatus for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -1745,7 +1749,7 @@ func (c *KMS) GetKeyRotationStatusRequest(input *GetKeyRotationStatusInput) (req
 //   Key State Affects Use of a Customer Master Key (http://docs.aws.amazon.com/kms/latest/developerguide/key-state.html)
 //   in the AWS Key Management Service Developer Guide.
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   The request was rejected because a specified parameter is not supported or
 //   a specified resource is not valid for this operation.
 //
@@ -1826,26 +1830,26 @@ func (c *KMS) GetParametersForImportRequest(input *GetParametersForImportInput) 
 // API operation GetParametersForImport for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   The request was rejected because a specified parameter is not supported or
 //   a specified resource is not valid for this operation.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -1935,26 +1939,26 @@ func (c *KMS) ImportKeyMaterialRequest(input *ImportKeyMaterialInput) (req *requ
 // API operation ImportKeyMaterial for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   The request was rejected because a specified parameter is not supported or
 //   a specified resource is not valid for this operation.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -1962,22 +1966,22 @@ func (c *KMS) ImportKeyMaterialRequest(input *ImportKeyMaterialInput) (req *requ
 //   Key State Affects Use of a Customer Master Key (http://docs.aws.amazon.com/kms/latest/developerguide/key-state.html)
 //   in the AWS Key Management Service Developer Guide.
 //
-//   * InvalidCiphertextException
+//   * ErrCodeInvalidCiphertextException "InvalidCiphertextException"
 //   The request was rejected because the specified ciphertext has been corrupted
 //   or is otherwise invalid.
 //
-//   * IncorrectKeyMaterialException
+//   * ErrCodeIncorrectKeyMaterialException "IncorrectKeyMaterialException"
 //   The request was rejected because the provided key material is invalid or
 //   is not the same key material that was previously imported into this customer
 //   master key (CMK).
 //
-//   * ExpiredImportTokenException
+//   * ErrCodeExpiredImportTokenException "ExpiredImportTokenException"
 //   The request was rejected because the provided import token is expired. Use
 //   GetParametersForImport to retrieve a new import token and public key, use
 //   the new public key to encrypt the key material, and then try the request
 //   again.
 //
-//   * InvalidImportTokenException
+//   * ErrCodeInvalidImportTokenException "InvalidImportTokenException"
 //   The request was rejected because the provided import token is invalid or
 //   is associated with a different customer master key (CMK).
 //
@@ -2049,15 +2053,15 @@ func (c *KMS) ListAliasesRequest(input *ListAliasesInput) (req *request.Request,
 // API operation ListAliases for usage and error information.
 //
 // Returned Error Codes:
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InvalidMarkerException
+//   * ErrCodeInvalidMarkerException "InvalidMarkerException"
 //   The request was rejected because the marker that specifies where pagination
 //   should next begin is not valid.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
@@ -2154,26 +2158,26 @@ func (c *KMS) ListGrantsRequest(input *ListGrantsInput) (req *request.Request, o
 // API operation ListGrants for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InvalidMarkerException
+//   * ErrCodeInvalidMarkerException "InvalidMarkerException"
 //   The request was rejected because the marker that specifies where pagination
 //   should next begin is not valid.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -2274,22 +2278,22 @@ func (c *KMS) ListKeyPoliciesRequest(input *ListKeyPoliciesInput) (req *request.
 // API operation ListKeyPolicies for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -2390,15 +2394,15 @@ func (c *KMS) ListKeysRequest(input *ListKeysInput) (req *request.Request, outpu
 // API operation ListKeys for usage and error information.
 //
 // Returned Error Codes:
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidMarkerException
+//   * ErrCodeInvalidMarkerException "InvalidMarkerException"
 //   The request was rejected because the marker that specifies where pagination
 //   should next begin is not valid.
 //
@@ -2432,6 +2436,83 @@ func (c *KMS) ListKeysPages(input *ListKeysInput, fn func(p *ListKeysOutput, las
 	return page.EachPage(func(p interface{}, lastPage bool) bool {
 		return fn(p.(*ListKeysOutput), lastPage)
 	})
+}
+
+const opListResourceTags = "ListResourceTags"
+
+// ListResourceTagsRequest generates a "aws/request.Request" representing the
+// client's request for the ListResourceTags operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ListResourceTags for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListResourceTags method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListResourceTagsRequest method.
+//    req, resp := client.ListResourceTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListResourceTags
+func (c *KMS) ListResourceTagsRequest(input *ListResourceTagsInput) (req *request.Request, output *ListResourceTagsOutput) {
+	op := &request.Operation{
+		Name:       opListResourceTags,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListResourceTagsInput{}
+	}
+
+	output = &ListResourceTagsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListResourceTags API operation for AWS Key Management Service.
+//
+// Returns a list of all tags for the specified customer master key (CMK).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Key Management Service's
+// API operation ListResourceTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalException "InternalException"
+//   The request was rejected because an internal exception occurred. The request
+//   can be retried.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   The request was rejected because the specified entity or resource could not
+//   be found.
+//
+//   * ErrCodeInvalidArnException "InvalidArnException"
+//   The request was rejected because a specified ARN was not valid.
+//
+//   * ErrCodeInvalidMarkerException "InvalidMarkerException"
+//   The request was rejected because the marker that specifies where pagination
+//   should next begin is not valid.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListResourceTags
+func (c *KMS) ListResourceTags(input *ListResourceTagsInput) (*ListResourceTagsOutput, error) {
+	req, out := c.ListResourceTagsRequest(input)
+	err := req.Send()
+	return out, err
 }
 
 const opListRetirableGrants = "ListRetirableGrants"
@@ -2493,22 +2574,22 @@ func (c *KMS) ListRetirableGrantsRequest(input *ListRetirableGrantsInput) (req *
 // API operation ListRetirableGrants for usage and error information.
 //
 // Returned Error Codes:
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InvalidMarkerException
+//   * ErrCodeInvalidMarkerException "InvalidMarkerException"
 //   The request was rejected because the marker that specifies where pagination
 //   should next begin is not valid.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
@@ -2579,35 +2660,35 @@ func (c *KMS) PutKeyPolicyRequest(input *PutKeyPolicyInput) (req *request.Reques
 // API operation PutKeyPolicy for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * MalformedPolicyDocumentException
+//   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocumentException"
 //   The request was rejected because the specified policy is not syntactically
 //   or semantically correct.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * UnsupportedOperationException
+//   * ErrCodeUnsupportedOperationException "UnsupportedOperationException"
 //   The request was rejected because a specified parameter is not supported or
 //   a specified resource is not valid for this operation.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The request was rejected because a limit was exceeded. For more information,
 //   see Limits (http://docs.aws.amazon.com/kms/latest/developerguide/limits.html)
 //   in the AWS Key Management Service Developer Guide.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -2688,36 +2769,36 @@ func (c *KMS) ReEncryptRequest(input *ReEncryptInput) (req *request.Request, out
 // API operation ReEncrypt for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * DisabledException
+//   * ErrCodeDisabledException "DisabledException"
 //   The request was rejected because the specified CMK is not enabled.
 //
-//   * InvalidCiphertextException
+//   * ErrCodeInvalidCiphertextException "InvalidCiphertextException"
 //   The request was rejected because the specified ciphertext has been corrupted
 //   or is otherwise invalid.
 //
-//   * KeyUnavailableException
+//   * ErrCodeKeyUnavailableException "KeyUnavailableException"
 //   The request was rejected because the specified CMK was not available. The
 //   request can be retried.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InvalidKeyUsageException
+//   * ErrCodeInvalidKeyUsageException "InvalidKeyUsageException"
 //   The request was rejected because the specified KeySpec value is not valid.
 //
-//   * InvalidGrantTokenException
+//   * ErrCodeInvalidGrantTokenException "InvalidGrantTokenException"
 //   The request was rejected because the specified grant token is not valid.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -2804,25 +2885,25 @@ func (c *KMS) RetireGrantRequest(input *RetireGrantInput) (req *request.Request,
 // API operation RetireGrant for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidGrantTokenException
+//   * ErrCodeInvalidGrantTokenException "InvalidGrantTokenException"
 //   The request was rejected because the specified grant token is not valid.
 //
-//   * InvalidGrantIdException
+//   * ErrCodeInvalidGrantIdException "InvalidGrantIdException"
 //   The request was rejected because the specified GrantId is not valid.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -2895,25 +2976,25 @@ func (c *KMS) RevokeGrantRequest(input *RevokeGrantInput) (req *request.Request,
 // API operation RevokeGrant for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * InvalidGrantIdException
+//   * ErrCodeInvalidGrantIdException "InvalidGrantIdException"
 //   The request was rejected because the specified GrantId is not valid.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -2998,22 +3079,22 @@ func (c *KMS) ScheduleKeyDeletionRequest(input *ScheduleKeyDeletionInput) (req *
 // API operation ScheduleKeyDeletion for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -3024,6 +3105,198 @@ func (c *KMS) ScheduleKeyDeletionRequest(input *ScheduleKeyDeletionInput) (req *
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ScheduleKeyDeletion
 func (c *KMS) ScheduleKeyDeletion(input *ScheduleKeyDeletionInput) (*ScheduleKeyDeletionOutput, error) {
 	req, out := c.ScheduleKeyDeletionRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opTagResource = "TagResource"
+
+// TagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the TagResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See TagResource for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the TagResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the TagResourceRequest method.
+//    req, resp := client.TagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/TagResource
+func (c *KMS) TagResourceRequest(input *TagResourceInput) (req *request.Request, output *TagResourceOutput) {
+	op := &request.Operation{
+		Name:       opTagResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TagResourceInput{}
+	}
+
+	output = &TagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagResource API operation for AWS Key Management Service.
+//
+// Adds or overwrites one or more tags for the specified customer master key
+// (CMK).
+//
+// Each tag consists of a tag key and a tag value. Tag keys and tag values are
+// both required, but tag values can be empty (null) strings.
+//
+// You cannot use the same tag key more than once per CMK. For example, consider
+// a CMK with one tag whose tag key is Purpose and tag value is Test. If you
+// send a TagResource request for this CMK with a tag key of Purpose and a tag
+// value of Prod, it does not create a second tag. Instead, the original tag
+// is overwritten with the new tag value.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Key Management Service's
+// API operation TagResource for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalException "InternalException"
+//   The request was rejected because an internal exception occurred. The request
+//   can be retried.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   The request was rejected because the specified entity or resource could not
+//   be found.
+//
+//   * ErrCodeInvalidArnException "InvalidArnException"
+//   The request was rejected because a specified ARN was not valid.
+//
+//   * ErrCodeInvalidStateException "InvalidStateException"
+//   The request was rejected because the state of the specified resource is not
+//   valid for this request.
+//
+//   For more information about how key state affects the use of a CMK, see How
+//   Key State Affects Use of a Customer Master Key (http://docs.aws.amazon.com/kms/latest/developerguide/key-state.html)
+//   in the AWS Key Management Service Developer Guide.
+//
+//   * ErrCodeLimitExceededException "LimitExceededException"
+//   The request was rejected because a limit was exceeded. For more information,
+//   see Limits (http://docs.aws.amazon.com/kms/latest/developerguide/limits.html)
+//   in the AWS Key Management Service Developer Guide.
+//
+//   * ErrCodeTagException "TagException"
+//   The request was rejected because one or more tags are not valid.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/TagResource
+func (c *KMS) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opUntagResource = "UntagResource"
+
+// UntagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the UntagResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UntagResource for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UntagResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UntagResourceRequest method.
+//    req, resp := client.UntagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/UntagResource
+func (c *KMS) UntagResourceRequest(input *UntagResourceInput) (req *request.Request, output *UntagResourceOutput) {
+	op := &request.Operation{
+		Name:       opUntagResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UntagResourceInput{}
+	}
+
+	output = &UntagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagResource API operation for AWS Key Management Service.
+//
+// Removes the specified tag or tags from the specified customer master key
+// (CMK).
+//
+// To remove a tag, you specify the tag key for each tag to remove. You do not
+// specify the tag value. To overwrite the tag value for an existing tag, use
+// TagResource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Key Management Service's
+// API operation UntagResource for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalException "InternalException"
+//   The request was rejected because an internal exception occurred. The request
+//   can be retried.
+//
+//   * ErrCodeNotFoundException "NotFoundException"
+//   The request was rejected because the specified entity or resource could not
+//   be found.
+//
+//   * ErrCodeInvalidArnException "InvalidArnException"
+//   The request was rejected because a specified ARN was not valid.
+//
+//   * ErrCodeInvalidStateException "InvalidStateException"
+//   The request was rejected because the state of the specified resource is not
+//   valid for this request.
+//
+//   For more information about how key state affects the use of a CMK, see How
+//   Key State Affects Use of a Customer Master Key (http://docs.aws.amazon.com/kms/latest/developerguide/key-state.html)
+//   in the AWS Key Management Service Developer Guide.
+//
+//   * ErrCodeTagException "TagException"
+//   The request was rejected because one or more tags are not valid.
+//
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/UntagResource
+func (c *KMS) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -3097,19 +3370,19 @@ func (c *KMS) UpdateAliasRequest(input *UpdateAliasInput) (req *request.Request,
 // API operation UpdateAlias for usage and error information.
 //
 // Returned Error Codes:
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -3181,22 +3454,22 @@ func (c *KMS) UpdateKeyDescriptionRequest(input *UpdateKeyDescriptionInput) (req
 // API operation UpdateKeyDescription for usage and error information.
 //
 // Returned Error Codes:
-//   * NotFoundException
+//   * ErrCodeNotFoundException "NotFoundException"
 //   The request was rejected because the specified entity or resource could not
 //   be found.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The request was rejected because a specified ARN was not valid.
 //
-//   * DependencyTimeoutException
+//   * ErrCodeDependencyTimeoutException "DependencyTimeoutException"
 //   The system timed out while trying to fulfill the request. The request can
 //   be retried.
 //
-//   * InternalException
+//   * ErrCodeInternalException "InternalException"
 //   The request was rejected because an internal exception occurred. The request
 //   can be retried.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   The request was rejected because the state of the specified resource is not
 //   valid for this request.
 //
@@ -3617,8 +3890,8 @@ type CreateKeyInput struct {
 	// section in the AWS Key Management Service Developer Guide.
 	//
 	// Use this parameter only when you include a policy in the request and you
-	// intend to prevent the principal making the request from making a subsequent
-	// PutKeyPolicy request on the CMK.
+	// intend to prevent the principal that is making the request from making a
+	// subsequent PutKeyPolicy request on the CMK.
 	//
 	// The default value is false.
 	BypassPolicyLockoutSafetyCheck *bool `type:"boolean"`
@@ -3651,18 +3924,18 @@ type CreateKeyInput struct {
 	// If you specify a policy and do not set BypassPolicyLockoutSafetyCheck to
 	// true, the policy must meet the following criteria:
 	//
-	//    * It must allow the principal making the CreateKey request to make a subsequent
-	//    PutKeyPolicy request on the CMK. This reduces the likelihood that the
-	//    CMK becomes unmanageable. For more information, refer to the scenario
-	//    in the Default Key Policy (http://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html#key-policy-default-allow-root-enable-iam)
+	//    * It must allow the principal that is making the CreateKey request to
+	//    make a subsequent PutKeyPolicy request on the CMK. This reduces the likelihood
+	//    that the CMK becomes unmanageable. For more information, refer to the
+	//    scenario in the Default Key Policy (http://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html#key-policy-default-allow-root-enable-iam)
 	//    section in the AWS Key Management Service Developer Guide.
 	//
-	//    * The principal(s) specified in the key policy must exist and be visible
-	//    to AWS KMS. When you create a new AWS principal (for example, an IAM user
-	//    or role), you might need to enforce a delay before specifying the new
-	//    principal in a key policy because the new principal might not immediately
-	//    be visible to AWS KMS. For more information, see Changes that I make are
-	//    not always immediately visible (http://docs.aws.amazon.com/IAM/latest/UserGuide/troubleshoot_general.html#troubleshoot_general_eventual-consistency)
+	//    * The principals that are specified in the key policy must exist and be
+	//    visible to AWS KMS. When you create a new AWS principal (for example,
+	//    an IAM user or role), you might need to enforce a delay before specifying
+	//    the new principal in a key policy because the new principal might not
+	//    immediately be visible to AWS KMS. For more information, see Changes that
+	//    I make are not always immediately visible (http://docs.aws.amazon.com/IAM/latest/UserGuide/troubleshoot_general.html#troubleshoot_general_eventual-consistency)
 	//    in the IAM User Guide.
 	//
 	// If you do not specify a policy, AWS KMS attaches a default key policy to
@@ -3671,6 +3944,13 @@ type CreateKeyInput struct {
 	//
 	// The policy size limit is 32 KiB (32768 bytes).
 	Policy *string `min:"1" type:"string"`
+
+	// One or more tags. Each tag consists of a tag key and a tag value. Tag keys
+	// and tag values are both required, but tag values can be empty (null) strings.
+	//
+	// Use this parameter to tag the CMK when it is created. Alternately, you can
+	// omit this parameter and instead tag the CMK after it is created using TagResource.
+	Tags []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -3688,6 +3968,16 @@ func (s *CreateKeyInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateKeyInput"}
 	if s.Policy != nil && len(*s.Policy) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Policy", 1))
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
 	}
 
 	if invalidParams.Len() > 0 {
@@ -3723,6 +4013,12 @@ func (s *CreateKeyInput) SetOrigin(v string) *CreateKeyInput {
 // SetPolicy sets the Policy field's value.
 func (s *CreateKeyInput) SetPolicy(v string) *CreateKeyInput {
 	s.Policy = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateKeyInput) SetTags(v []*Tag) *CreateKeyInput {
+	s.Tags = v
 	return s
 }
 
@@ -5562,17 +5858,17 @@ func (s *KeyMetadata) SetValidTo(v time.Time) *KeyMetadata {
 type ListAliasesInput struct {
 	_ struct{} `type:"structure"`
 
-	// When paginating results, specify the maximum number of items to return in
-	// the response. If additional items exist beyond the number you specify, the
-	// Truncated element in the response is set to true.
+	// Use this parameter to specify the maximum number of items to return. When
+	// this value is present, AWS KMS does not return more than the specified number
+	// of items, but it might return fewer.
 	//
 	// This value is optional. If you include a value, it must be between 1 and
 	// 100, inclusive. If you do not include a value, it defaults to 50.
 	Limit *int64 `min:"1" type:"integer"`
 
-	// Use this parameter only when paginating results and only in a subsequent
-	// request after you receive a response with truncated results. Set it to the
-	// value of NextMarker from the response you just received.
+	// Use this parameter in a subsequent request after you receive a response with
+	// truncated results. Set it to the value of NextMarker from the truncated response
+	// you just received.
 	Marker *string `min:"1" type:"string"`
 }
 
@@ -5621,13 +5917,14 @@ type ListAliasesOutput struct {
 	// A list of key aliases in the user's account.
 	Aliases []*AliasListEntry `type:"list"`
 
-	// When Truncated is true, this value is present and contains the value to use
-	// for the Marker parameter in a subsequent pagination request.
+	// When Truncated is true, this element is present and contains the value to
+	// use for the Marker parameter in a subsequent request.
 	NextMarker *string `min:"1" type:"string"`
 
-	// A flag that indicates whether there are more items in the list. If your results
-	// were truncated, you can use the Marker parameter to make a subsequent pagination
-	// request to retrieve more items in the list.
+	// A flag that indicates whether there are more items in the list. When this
+	// value is true, the list in this response is truncated. To retrieve more items,
+	// pass the value of the NextMarker element in this response to the Marker parameter
+	// in a subsequent request.
 	Truncated *bool `type:"boolean"`
 }
 
@@ -5673,17 +5970,17 @@ type ListGrantsInput struct {
 	// KeyId is a required field
 	KeyId *string `min:"1" type:"string" required:"true"`
 
-	// When paginating results, specify the maximum number of items to return in
-	// the response. If additional items exist beyond the number you specify, the
-	// Truncated element in the response is set to true.
+	// Use this parameter to specify the maximum number of items to return. When
+	// this value is present, AWS KMS does not return more than the specified number
+	// of items, but it might return fewer.
 	//
 	// This value is optional. If you include a value, it must be between 1 and
 	// 100, inclusive. If you do not include a value, it defaults to 50.
 	Limit *int64 `min:"1" type:"integer"`
 
-	// Use this parameter only when paginating results and only in a subsequent
-	// request after you receive a response with truncated results. Set it to the
-	// value of NextMarker from the response you just received.
+	// Use this parameter in a subsequent request after you receive a response with
+	// truncated results. Set it to the value of NextMarker from the truncated response
+	// you just received.
 	Marker *string `min:"1" type:"string"`
 }
 
@@ -5744,13 +6041,14 @@ type ListGrantsResponse struct {
 	// A list of grants.
 	Grants []*GrantListEntry `type:"list"`
 
-	// When Truncated is true, this value is present and contains the value to use
-	// for the Marker parameter in a subsequent pagination request.
+	// When Truncated is true, this element is present and contains the value to
+	// use for the Marker parameter in a subsequent request.
 	NextMarker *string `min:"1" type:"string"`
 
-	// A flag that indicates whether there are more items in the list. If your results
-	// were truncated, you can use the Marker parameter to make a subsequent pagination
-	// request to retrieve more items in the list.
+	// A flag that indicates whether there are more items in the list. When this
+	// value is true, the list in this response is truncated. To retrieve more items,
+	// pass the value of the NextMarker element in this response to the Marker parameter
+	// in a subsequent request.
 	Truncated *bool `type:"boolean"`
 }
 
@@ -5796,9 +6094,9 @@ type ListKeyPoliciesInput struct {
 	// KeyId is a required field
 	KeyId *string `min:"1" type:"string" required:"true"`
 
-	// When paginating results, specify the maximum number of items to return in
-	// the response. If additional items exist beyond the number you specify, the
-	// Truncated element in the response is set to true.
+	// Use this parameter to specify the maximum number of items to return. When
+	// this value is present, AWS KMS does not return more than the specified number
+	// of items, but it might return fewer.
 	//
 	// This value is optional. If you include a value, it must be between 1 and
 	// 1000, inclusive. If you do not include a value, it defaults to 100.
@@ -5806,9 +6104,9 @@ type ListKeyPoliciesInput struct {
 	// Currently only 1 policy can be attached to a key.
 	Limit *int64 `min:"1" type:"integer"`
 
-	// Use this parameter only when paginating results and only in a subsequent
-	// request after you receive a response with truncated results. Set it to the
-	// value of NextMarker from the response you just received.
+	// Use this parameter in a subsequent request after you receive a response with
+	// truncated results. Set it to the value of NextMarker from the truncated response
+	// you just received.
 	Marker *string `min:"1" type:"string"`
 }
 
@@ -5866,17 +6164,18 @@ func (s *ListKeyPoliciesInput) SetMarker(v string) *ListKeyPoliciesInput {
 type ListKeyPoliciesOutput struct {
 	_ struct{} `type:"structure"`
 
-	// When Truncated is true, this value is present and contains the value to use
-	// for the Marker parameter in a subsequent pagination request.
+	// When Truncated is true, this element is present and contains the value to
+	// use for the Marker parameter in a subsequent request.
 	NextMarker *string `min:"1" type:"string"`
 
 	// A list of policy names. Currently, there is only one policy and it is named
 	// "Default".
 	PolicyNames []*string `type:"list"`
 
-	// A flag that indicates whether there are more items in the list. If your results
-	// were truncated, you can use the Marker parameter to make a subsequent pagination
-	// request to retrieve more items in the list.
+	// A flag that indicates whether there are more items in the list. When this
+	// value is true, the list in this response is truncated. To retrieve more items,
+	// pass the value of the NextMarker element in this response to the Marker parameter
+	// in a subsequent request.
 	Truncated *bool `type:"boolean"`
 }
 
@@ -5912,17 +6211,17 @@ func (s *ListKeyPoliciesOutput) SetTruncated(v bool) *ListKeyPoliciesOutput {
 type ListKeysInput struct {
 	_ struct{} `type:"structure"`
 
-	// When paginating results, specify the maximum number of items to return in
-	// the response. If additional items exist beyond the number you specify, the
-	// Truncated element in the response is set to true.
+	// Use this parameter to specify the maximum number of items to return. When
+	// this value is present, AWS KMS does not return more than the specified number
+	// of items, but it might return fewer.
 	//
 	// This value is optional. If you include a value, it must be between 1 and
 	// 1000, inclusive. If you do not include a value, it defaults to 100.
 	Limit *int64 `min:"1" type:"integer"`
 
-	// Use this parameter only when paginating results and only in a subsequent
-	// request after you receive a response with truncated results. Set it to the
-	// value of NextMarker from the response you just received.
+	// Use this parameter in a subsequent request after you receive a response with
+	// truncated results. Set it to the value of NextMarker from the truncated response
+	// you just received.
 	Marker *string `min:"1" type:"string"`
 }
 
@@ -5971,13 +6270,14 @@ type ListKeysOutput struct {
 	// A list of keys.
 	Keys []*KeyListEntry `type:"list"`
 
-	// When Truncated is true, this value is present and contains the value to use
-	// for the Marker parameter in a subsequent pagination request.
+	// When Truncated is true, this element is present and contains the value to
+	// use for the Marker parameter in a subsequent request.
 	NextMarker *string `min:"1" type:"string"`
 
-	// A flag that indicates whether there are more items in the list. If your results
-	// were truncated, you can use the Marker parameter to make a subsequent pagination
-	// request to retrieve more items in the list.
+	// A flag that indicates whether there are more items in the list. When this
+	// value is true, the list in this response is truncated. To retrieve more items,
+	// pass the value of the NextMarker element in this response to the Marker parameter
+	// in a subsequent request.
 	Truncated *bool `type:"boolean"`
 }
 
@@ -6009,21 +6309,150 @@ func (s *ListKeysOutput) SetTruncated(v bool) *ListKeysOutput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListResourceTagsRequest
+type ListResourceTagsInput struct {
+	_ struct{} `type:"structure"`
+
+	// A unique identifier for the CMK whose tags you are listing. You can use the
+	// unique key ID or the Amazon Resource Name (ARN) of the CMK. Examples:
+	//
+	//    * Unique key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	//    * Key ARN: arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	// KeyId is a required field
+	KeyId *string `min:"1" type:"string" required:"true"`
+
+	// Use this parameter to specify the maximum number of items to return. When
+	// this value is present, AWS KMS does not return more than the specified number
+	// of items, but it might return fewer.
+	//
+	// This value is optional. If you include a value, it must be between 1 and
+	// 50, inclusive. If you do not include a value, it defaults to 50.
+	Limit *int64 `min:"1" type:"integer"`
+
+	// Use this parameter in a subsequent request after you receive a response with
+	// truncated results. Set it to the value of NextMarker from the truncated response
+	// you just received.
+	//
+	// Do not attempt to construct this value. Use only the value of NextMarker
+	// from the truncated response you just received.
+	Marker *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s ListResourceTagsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListResourceTagsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListResourceTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListResourceTagsInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.Limit != nil && *s.Limit < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("Limit", 1))
+	}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKeyId sets the KeyId field's value.
+func (s *ListResourceTagsInput) SetKeyId(v string) *ListResourceTagsInput {
+	s.KeyId = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListResourceTagsInput) SetLimit(v int64) *ListResourceTagsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListResourceTagsInput) SetMarker(v string) *ListResourceTagsInput {
+	s.Marker = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListResourceTagsResponse
+type ListResourceTagsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// When Truncated is true, this element is present and contains the value to
+	// use for the Marker parameter in a subsequent request.
+	//
+	// Do not assume or infer any information from this value.
+	NextMarker *string `min:"1" type:"string"`
+
+	// A list of tags. Each tag consists of a tag key and a tag value.
+	Tags []*Tag `type:"list"`
+
+	// A flag that indicates whether there are more items in the list. When this
+	// value is true, the list in this response is truncated. To retrieve more items,
+	// pass the value of the NextMarker element in this response to the Marker parameter
+	// in a subsequent request.
+	Truncated *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s ListResourceTagsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListResourceTagsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextMarker sets the NextMarker field's value.
+func (s *ListResourceTagsOutput) SetNextMarker(v string) *ListResourceTagsOutput {
+	s.NextMarker = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListResourceTagsOutput) SetTags(v []*Tag) *ListResourceTagsOutput {
+	s.Tags = v
+	return s
+}
+
+// SetTruncated sets the Truncated field's value.
+func (s *ListResourceTagsOutput) SetTruncated(v bool) *ListResourceTagsOutput {
+	s.Truncated = &v
+	return s
+}
+
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/ListRetirableGrantsRequest
 type ListRetirableGrantsInput struct {
 	_ struct{} `type:"structure"`
 
-	// When paginating results, specify the maximum number of items to return in
-	// the response. If additional items exist beyond the number you specify, the
-	// Truncated element in the response is set to true.
+	// Use this parameter to specify the maximum number of items to return. When
+	// this value is present, AWS KMS does not return more than the specified number
+	// of items, but it might return fewer.
 	//
 	// This value is optional. If you include a value, it must be between 1 and
 	// 100, inclusive. If you do not include a value, it defaults to 50.
 	Limit *int64 `min:"1" type:"integer"`
 
-	// Use this parameter only when paginating results and only in a subsequent
-	// request after you receive a response with truncated results. Set it to the
-	// value of NextMarker from the response you just received.
+	// Use this parameter in a subsequent request after you receive a response with
+	// truncated results. Set it to the value of NextMarker from the truncated response
+	// you just received.
 	Marker *string `min:"1" type:"string"`
 
 	// The retiring principal for which to list grants.
@@ -6101,8 +6530,8 @@ type PutKeyPolicyInput struct {
 	// For more information, refer to the scenario in the Default Key Policy (http://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html#key-policy-default-allow-root-enable-iam)
 	// section in the AWS Key Management Service Developer Guide.
 	//
-	// Use this parameter only when you intend to prevent the principal making the
-	// request from making a subsequent PutKeyPolicy request on the CMK.
+	// Use this parameter only when you intend to prevent the principal that is
+	// making the request from making a subsequent PutKeyPolicy request on the CMK.
 	//
 	// The default value is false.
 	BypassPolicyLockoutSafetyCheck *bool `type:"boolean"`
@@ -6123,18 +6552,18 @@ type PutKeyPolicyInput struct {
 	// If you do not set BypassPolicyLockoutSafetyCheck to true, the policy must
 	// meet the following criteria:
 	//
-	//    * It must allow the principal making the PutKeyPolicy request to make
-	//    a subsequent PutKeyPolicy request on the CMK. This reduces the likelihood
-	//    that the CMK becomes unmanageable. For more information, refer to the
-	//    scenario in the Default Key Policy (http://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html#key-policy-default-allow-root-enable-iam)
+	//    * It must allow the principal that is making the PutKeyPolicy request
+	//    to make a subsequent PutKeyPolicy request on the CMK. This reduces the
+	//    likelihood that the CMK becomes unmanageable. For more information, refer
+	//    to the scenario in the Default Key Policy (http://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html#key-policy-default-allow-root-enable-iam)
 	//    section in the AWS Key Management Service Developer Guide.
 	//
-	//    * The principal(s) specified in the key policy must exist and be visible
-	//    to AWS KMS. When you create a new AWS principal (for example, an IAM user
-	//    or role), you might need to enforce a delay before specifying the new
-	//    principal in a key policy because the new principal might not immediately
-	//    be visible to AWS KMS. For more information, see Changes that I make are
-	//    not always immediately visible (http://docs.aws.amazon.com/IAM/latest/UserGuide/troubleshoot_general.html#troubleshoot_general_eventual-consistency)
+	//    * The principals that are specified in the key policy must exist and be
+	//    visible to AWS KMS. When you create a new AWS principal (for example,
+	//    an IAM user or role), you might need to enforce a delay before specifying
+	//    the new principal in a key policy because the new principal might not
+	//    immediately be visible to AWS KMS. For more information, see Changes that
+	//    I make are not always immediately visible (http://docs.aws.amazon.com/IAM/latest/UserGuide/troubleshoot_general.html#troubleshoot_general_eventual-consistency)
 	//    in the IAM User Guide.
 	//
 	// The policy size limit is 32 KiB (32768 bytes).
@@ -6634,6 +7063,226 @@ func (s *ScheduleKeyDeletionOutput) SetDeletionDate(v time.Time) *ScheduleKeyDel
 func (s *ScheduleKeyDeletionOutput) SetKeyId(v string) *ScheduleKeyDeletionOutput {
 	s.KeyId = &v
 	return s
+}
+
+// A key-value pair. A tag consists of a tag key and a tag value. Tag keys and
+// tag values are both required, but tag values can be empty (null) strings.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/Tag
+type Tag struct {
+	_ struct{} `type:"structure"`
+
+	// The key of the tag.
+	//
+	// TagKey is a required field
+	TagKey *string `min:"1" type:"string" required:"true"`
+
+	// The value of the tag.
+	//
+	// TagValue is a required field
+	TagValue *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s Tag) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Tag) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Tag) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Tag"}
+	if s.TagKey == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKey"))
+	}
+	if s.TagKey != nil && len(*s.TagKey) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("TagKey", 1))
+	}
+	if s.TagValue == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagValue"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetTagKey sets the TagKey field's value.
+func (s *Tag) SetTagKey(v string) *Tag {
+	s.TagKey = &v
+	return s
+}
+
+// SetTagValue sets the TagValue field's value.
+func (s *Tag) SetTagValue(v string) *Tag {
+	s.TagValue = &v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/TagResourceRequest
+type TagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// A unique identifier for the CMK you are tagging. You can use the unique key
+	// ID or the Amazon Resource Name (ARN) of the CMK. Examples:
+	//
+	//    * Unique key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	//    * Key ARN: arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	// KeyId is a required field
+	KeyId *string `min:"1" type:"string" required:"true"`
+
+	// One or more tags. Each tag consists of a tag key and a tag value.
+	//
+	// Tags is a required field
+	Tags []*Tag `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s TagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagResourceInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKeyId sets the KeyId field's value.
+func (s *TagResourceInput) SetKeyId(v string) *TagResourceInput {
+	s.KeyId = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagResourceInput) SetTags(v []*Tag) *TagResourceInput {
+	s.Tags = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/TagResourceOutput
+type TagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceOutput) GoString() string {
+	return s.String()
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/UntagResourceRequest
+type UntagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// A unique identifier for the CMK from which you are removing tags. You can
+	// use the unique key ID or the Amazon Resource Name (ARN) of the CMK. Examples:
+	//
+	//    * Unique key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	//    * Key ARN: arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab
+	//
+	// KeyId is a required field
+	KeyId *string `min:"1" type:"string" required:"true"`
+
+	// One or more tag keys. Specify only the tag keys, not the tag values.
+	//
+	// TagKeys is a required field
+	TagKeys []*string `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagResourceInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyId != nil && len(*s.KeyId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KeyId", 1))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKeyId sets the KeyId field's value.
+func (s *UntagResourceInput) SetKeyId(v string) *UntagResourceInput {
+	s.KeyId = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagResourceInput) SetTagKeys(v []*string) *UntagResourceInput {
+	s.TagKeys = v
+	return s
+}
+
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/UntagResourceOutput
+type UntagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceOutput) GoString() string {
+	return s.String()
 }
 
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01/UpdateAliasRequest

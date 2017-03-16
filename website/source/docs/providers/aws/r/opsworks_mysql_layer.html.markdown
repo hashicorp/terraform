@@ -14,7 +14,7 @@ Provides an OpsWorks MySQL layer resource.
 
 ```
 resource "aws_opsworks_mysql_layer" "db" {
-    stack_id = "${aws_opsworks_stack.main.id}"
+  stack_id = "${aws_opsworks_stack.main.id}"
 }
 ```
 

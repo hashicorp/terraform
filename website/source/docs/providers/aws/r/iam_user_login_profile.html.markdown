@@ -16,18 +16,18 @@ obtained from Keybase.
 
 ```
 resource "aws_iam_user" "u" {
-        name = "auser"
-        path = "/"
-        force_destroy = true
+  name          = "auser"
+  path          = "/"
+  force_destroy = true
 }
 
 resource "aws_iam_user_login_profile" "u" {
-        user = "${aws_iam_user.u.name}"
-        pgp_key = "keybase:some_person_that_exists"
+  user    = "${aws_iam_user.u.name}"
+  pgp_key = "keybase:some_person_that_exists"
 }
 
 output "password" {
-        value = "${aws_iam_user_login_profile.u.encrypted_password}"
+  value = "${aws_iam_user_login_profile.u.encrypted_password}"
 }
 ```
 
@@ -52,7 +52,7 @@ The following attributes are exported:
 * `encrypted_password` - The encrypted password, base64 encoded.
 
 ~> **NOTE:** The encrypted password may be decrypted using the command line,
-   for example: `terraform output password | base64 --decode | keybase pgp decrypt`. 
+   for example: `terraform output password | base64 --decode | keybase pgp decrypt`.
 
 ## Import
 

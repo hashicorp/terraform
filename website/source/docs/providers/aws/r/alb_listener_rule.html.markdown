@@ -24,15 +24,15 @@ resource "aws_alb_listener" "front_end" {
 
 resource "aws_alb_listener_rule" "static" {
   listener_arn = "${aws_alb_listener.front_end.arn}"
-  priority = 100
-  
+  priority     = 100
+
   action {
-    type = "forward"
+    type             = "forward"
     target_group_arn = "${aws_alb_target_group.static.arn}"
   }
-  
+
   condition {
-    field = "path-pattern"
+    field  = "path-pattern"
     values = ["/static/*"]
   }
 }
@@ -54,8 +54,8 @@ Action Blocks (for `default_action`) support the following:
 
 Condition Blocks (for `default_condition`) support the following:
 
-* `field` - (Required) The name of the field. The only valid value is `path-pattern`. 
-* `values` - (Required) The path patterns to match. 
+* `field` - (Required) The name of the field. The only valid value is `path-pattern`.
+* `values` - (Required) The path patterns to match.
 
 ## Attributes Reference
 

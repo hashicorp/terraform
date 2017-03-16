@@ -373,6 +373,8 @@ func jsonPolicyDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
 		log.Printf("[ERROR] Could not unmarshal new policy %s: %v", new, err)
 		return false
 	}
+	oldPolicy.Bindings = mergeBindings(oldPolicy.Bindings)
+	newPolicy.Bindings = mergeBindings(newPolicy.Bindings)
 	if newPolicy.Etag != oldPolicy.Etag {
 		return false
 	}

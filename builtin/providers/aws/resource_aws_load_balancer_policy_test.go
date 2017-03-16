@@ -10,18 +10,20 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSLoadBalancerPolicy_basic(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLoadBalancerPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSLoadBalancerPolicyConfig_basic,
+			{
+				Config: testAccAWSLoadBalancerPolicyConfig_basic(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-policy"),
 				),
@@ -31,19 +33,20 @@ func TestAccAWSLoadBalancerPolicy_basic(t *testing.T) {
 }
 
 func TestAccAWSLoadBalancerPolicy_updateWhileAssigned(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLoadBalancerPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSLoadBalancerPolicyConfig_updateWhileAssigned0,
+			{
+				Config: testAccAWSLoadBalancerPolicyConfig_updateWhileAssigned0(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-policy"),
 				),
 			},
-			resource.TestStep{
-				Config: testAccAWSLoadBalancerPolicyConfig_updateWhileAssigned1,
+			{
+				Config: testAccAWSLoadBalancerPolicyConfig_updateWhileAssigned1(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-policy"),
 				),
@@ -139,102 +142,105 @@ func testAccCheckAWSLoadBalancerPolicyState(elbResource string, policyResource s
 	}
 }
 
-const testAccAWSLoadBalancerPolicyConfig_basic = `
-resource "aws_elb" "test-lb" {
-  name = "test-aws-policies-lb"
-  availability_zones = ["us-west-2a"]
+func testAccAWSLoadBalancerPolicyConfig_basic(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_elb" "test-lb" {
+		name = "test-lb-%d"
+		availability_zones = ["us-west-2a"]
 
-  listener {
-    instance_port = 80
-    instance_protocol = "http"
-    lb_port = 80
-    lb_protocol = "http"
-  }
+		listener {
+			instance_port = 80
+			instance_protocol = "http"
+			lb_port = 80
+			lb_protocol = "http"
+		}
 
-  tags {
-    Name = "tf-acc-test"
-  }
+		tags {
+			Name = "tf-acc-test"
+		}
+	}
+
+	resource "aws_load_balancer_policy" "test-policy" {
+		load_balancer_name = "${aws_elb.test-lb.name}"
+		policy_name = "test-policy-%d"
+		policy_type_name = "AppCookieStickinessPolicyType"
+		policy_attribute = {
+			name = "CookieName"
+			value = "magic_cookie"
+		}
+	}`, rInt, rInt)
 }
 
-resource "aws_load_balancer_policy" "test-policy" {
-  load_balancer_name = "${aws_elb.test-lb.name}"
-  policy_name = "test-policy-policy"
-  policy_type_name = "AppCookieStickinessPolicyType"
-  policy_attribute = {
-    name = "CookieName"
-    value = "magic_cookie"
-  }
-}
-`
+func testAccAWSLoadBalancerPolicyConfig_updateWhileAssigned0(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_elb" "test-lb" {
+		name = "test-lb-%d"
+		availability_zones = ["us-west-2a"]
 
-const testAccAWSLoadBalancerPolicyConfig_updateWhileAssigned0 = `
-resource "aws_elb" "test-lb" {
-  name = "test-aws-policies-lb"
-  availability_zones = ["us-west-2a"]
+		listener {
+			instance_port = 80
+			instance_protocol = "http"
+			lb_port = 80
+			lb_protocol = "http"
+		}
 
-  listener {
-    instance_port = 80
-    instance_protocol = "http"
-    lb_port = 80
-    lb_protocol = "http"
-  }
+		tags {
+			Name = "tf-acc-test"
+		}
+	}
 
-  tags {
-    Name = "tf-acc-test"
-  }
-}
+	resource "aws_load_balancer_policy" "test-policy" {
+		load_balancer_name = "${aws_elb.test-lb.name}"
+		policy_name = "test-policy-%d"
+		policy_type_name = "AppCookieStickinessPolicyType"
+		policy_attribute = {
+			name = "CookieName"
+			value = "magic_cookie"
+		}
+	}
 
-resource "aws_load_balancer_policy" "test-policy" {
-  load_balancer_name = "${aws_elb.test-lb.name}"
-  policy_name = "test-policy-policy"
-  policy_type_name = "AppCookieStickinessPolicyType"
-  policy_attribute = {
-    name = "CookieName"
-    value = "magic_cookie"
-  }
-}
-
-resource "aws_load_balancer_listener_policy" "test-lb-test-policy-80" {
-  load_balancer_name = "${aws_elb.test-lb.name}"
-  load_balancer_port = 80
-  policy_names = [
-    "${aws_load_balancer_policy.test-policy.policy_name}"
-  ]
-}
-`
-
-const testAccAWSLoadBalancerPolicyConfig_updateWhileAssigned1 = `
-resource "aws_elb" "test-lb" {
-  name = "test-aws-policies-lb"
-  availability_zones = ["us-west-2a"]
-
-  listener {
-    instance_port = 80
-    instance_protocol = "http"
-    lb_port = 80
-    lb_protocol = "http"
-  }
-
-  tags {
-    Name = "tf-acc-test"
-  }
+	resource "aws_load_balancer_listener_policy" "test-lb-test-policy-80" {
+		load_balancer_name = "${aws_elb.test-lb.name}"
+		load_balancer_port = 80
+		policy_names = [
+			"${aws_load_balancer_policy.test-policy.policy_name}"
+		]
+	}`, rInt, rInt)
 }
 
-resource "aws_load_balancer_policy" "test-policy" {
-  load_balancer_name = "${aws_elb.test-lb.name}"
-  policy_name = "test-policy-policy"
-  policy_type_name = "AppCookieStickinessPolicyType"
-  policy_attribute = {
-    name = "CookieName"
-    value = "unicorn_cookie"
-  }
-}
+func testAccAWSLoadBalancerPolicyConfig_updateWhileAssigned1(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_elb" "test-lb" {
+		name = "test-lb-%d"
+		availability_zones = ["us-west-2a"]
 
-resource "aws_load_balancer_listener_policy" "test-lb-test-policy-80" {
-  load_balancer_name = "${aws_elb.test-lb.name}"
-  load_balancer_port = 80
-  policy_names = [
-    "${aws_load_balancer_policy.test-policy.policy_name}"
-  ]
+		listener {
+			instance_port = 80
+			instance_protocol = "http"
+			lb_port = 80
+			lb_protocol = "http"
+		}
+
+		tags {
+			Name = "tf-acc-test"
+		}
+	}
+
+	resource "aws_load_balancer_policy" "test-policy" {
+		load_balancer_name = "${aws_elb.test-lb.name}"
+		policy_name = "test-policy-%d"
+		policy_type_name = "AppCookieStickinessPolicyType"
+		policy_attribute = {
+			name = "CookieName"
+			value = "unicorn_cookie"
+		}
+	}
+
+	resource "aws_load_balancer_listener_policy" "test-lb-test-policy-80" {
+		load_balancer_name = "${aws_elb.test-lb.name}"
+		load_balancer_port = 80
+		policy_names = [
+			"${aws_load_balancer_policy.test-policy.policy_name}"
+		]
+	}`, rInt, rInt)
 }
-`

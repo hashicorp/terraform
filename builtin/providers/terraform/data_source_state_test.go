@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	backendinit "github.com/hashicorp/terraform/backend/init"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -15,6 +16,25 @@ func TestState_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccState_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckStateValue(
+						"data.terraform_remote_state.foo", "foo", "bar"),
+				),
+			},
+		},
+	})
+}
+
+func TestState_backends(t *testing.T) {
+	backendinit.Set("_ds_test", backendinit.Backend("local"))
+	defer backendinit.Set("_ds_test", nil)
+
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccState_backend,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckStateValue(
 						"data.terraform_remote_state.foo", "foo", "bar"),
@@ -66,6 +86,15 @@ func testAccCheckStateValue(id, name, value string) resource.TestCheckFunc {
 const testAccState_basic = `
 data "terraform_remote_state" "foo" {
 	backend = "local"
+
+	config {
+		path = "./test-fixtures/basic.tfstate"
+	}
+}`
+
+const testAccState_backend = `
+data "terraform_remote_state" "foo" {
+	backend = "_ds_test"
 
 	config {
 		path = "./test-fixtures/basic.tfstate"

@@ -88,14 +88,14 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"vault_generic_secret": genericSecretResource(),
+			"vault_policy":         policyResource(),
 		},
 	}
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	config := &api.Config{
-		Address: d.Get("address").(string),
-	}
+	config := api.DefaultConfig()
+	config.Address = d.Get("address").(string)
 
 	clientAuthI := d.Get("client_auth").([]interface{})
 	if len(clientAuthI) > 1 {
@@ -110,7 +110,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		clientAuthKey = clientAuth["key_file"].(string)
 	}
 
-	config.ConfigureTLS(&api.TLSConfig{
+	err := config.ConfigureTLS(&api.TLSConfig{
 		CACert:   d.Get("ca_cert_file").(string),
 		CAPath:   d.Get("ca_cert_dir").(string),
 		Insecure: d.Get("skip_tls_verify").(bool),
@@ -118,6 +118,9 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		ClientCert: clientAuthCert,
 		ClientKey:  clientAuthKey,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure TLS for Vault API: %s", err)
+	}
 
 	client, err := api.NewClient(config)
 	if err != nil {

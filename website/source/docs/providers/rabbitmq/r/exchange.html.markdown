@@ -14,27 +14,29 @@ The ``rabbitmq_exchange`` resource creates and manages an exchange.
 
 ```
 resource "rabbitmq_vhost" "test" {
-    name = "test"
+  name = "test"
 }
 
 resource "rabbitmq_permissions" "guest" {
-    user = "guest"
-    vhost = "${rabbitmq_vhost.test.name}"
-    permissions {
-        configure = ".*"
-        write = ".*"
-        read = ".*"
-    }
+  user  = "guest"
+  vhost = "${rabbitmq_vhost.test.name}"
+
+  permissions {
+    configure = ".*"
+    write     = ".*"
+    read      = ".*"
+  }
 }
 
 resource "rabbitmq_exchange" "test" {
-    name = "test"
-    vhost = "${rabbitmq_permissions.guest.vhost}"
-    settings {
-        type = "fanout"
-        durable = false
-        auto_delete = true
-    }
+  name  = "test"
+  vhost = "${rabbitmq_permissions.guest.vhost}"
+
+  settings {
+    type        = "fanout"
+    durable     = false
+    auto_delete = true
+  }
 }
 ```
 

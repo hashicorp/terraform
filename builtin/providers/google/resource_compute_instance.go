@@ -794,13 +794,14 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	disks := make([]map[string]interface{}, 0, 1)
 	for i, disk := range instance.Disks {
 		di := map[string]interface{}{
-			"disk":        d.Get(fmt.Sprintf("disk.%d.disk", i)),
-			"image":       d.Get(fmt.Sprintf("disk.%d.image", i)),
-			"type":        d.Get(fmt.Sprintf("disk.%d.type", i)),
-			"scratch":     d.Get(fmt.Sprintf("disk.%d.scratch", i)),
-			"auto_delete": d.Get(fmt.Sprintf("disk.%d.auto_delete", i)),
-			"size":        d.Get(fmt.Sprintf("disk.%d.size", i)),
-			"device_name": d.Get(fmt.Sprintf("disk.%d.device_name", i)),
+			"disk":                    d.Get(fmt.Sprintf("disk.%d.disk", i)),
+			"image":                   d.Get(fmt.Sprintf("disk.%d.image", i)),
+			"type":                    d.Get(fmt.Sprintf("disk.%d.type", i)),
+			"scratch":                 d.Get(fmt.Sprintf("disk.%d.scratch", i)),
+			"auto_delete":             d.Get(fmt.Sprintf("disk.%d.auto_delete", i)),
+			"size":                    d.Get(fmt.Sprintf("disk.%d.size", i)),
+			"device_name":             d.Get(fmt.Sprintf("disk.%d.device_name", i)),
+			"disk_encryption_key_raw": d.Get(fmt.Sprintf("disk.%d.disk_encryption_key_raw", i)),
 		}
 		if disk.DiskEncryptionKey != nil && disk.DiskEncryptionKey.Sha256 != "" {
 			di["disk_encryption_key_sha256"] = disk.DiskEncryptionKey.Sha256

@@ -110,13 +110,13 @@ func (c *Firehose) CreateDeliveryStreamRequest(input *CreateDeliveryStreamInput)
 // API operation CreateDeliveryStream for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   The specified input parameter has an value that is not valid.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   You have already reached the limit for a requested resource.
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The resource is already in use and not available for this operation.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/CreateDeliveryStream
@@ -192,10 +192,10 @@ func (c *Firehose) DeleteDeliveryStreamRequest(input *DeleteDeliveryStreamInput)
 // API operation DeleteDeliveryStream for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The resource is already in use and not available for this operation.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified resource could not be found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/DeleteDeliveryStream
@@ -263,7 +263,7 @@ func (c *Firehose) DescribeDeliveryStreamRequest(input *DescribeDeliveryStreamIn
 // API operation DescribeDeliveryStream for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified resource could not be found.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/firehose-2015-08-04/DescribeDeliveryStream
@@ -428,13 +428,13 @@ func (c *Firehose) PutRecordRequest(input *PutRecordInput) (req *request.Request
 // API operation PutRecord for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified resource could not be found.
 //
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   The specified input parameter has an value that is not valid.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   The service is unavailable, back off and retry the operation. If you continue
 //   to see the exception, throughput limits for the delivery stream may have
 //   been exceeded. For more information about limits and how to request an increase,
@@ -558,13 +558,13 @@ func (c *Firehose) PutRecordBatchRequest(input *PutRecordBatchInput) (req *reque
 // API operation PutRecordBatch for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified resource could not be found.
 //
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   The specified input parameter has an value that is not valid.
 //
-//   * ServiceUnavailableException
+//   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
 //   The service is unavailable, back off and retry the operation. If you continue
 //   to see the exception, throughput limits for the delivery stream may have
 //   been exceeded. For more information about limits and how to request an increase,
@@ -661,16 +661,16 @@ func (c *Firehose) UpdateDestinationRequest(input *UpdateDestinationInput) (req 
 // API operation UpdateDestination for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   The specified input parameter has an value that is not valid.
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The resource is already in use and not available for this operation.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified resource could not be found.
 //
-//   * ConcurrentModificationException
+//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
 //   Another modification has already happened. Fetch VersionId again and use
 //   it to update the destination.
 //

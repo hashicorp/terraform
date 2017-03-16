@@ -27,8 +27,8 @@ data "aws_security_group" "selected" {
 }
 
 resource "aws_subnet" "subnet" {
-  vpc_id = "${data.aws_security_group.selected.vpc_id}"
-  cidr_block = "10.0.1.0/24"  
+  vpc_id     = "${data.aws_security_group.selected.vpc_id}"
+  cidr_block = "10.0.1.0/24"
 }
 ```
 

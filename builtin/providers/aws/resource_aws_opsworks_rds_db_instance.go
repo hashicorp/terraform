@@ -20,26 +20,26 @@ func resourceAwsOpsworksRdsDbInstance() *schema.Resource {
 		Read:   resourceAwsOpsworksRdsDbInstanceRead,
 
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"stack_id": &schema.Schema{
+			"stack_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"rds_db_instance_arn": &schema.Schema{
+			"rds_db_instance_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"db_password": &schema.Schema{
+			"db_password": {
 				Type:      schema.TypeString,
 				Required:  true,
 				Sensitive: true,
 			},
-			"db_user": &schema.Schema{
+			"db_user": {
 				Type:     schema.TypeString,
 				Required: true,
 			},

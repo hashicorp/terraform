@@ -14,8 +14,8 @@ Creates a new Redis Cache Resource
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
-    location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_redis_cache" "test" {
@@ -31,15 +31,14 @@ resource "azurerm_redis_cache" "test" {
     maxclients = "256"
   }
 }
-
 ```
 
 ## Example Usage (Standard)
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
-    location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_redis_cache" "test" {
@@ -55,14 +54,13 @@ resource "azurerm_redis_cache" "test" {
     maxclients = "1000"
   }
 }
-
 ```
 
 ## Example Usage (Premium with Clustering)
 ```
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
-    location = "West US"
+  name     = "acceptanceTestResourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_redis_cache" "test" {
@@ -74,9 +72,10 @@ resource "azurerm_redis_cache" "test" {
   sku_name            = "Premium"
   enable_non_ssl_port = false
   shard_count         = 3
+
   redis_configuration {
-    maxclients         = "7500",
-    maxmemory_reserved = "2",
+    maxclients         = "7500"
+    maxmemory_reserved = "2"
     maxmemory_delta    = "2"
     maxmemory_policy   = "allkeys-lru"
   }

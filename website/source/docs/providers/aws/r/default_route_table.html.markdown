@@ -23,11 +23,11 @@ into management. We can do this because each VPC created has a Default Route
 Table that cannot be destroyed, and is created with a single route.
 
 When Terraform first adopts the Default Route Table, it **immediately removes all
-defined routes**. It then proceeds to create any routes specified in the 
-configuration. This step is required so that only the routes specified in the 
+defined routes**. It then proceeds to create any routes specified in the
+configuration. This step is required so that only the routes specified in the
 configuration present in the Default Route Table.
 
-For more information about Route Tables, see the AWS Documentation on 
+For more information about Route Tables, see the AWS Documentation on
 [Route Tables][aws-route-tables].
 
 For more information about managing normal Route Tables in Terraform, see our
@@ -44,14 +44,15 @@ a conflict of rule settings and will overwrite routes.
 
 ```
 resource "aws_default_route_table" "r" {
-    default_route_table_id = "${aws_vpc.foo.default_route_table_id}"
-    route {
-        ...
-    }
+  default_route_table_id = "${aws_vpc.foo.default_route_table_id}"
 
-	tags {
-		Name = "default table"
-	}
+  route {
+    # ...
+  }
+
+  tags {
+    Name = "default table"
+  }
 }
 ```
 
@@ -67,6 +68,8 @@ The following arguments are supported:
 Each route supports the following:
 
 * `cidr_block` - (Required) The CIDR block of the route.
+* `ipv6_cidr_block` - Optional) The Ipv6 CIDR block of the route
+* `egress_only_gateway_id` - (Optional) The Egress Only Internet Gateway ID.
 * `gateway_id` - (Optional) The Internet Gateway ID.
 * `nat_gateway_id` - (Optional) The NAT Gateway ID.
 * `instance_id` - (Optional) The EC2 instance ID.

@@ -51,8 +51,10 @@ func resourceArmLoadBalancerNatRule() *schema.Resource {
 			},
 
 			"protocol": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				StateFunc:        ignoreCaseStateFunc,
+				DiffSuppressFunc: ignoreCaseDiffSuppressFunc,
 			},
 
 			"frontend_port": {

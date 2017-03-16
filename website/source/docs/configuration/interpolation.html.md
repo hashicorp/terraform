@@ -84,6 +84,12 @@ interpolate the path to the current module. `root` will interpolate the
 path of the root module.  In general, you probably want the
 `path.module` variable.
 
+#### Terraform meta information
+
+The syntax is `terraform.FIELD`. This variable type contains metadata about
+the currently executing Terraform run. FIELD can currently only be `env` to
+reference the currently active [state environment](/docs/state/environments.html).
+
 <a id="conditionals"></a>
 ## Conditionals
 
@@ -273,7 +279,7 @@ The supported built-in functions are:
 
   * `pathexpand(string)` - Returns a filepath string with `~` expanded to the home directory. Note:
     This will create a plan diff between two different hosts, unless the filepaths are the same.
-  
+
   * `replace(string, search, replace)` - Does a search and replace on the
       given string. All instances of `search` are replaced with the value
       of `replace`. If `search` is wrapped in forward slashes, it is treated
@@ -296,7 +302,10 @@ The supported built-in functions are:
       Example: `element(split(",", var.r53_failover_policy), signum(count.index))`
       where the 0th index points to `PRIMARY` and 1st to `FAILOVER`
 
-  * `sort(list)` - Returns a lexicographically sorted list of the strings contained in
+  * `slice(list, from, to)` - Returns the portion of `list` between `from` (inclusive) and `to` (exclusive).
+      Example: `slice(var.list_of_strings, 0, length(var.list_of_strings) - 1)`
+
+  * `sort(list)` - Returns a lexographically sorted list of the strings contained in
       the list passed as an argument. Sort may only be used with lists which contain only
       strings.
       Examples: `sort(aws_instance.foo.*.id)`, `sort(var.list_of_strings)`

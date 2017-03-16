@@ -14,9 +14,9 @@ The images data source can be used to search for and return an existing image wh
 
 ```
 data "profitbricks_image" "image_example" {
-  name = "Ubuntu"
-  type = "HDD"
-  version = "14"
+  name     = "Ubuntu"
+  type     = "HDD"
+  version  = "14"
   location = "location_id"
 }
 ```

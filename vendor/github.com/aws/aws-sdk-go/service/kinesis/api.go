@@ -74,19 +74,19 @@ func (c *Kinesis) AddTagsToStreamRequest(input *AddTagsToStreamInput) (req *requ
 // API operation AddTagsToStream for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The resource is not available for this operation. For successful operation,
 //   the resource needs to be in the ACTIVE state.
 //
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The requested resource exceeds the maximum number allowed, or the number
 //   of concurrent stream requests exceeds the maximum number allowed (5).
 //
@@ -191,15 +191,15 @@ func (c *Kinesis) CreateStreamRequest(input *CreateStreamInput) (req *request.Re
 // API operation CreateStream for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The resource is not available for this operation. For successful operation,
 //   the resource needs to be in the ACTIVE state.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The requested resource exceeds the maximum number allowed, or the number
 //   of concurrent stream requests exceeds the maximum number allowed (5).
 //
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
@@ -273,15 +273,15 @@ func (c *Kinesis) DecreaseStreamRetentionPeriodRequest(input *DecreaseStreamRete
 // API operation DecreaseStreamRetentionPeriod for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The resource is not available for this operation. For successful operation,
 //   the resource needs to be in the ACTIVE state.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
@@ -368,11 +368,11 @@ func (c *Kinesis) DeleteStreamRequest(input *DeleteStreamInput) (req *request.Re
 // API operation DeleteStream for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The requested resource exceeds the maximum number allowed, or the number
 //   of concurrent stream requests exceeds the maximum number allowed (5).
 //
@@ -443,7 +443,7 @@ func (c *Kinesis) DescribeLimitsRequest(input *DescribeLimitsInput) (req *reques
 // API operation DescribeLimits for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The requested resource exceeds the maximum number allowed, or the number
 //   of concurrent stream requests exceeds the maximum number allowed (5).
 //
@@ -533,11 +533,11 @@ func (c *Kinesis) DescribeStreamRequest(input *DescribeStreamInput) (req *reques
 // API operation DescribeStream for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The requested resource exceeds the maximum number allowed, or the number
 //   of concurrent stream requests exceeds the maximum number allowed (5).
 //
@@ -628,19 +628,19 @@ func (c *Kinesis) DisableEnhancedMonitoringRequest(input *DisableEnhancedMonitor
 // API operation DisableEnhancedMonitoring for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The requested resource exceeds the maximum number allowed, or the number
 //   of concurrent stream requests exceeds the maximum number allowed (5).
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The resource is not available for this operation. For successful operation,
 //   the resource needs to be in the ACTIVE state.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
@@ -706,19 +706,19 @@ func (c *Kinesis) EnableEnhancedMonitoringRequest(input *EnableEnhancedMonitorin
 // API operation EnableEnhancedMonitoring for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The requested resource exceeds the maximum number allowed, or the number
 //   of concurrent stream requests exceeds the maximum number allowed (5).
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The resource is not available for this operation. For successful operation,
 //   the resource needs to be in the ACTIVE state.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
@@ -836,15 +836,15 @@ func (c *Kinesis) GetRecordsRequest(input *GetRecordsInput) (req *request.Reques
 // API operation GetRecords for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
-//   * ProvisionedThroughputExceededException
+//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
 //   The request rate for the stream is too high, or the requested data is too
 //   large for the available throughput. Reduce the frequency or size of your
 //   requests. For more information, see Streams Limits (http://docs.aws.amazon.com/kinesis/latest/dev/service-sizes-and-limits.html)
@@ -852,7 +852,7 @@ func (c *Kinesis) GetRecordsRequest(input *GetRecordsInput) (req *request.Reques
 //   Backoff in AWS (http://docs.aws.amazon.com/general/latest/gr/api-retries.html)
 //   in the AWS General Reference.
 //
-//   * ExpiredIteratorException
+//   * ErrCodeExpiredIteratorException "ExpiredIteratorException"
 //   The provided iterator exceeds the maximum age allowed.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/kinesis-2013-12-02/GetRecords
@@ -954,15 +954,15 @@ func (c *Kinesis) GetShardIteratorRequest(input *GetShardIteratorInput) (req *re
 // API operation GetShardIterator for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
-//   * ProvisionedThroughputExceededException
+//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
 //   The request rate for the stream is too high, or the requested data is too
 //   large for the available throughput. Reduce the frequency or size of your
 //   requests. For more information, see Streams Limits (http://docs.aws.amazon.com/kinesis/latest/dev/service-sizes-and-limits.html)
@@ -1044,15 +1044,15 @@ func (c *Kinesis) IncreaseStreamRetentionPeriodRequest(input *IncreaseStreamRete
 // API operation IncreaseStreamRetentionPeriod for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The resource is not available for this operation. For successful operation,
 //   the resource needs to be in the ACTIVE state.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
@@ -1139,7 +1139,7 @@ func (c *Kinesis) ListStreamsRequest(input *ListStreamsInput) (req *request.Requ
 // API operation ListStreams for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The requested resource exceeds the maximum number allowed, or the number
 //   of concurrent stream requests exceeds the maximum number allowed (5).
 //
@@ -1230,15 +1230,15 @@ func (c *Kinesis) ListTagsForStreamRequest(input *ListTagsForStreamInput) (req *
 // API operation ListTagsForStream for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The requested resource exceeds the maximum number allowed, or the number
 //   of concurrent stream requests exceeds the maximum number allowed (5).
 //
@@ -1341,19 +1341,19 @@ func (c *Kinesis) MergeShardsRequest(input *MergeShardsInput) (req *request.Requ
 // API operation MergeShards for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The resource is not available for this operation. For successful operation,
 //   the resource needs to be in the ACTIVE state.
 //
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The requested resource exceeds the maximum number allowed, or the number
 //   of concurrent stream requests exceeds the maximum number allowed (5).
 //
@@ -1456,15 +1456,15 @@ func (c *Kinesis) PutRecordRequest(input *PutRecordInput) (req *request.Request,
 // API operation PutRecord for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
-//   * ProvisionedThroughputExceededException
+//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
 //   The request rate for the stream is too high, or the requested data is too
 //   large for the available throughput. Reduce the frequency or size of your
 //   requests. For more information, see Streams Limits (http://docs.aws.amazon.com/kinesis/latest/dev/service-sizes-and-limits.html)
@@ -1593,15 +1593,15 @@ func (c *Kinesis) PutRecordsRequest(input *PutRecordsInput) (req *request.Reques
 // API operation PutRecords for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
-//   * ProvisionedThroughputExceededException
+//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
 //   The request rate for the stream is too high, or the requested data is too
 //   large for the available throughput. Reduce the frequency or size of your
 //   requests. For more information, see Streams Limits (http://docs.aws.amazon.com/kinesis/latest/dev/service-sizes-and-limits.html)
@@ -1676,19 +1676,19 @@ func (c *Kinesis) RemoveTagsFromStreamRequest(input *RemoveTagsFromStreamInput) 
 // API operation RemoveTagsFromStream for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The resource is not available for this operation. For successful operation,
 //   the resource needs to be in the ACTIVE state.
 //
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The requested resource exceeds the maximum number allowed, or the number
 //   of concurrent stream requests exceeds the maximum number allowed (5).
 //
@@ -1800,19 +1800,19 @@ func (c *Kinesis) SplitShardRequest(input *SplitShardInput) (req *request.Reques
 // API operation SplitShard for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The resource is not available for this operation. For successful operation,
 //   the resource needs to be in the ACTIVE state.
 //
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The requested resource exceeds the maximum number allowed, or the number
 //   of concurrent stream requests exceeds the maximum number allowed (5).
 //
@@ -1899,19 +1899,19 @@ func (c *Kinesis) UpdateShardCountRequest(input *UpdateShardCountInput) (req *re
 // API operation UpdateShardCount for usage and error information.
 //
 // Returned Error Codes:
-//   * InvalidArgumentException
+//   * ErrCodeInvalidArgumentException "InvalidArgumentException"
 //   A specified parameter exceeds its restrictions, is not supported, or can't
 //   be used. For more information, see the returned message.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   The requested resource exceeds the maximum number allowed, or the number
 //   of concurrent stream requests exceeds the maximum number allowed (5).
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The resource is not available for this operation. For successful operation,
 //   the resource needs to be in the ACTIVE state.
 //
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The requested resource could not be found. The stream might not be specified
 //   correctly.
 //

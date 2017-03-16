@@ -18,8 +18,27 @@ func TestAccStatusCake_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccTestCheckDestroy(&test),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccTestConfig_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccTestCheckExists("statuscake_test.google", &test),
+					testAccTestCheckAttributes("statuscake_test.google", &test),
+				),
+			},
+		},
+	})
+}
+
+func TestAccStatusCake_tcp(t *testing.T) {
+	var test statuscake.Test
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccTestCheckDestroy(&test),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccTestConfig_tcp,
 				Check: resource.ComposeTestCheckFunc(
 					testAccTestCheckExists("statuscake_test.google", &test),
 					testAccTestCheckAttributes("statuscake_test.google", &test),
@@ -37,14 +56,14 @@ func TestAccStatusCake_withUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccTestCheckDestroy(&test),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccTestConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccTestCheckExists("statuscake_test.google", &test),
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccTestConfig_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccTestCheckExists("statuscake_test.google", &test),
@@ -149,7 +168,7 @@ resource "statuscake_test" "google" {
 	test_type = "HTTP"
 	check_rate = 300
 	timeout = 10
-	contact_id = 12345
+	contact_id = 43402
 	confirmations = 1
 }
 `
@@ -161,5 +180,18 @@ resource "statuscake_test" "google" {
 	test_type = "HTTP"
 	check_rate = 500
 	paused = true
+}
+`
+
+const testAccTestConfig_tcp = `
+resource "statuscake_test" "google" {
+	website_name = "google.com"
+	website_url = "www.google.com"
+	test_type = "TCP"
+	check_rate = 300
+	timeout = 10
+	contact_id = 43402
+	confirmations = 1
+	port = 80
 }
 `

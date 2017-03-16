@@ -23,12 +23,12 @@ resource "cloudstack_affinity_group" "default" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the affinity group. Changing this 
+* `name` - (Required) The name of the affinity group. Changing this
     forces a new resource to be created.
 
 * `description` - (Optional) The description of the affinity group.
 
-* `type` - (Required) The affinity group type. Changing this 
+* `type` - (Required) The affinity group type. Changing this
     forces a new resource to be created.
 
 * `project` - (Optional) The name or ID of the project to register this

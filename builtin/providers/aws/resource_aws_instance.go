@@ -63,7 +63,6 @@ func resourceAwsInstance() *schema.Resource {
 			"instance_type": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"key_name": {
@@ -172,8 +171,24 @@ func resourceAwsInstance() *schema.Resource {
 
 			"iam_instance_profile": {
 				Type:     schema.TypeString,
-				ForceNew: true,
 				Optional: true,
+			},
+
+			"ipv6_address_count": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"ipv6_addresses": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				ConflictsWith: []string{"ipv6_address_count"},
 			},
 
 			"tenancy": {
@@ -364,6 +379,23 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		UserData:                          instanceOpts.UserData64,
 	}
 
+	if v, ok := d.GetOk("ipv6_address_count"); ok {
+		runOpts.Ipv6AddressCount = aws.Int64(int64(v.(int)))
+	}
+
+	if v, ok := d.GetOk("ipv6_addresses"); ok {
+		ipv6Addresses := make([]*ec2.InstanceIpv6Address, len(v.([]interface{})))
+		for _, address := range v.([]interface{}) {
+			ipv6Address := &ec2.InstanceIpv6Address{
+				Ipv6Address: aws.String(address.(string)),
+			}
+
+			ipv6Addresses = append(ipv6Addresses, ipv6Address)
+		}
+
+		runOpts.Ipv6Addresses = ipv6Addresses
+	}
+
 	// Create the instance
 	log.Printf("[DEBUG] Run configuration: %s", runOpts)
 
@@ -496,18 +528,29 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("private_ip", instance.PrivateIpAddress)
 	d.Set("iam_instance_profile", iamInstanceProfileArnToName(instance.IamInstanceProfile))
 
+	var ipv6Addresses []string
 	if len(instance.NetworkInterfaces) > 0 {
 		for _, ni := range instance.NetworkInterfaces {
 			if *ni.Attachment.DeviceIndex == 0 {
 				d.Set("subnet_id", ni.SubnetId)
 				d.Set("network_interface_id", ni.NetworkInterfaceId)
 				d.Set("associate_public_ip_address", ni.Association != nil)
+				d.Set("ipv6_address_count", len(ni.Ipv6Addresses))
+
+				for _, address := range ni.Ipv6Addresses {
+					ipv6Addresses = append(ipv6Addresses, *address.Ipv6Address)
+				}
 			}
 		}
 	} else {
 		d.Set("subnet_id", instance.SubnetId)
 		d.Set("network_interface_id", "")
 	}
+
+	if err := d.Set("ipv6_addresses", ipv6Addresses); err != nil {
+		log.Printf("[WARN] Error setting ipv6_addresses for AWS Instance (%s): %s", d.Id(), err)
+	}
+
 	d.Set("ebs_optimized", instance.EbsOptimized)
 	if instance.SubnetId != nil && *instance.SubnetId != "" {
 		d.Set("source_dest_check", instance.SourceDestCheck)
@@ -568,6 +611,66 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("tags")
 	}
 
+	if d.HasChange("iam_instance_profile") {
+		request := &ec2.DescribeIamInstanceProfileAssociationsInput{
+			Filters: []*ec2.Filter{
+				&ec2.Filter{
+					Name:   aws.String("instance-id"),
+					Values: []*string{aws.String(d.Id())},
+				},
+			},
+		}
+
+		resp, err := conn.DescribeIamInstanceProfileAssociations(request)
+		if err != nil {
+			return err
+		}
+
+		// An Iam Instance Profile has been provided and is pending a change
+		// This means it is an association or a replacement to an association
+		if _, ok := d.GetOk("iam_instance_profile"); ok {
+			// Does not have an Iam Instance Profile associated with it, need to associate
+			if len(resp.IamInstanceProfileAssociations) == 0 {
+				_, err := conn.AssociateIamInstanceProfile(&ec2.AssociateIamInstanceProfileInput{
+					InstanceId: aws.String(d.Id()),
+					IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+						Name: aws.String(d.Get("iam_instance_profile").(string)),
+					},
+				})
+				if err != nil {
+					return err
+				}
+
+			} else {
+				// Has an Iam Instance Profile associated with it, need to replace the association
+				associationId := resp.IamInstanceProfileAssociations[0].AssociationId
+
+				_, err := conn.ReplaceIamInstanceProfileAssociation(&ec2.ReplaceIamInstanceProfileAssociationInput{
+					AssociationId: associationId,
+					IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+						Name: aws.String(d.Get("iam_instance_profile").(string)),
+					},
+				})
+				if err != nil {
+					return err
+				}
+			}
+			// An Iam Instance Profile has _not_ been provided but is pending a change. This means there is a pending removal
+		} else {
+			if len(resp.IamInstanceProfileAssociations) > 0 {
+				// Has an Iam Instance Profile associated with it, need to remove the association
+				associationId := resp.IamInstanceProfileAssociations[0].AssociationId
+
+				_, err := conn.DisassociateIamInstanceProfile(&ec2.DisassociateIamInstanceProfileInput{
+					AssociationId: associationId,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	if d.HasChange("source_dest_check") || d.IsNewResource() {
 		// SourceDestCheck can only be set on VPC instances	// AWS will return an error of InvalidParameterCombination if we attempt
 		// to modify the source_dest_check of an instance in EC2 Classic
@@ -603,6 +706,60 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		})
 		if err != nil {
 			return err
+		}
+	}
+
+	if d.HasChange("instance_type") && !d.IsNewResource() {
+		log.Printf("[INFO] Stopping Instance %q for instance_type change", d.Id())
+		_, err := conn.StopInstances(&ec2.StopInstancesInput{
+			InstanceIds: []*string{aws.String(d.Id())},
+		})
+
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
+			Target:     []string{"stopped"},
+			Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
+			Timeout:    10 * time.Minute,
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf(
+				"Error waiting for instance (%s) to stop: %s", d.Id(), err)
+		}
+
+		log.Printf("[INFO] Modifying instance type %s", d.Id())
+		_, err = conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
+			InstanceId: aws.String(d.Id()),
+			InstanceType: &ec2.AttributeValue{
+				Value: aws.String(d.Get("instance_type").(string)),
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		log.Printf("[INFO] Starting Instance %q after instance_type change", d.Id())
+		_, err = conn.StartInstances(&ec2.StartInstancesInput{
+			InstanceIds: []*string{aws.String(d.Id())},
+		})
+
+		stateConf = &resource.StateChangeConf{
+			Pending:    []string{"pending", "stopped"},
+			Target:     []string{"running"},
+			Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
+			Timeout:    10 * time.Minute,
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf(
+				"Error waiting for instance (%s) to become ready: %s",
+				d.Id(), err)
 		}
 	}
 
@@ -877,10 +1034,15 @@ func readBlockDeviceMappingsFromConfig(
 
 			if v, ok := bd["volume_type"].(string); ok && v != "" {
 				ebs.VolumeType = aws.String(v)
-			}
-
-			if v, ok := bd["iops"].(int); ok && v > 0 {
-				ebs.Iops = aws.Int64(int64(v))
+				if "io1" == strings.ToLower(v) {
+					// Condition: This parameter is required for requests to create io1
+					// volumes; it is not used in requests to create gp2, st1, sc1, or
+					// standard volumes.
+					// See: http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_EbsBlockDevice.html
+					if v, ok := bd["iops"].(int); ok && v > 0 {
+						ebs.Iops = aws.Int64(int64(v))
+					}
+				}
 			}
 
 			blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{

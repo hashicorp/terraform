@@ -14,7 +14,7 @@ The data centers data source can be used to search for and return an existing Vi
 
 ```
 data "profitbricks_datacenter" "dc_example" {
-  name = "test_dc"
+  name     = "test_dc"
   location = "us"
 }
 ```

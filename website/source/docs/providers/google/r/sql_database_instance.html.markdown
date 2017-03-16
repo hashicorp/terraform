@@ -52,7 +52,7 @@ The following arguments are supported:
 * `name` - (Optional, Computed) The name of the instance. If the name is left
     blank, Terraform will randomly generate one when the instance is first
     created. This is done because after a name is used, it cannot be reused for
-    up to [two months](https://cloud.google.com/sql/docs/delete-instance).
+    up to [one week](https://cloud.google.com/sql/docs/delete-instance).
 
 * `master_instance_name` - (Optional) The name of the instance that will act as
     the master in the replication setup. Note, this requires the master to have
@@ -85,7 +85,7 @@ The required `settings` block supports:
 
 * `disk_type` - (Optional, Second Generation, Default: `PD_SSD`) The type of data disk: PD_SSD or PD_HDD.
 
-* `pricing_plan` - (Optional) Pricing plan for this instance, can be one of
+* `pricing_plan` - (Optional, First Generation) Pricing plan for this instance, can be one of
     `PER_USE` or `PACKAGE`.
 
 * `replication_type` - (Optional) Replication type for this instance, can be one
@@ -133,6 +133,17 @@ The optional `settings.location_preference` subblock supports:
 
 * `zone` - (Optional) The preferred compute engine
     [zone](https://cloud.google.com/compute/docs/zones?hl=en).
+
+The optional `settings.maintenance_window` subblock for Second Generation
+instances declares a one-hour [maintenance window](https://cloud.google.com/sql/docs/instance-settings?hl=en#maintenance-window-2ndgen)
+when an Instance can automatically restart to apply updates. It supports:
+
+* `day` - (Optional) Day of week (`1-7`), starting on Monday
+
+* `hour` - (Optional) Hour of day (`0-23`), ignored if `day` not set
+
+* `update_track` - (Optional) Receive updates earlier (`canary`) or later 
+(`stable`)
 
 The optional `replica_configuration` block must have `master_instance_name` set
 to work, cannot be updated, and supports:

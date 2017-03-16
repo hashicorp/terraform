@@ -14,12 +14,12 @@ Allocates a new SQL Database Server on Azure.
 
 ```
 resource "azure_sql_database_server" "sql-serv" {
-    name = "<computed>"
-    location = "West US"
-    username = "SuperUser"
-    password = "SuperSEKR3T"
-    version = "2.0"
-    url = "<computed>"
+  name     = "<computed>"
+  location = "West US"
+  username = "SuperUser"
+  password = "SuperSEKR3T"
+  version  = "2.0"
+  url      = "<computed>"
 }
 ```
 

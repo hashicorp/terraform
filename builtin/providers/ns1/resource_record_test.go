@@ -26,6 +26,7 @@ func TestAccRecord_basic(t *testing.T) {
 					testAccCheckRecordExists("ns1_record.it", &record),
 					testAccCheckRecordDomain(&record, "test.terraform-record-test.io"),
 					testAccCheckRecordTTL(&record, 60),
+					testAccCheckRecordUseClientSubnet(&record, true),
 					testAccCheckRecordRegionName(&record, []string{"cal"}),
 					// testAccCheckRecordAnswerMetaWeight(&record, 10),
 					testAccCheckRecordAnswerRdata(&record, "test1.terraform-record-test.io"),
@@ -48,6 +49,7 @@ func TestAccRecord_updated(t *testing.T) {
 					testAccCheckRecordExists("ns1_record.it", &record),
 					testAccCheckRecordDomain(&record, "test.terraform-record-test.io"),
 					testAccCheckRecordTTL(&record, 60),
+					testAccCheckRecordUseClientSubnet(&record, true),
 					testAccCheckRecordRegionName(&record, []string{"cal"}),
 					// testAccCheckRecordAnswerMetaWeight(&record, 10),
 					testAccCheckRecordAnswerRdata(&record, "test1.terraform-record-test.io"),
@@ -59,6 +61,7 @@ func TestAccRecord_updated(t *testing.T) {
 					testAccCheckRecordExists("ns1_record.it", &record),
 					testAccCheckRecordDomain(&record, "test.terraform-record-test.io"),
 					testAccCheckRecordTTL(&record, 120),
+					testAccCheckRecordUseClientSubnet(&record, false),
 					testAccCheckRecordRegionName(&record, []string{"ny", "wa"}),
 					// testAccCheckRecordAnswerMetaWeight(&record, 5),
 					testAccCheckRecordAnswerRdata(&record, "test2.terraform-record-test.io"),
@@ -138,6 +141,15 @@ func testAccCheckRecordTTL(r *dns.Record, expected int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if r.TTL != expected {
 			return fmt.Errorf("TTL: got: %#v want: %#v", r.TTL, expected)
+		}
+		return nil
+	}
+}
+
+func testAccCheckRecordUseClientSubnet(r *dns.Record, expected bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *r.UseClientSubnet != expected {
+			return fmt.Errorf("UseClientSubnet: got: %#v want: %#v", *r.UseClientSubnet, expected)
 		}
 		return nil
 	}
@@ -240,7 +252,7 @@ resource "ns1_record" "it" {
   domain            = "test.${ns1_zone.test.zone}"
   type              = "CNAME"
   ttl               = 120
-  use_client_subnet = true
+  use_client_subnet = false
 
   // meta {
   //   weight = 5

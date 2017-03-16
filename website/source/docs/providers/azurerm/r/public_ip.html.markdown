@@ -14,19 +14,19 @@ Create a Public IP Address.
 
 ```
 resource "azurerm_resource_group" "test" {
-    name = "resourceGroup1"
-    location = "West US"
+  name     = "resourceGroup1"
+  location = "West US"
 }
 
 resource "azurerm_public_ip" "test" {
-    name = "acceptanceTestPublicIp1"
-    location = "West US"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    public_ip_address_allocation = "static"
-    
-    tags {
-        environment = "Production"
-    }
+  name                         = "acceptanceTestPublicIp1"
+  location                     = "West US"
+  resource_group_name          = "${azurerm_resource_group.test.name}"
+  public_ip_address_allocation = "static"
+
+  tags {
+    environment = "Production"
+  }
 }
 ```
 
@@ -50,7 +50,7 @@ The following arguments are supported:
 
 * `reverse_fqdn` - (Optional) A fully qualified domain name that resolves to this public IP address. If the reverseFqdn is specified, then a PTR DNS record is created pointing from the IP address in the in-addr.arpa domain to the reverse FQDN.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 
@@ -63,7 +63,7 @@ The following attributes are exported:
 
 ## Import
 
-Public IPs can be imported using the `resource id`, e.g. 
+Public IPs can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_public_ip.myPublicIp /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/publicIPAddresses/myPublicIpAddress1

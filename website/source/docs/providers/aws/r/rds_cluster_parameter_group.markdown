@@ -12,19 +12,19 @@ Provides an RDS DB cluster parameter group resource.
 
 ```
 resource "aws_rds_cluster_parameter_group" "default" {
-    name = "rds-cluster-pg"
-    family = "aurora5.6"
-    description = "RDS default cluster parameter group"
+  name        = "rds-cluster-pg"
+  family      = "aurora5.6"
+  description = "RDS default cluster parameter group"
 
-    parameter {
-      name = "character_set_server"
-      value = "utf8"
-    }
+  parameter {
+    name  = "character_set_server"
+    value = "utf8"
+  }
 
-    parameter {
-      name = "character_set_client"
-      value = "utf8"
-    }
+  parameter {
+    name  = "character_set_client"
+    value = "utf8"
+  }
 }
 ```
 
@@ -56,7 +56,7 @@ The following attributes are exported:
 
 ## Import
 
-RDS Cluster Parameter Groups can be imported using the `name`, e.g. 
+RDS Cluster Parameter Groups can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_rds_cluster_parameter_group.cluster_pg production-pg-1

@@ -32,7 +32,7 @@ The following arguments are supported:
 
 * `backend` - (Required) The remote backend to use.
 * `config` - (Optional) The configuration of the remote backend.
- * Remote state config docs can be found [here](https://www.terraform.io/docs/state/remote/atlas.html)
+ * Remote state config docs can be found [here](/docs/backends/types/atlas.html)
 
 ## Attributes Reference
 

@@ -14,9 +14,10 @@ Provides an IAM policy attached to a user.
 
 ```
 resource "aws_iam_user_policy" "lb_ro" {
-    name = "test"
-    user = "${aws_iam_user.lb.name}"
-    policy = <<EOF
+  name = "test"
+  user = "${aws_iam_user.lb.name}"
+
+  policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -33,12 +34,12 @@ EOF
 }
 
 resource "aws_iam_user" "lb" {
-    name = "loadbalancer"
-    path = "/system/"
+  name = "loadbalancer"
+  path = "/system/"
 }
 
 resource "aws_iam_access_key" "lb" {
-    user = "${aws_iam_user.lb.name}"
+  user = "${aws_iam_user.lb.name}"
 }
 ```
 

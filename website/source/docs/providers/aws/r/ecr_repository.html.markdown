@@ -11,7 +11,7 @@ description: |-
 Provides an EC2 Container Registry Repository.
 
 ~> **NOTE on ECR Availability**: The EC2 Container Registry is not yet rolled out
-in all regions - available regions are listed  
+in all regions - available regions are listed
 [the AWS Docs](https://docs.aws.amazon.com/general/latest/gr/rande.html#ecr_region).
 
 ## Example Usage
@@ -40,7 +40,7 @@ The following attributes are exported:
 
 ## Import
 
-ECR Repositories can be imported using the `name`, e.g. 
+ECR Repositories can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_ecr_repository.service test-service

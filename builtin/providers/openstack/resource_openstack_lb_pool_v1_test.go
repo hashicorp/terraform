@@ -180,9 +180,9 @@ resource "openstack_lb_pool_v1" "pool_1" {
 `
 
 const testAccLBV1Pool_fullstack_1 = `
+resource "openstack_networking_network_v2" "network_1" {
   name = "network_1"
   admin_state_up = "true"
-  resource "openstack_networking_network_v2" "network_1" {
 }
 
 resource "openstack_networking_subnet_v2" "subnet_1" {

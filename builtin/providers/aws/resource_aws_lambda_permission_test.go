@@ -401,7 +401,7 @@ func isLambdaPermissionGone(rs *terraform.ResourceState, conn *lambda.Lambda) er
 	params := &lambda.GetPolicyInput{
 		FunctionName: aws.String(rs.Primary.Attributes["function_name"]),
 	}
-	if v, ok := rs.Primary.Attributes["qualifier"]; ok {
+	if v, ok := rs.Primary.Attributes["qualifier"]; ok && v != "" {
 		params.Qualifier = aws.String(v)
 	}
 
@@ -438,7 +438,7 @@ func lambdaPermissionExists(rs *terraform.ResourceState, conn *lambda.Lambda) (*
 	params := &lambda.GetPolicyInput{
 		FunctionName: aws.String(rs.Primary.Attributes["function_name"]),
 	}
-	if v, ok := rs.Primary.Attributes["qualifier"]; ok {
+	if v, ok := rs.Primary.Attributes["qualifier"]; ok && v != "" {
 		params.Qualifier = aws.String(v)
 	}
 

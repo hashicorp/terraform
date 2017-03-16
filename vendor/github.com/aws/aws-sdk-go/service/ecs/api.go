@@ -68,15 +68,15 @@ func (c *ECS) CreateClusterRequest(input *CreateClusterInput) (req *request.Requ
 // API operation CreateCluster for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
@@ -199,19 +199,19 @@ func (c *ECS) CreateServiceRequest(input *CreateServiceInput) (req *request.Requ
 // API operation CreateService for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
@@ -277,16 +277,16 @@ func (c *ECS) DeleteAttributesRequest(input *DeleteAttributesInput) (req *reques
 // API operation DeleteAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
-//   * TargetNotFoundException
+//   * ErrCodeTargetNotFoundException "TargetNotFoundException"
 //   The specified target could not be found. You can view your available container
 //   instances with ListContainerInstances. Amazon ECS container instances are
 //   cluster-specific and region-specific.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
@@ -354,28 +354,28 @@ func (c *ECS) DeleteClusterRequest(input *DeleteClusterInput) (req *request.Requ
 // API operation DeleteCluster for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
-//   * ClusterContainsContainerInstancesException
+//   * ErrCodeClusterContainsContainerInstancesException "ClusterContainsContainerInstancesException"
 //   You cannot delete a cluster that has registered container instances. You
 //   must first deregister the container instances before you can delete the cluster.
 //   For more information, see DeregisterContainerInstance.
 //
-//   * ClusterContainsServicesException
+//   * ErrCodeClusterContainsServicesException "ClusterContainsServicesException"
 //   You cannot delete a cluster that contains services. You must first update
 //   the service to reduce its desired task count to 0 and then delete the service.
 //   For more information, see UpdateService and DeleteService.
@@ -455,23 +455,23 @@ func (c *ECS) DeleteServiceRequest(input *DeleteServiceInput) (req *request.Requ
 // API operation DeleteService for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
-//   * ServiceNotFoundException
+//   * ErrCodeServiceNotFoundException "ServiceNotFoundException"
 //   The specified service could not be found. You can view your available services
 //   with ListServices. Amazon ECS services are cluster-specific and region-specific.
 //
@@ -551,19 +551,19 @@ func (c *ECS) DeregisterContainerInstanceRequest(input *DeregisterContainerInsta
 // API operation DeregisterContainerInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
@@ -638,15 +638,15 @@ func (c *ECS) DeregisterTaskDefinitionRequest(input *DeregisterTaskDefinitionInp
 // API operation DeregisterTaskDefinition for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
@@ -712,15 +712,15 @@ func (c *ECS) DescribeClustersRequest(input *DescribeClustersInput) (req *reques
 // API operation DescribeClusters for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
@@ -787,19 +787,19 @@ func (c *ECS) DescribeContainerInstancesRequest(input *DescribeContainerInstance
 // API operation DescribeContainerInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
@@ -865,19 +865,19 @@ func (c *ECS) DescribeServicesRequest(input *DescribeServicesInput) (req *reques
 // API operation DescribeServices for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
@@ -948,15 +948,15 @@ func (c *ECS) DescribeTaskDefinitionRequest(input *DescribeTaskDefinitionInput) 
 // API operation DescribeTaskDefinition for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
@@ -1022,19 +1022,19 @@ func (c *ECS) DescribeTasksRequest(input *DescribeTasksInput) (req *request.Requ
 // API operation DescribeTasks for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
@@ -1104,10 +1104,10 @@ func (c *ECS) DiscoverPollEndpointRequest(input *DiscoverPollEndpointInput) (req
 // API operation DiscoverPollEndpoint for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
@@ -1180,11 +1180,11 @@ func (c *ECS) ListAttributesRequest(input *ListAttributesInput) (req *request.Re
 // API operation ListAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
@@ -1256,15 +1256,15 @@ func (c *ECS) ListClustersRequest(input *ListClustersInput) (req *request.Reques
 // API operation ListClusters for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
@@ -1365,19 +1365,19 @@ func (c *ECS) ListContainerInstancesRequest(input *ListContainerInstancesInput) 
 // API operation ListContainerInstances for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
@@ -1474,19 +1474,19 @@ func (c *ECS) ListServicesRequest(input *ListServicesInput) (req *request.Reques
 // API operation ListServices for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
@@ -1589,15 +1589,15 @@ func (c *ECS) ListTaskDefinitionFamiliesRequest(input *ListTaskDefinitionFamilie
 // API operation ListTaskDefinitionFamilies for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
@@ -1696,15 +1696,15 @@ func (c *ECS) ListTaskDefinitionsRequest(input *ListTaskDefinitionsInput) (req *
 // API operation ListTaskDefinitions for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
@@ -1806,23 +1806,23 @@ func (c *ECS) ListTasksRequest(input *ListTasksInput) (req *request.Request, out
 // API operation ListTasks for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
-//   * ServiceNotFoundException
+//   * ErrCodeServiceNotFoundException "ServiceNotFoundException"
 //   The specified service could not be found. You can view your available services
 //   with ListServices. Amazon ECS services are cluster-specific and region-specific.
 //
@@ -1917,21 +1917,21 @@ func (c *ECS) PutAttributesRequest(input *PutAttributesInput) (req *request.Requ
 // API operation PutAttributes for usage and error information.
 //
 // Returned Error Codes:
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
-//   * TargetNotFoundException
+//   * ErrCodeTargetNotFoundException "TargetNotFoundException"
 //   The specified target could not be found. You can view your available container
 //   instances with ListContainerInstances. Amazon ECS container instances are
 //   cluster-specific and region-specific.
 //
-//   * AttributeLimitExceededException
+//   * ErrCodeAttributeLimitExceededException "AttributeLimitExceededException"
 //   You can apply up to 10 custom attributes per resource. You can view the attributes
 //   of a resource with ListAttributes. You can remove existing attributes on
 //   a resource with DeleteAttributes.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
@@ -2001,10 +2001,10 @@ func (c *ECS) RegisterContainerInstanceRequest(input *RegisterContainerInstanceI
 // API operation RegisterContainerInstance for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
@@ -2087,15 +2087,15 @@ func (c *ECS) RegisterTaskDefinitionRequest(input *RegisterTaskDefinitionInput) 
 // API operation RegisterTaskDefinition for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
@@ -2169,19 +2169,19 @@ func (c *ECS) RunTaskRequest(input *RunTaskInput) (req *request.Request, output 
 // API operation RunTask for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
@@ -2252,19 +2252,19 @@ func (c *ECS) StartTaskRequest(input *StartTaskInput) (req *request.Request, out
 // API operation StartTask for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
@@ -2336,19 +2336,19 @@ func (c *ECS) StopTaskRequest(input *StopTaskInput) (req *request.Request, outpu
 // API operation StopTask for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
@@ -2417,10 +2417,10 @@ func (c *ECS) SubmitContainerStateChangeRequest(input *SubmitContainerStateChang
 // API operation SubmitContainerStateChange for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
@@ -2490,10 +2490,10 @@ func (c *ECS) SubmitTaskStateChangeRequest(input *SubmitTaskStateChangeInput) (r
 // API operation SubmitTaskStateChange for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
@@ -2570,35 +2570,35 @@ func (c *ECS) UpdateContainerAgentRequest(input *UpdateContainerAgentInput) (req
 // API operation UpdateContainerAgent for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
-//   * UpdateInProgressException
+//   * ErrCodeUpdateInProgressException "UpdateInProgressException"
 //   There is already a current Amazon ECS container agent update in progress
 //   on the specified container instance. If the container agent becomes disconnected
 //   while it is in a transitional stage, such as PENDING or STAGING, the update
 //   process can get stuck in that state. However, when the agent reconnects,
 //   it resumes where it stopped previously.
 //
-//   * NoUpdateAvailableException
+//   * ErrCodeNoUpdateAvailableException "NoUpdateAvailableException"
 //   There is no update available for this Amazon ECS container agent. This could
 //   be because the agent is already running the latest version, or it is so old
 //   that there is no update path to the current version.
 //
-//   * MissingVersionException
+//   * ErrCodeMissingVersionException "MissingVersionException"
 //   Amazon ECS is unable to determine the current version of the Amazon ECS container
 //   agent on the container instance and does not have enough information to proceed
 //   with an update. This could be because the agent running on the container
@@ -2709,19 +2709,19 @@ func (c *ECS) UpdateContainerInstancesStateRequest(input *UpdateContainerInstanc
 // API operation UpdateContainerInstancesState for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
@@ -2853,27 +2853,27 @@ func (c *ECS) UpdateServiceRequest(input *UpdateServiceInput) (req *request.Requ
 // API operation UpdateService for usage and error information.
 //
 // Returned Error Codes:
-//   * ServerException
+//   * ErrCodeServerException "ServerException"
 //   These errors are usually caused by a server issue.
 //
-//   * ClientException
+//   * ErrCodeClientException "ClientException"
 //   These errors are usually caused by a client action, such as using an action
 //   or resource on behalf of a user that doesn't have permission to use the action
 //   or resource, or specifying an identifier that is not valid.
 //
-//   * InvalidParameterException
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ClusterNotFoundException
+//   * ErrCodeClusterNotFoundException "ClusterNotFoundException"
 //   The specified cluster could not be found. You can view your available clusters
 //   with ListClusters. Amazon ECS clusters are region-specific.
 //
-//   * ServiceNotFoundException
+//   * ErrCodeServiceNotFoundException "ServiceNotFoundException"
 //   The specified service could not be found. You can view your available services
 //   with ListServices. Amazon ECS services are cluster-specific and region-specific.
 //
-//   * ServiceNotActiveException
+//   * ErrCodeServiceNotActiveException "ServiceNotActiveException"
 //   The specified service is not active. You cannot update a service that is
 //   not active. If you have previously deleted a service, you can re-create it
 //   with CreateService.

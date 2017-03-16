@@ -86,18 +86,18 @@ func (c *ACM) AddTagsToCertificateRequest(input *AddTagsToCertificateInput) (req
 // API operation AddTagsToCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified certificate cannot be found in the caller's account, or the
 //   caller's account cannot be found.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
 //
-//   * InvalidTagException
+//   * ErrCodeInvalidTagException "InvalidTagException"
 //   One or both of the values that make up the key-value pair is not valid. For
 //   example, you cannot specify a tag value that begins with aws:.
 //
-//   * TooManyTagsException
+//   * ErrCodeTooManyTagsException "TooManyTagsException"
 //   The request contains too many tags. Try the request again with fewer tags.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/AddTagsToCertificate
@@ -172,15 +172,15 @@ func (c *ACM) DeleteCertificateRequest(input *DeleteCertificateInput) (req *requ
 // API operation DeleteCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified certificate cannot be found in the caller's account, or the
 //   caller's account cannot be found.
 //
-//   * ResourceInUseException
+//   * ErrCodeResourceInUseException "ResourceInUseException"
 //   The certificate is in use by another AWS service in the caller's account.
 //   Remove the association and try again.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DeleteCertificate
@@ -245,11 +245,11 @@ func (c *ACM) DescribeCertificateRequest(input *DescribeCertificateInput) (req *
 // API operation DescribeCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified certificate cannot be found in the caller's account, or the
 //   caller's account cannot be found.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/DescribeCertificate
@@ -322,15 +322,15 @@ func (c *ACM) GetCertificateRequest(input *GetCertificateInput) (req *request.Re
 // API operation GetCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified certificate cannot be found in the caller's account, or the
 //   caller's account cannot be found.
 //
-//   * RequestInProgressException
+//   * ErrCodeRequestInProgressException "RequestInProgressException"
 //   The certificate request is in process and the certificate in your account
 //   has not yet been issued.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/GetCertificate
@@ -420,11 +420,11 @@ func (c *ACM) ImportCertificateRequest(input *ImportCertificateInput) (req *requ
 // API operation ImportCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified certificate cannot be found in the caller's account, or the
 //   caller's account cannot be found.
 //
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   An ACM limit has been exceeded. For example, you may have input more domains
 //   than are allowed or you've requested too many certificates for your account.
 //   See the exception message returned by ACM to determine which limit you have
@@ -589,11 +589,11 @@ func (c *ACM) ListTagsForCertificateRequest(input *ListTagsForCertificateInput) 
 // API operation ListTagsForCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified certificate cannot be found in the caller's account, or the
 //   caller's account cannot be found.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ListTagsForCertificate
@@ -667,14 +667,14 @@ func (c *ACM) RemoveTagsFromCertificateRequest(input *RemoveTagsFromCertificateI
 // API operation RemoveTagsFromCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified certificate cannot be found in the caller's account, or the
 //   caller's account cannot be found.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
 //
-//   * InvalidTagException
+//   * ErrCodeInvalidTagException "InvalidTagException"
 //   One or both of the values that make up the key-value pair is not valid. For
 //   example, you cannot specify a tag value that begins with aws:.
 //
@@ -746,14 +746,14 @@ func (c *ACM) RequestCertificateRequest(input *RequestCertificateInput) (req *re
 // API operation RequestCertificate for usage and error information.
 //
 // Returned Error Codes:
-//   * LimitExceededException
+//   * ErrCodeLimitExceededException "LimitExceededException"
 //   An ACM limit has been exceeded. For example, you may have input more domains
 //   than are allowed or you've requested too many certificates for your account.
 //   See the exception message returned by ACM to determine which limit you have
 //   violated. For more information about ACM limits, see the Limits (http://docs.aws.amazon.com/acm/latest/userguide/acm-limits.html)
 //   topic.
 //
-//   * InvalidDomainValidationOptionsException
+//   * ErrCodeInvalidDomainValidationOptionsException "InvalidDomainValidationOptionsException"
 //   One or more values in the DomainValidationOption structure is incorrect.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/RequestCertificate
@@ -828,20 +828,20 @@ func (c *ACM) ResendValidationEmailRequest(input *ResendValidationEmailInput) (r
 // API operation ResendValidationEmail for usage and error information.
 //
 // Returned Error Codes:
-//   * ResourceNotFoundException
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   The specified certificate cannot be found in the caller's account, or the
 //   caller's account cannot be found.
 //
-//   * InvalidStateException
+//   * ErrCodeInvalidStateException "InvalidStateException"
 //   Processing has reached an invalid state. For example, this exception can
 //   occur if the specified domain is not using email validation, or the current
 //   certificate status does not permit the requested operation. See the exception
 //   message returned by ACM to determine which state is not valid.
 //
-//   * InvalidArnException
+//   * ErrCodeInvalidArnException "InvalidArnException"
 //   The requested Amazon Resource Name (ARN) does not refer to an existing resource.
 //
-//   * InvalidDomainValidationOptionsException
+//   * ErrCodeInvalidDomainValidationOptionsException "InvalidDomainValidationOptionsException"
 //   One or more values in the DomainValidationOption structure is incorrect.
 //
 // Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08/ResendValidationEmail

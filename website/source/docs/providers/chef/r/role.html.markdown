@@ -15,8 +15,8 @@ that can apply across multiple nodes that perform the same function.
 
 ```
 resource "chef_role" "example" {
-    name = "example-role"
-    run_list = ["recipe[example]"]
+  name     = "example-role"
+  run_list = ["recipe[example]"]
 }
 ```
 

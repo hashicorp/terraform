@@ -17,12 +17,12 @@ A primary volume will be created with the server. If there is a need for additio
 ```
 resource "profitbricks_volume" "example" {
   datacenter_id = "${profitbricks_datacenter.example.id}"
-  server_id = "${profitbricks_server.example.id}"
-  image_name = "${var.ubuntu}"
-  size = 5
-  disk_type = "HDD"
-  ssh_key_path = "${var.private_key_path}"
-  bus = "VIRTIO"
+  server_id     = "${profitbricks_server.example.id}"
+  image_name    = "${var.ubuntu}"
+  size          = 5
+  disk_type     = "HDD"
+  ssh_key_path  = "${var.private_key_path}"
+  bus           = "VIRTIO"
 }
 ```
 

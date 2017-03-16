@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -79,13 +80,14 @@ func TestAccAWSEcsTaskDefinition_withEcsService(t *testing.T) {
 
 func TestAccAWSEcsTaskDefinition_withTaskRoleArn(t *testing.T) {
 	var def ecs.TaskDefinition
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsTaskDefinitionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSEcsTaskDefinitionWithTaskRoleArn,
+				Config: testAccAWSEcsTaskDefinitionWithTaskRoleArn(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep", &def),
 				),
@@ -96,13 +98,14 @@ func TestAccAWSEcsTaskDefinition_withTaskRoleArn(t *testing.T) {
 
 func TestAccAWSEcsTaskDefinition_withNetworkMode(t *testing.T) {
 	var def ecs.TaskDefinition
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsTaskDefinitionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAWSEcsTaskDefinitionWithNetworkMode,
+				Config: testAccAWSEcsTaskDefinitionWithNetworkMode(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.sleep", &def),
 					resource.TestCheckResourceAttr(
@@ -130,6 +133,41 @@ func TestAccAWSEcsTaskDefinition_constraint(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccAWSEcsTaskDefinition_changeVolumesForcesNewResource(t *testing.T) {
+	var before ecs.TaskDefinition
+	var after ecs.TaskDefinition
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsTaskDefinitionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSEcsTaskDefinition,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.jenkins", &before),
+				),
+			},
+			{
+				Config: testAccAWSEcsTaskDefinitionUpdatedVolume,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsTaskDefinitionExists("aws_ecs_task_definition.jenkins", &after),
+					testAccCheckEcsTaskDefinitionRecreated(t, &before, &after),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckEcsTaskDefinitionRecreated(t *testing.T,
+	before, after *ecs.TaskDefinition) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *before.Revision == *after.Revision {
+			t.Fatalf("Expected change of TaskDefinition Revisions, but both were %v", before.Revision)
+		}
+		return nil
+	}
 }
 
 func testAccCheckAWSTaskDefinitionConstraintsAttrs(def *ecs.TaskDefinition) resource.TestCheckFunc {
@@ -316,6 +354,55 @@ TASK_DEFINITION
 }
 `
 
+var testAccAWSEcsTaskDefinitionUpdatedVolume = `
+resource "aws_ecs_task_definition" "jenkins" {
+  family = "terraform-acc-test"
+  container_definitions = <<TASK_DEFINITION
+[
+	{
+		"cpu": 10,
+		"command": ["sleep", "10"],
+		"entryPoint": ["/"],
+		"environment": [
+			{"name": "VARNAME", "value": "VARVAL"}
+		],
+		"essential": true,
+		"image": "jenkins",
+		"links": ["mongodb"],
+		"memory": 128,
+		"name": "jenkins",
+		"portMappings": [
+			{
+				"containerPort": 80,
+				"hostPort": 8080
+			}
+		]
+	},
+	{
+		"cpu": 10,
+		"command": ["sleep", "10"],
+		"entryPoint": ["/"],
+		"essential": true,
+		"image": "mongodb",
+		"memory": 128,
+		"name": "mongodb",
+		"portMappings": [
+			{
+				"containerPort": 28017,
+				"hostPort": 28017
+			}
+		]
+	}
+]
+TASK_DEFINITION
+
+  volume {
+    name = "jenkins-home"
+    host_path = "/ecs/jenkins"
+  }
+}
+`
+
 var testAccAWSEcsTaskDefinitionWithScratchVolume = `
 resource "aws_ecs_task_definition" "sleep" {
   family = "terraform-acc-sc-volume-test"
@@ -338,132 +425,133 @@ TASK_DEFINITION
 }
 `
 
-var testAccAWSEcsTaskDefinitionWithTaskRoleArn = `
-resource "aws_iam_role" "role_test" {
-  name = "tf_old_name"
-  path = "/test/"
-  assume_role_policy = <<EOF
+func testAccAWSEcsTaskDefinitionWithTaskRoleArn(rInt int) string {
+	return fmt.Sprintf(`
+	resource "aws_iam_role" "role_test" {
+		name = "tf_old_name-%d"
+		path = "/test/"
+		assume_role_policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Action": "sts:AssumeRole",
+			"Principal": {
+				"Service": "ec2.amazonaws.com"
+			},
+			"Effect": "Allow",
+			"Sid": ""
+		}
+	]
 }
 EOF
-}
+	}
 
-resource "aws_iam_role_policy" "role_test" {
-  name = "role_update_test"
-  role = "${aws_iam_role.role_test.id}"
-  policy = <<EOF
+	resource "aws_iam_role_policy" "role_test" {
+		name = "role_update_test-%d"
+		role = "${aws_iam_role.role_test.id}"
+		policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:GetBucketLocation",
-        "s3:ListAllMyBuckets"
-      ],
-      "Resource": "arn:aws:s3:::*"
-    }
-  ]
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"s3:GetBucketLocation",
+				"s3:ListAllMyBuckets"
+			],
+			"Resource": "arn:aws:s3:::*"
+		}
+	]
 }
 EOF
-}
+	}
 
-resource "aws_ecs_task_definition" "sleep" {
-  family = "terraform-acc-sc-volume-test"
-  task_role_arn = "${aws_iam_role.role_test.arn}"
-  container_definitions = <<TASK_DEFINITION
+	resource "aws_ecs_task_definition" "sleep" {
+		family = "terraform-acc-sc-volume-test"
+		task_role_arn = "${aws_iam_role.role_test.arn}"
+		container_definitions = <<TASK_DEFINITION
 [
-  {
-    "name": "sleep",
-    "image": "busybox",
-    "cpu": 10,
-    "command": ["sleep","360"],
-    "memory": 10,
-    "essential": true
-  }
+	{
+		"name": "sleep",
+		"image": "busybox",
+		"cpu": 10,
+		"command": ["sleep","360"],
+		"memory": 10,
+		"essential": true
+	}
+]
+TASK_DEFINITION
+		volume {
+		name = "database_scratch"
+	}
+}`, rInt, rInt)
+}
+
+func testAccAWSEcsTaskDefinitionWithNetworkMode(rInt int) string {
+	return fmt.Sprintf(`
+ resource "aws_iam_role" "role_test" {
+	 name = "tf_old_name-%d"
+	 path = "/test/"
+	 assume_role_policy = <<EOF
+{
+ "Version": "2012-10-17",
+ "Statement": [
+	 {
+		 "Action": "sts:AssumeRole",
+		 "Principal": {
+			 "Service": "ec2.amazonaws.com"
+		 },
+		 "Effect": "Allow",
+		 "Sid": ""
+	 }
+ ]
+}
+EOF
+ }
+
+ resource "aws_iam_role_policy" "role_test" {
+	 name = "role_update_test-%d"
+	 role = "${aws_iam_role.role_test.id}"
+	 policy = <<EOF
+{
+ "Version": "2012-10-17",
+ "Statement": [
+	 {
+		 "Effect": "Allow",
+		 "Action": [
+			 "s3:GetBucketLocation",
+			 "s3:ListAllMyBuckets"
+		 ],
+		 "Resource": "arn:aws:s3:::*"
+	 }
+ ]
+}
+ EOF
+ }
+
+ resource "aws_ecs_task_definition" "sleep" {
+	 family = "terraform-acc-sc-volume-test-network-mode"
+	 task_role_arn = "${aws_iam_role.role_test.arn}"
+	 network_mode = "bridge"
+	 container_definitions = <<TASK_DEFINITION
+[
+ {
+	 "name": "sleep",
+	 "image": "busybox",
+	 "cpu": 10,
+	 "command": ["sleep","360"],
+	 "memory": 10,
+	 "essential": true
+ }
 ]
 TASK_DEFINITION
 
-  volume {
-    name = "database_scratch"
-  }
+	 volume {
+		 name = "database_scratch"
+	 }
+ }`, rInt, rInt)
 }
-`
-
-var testAccAWSEcsTaskDefinitionWithNetworkMode = `
-resource "aws_iam_role" "role_test" {
-  name = "tf_old_name"
-  path = "/test/"
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy" "role_test" {
-  name = "role_update_test"
-  role = "${aws_iam_role.role_test.id}"
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:GetBucketLocation",
-        "s3:ListAllMyBuckets"
-      ],
-      "Resource": "arn:aws:s3:::*"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_ecs_task_definition" "sleep" {
-  family = "terraform-acc-sc-volume-test-network-mode"
-  task_role_arn = "${aws_iam_role.role_test.arn}"
-  network_mode = "bridge"
-  container_definitions = <<TASK_DEFINITION
-[
-  {
-    "name": "sleep",
-    "image": "busybox",
-    "cpu": 10,
-    "command": ["sleep","360"],
-    "memory": 10,
-    "essential": true
-  }
-]
-TASK_DEFINITION
-
-  volume {
-    name = "database_scratch"
-  }
-}
-`
 
 var testAccAWSEcsTaskDefinitionWithEcsService = `
 resource "aws_ecs_cluster" "default" {
