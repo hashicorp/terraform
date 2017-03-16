@@ -481,6 +481,7 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 				"and specify the state path when creating the plan.")
 	}
 
+	planBackend := opts.Plan.Backend
 	planState := opts.Plan.State
 	if planState == nil {
 		// The state can be nil, we just have to make it empty for the logic
@@ -489,7 +490,7 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 	}
 
 	// Validation only for non-local plans
-	local := planState.Remote.Empty() && planState.Backend.Empty()
+	local := planState.Remote.Empty() && planBackend.Empty()
 	if !local {
 		// We currently don't allow "-state-out" to be specified.
 		if m.stateOutPath != "" {
@@ -500,7 +501,7 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 	/*
 		// Determine the path where we'd be writing state
 		path := DefaultStateFilename
-		if !planState.Remote.Empty() || !planState.Backend.Empty() {
+		if !planState.Remote.Empty() || !planBackend.Empty() {
 			path = filepath.Join(m.DataDir(), DefaultStateFilename)
 		}
 
@@ -529,16 +530,26 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 	var err error
 	switch {
 	// No remote state at all, all local
-	case planState.Remote.Empty() && planState.Backend.Empty():
+	case planState.Remote.Empty() && planBackend.Empty():
+		log.Printf("[INFO] command: initializing local backend from plan (not set)")
+
 		// Get the local backend
 		b, err = m.Backend(&BackendOpts{ForceLocal: true})
 
 	// New backend configuration set
-	case planState.Remote.Empty() && !planState.Backend.Empty():
-		b, err = m.backendInitFromSaved(planState.Backend)
+	case planState.Remote.Empty() && !planBackend.Empty():
+		log.Printf(
+			"[INFO] command: initializing backend from plan: %s",
+			planBackend.Type)
+
+		b, err = m.backendInitFromSaved(planBackend)
 
 	// Legacy remote state set
-	case !planState.Remote.Empty() && planState.Backend.Empty():
+	case !planState.Remote.Empty() && planBackend.Empty():
+		log.Printf(
+			"[INFO] command: initializing legacy remote backend from plan: %s",
+			planState.Remote.Type)
+
 		// Write our current state to an inmemory state just so that we
 		// have it in the format of state.State
 		inmem := &state.InmemState{}
@@ -548,7 +559,7 @@ func (m *Meta) backendFromPlan(opts *BackendOpts) (backend.Backend, error) {
 		b, err = m.backend_c_R_s(nil, inmem)
 
 	// Both set, this can't happen in a plan.
-	case !planState.Remote.Empty() && !planState.Backend.Empty():
+	case !planState.Remote.Empty() && !planBackend.Empty():
 		return nil, fmt.Errorf(strings.TrimSpace(errBackendPlanBoth))
 	}
 
